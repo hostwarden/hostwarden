@@ -37,10 +37,11 @@ applies before any of this runs.
    Code cancels sibling calls, so grouping limits blast radius.
    Put commands with complex quoting (awk, sed) in their own batch
    so a quoting mistake does not cancel simple commands.
-3. **SSH quoting warning:** avoid awk's `!~` operator — zsh
-   interprets `!` as history expansion and mangles it even inside
-   quotes. Use positive `~` match with `next` instead (see System
-   Accounts check in `references/user-accounts.md`).
+3. **Probe shape:** no taboo word as data (the guard denies the
+   whole batch), no `!` (zsh mangles it over SSH), and report
+   what you do not recognize instead of printing only what you
+   expect. The System Accounts check in
+   `references/user-accounts.md` shows all three.
 4. **Select checks** per the references below. Use the preferred
    method when privileges allow; fall back to the unprivileged
    method otherwise.

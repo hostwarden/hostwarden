@@ -153,6 +153,13 @@ remote connection before any other work.
   (e.g. OS replacement) require the operator to set
   `HEINZEL_GUARD_DISABLE=1` before launching the
   session.
+  When *writing* a probe, remember the guard scans the
+  whole command string and cannot tell a taboo word
+  used as data from an invocation. So write patterns
+  that never spell one from the start, and keep a
+  probe that merely *mentions* a guarded path in its
+  own call — two innocent commands can deny each other
+  when batched into one.
 - **Firewall & network:** Be extremely careful — a
   mistake cuts off SSH access. Discuss with the user
   first.
