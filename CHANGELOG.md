@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.20.1 — 2026-09-17
+
+- **The security audit's account check runs
+  again.** It skipped inert login shells by a regex
+  of their names, two of which `guard-taboos.sh`
+  reads as power-off commands, so the guard denied
+  it and the audit's whole batch with it. It now
+  skips only `nologin`, `false` and shells named
+  after their own account, and still reports any
+  shell it does not know. The guard test matrix now
+  runs every bash block the skills ship.
+  Contributed by Oliver Andrich (#8).
+
 ## 2.20.0 — 2026-09-17
 
 - **One SSH connection per host.** The standard SSH
