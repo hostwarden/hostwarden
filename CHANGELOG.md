@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.21.0 — 2026-09-17
+
+- **The taboo guard catches writes into keys,
+  `sshd_config` and disks.** `tee`, `cp`, `rsync`,
+  `scp`, `dd of=`, `curl -o`, `sed -i` and editors
+  could replace `authorized_keys` or a host key
+  unnoticed, and several of them also reached
+  `sshd_config` and raw disks. A copy is judged by
+  its destination, so `scp -i ~/.ssh/id_…` and a
+  backup of `authorized_keys` still pass (#12).
+- **Rule blocks the guard should deny say so.**
+  `rules/deployment.md` hands the deploy-key
+  install to the user, and `cloud-image.md` and
+  `partition-staging.md` point to the guard
+  override. Such fences are marked `operator` or
+  `guard-off`, and the test matrix runs every other
+  code block in `skills/` and `rules/` through the
+  guard. Found by Oliver Andrich in #8 (#11).
+- **The key fingerprint runs in its own call.**
+  Chained after a probe that names a private key,
+  `ssh-keygen -lf` is denied. `rules/secrets.md`
+  and the deny message now say so. Found by Oliver
+  Andrich in #8 (#10).
+
 ## 2.20.1 — 2026-09-17
 
 - **The security audit's account check runs
