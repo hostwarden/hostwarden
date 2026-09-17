@@ -54,7 +54,10 @@ ssh -o BatchMode=yes -o ConnectTimeout=5 \
   ```
 
 Only probe when a privileged action is actually
-needed.
+needed. On later connections, read `Root SSH:` from
+server memory instead of probing again: a refused
+root login can count toward a fail2ban ban
+(`rules/ssh-connections.md` → 3).
 
 ## Unprivileged Mode
 

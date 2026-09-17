@@ -965,8 +965,8 @@ rules/                 — Upstream rule files (git-tracked)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management
-  ssh-connections.md   — Bundled, shared SSH connections
-                         (rate limits count connections)
+  ssh-connections.md   — Bundled, shared SSH connections;
+                         avoiding failed logins
   ssh-unreachable.md   — No retry loops; blocked path vs
                          broken host
   server-memory.md     — Server memory file format

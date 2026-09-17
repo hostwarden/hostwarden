@@ -10,9 +10,8 @@ and the block looks like a broken host. If that has
 already happened, see `rules/ssh-unreachable.md`.
 
 fail2ban, sshguard and sshd's own
-`PerSourcePenalties` (OpenSSH 9.8+) count failed and
-aborted logins, not successful ones. Sharing changes
-nothing for them; only avoiding failed logins does.
+`PerSourcePenalties` (OpenSSH 9.8+) count failed
+logins instead; see section 3.
 
 ## 1. Bundle commands
 
@@ -116,3 +115,29 @@ that host finish, then repeat the call as usual.
   of the same local user can use it without key
   approval. Keep `~/.cache/heinzel` at `0700`; on a
   shared account, shorten `ControlPersist`.
+
+## 3. Avoid failed logins
+
+With fail2ban's defaults, 5 counted events in 10
+minutes ban the source address for 10 minutes. If
+the `recidive` jail is on, 5 bans in a day become a
+week on all ports. The user's own failed logins
+count toward the same limit. Counted are:
+
+- an unknown user (`Invalid user`);
+- a root login refused although the key fits
+  (`ROOT LOGIN REFUSED`);
+- more wrong keys than `MaxAuthTries` (default 6),
+  ending in `Too many authentication failures`;
+  the rejected keys count too, unless a later key
+  logs in;
+- in fail2ban's `ddos` and `aggressive` modes and
+  for `PerSourcePenalties`: connections that never
+  log in (`nc -z`, `ssh-keyscan`); those two
+  fail2ban modes also count every rejected login.
+
+The rules that own these steps keep heinzel clear of
+them: `rules/ssh-user.md` (user names),
+`rules/privilege-escalation.md` (root probe) and
+`rules/ssh-unreachable.md` (rejected logins, port
+probes).

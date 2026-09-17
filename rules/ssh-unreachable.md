@@ -5,7 +5,23 @@ fine: a filter on the way blocks the client,
 frequently because of heinzel's own connections (see
 `rules/ssh-connections.md`).
 
+## Login rejected
+
+`Permission denied (publickey)` and `Too many
+authentication failures` are answers, not outages:
+no retry, no other user name, no root instead.
+Guessed names and refused root logins are what
+fail2ban counts, and its `ddos` and `aggressive`
+modes count every rejected login
+(`rules/ssh-connections.md` → 3). Tell the user.
+For too many keys the fix is on the client:
+`IdentitiesOnly yes` and one `IdentityFile` for the
+host in `~/.ssh/config`; check with
+`ssh -G <host> | grep -i identit`.
+
 ## Do not retry in a loop
+
+This applies when SSH does not answer at all.
 
 Reconnecting on failure is exactly the pattern rate
 limits and IPS rules punish, and it keeps an existing

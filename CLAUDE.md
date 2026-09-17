@@ -85,9 +85,10 @@ Use them **instead of** the standard options, never
 appended to them: for a repeated option, SSH keeps
 the first value it sees.
 
-Rate limits count connections, not commands: read
-`rules/ssh-connections.md`. When SSH stops
-answering, read `rules/ssh-unreachable.md`.
+Rate limits count connections, fail2ban counts
+failed logins: read `rules/ssh-connections.md`.
+When SSH stops answering, read
+`rules/ssh-unreachable.md`.
 
 ## Access Control (Blacklist & Read-Only)
 
