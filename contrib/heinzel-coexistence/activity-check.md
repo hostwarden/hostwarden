@@ -3,53 +3,21 @@
 Override for `rules/activity-check.md` while
 hostwarden works on the same hosts.
 
-## Replace: How to check
+## Add: Read hostwarden's journal tag too
 
-Read both journal tags. Work done by hostwarden is
-invisible to a check that only asks for `heinzel`,
-and that is how two sessions end up surprising each
-other.
+Work done by hostwarden is invisible to a check that
+asks for `heinzel` alone, and that is how two
+sessions end up surprising each other. Widen the
+commands in "How to check" — everything else in that
+section still applies, including the journal
+visibility warnings and "an empty result only counts
+when the command succeeded":
 
-**systemd (Linux):**
-
-```
-journalctl -t heinzel -t hostwarden \
-  --since "7 days ago" --no-pager -q 2>/dev/null
-```
-
-As a non-root user outside the `systemd-journal` /
-`adm` groups, `journalctl` silently shows only the
-user's own entries. When connected as non-root, try
-`sudo -n journalctl -t heinzel -t hostwarden ...`
-first. If sudo is unavailable, run the command
-without `-q` and watch for the "not seeing messages
-from other users" hint. When visibility is limited,
-tell the user the activity check may be incomplete —
-do not stay silent.
-
-**macOS:**
-
-```
-/usr/bin/log show --last 7d \
-  --predicate 'process == "logger"' --info 2>&1 \
-  | grep -E "heinzel|hostwarden"
-```
-
-**FreeBSD:**
-
-```
-grep -hE "heinzel|hostwarden" /var/log/messages.0 \
-  /var/log/messages 2>/dev/null | tail -20
-```
-
-Note: this shows the last 20 matches, not a strict
-7-day window, and only reaches one rotation back
-(`messages.0`). Older rotated logs are usually
-compressed; mention the limitation if relevant.
-
-If the command returns nothing — and it actually ran,
-and journal visibility is not limited — skip
-silently.
+- systemd: add `-t hostwarden` to the `journalctl`
+  call, and to the `sudo -n journalctl` fallback —
+  `-t` may be given more than once.
+- macOS and FreeBSD: grep for
+  `-E "heinzel|hostwarden"` instead of `heinzel`.
 
 ## Add: A fresh hostwarden entry means a live session
 

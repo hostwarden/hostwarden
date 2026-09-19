@@ -129,15 +129,20 @@ do_restore() {
   # the templates the repo ships) counts as empty.
   # Without the template exception a fresh clone
   # could never be restored into.
+  #
+  # The templates are told apart by name, not by
+  # whether git tracks them: in team mode the user's
+  # own server memory is tracked on purpose
+  # (see .gitignore), and a tracked-ness test would
+  # read a full team knowledge base as empty.
   if [ -d memory ] && [ "$FORCE" != "--force" ]; then
     EXISTING=$(find memory -type f \
       ! -name '.gitkeep' \
       ! -name '.DS_Store' \
       ! -name '*.lock' \
-      | while read -r f; do
-          git ls-files --error-unmatch "$f" >/dev/null 2>&1 \
-            || { echo "$f"; break; }
-        done)
+      ! -name '*.example' \
+      ! -name 'MEMORY.md' \
+      | head -n 1)
     if [ -n "$EXISTING" ]; then
       echo "error: memory/ already contains user data (e.g. $EXISTING)" >&2
       echo "re-run with --force to overwrite, or move memory/ aside first" >&2
@@ -157,10 +162,13 @@ do_restore() {
     exit 1
   fi
   # Templates the repo ships stay at the checked-out
-  # version; the archive's copy may be older.
-  git ls-files memory 2>/dev/null | while read -r f; do
-    rm -f "$TMPEX/$f"
-  done
+  # version; the archive's copy may be older. Same
+  # name test as above — never tracked-ness, which
+  # would strip a team's shared server memory out of
+  # the archive it was just restored from.
+  find "$TMPEX/memory" -type f \
+    \( -name '*.example' -o -name 'MEMORY.md' \) \
+    -exec rm -f {} +
   mkdir -p memory
   cp -R "$TMPEX/memory/." memory/
   echo "restored $FILE into $REPO_DIR"

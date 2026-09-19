@@ -27,7 +27,7 @@ what adoption would do: answer it, don't start.
 What makes this safe is not the trigger but the gates: the old
 checkout is only read, anything this clone already holds is reported
 before it would be overwritten, no server is contacted, and the one
-write into the old tree (step 8) needs its own yes.
+write into the old tree (step 6) needs its own yes.
 
 ## Why an inventory instead of a migration
 
@@ -52,46 +52,33 @@ leads, the host confirms them.
 2. **Never write into the old tree.** The old checkout is the user's
    fallback. Read from it, copy out of it, change nothing in it. Say
    this once, so the user knows the original stays intact. The single
-   exception is step 8, which the user approves explicitly.
+   exception is step 6, which the user approves explicitly.
 
-3. **Check what this clone already holds.** Anything under `memory/`
-   beyond the shipped templates means this is not a fresh clone. List
-   what would be overwritten and ask before touching it. Default to
-   keeping this clone's file and reporting the conflict.
+3. **Copy the state.** `bin/hostwarden-adopt <path>` does it: access
+   lists, service policy, custom rules and every server's memory,
+   followed by `bin/hostwarden-migrate` for the `heinzel-<skill>.md`
+   → `hostwarden-<skill>.md` renames. It refuses a clone that already
+   holds user state rather than overwriting it — show `--list` first
+   if the user wants to see the file list.
 
-4. **Copy the state.** From the old `memory/` into this one:
-   `user.md`, `blacklist.md`, `readonly.md`, `service-policy.md`,
-   `network.md`, `housekeeping.md`, `opencode.json`, `custom-rules/`,
-   and all of `servers/`. Skip `*.example` files — this clone ships
-   its own. Copy, do not move.
-
-5. **Rename what is found by name.** Run `bin/hostwarden-migrate`; it
-   renames `memory/custom-rules/heinzel-<skill>.md` to
-   `hostwarden-<skill>.md`, which is how skill overrides are located.
-   Per-server `rules.md` files keep their name and need no change.
-
-6. **Leave the facts in memory alone.** A memory line naming
+4. **Leave the facts in memory alone.** A memory line naming
    `/var/backups/heinzel/` or a `heinzel-backup.sh` on a host is a
    true statement about that host — the path is still there. Rewriting
    it would turn a fact into a lie. Only the greeting line in
    `user.md` (`Greeting: … Heinzel`) is about this tool rather than
    about a host: point it out and ask whether to change it.
 
-7. **Build the inventory.** For each host under `memory/servers/`,
-   read `memory.md` and `changelog.log` and collect every mention of a
-   path, unit, cron job or script that heinzel created or configured.
-   See `references/inventory.md` for what counts and the file format.
-   Write it to `memory/servers/<host>/heinzel-inventory.md` and add to
-   `memory.md`:
+5. **Build the inventory.** This is the part no script can do. For
+   each host under `memory/servers/`, read `memory.md` and
+   `changelog.log` and collect every path, unit, cron job or script a
+   heinzel session created or configured — the shapes are listed in
+   `rules/heinzel-legacy.md` § "What to look for",
+   `references/inventory.md` has the file format and what does not
+   count. Write it to `memory/servers/<host>/heinzel-inventory.md`.
+   Its existence is what makes the first connection check the leads;
+   no status line is needed for that.
 
-   ```markdown
-   - heinzel legacy: pending (see heinzel-inventory.md)
-   ```
-
-   That line makes the first connection to the host run the legacy
-   check with the inventory in hand instead of a blind scan.
-
-8. **Offer the coexistence rules.** Ask whether heinzel stays in use
+6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files
    from `contrib/heinzel-coexistence/` into the old checkout's
    `memory/custom-rules/`. Without them heinzel reads only its own
@@ -101,7 +88,7 @@ leads, the host confirms them.
    overwritten. On a no, say the directory is there when they change
    their mind.
 
-9. **Report.** Per host one line: state copied, inventory entries
+7. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:
    nothing on any server has changed yet, and the first connection to
    each host will report what it finds there and ask.

@@ -1,0 +1,137 @@
+#!/bin/sh
+# hostwarden-adopt — copy user state out of a heinzel
+# checkout into this one.
+#
+# Usage:
+#   hostwarden-adopt <heinzel-checkout>   Copy state
+#   hostwarden-adopt <path> --list        Dry run
+#   hostwarden-adopt <path> --force       Overwrite
+#   hostwarden-adopt --help               Show this help
+#
+# Copies memory/ state — access lists, service
+# policy, custom rules, per-server memory — and then
+# runs hostwarden-migrate to rename skill overrides.
+# Reads the old checkout, never writes into it.
+#
+# The judgement work around this (reading changelogs
+# into a per-host inventory, the coexistence rules)
+# lives in the hostwarden-adopt skill; this script is
+# only the deterministic part.
+set -e
+
+SELF=$0
+usage() {
+  awk '/^# hostwarden-adopt/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+}
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+
+# State files to copy, in the order they are
+# reported. Directories are copied whole.
+ITEMS="user.md blacklist.md readonly.md \
+service-policy.md network.md housekeeping.md \
+opencode.json custom-rules servers"
+
+# A memory/ that holds only these counts as empty —
+# they are what the repo ships. Told apart by name,
+# never by whether git tracks them: team mode tracks
+# the user's own server memory on purpose.
+user_data() {
+  find "$1" -type f \
+    ! -name '.gitkeep' \
+    ! -name '.DS_Store' \
+    ! -name '*.lock' \
+    ! -name '*.example' \
+    ! -name 'MEMORY.md' \
+    | head -n 1
+}
+
+OLD=""
+MODE=""
+for ARG in "$@"; do
+  case "$ARG" in
+    --help|-h) usage; exit 0 ;;
+    --list|--force) MODE="$ARG" ;;
+    --*) echo "error: unknown option: $ARG" >&2; exit 2 ;;
+    *) OLD="$ARG" ;;
+  esac
+done
+
+if [ -z "$OLD" ]; then
+  echo "error: no heinzel checkout given" >&2
+  echo "run 'hostwarden-adopt --help' for usage" >&2
+  exit 2
+fi
+
+OLD=$(cd "$OLD" 2>/dev/null && pwd) || {
+  echo "error: not a directory: $OLD" >&2
+  exit 1
+}
+
+if [ "$OLD" = "$REPO_DIR" ]; then
+  echo "error: that is this checkout" >&2
+  exit 1
+fi
+
+if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
+  echo "error: $OLD has no memory/ and rules/ — not a heinzel checkout" >&2
+  exit 1
+fi
+
+if [ -z "$(user_data "$OLD/memory")" ]; then
+  echo "error: $OLD/memory holds no user state — nothing to adopt" >&2
+  exit 1
+fi
+
+cd "$REPO_DIR"
+mkdir -p memory
+
+EXISTING=$(user_data memory)
+if [ -n "$EXISTING" ] && [ "$MODE" != "--force" ] \
+    && [ "$MODE" != "--list" ]; then
+  echo "error: memory/ already holds user data (e.g. $EXISTING)" >&2
+  echo "this is not a fresh clone — re-run with --force to overwrite," >&2
+  echo "or back it up first with bin/hostwarden-backup" >&2
+  exit 1
+fi
+
+COPIED=""
+for ITEM in $ITEMS; do
+  SRC="$OLD/memory/$ITEM"
+  [ -e "$SRC" ] || continue
+  if [ "$MODE" = "--list" ]; then
+    COPIED="$COPIED\n  memory/$ITEM"
+    continue
+  fi
+  if [ -d "$SRC" ]; then
+    mkdir -p "memory/$ITEM"
+    # Copy the contents, so an existing directory
+    # keeps entries the old one does not have.
+    cp -R "$SRC/." "memory/$ITEM/"
+  else
+    cp "$SRC" "memory/$ITEM"
+  fi
+  COPIED="$COPIED\n  memory/$ITEM"
+done
+
+if [ "$MODE" = "--list" ]; then
+  printf "would copy from %s:%b\n" "$OLD" "$COPIED"
+  exit 0
+fi
+
+if [ -z "$COPIED" ]; then
+  echo "nothing to copy from $OLD/memory" >&2
+  exit 1
+fi
+
+printf "copied from %s:%b\n" "$OLD" "$COPIED"
+
+# Renames skill overrides heinzel-* → hostwarden-*
+# and creates directories new versions need.
+sh bin/hostwarden-migrate
+
+echo "The old checkout was not modified."
+echo "Next: the hostwarden-adopt skill reads the copied"
+echo "changelogs into a per-host inventory of what heinzel"
+echo "left on the servers."

@@ -31,9 +31,11 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **heinzel legacy check** (first connection only,
-   and only until the answer is recorded in server
-   memory). See `rules/heinzel-legacy.md`.
+8. **heinzel legacy check** (first connection only).
+   One batched probe, folded into step 5 where
+   possible; silent unless it finds something. Skip
+   it in an installation that never ran heinzel. See
+   `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 
 ## Local mode
@@ -44,7 +46,8 @@ hostname), skip steps 1–4 — they are remote-only
 Still run OS detection, server memory, activity
 check, and the heinzel legacy check — on the
 workstation the latter looks at scheduled runs
-instead of backup directories.
+instead of backup directories
+(`rules/heinzel-adoption.md`).
 
 ## Why it's mandatory
 

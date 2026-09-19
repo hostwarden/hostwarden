@@ -199,13 +199,14 @@ The migration renames skill overrides in
   entries as well, so earlier work stays visible.
 - Point hostwarden at your old checkout — "my
   heinzel is in ~/heinzel, take it over", or
-  `/adopt-heinzel ~/heinzel` in Claude Code — and the
-  `hostwarden-adopt` skill copies memory, access
-  lists and custom rules across, and turns what your
-  memory files say about each host into a per-host
-  list of leads: the scripts, configs, units and cron
-  jobs your sessions improvised. It contacts no
-  server.
+  `/adopt-heinzel ~/heinzel` in Claude Code. The copy
+  itself is a script — `bin/hostwarden-adopt <path>`
+  moves access lists, custom rules and every server's
+  memory across and renames what is found by name.
+  The skill then reads your memory files and
+  changelogs into a per-host list of leads: the
+  scripts, configs, units and cron jobs your sessions
+  improvised. Neither contacts a server.
 - Keeping heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your heinzel checkout so it reads both

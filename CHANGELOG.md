@@ -23,13 +23,13 @@
   heinzel entry is minutes old, and does not adopt a
   host that heinzel still uses.
 - **A heinzel installation can be taken over
-  wholesale.** `/adopt-heinzel <path>` in Claude
-  Code, or the same request in prose anywhere else:
-  the new `hostwarden-adopt` skill
-  copies memory, access lists and custom rules out of
-  an old checkout and reads its memory files and
-  changelogs into a per-host inventory of what
-  sessions improvised on the servers — scripts,
+  wholesale.** `bin/hostwarden-adopt <path>` copies
+  memory, access lists and custom rules out of an old
+  checkout; the `hostwarden-adopt` skill around it
+  (`/adopt-heinzel <path>`, or the same request in
+  prose) reads its memory files and changelogs into a
+  per-host inventory of what sessions improvised on
+  the servers — scripts,
   config files, units, cron jobs that no rule
   prescribed and that no name identifies reliably.
   It contacts no server; each first connection
