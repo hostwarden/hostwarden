@@ -140,8 +140,8 @@ do_restore() {
       ! -name '.gitkeep' \
       ! -name '.DS_Store' \
       ! -name '*.lock' \
-      ! -name '*.example' \
-      ! -name 'MEMORY.md' \
+      ! \( ! -path 'memory/*/*' -a \
+           \( -name '*.example' -o -name 'MEMORY.md' \) \) \
       | head -n 1)
     if [ -n "$EXISTING" ]; then
       echo "error: memory/ already contains user data (e.g. $EXISTING)" >&2
@@ -162,11 +162,11 @@ do_restore() {
     exit 1
   fi
   # Templates the repo ships stay at the checked-out
-  # version; the archive's copy may be older. Same
-  # name test as above — never tracked-ness, which
-  # would strip a team's shared server memory out of
-  # the archive it was just restored from.
-  find "$TMPEX/memory" -type f \
+  # version; the archive's copy may be older. Only at
+  # the top level — a MEMORY.md inside a server's
+  # directory is the user's file, and dropping it
+  # would make the restore quietly incomplete.
+  find "$TMPEX/memory" -maxdepth 1 -type f \
     \( -name '*.example' -o -name 'MEMORY.md' \) \
     -exec rm -f {} +
   mkdir -p memory

@@ -52,7 +52,8 @@ step):
 ```
 echo "##paths"; ls -d /var/backups/heinzel \
   ~/.heinzel-backups ~/heinzel-scratch \
-  /root/heinzel-scratch /etc/heinzel 2>/dev/null
+  /root/heinzel-scratch /etc/heinzel /opt/heinzel \
+  2>/dev/null
 echo "##cron"; ls -1 /etc/cron.d 2>/dev/null \
   | grep -i heinzel; crontab -l 2>/dev/null \
   | grep -i heinzel
@@ -77,10 +78,10 @@ still looks.
 Nothing found, no inventory file, no `heinzel`
 entries in the activity check, and nothing left
 unread: say nothing, record nothing, continue. The
-check is first-connection only — plus any connection
-to a host whose memory carries a
-`heinzel legacy: deferred` line — so it does not come
-back on its own.
+check runs on the first connection, and after that
+only while the host's memory carries a
+`heinzel legacy: deferred` line or an unresolved
+`heinzel-inventory.md`.
 
 ## What is not ours
 

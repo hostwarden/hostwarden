@@ -66,8 +66,8 @@ user_data() {
     ! -name '.gitkeep' \
     ! -name '.DS_Store' \
     ! -name '*.lock' \
-    ! -name '*.example' \
-    ! -name 'MEMORY.md' \
+    ! \( ! -path "$1/*/*" -a \
+         \( -name '*.example' -o -name 'MEMORY.md' \) \) \
     | head -n 1
 }
 

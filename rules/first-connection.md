@@ -31,10 +31,12 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **heinzel legacy check.** First connection only —
-   plus every connection to a host whose memory
-   carries a `heinzel legacy: deferred` line, which
-   is what makes a deferred question come back. One
+8. **heinzel legacy check.** First connection, plus
+   every connection to a host whose memory carries a
+   `heinzel legacy: deferred` line or an unresolved
+   `heinzel-inventory.md`. Adoption writes that
+   inventory into hosts hostwarden already knows, so
+   first-connection alone would strand it. One
    batched probe, folded into step 5 where possible;
    silent unless it finds something. Skip it in an
    installation that never ran heinzel. See
