@@ -197,8 +197,13 @@ The migration renames skill overrides in
 - New journal entries on your servers use the tag
   `hostwarden`. The activity check reads `heinzel`
   entries as well, so earlier work stays visible.
-- New config backups go to `/var/backups/hostwarden/`.
-  Older ones stay in `/var/backups/heinzel/`.
+- On the first connection to a host, hostwarden
+  reports what heinzel left there — config backups,
+  scratch directories — and offers to move it under
+  the new name. It asks first, and it says which old
+  backups the retention cleanup would then delete.
+  New config backups go to
+  `/var/backups/hostwarden/`.
 - SSH sockets live in `~/.cache/hostwarden`.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.

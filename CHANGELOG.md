@@ -12,6 +12,16 @@
   `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
   renames skill overrides in `memory/custom-rules/`.
   See "Moving over from heinzel" in the README.
+- **hostwarden adopts what heinzel left on a
+  host.** The first connection reports heinzel's
+  config backups and scratch directories, and offers
+  to move them under the new name — after naming
+  which of them the retention cleanup would then
+  delete, because `/var/backups/heinzel/` was never
+  cleaned by hostwarden. In local mode it reports
+  scheduled runs that still point at `bin/heinzel-*`
+  and would fail silently. The answer is recorded in
+  server memory, so the check runs once.
 - **A backup restores into a fresh clone.**
   `--restore` took the templates the repo ships in
   `memory/` for user data and refused without
