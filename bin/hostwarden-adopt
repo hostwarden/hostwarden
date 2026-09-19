@@ -57,17 +57,16 @@ has_user_data() {
   fi
 }
 
-# A memory/ that holds only these counts as empty —
-# they are what the repo ships. Told apart by name,
-# never by whether git tracks them: team mode tracks
-# the user's own server memory on purpose.
+# Anything below <dir> that the user could have
+# written. Only .gitkeep and transient noise are the
+# repo's. The shipped templates live directly in
+# memory/, never inside the directories this is
+# called with, so an *.example here is the user's.
 user_data() {
   find "$1" -type f \
     ! -name '.gitkeep' \
     ! -name '.DS_Store' \
     ! -name '*.lock' \
-    ! \( ! -path "$1/*/*" -a \
-         \( -name '*.example' -o -name 'MEMORY.md' \) \) \
     | head -n 1
 }
 
@@ -126,12 +125,15 @@ if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
 fi
 
 cd "$REPO_DIR"
-mkdir -p memory
 
 # Named hosts must exist in the source, or a typo
-# would look like a host with no memory.
+# would look like a host with no memory. -e follows
+# symlinks, so an alias whose target is gone needs
+# -L as well — it exists, and the host loop reports
+# why it cannot be used.
 for H in $HOSTS; do
-  if [ ! -e "$OLD/memory/servers/$H" ]; then
+  if [ ! -e "$OLD/memory/servers/$H" ] \
+      && [ ! -L "$OLD/memory/servers/$H" ]; then
     echo "error: $OLD/memory/servers/$H does not exist" >&2
     exit 1
   fi
@@ -146,9 +148,17 @@ done
 copy_item() {
   ci_src="$1"
   ci_dst="memory/$2"
+  # A destination symlink is replaced rather than
+  # written through, or a copy would land in the
+  # canonical host an alias points at. rm -rf, not
+  # rm -f: the destination may be a real directory
+  # where the source became an alias, and a failing
+  # rm would abort the run half-copied.
+  if [ -L "$ci_dst" ] || { [ -L "$ci_src" ] && [ -e "$ci_dst" ]; }; then
+    rm -rf "$ci_dst"
+  fi
   if [ -L "$ci_src" ]; then
     ci_link=$(readlink "$ci_src")
-    rm -f "$ci_dst"
     ln -s "$ci_link" "$ci_dst"
   elif [ -d "$ci_src" ]; then
     mkdir -p "$ci_dst"
@@ -161,18 +171,53 @@ copy_item() {
 COPIED=""
 plan() { COPIED="$COPIED\n  memory/$1"; }
 
-# Shared state first, always: a per-server adoption
-# without the blacklist and the read-only list would
-# work on hosts whose access rules stayed behind.
+# Which shared files this clone would keep. Decided
+# before anything is copied, because the access-list
+# check below can refuse the run, and refusing after
+# half the shared state has been written leaves a
+# clone that cannot be described or re-run cleanly.
 SHARED_PENDING=""
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
   if has_user_data "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
-    continue
   fi
+done
+
+# The invariant from the header: a host may not come
+# across while the lists that say whether it may be
+# touched stayed behind. A kept blacklist or
+# read-only list therefore stops the host import —
+# before the first write. A dry run reports it and
+# carries on; it changes nothing either way.
+BLOCKED=""
+case " $SHARED_PENDING " in
+  *" blacklist.md "*|*" readonly.md "*)
+    [ -n "$SHARED_ONLY" ] || BLOCKED=yes ;;
+esac
+if [ -n "$BLOCKED" ]; then
+  echo "this clone has its own$SHARED_PENDING" >&2
+  echo "A host denied or read-only in the old checkout would arrive here" >&2
+  echo "without that restriction. Merge the lists by hand, or re-run with" >&2
+  echo "--force to take the old checkout's, then adopt the hosts." >&2
+  if [ -z "$LIST" ]; then
+    echo "error: nothing was copied" >&2
+    exit 1
+  fi
+  echo "(--list: reporting the plan anyway, nothing is written)" >&2
+fi
+
+# Shared state first, always: a per-server adoption
+# without the blacklist and the read-only list would
+# work on hosts whose access rules stayed behind.
+for ITEM in $SHARED; do
+  [ -e "$OLD/memory/$ITEM" ] || continue
+  case " $SHARED_PENDING " in
+    *" $ITEM "*) continue ;;
+  esac
   plan "$ITEM"
-  [ -n "$LIST" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
+  [ -n "$LIST" ] || { mkdir -p memory
+    copy_item "$OLD/memory/$ITEM" "$ITEM"; }
 done
 
 # heinzel 1.x kept custom rules in rules/custom/ and
@@ -189,9 +234,9 @@ if [ -d "$OLD/rules/custom" ]; then
       echo "kept memory/custom-rules/$B — use --force for the old checkout's" >&2
       continue
     fi
-    mkdir -p memory/custom-rules
     plan "custom-rules/$B (from rules/custom/)"
-    [ -n "$LIST" ] || cp "$F" "memory/custom-rules/$B"
+    [ -n "$LIST" ] || { mkdir -p memory/custom-rules
+      cp "$F" "memory/custom-rules/$B"; }
   done
 fi
 if [ -f "$OLD/opencode.json" ] \
@@ -200,37 +245,24 @@ if [ -f "$OLD/opencode.json" ] \
   [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
 fi
 
-# The invariant from the header: a host may not come
-# across while the lists that say whether it may be
-# touched stayed behind. A kept blacklist or
-# read-only list therefore stops the host import
-# instead of letting it proceed.
-case " $SHARED_PENDING " in
-  *" blacklist.md "*|*" readonly.md "*)
-    if [ -z "$SHARED_ONLY" ]; then
-      echo "error: this clone has its own$SHARED_PENDING" >&2
-      echo "A host denied or read-only in the old checkout would arrive here" >&2
-      echo "without that restriction. Merge the lists by hand, or re-run with" >&2
-      echo "--force to take the old checkout's, then adopt the hosts." >&2
-      exit 1
-    fi
-    ;;
-esac
-
-if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
+if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
+    && [ -d "$OLD/memory/servers" ]; then
   [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
-  mkdir -p memory/servers
+  [ -n "$LIST" ] || mkdir -p memory/servers
   for H in $HOSTS; do
     SRC="$OLD/memory/servers/$H"
-    [ -e "$SRC" ] || continue
+    { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
     # A DNS alias is a symlink to the canonical host
     # (rules/dns-aliases.md). Naming one on its own
     # would copy a link to a directory that is not
     # here, so the canonical host comes first.
     if [ -L "$SRC" ]; then
       CANON=$(basename "$(readlink "$SRC")")
-      if [ ! -e "memory/servers/$CANON" ] \
-          && [ -e "$OLD/memory/servers/$CANON" ]; then
+      if [ ! -e "$OLD/memory/servers/$CANON" ]; then
+        echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
+        continue
+      fi
+      if [ ! -e "memory/servers/$CANON" ]; then
         plan "servers/$CANON (canonical host of $H)"
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
