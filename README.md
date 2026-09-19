@@ -198,7 +198,8 @@ The migration renames skill overrides in
   `hostwarden`. The activity check reads `heinzel`
   entries as well, so earlier work stays visible.
 - Point hostwarden at your old checkout — "my
-  heinzel is in ~/heinzel, take it over" — and the
+  heinzel is in ~/heinzel, take it over", or
+  `/adopt-heinzel ~/heinzel` in Claude Code — and the
   `hostwarden-adopt` skill copies memory, access
   lists and custom rules across, and turns what your
   memory files say about each host into a per-host

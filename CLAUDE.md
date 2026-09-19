@@ -637,6 +637,12 @@ software. Nudge the user but never force upgrades.
 
 ## Hostwarden Versioning
 
+The first hostwarden release is **1.0.0**. heinzel's
+numbering is not continued, and `VERSION` keeps the
+inherited 2.22.0 until that release is cut — do not
+bump it on the way there, because a bump landing on
+`main` tags a release automatically.
+
 The `VERSION` file at the repo root contains the
 current version (semver). Release notes are in
 `CHANGELOG.md`. The session-start hook compares

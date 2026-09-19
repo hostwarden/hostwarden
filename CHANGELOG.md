@@ -23,7 +23,9 @@
   heinzel entry is minutes old, and does not adopt a
   host that heinzel still uses.
 - **A heinzel installation can be taken over
-  wholesale.** The new `hostwarden-adopt` skill
+  wholesale.** `/adopt-heinzel <path>` in Claude
+  Code, or the same request in prose anywhere else:
+  the new `hostwarden-adopt` skill
   copies memory, access lists and custom rules out of
   an old checkout and reads its memory files and
   changelogs into a per-host inventory of what

@@ -19,7 +19,15 @@ remote file is touched**. What lives on the hosts is written down as
 an inventory that the first connection to each host verifies later
 (`rules/heinzel-legacy.md`).
 
-**Never run automatically** — only on explicit user request.
+**Only on an explicit request** — the user naming their old checkout,
+or `/adopt-heinzel <path>` in Claude Code. A session that merely
+mentions heinzel is not a request, and neither is a question about
+what adoption would do: answer it, don't start.
+
+What makes this safe is not the trigger but the gates: the old
+checkout is only read, anything this clone already holds is reported
+before it would be overwritten, no server is contacted, and the one
+write into the old tree (step 8) needs its own yes.
 
 ## Why an inventory instead of a migration
 
