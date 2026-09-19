@@ -57,6 +57,20 @@ has_user_data() {
   fi
 }
 
+# True when source and destination already match, so
+# there is nothing to copy and nothing to conflict
+# over. This is what lets a gradual migration work: a
+# second --server run finds the access lists it wrote
+# itself on the first one, and must not read them as
+# a conflict.
+same_content() {
+  if [ -d "$1" ]; then
+    diff -r "$1" "$2" >/dev/null 2>&1
+  else
+    cmp -s "$1" "$2"
+  fi
+}
+
 # Anything below <dir> that the user could have
 # written. Only .gitkeep and transient noise are the
 # repo's. The shipped templates live directly in
@@ -179,6 +193,7 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 SHARED_PENDING=""
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
+  same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   if has_user_data "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
   fi
@@ -212,6 +227,7 @@ fi
 # work on hosts whose access rules stayed behind.
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
+  same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   case " $SHARED_PENDING " in
     *" $ITEM "*) continue ;;
   esac
@@ -262,7 +278,7 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
         continue
       fi
-      if [ ! -e "memory/servers/$CANON" ]; then
+      if [ ! -e "memory/servers/$CANON" ] || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
