@@ -77,8 +77,13 @@ same_content() {
 # repo's. The shipped templates live directly in
 # memory/, never inside the directories this is
 # called with, so an *.example here is the user's.
+#
+# Symlinks count. A directory holding only links
+# would otherwise read as empty, and a copy into it
+# would follow them and write through to their
+# targets — outside the repo, in the worst case.
 user_data() {
-  find "$1" -type f \
+  find "$1" \( -type f -o -type l \) \
     ! -name '.gitkeep' \
     ! -name '.DS_Store' \
     ! -name '*.lock' \
@@ -282,7 +287,10 @@ if [ -d "$OLD/rules/custom" ]; then
       continue
     fi
     plan "custom-rules/$B (from rules/custom/)"
+    # rm first: cp would follow a destination symlink
+    # and write through to its target.
     [ -n "$LIST" ] || { mkdir -p memory/custom-rules
+      rm -f "memory/custom-rules/$B"
       cp "$F" "memory/custom-rules/$B"; }
   done
 fi
@@ -292,7 +300,8 @@ if [ -f "$OLD/opencode.json" ]; then
       || echo "kept memory/opencode.json — the old checkout has its own at the repo root, use --force for that one" >&2
   else
     plan "opencode.json (from the repo root)"
-    [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
+    [ -n "$LIST" ] || { rm -f memory/opencode.json
+      cp "$OLD/opencode.json" memory/opencode.json; }
   fi
 fi
 
