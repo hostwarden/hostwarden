@@ -288,9 +288,11 @@ if [ -d "$OLD/rules/custom" ]; then
     fi
     plan "custom-rules/$B (from rules/custom/)"
     # rm first: cp would follow a destination symlink
-    # and write through to its target.
+    # and write through to its target. -r as well, or
+    # a destination that is a directory fails the rm
+    # and set -e ends the run half done.
     [ -n "$LIST" ] || { mkdir -p memory/custom-rules
-      rm -f "memory/custom-rules/$B"
+      rm -rf "memory/custom-rules/$B"
       cp "$F" "memory/custom-rules/$B"; }
   done
 fi
@@ -300,7 +302,7 @@ if [ -f "$OLD/opencode.json" ]; then
       || echo "kept memory/opencode.json — the old checkout has its own at the repo root, use --force for that one" >&2
   else
     plan "opencode.json (from the repo root)"
-    [ -n "$LIST" ] || { rm -f memory/opencode.json
+    [ -n "$LIST" ] || { rm -rf memory/opencode.json
       cp "$OLD/opencode.json" memory/opencode.json; }
   fi
 fi
@@ -317,7 +319,20 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
     # would copy a link to a directory that is not
     # here, so the canonical host comes first.
     if [ -L "$SRC" ]; then
-      CANON=$(basename "$(readlink "$SRC")")
+      CANON=$(readlink "$SRC")
+      # The link is copied verbatim, so its target
+      # has to be a sibling host and nothing else.
+      # `alias -> /tmp/web1` would otherwise validate
+      # against memory/servers/web1 and still point
+      # into /tmp afterwards, and every read or write
+      # through that alias would land outside the
+      # repo (rules/dns-aliases.md: aliases link to
+      # the canonical directory beside them).
+      case "$CANON" in
+        */*|..|.|"")
+          echo "skipped memory/servers/$H — alias points outside memory/servers/: $CANON" >&2
+          continue ;;
+      esac
       if [ ! -e "$OLD/memory/servers/$CANON" ]; then
         echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
         continue
