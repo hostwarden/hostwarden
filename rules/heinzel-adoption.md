@@ -120,11 +120,15 @@ Then one line for the outcome of the check:
 
 The first two settle it and the check does not run
 again. A deferral does not: while that line reads
-`deferred`, the check runs on every connection. It
-stays quiet until something changes — the user asks,
-90 days pass, the activity check stops seeing heinzel
-entries, or, for paths that could not be read, the
-session has the privileges the last one lacked.
+`deferred`, the check runs on every connection — but
+it only speaks up when the deferral's own reason has
+changed. `rules/heinzel-legacy.md` lists those
+conditions, and they are checked before any of the
+report-and-ask flow above runs.
+
+Note the reason in the line, as the examples do.
+Without it there is nothing to re-check against, and
+the question comes back every time.
 Without that exception the promised re-offer would
 never happen, because the check is otherwise
 first-connection only.

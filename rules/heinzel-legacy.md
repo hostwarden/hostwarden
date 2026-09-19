@@ -94,6 +94,22 @@ only while the host's memory carries a
 `heinzel legacy: deferred` line or an unresolved
 `heinzel-inventory.md`.
 
+On a deferred host the probe runs but the question
+does not come back by itself. Check the deferral's
+reason against what is true now, and stay silent
+unless it changed:
+
+- `heinzel still in use` — the activity check no
+  longer shows heinzel entries.
+- `privileged paths unread` — this session can read
+  them, through sudo or as root.
+- any reason — the user asks, or the recorded date is
+  more than 90 days old.
+
+None of those: say nothing, leave the line as it is,
+carry on. Re-offering an unchanged answer on every
+connection is what the deferral exists to prevent.
+
 ## What is not ours
 
 A file with "heinzel" in its name that no session

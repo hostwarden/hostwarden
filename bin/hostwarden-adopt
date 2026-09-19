@@ -7,7 +7,8 @@
 #   hostwarden-adopt <path> --shared     Shared state only
 #   hostwarden-adopt <path> --server H   One host, repeatable
 #   hostwarden-adopt <path> --list       Dry run
-#   hostwarden-adopt <path> --force      Overwrite
+#   hostwarden-adopt <path> --force      Replace what
+#                                        is here
 #   hostwarden-adopt --help              Show this help
 #
 # Copies memory/ state — access lists, service policy,
@@ -140,6 +141,19 @@ fi
 
 cd "$REPO_DIR"
 
+# A host name is one path component. Interpolated
+# into both the source and the destination path, a
+# value with a slash or .. would read and write
+# outside memory/servers/ — `--server ../../bin/foo`
+# would land in the repo root.
+for H in $HOSTS; do
+  case "$H" in
+    */*|..|.|"")
+      echo "error: --server takes one host name, not a path: $H" >&2
+      exit 2 ;;
+  esac
+done
+
 # Named hosts must exist in the source, or a typo
 # would look like a host with no memory. -e follows
 # symlinks, so an alias whose target is gone needs
@@ -162,6 +176,23 @@ done
 copy_item() {
   ci_src="$1"
   ci_dst="memory/$2"
+  # --force means the old checkout's copy wins, so an
+  # occupied destination is replaced, not merged: a
+  # stale rules.md, todo.md or heinzel-inventory.md
+  # left behind would outlive the host memory it
+  # belongs to. A destination that holds only the
+  # .gitkeep the repo ships is left alone, and a type
+  # change (file where a directory was, or the other
+  # way round) is replaced as well.
+  if [ -n "$FORCE" ] && [ -e "$ci_dst" ] && [ ! -L "$ci_dst" ]; then
+    if [ -d "$ci_src" ] && [ ! -d "$ci_dst" ]; then
+      rm -rf "$ci_dst"
+    elif [ ! -d "$ci_src" ] && [ -d "$ci_dst" ]; then
+      rm -rf "$ci_dst"
+    elif [ -d "$ci_dst" ] && [ -n "$(user_data "$ci_dst")" ]; then
+      rm -rf "$ci_dst"
+    fi
+  fi
   # A destination symlink is replaced rather than
   # written through, or a copy would land in the
   # canonical host an alias points at. rm -rf, not
@@ -255,10 +286,14 @@ if [ -d "$OLD/rules/custom" ]; then
       cp "$F" "memory/custom-rules/$B"; }
   done
 fi
-if [ -f "$OLD/opencode.json" ] \
-    && { [ ! -e memory/opencode.json ] || [ -n "$FORCE" ]; }; then
-  plan "opencode.json (from the repo root)"
-  [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
+if [ -f "$OLD/opencode.json" ]; then
+  if [ -e memory/opencode.json ] && [ -z "$FORCE" ]; then
+    same_content "$OLD/opencode.json" memory/opencode.json \
+      || echo "kept memory/opencode.json — the old checkout has its own at the repo root, use --force for that one" >&2
+  else
+    plan "opencode.json (from the repo root)"
+    [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
+  fi
 fi
 
 if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
