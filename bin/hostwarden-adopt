@@ -337,6 +337,16 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
         continue
       fi
+      # And the canonical entry has to be the host
+      # itself. A chain — alias -> canonical,
+      # canonical -> /tmp/x — would pass the text
+      # check above and still leave both links
+      # pointing out of the tree once copied.
+      if [ -L "$OLD/memory/servers/$CANON" ] \
+          || [ ! -d "$OLD/memory/servers/$CANON" ]; then
+        echo "skipped memory/servers/$H — alias to $CANON, which is not a host directory" >&2
+        continue
+      fi
       if [ ! -e "memory/servers/$CANON" ] || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
         [ -n "$LIST" ] \
