@@ -21,19 +21,24 @@ Copy them into the heinzel checkout, without
 clobbering anything that is already there:
 
 ```bash
-cp -n contrib/heinzel-coexistence/all.md \
-   contrib/heinzel-coexistence/activity-check.md \
-   contrib/heinzel-coexistence/backups.md \
-   /path/to/heinzel/memory/custom-rules/
+DST=/path/to/heinzel/memory/custom-rules
+for f in all.md activity-check.md backups.md; do
+  if [ -e "$DST/$f" ]; then
+    echo "exists, merge by hand: $DST/$f"
+  else
+    cp "contrib/heinzel-coexistence/$f" "$DST/$f"
+  fi
+done
 ```
 
-`cp -n` skips a file that exists rather than
-replacing it — `all.md` especially, which a heinzel
-installation may already use for its own rules, but
-`activity-check.md` and `backups.md` too. Whatever
-`cp` reports as skipped has to be merged by hand:
-open the existing file and add the sections from this
-one.
+The loop rather than `cp -n`, which skips an existing
+file without saying which — and a silently skipped
+file is the whole failure: the heinzel checkout keeps
+its old rule and stays unaware of hostwarden. Every
+name it prints has to be merged by hand: open that
+file and add the sections from this one. `all.md`
+especially, which an installation may already use for
+its own rules.
 
 heinzel reads `memory/custom-rules/all.md` once per
 session, and `memory/custom-rules/<rule>.md` whenever

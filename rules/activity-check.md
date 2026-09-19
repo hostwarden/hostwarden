@@ -111,12 +111,19 @@ If there are entries, show a brief summary to the
 user:
 
 ```
-Recent hostwarden activity (last 7 days):
-- [2026-04-12 14:32] [alice as root] Installed nginx,
-  opened port 443 — because static site launch
-- [2026-04-11 09:15] [bob as bob] Updated Node.js
-  22.14 → 22.15
+Recent activity (last 7 days):
+- [2026-04-12 14:32] [hostwarden] [alice as root]
+  Installed nginx, opened port 443 — because static
+  site launch
+- [2026-04-11 09:15] [heinzel] [bob as bob] Updated
+  Node.js 22.14 → 22.15
 ```
+
+The heading is neutral and every line names its
+journal tag. A host can carry entries from before the
+rename and from a heinzel session running right now,
+and labelling either as hostwarden's would credit
+this tool with work it did not do.
 
 - Group related entries when possible.
 - Keep it concise — summarize, don't dump raw logs.

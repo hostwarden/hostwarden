@@ -200,6 +200,23 @@ if [ -f "$OLD/opencode.json" ] \
   [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
 fi
 
+# The invariant from the header: a host may not come
+# across while the lists that say whether it may be
+# touched stayed behind. A kept blacklist or
+# read-only list therefore stops the host import
+# instead of letting it proceed.
+case " $SHARED_PENDING " in
+  *" blacklist.md "*|*" readonly.md "*)
+    if [ -z "$SHARED_ONLY" ]; then
+      echo "error: this clone has its own$SHARED_PENDING" >&2
+      echo "A host denied or read-only in the old checkout would arrive here" >&2
+      echo "without that restriction. Merge the lists by hand, or re-run with" >&2
+      echo "--force to take the old checkout's, then adopt the hosts." >&2
+      exit 1
+    fi
+    ;;
+esac
+
 if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
   mkdir -p memory/servers
