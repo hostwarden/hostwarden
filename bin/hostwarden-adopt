@@ -72,7 +72,8 @@ user_data() {
 }
 
 OLD=""
-MODE=""
+LIST=""
+FORCE=""
 SHARED_ONLY=""
 HOSTS=""
 WANT_SERVER=""
@@ -84,7 +85,8 @@ for ARG in "$@"; do
   fi
   case "$ARG" in
     --help|-h) usage; exit 0 ;;
-    --list|--force) MODE="$ARG" ;;
+    --list) LIST=yes ;;
+    --force) FORCE=yes ;;
     --shared) SHARED_ONLY=yes ;;
     --server) WANT_SERVER=yes ;;
     --*) echo "error: unknown option: $ARG" >&2; exit 2 ;;
@@ -139,17 +141,20 @@ done
 # memory/servers/ holds DNS aliases as symlinks to the
 # canonical directory (rules/dns-aliases.md), and
 # resolving them would duplicate a host's memory.
+# Local names only: sh has no scoping, and a plain
+# SRC here would clobber the caller's loop variable.
 copy_item() {
-  SRC="$1"
-  DST="memory/$2"
-  if [ -L "$SRC" ]; then
-    LINK=$(readlink "$SRC")
-    [ -e "$DST" ] || ln -s "$LINK" "$DST"
-  elif [ -d "$SRC" ]; then
-    mkdir -p "$DST"
-    cp -R "$SRC/." "$DST/"
+  ci_src="$1"
+  ci_dst="memory/$2"
+  if [ -L "$ci_src" ]; then
+    ci_link=$(readlink "$ci_src")
+    rm -f "$ci_dst"
+    ln -s "$ci_link" "$ci_dst"
+  elif [ -d "$ci_src" ]; then
+    mkdir -p "$ci_dst"
+    cp -R "$ci_src/." "$ci_dst/"
   else
-    cp "$SRC" "$DST"
+    cp "$ci_src" "$ci_dst"
   fi
 }
 
@@ -162,12 +167,12 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 SHARED_PENDING=""
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
-  if has_user_data "memory/$ITEM" && [ "$MODE" != "--force" ]; then
+  if has_user_data "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
     continue
   fi
   plan "$ITEM"
-  [ "$MODE" = "--list" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
+  [ -n "$LIST" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
 done
 
 # heinzel 1.x kept custom rules in rules/custom/ and
@@ -180,15 +185,19 @@ if [ -d "$OLD/rules/custom" ]; then
     [ -e "$F" ] || continue
     B=$(basename "$F")
     [ "$B" = ".gitkeep" ] && continue
-    [ -e "memory/custom-rules/$B" ] && continue
+    if [ -e "memory/custom-rules/$B" ] && [ -z "$FORCE" ]; then
+      echo "kept memory/custom-rules/$B — use --force for the old checkout's" >&2
+      continue
+    fi
     mkdir -p memory/custom-rules
     plan "custom-rules/$B (from rules/custom/)"
-    [ "$MODE" = "--list" ] || cp "$F" "memory/custom-rules/$B"
+    [ -n "$LIST" ] || cp "$F" "memory/custom-rules/$B"
   done
 fi
-if [ -f "$OLD/opencode.json" ] && [ ! -e memory/opencode.json ]; then
+if [ -f "$OLD/opencode.json" ] \
+    && { [ ! -e memory/opencode.json ] || [ -n "$FORCE" ]; }; then
   plan "opencode.json (from the repo root)"
-  [ "$MODE" = "--list" ] || cp "$OLD/opencode.json" memory/opencode.json
+  [ -n "$LIST" ] || cp "$OLD/opencode.json" memory/opencode.json
 fi
 
 if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
@@ -197,12 +206,25 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   for H in $HOSTS; do
     SRC="$OLD/memory/servers/$H"
     [ -e "$SRC" ] || continue
-    if [ -e "memory/servers/$H" ] && [ "$MODE" != "--force" ]; then
+    # A DNS alias is a symlink to the canonical host
+    # (rules/dns-aliases.md). Naming one on its own
+    # would copy a link to a directory that is not
+    # here, so the canonical host comes first.
+    if [ -L "$SRC" ]; then
+      CANON=$(basename "$(readlink "$SRC")")
+      if [ ! -e "memory/servers/$CANON" ] \
+          && [ -e "$OLD/memory/servers/$CANON" ]; then
+        plan "servers/$CANON (canonical host of $H)"
+        [ -n "$LIST" ] \
+          || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
+      fi
+    fi
+    if [ -e "memory/servers/$H" ] && [ -z "$FORCE" ]; then
       echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
       continue
     fi
     plan "servers/$H"
-    [ "$MODE" = "--list" ] || copy_item "$SRC" "servers/$H"
+    [ -n "$LIST" ] || copy_item "$SRC" "servers/$H"
   done
 fi
 
@@ -216,7 +238,7 @@ if [ -z "$COPIED" ]; then
   exit 1
 fi
 
-if [ "$MODE" = "--list" ]; then
+if [ -n "$LIST" ]; then
   printf "would copy from %s:%b\n" "$OLD" "$COPIED"
   exit 0
 fi

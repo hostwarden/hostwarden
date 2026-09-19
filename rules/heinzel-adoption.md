@@ -115,16 +115,19 @@ Then one line for the outcome of the check:
 - heinzel legacy: adopted 2026-09-20 (24 backups, 0 left)
 - heinzel legacy: left in place (/var/backups/heinzel/)
 - heinzel legacy: deferred 2026-09-20 (heinzel still in use)
+- heinzel legacy: deferred 2026-09-20 (privileged paths unread)
 ```
 
 The first two settle it and the check does not run
 again. A deferral does not: while that line reads
-`deferred`, the check runs on every connection but
-stays silent until the user asks, or until 90 days
-have passed, or until the activity check stops seeing
-heinzel entries. Without that exception the promised
-re-offer would never happen, because the check is
-otherwise first-connection only.
+`deferred`, the check runs on every connection. It
+stays quiet until something changes — the user asks,
+90 days pass, the activity check stops seeing heinzel
+entries, or, for paths that could not be read, the
+session has the privileges the last one lacked.
+Without that exception the promised re-offer would
+never happen, because the check is otherwise
+first-connection only.
 
 Leads the host did not confirm move into the same
 memory file as a one-line note when they matter (a

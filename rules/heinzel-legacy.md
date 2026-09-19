@@ -70,10 +70,21 @@ are usually unreadable as an ordinary user, and
 `2>/dev/null` makes "permission denied" look exactly
 like "not there". As a non-root user, run the paths
 line through `sudo -n` if sudo is available
-(`rules/privilege-escalation.md`); if it is not, the
-privileged half of the check did not run — say so,
-and record nothing, so a later privileged session
-still looks.
+(`rules/privilege-escalation.md`).
+
+If it is not available, the privileged half of the
+check did not run. Say so and record
+
+```markdown
+- heinzel legacy: deferred 2026-09-20 (privileged paths unread)
+```
+
+A deferral is the one outcome that keeps the check
+eligible on later connections
+(`rules/heinzel-adoption.md` → Record), so the next
+session that does have root actually looks. Recording
+nothing would not: the check is otherwise
+first-connection only.
 
 Nothing found, no inventory file, no `heinzel`
 entries in the activity check, and nothing left
