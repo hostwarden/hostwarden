@@ -12,6 +12,19 @@
   `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
   renames skill overrides in `memory/custom-rules/`.
   See "Moving over from heinzel" in the README.
+- **A heinzel installation can be taken over
+  wholesale.** The new `hostwarden-adopt` skill
+  copies memory, access lists and custom rules out of
+  an old checkout and reads its memory files and
+  changelogs into a per-host inventory of what
+  sessions improvised on the servers — scripts,
+  config files, units, cron jobs that no rule
+  prescribed and that no name identifies reliably.
+  It contacts no server; each first connection
+  verifies the leads. Adopting such an artifact means
+  recording it in server memory, not renaming it: a
+  rename breaks whoever calls it and only happens
+  under `rules/file-naming-changes.md`.
 - **hostwarden adopts what heinzel left on a
   host.** The first connection reports heinzel's
   config backups and scratch directories, and offers

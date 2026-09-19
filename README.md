@@ -197,6 +197,14 @@ The migration renames skill overrides in
 - New journal entries on your servers use the tag
   `hostwarden`. The activity check reads `heinzel`
   entries as well, so earlier work stays visible.
+- Point hostwarden at your old checkout — "my
+  heinzel is in ~/heinzel, take it over" — and the
+  `hostwarden-adopt` skill copies memory, access
+  lists and custom rules across, and turns what your
+  memory files say about each host into a per-host
+  list of leads: the scripts, configs, units and cron
+  jobs your sessions improvised. It contacts no
+  server.
 - On the first connection to a host, hostwarden
   reports what heinzel left there — config backups,
   scratch directories — and offers to move it under

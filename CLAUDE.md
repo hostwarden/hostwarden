@@ -362,16 +362,31 @@ Read `rules/os-detection.md`. Before doing any work
 on a server, you **must** detect its OS and create a
 server memory file.
 
+## Taking Over a heinzel Installation
+
+Only when the user asks. The `hostwarden-adopt` skill
+in `.claude/skills/hostwarden-adopt/` takes over an
+existing heinzel checkout: it copies memory, access
+lists and custom rules into this clone, renames what
+is found by name, and turns what the memory files and
+changelogs say about each host — scripts, configs,
+units, cron jobs a session improvised — into a
+per-host inventory of leads. It contacts no server;
+the first connection to each host verifies the leads.
+
 ## State heinzel Left Behind
 
 Read `rules/heinzel-legacy.md`. On the first
-connection to a host, check for backups, scratch
-directories and scheduled runs that heinzel left
-under its own name, report them, and offer to adopt
-them. Ask before moving anything, and record the
+connection to a host, check the inventory left by
+`hostwarden-adopt`, the fixed paths, and a bounded
+scan of cron and units, then report and offer to
+adopt. Ask before moving anything, and record the
 answer in server memory so the check runs once.
-Journal entries keep the old tag and are read, not
-migrated.
+Adopting an improvised script means recording it,
+not renaming it — a rename breaks whoever calls it
+and only happens under
+`rules/file-naming-changes.md`. Journal entries keep
+the old tag and are read, not migrated.
 
 ## Activity Check
 
