@@ -4,11 +4,11 @@ Two layers for two audiences:
 
 1. **System journal** (on the server) — one-line,
    plain-language headlines for *other admins*.
-   `journalctl -t heinzel` should read like a
+   `journalctl -t hostwarden` should read like a
    colleague's handover notes, not a debug dump.
 2. **Local changelog**
    (`memory/servers/<hostname>/changelog.log`) — the
-   full technical detail for future heinzel sessions
+   full technical detail for future hostwarden sessions
    and audits.
 
 The journal headline answers *who, what, why*. The
@@ -18,7 +18,7 @@ and how to undo it*.
 ## Journal Headlines (remote)
 
 Log to the system journal:
-`logger -t heinzel "message"`. Do not add timestamps
+`logger -t hostwarden "message"`. Do not add timestamps
 (the system logger handles them).
 
 Every session gets at least one entry — sessions
@@ -26,23 +26,23 @@ that change nothing log a single `read-only:`
 summary.
 
 Reading back:
-- systemd: `journalctl -t heinzel`
+- systemd: `journalctl -t hostwarden`
 - macOS: `log show --predicate
   'senderImagePath CONTAINS "logger"'
-  --info --last 7d | grep heinzel`
+  --info --last 7d | grep hostwarden`
 
 If `logger` fails, log to the local changelog only.
 
 ### Entry format
 
 One sentence, written for a sysadmin who has never
-heard of heinzel and was not part of the session:
+heard of hostwarden and was not part of the session:
 
     [<operator> as <unix-user>] <what changed, in
     plain language> — because <why>
 
 ```
-logger -t heinzel "[alice as root] app.example.com \
+logger -t hostwarden "[alice as root] app.example.com \
 now deploys via two alternating app slots \
 (blue/green), so new releases go live without \
 dropping requests — because deploys used to restart \
@@ -111,7 +111,7 @@ technical detail the journal omitted:
       /etc/nginx/snippets/app-upstream.conf; sudoers
       rewritten for slot management.
       Rollback: re-enable app.service, restore vhost
-      backup from /var/backups/heinzel/….
+      backup from /var/backups/hostwarden/….
       Verify: ~135 HTTPS probes during two slot
       switches, all 200.
       Flags: migrations must now stay

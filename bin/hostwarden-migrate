@@ -1,15 +1,16 @@
 #!/bin/sh
-# heinzel-migrate — bring local state up to date
+# hostwarden-migrate — bring local state up to date
 # after a pull: migrate user state from the 1.x
 # layout (rules/custom/ + repo-root opencode.json)
-# to the 2.0 layout (everything under memory/), and
-# create the SSH socket directory (2.20.0).
+# to the 2.0 layout (everything under memory/),
+# rename skill overrides from heinzel-* to
+# hostwarden-*, and create the SSH socket directory.
 # Idempotent: re-running on an already-migrated
 # tree is a silent no-op.
 #
 # Called automatically by
 # .claude/hooks/check-updates.sh and by
-# bin/heinzel-update. Safe to run by hand.
+# bin/hostwarden-update. Safe to run by hand.
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -45,10 +46,29 @@ if [ -f opencode.json.example ] \
   MOVED="$MOVED\n  opencode.json.example → memory/opencode.json.example"
 fi
 
+# memory/custom-rules/heinzel-<skill>.md →
+# hostwarden-<skill>.md: skill overrides are found by
+# the skill's name, which changed with the rename from
+# heinzel. An existing hostwarden-* file wins; the
+# heinzel-* one then stays for the user to merge.
+if [ -d memory/custom-rules ]; then
+  for f in memory/custom-rules/heinzel-*.md; do
+    [ -e "$f" ] || continue
+    name=$(basename "$f")
+    new="hostwarden-${name#heinzel-}"
+    if [ -e "memory/custom-rules/$new" ]; then
+      echo "hostwarden: kept $f — memory/custom-rules/$new exists, merge by hand"
+      continue
+    fi
+    mv "$f" "memory/custom-rules/$new"
+    MOVED="$MOVED\n  $f → memory/custom-rules/$new"
+  done
+fi
+
 if [ -n "$MOVED" ]; then
-  printf "heinzel 2.0 migration — moved user state under memory/:%b\n" "$MOVED"
+  printf "hostwarden migration — moved user state:%b\n" "$MOVED"
   echo "Review any personal scripts or cron jobs that"
-  echo "reference the old paths. See CHANGELOG.md 2.0.0."
+  echo "reference the old paths. See CHANGELOG.md."
 fi
 
 # SSH connection sharing needs its socket directory
@@ -58,4 +78,4 @@ fi
 # update started with the old settings, and this
 # script runs from the new tree. Last, so a failure
 # here cannot stop the moves above.
-mkdir -p -m 700 "$HOME/.cache/heinzel" || true
+mkdir -p -m 700 "$HOME/.cache/hostwarden" || true

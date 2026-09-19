@@ -283,7 +283,7 @@ Lua scripts in `/boot/lua/`. The entry point is
   auto-detection can fail after cross-OS
   replacement or when EFI boot entries change.
 - **No `journalctl`** — logs are in `/var/log/`.
-  Use `tail`, `grep`, or `less`. The heinzel
+  Use `tail`, `grep`, or `less`. The hostwarden
   changelog uses `logger`, which writes to syslog.
 - **`sudo` is not installed by default** — install
   with `pkg install sudo` and configure

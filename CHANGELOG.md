@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **heinzel is now hostwarden.** The project
+  continues heinzel 2.22.0 as an independent
+  project under a new name. Scripts, skills,
+  environment variables, the journal tag, the
+  backup directory on servers and the SSH socket
+  directory are renamed. The activity check still
+  reads `heinzel` journal entries, and
+  `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
+  renames skill overrides in `memory/custom-rules/`.
+  See "Moving over from heinzel" in the README.
+- **A backup restores into a fresh clone.**
+  `--restore` took the templates the repo ships in
+  `memory/` for user data and refused without
+  `--force`, and restoring overwrote them with the
+  archive's older copies. Tracked templates now
+  count as empty and keep the checked-out version.
+
+Entries below are heinzel's, from before the rename.
+
 ## 2.22.0 — 2026-09-19
 
 - **Native nftables counts as a firewall.** A

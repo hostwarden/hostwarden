@@ -1,7 +1,7 @@
 #!/bin/sh
 # guard-taboos.sh — PreToolUse hook (matcher: Bash).
 #
-# Mechanically enforces heinzel's absolute taboos from
+# Mechanically enforces hostwarden's absolute taboos from
 # CLAUDE.md → Critical Safety Rules, below the model layer:
 #
 #   - halt / poweroff / shutdown without -r / init 0 /
@@ -65,7 +65,7 @@
 # body written to a file by cat or tee is data, not code, and is
 # no longer scanned. See the heredoc section below for the exact
 # conditions and for why the consumer, never the body, decides.
-# Writing heinzel's own changelog no longer trips the guard.
+# Writing hostwarden's own changelog no longer trips the guard.
 #
 # Known, accepted false positives that REMAIN (the patterns are
 # deliberately coarse — this guard protects production disks, not
@@ -96,8 +96,8 @@
 #     unverified, so there is no -l exemption either. Run the
 #     fingerprint in a call of its own (rules/secrets.md).
 #   - An ssh ControlPath under .ssh/ makes any rm, mv or chmod in
-#     the same command look like a key operation. heinzel keeps
-#     its sockets in ~/.cache/heinzel for that reason
+#     the same command look like a key operation. hostwarden keeps
+#     its sockets in ~/.cache/hostwarden for that reason
 #     (rules/ssh-connections.md).
 #   - rsync with -e "ssh -i ~/.ssh/id_..." AFTER its operands
 #     reads as a copy onto that key, because writes_to takes the
@@ -107,7 +107,7 @@
 # Never rephrase, re-quote, or otherwise obfuscate a command to
 # evade this guard.
 #
-# Heinzel-repo development note: a commit message piped straight
+# Hostwarden-repo development note: a commit message piped straight
 # into `git commit -m`/`-F -` still flows through the command
 # string, and git is not a data sink this hook recognizes, so
 # writing ABOUT taboo commands there can still trigger it. Write
@@ -116,13 +116,13 @@
 #
 # Override for legitimate flows (e.g. rules/os-replacement.md
 # runs mkfs/sgdisk by design): the OPERATOR sets
-# HEINZEL_GUARD_DISABLE=1 in the environment BEFORE launching
+# HOSTWARDEN_GUARD_DISABLE=1 in the environment BEFORE launching
 # the session. An inline assignment inside a proposed command
 # does not count and is itself blocked, so the model cannot
 # disarm the guard.
 
 # Operator-level override: inherited environment only.
-if [ "${HEINZEL_GUARD_DISABLE:-}" = "1" ]; then
+if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
   exit 0
 fi
 
@@ -143,7 +143,7 @@ fi
 # words: a changelog entry describing a shutdown checkpoint, a
 # rule file about fdisk, a commit message. Scanned as a command
 # string, that prose is indistinguishable from an invocation, and
-# the guard blocked heinzel's own changelog write over the word
+# the guard blocked hostwarden's own changelog write over the word
 # "shutdown" inside a heredoc.
 #
 # A heredoc body is only safe to skip when the command consuming
@@ -373,7 +373,7 @@ deny() {
   # Reasons must stay plain ASCII without quotes/backslashes.
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"heinzel guard: %s ' "$1"
+  printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
   printf '(CLAUDE.md - Critical Safety Rules). Blocked in all '
   printf 'permission modes. Explain this to the user; do not '
   printf 'rephrase the command to evade the guard."}}\n'
@@ -386,8 +386,8 @@ deny() {
 # through the command string too, so writing the literal
 # assignment into a file or commit message also triggers
 # this; phrase such text without the equals sign.
-if hit 'HEINZEL_GUARD_DISABLE='; then
-  deny "inline HEINZEL_GUARD_DISABLE assignment is not \
+if hit 'HOSTWARDEN_GUARD_DISABLE='; then
+  deny "inline HOSTWARDEN_GUARD_DISABLE assignment is not \
 allowed - the operator must export it before launching the \
 session"
 fi
@@ -652,7 +652,7 @@ fi
 #
 # This enumerates RUNTIMES, not write syntaxes, on purpose. The
 # set of ways to write a file grows with every language feature
-# and can never be closed; the set of interpreters heinzel might
+# and can never be closed; the set of interpreters hostwarden might
 # meet on a server is small and moves slowly. It still is a list,
 # so this rule is a backstop against the everyday mistake, not a
 # sandbox: an interpreter that builds its target string at

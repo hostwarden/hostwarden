@@ -75,7 +75,7 @@ This produces `deploy_ed25519` (private) and
 
 ### Install the public key on the server
 
-The taboo guard denies heinzel any write to
+The taboo guard denies hostwarden any write to
 `authorized_keys` and any `chmod` or `chown` on
 `.ssh`, appends included. Hand this block to the
 user with the real key path; without a root login,
@@ -240,7 +240,7 @@ Log the deployment user setup per
 `rules/changelog.md`:
 
 ```bash
-logger -t heinzel "Created deploy user 'deploy' \
+logger -t hostwarden "Created deploy user 'deploy' \
 for CI/CD, key auth, target /var/www/myapp"
 ```
 

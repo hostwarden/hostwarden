@@ -167,13 +167,13 @@ the entry.
 Log the port binding per `rules/changelog.md`:
 
 ```bash
-logger -t heinzel \
+logger -t hostwarden \
   "Started <app> on port <N> (<bind address>)"
 ```
 
 Or for sockets:
 
 ```bash
-logger -t heinzel \
+logger -t hostwarden \
   "Started <app> on unix:/run/myapp/puma.sock"
 ```
