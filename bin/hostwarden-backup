@@ -1,0 +1,217 @@
+#!/bin/sh
+# hostwarden-backup — back up or restore your memory/
+# tree. All user state lives under memory/, so the
+# whole backup is a single tar.gz of that one
+# directory.
+#
+# Usage:
+#   hostwarden-backup                Create a backup in CWD
+#   hostwarden-backup -o <path>      Write to an explicit path
+#   hostwarden-backup --list         Dry run: list what would
+#                                 be archived
+#   hostwarden-backup --restore <f>  Extract <f> into repo root
+#                                 (refuses to overwrite
+#                                 existing memory/ content
+#                                 unless --force is also set)
+#   hostwarden-backup --help         Show this help
+set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+SELF="$SCRIPT_DIR/$(basename "$0")"
+ORIG_PWD=$(pwd)
+cd "$REPO_DIR"
+
+usage() {
+  awk '/^# hostwarden-backup/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+}
+
+# Resolve a user-supplied path against the directory
+# the user invoked us from. We cd into the repo root
+# above, so a bare relative path would otherwise
+# silently land there instead of the user's CWD.
+resolve_path() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *)  printf '%s\n' "$ORIG_PWD/$1" ;;
+  esac
+}
+
+archive_hostname() {
+  hostname -s 2>/dev/null || hostname || echo unknown
+}
+
+# Build the list of files to archive. We exclude
+# transient noise (.DS_Store, *.lock) but keep
+# everything else under memory/.
+archive_list() {
+  if [ ! -d memory ]; then
+    echo "error: memory/ does not exist — nothing to back up" >&2
+    exit 1
+  fi
+  find memory -type f \
+    ! -name '.DS_Store' \
+    ! -name '*.lock' \
+    | LC_ALL=C sort
+}
+
+do_backup() {
+  OUT="$1"
+  if [ -z "$OUT" ]; then
+    TS=$(date -u +%Y%m%d-%H%M%SZ)
+    OUT="hostwarden-backup-$(archive_hostname)-$TS.tar.gz"
+  fi
+  # Write relative to where the user invoked us, not
+  # the repo root.
+  OUT=$(resolve_path "$OUT")
+  # Build a file list and hand it to tar via -T.
+  TMPLIST=$(mktemp "${TMPDIR:-/tmp}/hostwarden-backup.XXXXXX")
+  trap 'rm -f "$TMPLIST"' EXIT
+  archive_list > "$TMPLIST"
+  if [ ! -s "$TMPLIST" ]; then
+    echo "error: nothing to archive under memory/" >&2
+    exit 1
+  fi
+  tar czf "$OUT" -T "$TMPLIST"
+  SIZE=$(wc -c < "$OUT" | tr -d ' ')
+  COUNT=$(wc -l < "$TMPLIST" | tr -d ' ')
+  echo "wrote $OUT ($COUNT files, $SIZE bytes)"
+}
+
+do_list() {
+  archive_list
+}
+
+do_restore() {
+  FILE="$1"
+  FORCE="$2"
+  if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
+    echo "error: archive not found: $FILE" >&2
+    exit 1
+  fi
+
+  # Validate names: every entry must be under
+  # memory/ and must not contain .. or absolute
+  # paths. This rejects malicious tarballs.
+  BAD=$(tar tzf "$FILE" | awk '
+    /^\// { print; exit }
+    /(^|\/)\.\.(\/|$)/ { print; exit }
+    !/^memory\// { print; exit }
+  ')
+  if [ -n "$BAD" ]; then
+    echo "error: archive contains entries outside memory/ or with .. — refusing to extract" >&2
+    echo "offending entry: $BAD" >&2
+    exit 1
+  fi
+
+  # Validate types: only regular files and
+  # directories are allowed. A symlink entry would
+  # pass the name check but plant a link in the
+  # repo that points anywhere (and on older GNU tar
+  # can even be traversed during extraction). The
+  # verbose listing puts the type char in column 1
+  # ('-' file, 'd' dir, 'l' symlink, ...) on both
+  # GNU tar and bsdtar; symlinks additionally show
+  # as 'name -> target'.
+  BADTYPE=$(tar tzvf "$FILE" | awk '
+    substr($0, 1, 1) != "-" && substr($0, 1, 1) != "d" { print; exit }
+    / -> / { print; exit }
+  ')
+  if [ -n "$BADTYPE" ]; then
+    echo "error: archive contains an entry that is not a regular file or directory — refusing to extract" >&2
+    echo "offending entry: $BADTYPE" >&2
+    exit 1
+  fi
+
+  # Refuse to overwrite existing content unless
+  # --force. An empty memory/ (only .gitkeep,
+  # transient files the backup excludes anyway, and
+  # the templates the repo ships) counts as empty.
+  # Without the template exception a fresh clone
+  # could never be restored into.
+  if [ -d memory ] && [ "$FORCE" != "--force" ]; then
+    EXISTING=$(find memory -type f \
+      ! -name '.gitkeep' \
+      ! -name '.DS_Store' \
+      ! -name '*.lock' \
+      | while read -r f; do
+          git ls-files --error-unmatch "$f" >/dev/null 2>&1 \
+            || { echo "$f"; break; }
+        done)
+    if [ -n "$EXISTING" ]; then
+      echo "error: memory/ already contains user data (e.g. $EXISTING)" >&2
+      echo "re-run with --force to overwrite, or move memory/ aside first" >&2
+      exit 1
+    fi
+  fi
+
+  # Extract into a temp dir first so a tarball that
+  # dies mid-extraction can't leave a half-restored
+  # memory/ behind. Only after tar succeeds does the
+  # content move into place.
+  TMPEX=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-restore.XXXXXX")
+  trap 'rm -rf "$TMPEX"' EXIT
+  tar xzf "$FILE" -C "$TMPEX"
+  if [ ! -d "$TMPEX/memory" ]; then
+    echo "error: archive did not produce a memory/ tree" >&2
+    exit 1
+  fi
+  # Templates the repo ships stay at the checked-out
+  # version; the archive's copy may be older.
+  git ls-files memory 2>/dev/null | while read -r f; do
+    rm -f "$TMPEX/$f"
+  done
+  mkdir -p memory
+  cp -R "$TMPEX/memory/." memory/
+  echo "restored $FILE into $REPO_DIR"
+}
+
+# ---- argument parsing ---------------------------
+OUT=""
+case "$1" in
+  ""|"--")
+    do_backup ""
+    ;;
+  -o)
+    shift
+    [ -z "$1" ] && { echo "error: -o requires a path" >&2; exit 2; }
+    do_backup "$1"
+    ;;
+  --list)
+    do_list
+    ;;
+  --restore)
+    shift
+    # Accept --force and the archive name in either
+    # order; never treat an option as the filename.
+    FILE=""
+    FORCE=""
+    for ARG in "$@"; do
+      case "$ARG" in
+        --force)
+          FORCE="--force"
+          ;;
+        --*)
+          echo "error: unknown option for --restore: $ARG" >&2
+          exit 2
+          ;;
+        *)
+          FILE="$ARG"
+          ;;
+      esac
+    done
+    if [ -z "$FILE" ]; then
+      echo "error: --restore requires an archive file" >&2
+      exit 2
+    fi
+    do_restore "$(resolve_path "$FILE")" "$FORCE"
+    ;;
+  --help|-h)
+    usage
+    ;;
+  *)
+    echo "error: unknown option: $1" >&2
+    echo "run 'hostwarden-backup --help' for usage" >&2
+    exit 2
+    ;;
+esac
