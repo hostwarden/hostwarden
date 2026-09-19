@@ -209,6 +209,34 @@ Verify after the move: the destination holds the
 expected file count, and the source is gone or
 listed as leftover. Report the result in one line.
 
+## Do not adopt while heinzel is still in use
+
+Adoption assumes heinzel is done with this host. If
+the activity check shows heinzel entries from the
+last days, or the user says both tools are in use,
+moving `/var/backups/heinzel/` away is premature:
+heinzel recreates it on its next backup, and the
+question comes back.
+
+Report what is there, say why adoption waits, and
+record:
+
+```markdown
+- heinzel legacy: parallel operation (re-check when
+  heinzel is retired)
+```
+
+That line, unlike the others, is not final — offer
+adoption again when the user says the transition is
+over, or when a year of journal shows no heinzel
+entry. Meanwhile `rules/backups.md` keeps reading the
+old paths, so nothing is lost by waiting.
+
+Point the user at `contrib/heinzel-coexistence/`:
+three custom rules for their heinzel checkout that
+make it read both journal tags and stop it reporting
+hostwarden's files as strays.
+
 ## Record
 
 In `memory/servers/<hostname>/memory.md`:

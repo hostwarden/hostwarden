@@ -12,6 +12,16 @@
   `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
   renames skill overrides in `memory/custom-rules/`.
   See "Moving over from heinzel" in the README.
+- **Both tools can work on the same hosts during a
+  transition.** `contrib/heinzel-coexistence/` holds
+  three custom rules for a heinzel checkout: heinzel
+  then reads both journal tags instead of only its
+  own, treats its server memory as a lead rather than
+  a fact, leaves hostwarden's files alone, and stops
+  reading an adopted backup directory as data loss.
+  hostwarden warns in the other direction when a
+  heinzel entry is minutes old, and does not adopt a
+  host that heinzel still uses.
 - **A heinzel installation can be taken over
   wholesale.** The new `hostwarden-adopt` skill
   copies memory, access lists and custom rules out of

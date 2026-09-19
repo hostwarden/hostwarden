@@ -43,7 +43,8 @@ leads, the host confirms them.
 
 2. **Never write into the old tree.** The old checkout is the user's
    fallback. Read from it, copy out of it, change nothing in it. Say
-   this once, so the user knows the original stays intact.
+   this once, so the user knows the original stays intact. The single
+   exception is step 8, which the user approves explicitly.
 
 3. **Check what this clone already holds.** Anything under `memory/`
    beyond the shipped templates means this is not a fresh clone. List
@@ -82,7 +83,17 @@ leads, the host confirms them.
    That line makes the first connection to the host run the legacy
    check with the inventory in hand instead of a blind scan.
 
-8. **Report.** Per host one line: state copied, inventory entries
+8. **Offer the coexistence rules.** Ask whether heinzel stays in use
+   during the transition. If it does, offer to copy the three files
+   from `contrib/heinzel-coexistence/` into the old checkout's
+   `memory/custom-rules/`. Without them heinzel reads only its own
+   journal tag, so hostwarden's work stays invisible to it and its
+   memory drifts. This writes into the old tree, so it needs an
+   explicit yes; an existing `all.md` is appended to, never
+   overwritten. On a no, say the directory is there when they change
+   their mind.
+
+9. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:
    nothing on any server has changed yet, and the first connection to
    each host will report what it finds there and ask.
@@ -95,6 +106,11 @@ leads, the host confirms them.
    Nothing on the servers was touched. The first connection to
    each host verifies its leads and asks before moving anything.
    ```
+
+   Say which of the two states each host is in: hostwarden alone, or
+   both tools in parallel. In the parallel case the first connection
+   reports what heinzel left but does not move it
+   (`rules/heinzel-legacy.md`).
 
 ## What this skill does not do
 

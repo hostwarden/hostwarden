@@ -87,6 +87,24 @@ did not run, rather than reporting silence. A failed
 check that reads as a clean host is how a concurrent
 session's work goes unnoticed.
 
+## A fresh heinzel entry means a live session
+
+An entry tagged `heinzel` from the last 15 minutes is
+not history — a heinzel session is probably working
+on this host right now. Both tools administer the
+same machines during a transition, and the journal is
+the only signal they share.
+
+Say so before making any change, and let the user
+decide whether to go ahead, wait, or do it in the
+other tool. Read-only work needs no pause. Name the
+tool when entries from both tags appear: "Installed
+nginx" reads differently once the user knows which
+session did it.
+
+`contrib/heinzel-coexistence/` holds the custom rules
+that teach heinzel the same thing from its side.
+
 ## What to show
 
 If there are entries, show a brief summary to the
