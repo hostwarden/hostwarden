@@ -63,14 +63,20 @@ than forced:
 
 ```
 mkdir -p /var/backups/hostwarden
-mv -n /var/backups/heinzel/* /var/backups/hostwarden/ 2>/dev/null
+find /var/backups/heinzel -mindepth 1 -maxdepth 1 \
+  -exec mv -n {} /var/backups/hostwarden/ \;
 rmdir /var/backups/heinzel 2>/dev/null || \
-  ls -1 /var/backups/heinzel
+  ls -1A /var/backups/heinzel
 ```
 
-`rmdir` removes the old directory only when it is
-empty. The same pattern covers `~/.heinzel-backups/`
-→ `~/.hostwarden-backups/` and the scratch
+`find` rather than a `*` glob, and `ls -1A` rather
+than `ls -1`: a backup of a dotfile is named
+`.env.<timestamp>`, which a glob does not match and a
+plain `ls` does not show — it would stay behind and
+not even be reported. `rmdir` removes the old
+directory only when it is empty. The same pattern
+covers `~/.heinzel-backups/` →
+`~/.hostwarden-backups/` and the scratch
 directories. Scratch output may contain secrets: move
 it, never read it into the conversation, and offer to
 shred it (`rules/secrets.md`).
@@ -111,9 +117,14 @@ Then one line for the outcome of the check:
 - heinzel legacy: deferred 2026-09-20 (heinzel still in use)
 ```
 
-The first two settle it. A deferral is re-offered
-when the user says the transition is over, or on the
-next connection more than 90 days later — not before.
+The first two settle it and the check does not run
+again. A deferral does not: while that line reads
+`deferred`, the check runs on every connection but
+stays silent until the user asks, or until 90 days
+have passed, or until the activity check stops seeing
+heinzel entries. Without that exception the promised
+re-offer would never happen, because the check is
+otherwise first-connection only.
 
 Leads the host did not confirm move into the same
 memory file as a one-line note when they matter (a

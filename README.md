@@ -932,8 +932,9 @@ CLAUDE.md              — Main instructions (read by Claude Code
 bin/
   hostwarden-update       — Update, pin, or check hostwarden version
   hostwarden-backup       — Back up / restore your memory/ tree
-  hostwarden-migrate      — One-shot 1.x→2.0 user-state migration
-                         (called automatically on update)
+  hostwarden-adopt        — Take over a heinzel checkout's state
+  hostwarden-migrate      — Bring older user-state layouts up to
+                         date (called automatically on update)
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   hooks/

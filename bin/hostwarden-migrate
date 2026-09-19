@@ -1,9 +1,9 @@
 #!/bin/sh
 # hostwarden-migrate — bring local state up to date
-# after a pull: migrate user state from the 1.x
-# layout (rules/custom/ + repo-root opencode.json)
-# to the 2.0 layout (everything under memory/),
-# rename skill overrides from heinzel-* to
+# after a pull: move user state from the layout
+# heinzel used before its 2.0 (rules/custom/ and a
+# repo-root opencode.json) to everything under
+# memory/, rename skill overrides from heinzel-* to
 # hostwarden-*, and create the SSH socket directory.
 # Idempotent: re-running on an already-migrated
 # tree is a silent no-op.
@@ -68,7 +68,7 @@ fi
 if [ -n "$MOVED" ]; then
   printf "hostwarden migration — moved user state:%b\n" "$MOVED"
   echo "Review any personal scripts or cron jobs that"
-  echo "reference the old paths. See CHANGELOG.md."
+  echo "reference the old paths."
 fi
 
 # SSH connection sharing needs its socket directory

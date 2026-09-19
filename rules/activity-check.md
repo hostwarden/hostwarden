@@ -125,6 +125,10 @@ Recent hostwarden activity (last 7 days):
 
 ## No activity
 
-If the journal has no hostwarden entries, say nothing.
-Do not report "no recent activity" — silence means
-no news.
+Only when the journal has no entries under *either*
+tag, say nothing. Do not report "no recent activity"
+— silence means no news. Entries tagged `heinzel`
+alone are activity like any other: they are what a
+host looked like before the rename, and suppressing
+them would hide the very history the dual-tag read
+exists for.

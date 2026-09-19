@@ -31,10 +31,13 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **heinzel legacy check** (first connection only).
-   One batched probe, folded into step 5 where
-   possible; silent unless it finds something. Skip
-   it in an installation that never ran heinzel. See
+8. **heinzel legacy check.** First connection only —
+   plus every connection to a host whose memory
+   carries a `heinzel legacy: deferred` line, which
+   is what makes a deferred question come back. One
+   batched probe, folded into step 5 where possible;
+   silent unless it finds something. Skip it in an
+   installation that never ran heinzel. See
    `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 

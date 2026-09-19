@@ -64,10 +64,23 @@ Split the output on the markers. Use the OS's own
 equivalents where these commands do not exist
 (`rules/freebsd.md`, `rules/macos.md`).
 
+`/root/heinzel-scratch` and `/var/backups/heinzel`
+are usually unreadable as an ordinary user, and
+`2>/dev/null` makes "permission denied" look exactly
+like "not there". As a non-root user, run the paths
+line through `sudo -n` if sudo is available
+(`rules/privilege-escalation.md`); if it is not, the
+privileged half of the check did not run — say so,
+and record nothing, so a later privileged session
+still looks.
+
 Nothing found, no inventory file, no `heinzel`
-entries in the activity check: say nothing, record
-nothing, continue. The check is first-connection
-only, so it does not come back on its own.
+entries in the activity check, and nothing left
+unread: say nothing, record nothing, continue. The
+check is first-connection only — plus any connection
+to a host whose memory carries a
+`heinzel legacy: deferred` line — so it does not come
+back on its own.
 
 ## What is not ours
 

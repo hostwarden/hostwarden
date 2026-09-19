@@ -17,14 +17,23 @@ files; nothing here is read by hostwarden.
 
 ## Install
 
-Copy them into the heinzel checkout:
+Copy them into the heinzel checkout, without
+clobbering anything that is already there:
 
 ```bash
-cp contrib/heinzel-coexistence/all.md \
+cp -n contrib/heinzel-coexistence/all.md \
    contrib/heinzel-coexistence/activity-check.md \
    contrib/heinzel-coexistence/backups.md \
    /path/to/heinzel/memory/custom-rules/
 ```
+
+`cp -n` skips a file that exists rather than
+replacing it — `all.md` especially, which a heinzel
+installation may already use for its own rules, but
+`activity-check.md` and `backups.md` too. Whatever
+`cp` reports as skipped has to be merged by hand:
+open the existing file and add the sections from this
+one.
 
 heinzel reads `memory/custom-rules/all.md` once per
 session, and `memory/custom-rules/<rule>.md` whenever
@@ -32,10 +41,10 @@ it reads `rules/<rule>.md`. The directory is
 gitignored in heinzel, so this stays local unless the
 user shares custom rules deliberately.
 
-**If `all.md` already exists**, do not overwrite it —
-append the sections from this one. The `hostwarden-adopt`
-skill offers to install these files and appends in
-that case.
+The `hostwarden-adopt` skill installs them the same
+way: it never replaces a file, it reports what it
+skipped, and it appends sections to an existing
+`all.md` rather than writing over it.
 
 ## What they change
 

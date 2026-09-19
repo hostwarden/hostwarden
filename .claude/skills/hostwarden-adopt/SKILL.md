@@ -5,10 +5,12 @@ description: Take over an existing heinzel installation — copy its
   memory, access lists and custom rules into this hostwarden clone,
   rename what is found by name, and build a per-host inventory of the
   scripts, configs, units and cron jobs heinzel left on the servers.
-  Use when the user says "übernimm mein altes heinzel", "migrate my
-  heinzel setup", "mein heinzel liegt in <pfad>, mach es dir zu
-  eigen", or points at a heinzel directory and asks to take it over.
-  Touches no server. Never run automatically.
+  Can run host by host, with the shared state moved first. Use when
+  the user says "übernimm mein altes heinzel", "migrate my heinzel
+  setup", "mein heinzel liegt in <pfad>, mach es dir zu eigen", "nimm
+  erstmal nur server X mit", or points at a heinzel directory and asks
+  to take it over. Touches no server. Needs an explicit request —
+  a session that merely mentions heinzel is not one.
 ---
 
 # hostwarden-adopt
@@ -54,12 +56,23 @@ leads, the host confirms them.
    this once, so the user knows the original stays intact. The single
    exception is step 6, which the user approves explicitly.
 
-3. **Copy the state.** `bin/hostwarden-adopt <path>` does it: access
-   lists, service policy, custom rules and every server's memory,
-   followed by `bin/hostwarden-migrate` for the `heinzel-<skill>.md`
-   → `hostwarden-<skill>.md` renames. It refuses a clone that already
-   holds user state rather than overwriting it — show `--list` first
-   if the user wants to see the file list.
+3. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
+   state — access lists, service policy, custom rules, network and
+   housekeeping notes, including heinzel 1.x's `rules/custom/` and
+   root `opencode.json` — then every server's memory, then
+   `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
+   `hostwarden-<skill>.md` renames. It keeps this clone's version of
+   anything that already holds user data and says so; `--list` shows
+   the plan without copying.
+
+   **Host by host** if the user wants to move gradually:
+   `--server <host>` (repeatable) takes single hosts,
+   `--shared` takes only the shared state. The shared state comes
+   along on the first run either way — the blacklist and the
+   read-only list decide whether a host may be touched at all, so
+   moving a host without them is not a partial migration but an
+   unsafe one. Say which hosts are still in the old checkout after a
+   partial run, and that the old one stays authoritative for them.
 
 4. **Leave the facts in memory alone.** A memory line naming
    `/var/backups/heinzel/` or a `heinzel-backup.sh` on a host is a
@@ -69,7 +82,7 @@ leads, the host confirms them.
    about a host: point it out and ask whether to change it.
 
 5. **Build the inventory.** This is the part no script can do. For
-   each host under `memory/servers/`, read `memory.md` and
+   each host now under `memory/servers/`, read `memory.md` and
    `changelog.log` and collect every path, unit, cron job or script a
    heinzel session created or configured — the shapes are listed in
    `rules/heinzel-legacy.md` § "What to look for",
@@ -78,15 +91,24 @@ leads, the host confirms them.
    Its existence is what makes the first connection check the leads;
    no status line is needed for that.
 
+   Read the **old checkout's** copy of a host's files whenever this
+   clone kept its own — the leads live in the records that were not
+   copied. And skip the DNS alias symlinks under `memory/servers/`
+   (`rules/dns-aliases.md`): they point at the canonical directory,
+   so following one writes a second inventory into the same host and
+   counts it twice.
+
 6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files
    from `contrib/heinzel-coexistence/` into the old checkout's
    `memory/custom-rules/`. Without them heinzel reads only its own
    journal tag, so hostwarden's work stays invisible to it and its
    memory drifts. This writes into the old tree, so it needs an
-   explicit yes; an existing `all.md` is appended to, never
-   overwritten. On a no, say the directory is there when they change
-   their mind.
+   explicit yes. Never replace a file that is already there: append
+   the sections to an existing `all.md`, and for an existing
+   `activity-check.md` or `backups.md` show the user what would be
+   added and let them merge. On a no, say the directory is there when
+   they change their mind.
 
 7. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:

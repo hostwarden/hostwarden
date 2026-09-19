@@ -3,15 +3,27 @@
 # checkout into this one.
 #
 # Usage:
-#   hostwarden-adopt <heinzel-checkout>   Copy state
-#   hostwarden-adopt <path> --list        Dry run
-#   hostwarden-adopt <path> --force       Overwrite
-#   hostwarden-adopt --help               Show this help
+#   hostwarden-adopt <path>              Everything
+#   hostwarden-adopt <path> --shared     Shared state only
+#   hostwarden-adopt <path> --server H   One host, repeatable
+#   hostwarden-adopt <path> --list       Dry run
+#   hostwarden-adopt <path> --force      Overwrite
+#   hostwarden-adopt --help              Show this help
 #
-# Copies memory/ state — access lists, service
-# policy, custom rules, per-server memory — and then
-# runs hostwarden-migrate to rename skill overrides.
-# Reads the old checkout, never writes into it.
+# Copies memory/ state — access lists, service policy,
+# custom rules, per-server memory — and then runs
+# hostwarden-migrate to rename skill overrides. Reads
+# the old checkout, never writes into it.
+#
+# Host by host: --server takes one hostname and may be
+# repeated. The shared state (access lists, service
+# policy, custom rules, network and housekeeping
+# notes) comes along on the first run whatever is
+# selected, because a per-server move without it would
+# leave the blacklist and the read-only list behind —
+# and those decide whether a host may be touched at
+# all. --shared moves only that part, for a migration
+# that takes its hosts one at a time later.
 #
 # The judgement work around this (reading changelogs
 # into a per-host inventory, the coexistence rules)
@@ -27,11 +39,23 @@ usage() {
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 
-# State files to copy, in the order they are
-# reported. Directories are copied whole.
-ITEMS="user.md blacklist.md readonly.md \
+# Shared state, in the order it is reported.
+SHARED="user.md blacklist.md readonly.md \
 service-policy.md network.md housekeeping.md \
-opencode.json custom-rules servers"
+opencode.json custom-rules"
+
+# True when the destination already holds something
+# the user wrote — a file, or a directory with more
+# than the .gitkeep the repo ships. A shipped empty
+# directory must not count, or the first copied file
+# would make every later item look occupied.
+has_user_data() {
+  if [ -d "$1" ]; then
+    [ -n "$(user_data "$1")" ]
+  else
+    [ -e "$1" ]
+  fi
+}
 
 # A memory/ that holds only these counts as empty —
 # they are what the repo ships. Told apart by name,
@@ -49,14 +73,34 @@ user_data() {
 
 OLD=""
 MODE=""
+SHARED_ONLY=""
+HOSTS=""
+WANT_SERVER=""
 for ARG in "$@"; do
+  if [ -n "$WANT_SERVER" ]; then
+    HOSTS="$HOSTS $ARG"
+    WANT_SERVER=""
+    continue
+  fi
   case "$ARG" in
     --help|-h) usage; exit 0 ;;
     --list|--force) MODE="$ARG" ;;
+    --shared) SHARED_ONLY=yes ;;
+    --server) WANT_SERVER=yes ;;
     --*) echo "error: unknown option: $ARG" >&2; exit 2 ;;
     *) OLD="$ARG" ;;
   esac
 done
+
+if [ -n "$WANT_SERVER" ]; then
+  echo "error: --server needs a hostname" >&2
+  exit 2
+fi
+
+if [ -n "$SHARED_ONLY" ] && [ -n "$HOSTS" ]; then
+  echo "error: --shared and --server are exclusive" >&2
+  exit 2
+fi
 
 if [ -z "$OLD" ]; then
   echo "error: no heinzel checkout given" >&2
@@ -79,50 +123,102 @@ if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
   exit 1
 fi
 
-if [ -z "$(user_data "$OLD/memory")" ]; then
-  echo "error: $OLD/memory holds no user state — nothing to adopt" >&2
-  exit 1
-fi
-
 cd "$REPO_DIR"
 mkdir -p memory
 
-EXISTING=$(user_data memory)
-if [ -n "$EXISTING" ] && [ "$MODE" != "--force" ] \
-    && [ "$MODE" != "--list" ]; then
-  echo "error: memory/ already holds user data (e.g. $EXISTING)" >&2
-  echo "this is not a fresh clone — re-run with --force to overwrite," >&2
-  echo "or back it up first with bin/hostwarden-backup" >&2
-  exit 1
-fi
-
-COPIED=""
-for ITEM in $ITEMS; do
-  SRC="$OLD/memory/$ITEM"
-  [ -e "$SRC" ] || continue
-  if [ "$MODE" = "--list" ]; then
-    COPIED="$COPIED\n  memory/$ITEM"
-    continue
+# Named hosts must exist in the source, or a typo
+# would look like a host with no memory.
+for H in $HOSTS; do
+  if [ ! -e "$OLD/memory/servers/$H" ]; then
+    echo "error: $OLD/memory/servers/$H does not exist" >&2
+    exit 1
   fi
-  if [ -d "$SRC" ]; then
-    mkdir -p "memory/$ITEM"
-    # Copy the contents, so an existing directory
-    # keeps entries the old one does not have.
-    cp -R "$SRC/." "memory/$ITEM/"
-  else
-    cp "$SRC" "memory/$ITEM"
-  fi
-  COPIED="$COPIED\n  memory/$ITEM"
 done
 
-if [ "$MODE" = "--list" ]; then
-  printf "would copy from %s:%b\n" "$OLD" "$COPIED"
-  exit 0
+# Copy <src> to memory/<dst>, preserving symlinks —
+# memory/servers/ holds DNS aliases as symlinks to the
+# canonical directory (rules/dns-aliases.md), and
+# resolving them would duplicate a host's memory.
+copy_item() {
+  SRC="$1"
+  DST="memory/$2"
+  if [ -L "$SRC" ]; then
+    LINK=$(readlink "$SRC")
+    [ -e "$DST" ] || ln -s "$LINK" "$DST"
+  elif [ -d "$SRC" ]; then
+    mkdir -p "$DST"
+    cp -R "$SRC/." "$DST/"
+  else
+    cp "$SRC" "$DST"
+  fi
+}
+
+COPIED=""
+plan() { COPIED="$COPIED\n  memory/$1"; }
+
+# Shared state first, always: a per-server adoption
+# without the blacklist and the read-only list would
+# work on hosts whose access rules stayed behind.
+SHARED_PENDING=""
+for ITEM in $SHARED; do
+  [ -e "$OLD/memory/$ITEM" ] || continue
+  if has_user_data "memory/$ITEM" && [ "$MODE" != "--force" ]; then
+    SHARED_PENDING="$SHARED_PENDING $ITEM"
+    continue
+  fi
+  plan "$ITEM"
+  [ "$MODE" = "--list" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
+done
+
+# heinzel 1.x kept custom rules in rules/custom/ and
+# the OpenCode config at the repo root. Those are
+# outside memory/, so hostwarden-migrate in this clone
+# never sees them — they are copied to their 2.x
+# location here.
+if [ -d "$OLD/rules/custom" ]; then
+  for F in "$OLD"/rules/custom/*; do
+    [ -e "$F" ] || continue
+    B=$(basename "$F")
+    [ "$B" = ".gitkeep" ] && continue
+    [ -e "memory/custom-rules/$B" ] && continue
+    mkdir -p memory/custom-rules
+    plan "custom-rules/$B (from rules/custom/)"
+    [ "$MODE" = "--list" ] || cp "$F" "memory/custom-rules/$B"
+  done
+fi
+if [ -f "$OLD/opencode.json" ] && [ ! -e memory/opencode.json ]; then
+  plan "opencode.json (from the repo root)"
+  [ "$MODE" = "--list" ] || cp "$OLD/opencode.json" memory/opencode.json
+fi
+
+if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
+  [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
+  mkdir -p memory/servers
+  for H in $HOSTS; do
+    SRC="$OLD/memory/servers/$H"
+    [ -e "$SRC" ] || continue
+    if [ -e "memory/servers/$H" ] && [ "$MODE" != "--force" ]; then
+      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      continue
+    fi
+    plan "servers/$H"
+    [ "$MODE" = "--list" ] || copy_item "$SRC" "servers/$H"
+  done
+fi
+
+if [ -n "$SHARED_PENDING" ]; then
+  echo "kept this clone's version of:$SHARED_PENDING" >&2
+  echo "(use --force to take the old checkout's instead)" >&2
 fi
 
 if [ -z "$COPIED" ]; then
   echo "nothing to copy from $OLD/memory" >&2
   exit 1
+fi
+
+if [ "$MODE" = "--list" ]; then
+  printf "would copy from %s:%b\n" "$OLD" "$COPIED"
+  exit 0
 fi
 
 printf "copied from %s:%b\n" "$OLD" "$COPIED"
