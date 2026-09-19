@@ -282,8 +282,18 @@ if [ -d "$OLD/rules/custom" ]; then
     [ -e "$F" ] || continue
     B=$(basename "$F")
     [ "$B" = ".gitkeep" ] && continue
-    if [ -e "memory/custom-rules/$B" ] && [ -z "$FORCE" ]; then
-      echo "kept memory/custom-rules/$B — use --force for the old checkout's" >&2
+    # hostwarden-migrate renames a copied
+    # heinzel-<skill>.md to hostwarden-<skill>.md, so
+    # a second run would not recognise its own work
+    # and would copy the old name back in beside it.
+    case "$B" in
+      heinzel-*) MAPPED="hostwarden-${B#heinzel-}" ;;
+      *) MAPPED="$B" ;;
+    esac
+    if { [ -e "memory/custom-rules/$B" ] \
+        || [ -e "memory/custom-rules/$MAPPED" ]; } \
+        && [ -z "$FORCE" ]; then
+      echo "kept memory/custom-rules/$MAPPED — use --force for the old checkout's" >&2
       continue
     fi
     plan "custom-rules/$B (from rules/custom/)"
@@ -353,7 +363,11 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
       fi
     fi
-    if [ -e "memory/servers/$H" ] && [ -z "$FORCE" ]; then
+    # -L as well: a dangling alias in this clone is
+    # still this clone's state, and -e alone would
+    # let a non-force run replace it.
+    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
+        && [ -z "$FORCE" ]; then
       echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
       continue
     fi
