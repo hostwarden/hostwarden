@@ -63,10 +63,10 @@ table:
    write command — not once per session.
 4. **Guard override.** Steps 2 and 3 run `mkfs`,
    `newfs` and `gpart` writes, which the taboo
-   guard blocks. The user relaunches with
-   `HOSTWARDEN_GUARD_DISABLE=1` first, as
-   `references/os-replacement.md` (Prerequisites, step
-   4) describes.
+   guard blocks. The gate in `SKILL.md` § The gate
+   holds first, including the operator having
+   relaunched with `HOSTWARDEN_GUARD_DISABLE=1` set
+   in the environment.
 
 ### RAM Check
 

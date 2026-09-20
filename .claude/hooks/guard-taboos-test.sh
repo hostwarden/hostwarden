@@ -285,10 +285,10 @@ check pass 'uname -a'
 check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 
 # --- every code block the instruction layer ships passes -------
-# CORPUS is every place an instruction can carry a command, so a
-# block stays covered when it moves between mechanisms. Paths that
-# do not exist yet are dropped, because find fails on a missing one
-# and would take the whole matrix down with it.
+# The corpus is every place an instruction can carry a command, so
+# a block stays covered when it moves between mechanisms. Paths
+# that do not exist yet are dropped, because find fails on a
+# missing one and would take the whole matrix down with it.
 # A taboo word used as data in a documented probe is denied like
 # the command itself and cancels the whole parallel batch. The
 # security skill once skipped inert login shells by a regex of
@@ -300,15 +300,18 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 # block path keeps names unique when find starts awk twice.
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
 
-CORPUS=""
+# Held as positional parameters, not a space-joined string: a
+# checkout under a path with a space in it would otherwise split
+# into arguments find cannot resolve, and the scan would silently
+# cover nothing.
+set --
 for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
          "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
-  [ -e "$p" ] && CORPUS="$CORPUS $p"
+  [ -e "$p" ] && set -- "$@" "$p"
 done
 
 BLOCKS=$(mktemp -d)
-# shellcheck disable=SC2086
-find $CORPUS -name '*.md' \
+find "$@" -name '*.md' \
   -exec awk -v dir="$BLOCKS" '
   /^[ \t]*```/ && !inb { inb = 1
                          if (/[ \t](operator|guard-off)[ \t]*$/) next
@@ -345,7 +348,7 @@ while read -r md; do
 done <<EOF
 $(grep -rlE --include='*.md' \
   '^[[:space:]]*```.*[[:space:]]guard-off[[:space:]]*$' \
-  $CORPUS)
+  "$@")
 EOF
 if [ "$NGUARDOFF" -eq 0 ]; then
   FAIL=$((FAIL + 1))

@@ -3,8 +3,8 @@
 Reached from `os-replacement-ssh-only.md` once a target
 filesystem exists but nothing can run inside it yet — no chroot,
 because the binaries are for the wrong architecture or the wrong
-OS. Two ways to populate it, and the partition type codes to fix
-afterwards.
+OS. Two ways to populate it, whichever the surrounding workflow
+needs.
 
 Blocks fenced `guard-off` below run only after the operator
 relaunched the session with `HOSTWARDEN_GUARD_DISABLE=1` set
@@ -392,50 +392,3 @@ extracted packages:
 script. On Debian: download the `.deb`, run
 `ar x <package>.deb`, extract `control.tar.*`,
 and read the `postinst` file.
-
-## GPT Partition Type Codes
-
-When replacing one OS with another, the GPT
-partition table retains the old OS's type codes.
-For example, replacing FreeBSD with Linux leaves
-partitions marked as `freebsd-swap` and
-`freebsd-zfs` even though they now contain Linux
-swap and ext4. **Always fix partition type codes
-after a cross-OS replacement.**
-
-Wrong type codes can confuse tools, installers,
-and rescue systems that rely on them to identify
-partition contents.
-
-### Expected type codes by OS
-
-| Partition    | Linux          | FreeBSD (gpart type)            |
-|--------------|----------------|---------------------------------|
-| Root / data  | `8300` (Linux) | `freebsd-zfs` or `freebsd-ufs`  |
-| Swap         | `8200` (swap)  | `freebsd-swap`                  |
-| EFI          | `ef00` (EFI)   | `efi`                           |
-
-### How to fix
-
-**From Linux** (after replacement):
-
-```sh guard-off
-# sgdisk: -t PARTNUM:TYPECODE
-sgdisk -t 2:8200 -t 3:8300 /dev/vda
-partprobe /dev/vda
-```
-
-**From FreeBSD** (after replacement):
-
-```sh guard-off
-# gpart modify: -t TYPE -i PARTNUM DEVICE
-gpart modify -t freebsd-swap -i 2 vtbd0
-gpart modify -t freebsd-zfs -i 3 vtbd0
-```
-
-### When to fix
-
-Fix partition types as a post-replacement step,
-after the new OS is booted and confirmed working.
-Verify with `fdisk -l` or `gpart show` — look for
-type names that belong to the old OS.

@@ -5,6 +5,12 @@ is FreeBSD and there is no console. mfsBSD boots entirely from
 RAM, which is what makes it possible to overwrite the disk it
 came from.
 
+Step 4 below writes an image over a whole disk, so the four-part
+gate in `SKILL.md` § The gate holds first — explicit request,
+understood loss, verified backup, and the operator having
+relaunched with `HOSTWARDEN_GUARD_DISABLE=1` set in the
+environment. Nothing here is a read.
+
 ## SSH-Only Cross-OS via mfsBSD
 
 When replacing one OS with a completely different one

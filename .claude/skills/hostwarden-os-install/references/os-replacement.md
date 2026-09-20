@@ -17,24 +17,15 @@ two OSes side by side.
 
 ## Prerequisites
 
-Before starting:
+The four-part gate in `SKILL.md` § The gate holds before
+the first write — explicit request, understood loss,
+verified backup, `HOSTWARDEN_GUARD_DISABLE=1` set by the
+operator.
 
-1. **Confirm with the user.** This is destructive
-   and irreversible. Make sure they understand the
-   old OS will be wiped.
-2. **Backup.** Verify the user has a full backup or
-   snapshot. For VMs, suggest a VM-level snapshot
-   before starting.
-3. **Inventory the current system.** Capture
-   everything needed to rebuild (see next section).
-4. **Disable the taboo guard for this session.**
-   The shipped guard hook blocks `mkfs`, partition
-   writers, and `dd` onto raw devices — exactly
-   what this workflow runs by design. Ask the user
-   to relaunch with `HOSTWARDEN_GUARD_DISABLE=1` set
-   in the environment (an inline assignment in a
-   command does not work and is itself blocked),
-   and to unset it again after the replacement.
+One more thing this workflow needs that the gate does
+not cover: **inventory the current system** before
+anything is wiped. The next section says what to
+capture.
 
 ## Pre-Replacement Inventory
 
@@ -260,7 +251,7 @@ After the new OS is installed and accessible:
 13. [ ] Firewall rules match pre-replacement config
 14. [ ] All services tested and running
 15. [ ] GPT partition types match the new OS
-        (see os-replacement-offline-rootfs.md)
+        (see `partition-type-codes.md`)
 16. [ ] `pre-replacement.md` reviewed — nothing
         missed
 17. [ ] Changelog entry logged
@@ -277,15 +268,16 @@ references carry those paths, read in this order:
   running over SSH and writing the new image from it:
   hot-migration, the tmpfs rescue root, and why writing straight
   to the live disk does not work.
-- `os-replacement-offline-rootfs.md` — populating the new root
-  filesystem when nothing can run inside it yet, by QEMU or by
-  extracting packages by hand, and the partition type codes to
-  correct afterwards.
 - `os-replacement-mfsbsd.md` — the FreeBSD target, which has its
   own RAM-booted rescue image.
 
 Everything in this file still applies to them: the inventory, the
 boot-order rules, the checklist.
+
+`os-replacement-offline-rootfs.md` often comes up next, but it is
+not on this axis: it covers filling a root filesystem nothing can
+run inside, which is a cross-OS or cross-architecture problem and
+happens with a console just as readily.
 
 ## Cross-Family Considerations
 

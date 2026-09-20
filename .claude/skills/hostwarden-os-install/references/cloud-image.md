@@ -17,10 +17,10 @@ Read this file when:
 The taboo guard blocks the `dd` below and any edit
 of `sshd_config`, host keys or `authorized_keys`
 inside an offline image. Before the first of them,
-the user relaunches with `HOSTWARDEN_GUARD_DISABLE=1`,
-as `references/os-replacement.md` (Prerequisites, step
-4) describes. The console fix in §5 is for the
-user to type.
+the gate in `SKILL.md` § The gate holds, including
+the operator having relaunched with
+`HOSTWARDEN_GUARD_DISABLE=1` set in the environment.
+The console fix in §5 is for the user to type.
 
 ## Common Issues
 

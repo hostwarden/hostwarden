@@ -23,10 +23,21 @@ Five workflows that share one disk, one boot loader and one
 irreversible moment. Read the gate below first, then the reference
 that matches what the user asked for.
 
-## The gate — before anything touches a disk
+## Reading is always allowed
 
-Every path here is destructive. None of them starts until all four
-hold:
+Inspection needs none of the gate below. `efibootmgr -v`, `lsblk`,
+`fdisk -l`, `gpart show`, `diskutil list`, reading a boot loader's
+config, working out why a fresh VM will not boot — all of it runs
+under the guard like any other read-only work, and this skill is
+often invoked for exactly that.
+
+Never ask an operator to disable a safety mechanism in order to
+look at something.
+
+## The gate — before the first write
+
+The moment a step would change a disk, a partition table or a boot
+entry, all four have to hold:
 
 1. **The user asked for it in this session.** Not inferred from a
    full disk, a broken boot, or an old release. This skill is never
@@ -47,6 +58,10 @@ hold:
 Being blocked by the guard before step 4 is the expected outcome.
 Never rephrase a command to get past it.
 
+Disable it for the write, not for the session's whole length: an
+inspection that precedes the decision runs under the guard, and it
+goes back on when the work is done.
+
 Code blocks in the references that only run with the guard off
 carry `guard-off` on their fence. Blocks marked `operator` are for
 the user to type at a console, not for hostwarden to run.
@@ -56,11 +71,9 @@ the user to type at a console, not for hostwarden to run.
 - **Wipe and reinstall, same machine, new OS** →
   `references/os-replacement.md`. Pre-replacement inventory, boot
   configuration safety, installation methods, and the checklist.
-  It routes on to three more when the machine has no console:
+  It routes on to two more when the machine has no console:
   `references/os-replacement-ssh-only.md` for getting a rescue
-  environment up over SSH,
-  `references/os-replacement-offline-rootfs.md` for filling a root
-  filesystem nothing can run inside, and
+  environment up over SSH, and
   `references/os-replacement-mfsbsd.md` for a FreeBSD target.
 - **A second OS beside the existing one** →
   `references/dual-boot.md`. Partition planning, ZFS root
@@ -75,6 +88,14 @@ the user to type at a console, not for hostwarden to run.
 - **Freeing a partition on a running system, repartitioning
   without physical access, needing scratch space on a disk that is
   in use** → `references/partition-staging.md`.
+- **A root filesystem exists but nothing can run inside it** —
+  the binaries are for another architecture or another OS, so no
+  chroot → `references/os-replacement-offline-rootfs.md`, by QEMU
+  or by extracting packages by hand. A cross-OS problem, not a
+  console one; the cloud-image and EFI paths reach it too.
+- **A partition carries the previous OS's type code** →
+  `references/partition-type-codes.md`. Post-install fixup, run
+  from the replacement checklist.
 
 Read only the ones the task needs. They cross-reference each other
 where a path continues.
