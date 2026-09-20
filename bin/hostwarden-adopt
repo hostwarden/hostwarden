@@ -246,6 +246,7 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 # clone that cannot be described or re-run cleanly.
 SHARED_PENDING=""
 SHARED_BROKEN=""
+SHARED_BADTYPE=""
 for ITEM in $SHARED; do
   # A link in the old checkout that does not resolve
   # has no content to copy. Silently skipping it
@@ -256,6 +257,19 @@ for ITEM in $SHARED; do
     continue
   fi
   [ -e "$OLD/memory/$ITEM" ] || continue
+  # And the right shape. rules/access-control.md
+  # reads blacklist.md and readonly.md as plain list
+  # files: a directory of that name would be copied
+  # as a directory, and every host would arrive here
+  # unrestricted.
+  case "$ITEM" in
+    custom-rules)
+      [ -d "$OLD/memory/$ITEM" ] || {
+        SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
+    *)
+      [ -f "$OLD/memory/$ITEM" ] || {
+        SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
+  esac
   same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
@@ -277,14 +291,21 @@ case " $SHARED_BROKEN " in
   *" blacklist.md "*|*" readonly.md "*)
     [ -n "$SHARED_ONLY" ] || BLOCKED=broken ;;
 esac
+case " $SHARED_BADTYPE " in
+  *" blacklist.md "*|*" readonly.md "*)
+    [ -n "$SHARED_ONLY" ] || BLOCKED=broken ;;
+esac
 if [ -n "$SHARED_BROKEN" ]; then
   echo "the old checkout has a link that does not resolve:$SHARED_BROKEN" >&2
 fi
+if [ -n "$SHARED_BADTYPE" ]; then
+  echo "the old checkout has the wrong kind of entry for:$SHARED_BADTYPE" >&2
+fi
 if [ -n "$BLOCKED" ]; then
   if [ "$BLOCKED" = broken ]; then
-    echo "An access list that cannot be read cannot come across, and a host" >&2
-    echo "denied there would arrive here unrestricted. Fix the link in the" >&2
-    echo "old checkout first." >&2
+    echo "An access list that is not a readable list file cannot come across," >&2
+    echo "and a host denied there would arrive here unrestricted. Fix it in" >&2
+    echo "the old checkout first." >&2
   else
     echo "this clone has its own$SHARED_PENDING" >&2
     echo "A host denied or read-only in the old checkout would arrive here" >&2
@@ -306,7 +327,7 @@ fi
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
   same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
-  case " $SHARED_PENDING " in
+  case " $SHARED_PENDING $SHARED_BROKEN $SHARED_BADTYPE " in
     *" $ITEM "*) continue ;;
   esac
   plan "$ITEM"
