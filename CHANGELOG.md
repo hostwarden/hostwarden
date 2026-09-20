@@ -2,17 +2,14 @@
 
 ## Unreleased
 
-- **Taking over heinzel is two mechanisms, not three.**
-  Custom commands have been folded into skills upstream,
-  so `.claude/commands/adopt-heinzel.md` only produced a
-  second name for a skill that already is a slash
-  command. The takeover runs as `/hostwarden-adopt`.
-  What stays split is split because the halves have
-  different triggers: the skill is asked for by name and
-  reads the old checkout, while `heinzel-legacy` and
-  `heinzel-adoption` are reflexes on the first
-  connection to a host. The skill now says so, so the
-  boundary does not drift back.
+- **Taking over heinzel is two mechanisms.** The
+  `hostwarden-adopt` skill is asked for by name —
+  `/hostwarden-adopt`, or the same request in prose — and
+  reads the old checkout. `heinzel-legacy` and
+  `heinzel-adoption` are reflexes that fire on a host
+  without anyone asking. The skill states that division
+  rather than leaving it to be inferred, so it does not
+  drift into a third place.
 
 - **Examples name nobody real.** Hostnames and domains
   come from RFC 2606 (`server1.example.com`), addresses
