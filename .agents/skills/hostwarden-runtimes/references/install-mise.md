@@ -35,6 +35,20 @@ After installing, add `~/.local/bin` to PATH in
 `references/shell-setup.md`, which owns the PATH line
 and the guard that keeps re-runs a no-op.
 
+### macOS and FreeBSD
+
+The standalone installer above is the path on macOS too, and
+upstream prefers it over the Homebrew formula. `brew install
+mise` works if the user asks for it by name; never `sudo brew`
+(`rules/os/macos.md`).
+
+For FreeBSD, upstream documents no package or port. Check the
+host before deciding — `pkg search mise` — and use what is
+there; otherwise the standalone installer, which needs `curl`
+from `pkg install curl`. If neither works, say so rather than
+improvising: a runtime manager installed some other way is the
+second source of truth this skill exists to avoid.
+
 ### Alternative: Distro Package Manager (needs root)
 
 Only use this when the user **explicitly prefers** it

@@ -51,17 +51,47 @@ pw useradd deploy -d /home/deploy \
 
 ### Verify
 
-One call. `id` succeeding is already proof the account
-exists, so there is nothing for a `/etc/passwd` grep to
-add, and the password state belongs in the same trip:
+One call, and it has to fail when the account does not
+exist. `id` succeeding is already proof of that, so there
+is nothing for a `/etc/passwd` grep to add, and the
+password state belongs in the same trip — but chained with
+`&&`, not `;`. A `;` throws away the `id` status, and an
+unanchored `grep deploy /etc/shadow` then matches
+`deploy-old` and reports success for an account that was
+never created:
 
 ```bash
-id deploy; passwd -S deploy 2>/dev/null \
-  || grep deploy /etc/shadow
+id deploy && { passwd -S deploy 2>/dev/null \
+  || grep '^deploy:' /etc/shadow; }
 ```
 
 The account should have no password set — `!` or `*` in
 `/etc/shadow`, or `L`/`NP` from `passwd -S`.
+
+## Auditing one that already exists
+
+When the request is to check an existing deploy user rather
+than create one, change nothing. Read the four things this
+skill sets up and report each as it is:
+
+```bash
+id deploy && getent passwd deploy
+ls -ld /srv/deploy 2>/dev/null
+sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
+```
+
+Then the account's authorized keys, with
+`ssh-keygen -lf` rather than by printing the file: it gives
+the fingerprint, the type and the comment, which is what
+identifies a key, and no key material reaches the report
+(`rules/secrets.md`).
+
+What each of these *should* look like is
+`references/harden.md` — restricted shell, a directory the
+account owns, sudo scoped to named commands or absent, and
+a key with the options that pin it to one command. Report
+the difference and let the user decide. Fixing it is a
+separate request, and it goes through the sections above.
 
 ## The key, the directory, the privileges
 
