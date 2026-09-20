@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The last two monolithic skills load in pieces.**
+  `hostwarden-runtimes` is 147 lines instead of 306, with
+  installing mise itself and the non-interactive shell
+  path in `references/`; asking which Node version a host
+  runs now reads the pre-install check without the
+  installer behind it. `hostwarden-deploy-user` is 112
+  instead of 274, with the SSH key, the hardening steps
+  and the removal procedure split out — removing a deploy
+  account used to load the whole setup workflow to use
+  thirteen lines of it. Every skill in the tree now routes
+  rather than recites.
+
 - **A `references/` pointer resolves inside its own
   skill.** The fleet audit and the housekeeping baseline
   both sent a reader to

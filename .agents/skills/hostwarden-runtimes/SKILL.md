@@ -96,183 +96,17 @@ per-user and still needs PATH setup — only the
 `~/.local/bin` part of the PATH setup can be
 skipped.
 
-## Installation
+## Installing mise
 
-Only install mise when the Pre-Install Check found
-no existing installation. mise is installed as
-**the SSH user** (not root).
+Only when the pre-install check above found none:
+`references/install-mise.md`. It covers the official installer,
+the distro-package trap, and the FreeBSD and macOS paths.
 
-### Default: Standalone Installer (no root)
+## When the runtime is invisible over SSH
 
-Always try this first. It works on any Linux distro,
-needs no root or sudo, and avoids third-party repos.
-
-```
-curl https://mise.run | sh
-```
-
-- Installs to `~/.local/bin/mise`
-- No root or sudo needed — works in unprivileged mode
-- Works on all distro families
-- Updates via `mise self-update`
-- Requires `curl` (fall back to `wget` if unavailable:
-  `wget -qO - https://mise.run | sh`)
-- Does **not** modify shell config — the SSH
-  Non-Interactive Shell Setup section handles PATH
-
-After installing, add `~/.local/bin` to PATH in
-`~/.bashrc` (before the interactive guard) so the
-`mise` binary itself is found over SSH. This is
-handled in the SSH Non-Interactive Shell Setup section
-below.
-
-### Alternative: Distro Package Manager (needs root)
-
-Only use this when the user **explicitly prefers** it
-and root access is available. **Ask the user before
-adding the repo** — these are third-party repos.
-
-Trade-offs:
-
-- **Pro:** auto-updates via system package manager
-- **Con:** requires root, adds a third-party repo,
-  `mise self-update` is disabled
-
-#### Debian & Ubuntu
-
-```
-apt-get update && apt-get install -y gpg wget
-install -d -m 755 /etc/apt/keyrings
-wget -qO - https://mise.jdx.dev/gpg-key.pub \
-  | gpg --dearmor \
-  | tee /etc/apt/keyrings/mise-archive-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" \
-  | tee /etc/apt/sources.list.d/mise.list
-apt-get update && apt-get install -y mise
-```
-
-#### RHEL & Fedora
-
-```
-dnf install -y dnf-plugins-core
-dnf config-manager --add-repo \
-  https://mise.jdx.dev/rpm/mise.repo
-dnf install -y mise
-```
-
-On RHEL 7/CentOS 7, use `yum` instead of `dnf`.
-
-**Note:** `dnf config-manager` syntax differs
-between dnf4 and dnf5, and the yum-era command is
-`yum-config-manager` — check `--help` on the
-target first.
-
-#### SUSE
-
-```
-zypper addrepo \
-  https://mise.jdx.dev/rpm/mise.repo mise
-zypper refresh
-zypper install -y mise
-```
-
-### Which Method to Use
-
-1. **Check first:** run the Pre-Install Check. If
-   mise already exists, skip installation entirely.
-2. **Default:** standalone installer — always try
-   this first when no mise is found.
-3. **Alternative:** distro package — only when the
-   user explicitly prefers it and root access is
-   available.
-4. **Unprivileged mode:** standalone installer is
-   the only option (no root for package manager
-   installs).
-
-## SSH Non-Interactive Shell Setup
-
-**This is critical.** All hostwarden work runs via
-`ssh user@host "command"` — a non-interactive,
-non-login shell where `.bashrc` is typically not
-sourced.
-
-**Check the user's login shell first** — the steps
-below are **bash-only**:
-
-```
-getent passwd <user> | cut -d: -f7
-```
-
-- **bash:** follow the `.bashrc` / `.bash_profile`
-  steps below.
-- **zsh** (macOS default): put the PATH export in
-  `~/.zshenv` — zsh sources it for every
-  invocation, including non-interactive SSH
-  commands.
-- **sh / csh** (FreeBSD root commonly runs these):
-  POSIX `sh` reads the file named by `$ENV`
-  (commonly `~/.shrc`); `csh`/`tcsh` read
-  `~/.cshrc` and use `setenv PATH ...` syntax.
-
-For bash, add both `~/.local/bin` (for the
-`mise` binary itself) and the shims directory (for
-language runtimes) to `PATH` **at the top of
-`~/.bashrc`** — before the interactive guard
-(`case $- in ...`). This is the only reliable way to
-get mise into `ssh user@host "command"` on
-Debian/Ubuntu, because `~/.bash_profile` is **not**
-sourced for non-login, non-interactive SSH commands.
-
-```bash
-# Insert at the very top of ~/.bashrc.
-# The grep guard makes re-runs a no-op.
-grep -q '# mise (before interactive guard)' ~/.bashrc || \
-sed -i '1i# mise (before interactive guard)\
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"\
-' ~/.bashrc
-```
-
-Also extend `~/.bash_profile` to source `.bashrc`
-for interactive login shells and set XDG_RUNTIME_DIR
-(needed for systemd user services over SSH). Back up
-an existing file first (`rules/backups.md`), append
-rather than overwrite, and guard with a marker so
-re-runs are no-ops:
-
-```bash
-[ -f ~/.bash_profile ] && \
-  cp ~/.bash_profile ~/.bash_profile.bak.$(date +%F)
-grep -q '# mise shims' ~/.bash_profile 2>/dev/null || \
-cat >> ~/.bash_profile << 'EOF'
-# mise shims
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-
-# Source .bashrc for interactive login shells
-if [ -n "$BASH_VERSION" ] && [ -f "$HOME/.bashrc" ]; then
-    . "$HOME/.bashrc"
-fi
-EOF
-```
-
-**Verify it works:**
-
-```
-ssh user@host "mise --version"
-ssh user@host "node --version"
-```
-
-If neither file is sourced, fall back to:
-
-1. **Explicit PATH prefix** in commands:
-   ```
-   PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH" node -v
-   ```
-2. **`mise exec`** to run commands in a mise-managed
-   environment:
-   ```
-   ~/.local/bin/mise exec -- node -v
-   ```
+`ssh host "node --version"` failing after a successful install is
+a shell-initialisation problem, not an install problem:
+`references/shell-setup.md`.
 
 ## Installing Languages
 
@@ -304,3 +138,10 @@ line to the server's `memory.md`:
 
 Update this line whenever languages are added, removed,
 or upgraded.
+
+## References
+
+Read on demand:
+
+- `references/install-mise.md` — installing mise itself.
+- `references/shell-setup.md` — the non-interactive shell path.
