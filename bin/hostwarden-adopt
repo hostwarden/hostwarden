@@ -299,8 +299,13 @@ if [ -d "$OLD/rules/custom" ]; then
       heinzel-*) MAPPED="hostwarden-${B#heinzel-}" ;;
       *) MAPPED="$B" ;;
     esac
+    # -L too: a dangling link is still an entry of
+    # theirs, and -e alone would let rm -rf below
+    # take it without --force.
     if { [ -e "memory/custom-rules/$B" ] \
-        || [ -e "memory/custom-rules/$MAPPED" ]; } \
+        || [ -L "memory/custom-rules/$B" ] \
+        || [ -e "memory/custom-rules/$MAPPED" ] \
+        || [ -L "memory/custom-rules/$MAPPED" ]; } \
         && [ -z "$FORCE" ]; then
       echo "kept memory/custom-rules/$MAPPED — use --force for the old checkout's" >&2
       continue
@@ -319,7 +324,8 @@ if [ -d "$OLD/rules/custom" ]; then
   done
 fi
 if [ -f "$OLD/opencode.json" ]; then
-  if [ -e memory/opencode.json ] && [ -z "$FORCE" ]; then
+  if { [ -e memory/opencode.json ] || [ -L memory/opencode.json ]; } \
+      && [ -z "$FORCE" ]; then
     same_content "$OLD/opencode.json" memory/opencode.json \
       || echo "kept memory/opencode.json — the old checkout has its own at the repo root, use --force for that one" >&2
   else
@@ -369,7 +375,21 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         echo "skipped memory/servers/$H — alias to $CANON, which is not a host directory" >&2
         continue
       fi
-      if [ ! -e "memory/servers/$CANON" ] || [ -n "$FORCE" ]; then
+      # The destination's canonical entry has to be a
+      # real directory, or the alias would resolve to
+      # a file, or follow a link of theirs out of
+      # memory/servers/. Without --force such an
+      # entry is left alone and the alias with it.
+      DST_CANON="memory/servers/$CANON"
+      if [ -L "$DST_CANON" ] \
+          || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; then
+        if [ -z "$FORCE" ]; then
+          echo "skipped memory/servers/$H — $DST_CANON is not a host directory here, use --force to replace it" >&2
+          continue
+        fi
+      fi
+      if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
+          || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
