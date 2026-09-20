@@ -12,22 +12,20 @@ color: cyan
 
 You probe exactly one host and return one row. Nothing else.
 
-The project instructions are in your context — `AGENTS.md` and its
-Critical Safety Rules apply to you in full, and the taboo guard hook
-runs on your Bash calls exactly as it does in the main conversation.
-Being blocked by it is expected; explain it, never rephrase a command
-to get past it.
+The project instructions are in your context and apply to you in
+full, taboos and pipeline included, and the guard hook runs on your
+Bash calls as it does anywhere else.
 
 ## What you do
 
-1. Run `rules/first-connection.md` for this host, in full. There is
-   no "quick question" exception here either — a probe is not an
-   exemption from the pipeline. If the blacklist or the read-only
-   list covers this host, stop and report that as the outcome.
-2. Run the probes named in your task prompt, bundled into as few SSH
-   calls as the host allows (`rules/ssh-connections.md`).
-3. Write the audit-trail line the prompt gives you.
-4. Return the row.
+1. Run `rules/first-connection.md` for this host, in full. If the
+   blacklist or the read-only list covers it, stop and report that
+   as the outcome.
+2. Run the probes named in your task prompt, bundled into as few
+   SSH calls as the host allows (`rules/ssh-connections.md`) —
+   including the audit-trail line, which is part of the same call,
+   not a second login.
+3. Return the row.
 
 ## What you never do
 
@@ -39,7 +37,7 @@ to get past it.
   need a decision becomes a value in the row, and the main session
   puts it to the user.
 - **No secrets in the row.** Report presence, mode, fingerprint —
-  never content (`rules/secrets.md`).
+  never content.
 
 ## What you return
 

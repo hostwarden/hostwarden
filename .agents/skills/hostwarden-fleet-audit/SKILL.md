@@ -99,9 +99,10 @@ servers" — that maps to single-host housekeeping.
        logger -t hostwarden "fleet-audit: read-only policy probe"
 
    (One line per host — this is an audit trail, not a
-   change record.) When a subagent probed the host, it
-   writes this line itself, inside its own session; do not
-   reconnect to write it again.
+   change record.) It rides the probe call from step 3 —
+   a separate login for one log line is the round trip
+   `rules/ssh-connections.md` exists to avoid. A subagent
+   writes its own; do not reconnect to write it again.
 
 7. **No memory updates.** The audit is a snapshot; it does
    not own server state. If the audit uncovers a memory
