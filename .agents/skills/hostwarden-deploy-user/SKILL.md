@@ -57,18 +57,17 @@ pw useradd deploy -d /home/deploy \
 
 ### Verify
 
-```bash
-id deploy
-grep deploy /etc/passwd
-```
-
-The user should have no password set (`!` or `*`
-in `/etc/shadow`). Confirm:
+One call. `id` succeeding is already proof the account
+exists, so there is nothing for a `/etc/passwd` grep to
+add, and the password state belongs in the same trip:
 
 ```bash
-passwd -S deploy 2>/dev/null \
+id deploy; passwd -S deploy 2>/dev/null \
   || grep deploy /etc/shadow
 ```
+
+The account should have no password set — `!` or `*` in
+`/etc/shadow`, or `L`/`NP` from `passwd -S`.
 
 ## The key, the directory, the privileges
 

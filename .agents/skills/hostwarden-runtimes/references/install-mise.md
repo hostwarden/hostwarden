@@ -31,9 +31,9 @@ curl https://mise.run | sh
 
 After installing, add `~/.local/bin` to PATH in
 `~/.bashrc` (before the interactive guard) so the
-`mise` binary itself is found over SSH. This is
-handled in the SSH Non-Interactive Shell Setup section
-below.
+`mise` binary itself is found over SSH. That is
+`references/shell-setup.md`, which owns the PATH line
+and the guard that keeps re-runs a no-op.
 
 ### Alternative: Distro Package Manager (needs root)
 

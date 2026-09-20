@@ -63,19 +63,16 @@ standalone install.
 **Step 1 — Check if mise exists for the SSH user:**
 
 ```
-# Remote
-ssh user@host "command -v mise"
+# Remote — the standard SSH options from AGENTS.md apply
+ssh <options> user@host "command -v mise"
 
 # Local
 command -v mise
 ```
 
-If `command -v mise` succeeds, mise is already
-installed. Check the path to determine the type:
-
-```
-ssh user@host "which mise"
-```
+`command -v` prints the absolute path, so that one call
+already answers both questions — whether mise is there
+and which kind it is. Do not follow it with `which`.
 
 - **System-wide** (`/usr/bin/mise`,
   `/usr/local/bin/mise`): Use it as-is. Skip the
@@ -123,8 +120,7 @@ mise use --global ruby@<current-stable>
 After installing, verify over SSH:
 
 ```
-ssh user@host "node --version"
-ssh user@host "ruby --version"
+ssh <options> user@host "node --version; ruby --version"
 ```
 
 ## Server Memory Convention
@@ -138,10 +134,3 @@ line to the server's `memory.md`:
 
 Update this line whenever languages are added, removed,
 or upgraded.
-
-## References
-
-Read on demand:
-
-- `references/install-mise.md` — installing mise itself.
-- `references/shell-setup.md` — the non-interactive shell path.

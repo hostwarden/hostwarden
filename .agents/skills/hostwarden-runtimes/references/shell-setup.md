@@ -75,8 +75,7 @@ EOF
 **Verify it works:**
 
 ```
-ssh user@host "mise --version"
-ssh user@host "node --version"
+ssh <options> user@host "mise --version; node --version"
 ```
 
 If neither file is sourced, fall back to:
