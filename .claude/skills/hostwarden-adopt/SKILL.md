@@ -82,10 +82,14 @@ leads, the host confirms them.
    about a host: point it out and ask whether to change it.
 
 5. **Build the inventory.** This is the part no script can do. For
-   each host **this run copied** — not every host under
-   `memory/servers/`, or a `--shared` run would build inventories for
+   each host **this run selected** — the ones it copied, and the ones
+   it reported as already adopted, since a repeat run or a session
+   interrupted after step 3 copies nothing and would otherwise leave
+   those hosts without leads. Never every host under
+   `memory/servers/`: a `--shared` run would build inventories for
    hosts nothing was adopted for and send later connections into the
-   legacy workflow over nothing — read `memory.md` and
+   legacy workflow over nothing. For each of them read `memory.md`
+   and
    `changelog.log` and collect every path, unit, cron job or script a
    heinzel session created or configured — the shapes are listed in
    `rules/heinzel-legacy.md` § "What to look for",

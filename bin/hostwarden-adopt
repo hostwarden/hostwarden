@@ -421,12 +421,38 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     # host already adopted — the same rule the shared
     # state follows, so repeating a --server run is a
     # no-op rather than an error.
+    #
+    # For an alias that takes the canonical host too.
+    # Two links with the same text say nothing about
+    # the memory behind them, and stopping here would
+    # report a host as adopted whose memory is absent
+    # or stale — even under --force.
+    ADOPTED=""
     if already_adopted "$SRC" "memory/servers/$H"; then
+      if [ -L "$SRC" ]; then
+        A_CANON=$(readlink "$SRC")
+        already_adopted "$OLD/memory/servers/$A_CANON" \
+          "memory/servers/$A_CANON" && ADOPTED=yes
+      else
+        ADOPTED=yes
+      fi
+    fi
+    if [ -n "$ADOPTED" ]; then
       DONE_HOSTS="$DONE_HOSTS$H|"
       NOTHING_LEFT=yes
       continue
     fi
-    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
+    # An alias here that already points at the same
+    # name is not in the way: the entry is right and
+    # only the memory behind it may be missing, so the
+    # alias branch below is allowed to repair that.
+    SAME_ALIAS=""
+    if [ -L "$SRC" ] && [ -L "memory/servers/$H" ] \
+        && [ "$(readlink "$SRC")" = "$(readlink "memory/servers/$H")" ]; then
+      SAME_ALIAS=yes
+    fi
+    if [ -z "$SAME_ALIAS" ] \
+        && { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
         && [ -z "$FORCE" ]; then
       echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
       continue
