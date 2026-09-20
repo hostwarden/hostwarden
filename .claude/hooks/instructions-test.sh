@@ -93,5 +93,77 @@ else
   ok
 fi
 
+# --- examples name nobody real ----------------------------------
+# .claude/rules/instruction-authoring.md: hostnames from RFC 2606,
+# addresses from RFC 5737/3849, people from the Alice-and-Bob
+# convention. An example that borrows a real identifier points a
+# reader -- or a copied command -- at somebody else's machine.
+#
+# URLs are stripped first: linking to a project's documentation is
+# not the same as pretending to own a name.
+CORPUS_FILES=$(
+  find "$ROOT/rules" "$ROOT/.agents" "$ROOT/contrib" -name '*.md' \
+    2>/dev/null
+  ls "$ROOT/AGENTS.md" "$ROOT/CLAUDE.md" 2>/dev/null
+)
+
+strip_urls() { sed -E 's#https?://[^ )"`,]*##g' "$1"; }
+
+# Addresses outside the documentation ranges. Private, loopback,
+# link-local and netmasks are legitimate subjects of an example.
+BAD_IP=$(
+  for f in $CORPUS_FILES; do
+    strip_urls "$f" | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
+      | grep -vE '^(192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
+      | grep -vE '^(127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
+      | grep -vE '^172\.(1[6-9]|2[0-9]|3[01])\.' \
+      | grep -vE '^255\.' | sed "s#^#$f: #"
+  done
+)
+if [ -z "$BAD_IP" ]; then ok; else
+  printf '%s\n' "$BAD_IP" | while read -r l; do
+    echo "FAIL: $l is not an RFC 5737 documentation address"
+  done
+  FAIL=$((FAIL + 1))
+fi
+
+# Mail addresses outside example.*. openssh.com is allowed because
+# it suffixes algorithm names (umac-64@openssh.com), not people.
+BAD_MAIL=$(
+  for f in $CORPUS_FILES; do
+    strip_urls "$f" \
+      | grep -oE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
+      | grep -vE '@(.*\.)?example\.(com|net|org)$' \
+      | grep -vE '@openssh\.com$' | sed "s#^#$f: #"
+  done
+)
+if [ -z "$BAD_MAIL" ]; then ok; else
+  printf '%s\n' "$BAD_MAIL" | while read -r l; do
+    echo "FAIL: $l is not an RFC 2606 example address"
+  done
+  FAIL=$((FAIL + 1))
+fi
+
+# SSH targets. A hostname a command connects to may well be real
+# infrastructure -- security.debian.org, time.apple.com -- and no
+# pattern tells that from a borrowed example, so hostnames at
+# large are a review matter. An SSH target never is: hostwarden
+# only ever logs into a user's machine, so every one in an
+# instruction file is an example and must say so.
+BAD_SSH=$(
+  for f in $CORPUS_FILES; do
+    strip_urls "$f" \
+      | grep -oE '[a-z0-9_-]+@[a-z0-9][a-z0-9.-]*\.[a-z]{2,}' \
+      | grep -vE '@(.*\.)?example\.(com|net|org)$' \
+      | grep -vE '@openssh\.com$' | sed "s#^#$f: #"
+  done
+)
+if [ -z "$BAD_SSH" ]; then ok; else
+  printf '%s\n' "$BAD_SSH" | while read -r l; do
+    echo "FAIL: $l is not an RFC 2606 example target"
+  done
+  FAIL=$((FAIL + 1))
+fi
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
