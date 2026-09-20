@@ -562,8 +562,8 @@ absence means "ask next time".
 ```
 - Mail: <transport summary>          # remote path only
                                      # e.g. "postfix + bsd-mailx
-                                     #       (outbound via Google MX)"
-                                     # or  "msmtp via smtp.fastmail.com:587"
+                                     #       (outbound via the provider MX)"
+                                     # or  "msmtp via smtp.example.com:587"
 - Alert email: <recipient address>
 - Email source: local | remote       # gate 0 — sender side
 - Email sender: <username>           # remote path only — non-root user
