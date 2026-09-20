@@ -1009,8 +1009,10 @@ bin/
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
-  os/                  — Reference data, one file read per
-                         host, picked by OS detection
+  os/                  — Reference data. Detection reads at
+                         most one — none for a distro no
+                         family covers, one per system for a
+                         workflow spanning two
     debian.md          — Debian & Ubuntu
     rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
     suse.md            — openSUSE & SLES
