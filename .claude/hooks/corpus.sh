@@ -14,6 +14,9 @@
 #   CORPUS_ROOT   — the repository root, so a path printed in a
 #                   failure reads the way a reader would write it
 #   corpus_files  — prints every file in the corpus, one per line
+#   CORPUS_EXEMPT — what is deliberately outside it, so that
+#                   instructions-test.sh can fail on anything
+#                   that is in neither list
 #
 # A path that does not exist yet is dropped rather than passed
 # to find, which fails on a missing argument and would take the
@@ -37,3 +40,12 @@ corpus_files() {
   [ "$#" -gt 0 ] || return 0
   find "$@" -type f 2>/dev/null
 }
+
+# Carries no instruction text, so nothing here has to survive the
+# taboo guard. `.claude/skills` is the symlink to `.agents/skills`
+# and would scan that tree a second time. A path that appears in
+# neither list is a new directory nobody decided about, which is
+# how a scan silently stops covering something.
+CORPUS_EXEMPT=".claude/settings.json .claude/skills
+assets bin memory
+.gitattributes .gitignore LICENSE VERSION"

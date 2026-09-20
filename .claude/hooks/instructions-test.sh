@@ -44,6 +44,29 @@ report() {
 ok()   { PASS=$((PASS + 1)); }
 bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 
+# --- the corpus still covers the tree --------------------------
+# A path that falls out of CORPUS_PATHS does not fail anything on
+# its own: the scans simply stop reaching it and keep reporting
+# success, which is indistinguishable from there being nothing
+# wrong. So every tracked entry at the repository root and under
+# .claude/ has to be named by one list or the other.
+COVERED=0
+# Both lists span several lines; flatten them so a name at the
+# start of a line is still surrounded by spaces to match against.
+KNOWN=" $(printf '%s %s' "$CORPUS_PATHS" "$CORPUS_EXEMPT" \
+  | tr '\n' ' ') "
+for e in $(git -C "$ROOT" ls-tree --name-only HEAD) \
+         $(git -C "$ROOT" ls-tree --name-only HEAD .claude/); do
+  case "$KNOWN" in
+    *" $e "*) continue ;;
+  esac
+  [ "$e" = ".claude" ] && continue
+  bad "$e is in neither CORPUS_PATHS nor CORPUS_EXEMPT --" \
+      "decide whether the instruction scans should read it"
+  COVERED=1
+done
+[ "$COVERED" -eq 0 ] && ok
+
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other
 # AGENTS-style tools read directly. Claude Code does NOT search
