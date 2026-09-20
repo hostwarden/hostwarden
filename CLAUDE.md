@@ -20,6 +20,10 @@ tool reads. This file adds only what exists here and nowhere else.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.
+- **The fleet audit fans out.** `.claude/agents/` holds
+  `hostwarden-host-probe`; the fleet-audit skill gives each host its
+  own, so raw probe output stays out of this conversation.
+  Elsewhere the same audit runs one host after another.
 - **Conventions for editing this repository** load from
   `.claude/rules/` when the matching files are read. They are about
   hostwarden's own source, never about a managed host.
