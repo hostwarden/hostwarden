@@ -53,9 +53,9 @@ attachments.
    constructs the headers (including the anti-auto-reply
    triple) and the boundary itself, then pipes into
    `sendmail -t -oi` (or `msmtp -t` when only msmtp is
-   present). This replaces the earlier tool-specific
-   shell-outs to `mutt` and `mail -a`: a single code path
-   means headers are guaranteed to survive every send.
+   present). One code path for every MTA, which is what
+   makes the headers survive: a tool-specific shell-out to
+   `mutt` or `mail -a` drops them.
 
    **macOS local path.** `/usr/bin/sendmail` on macOS is a
    Postfix compatibility shim and accepts the same `-t`
