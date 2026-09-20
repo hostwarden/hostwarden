@@ -301,8 +301,9 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
 
 CORPUS=""
-for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
-         "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
+for p in "$CLAUDE_DIR/../.agents/skills" "$CLAUDE_DIR/rules" \
+         "$CLAUDE_DIR/agents" "$CLAUDE_DIR/../rules" \
+         "$CLAUDE_DIR/../CLAUDE.md"; do
   [ -e "$p" ] && CORPUS="$CORPUS $p"
 done
 

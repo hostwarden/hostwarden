@@ -18,6 +18,13 @@ jobs:
       - name: Guard test matrix
         run: sh .claude/hooks/guard-taboos-test.sh
 
+      # The skills live in .agents/skills/ and reach Claude Code
+      # only through the symlinks in .claude/skills/. A checkout
+      # that drops them loses every skill silently, so CI asserts
+      # they are still links and still resolve.
+      - name: Instruction layout
+        run: sh .claude/hooks/instructions-test.sh
+
       - name: Validate tracked JSON files
         run: |
           git ls-files '*.json' | while read -r f; do
