@@ -25,7 +25,12 @@
   when one matches nothing shipped instead of ignoring
   it silently. A skill's *trigger* stays uncustomizable
   per file and belongs in `all.md`; `rules/overrides.md`
-  says so rather than leaving it to be discovered.
+  says so rather than leaving it to be discovered. When
+  an upgrade moves a topic between mechanisms,
+  `bin/hostwarden-migrate` moves the matching override
+  with it instead of leaving it at a path nothing reads
+  — which matters for a checkout adopted from heinzel,
+  where such files already exist.
 - **Repo-development conventions load only when repo
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the

@@ -36,6 +36,46 @@ if [ -d memory/custom-rules ]; then
   done
 fi
 
+# An override's path mirrors the path of what it
+# overrides (rules/overrides.md). Topics that moved
+# between rules/ and a skill therefore answer to a new
+# path, and a customization left at the old one is
+# silently never read again — which is the one failure
+# this file exists to prevent. Same rule as above: an
+# override already at the new path wins and the old one
+# stays for the user to merge.
+#
+# One line per topic that moved. A topic that only
+# changes directory keeps its file name.
+MAP='mise hostwarden-runtimes.md
+deployment hostwarden-deploy-user.md
+scheduled-housekeeping hostwarden-housekeeping/scheduled.md
+os-replacement hostwarden-os-install/os-replacement.md
+partition-staging hostwarden-os-install/partition-staging.md
+dual-boot hostwarden-os-install/dual-boot.md
+efi-boot hostwarden-os-install/efi-boot.md
+cloud-image hostwarden-os-install/cloud-image.md
+debian os/debian.md
+rhel os/rhel.md
+suse os/suse.md
+freebsd os/freebsd.md
+macos os/macos.md'
+
+if [ -d memory/custom-rules ]; then
+  echo "$MAP" | while read -r old new; do
+    [ -n "$old" ] || continue
+    f="memory/custom-rules/$old.md"
+    [ -e "$f" ] || continue
+    if [ -e "memory/custom-rules/$new" ]; then
+      echo "hostwarden: kept $f — memory/custom-rules/$new exists, merge by hand"
+      continue
+    fi
+    mkdir -p "memory/custom-rules/$(dirname "$new")"
+    mv "$f" "memory/custom-rules/$new"
+    echo "hostwarden: moved $f → memory/custom-rules/$new"
+  done
+fi
+
 if [ -n "$MOVED" ]; then
   printf "hostwarden migration — moved user state:%b\n" "$MOVED"
   echo "Review any personal scripts or cron jobs that"

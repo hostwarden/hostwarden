@@ -63,6 +63,13 @@ subject in the heading:
     ## Replace: backups / Backup retention
     ## Add: hostwarden-security / Listening services
 
+When an upgrade moves a topic — out of `rules/` into a
+skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
+the matching override with it, and says which files it
+moved. It runs on update and as the last step of adopting a
+heinzel checkout. A file already at the new path wins; the
+old one is left for the user to merge, and named.
+
 **An override path that matches nothing shipped is almost
 always a typo or a stale name.** Say so once, name the file,
 and carry on — silently ignoring it is how a user ends up
