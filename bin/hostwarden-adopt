@@ -388,6 +388,18 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
           continue
         fi
       fi
+      # An alias is only worth having if it resolves
+      # to the host it names. A canonical directory
+      # already here with different content is not
+      # that host: without --force nothing is copied,
+      # and an alias pointing at this clone's older
+      # memory would be worse than none.
+      if [ -d "$DST_CANON" ] && [ ! -L "$DST_CANON" ] \
+          && [ -z "$FORCE" ] \
+          && ! same_content "$OLD/memory/servers/$CANON" "$DST_CANON"; then
+        echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
+        continue
+      fi
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
