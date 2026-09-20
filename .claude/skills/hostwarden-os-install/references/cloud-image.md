@@ -1,16 +1,8 @@
 # Cloud Image Deployment
 
-Rules for deploying Linux from pre-built cloud
-images (qcow2, raw, VMDK).
-
-## When to Read
-
-Read this file when:
-- Deploying a VM from a cloud image
-- Working with qcow2, raw, or VMDK images
-- User mentions "cloud image" or "cloud-init"
-- Troubleshooting a freshly deployed VM that won't
-  boot or accept SSH
+Deploying Linux from pre-built cloud images (qcow2,
+raw, VMDK), and the cloud-init trouble a freshly
+deployed VM brings with it.
 
 ## Taboo Guard
 
@@ -125,10 +117,10 @@ must be installed before the first boot.
 When installing packages into an offline rootfs
 (e.g. mounting the image from a different OS),
 read `references/os-replacement-offline-rootfs.md`
-§"Manual Package
-Extraction into Offline Rootfs" — extracting
-`.deb` files without `dpkg` skips critical postinst
-steps like creating the `sshd` system user.
+§ "Manual Package Extraction into Offline Rootfs" —
+extracting `.deb` files without `dpkg` skips
+critical postinst steps like creating the `sshd`
+system user.
 
 **Minimum steps for SSH-ready nocloud image:**
 

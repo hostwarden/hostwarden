@@ -1,17 +1,14 @@
 # Filling a root filesystem you cannot boot
 
-Reached from `os-replacement-ssh-only.md` once a target
+Reached from `references/os-replacement-ssh-only.md` once a target
 filesystem exists but nothing can run inside it yet — no chroot,
 because the binaries are for the wrong architecture or the wrong
 OS. Two ways to populate it, whichever the surrounding workflow
 needs.
 
-Blocks fenced `guard-off` below run only after the operator
-relaunched the session with `HOSTWARDEN_GUARD_DISABLE=1` set
-in the environment — gate step 4 of the skill. An inline
-assignment in a proposed command does not count and is itself
-blocked. Blocks fenced `operator` are for the user to type at
-a console.
+Blocks fenced `guard-off` below run only once the operator
+relaunched with `HOSTWARDEN_GUARD_DISABLE=1` in the
+environment — `SKILL.md` § The gate, step 4.
 
 ## QEMU as a Cross-OS Chroot Alternative
 

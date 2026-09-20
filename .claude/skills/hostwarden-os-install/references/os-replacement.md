@@ -1,15 +1,7 @@
 # OS Replacement
 
-Workflow rule for replacing one OS with another on
-the same server (wipe and reinstall).
-
-## When to Read
-
-Read this file when the user asks to:
-- Replace the OS on a server (e.g. CentOS → Debian)
-- Reinstall the OS from scratch
-- Migrate a server to a different distribution
-- Wipe and start fresh on an existing machine
+Replacing one OS with another on the same server
+(wipe and reinstall).
 
 This is NOT dual-boot — the old OS is removed
 entirely. See `references/dual-boot.md` for running
@@ -131,7 +123,8 @@ becomes unrecoverable.
 4. **Keep the old bootloader intact as fallback**
    until the new OS is confirmed bootable. Use
    BootNext (one-shot) for the first boot into
-   the new OS. See `references/efi-boot.md`.
+   the new OS. See `references/efi-boot.md`
+   § BootNext (One-Shot Boot).
 
 ### What this means in practice
 
@@ -178,25 +171,8 @@ Choose installation method based on access:
   fails silently on these platforms. Replace GRUB
   with systemd-boot before first boot (see
   `references/efi-boot.md`, `references/cloud-image.md`).
-- **SSH-only replacement (same OS family):** use
-  debootstrap (or equivalent) via tmpfs rescue.
-  See `os-replacement-ssh-only.md`.
-- **SSH-only replacement (cross-OS, e.g. Linux →
-  FreeBSD):** use **mfsBSD** (runs entirely from
-  RAM). dd an mfsBSD image to the disk, reboot,
-  SSH in, and install the new OS. The disk is
-  completely free because the running OS is in
-  RAM. See `os-replacement-mfsbsd.md`.
-  For repeatable deployments, use
-  [AutoBSD](https://gitlab.com/btrgk-lab/freebsd/autobsd)
-  to build custom mfsBSD-based autoinstaller
-  images with `installerconfig`.
-
-  **Never use the regular FreeBSD memstick/disc1
-  installer for same-disk SSH-only replacement.**
-  The installer mounts root from the disk — any
-  attempt to partition that disk from rc.local or
-  installerconfig destroys the running system.
+- **SSH-only, no console at all:** see § Doing this
+  without a console below.
 - **Network install (PXE):** if available in the
   datacenter.
 - **In-place via rescue mode:** some providers offer
@@ -253,7 +229,7 @@ After the new OS is installed and accessible:
 13. [ ] Firewall rules match pre-replacement config
 14. [ ] All services tested and running
 15. [ ] GPT partition types match the new OS
-        (see `partition-type-codes.md`)
+        (see `references/partition-type-codes.md`)
 16. [ ] `pre-replacement.md` reviewed — nothing
         missed
 17. [ ] Changelog entry logged
@@ -263,23 +239,19 @@ After the new OS is installed and accessible:
 ## Doing this without a console
 
 When nobody can reach the machine and it has no out-of-band
-console, the installation step above is not available. Three
-references carry those paths, read in this order:
+console, the installation methods above are not available. Two
+references carry those paths:
 
-- `os-replacement-ssh-only.md` — getting a rescue environment
-  running over SSH and writing the new image from it:
-  hot-migration, the tmpfs rescue root, and why writing straight
-  to the live disk does not work.
-- `os-replacement-mfsbsd.md` — the FreeBSD target, which has its
-  own RAM-booted rescue image.
+- `references/os-replacement-ssh-only.md` — a same-family
+  target: getting a rescue environment running over SSH and
+  writing the new system from it (hot-migration, the tmpfs
+  rescue root, and why writing straight to the live disk does
+  not work).
+- `references/os-replacement-mfsbsd.md` — a FreeBSD target,
+  which has its own RAM-booted rescue image.
 
 Everything in this file still applies to them: the inventory, the
 boot-order rules, the checklist.
-
-`os-replacement-offline-rootfs.md` often comes up next, but it is
-not on this axis: it covers filling a root filesystem nothing can
-run inside, which is a cross-OS or cross-architecture problem and
-happens with a console just as readily.
 
 ## Cross-Family Considerations
 

@@ -1,15 +1,14 @@
 # Cross-OS to FreeBSD over SSH with mfsBSD
 
-Reached from `os-replacement.md` § Installation when the target
-is FreeBSD and there is no console. mfsBSD boots entirely from
-RAM, which is what makes it possible to overwrite the disk it
-came from.
+Reached from `references/os-replacement.md` § Installation when
+the target is FreeBSD and there is no console. mfsBSD boots
+entirely from RAM, which is what makes it possible to overwrite
+the disk it came from.
 
-Step 4 below writes an image over a whole disk, so the four-part
-gate in `SKILL.md` § The gate holds first — explicit request,
-understood loss, verified backup, and the operator having
-relaunched with `HOSTWARDEN_GUARD_DISABLE=1` set in the
-environment. Nothing here is a read.
+Step 4 below writes an image over a whole disk, and nothing
+here is a read: `SKILL.md` § The gate holds first, including
+the operator having relaunched with
+`HOSTWARDEN_GUARD_DISABLE=1` in the environment.
 
 ## SSH-Only Cross-OS via mfsBSD
 
@@ -75,8 +74,8 @@ one of:
    only — no QEMU needed).
 2. Download the mfsBSD SE image and verify it
    against the published checksum (see
-   `os-replacement-ssh-only.md` § "Streaming the
-   New OS Image").
+   `references/os-replacement-ssh-only.md`
+   § "Streaming the New OS Image").
 3. Bake in an SSH key / changed root password,
    or restrict the provider firewall (see
    above).

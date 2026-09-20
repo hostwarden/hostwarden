@@ -1,18 +1,16 @@
 # Replacing an OS with no console
 
-Reached from `os-replacement.md` § Installation, when nobody can
-reach the machine physically and it has no out-of-band console.
-Two ways in, and the reason a third obvious one does not work.
+Reached from `references/os-replacement.md` § Installation, when
+nobody can reach the machine physically and it has no out-of-band
+console. Two ways in, and the reason a third obvious one does not
+work.
 
-Read `os-replacement.md` first: the inventory, the boot-order
-rules and the checklist apply here unchanged.
+Read `references/os-replacement.md` first: the inventory, the
+boot-order rules and the checklist apply here unchanged.
 
-Blocks fenced `guard-off` below run only after the operator
-relaunched the session with `HOSTWARDEN_GUARD_DISABLE=1` set
-in the environment — gate step 4 of the skill. An inline
-assignment in a proposed command does not count and is itself
-blocked. Blocks fenced `operator` are for the user to type at
-a console.
+Blocks fenced `guard-off` below run only once the operator
+relaunched with `HOSTWARDEN_GUARD_DISABLE=1` in the
+environment — `SKILL.md` § The gate, step 4.
 
 ## SSH-Only Replacement via Hot-Migration
 
@@ -439,8 +437,8 @@ Cloud images (nocloud variant) boot with root
 console login but no SSH key. To inject SSH access
 when the rootfs is ext4 (unmountable from FreeBSD),
 use QEMU to configure the image before writing it
-to disk. See `os-replacement-offline-rootfs.md`
-Alternative."
+to disk. See `references/os-replacement-offline-rootfs.md`
+§ "QEMU as a Cross-OS Chroot Alternative".
 
 If QEMU is not available, try mounting the image's
 ext4 partition from FreeBSD (`mount -t ext2fs`).

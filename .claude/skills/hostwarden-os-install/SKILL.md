@@ -41,10 +41,8 @@ block `efibootmgr` in any form. Setting `BootNext` for a one-shot
 test is the *safe* way to try a new OS, and needing the guard off
 to do it would be backwards.
 
-So boot-entry work follows `references/efi-boot.md` instead:
-prefer `BootNext` over reordering, never delete an entry without
-asking, show the current state before changing it, and keep the
-working entry as a fallback until the new OS is confirmed.
+So boot-entry work follows `references/efi-boot.md` § Safety
+instead, which owns those rules.
 
 The one place boot configuration turns dangerous is ordering, not
 permission — pointing the firmware at a root filesystem that is
@@ -98,8 +96,9 @@ the user to type at a console, not for hostwarden to run.
   repartitioning, filesystem choice, and testing a new OS without
   betting the boot order on it.
 - **Boot entries, BootOrder, BootNext, boot loaders, a machine
-  that stopped booting** → `references/efi-boot.md`. Also read it
-  whenever EFI comes up at all in the other paths.
+  that stopped booting** → `references/efi-boot.md`. The other
+  paths reach into it by section when EFI comes up; read the
+  whole file only when boot management *is* the task.
 - **Deploying a qcow2 / raw / VMDK image, cloud-init trouble, a
   fresh VM that will not boot or take SSH** →
   `references/cloud-image.md`.
@@ -123,6 +122,9 @@ where a path continues.
 The pipeline in `rules/first-connection.md` runs before the first
 remote command here, like everywhere else. Beyond that:
 
+- `memory/custom-rules/hostwarden-os-install.md` and
+  `memory/servers/<hostname>/rules.md` — the override chain for
+  this skill, read before the work starts (later wins).
 - `rules/backups.md` — the backup that gate step 3 verifies.
 - `rules/secrets.md` — host keys and credentials recovered from
   the old system are secrets; inspect metadata, never contents.

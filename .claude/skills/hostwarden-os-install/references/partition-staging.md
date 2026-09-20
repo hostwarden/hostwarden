@@ -5,17 +5,6 @@ repartitioning, OS replacement, or other disk
 layout changes — without losing data and without
 physical access.
 
-## When to Read
-
-Read this file when:
-- Replacing an OS on a server (cross-reference
-  with `references/os-replacement.md`)
-- Repartitioning a live system
-- Needing temporary workspace on a partition that
-  is currently in use (e.g. swap)
-- Needing to free a partition that belongs to a
-  volume manager or pooled filesystem
-
 ## Core Idea
 
 Most servers have at least one partition that can

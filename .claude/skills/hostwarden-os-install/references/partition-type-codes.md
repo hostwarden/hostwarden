@@ -1,10 +1,11 @@
 # GPT partition type codes
 
-Checklist item 15 of `os-replacement.md`, run after the new OS
-is booted and confirmed working. A partition written by one OS
-often keeps the type code of the one before it, which the new
-system tolerates until something — a boot loader, an installer,
-a rescue image — reads the code instead of the filesystem.
+Checklist item 15 of `references/os-replacement.md`, run after
+the new OS is booted and confirmed working. A partition written
+by one OS often keeps the type code of the one before it, which
+the new system tolerates until something — a boot loader, an
+installer, a rescue image — reads the code instead of the
+filesystem.
 
 Reading a type code is a read. Changing one is a partition-table
 write, so the gate in `SKILL.md` § The gate holds first,
