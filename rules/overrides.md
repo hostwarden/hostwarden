@@ -105,8 +105,23 @@ after.
 - A heading with no prefix is an addition.
 
 The name after the prefix matches a section heading in the
-shipped file. When it matches no section, treat the block
-as an addition and say so once.
+shipped file. When it matches none, what to do depends on
+the prefix, because the two directions fail differently:
+
+- `## Add:` — treat it as a new section and say so once.
+  An addition that lands beside nothing is still the
+  instruction the user wrote.
+- `## Replace:` and `## Remove:` — **stop and ask.** Both
+  mean "the shipped text must not apply", and silently
+  reclassifying them as additions inverts that into "apply
+  this as well". On a topic like disk replacement, an
+  override saying *remove this safety section* becoming
+  *add it* is the wrong way round to guess.
+
+A shipped file that was split since the override was
+written is the common cause: the section still exists,
+under a sibling file's name. Name the siblings when you
+ask.
 
 **Prefer `## Add:` to `## Replace:`.** An added instruction
 that contradicts a shipped default wins — it is the user's

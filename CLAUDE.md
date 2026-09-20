@@ -224,9 +224,7 @@ on a fresh install; "No such file" is not an error.
 
 Then name the customizations that are in force, in one line —
 *"Custom rules: all, backups, os/debian."* — or say nothing when
-there are none. A path that matches nothing shipped gets named too,
-once: it is a typo, and silence lets the user believe it works
-(`rules/overrides.md`).
+there are none. `rules/overrides.md` covers the rest.
 
 **Do not improvise setup questions.** If `memory/user.md` is
 missing, follow the three-option interview in `rules/ssh-user.md`
