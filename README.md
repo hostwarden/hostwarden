@@ -443,25 +443,30 @@ This works on both Linux and macOS:
 
 ## Supported AI Tools
 
-Hostwarden works with Claude Code and OpenCode out of the
-box. Both read `AGENTS.md` (OpenCode via its
-Claude-Code-compat fallback). The skills live in
-`.agents/skills/`, which OpenCode searches directly and
-Claude Code reaches through the `.claude/skills` link.
-The `rules/` directory is picked up via prose references
-in `AGENTS.md`, so any other terminal AI tool that reads
-project files and runs shell commands will also handle
-the rule layer — only the on-demand skills (housekeeping,
-security audit, email reports, fleet audit, OS
-installation, heinzel adoption) need Skills-aware
-tooling. On a tool without Skills support, ask for those
-workflows by naming the file:
+Hostwarden targets Claude Code. Its instruction set is
+plain Markdown in the places the wider convention has
+settled on, so other tools get most of it for free:
+`AGENTS.md` and `.agents/skills/` are read natively by
+Claude Code, OpenCode, Codex and Cursor alike, and the
+`rules/` files are reached by name from `AGENTS.md`. Any
+terminal AI tool that reads project files and runs shell
+commands handles the rule layer; only the on-demand
+skills need Skills-aware tooling. On a tool without it,
+ask for those workflows by naming the file —
 `.agents/skills/<name>/SKILL.md`.
 
-OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` stops
-OpenCode from reading `AGENTS.md`. Leave that variable
-unset (the default) for hostwarden to work. The skills
-are unaffected either way.
+What is Claude Code only: the taboo guard hook, the
+per-host subagents of the fleet audit, and the repo
+conventions in `.claude/rules/`. Elsewhere the prose
+rules are the entire safety layer and a fleet audit
+walks one host at a time.
+
+OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` turns
+off every `.claude` fallback, and hostwarden still works
+with it set. Both of the things it needs — `AGENTS.md`
+and `.agents/skills/` — are paths OpenCode reads
+natively; `CLAUDE.md` is a fallback it only consults
+when no `AGENTS.md` exists, which is never here.
 
 ### Claude Code
 
