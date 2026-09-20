@@ -137,16 +137,19 @@ report "$(printf '%s\n' "$SCAN" \
       [ -f "$ROOT/$r" ] || echo "$f $r"
     done)" "a rule file that exists"
 
-# Skills named in prose. Several rules point at a skill by name
-# rather than by path, which a rename breaks without a trace.
+# Skills and subagents named in prose. Several rules point at
+# one by name rather than by path, which a rename breaks without
+# a trace. bin/hostwarden-* are scripts, not either.
 report "$(printf '%s\n' "$SCAN" \
   | grep -oE '^[^ ]+: |`hostwarden-[a-z-]+`' \
   | awk '/: $/ { f = $0; next } { print f $0 }' \
   | tr -d '`' \
-  | grep -vE ' hostwarden-(migrate|update|backup)$' \
+  | grep -vE ' hostwarden-(migrate|update|backup|adopt)$' \
   | while IFS=' ' read -r f s; do
-      [ -d "$ROOT/.agents/skills/$s" ] || echo "$f $s"
-    done)" "a skill that exists"
+      [ -d "$ROOT/.agents/skills/$s" ] && continue
+      [ -f "$CLAUDE_DIR/agents/$s.md" ] && continue
+      echo "$f $s"
+    done)" "a skill or subagent that exists"
 
 # A skill's frontmatter name against its directory. The override
 # path keys off the directory; the slash command and the
