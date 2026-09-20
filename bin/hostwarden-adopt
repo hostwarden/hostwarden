@@ -45,6 +45,17 @@ SHARED="user.md blacklist.md readonly.md \
 service-policy.md network.md housekeeping.md \
 opencode.json custom-rules"
 
+# True when this clone already has the item itself:
+# same content, and not through a symlink. A link
+# whose target happens to match today is not the
+# same thing — it keeps pointing somewhere else, and
+# an edit there would silently change an access list
+# nobody touched.
+already_adopted() {
+  [ -L "$2" ] && return 1
+  same_content "$1" "$2"
+}
+
 # True when the destination holds something a
 # non-force run must not touch: anything of the
 # user's, a symlink of theirs (dangling or not), or a
@@ -270,7 +281,7 @@ for ITEM in $SHARED; do
       [ -f "$OLD/memory/$ITEM" ] || {
         SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
   esac
-  same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
+  already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
   fi
@@ -326,7 +337,7 @@ fi
 # work on hosts whose access rules stayed behind.
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
-  same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
+  already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   case " $SHARED_PENDING $SHARED_BROKEN $SHARED_BADTYPE " in
     *" $ITEM "*) continue ;;
   esac
