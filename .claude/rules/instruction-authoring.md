@@ -18,12 +18,17 @@ The product is the instruction set. These conventions apply to
 `AGENTS.md`, everything under `rules/`, every `SKILL.md` and its
 references, the files in `.claude/rules/`, and `contrib/`.
 
-A `paths` glob cannot tell reading a rule in order to follow it
-from reading it in order to edit it, so this file does not list
-`rules/**` — it would then load in every sysadmin session, which
-is exactly the cost the layout removes. What matters most here is
-checked mechanically instead, across every other path this
-file names: `sh .claude/hooks/instructions-test.sh`.
+A `paths` glob fires on a *read*, and cannot tell reading a rule
+in order to follow it on a production host from reading it in
+order to edit it. So neither `rules/**` nor `.agents/skills/**`
+is listed above — a glob over the product would load these
+conventions into every sysadmin session, which is exactly the cost
+the layout removes. The consequence is worth saying plainly:
+editing a rule file or a skill does not load this file by itself.
+Read it first.
+
+What matters most here is checked mechanically instead:
+`sh .claude/hooks/instructions-test.sh`.
 
 ## Where a new instruction belongs
 
@@ -60,7 +65,9 @@ its one exception, `CHANGELOG.md`.
 
 - Wrap every `.md` at 80 characters. A URL or a command line that
   cannot be broken may exceed it.
-- One `#` title per file, matching what the file is called.
+- One `#` title per file, matching what the file is called. A
+  file whose job is to load another has no content to title —
+  `CLAUDE.md` opens with its import — and does not get one.
 - Sentences, not telegram style. The reader is a model that will
   act on this on a production server.
 - State what to do before why. The reasoning earns its place when

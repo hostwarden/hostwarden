@@ -78,8 +78,13 @@ COVERED=0
 # start of a line is still surrounded by spaces to match against.
 KNOWN=" $(printf '%s %s' "$CORPUS_PATHS" "$CORPUS_EXEMPT" \
   | tr '\n' ' ') "
-for e in $(git -C "$ROOT" ls-tree --name-only HEAD) \
-         $(git -C "$ROOT" ls-tree --name-only HEAD .claude/); do
+# From the index, not from HEAD: this file tells you to run it
+# before committing, and a newly staged directory is invisible to
+# a tree-ish. Cut to the first path segment, and to two under
+# .claude/, to get the same entries a directory listing would.
+for e in $(git -C "$ROOT" ls-files \
+             | sed -E 's#^(\.claude/[^/]+|[^/]+).*#\1#' \
+             | LC_ALL=C sort -u); do
   case "$KNOWN" in
     *" $e "*) continue ;;
   esac
@@ -244,6 +249,7 @@ report "$(printf '%s\n' "$SCAN" \
 # Skills named in prose. Several rules point at a skill by name
 # rather than by path, which a rename breaks without a trace.
 report "$(printf '%s\n' "$SCAN" \
+  | grep -v '^CHANGELOG\.md: ' \
   | grep -oE '^[^ ]+:|`hostwarden-[a-z-]+`' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | tr -d '`' \
@@ -287,6 +293,8 @@ report "$MISNAMED" "the name of its own directory"
 # Addresses outside the documentation ranges. Private, loopback,
 # link-local and netmasks are legitimate subjects of an example.
 report "$(printf '%s\n' "$SCAN" \
+  | sed -E 's#([[:space:]])[vV]ersion [0-9]+(\.[0-9]+)+#\1#g
+            s#([[:space:]])v[0-9]+(\.[0-9]+)+#\1#g' \
   | grep -oE '^[^ ]+:|\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | grep -vE ': (192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
@@ -348,8 +356,28 @@ report "$(printf '%s\n' "$SCAN" \
 # Everything up to the *last* `@` is the login, so a dotted
 # account name like john.doe@example.com is not read as a host.
 report "$(printf '%s\n' "$SCAN" \
+  | grep -v '^CHANGELOG\.md: ' \
   | grep -oiE '^[^ ]+:|(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id)[[:blank:]]+[^|;&`]*' \
   | awk '/:$/ { f = $0; next } { print f " " tolower($0) }' \
+  | awk '{ n = 0; out = $1
+      # When the command carries a login@host, that is the
+      # destination and every other dotted word on the line is an
+      # operand -- the local file an scp copies, an option value.
+      # Keep only the logins; fall back to the whole line when
+      # there is none.
+      rest = substr($0, length($1) + 1)
+      # An option value is not a destination: -c names a cipher,
+      # which in OpenSSH is spelled like a mail address. Only the
+      # flags that actually take an argument are consumed, so a
+      # bare -v does not swallow the host after it.
+      gsub(/-[bcdeefijllmoopqrsww] +[^ ]+/, " ", rest)
+      gsub(/[^ ]+=[^ ]+/, " ", rest)
+      tmp = rest
+      while (match(tmp, /[a-z0-9._%+-]+@[a-z0-9][a-z0-9.-]*/)) {
+        out = out " " substr(tmp, RSTART, RLENGTH); n++
+        tmp = substr(tmp, RSTART + RLENGTH)
+      }
+      print (n ? out : $0) }' \
   | grep -oiE '^[^ ]+:|[[:blank:]="'"'"']([a-z0-9._%+-]+@)*[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | sed -E 's#: [[:blank:]="'"'"']#: #; s#: .*@#: #' \
@@ -357,7 +385,7 @@ report "$(printf '%s\n' "$SCAN" \
   | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
   | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \
   | grep -vE ': ([a-z0-9-]+\.)*(test|invalid)$' \
-  | grep -vE ': (localhost|openssh\.com)$')" "an RFC 2606 example target"
+  | grep -vE ': localhost$')" "an RFC 2606 example target"
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

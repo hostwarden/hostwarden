@@ -315,13 +315,25 @@ check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd
 . "$CLAUDE_DIR/hooks/corpus.sh"
 
 BLOCKS=$(mktemp -d)
-corpus_files | grep '\.md$' | tr '\n' '\0' | xargs -0 \
+# CHANGELOG.md is scanned for identifiers but not for blocks: it
+# records what a release changed, so a command it quotes is
+# history, not something a session is told to run. Running it
+# through the guard would fail CI for describing a past mistake
+# accurately.
+#
+# Both Markdown fence characters count. A prohibited command in a
+# ~~~ block was invisible to this matrix, which is the one place
+# that cannot have a blind spot.
+corpus_files | grep '\.md$' | grep -v '/CHANGELOG\.md$' \
+  | tr '\n' '\0' | xargs -0 \
   awk -v dir="$BLOCKS" '
-  /^[ \t]*```/ && !inb { inb = 1
+  /^[ \t]*(```|~~~)/ && !inb { inb = 1
+                         fence = ($0 ~ /~~~/) ? "~~~" : "```"
                          if (/[ \t](operator|guard-off)[ \t]*$/) next
                          f = FILENAME; gsub(/\//, "_", f); n++
                          out = dir "/" f "." n; next }
-  /^[ \t]*```[ \t]*$/  { if (out) close(out); out = ""; inb = 0; next }
+  inb && $0 ~ ("^[ \t]*" fence "[ \t]*$") {
+                         if (out) close(out); out = ""; inb = 0; next }
   out                  { print > out }
 '
 NBLOCKS=0
@@ -350,8 +362,9 @@ while read -r md; do
       "HOSTWARDEN_GUARD_DISABLE"
   fi
 done <<EOF
-$(corpus_files | grep '\.md$' | tr '\n' '\0' | xargs -0 grep -lE \
-  '^[[:space:]]*```.*[[:space:]]guard-off[[:space:]]*$')
+$(corpus_files | grep '\.md$' | grep -v '/CHANGELOG\.md$' \
+  | tr '\n' '\0' | xargs -0 grep -lE \
+  '^[[:space:]]*(```|~~~).*[[:space:]]guard-off[[:space:]]*$')
 EOF
 if [ "$NGUARDOFF" -eq 0 ]; then
   FAIL=$((FAIL + 1))
