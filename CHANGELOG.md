@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Taking over heinzel is two mechanisms, not three.**
+  Custom commands have been folded into skills upstream,
+  so `.claude/commands/adopt-heinzel.md` only produced a
+  second name for a skill that already is a slash
+  command. The takeover runs as `/hostwarden-adopt`.
+  What stays split is split because the halves have
+  different triggers: the skill is asked for by name and
+  reads the old checkout, while `heinzel-legacy` and
+  `heinzel-adoption` are reflexes on the first
+  connection to a host. The skill now says so, so the
+  boundary does not drift back.
+
 - **Examples name nobody real.** Hostnames and domains
   come from RFC 2606 (`server1.example.com`), addresses
   from RFC 5737 and RFC 3849, and people from the
@@ -141,7 +153,7 @@
   the per-host legacy check entirely. It copies
   memory, access lists and custom rules out of an old
   checkout; the `hostwarden-adopt` skill around it
-  (`/adopt-heinzel <path>`, or the same request in
+  (`/hostwarden-adopt <path>`, or the same request in
   prose) reads its memory files and changelogs into a
   per-host inventory of what sessions improvised on
   the servers — scripts,
