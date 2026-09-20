@@ -69,7 +69,7 @@ if [ $PULL_STATUS -ne 0 ]; then
   exit 0
 fi
 
-# Migrate 1.x → 2.0 layout if needed. Idempotent
+# Bring an older state layout up to date. Idempotent
 # and silent when there's nothing to do.
 run_migration
 

@@ -48,18 +48,8 @@ you have not shown.
 The real risk of the parallel phase is not stale
 memory; it is both tools editing or reloading the
 same service within the same minute. The journal is
-the only shared signal, so use it:
-
-- Before starting work, look at the newest entries
-  from both tags. An entry tagged `hostwarden` from
-  the last 15 minutes means a session is probably
-  active right now.
-- In that case, tell the user before doing anything
-  that changes the host, and let them decide. Reading
-  is fine.
-- Log as usual (`rules/changelog.md`). heinzel's
-  entries are what the other tool watches for in
-  return.
+the only shared signal — `activity-check.md` in this
+directory says how to read it and when to warn.
 
 Two tools also mean twice the SSH connections. Rate
 limits and fail2ban count them per source address
@@ -70,10 +60,7 @@ reason not to retry a hanging call more than once.
 ## Add: What the other tool may have moved
 
 hostwarden offers, once per host, to adopt what
-heinzel left there. If it did, `/var/backups/heinzel/`
-is gone and its content now sits in
-`/var/backups/hostwarden/`. Nothing was deleted.
-
-Check for the new path before concluding that backups
-were lost, and say "adopted by hostwarden", not
-"missing".
+heinzel left there, which moves
+`/var/backups/heinzel/` into
+`/var/backups/hostwarden/`. Nothing is deleted by
+that — `backups.md` in this directory has the rule.

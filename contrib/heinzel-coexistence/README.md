@@ -17,25 +17,36 @@ files; nothing here is read by hostwarden.
 
 ## Install
 
-Copy them into the heinzel checkout:
+Copy them into the heinzel checkout, without
+clobbering anything that is already there:
 
 ```bash
-cp contrib/heinzel-coexistence/all.md \
-   contrib/heinzel-coexistence/activity-check.md \
-   contrib/heinzel-coexistence/backups.md \
-   /path/to/heinzel/memory/custom-rules/
+DST=/path/to/heinzel/memory/custom-rules
+for f in all.md activity-check.md backups.md; do
+  if [ -e "$DST/$f" ]; then
+    echo "exists, merge by hand: $DST/$f"
+  else
+    cp "contrib/heinzel-coexistence/$f" "$DST/$f"
+  fi
+done
 ```
 
-heinzel reads `memory/custom-rules/all.md` once per
-session, and `memory/custom-rules/<rule>.md` whenever
-it reads `rules/<rule>.md`. The directory is
-gitignored in heinzel, so this stays local unless the
-user shares custom rules deliberately.
+The loop rather than `cp -n`, which skips an existing
+file without saying which — and a silently skipped
+file is the whole failure: the heinzel checkout keeps
+its old rule and stays unaware of hostwarden. Every
+name it prints has to be merged by hand: open that
+file and add the sections from this one. `all.md`
+especially, which an installation may already use for
+its own rules.
 
-**If `all.md` already exists**, do not overwrite it —
-append the sections from this one. The `hostwarden-adopt`
-skill offers to install these files and appends in
-that case.
+heinzel reads `all.md` once per session and
+`<rule>.md` whenever it reads `rules/<rule>.md`. The
+directory is gitignored there, so this stays local
+unless the user shares custom rules deliberately.
+
+The `hostwarden-adopt` skill offers to do this for
+you, following this section.
 
 ## What they change
 

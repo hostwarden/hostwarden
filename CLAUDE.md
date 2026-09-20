@@ -362,31 +362,16 @@ Read `rules/os-detection.md`. Before doing any work
 on a server, you **must** detect its OS and create a
 server memory file.
 
-## Taking Over a heinzel Installation
+## Coming From heinzel
 
-Only when the user asks. The `hostwarden-adopt` skill
-in `.claude/skills/hostwarden-adopt/` takes over an
-existing heinzel checkout: it copies memory, access
-lists and custom rules into this clone, renames what
-is found by name, and turns what the memory files and
-changelogs say about each host — scripts, configs,
-units, cron jobs a session improvised — into a
-per-host inventory of leads. It contacts no server;
-the first connection to each host verifies the leads.
+Only when the user asks: the `hostwarden-adopt` skill
+takes over an existing heinzel checkout.
 
-## State heinzel Left Behind
-
-Read `rules/heinzel-legacy.md`. On the first
-connection to a host, check the inventory left by
-`hostwarden-adopt`, the fixed paths, and a bounded
-scan of cron and units, then report and offer to
-adopt. Ask before moving anything, and record the
-answer in server memory so the check runs once.
-Adopting an improvised script means recording it,
-not renaming it — a rename breaks whoever calls it
-and only happens under
-`rules/file-naming-changes.md`. Journal entries keep
-the old tag and are read, not migrated.
+Read `rules/heinzel-legacy.md` on the first
+connection to a host, but only when this installation
+has something to do with heinzel — the gate is step 8
+of `rules/first-connection.md`. Silent unless it
+finds state heinzel left there.
 
 ## Activity Check
 
@@ -636,6 +621,12 @@ during housekeeping and when touching specific
 software. Nudge the user but never force upgrades.
 
 ## Hostwarden Versioning
+
+The first hostwarden release is **1.0.0**. heinzel's
+numbering is not continued, and `VERSION` keeps the
+inherited 2.22.0 until that release is cut — do not
+bump it on the way there, because a bump landing on
+`main` tags a release automatically.
 
 The `VERSION` file at the repo root contains the
 current version (semver). Release notes are in

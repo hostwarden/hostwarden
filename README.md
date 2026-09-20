@@ -198,13 +198,15 @@ The migration renames skill overrides in
   `hostwarden`. The activity check reads `heinzel`
   entries as well, so earlier work stays visible.
 - Point hostwarden at your old checkout — "my
-  heinzel is in ~/heinzel, take it over" — and the
-  `hostwarden-adopt` skill copies memory, access
-  lists and custom rules across, and turns what your
-  memory files say about each host into a per-host
-  list of leads: the scripts, configs, units and cron
-  jobs your sessions improvised. It contacts no
-  server.
+  heinzel is in ~/heinzel, take it over", or
+  `/adopt-heinzel ~/heinzel` in Claude Code. The copy
+  itself is a script — `bin/hostwarden-adopt <path>`
+  moves access lists, custom rules and every server's
+  memory across and renames what is found by name.
+  The skill then reads your memory files and
+  changelogs into a per-host list of leads: the
+  scripts, configs, units and cron jobs your sessions
+  improvised. Neither contacts a server.
 - Keeping heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your heinzel checkout so it reads both
@@ -930,8 +932,9 @@ CLAUDE.md              — Main instructions (read by Claude Code
 bin/
   hostwarden-update       — Update, pin, or check hostwarden version
   hostwarden-backup       — Back up / restore your memory/ tree
-  hostwarden-migrate      — One-shot 1.x→2.0 user-state migration
-                         (called automatically on update)
+  hostwarden-adopt        — Take over a heinzel checkout's state
+  hostwarden-migrate      — Bring older user-state layouts up to
+                         date (called automatically on update)
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   hooks/

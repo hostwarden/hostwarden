@@ -6,21 +6,14 @@ What to collect from `memory/servers/<host>/memory.md` and
 ## What counts as a lead
 
 Anything a heinzel session created, configured or scheduled on that
-host, whether or not its name says "heinzel":
-
-- Scripts: `/usr/local/bin/`, `/usr/local/sbin/`, `/opt/`,
-  `/root/bin/`, a user's `~/bin/`.
-- Config directories and files: `/etc/heinzel/`, a drop-in in
-  `/etc/*/conf.d/`, a logrotate config, a sudoers file.
-- Scheduled work: systemd units and timers, `/etc/cron.d/` files,
-  crontab lines, FreeBSD periodic scripts, launchd plists.
-- Data and logs: `/var/log/…`, backup targets, dump directories.
-- Accounts and groups a session created — a deploy user, a service
-  account (`rules/deployment.md`).
+host, whether or not its name says "heinzel". The shapes are listed in
+`rules/heinzel-legacy.md` § "What to look for" — the same list the
+first connection scans for, so that the collect side and the detect
+side cannot drift apart.
 
 A changelog line like "Created backup script, nightly at 03:00" is a
-lead even when it names no path. Write it down as a lead with the
-path unknown; the host connection resolves it.
+lead even when it names no path. Write it down with the path unknown;
+the host connection resolves it.
 
 ## What is not a lead
 
@@ -63,9 +56,7 @@ hostwarden-adopt. Not verified against the host.
 
 ## Verification is the host's job
 
-The inventory is written once and never trusted as fact. The first
-connection to the host checks each lead (`rules/heinzel-legacy.md`):
-present, gone, or different. Leads that turn out to be wrong are
-struck from the file with a note, not silently deleted — a script
-that memory claims and the host does not have is worth one line of
-explanation, because it usually means someone removed it on purpose.
+The inventory is a worklist, never a fact. The first connection checks
+each lead against the host (`rules/heinzel-adoption.md`), moves what
+is confirmed into the host's `memory.md`, and deletes the file once it
+is empty.

@@ -1,0 +1,556 @@
+#!/bin/sh
+# hostwarden-adopt — copy user state out of a heinzel
+# checkout into this one.
+#
+# Usage:
+#   hostwarden-adopt <path>              Everything
+#   hostwarden-adopt <path> --shared     Shared state only
+#   hostwarden-adopt <path> --server H   One host, repeatable
+#   hostwarden-adopt <path> --list       Dry run
+#   hostwarden-adopt <path> --force      Replace what
+#                                        is here
+#   hostwarden-adopt --help              Show this help
+#
+# Copies memory/ state — access lists, service policy,
+# custom rules, per-server memory — and then runs
+# hostwarden-migrate to rename skill overrides. Reads
+# the old checkout, never writes into it.
+#
+# Host by host: --server takes one hostname and may be
+# repeated. The shared state (access lists, service
+# policy, custom rules, network and housekeeping
+# notes) comes along on the first run whatever is
+# selected, because a per-server move without it would
+# leave the blacklist and the read-only list behind —
+# and those decide whether a host may be touched at
+# all. --shared moves only that part, for a migration
+# that takes its hosts one at a time later.
+#
+# The judgement work around this (reading changelogs
+# into a per-host inventory, the coexistence rules)
+# lives in the hostwarden-adopt skill; this script is
+# only the deterministic part.
+set -e
+
+SELF=$0
+usage() {
+  awk '/^# hostwarden-adopt/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+}
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+
+# Shared state, in the order it is reported.
+SHARED="user.md blacklist.md readonly.md \
+service-policy.md network.md housekeeping.md \
+opencode.json custom-rules"
+
+# The first symlink below <dir>, if there is one.
+# cp -R keeps nested links as links, so a
+# memory.md -> /outside/file in the old checkout
+# would still point out of the tree here, and the
+# next memory update would write there. Aliases are
+# a top-level arrangement (rules/dns-aliases.md);
+# anything nested is not one, and is refused rather
+# than followed — dereferencing could pull in an
+# unbounded amount of somebody else's files.
+nested_link() {
+  # Always succeeds: a non-zero status here would end
+  # the run at `NESTED=$(nested_link ...)` under
+  # set -e, and a plain file has no nested anything.
+  # -H follows the starting point only: when the
+  # item itself is a link to a directory, find would
+  # otherwise not enter it and report nothing, while
+  # cp -R "$src/." resolves the root and copies the
+  # child links straight in.
+  [ -d "$1" ] && find -H "$1" -mindepth 1 -type l -print 2>/dev/null | head -n 1
+  return 0
+}
+
+# True when this clone already has the item itself:
+# same content, and not through a symlink. A link
+# whose target happens to match today is not the
+# same thing — it keeps pointing somewhere else, and
+# an edit there would silently change an access list
+# nobody touched.
+already_adopted() {
+  # Two aliases are the same alias when they point at
+  # the same name. Otherwise a destination link never
+  # counts: its target can change under us, and the
+  # content matching today says nothing about that.
+  if [ -L "$1" ] && [ -L "$2" ]; then
+    [ "$(readlink "$1")" = "$(readlink "$2")" ]
+    return
+  fi
+  [ -L "$2" ] && return 1
+  same_content "$1" "$2"
+}
+
+# True when the destination holds something a
+# non-force run must not touch: anything of the
+# user's, a symlink of theirs (dangling or not), or a
+# shape that does not match the source — a directory
+# where a file belongs would otherwise have the
+# source nested inside it as blacklist.md/blacklist.md
+# and leave the host import running without an
+# effective blacklist. A directory holding only the
+# .gitkeep the repo ships is free.
+occupied() {
+  oc_src="$1"
+  oc_dst="$2"
+  [ -L "$oc_dst" ] && return 0
+  [ -e "$oc_dst" ] || return 1
+  if [ -d "$oc_src" ]; then
+    [ -d "$oc_dst" ] || return 0
+    [ -n "$(user_data "$oc_dst")" ]
+  else
+    return 0
+  fi
+}
+
+# True when source and destination already match, so
+# there is nothing to copy and nothing to conflict
+# over. This is what lets a gradual migration work: a
+# second --server run finds the access lists it wrote
+# itself on the first one, and must not read them as
+# a conflict.
+same_content() {
+  # Nothing there is not the same content, and
+  # answering that without forking diff or cmp is the
+  # difference on a fleet-sized tree.
+  [ -e "$2" ] || return 1
+  if [ -d "$1" ]; then
+    diff -r "$1" "$2" >/dev/null 2>&1
+  else
+    cmp -s "$1" "$2" 2>/dev/null
+  fi
+}
+
+# Anything below <dir> that the user could have
+# written. Only .gitkeep and transient noise are the
+# repo's. The shipped templates live directly in
+# memory/, never inside the directories this is
+# called with, so an *.example here is the user's.
+#
+# Symlinks count. A directory holding only links
+# would otherwise read as empty, and a copy into it
+# would follow them and write through to their
+# targets — outside the repo, in the worst case.
+user_data() {
+  # The noise names are ignorable only as plain
+  # files. A *symlink* called .gitkeep is not the
+  # repo's placeholder, and calling the directory
+  # empty over it would let cp -R follow that link
+  # and write to its target outside the repo.
+  find "$1" \( \
+      \( -type f \
+         ! -name '.gitkeep' \
+         ! -name '.DS_Store' \
+         ! -name '*.lock' \) \
+      -o -type l \) \
+    | head -n 1
+}
+
+OLD=""
+LIST=""
+FORCE=""
+SHARED_ONLY=""
+HOSTS=""
+WANT_SERVER=""
+for ARG in "$@"; do
+  if [ -n "$WANT_SERVER" ]; then
+    HOSTS="$HOSTS $ARG"
+    WANT_SERVER=""
+    continue
+  fi
+  case "$ARG" in
+    --help|-h) usage; exit 0 ;;
+    --list) LIST=yes ;;
+    --force) FORCE=yes ;;
+    --shared) SHARED_ONLY=yes ;;
+    --server) WANT_SERVER=yes ;;
+    --*) echo "error: unknown option: $ARG" >&2; exit 2 ;;
+    *) OLD="$ARG" ;;
+  esac
+done
+
+if [ -n "$WANT_SERVER" ]; then
+  echo "error: --server needs a hostname" >&2
+  exit 2
+fi
+
+if [ -n "$SHARED_ONLY" ] && [ -n "$HOSTS" ]; then
+  echo "error: --shared and --server are exclusive" >&2
+  exit 2
+fi
+
+if [ -z "$OLD" ]; then
+  echo "error: no heinzel checkout given" >&2
+  echo "run 'hostwarden-adopt --help' for usage" >&2
+  exit 2
+fi
+
+OLD=$(cd "$OLD" 2>/dev/null && pwd) || {
+  echo "error: not a directory: $OLD" >&2
+  exit 1
+}
+
+if [ "$OLD" = "$REPO_DIR" ]; then
+  echo "error: that is this checkout" >&2
+  exit 1
+fi
+
+if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
+  echo "error: $OLD has no memory/ and rules/ — not a heinzel checkout" >&2
+  exit 1
+fi
+
+cd "$REPO_DIR"
+
+# A host name is one path component. Interpolated
+# into both the source and the destination path, a
+# value with a slash or .. would read and write
+# outside memory/servers/ — `--server ../../bin/foo`
+# would land in the repo root.
+for H in $HOSTS; do
+  case "$H" in
+    */*|..|.|"")
+      echo "error: --server takes one host name, not a path: $H" >&2
+      exit 2 ;;
+  esac
+done
+
+# Named hosts must exist in the source, or a typo
+# would look like a host with no memory. -e follows
+# symlinks, so an alias whose target is gone needs
+# -L as well — it exists, and the host loop reports
+# why it cannot be used.
+for H in $HOSTS; do
+  if [ ! -e "$OLD/memory/servers/$H" ] \
+      && [ ! -L "$OLD/memory/servers/$H" ]; then
+    echo "error: $OLD/memory/servers/$H does not exist" >&2
+    exit 1
+  fi
+done
+
+# Copy <src> to memory/<dst>, preserving symlinks —
+# memory/servers/ holds DNS aliases as symlinks to the
+# canonical directory (rules/dns-aliases.md), and
+# resolving them would duplicate a host's memory.
+# Local names only: sh has no scoping, and a plain
+# SRC here would clobber the caller's loop variable.
+# copy_item <src> memory/<dst> [link]
+#
+# `link` preserves a symlink source as a symlink —
+# for DNS aliases under servers/, whose target is a
+# validated sibling host. Everything else is copied
+# by content: a shared file that is a link in the old
+# checkout must arrive here as the file itself, since
+# its target is not part of what gets copied.
+copy_item() {
+  ci_src="$1"
+  ci_dst="memory/$2"
+  ci_keeplink="$3"
+  # --force means the old checkout's copy wins, so an
+  # occupied destination is replaced, not merged: a
+  # stale rules.md, todo.md or heinzel-inventory.md
+  # left behind would outlive the host memory it
+  # belongs to. A destination that holds only the
+  # .gitkeep the repo ships is left alone, and a type
+  # change (file where a directory was, or the other
+  # way round) is replaced as well.
+  if [ -n "$FORCE" ] && [ -e "$ci_dst" ] && [ ! -L "$ci_dst" ]; then
+    if [ -d "$ci_src" ] && [ ! -d "$ci_dst" ]; then
+      rm -rf "$ci_dst"
+    elif [ ! -d "$ci_src" ] && [ -d "$ci_dst" ]; then
+      rm -rf "$ci_dst"
+    elif [ -d "$ci_dst" ] && [ -n "$(user_data "$ci_dst")" ]; then
+      rm -rf "$ci_dst"
+    fi
+  fi
+  # A destination symlink is replaced rather than
+  # written through, or a copy would land in the
+  # canonical host an alias points at. rm -rf, not
+  # rm -f: the destination may be a real directory
+  # where the source became an alias, and a failing
+  # rm would abort the run half-copied.
+  if [ -L "$ci_dst" ] || { [ -L "$ci_src" ] && [ -e "$ci_dst" ]; }; then
+    rm -rf "$ci_dst"
+  fi
+  if [ -L "$ci_src" ] && [ -n "$ci_keeplink" ]; then
+    ci_link=$(readlink "$ci_src")
+    ln -s "$ci_link" "$ci_dst"
+  elif [ -d "$ci_src" ]; then
+    if [ -d "$ci_dst" ]; then
+      cp -R "$ci_src/." "$ci_dst/"
+    else
+      cp -R "$ci_src" "$ci_dst"
+    fi
+  else
+    cp "$ci_src" "$ci_dst"
+  fi
+}
+
+COPIED=""
+NOTHING_LEFT=""
+plan() { COPIED="$COPIED\n  memory/$1"; }
+
+# Which shared files this clone would keep. Decided
+# before anything is copied, because the access-list
+# check below can refuse the run, and refusing after
+# half the shared state has been written leaves a
+# clone that cannot be described or re-run cleanly.
+# What this run will not copy, and — when one of the
+# access lists is among it — why the hosts may not
+# follow. One list and one reason: every skip has the
+# same two consequences, whatever caused it.
+SHARED_SKIP=""
+SHARED_PENDING=""
+BLOCK_REASON=""
+skip_shared() {
+  SHARED_SKIP="$SHARED_SKIP $1"
+  case "$1" in
+    blacklist.md|readonly.md)
+      [ -n "$SHARED_ONLY" ] || BLOCK_REASON="$2" ;;
+  esac
+}
+for ITEM in $SHARED; do
+  # A link in the old checkout that does not resolve
+  # has no content to copy. Silently skipping it
+  # would be how a host arrives here with no
+  # blacklist behind it.
+  if [ -L "$OLD/memory/$ITEM" ] && [ ! -e "$OLD/memory/$ITEM" ]; then
+    echo "skipped memory/$ITEM — a link in the old checkout that does not resolve" >&2
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
+    continue
+  fi
+  [ -e "$OLD/memory/$ITEM" ] || continue
+  # And the right shape. rules/access-control.md
+  # reads blacklist.md and readonly.md as plain list
+  # files: a directory of that name would be copied
+  # as a directory, and every host would arrive here
+  # unrestricted.
+  case "$ITEM" in
+    custom-rules) [ -d "$OLD/memory/$ITEM" ] ;;
+    *) [ -f "$OLD/memory/$ITEM" ] ;;
+  esac || {
+    echo "skipped memory/$ITEM — not the kind of entry its name promises" >&2
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
+    continue
+  }
+  NESTED=$(nested_link "$OLD/memory/$ITEM")
+  if [ -n "$NESTED" ]; then
+    echo "skipped memory/$ITEM — $NESTED is a link out of the old checkout" >&2
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
+    continue
+  fi
+  if already_adopted "$OLD/memory/$ITEM" "memory/$ITEM"; then
+    SHARED_SKIP="$SHARED_SKIP $ITEM"
+    NOTHING_LEFT=yes
+    continue
+  fi
+  if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
+    SHARED_PENDING="$SHARED_PENDING $ITEM"
+    skip_shared "$ITEM" "is already here in a version of this clone's own"
+  fi
+done
+
+# The invariant from the header: a host may not come
+# across while the lists that say whether it may be
+# touched stayed behind. A kept blacklist or
+# read-only list therefore stops the host import —
+# before the first write. A dry run reports it and
+# carries on; it changes nothing either way.
+if [ -n "$BLOCK_REASON" ]; then
+  echo "memory/blacklist.md or memory/readonly.md $BLOCK_REASON." >&2
+  echo "A host denied or read-only in the old checkout would arrive here" >&2
+  echo "without that restriction, so no host is copied. Fix it in the old" >&2
+  echo "checkout, merge the lists by hand, or re-run with --force to take" >&2
+  echo "the old checkout's." >&2
+  # A dry run stops here too: everything after this
+  # point is disabled, so listing it would describe a
+  # plan that cannot run with these arguments.
+  if [ -n "$LIST" ]; then
+    echo "nothing would be copied until this is resolved" >&2
+    exit 0
+  fi
+  echo "error: nothing was copied" >&2
+  exit 1
+fi
+
+# Shared state first, always: a per-server adoption
+# without the blacklist and the read-only list would
+# work on hosts whose access rules stayed behind.
+[ -n "$LIST" ] || mkdir -p memory
+for ITEM in $SHARED; do
+  [ -e "$OLD/memory/$ITEM" ] || continue
+  case " $SHARED_SKIP " in
+    *" $ITEM "*) continue ;;
+  esac
+  plan "$ITEM"
+  [ -n "$LIST" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
+done
+
+if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
+  [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
+  [ -n "$LIST" ] || mkdir -p memory/servers
+  # One walk of the whole servers tree instead of a
+  # find per host: the fork is the cost, and over a
+  # fleet that is the difference between seconds and
+  # milliseconds. The result is the set of hosts that
+  # hold a link pointing out of the old checkout.
+  ESCAPING="|$(find -H "$OLD/memory/servers" -mindepth 2 -type l 2>/dev/null \
+    | sed -e "s|^$OLD/memory/servers/||" -e 's|/.*||' \
+    | LC_ALL=C sort -u | tr '\n' '|')"
+  # Hosts this run already handled, so one pulled in
+  # as an alias's canonical target is not reported as
+  # a conflict with itself afterwards.
+  DONE_HOSTS="|"
+  for H in $HOSTS; do
+    SRC="$OLD/memory/servers/$H"
+    { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
+    case "$DONE_HOSTS" in *"|$H|"*) continue ;; esac
+    # Before anything else: is this host already
+    # here? Deciding that after the alias work would
+    # copy an alias's canonical host and then skip
+    # the alias itself, leaving an orphan the skill
+    # would build an inventory for.
+    # -L as well: a dangling alias in this clone is
+    # still this clone's state.
+    # Identical content is not a conflict, it is this
+    # host already adopted — the same rule the shared
+    # state follows, so repeating a --server run is a
+    # no-op rather than an error.
+    if already_adopted "$SRC" "memory/servers/$H"; then
+      DONE_HOSTS="$DONE_HOSTS$H|"
+      NOTHING_LEFT=yes
+      continue
+    fi
+    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
+        && [ -z "$FORCE" ]; then
+      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      continue
+    fi
+    # A DNS alias is a symlink to the canonical host
+    # (rules/dns-aliases.md). Naming one on its own
+    # would copy a link to a directory that is not
+    # here, so the canonical host comes first.
+    if [ -L "$SRC" ]; then
+      CANON=$(readlink "$SRC")
+      # The link is copied verbatim, so its target
+      # has to be a sibling host and nothing else.
+      # `alias -> /tmp/web1` would otherwise validate
+      # against memory/servers/web1 and still point
+      # into /tmp afterwards, and every read or write
+      # through that alias would land outside the
+      # repo (rules/dns-aliases.md: aliases link to
+      # the canonical directory beside them).
+      case "$CANON" in
+        */*|..|.|"")
+          echo "skipped memory/servers/$H — alias points outside memory/servers/: $CANON" >&2
+          continue ;;
+      esac
+      if [ ! -e "$OLD/memory/servers/$CANON" ]; then
+        echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
+        continue
+      fi
+      # And the canonical entry has to be the host
+      # itself. A chain — alias -> canonical,
+      # canonical -> /tmp/x — would pass the text
+      # check above and still leave both links
+      # pointing out of the tree once copied.
+      if [ -L "$OLD/memory/servers/$CANON" ] \
+          || [ ! -d "$OLD/memory/servers/$CANON" ]; then
+        echo "skipped memory/servers/$H — alias to $CANON, which is not a host directory" >&2
+        continue
+      fi
+      # The destination's canonical entry has to be a
+      # real directory, or the alias would resolve to
+      # a file, or follow a link of theirs out of
+      # memory/servers/. Without --force such an
+      # entry is left alone and the alias with it.
+      DST_CANON="memory/servers/$CANON"
+      if [ -L "$DST_CANON" ] \
+          || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; then
+        if [ -z "$FORCE" ]; then
+          echo "skipped memory/servers/$H — $DST_CANON is not a host directory here, use --force to replace it" >&2
+          continue
+        fi
+      fi
+      # An alias is only worth having if it resolves
+      # to the host it names. A canonical directory
+      # already here with different content is not
+      # that host: without --force nothing is copied,
+      # and an alias pointing at this clone's older
+      # memory would be worse than none.
+      if [ -d "$DST_CANON" ] && [ ! -L "$DST_CANON" ] \
+          && [ -z "$FORCE" ] \
+          && ! same_content "$OLD/memory/servers/$CANON" "$DST_CANON"; then
+        echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
+        continue
+      fi
+      case "$ESCAPING" in
+        *"|$CANON|"*)
+          echo "skipped memory/servers/$H — $CANON holds a link out of the old checkout" >&2
+          continue ;;
+      esac
+      if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
+          || [ -n "$FORCE" ]; then
+        plan "servers/$CANON (canonical host of $H)"
+        DONE_HOSTS="$DONE_HOSTS$CANON|"
+        [ -n "$LIST" ] \
+          || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
+      fi
+    fi
+    case "$ESCAPING" in
+      *"|$H|"*)
+        echo "skipped memory/servers/$H — it holds a link out of the old checkout" >&2
+        continue ;;
+    esac
+    plan "servers/$H"
+    DONE_HOSTS="$DONE_HOSTS$H|"
+    [ -n "$LIST" ] || copy_item "$SRC" "servers/$H" link
+  done
+fi
+
+if [ -n "$SHARED_PENDING" ]; then
+  echo "kept this clone's version of:$SHARED_PENDING" >&2
+  echo "(use --force to take the old checkout's instead)" >&2
+fi
+
+if [ -z "$COPIED" ]; then
+  # Already here is a different answer from nothing
+  # there: a gradual migration re-runs these commands,
+  # and a loop over hosts must not die on a repeat.
+  if [ -n "$NOTHING_LEFT" ]; then
+    echo "already adopted from $OLD — nothing left to copy"
+    exit 0
+  fi
+  echo "nothing to copy from $OLD/memory" >&2
+  exit 1
+fi
+
+if [ -n "$LIST" ]; then
+  printf "would copy from %s:%b\n" "$OLD" "$COPIED"
+  exit 0
+fi
+
+printf "copied from %s:%b\n" "$OLD" "$COPIED"
+
+# One line, once per installation: the fact that this
+# clone came from heinzel. rules/first-connection.md
+# reads it to decide whether the per-host legacy check
+# has any reason to run at all.
+if ! grep -q '^Adopted from heinzel:' memory/user.md 2>/dev/null; then
+  printf 'Adopted from heinzel: %s (%s)\n' \
+    "$(date +%Y-%m-%d)" "$OLD" >> memory/user.md
+fi
+
+# Renames skill overrides heinzel-* → hostwarden-*
+# and creates directories new versions need.
+sh bin/hostwarden-migrate
+
+echo "The old checkout was not modified."
+echo "Next: the hostwarden-adopt skill reads the copied"
+echo "changelogs into a per-host inventory of what heinzel"
+echo "left on the servers."

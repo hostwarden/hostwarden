@@ -18,10 +18,26 @@ edited — defer those to the sysadmin report.
 Backups made before the rename from heinzel sit in
 `/var/backups/heinzel/` and `~/.heinzel-backups/`.
 Look there too when restoring, but write new backups
-only to the paths above. Those directories are never
-cleaned by the retention `find` below, which is why
-the first connection to a host offers to adopt them
-— see `rules/heinzel-legacy.md`.
+only to the paths above. The retention `find` never
+reaches those directories, which is why the first
+connection to a host offers to adopt them
+(`rules/heinzel-legacy.md`).
+
+## Moving a backup into `$BACKUP_DIR`
+
+Retention goes by mtime, and `mv` keeps it. A file
+moved into `$BACKUP_DIR` can therefore be past the
+window the moment it arrives, and the next cleanup
+deletes it — whether it comes from a drop-in
+directory (below), from heinzel's old directory, or
+from anywhere else.
+
+So before moving backups in, count how many are older
+than the window and say that number. Then move, or
+`touch` the ones worth keeping, or raise the window
+for this host in `memory/servers/<hostname>/rules.md`
+— but never silently move a file that the next
+cleanup eats.
 
 ## Never back up in place inside drop-in directories
 
