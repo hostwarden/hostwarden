@@ -220,7 +220,8 @@ console output. This does not mean the boot failed.
 ## QEMU Cross-OS Installation and EFI
 
 When using QEMU to install a new OS (see
-`references/os-replacement.md` §"QEMU as a Cross-OS
+`references/os-replacement-offline-rootfs.md`
+§"QEMU as a Cross-OS
 Chroot Alternative"), the QEMU VM's EFI is
 separate from the real hardware's EFI NVRAM.
 

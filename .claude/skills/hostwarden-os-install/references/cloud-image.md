@@ -124,7 +124,8 @@ must be installed before the first boot.
 
 When installing packages into an offline rootfs
 (e.g. mounting the image from a different OS),
-read `references/os-replacement.md` §"Manual Package
+read `references/os-replacement-offline-rootfs.md`
+§"Manual Package
 Extraction into Offline Rootfs" — extracting
 `.deb` files without `dpkg` skips critical postinst
 steps like creating the `sshd` system user.

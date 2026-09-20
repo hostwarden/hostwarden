@@ -244,7 +244,8 @@ gpart add -t linux-data vtbd0  # new root (rest)
 The old OS continues running from the swap
 partition. Install the new OS to the new root
 partition, set up the bootloader, and reboot. See
-`references/os-replacement.md` §"SSH-Only Replacement
+`references/os-replacement-ssh-only.md`
+§"SSH-Only Replacement
 via Hot-Migration" for the full workflow.
 
 ## Step 4: Repartition

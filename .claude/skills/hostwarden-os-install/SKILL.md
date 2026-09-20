@@ -54,10 +54,14 @@ the user to type at a console, not for hostwarden to run.
 ## Which reference
 
 - **Wipe and reinstall, same machine, new OS** →
-  `references/os-replacement.md`. The long one: pre-replacement
-  inventory, boot configuration safety, installation methods, and
-  the two SSH-only paths (hot-migration and tmpfs rescue) for a
-  machine nobody can reach physically.
+  `references/os-replacement.md`. Pre-replacement inventory, boot
+  configuration safety, installation methods, and the checklist.
+  It routes on to three more when the machine has no console:
+  `references/os-replacement-ssh-only.md` for getting a rescue
+  environment up over SSH,
+  `references/os-replacement-offline-rootfs.md` for filling a root
+  filesystem nothing can run inside, and
+  `references/os-replacement-mfsbsd.md` for a FreeBSD target.
 - **A second OS beside the existing one** →
   `references/dual-boot.md`. Partition planning, ZFS root
   repartitioning, filesystem choice, and testing a new OS without
