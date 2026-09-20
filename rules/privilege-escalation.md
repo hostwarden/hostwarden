@@ -35,7 +35,7 @@ the sudo flag.
 
 When sudo is unusable and a privileged action is
 needed, probe root SSH access once, with the
-fresh-login options (`CLAUDE.md` → SSH Options) — a
+fresh-login options (`rules/ssh-connections.md`) — a
 shared root connection opened earlier would answer
 even if root login has been disabled since:
 

@@ -21,17 +21,11 @@ applies before any of this runs.
 
 ## Workflow
 
-1. **Load overrides.** Before running any check, apply the full
-   hostwarden rule-override chain (later wins):
-   - `memory/custom-rules/hostwarden-security.md` if present (global
-     custom overrides for this skill — `## Add:`, `## Replace:`,
-     `## Remove:` prefixes per `CLAUDE.md`).
-   - `memory/servers/<hostname>/memory.md` for context (services,
-     legitimate external bindings, VPN role).
-   - `memory/servers/<hostname>/rules.md` if present (per-server
-     rule overrides — same prefixes as above, highest precedence).
-   Note: `memory/custom-rules/all.md` is already loaded by the
-   CLAUDE.md session-start preflight — do not re-read it.
+1. **Load overrides**, key `hostwarden-security`, per
+   `rules/overrides.md`. Read
+   `memory/servers/<hostname>/memory.md` for context: services,
+   legitimate external bindings, VPN role. A binding this host is
+   known to need is not a finding.
 2. **Run checks in 2–3 parallel batches** for speed — not one
    massive batch. If a single parallel tool call errors, Claude
    Code cancels sibling calls, so grouping limits blast radius.

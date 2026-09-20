@@ -53,5 +53,34 @@ if [ "$NSKILLS" -eq 0 ]; then
   bad "no skills found under .agents/skills/ -- the search broke"
 fi
 
+# --- override paths are unambiguous -----------------------------
+# rules/overrides.md mirrors the shipped path into
+# memory/custom-rules/, dropping the top-level directory and the
+# references/ segment. That is unique by construction everywhere
+# except one seam: a rules/<name>.md and a skill called <name>
+# would both mirror to memory/custom-rules/<name>.md.
+RULE_KEYS=$(find "$ROOT/rules" -maxdepth 1 -name '*.md' 2>/dev/null \
+  | sed 's#.*/##; s#\.md$##')
+SKILL_KEYS=$(find "$ROOT/.agents/skills" -mindepth 1 -maxdepth 1 \
+  -type d 2>/dev/null | sed 's#.*/##')
+
+CLASH=$(printf '%s\n%s\n' "$RULE_KEYS" "$SKILL_KEYS" | sed '/^$/d' \
+  | LC_ALL=C sort | LC_ALL=C uniq -d)
+if [ -z "$CLASH" ]; then
+  ok
+else
+  for c in $CLASH; do
+    bad "'$c' is both a rule file and a skill -- both would" \
+        "mirror to memory/custom-rules/$c.md"
+  done
+fi
+
+NRULES=$(printf '%s\n' "$RULE_KEYS" | sed '/^$/d' | wc -l | tr -d ' ')
+if [ "$NRULES" -lt 15 ]; then
+  bad "only $NRULES rule files found -- the search broke"
+else
+  ok
+fi
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

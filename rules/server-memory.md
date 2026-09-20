@@ -3,7 +3,7 @@
 Each server: `memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
 and optionally `rules.md` (per-server rule
-overrides — see CLAUDE.md → Rule Overrides).
+overrides — see `rules/overrides.md`).
 
 **On first connection:** create directory and
 `memory.md` with at least:
@@ -36,3 +36,46 @@ outdated entries, merge related items.
 
 Memory files never hold credential values — see
 `rules/secrets.md`.
+
+## Session to-do list
+
+For a session of two steps or more, create
+`memory/servers/<hostname>/todo.md`. Mark a task
+`[x]` the moment it is done, not at the end — a
+session that is interrupted has to leave behind
+what was actually finished. On reconnection, show
+the pending items before starting new work. Delete
+the file once everything is done.
+
+## Cross-server facts
+
+Facts that belong to no single host — a shared
+gateway, a VPN subnet, which machine holds the
+backup target — go in `memory/network.md`, created
+on first need. Current facts only; it is a picture
+of now, not a history.
+
+## Personal versus shared
+
+Solo use is the default: server memory and
+changelogs are gitignored. A team shares them by
+editing `.gitignore`, and then the split matters.
+
+**Always personal, never shared:** `memory/user.md`
+(SSH usernames and language), `memory/blacklist.md`,
+`memory/readonly.md`, and the memory directory of
+anyone's local machine.
+
+**Shared in team mode:** `memory/servers/*/`,
+`memory/network.md`, `memory/housekeeping.md`.
+
+**Custom rules** (`memory/custom-rules/`, see
+`rules/overrides.md`) are gitignored by default and
+can be shared team-wide by commenting out that
+entry. Per-server `rules.md` follows whatever the
+team decided for server memory.
+
+When a teammate's session shows up in the activity
+check (`rules/activity-check.md`), their memory
+edits may not be pulled yet. Trust the host over the
+file.
