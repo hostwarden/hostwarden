@@ -151,9 +151,10 @@ remote connection before any other work.
   permission mode. Being blocked by it is expected:
   explain it to the user, never rephrase or re-quote
   a command to evade the guard. Legitimate exceptions
-  (e.g. OS replacement) require the operator to set
-  `HOSTWARDEN_GUARD_DISABLE=1` before launching the
-  session.
+  (OS installation and replacement — the
+  `hostwarden-os-install` skill) require the operator
+  to set `HOSTWARDEN_GUARD_DISABLE=1` before launching
+  the session.
   When *writing* a probe, remember the guard scans the
   whole command string and cannot tell a taboo word
   used as data from an invocation. So write patterns
@@ -425,6 +426,21 @@ verify, and memory update. Per-server config (recipient,
 source, transport, sender identity, policies) lives in
 `memory/servers/<hostname>/memory.md`, extending the
 existing `Mail:` / `Alert email:` lines pattern.
+
+## OS Installation, Replacement and Boot
+
+Only when the user asks. The `hostwarden-os-install`
+skill in `.claude/skills/hostwarden-os-install/`
+carries OS replacement, dual-boot, EFI boot
+management, cloud-image deployment and partition
+staging, plus the gate that holds before the first
+disk write: explicit request, understood loss,
+verified backup, and the operator having relaunched
+with `HOSTWARDEN_GUARD_DISABLE=1`. Inspecting disks
+and boot entries is read-only work and needs none of
+that. Never start down these paths from a symptom —
+a full disk or a broken boot is not a request to
+reinstall.
 
 ## Fleet Audit
 

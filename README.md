@@ -446,7 +446,10 @@ directory is picked up via prose references in
 project files and runs shell commands will also handle
 the rule layer — only the on-demand skills
 (housekeeping, security audit, email reports, fleet
-audit) need Skills-aware tooling.
+audit, OS installation, heinzel adoption) need
+Skills-aware tooling. On a tool without Skills
+support, ask for those workflows by naming the
+file: `.claude/skills/<name>/SKILL.md`.
 
 OpenCode note: if you've set
 `OPENCODE_DISABLE_CLAUDE_CODE=1`, OpenCode stops
