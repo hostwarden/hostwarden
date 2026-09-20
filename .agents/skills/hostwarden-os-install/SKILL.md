@@ -128,7 +128,7 @@ remote command here, like everywhere else. Beyond that:
 - `rules/backups.md` — the backup that gate step 3 verifies.
 - `rules/secrets.md` — host keys and credentials recovered from
   the old system are secrets; inspect metadata, never contents.
-- `rules/<family>.md` — for every OS involved, old and new.
+- `rules/os/<family>.md` — for every OS involved, old and new.
 - `rules/server-memory.md` — the host's memory file describes a
   machine that is about to stop existing. Capture the inventory
   before the wipe, and rewrite memory after.
