@@ -5,7 +5,7 @@ argument-hint: "[path to the old heinzel checkout]"
 
 Take over the heinzel installation at `$1` by following the
 `hostwarden-adopt` skill in
-`.claude/skills/hostwarden-adopt/SKILL.md`.
+`.agents/skills/hostwarden-adopt/SKILL.md`.
 
 If no path was given, ask for it before doing anything else.
 

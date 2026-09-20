@@ -72,6 +72,22 @@ hostwarden session looks the same.
 - Linux (any distribution), FreeBSD, or macOS on the
   target machines. All supported systems can also be
   managed locally without SSH.
+- **A checkout that supports symbolic links.**
+  Hostwarden uses them in two load-bearing places:
+  `.claude/skills` links to `.agents/skills/`, and
+  DNS aliases become symlinks under
+  `memory/servers/`. Git, macOS, Linux, FreeBSD and
+  WSL do this out of the box. Native Windows needs
+  Developer Mode (or an elevated shell) plus
+  `git config --global core.symlinks true` *before*
+  cloning; a checkout made without it turns every
+  link into a text file, and hostwarden then has no
+  skills and no alias resolution.
+  A session-start hook says so whenever the skills are
+  out of reach, because a session without them is
+  otherwise silent about it;
+  `sh .claude/hooks/instructions-test.sh` reports the
+  state at any time.
 - **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows. On Windows, the recommended path is
@@ -429,22 +445,23 @@ This works on both Linux and macOS:
 
 Hostwarden works with Claude Code and OpenCode out of the
 box. Both read `CLAUDE.md` (OpenCode via its
-Claude-Code-compat fallback) and both auto-discover
-skills at `.claude/skills/*/SKILL.md`. The `rules/`
-directory is picked up via prose references in
-`CLAUDE.md`, so any other terminal AI tool that reads
+Claude-Code-compat fallback). The skills live in
+`.agents/skills/`, which OpenCode searches directly and
+Claude Code reaches through the `.claude/skills` link.
+The `rules/` directory is picked up via prose references
+in `CLAUDE.md`, so any other terminal AI tool that reads
 project files and runs shell commands will also handle
-the rule layer — only the on-demand skills
-(housekeeping, security audit, email reports, fleet
-audit, OS installation, heinzel adoption) need
-Skills-aware tooling. On a tool without Skills
-support, ask for those workflows by naming the
-file: `.claude/skills/<name>/SKILL.md`.
+the rule layer — only the on-demand skills (housekeeping,
+security audit, email reports, fleet audit, OS
+installation, heinzel adoption) need Skills-aware
+tooling. On a tool without Skills support, ask for those
+workflows by naming the file:
+`.agents/skills/<name>/SKILL.md`.
 
-OpenCode note: if you've set
-`OPENCODE_DISABLE_CLAUDE_CODE=1`, OpenCode stops
-reading both `CLAUDE.md` and `.claude/skills/`. Leave
-that variable unset (the default) for hostwarden to work.
+OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` stops
+OpenCode from reading `CLAUDE.md`. Leave that variable
+unset (the default) for hostwarden to work. The skills
+are unaffected either way.
 
 ### Claude Code
 
@@ -937,6 +954,13 @@ bin/
                          commands in every permission mode
     guard-taboos-test.sh — Dev-only fixture matrix for the
                          guard (run manually)
+    check-skills.sh    — SessionStart hook that reports a
+                         .claude/skills link that is not one
+    instructions-test.sh — Dev-only structural checks on the
+                         instruction layer (run manually)
+  skills/              — Symlink to .agents/skills/, because
+                         Claude Code searches only .claude/
+.agents/               — Cross-tool agent assets
   skills/              — On-demand skills (progressive disclosure)
     hostwarden-housekeeping/  — Routine server inspection workflow
                          (SKILL.md + references/)
@@ -949,6 +973,8 @@ bin/
     hostwarden-os-install/    — Install, replace or dual-boot an
                          OS, with the disk, EFI and cloud-image
                          work that comes with it
+                         (SKILL.md + references/)
+    hostwarden-adopt/     — Take over a heinzel installation
                          (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules

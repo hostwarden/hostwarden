@@ -5,6 +5,9 @@
 # Not invoked by Claude Code at runtime.
 
 CLAUDE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# The skills live here. .claude/skills is a link to it, but
+# the real path is the one thing every tool agrees on.
+SKILLS_DIR="$CLAUDE_DIR/../.agents/skills"
 HOOK="$CLAUDE_DIR/hooks/guard-taboos.sh"
 PASS=0
 FAIL=0
@@ -313,7 +316,7 @@ check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd
 # into arguments find cannot resolve, and the scan would silently
 # cover nothing.
 set --
-for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/commands" \
+for p in "$SKILLS_DIR" "$CLAUDE_DIR/commands" \
          "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
          "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
   [ -e "$p" ] && set -- "$@" "$p"
@@ -373,7 +376,7 @@ PROBE=$(awk '/^## System Accounts with Login Shells/ { s = 1 }
   s && b && /^```$/ { exit }
   b { print }
   s && /^```bash$/ { b = 1 }' \
-  "$CLAUDE_DIR/skills/hostwarden-security/references/user-accounts.md")
+  "$SKILLS_DIR/hostwarden-security/references/user-accounts.md")
 WANT="bash empty ksh postgres py root "
 GOT=$(printf '%s\n' \
   'root:x:0:0:root:/root:/bin/bash' \

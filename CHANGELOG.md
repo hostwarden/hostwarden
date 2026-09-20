@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Skills live in `.agents/skills/`.** That is where
+  OpenCode and other AGENTS-style tools look, and it
+  no longer matters there whether
+  `OPENCODE_DISABLE_CLAUDE_CODE` is set. Claude Code
+  searches only `.claude/`, so `.claude/skills` is a
+  symlink to the new home. A new skill needs no link of
+  its own. That link is load-bearing, and a checkout
+  without symlink support turns it into a text file, so
+  `.claude/hooks/check-skills.sh` says so from a
+  session-start hook — without it a session simply has
+  no skill and never mentions it. The test and CI fail
+  if the link is wrong, and the README names symlink
+  support as a prerequisite — it always was one, because
+  DNS aliases are symlinks under `memory/servers/` too.
+
 - **The disk, boot and OS-installation workflows are
   a skill.** `hostwarden-os-install` carries OS
   replacement, dual-boot, EFI boot management, cloud
