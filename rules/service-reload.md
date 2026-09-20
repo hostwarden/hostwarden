@@ -90,7 +90,22 @@ On FreeBSD and macOS, match the `service` /
 
 When hostwarden has to ask (restart not on
 `restart-auto`, or reload on `reload-always-ask`),
-use `AskUserQuestion` with these four options:
+offer these four options.
+
+**Preferred (Claude Code):** use the
+`AskUserQuestion` tool, so the user gets a real
+selectable picker. **Fallback (any tool without
+it):** print the ASCII form and wait for `1`, `2`,
+`3` or `4` — same wording, same four answers, and
+the same writes behind them. Never skip the
+question because the picker is missing: this is
+the approval step in front of a restart.
+
+    Restart nginx on web1.example.com?
+      [1] Yes, just this once
+      [2] Yes, always — stop asking for nginx
+      [3] No
+      [4] No, never ask again for nginx
 
 1. **Yes, just this once** — run the action now.
    Policy file unchanged.

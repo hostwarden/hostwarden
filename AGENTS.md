@@ -211,10 +211,11 @@ At the start of every session, quietly load `memory/user.md`,
 present), and glance at `memory/servers/` and
 `memory/custom-rules/` to see what's there.
 
-**How:** use the Read tool for each individual file and a plain `ls`
-for directory listings, all in one message so they run together. Do
-**not** use a shell `for`-loop with `cat` — it triggers a permission
-prompt for no good reason and looks alarming to new users.
+**How:** read each file on its own, with whatever your harness
+offers for reading a file, and list directories with a plain `ls`
+— all in one message so they run together. Do **not** use a shell
+`for`-loop with `cat`: it asks for a shell permission that reading
+files does not need, and looks alarming to new users.
 
 `ls -R memory/custom-rules/` for that one: an override can sit a
 level down (`os/debian.md`, a skill's reference), and a top-level
@@ -232,8 +233,15 @@ Then name the customizations that are in force, in one line —
 there are none. `rules/overrides.md` covers the rest.
 
 **Do not improvise setup questions.** If `memory/user.md` is
-missing, follow the three-option interview in `rules/ssh-user.md`
-exactly, one question at a time.
+missing *and* the session is about to reach a machine, follow the
+three-option interview in `rules/ssh-user.md` exactly, one question
+at a time.
+
+A session that only works on this repository — reading the
+instruction set, editing it, reviewing a change — reaches no
+machine and needs no SSH user. Do not ask. The file is gitignored,
+so it is missing in every fresh checkout, and a checkout is not a
+reason to interview anybody.
 
 ## Where the Rest Lives
 
