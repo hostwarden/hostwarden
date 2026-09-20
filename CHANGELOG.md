@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **The authoring conventions reach the files they
+  govern.** Editing anything under `rules/` or
+  `.agents/skills/` names
+  `.claude/rules/instruction-authoring.md` once per
+  session. A `paths` glob could not do this: it fires on
+  a read, and reading a rule to follow it on a server
+  looks the same as reading it to change it.
+- **The checked corpus is what git tracks.** A new
+  instruction file is covered the moment it is
+  committed, instead of waiting for someone to add its
+  directory to a list. The shipped templates under
+  `memory/` are scanned for the first time, and
+  `settings.json` is checked for hooks whose script has
+  been renamed away.
+- **The guard fixture matrix runs in parallel** — 54
+  seconds down to 25 on a 12-core machine, same 673
+  checks. A pre-commit check nobody waits for is a
+  pre-commit check nobody runs.
+
 - **A `references/` pointer resolves inside its own
   skill.** The fleet audit and the housekeeping baseline
   both sent a reader to
