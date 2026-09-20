@@ -7,8 +7,9 @@ suggest the better alternative. This rule is
 override.
 
 This rule supplements existing rules. When a more
-specific rule exists (e.g. `rules/mise.md` for
-runtimes), follow that rule's full procedure. This
+specific rule or skill exists (e.g.
+`hostwarden-runtimes` for language runtimes), follow
+its full procedure. This
 rule catches patterns not covered elsewhere and
 extends existing rules to user-directed actions.
 
@@ -101,7 +102,7 @@ package manager and mise is available on the server:
 suggest mise. Distro packages are often outdated and
 harder to manage per-user.
 → `mise use --global node@24`
-Cross-reference: `rules/mise.md`
+Cross-reference: the `hostwarden-runtimes` skill
 
 **curl | bash as root**
 Piping unknown scripts into a root shell is a
@@ -148,7 +149,7 @@ systemd `Restart=on-failure`.
 Services should run as a dedicated user with
 minimal privileges.
 → Create a service user.
-Cross-reference: `rules/deployment.md`
+Cross-reference: the `hostwarden-deploy-user` skill
 
 ### Permissions & Security
 

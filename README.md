@@ -698,7 +698,8 @@ and other one-time questions are answered and stored
 in memory (unattended runs can't answer pickers) —
 and **never use `--dangerously-skip-permissions` in
 cron**. Details, systemd-timer variant, and cron
-pitfalls: `rules/scheduled-housekeeping.md`.
+pitfalls: the `hostwarden-housekeeping` skill,
+`references/scheduled.md`.
 
 ## Safety & Guardrails
 
@@ -976,6 +977,10 @@ bin/
                          (SKILL.md + references/)
     hostwarden-adopt/     — Take over a heinzel installation
                          (SKILL.md + references/)
+    hostwarden-runtimes/  — Install language runtimes via mise
+                         (SKILL.md)
+    hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
+                         (SKILL.md)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules
   rhel.md              — RHEL, CentOS, Fedora, Rocky,
@@ -983,7 +988,6 @@ rules/                 — Upstream rule files (git-tracked)
   suse.md              — openSUSE & SLES rules
   macos.md             — macOS rules
   freebsd.md           — FreeBSD rules
-  mise.md              — Language runtime manager (mise)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management
@@ -1005,7 +1009,6 @@ rules/                 — Upstream rule files (git-tracked)
   backups.md           — Config file backup procedure
   best-practices.md    — Common anti-patterns to review
                          before risky actions
-  deployment.md        — CI/CD deployment user rules
   directory-copy.md    — Cross-server directory copy checks
   port-check.md        — Port conflict detection before
                          starting services
@@ -1015,8 +1018,6 @@ rules/                 — Upstream rule files (git-tracked)
                          keys/passwords, metadata only
   service-reload.md    — Service reload/restart policy
                          (auto-proceed rules + opt-out)
-  scheduled-housekeeping.md — Recurring housekeeping via
-                         cron/systemd timer + claude -p
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 memory/                — All your user state (gitignored
