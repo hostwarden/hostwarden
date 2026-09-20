@@ -156,11 +156,11 @@ Rules for macOS (Apple Silicon and Intel).
     `sysctl -n machdep.cpu.brand_string` (model),
     `sysctl -n hw.ncpu` (core count)
   - `journalctl` does not exist — use `log show`
-    (see Changelog section in CLAUDE.md)
+    (`rules/changelog.md` has the predicate)
   - `df -h` works the same.
 - `logger` works on macOS and writes to the unified
-  log. Reading back requires `log show` (see
-  CLAUDE.md Changelog section).
+  log. Reading back requires `log show` — the exact
+  predicate is in `rules/changelog.md`.
 - `mise` works unchanged on macOS — same as Linux.
 
 ## Common Pitfalls

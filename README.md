@@ -903,19 +903,30 @@ customize behavior without editing the upstream rule
 files (which would cause merge conflicts on
 `git pull`).
 
-Three layers, read in order (later wins):
+Four layers, read in order (later wins):
 
-1. **Base** — `rules/<name>.md` (upstream,
+1. **Shipped** — the rule file or skill (upstream,
    git-tracked)
-2. **Global custom** —
-   `memory/custom-rules/<name>.md`
-   (gitignored by default, opt-in team sharing)
-3. **Per-server** —
+2. **Global custom** — the mirroring file under
+   `memory/custom-rules/` (gitignored by default,
+   opt-in team sharing)
+3. **Every file** — `memory/custom-rules/all.md`
+4. **Per-server** —
    `memory/servers/<hostname>/rules.md`
    (gitignored with server memory)
 
+**Your file's path mirrors the shipped one**, minus
+the top-level directory and minus `references/`:
+
+| Shipped | Yours, under `memory/custom-rules/` |
+| ----------------------------------- | ------------------------- |
+| `rules/backups.md`                   | `backups.md`              |
+| `rules/os/debian.md`                 | `os/debian.md`            |
+| the `hostwarden-security` skill      | `hostwarden-security.md`  |
+| that skill's `references/ssh.md`     | `hostwarden-security/ssh.md` |
+
 Custom files use heading prefixes to control how
-they interact with the base rules:
+they interact with what was shipped:
 
 ```markdown
 ## Add: Docker cleanup
@@ -924,14 +935,28 @@ New rules applied alongside the base.
 ## Replace: Firewall
 Replaces the matching base section entirely.
 
-## Remove: Common Pitfalls > snap
-Skip this base section.
+## Remove: Notes > snap
+Drop one entry, leave the rest of that section.
 ```
 
 Sections without a prefix are treated as additions.
-A special `memory/custom-rules/all.md` applies to
-every server. Per-server overrides win over global custom
-when both touch the same section.
+Prefer `Add` to `Replace`: an addition that
+contradicts a shipped default still wins, and it
+does not leave you maintaining a copy of a section
+that keeps evolving upstream.
+
+Hostwarden names the customizations it loaded in one
+line at session start, and tells you when a file
+under `memory/custom-rules/` matches nothing shipped
+— that is how you catch a typo, or a path that moved
+in an upgrade.
+
+Two things you cannot override: the Critical Safety
+Rules in `CLAUDE.md`, and whether a skill triggers at
+all — a skill's description is matched before any of
+your files are read. Trigger wording belongs in
+`memory/custom-rules/all.md`, which is in context
+from the start. Full rules: `rules/overrides.md`.
 
 ## Project Structure
 
@@ -948,6 +973,8 @@ bin/
                          date (called automatically on update)
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
+  rules/               — Conventions for working on this repo,
+                         loaded only when those files are read
   hooks/
     check-updates.sh   — Auto-check for repo updates and
                          auto-migrate on session start
@@ -982,8 +1009,10 @@ bin/
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
-  os/                  — Reference data, one file read per
-                         host, picked by OS detection
+  os/                  — Reference data. Detection reads at
+                         most one — none for a distro no
+                         family covers, one per system for a
+                         workflow spanning two
     debian.md          — Debian & Ubuntu
     rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
     suse.md            — openSUSE & SLES
@@ -1006,6 +1035,10 @@ rules/                 — Upstream rule files (git-tracked)
   verify-before-reporting.md — Verify a finding
                          against the live system before
                          reporting or escalating it
+  overrides.md         — How custom rules layer over what
+                         hostwarden ships
+  firewall-changes.md  — Exposure review when a service is
+                         installed, removed or reconfigured
   dns-aliases.md       — DNS alias detection & management
   backups.md           — Config file backup procedure
   best-practices.md    — Common anti-patterns to review

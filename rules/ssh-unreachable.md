@@ -28,7 +28,7 @@ limits and IPS rules punish, and it keeps an existing
 block alive.
 
 1. Retry **once** with the fresh-login options
-   (`CLAUDE.md` → SSH Options) plus `-v`. A stale
+   (`rules/ssh-connections.md`) plus `-v`. A stale
    shared connection is the cheap explanation, and
    `-v` shows every address tried (see Dual-stack).
 2. If that fails too, stop. Wait several minutes

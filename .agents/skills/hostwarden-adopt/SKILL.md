@@ -31,6 +31,7 @@ checkout is only read, anything this clone already holds is reported
 before it would be overwritten, no server is contacted, and the one
 write into the old tree (step 6) needs its own yes.
 
+
 ## Why an inventory instead of a migration
 
 heinzel's own rules cover config backups, scratch directories and the

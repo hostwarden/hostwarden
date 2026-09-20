@@ -66,8 +66,20 @@ Keep them as they are:
 
 ### Fresh-login options
 
-The second option set in `CLAUDE.md` → SSH Options.
-Use it for:
+For an access test, and for the single retry after a
+call that hangs:
+
+    ssh -o BatchMode=yes -o ConnectTimeout=5 \
+      -o ControlMaster=no -o ControlPath=none …
+
+Use them **instead of** the standard options, never
+appended to them. For a repeated option SSH keeps the
+first value it sees, so a `ControlMaster=no` added
+after `ControlMaster=auto` changes nothing and the
+call still rides the shared master — which is the one
+thing these options exist to prevent.
+
+Use them for:
 
 - **Access tests.** Anything that answers "can this
   login still succeed?" — after changing

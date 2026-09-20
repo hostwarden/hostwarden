@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+- **`CLAUDE.md` keeps the trigger, the file keeps the
+  procedure.** It is down from 668 lines to 316, and
+  from 3356 words to under 2000, because a moment and
+  the file that covers it is one line — not a
+  paragraph that restates what the file already says.
+  Nothing that has to fire unasked left: the taboos,
+  the first-connection pipeline with its no-quick-
+  question clause, least privilege, the ask-before
+  list, port 22, secrets, untrusted server output. The
+  four sections describing skills are gone, because a
+  skill's description is in context every turn anyway.
+  `rules/firewall-changes.md` and `rules/overrides.md`
+  now hold procedures that used to sit inline.
+- **Custom rules mirror the path of what they
+  override.** `rules/os/debian.md` is customized in
+  `memory/custom-rules/os/debian.md`, a skill's
+  `references/ssh.md` in `<skill>/ssh.md` — one rule,
+  and two skills can ship a `report-format.md` without
+  their overrides colliding. hostwarden names the
+  customizations it loaded at session start, and says
+  when one matches nothing shipped instead of ignoring
+  it silently. A skill's *trigger* stays uncustomizable
+  per file and belongs in `all.md`; `rules/overrides.md`
+  says so rather than leaving it to be discovered. When
+  an upgrade moves a topic between mechanisms,
+  `bin/hostwarden-migrate` moves the matching override
+  with it instead of leaving it at a path nothing reads
+  — which matters for a checkout adopted from heinzel,
+  where such files already exist.
+- **Repo-development conventions load only when repo
+  files are read.** `.claude/rules/repo-release.md`
+  carries versioning, tagging, changelog style and the
+  heinzel porting trailer, scoped to `VERSION`,
+  `CHANGELOG.md` and `.github/`, so a sysadmin session
+  never pays for them.
+
 - **The OS-family files sit in `rules/os/`.** They
   are reference data, not rules: nothing about a
   situation triggers them, OS detection picks at most
@@ -65,18 +101,19 @@
   only when a machine has no console.
 
 - **Rule overrides for the moved disk and boot rules
-  are no longer read.** An override is found by the
-  file name it overrides, and those files left
-  `rules/`, so a personal
-  `memory/custom-rules/os-replacement.md`,
+  are relocated with them.** An override is found by
+  the file name it overrides, and those files left
+  `rules/` for the `hostwarden-os-install` skill, so
+  a personal `memory/custom-rules/os-replacement.md`,
   `dual-boot.md`, `efi-boot.md`, `cloud-image.md` or
-  `partition-staging.md` stops taking effect with
-  this release. Merge what you still want into
-  `memory/custom-rules/hostwarden-os-install.md` and
-  delete the old file. `bin/hostwarden-migrate` names
-  the ones it finds and repeats the notice until they
-  are gone — but it runs from the update path, so a
-  plain `git pull` never shows it.
+  `partition-staging.md` would stop taking effect at
+  its old path. `bin/hostwarden-migrate` moves each
+  one into `memory/custom-rules/hostwarden-os-install/`
+  under the same name, and keeps a file whose
+  destination already exists so nothing is
+  overwritten. It runs from the update path, so a
+  checkout refreshed with a plain `git pull` keeps the
+  old paths until `bin/hostwarden-update` runs once.
 
 - **heinzel is now hostwarden.** The project
   continues heinzel 2.22.0 as an independent

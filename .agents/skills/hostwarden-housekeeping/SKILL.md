@@ -23,20 +23,12 @@ applies before any of this runs.
 
 ## Workflow
 
-1. **Load overrides.** Before running any check, apply the full
-   hostwarden rule-override chain (later wins):
-   - `memory/custom-rules/hostwarden-housekeeping.md` if present
-     (global custom overrides for this skill — `## Add:`,
-     `## Replace:`, `## Remove:` prefixes per `CLAUDE.md`).
-   - `memory/housekeeping.md` if present (additional cross-
-     server custom checks — free-form Markdown, gitignored by
-     default).
-   - `memory/servers/<hostname>/memory.md` (service list,
-     last-known state, per-server quirks).
-   - `memory/servers/<hostname>/rules.md` if present (per-server
-     rule overrides — same prefixes as above, highest precedence).
-   Note: `memory/custom-rules/all.md` is already loaded by the
-   CLAUDE.md session-start preflight — do not re-read it.
+1. **Load overrides**, key `hostwarden-housekeeping`, per
+   `rules/overrides.md`. Read
+   `memory/servers/<hostname>/memory.md` for the service list,
+   last-known state and per-server quirks, and
+   `memory/housekeeping.md` if present for cross-server custom
+   checks (free-form Markdown, gitignored by default).
 2. **Select checks.** Run all baseline checks for the detected OS
    plus any service-specific checks triggered by entries in the
    server's `memory.md` (e.g. PostgreSQL, nginx, Docker). The

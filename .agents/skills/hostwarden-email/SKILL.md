@@ -33,14 +33,10 @@ applies before any of this runs.
    detection, SSH user lookup, OS detection, server memory
    load, and activity check.
 
-2. **Load overrides.** Apply the hostwarden rule-override chain
-   (later wins):
-   - `memory/custom-rules/hostwarden-email.md` if present.
-   - `memory/servers/<host>/memory.md` (recipient, source,
-     transport, policies — see "Per-server memory" below).
-   - `memory/servers/<host>/rules.md` if present.
-   `memory/custom-rules/all.md` is already loaded by the
-   session-start preflight — do not re-read it.
+2. **Load overrides**, key `hostwarden-email`, per
+   `rules/overrides.md`. Read `memory/servers/<host>/memory.md`
+   for recipient, source, transport and policies — see
+   "Per-server memory" below.
 
 3. **Resolve recipient.** In order of precedence:
    1. **User said an explicit address** ("send to alice@…",

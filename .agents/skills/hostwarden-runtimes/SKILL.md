@@ -12,7 +12,7 @@ description: Install, upgrade, report on or remove a programming
   setup that makes the runtime visible over SSH.
 ---
 
-# mise — Language Runtime Manager
+# hostwarden-runtimes
 
 Installing programming languages on servers using
 [mise](https://mise.jdx.dev). Applies to every distro family and
