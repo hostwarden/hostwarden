@@ -264,6 +264,10 @@ check for overrides in this order (later wins):
 3. **Per-server:**
    `memory/servers/<hostname>/rules.md`
 
+A rule file in a subdirectory keeps the subdirectory:
+`rules/os/debian.md` is customized in
+`memory/custom-rules/os/debian.md`.
+
 Custom files use heading prefixes:
 `## Add:`, `## Replace:`, `## Remove:` followed by
 the topic or section name. Sections without a prefix

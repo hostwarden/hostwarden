@@ -6,12 +6,20 @@ its OS.
 Detection is what makes `rules/os/` reachable. Those
 five files are not rules that fire on a situation —
 they are reference data addressed by a fact this
-procedure establishes, and **at most one** of them is
-read per host. A distribution no family covers gets
-none of them; step 2 below says what to do instead.
-Never reach for the nearest file — a Debian reference
-on an Alpine host prescribes the wrong package
-manager and the wrong firewall.
+procedure establishes. Detection reads **at most one**
+of them: the family it just established, and no other.
+A distribution no family covers gets none of them; step
+2 below says what to do instead. Never reach for the
+nearest file — a Debian reference on an Alpine host
+prescribes the wrong package manager and the wrong
+firewall.
+
+That cap is on detection, not on the session. A
+workflow that deals with two operating systems at once
+— an OS replacement, a dual-boot setup — reads the
+file for each of them, old and new, because each is a
+fact about a real system. The `hostwarden-os-install`
+skill says so where it needs it.
 
 ## On first connection
 

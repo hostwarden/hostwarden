@@ -4,10 +4,16 @@
 
 - **The OS-family files sit in `rules/os/`.** They
   are reference data, not rules: nothing about a
-  situation triggers them, OS detection picks exactly
-  one per host by the `ID`/`ID_LIKE` it read. The
-  directory now says so, and `rules/os-detection.md`
-  names itself as what makes them reachable.
+  situation triggers them, OS detection picks at most
+  one per host by the `ID`/`ID_LIKE` it read — a
+  distribution no family covers gets none rather than
+  the nearest one. The directory now says so, and
+  `rules/os-detection.md` names itself as what makes
+  them reachable. An existing
+  `memory/custom-rules/debian.md` and its four
+  siblings move to `memory/custom-rules/os/` with the
+  files they override, so a customization does not
+  stop applying at the upgrade.
 
 - **Language runtimes and CI/CD deploy users are
   skills.** `hostwarden-runtimes` and
