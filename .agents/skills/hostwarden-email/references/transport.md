@@ -24,13 +24,10 @@ those are remote-only.
 **5L.4** Skip the sender-identity step (5R.4). Local sending
 runs as the current shell user.
 
-**5L.5** Continue at the shared step **6 (Compose)**. At step
-**7 (Send)** the command runs locally. At step **8 (Verify)**
-inspect local logs:
-- macOS: `log show --style compact --last 1m --predicate
-  'process == "smtpd" OR process == "smtp"'`
-- Linux workstation: `journalctl --since "1 minute ago" -t
-  postfix` or `tail -50 /var/log/mail.log`
+**5L.5** Continue at the shared step **6 (Compose)**. At steps
+**7 (Send)** and **8 (Verify)** the commands run locally;
+`references/send-verify.md` has the local branch of both,
+including which log to read.
 
 ### 5R. Remote-side workflow
 

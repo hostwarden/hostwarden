@@ -5,7 +5,8 @@ Steps 7 and 8 of the `hostwarden-email` skill, after
 attachments.
 
 7. **Send.** Because Hostwarden always injects custom headers
-   (the anti-auto-reply triple above, plus MIME headers
+   (the anti-auto-reply triple `references/compose.md` sets,
+   plus MIME headers
    when attaching), the canonical send path builds the
    full RFC 822 message and pipes it to a sendmail-style
    agent that reads headers from stdin (`-t` mode). This

@@ -22,16 +22,11 @@ server. The report content is *about* the server; whether the
 mail leaves *from* the server or *from* your workstation is a
 per-host preference that's asked once and remembered.
 
-The full hostwarden first-connection onboarding pipeline still
-applies before any of this runs.
-
 ## Workflow
 
 1. **Onboarding pipeline.** Run `rules/first-connection.md` in
    full. No "quick question" exception — even a one-line email
-   still goes through blacklist/read-only check, DNS alias
-   detection, SSH user lookup, OS detection, server memory
-   load, and activity check.
+   goes through every step of it.
 
 2. **Load overrides**, key `hostwarden-email`, per
    `rules/overrides.md`. Read `memory/servers/<host>/memory.md`
@@ -165,11 +160,11 @@ hostwarden installs new packages on a different server
 `memory/service-policy.md`'s split between `restart-auto`
 and `restart-never`.
 
-## References (read on demand)
+## Rules this skill leans on
 
-- `references/transport.md` — step 5.
-- `references/compose.md` — step 6.
-- `references/send-verify.md` — steps 7 and 8.
+The three `references/` files are named by the steps that need
+them. Beyond those:
+
 - `rules/first-connection.md` — the mandatory onboarding
   pipeline.
 - `rules/server-memory.md` — server memory file format.
