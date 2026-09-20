@@ -9,10 +9,9 @@ description: Run a hostwarden housekeeping (health) inspection on a
   <host>", or "do routine inspection". Do NOT auto-invoke for
   ambiguous requests like "check server <host>" — that's
   reserved for quick queries. Covers Linux (Debian, Ubuntu, RHEL,
-  CentOS, Fedora, SUSE) and macOS. Also covers running the
-  inspection unattended from cron or a systemd timer — use it when
-  the user asks to "schedule housekeeping", "run a nightly check",
-  or "email me a weekly report automatically".
+  CentOS, Fedora, SUSE) and macOS. Also use it for "schedule
+  housekeeping", "run a nightly check", or "email me a weekly
+  report automatically".
 ---
 
 # hostwarden-housekeeping
