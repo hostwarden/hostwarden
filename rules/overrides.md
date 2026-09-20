@@ -85,6 +85,16 @@ moved. It runs on update and as the last step of adopting a
 heinzel checkout. A file already at the new path wins; the
 old one is left for the user to merge, and named.
 
+It moves whole files, which is all it can do: when a topic
+was not only moved but **split**, some sections of the
+moved override now belong under a reference key instead —
+a `## Replace: Installation` that followed `mise` into
+`hostwarden-runtimes.md` belongs under
+`hostwarden-runtimes/install-mise.md`. Those arrive as
+headings matching nothing, and the rule above applies:
+name them, name the sibling files the section could have
+gone to, and ask. Do not resolve them by nearest match.
+
 **An override path that matches nothing shipped is almost
 always a typo or a stale name.** Say so once, name the file,
 and carry on — silently ignoring it is how a user ends up
@@ -96,9 +106,9 @@ Markdown with heading prefixes naming a section of the
 shipped file. Load them before acting on that file, not
 after.
 
-    ## Add: Nightly reboot window
-    These hosts accept a reboot between 02:00 and 04:00
-    without asking again.
+    ## Add: Nightly window
+    Schedule unattended-upgrade reboots for 02:00-04:00
+    and say so when proposing one.
 
     ## Replace: Backup retention
     Keep 90 days.
@@ -168,12 +178,20 @@ writing `memory/custom-rules/<skill>.md` — only what it
 does once it has.
 
 Trigger behaviour is customized in
-`memory/custom-rules/all.md` instead, which is in context
-before anything fires:
+`memory/custom-rules/all.md` instead:
 
     ## Add: Skill triggers
     "check <host>" means run housekeeping, not a quick query.
     Never start a security audit without me saying "audit".
+
+`all.md` is read in the session-start preflight, so it
+governs every turn from there on. It is not a gate in front
+of the matcher: on the first request of a session the
+harness can match a skill before the preflight has run. Say
+that when a user wants a hard gate rather than a
+preference — the reliable form is not to ship the skill,
+and that is their decision to make, not something an
+override file can do for them.
 
 Per-host trigger changes are not possible at all: the host
 is not known until the connection, which is often after the

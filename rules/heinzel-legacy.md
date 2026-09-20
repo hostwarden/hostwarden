@@ -20,10 +20,19 @@ left, and `memory/user.md` has no
 this file and `rules/heinzel-adoption.md`, drop step
 8 from `rules/first-connection.md`, the `heinzel` tag
 from `rules/activity-check.md`, the old backup paths
-from `rules/backups.md`, the migration lines from
+from `rules/backups.md`, the `heinzel-*` rename loop in
 `bin/hostwarden-migrate`, and the `hostwarden-adopt`
 skill. Written down here because a
 transition nobody ends becomes permanent by default.
+
+**Not the `MAP` table in that script.** Those rows move
+overrides whose topic changed address in a hostwarden
+release, which has nothing to do with heinzel and
+everything to do with how far behind a given installation
+is. One clean checkout says nothing about the next user to
+upgrade. Rows come out at a release boundary that states
+which versions can still upgrade directly, not when this
+machine stops seeing heinzel.
 
 ## What to look for
 

@@ -242,6 +242,9 @@ trigger — not a request from the user.
 **Before you change something**
 
 - Editing any config file → `rules/backups.md`
+- Installing or upgrading any software →
+  `rules/version-check.md`, for the stable version to install.
+  A request that names no version still needs the lookup
 - Starting or deploying anything that binds a port →
   `rules/port-check.md`
 - Installing a package → `rules/service-class-check.md`, for a
@@ -269,7 +272,7 @@ trigger — not a request from the user.
 
 - Concluding that something is missing, broken, moved, or caused by
   an event → `rules/verify-before-reporting.md`
-- Touching installed software, or naming any version →
+- Naming any version, or reporting what is installed →
   `rules/version-check.md`
 
 **Before the session ends**
@@ -316,3 +319,10 @@ Where those blocks live, what wins, and what is never overridable:
 ## Writing in this repo
 
 Wrap every `.md` file at 80 characters, memory files included.
+
+Changing hostwarden itself — `VERSION`, `CHANGELOG.md`, the
+workflows, a hook, or porting a change from heinzel — follows
+`.claude/rules/`. Claude Code loads those files by path when a
+matching file is read; every other tool has to be pointed at them,
+which is what this paragraph does. Do not bump `VERSION`: a bump
+landing on `main` tags a release.
