@@ -81,17 +81,21 @@ leads, the host confirms them.
    `user.md` (`Greeting: … Heinzel`) is about this tool rather than
    about a host: point it out and ask whether to change it.
 
-5. **Build the inventory.** This is the part no script can do. For
-   each host **this run selected** — the ones it copied, and the ones
-   it reported as already adopted, since a repeat run or a session
-   interrupted after step 3 copies nothing and would otherwise leave
-   those hosts without leads. Never every host under
-   `memory/servers/`: a `--shared` run would build inventories for
-   hosts nothing was adopted for and send later connections into the
-   legacy workflow over nothing. For each of them read `memory.md`
-   and
-   `changelog.log` and collect every path, unit, cron job or script a
-   heinzel session created or configured — the shapes are listed in
+5. **Build the inventory.** This is the part no script can do. It
+   covers the hosts **this run selected** — the ones it copied and
+   the ones it reported as already adopted, because a repeat run, or
+   a session interrupted after step 3, copies nothing and would
+   otherwise leave those hosts without leads. Where a selection is a
+   DNS alias, the host is the canonical directory it points at
+   (`rules/dns-aliases.md`): take that one into the set and drop the
+   alias, or the interrupted case ends with no inventory at all.
+   Never every host under `memory/servers/`: a `--shared` run would
+   build inventories for hosts nothing was adopted for and send later
+   connections into the legacy workflow over nothing.
+
+   For each host in that set, read `memory.md` and `changelog.log`
+   and collect every path, unit, cron job or script a heinzel session
+   created or configured — the shapes are listed in
    `rules/heinzel-legacy.md` § "What to look for",
    `references/inventory.md` has the file format and what does not
    count. Write it to `memory/servers/<host>/heinzel-inventory.md`.
@@ -100,10 +104,7 @@ leads, the host confirms them.
 
    Read the **old checkout's** copy of a host's files whenever this
    clone kept its own — the leads live in the records that were not
-   copied. And skip the DNS alias symlinks under `memory/servers/`
-   (`rules/dns-aliases.md`): they point at the canonical directory,
-   so following one writes a second inventory into the same host and
-   counts it twice.
+   copied.
 
 6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files
