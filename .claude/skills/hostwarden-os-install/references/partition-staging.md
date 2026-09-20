@@ -9,7 +9,7 @@ physical access.
 
 Read this file when:
 - Replacing an OS on a server (cross-reference
-  with `rules/os-replacement.md`)
+  with `references/os-replacement.md`)
 - Repartitioning a live system
 - Needing temporary workspace on a partition that
   is currently in use (e.g. swap)
@@ -65,7 +65,7 @@ table:
    `newfs` and `gpart` writes, which the taboo
    guard blocks. The user relaunches with
    `HOSTWARDEN_GUARD_DISABLE=1` first, as
-   `rules/os-replacement.md` (Prerequisites, step
+   `references/os-replacement.md` (Prerequisites, step
    4) describes.
 
 ### RAM Check
@@ -244,7 +244,7 @@ gpart add -t linux-data vtbd0  # new root (rest)
 The old OS continues running from the swap
 partition. Install the new OS to the new root
 partition, set up the bootloader, and reboot. See
-`rules/os-replacement.md` §"SSH-Only Replacement
+`references/os-replacement.md` §"SSH-Only Replacement
 via Hot-Migration" for the full workflow.
 
 ## Step 4: Repartition

@@ -12,8 +12,8 @@ Read this file when the user asks to:
 - Add Linux to a FreeBSD system or vice versa
 
 Also read:
-- `rules/efi-boot.md` — EFI boot management
-- `rules/cloud-image.md` — if using a cloud image
+- `references/efi-boot.md` — EFI boot management
+- `references/cloud-image.md` — if using a cloud image
 - `rules/<family>.md` — for each OS involved
 
 ## Prerequisites
@@ -151,7 +151,7 @@ partition, consider cross-OS compatibility:
 ### Cloud Image (Quickest)
 
 Write a cloud image directly to the target
-partition. See `rules/cloud-image.md` for post-
+partition. See `references/cloud-image.md` for post-
 deployment steps (SSH keys, cloud-init, network).
 
 Best when: the target filesystem doesn't need to
@@ -178,7 +178,7 @@ experience.
 
 ## Boot Setup
 
-See `rules/efi-boot.md` for detailed instructions.
+See `references/efi-boot.md` for detailed instructions.
 
 Summary:
 - **Linux on ARM64:** use systemd-boot (GRUB does

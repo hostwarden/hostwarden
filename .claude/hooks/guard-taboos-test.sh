@@ -284,7 +284,11 @@ check pass 'dd if=/dev/sda of=/root/disk-backup.img'
 check pass 'uname -a'
 check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 
-# --- every code block the skills and rules ship passes ---------
+# --- every code block the instruction layer ships passes -------
+# CORPUS is every place an instruction can carry a command, so a
+# block stays covered when it moves between mechanisms. Paths that
+# do not exist yet are dropped, because find fails on a missing one
+# and would take the whole matrix down with it.
 # A taboo word used as data in a documented probe is denied like
 # the command itself and cancels the whole parallel batch. The
 # security skill once skipped inert login shells by a regex of
@@ -296,8 +300,15 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 # block path keeps names unique when find starts awk twice.
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
 
+CORPUS=""
+for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
+         "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
+  [ -e "$p" ] && CORPUS="$CORPUS $p"
+done
+
 BLOCKS=$(mktemp -d)
-find "$CLAUDE_DIR/skills" "$CLAUDE_DIR/../rules" -name '*.md' \
+# shellcheck disable=SC2086
+find $CORPUS -name '*.md' \
   -exec awk -v dir="$BLOCKS" '
   /^[ \t]*```/ && !inb { inb = 1
                          if (/[ \t](operator|guard-off)[ \t]*$/) next
@@ -315,11 +326,11 @@ done
 rm -rf "$BLOCKS"
 if [ "$NBLOCKS" -eq 0 ]; then
   FAIL=$((FAIL + 1))
-  echo "FAIL: no code blocks found under skills/ or rules/"
+  echo "FAIL: no code blocks found in the instruction corpus"
 fi
 
-# os-replacement.md has guard-off blocks by design, so finding
-# none means the search broke, not that all is well.
+# The OS-install references carry guard-off blocks by design, so
+# finding none means the search broke, not that all is well.
 NGUARDOFF=0
 while read -r md; do
   [ -n "$md" ] || continue
@@ -334,11 +345,11 @@ while read -r md; do
 done <<EOF
 $(grep -rlE --include='*.md' \
   '^[[:space:]]*```.*[[:space:]]guard-off[[:space:]]*$' \
-  "$CLAUDE_DIR/skills" "$CLAUDE_DIR/../rules")
+  $CORPUS)
 EOF
 if [ "$NGUARDOFF" -eq 0 ]; then
   FAIL=$((FAIL + 1))
-  echo "FAIL: no guard-off blocks found under rules/"
+  echo "FAIL: no guard-off blocks found in the instruction corpus"
 fi
 
 # --- the system-account probe fails closed ---------------------

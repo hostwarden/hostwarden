@@ -86,8 +86,9 @@
 #     copy staged under another root (mnt/etc/ssh/sshd_config)
 #     count as the real file. The left side stays open on
 #     purpose, so /usr/local/etc/ssh and an offline image are
-#     covered (rules/cloud-image.md). Keep backups outside the
-#     guarded path, e.g. /root/backup/sshd_config.
+#     covered (the hostwarden-os-install skill, cloud-image).
+#     Keep backups outside the guarded path, e.g.
+#     /root/backup/sshd_config.
 #   - ssh-keygen with a private key path ANYWHERE in the command:
 #     `file /etc/ssh/ssh_host_ed25519_key; ssh-keygen -lf
 #     ...key.pub` is denied although each part passes alone.
@@ -114,7 +115,7 @@
 # the message to a file with a non-Bash tool and use
 # `git commit -F <file>` — that executes nothing on any server.
 #
-# Override for legitimate flows (e.g. rules/os-replacement.md
+# Override for legitimate flows (the hostwarden-os-install skill
 # runs mkfs/sgdisk by design): the OPERATOR sets
 # HOSTWARDEN_GUARD_DISABLE=1 in the environment BEFORE launching
 # the session. An inline assignment inside a proposed command

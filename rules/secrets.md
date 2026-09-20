@@ -298,8 +298,9 @@ Never copy key material or credential files
 anywhere under the hostwarden repo. `memory/` (and
 `memory/servers/` in team mode) can be shared via
 git — a committed key is a published key. This
-generalizes the rule in `rules/os-replacement.md`
-→ Certificates: store such material outside the
+generalizes the rule in the `hostwarden-os-install`
+skill → os-replacement → Certificates: store such
+material outside the
 repo (e.g. `~/hostwarden-keys/<hostname>/` with mode
 `0700` on the directory and `0600` on files) and
 record only the *path* in memory or inventories.

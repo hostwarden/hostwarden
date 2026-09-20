@@ -220,7 +220,7 @@ console output. This does not mean the boot failed.
 ## QEMU Cross-OS Installation and EFI
 
 When using QEMU to install a new OS (see
-`rules/os-replacement.md` §"QEMU as a Cross-OS
+`references/os-replacement.md` §"QEMU as a Cross-OS
 Chroot Alternative"), the QEMU VM's EFI is
 separate from the real hardware's EFI NVRAM.
 
@@ -271,7 +271,7 @@ already been destroyed — there is nothing left
 to fall back to — and even then, ask the user
 first (see §"Safety"). While the old OS is still
 intact and bootable, keep its loader; it *is*
-the fallback (see `rules/os-replacement.md`
+the fallback (see `references/os-replacement.md`
 §"Boot Configuration Safety"). Once the old root
 is gone, leftover EFI files are a hazard: the
 firmware may try the old boot loader (which

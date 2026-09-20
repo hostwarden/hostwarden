@@ -18,7 +18,7 @@ The taboo guard blocks the `dd` below and any edit
 of `sshd_config`, host keys or `authorized_keys`
 inside an offline image. Before the first of them,
 the user relaunches with `HOSTWARDEN_GUARD_DISABLE=1`,
-as `rules/os-replacement.md` (Prerequisites, step
+as `references/os-replacement.md` (Prerequisites, step
 4) describes. The console fix in §5 is for the
 user to type.
 
@@ -124,7 +124,7 @@ must be installed before the first boot.
 
 When installing packages into an offline rootfs
 (e.g. mounting the image from a different OS),
-read `rules/os-replacement.md` §"Manual Package
+read `references/os-replacement.md` §"Manual Package
 Extraction into Offline Rootfs" — extracting
 `.deb` files without `dpkg` skips critical postinst
 steps like creating the `sshd` system user.
@@ -210,7 +210,7 @@ onto a single partition.
 Debian ARM64 cloud images use GRUB as the default
 bootloader. GRUB fails silently on ARM64 QEMU/UTM
 VMs — the VM hangs at boot with no error output.
-See `rules/efi-boot.md` for details.
+See `references/efi-boot.md` for details.
 
 **After deploying an ARM64 cloud image on
 QEMU/UTM, replace GRUB with systemd-boot before

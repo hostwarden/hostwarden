@@ -12,7 +12,7 @@ Read this file when the user asks to:
 - Wipe and start fresh on an existing machine
 
 This is NOT dual-boot — the old OS is removed
-entirely. See `rules/dual-boot.md` for running
+entirely. See `references/dual-boot.md` for running
 two OSes side by side.
 
 ## Prerequisites
@@ -138,7 +138,7 @@ becomes unrecoverable.
 4. **Keep the old bootloader intact as fallback**
    until the new OS is confirmed bootable. Use
    BootNext (one-shot) for the first boot into
-   the new OS. See `rules/efi-boot.md`.
+   the new OS. See `references/efi-boot.md`.
 
 ### What this means in practice
 
@@ -180,11 +180,11 @@ Choose installation method based on access:
   feature or deploy a new image.
 - **VM (UTM/QEMU/VMware):** boot from ISO, or use
   debootstrap via rescue/chroot. Cloud images are
-  a fallback — see `rules/cloud-image.md`.
+  a fallback — see `references/cloud-image.md`.
   **ARM64 QEMU/UTM:** cloud images use GRUB, which
   fails silently on these platforms. Replace GRUB
   with systemd-boot before first boot (see
-  `rules/efi-boot.md`, `rules/cloud-image.md`).
+  `references/efi-boot.md`, `references/cloud-image.md`).
 - **SSH-only replacement (same OS family):** use
   debootstrap (or equivalent) via tmpfs rescue.
   See §"SSH-Only Replacement via Hot-Migration".
@@ -221,7 +221,7 @@ Choose installation method based on access:
 
 ### Freeing Partitions for Staging
 
-Read `rules/partition-staging.md` for the full
+Read `references/partition-staging.md` for the full
 strategy. Key techniques:
 
 1. **Reclaim swap** — `swapoff` frees a partition
@@ -294,7 +294,7 @@ bootable as a fallback throughout the process.
    extraction, etc.) while the old OS is still
    running.
 6. **Set up bootloader** — install systemd-boot on
-   the EFI partition. See `rules/efi-boot.md`.
+   the EFI partition. See `references/efi-boot.md`.
 7. **BootNext for safe first boot** — use
    `efibootmgr -n` (one-shot) so the system tries
    the new OS once. On failure, it automatically
@@ -303,8 +303,8 @@ bootable as a fallback throughout the process.
    OS is confirmed working, remove the old OS from
    the swap partition and restore swap.
 
-See `rules/partition-staging.md` for hot-migration
-details. See `rules/efi-boot.md` for BootNext
+See `references/partition-staging.md` for hot-migration
+details. See `references/efi-boot.md` for BootNext
 setup.
 
 ### When hot-migration fails

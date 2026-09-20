@@ -953,6 +953,10 @@ bin/
                          from a server (SKILL.md)
     hostwarden-fleet-audit/   — Cross-server policy drift audit
                          (SKILL.md + references/)
+    hostwarden-os-install/    — Install, replace or dual-boot an
+                         OS, with the disk, EFI and cloud-image
+                         work that comes with it
+                         (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules
   rhel.md              — RHEL, CentOS, Fedora, Rocky,
@@ -960,12 +964,6 @@ rules/                 — Upstream rule files (git-tracked)
   suse.md              — openSUSE & SLES rules
   macos.md             — macOS rules
   freebsd.md           — FreeBSD rules
-  efi-boot.md          — EFI boot management & dual-boot
-  cloud-image.md       — Cloud image deployment
-  dual-boot.md         — Dual-boot setup workflow
-  os-replacement.md    — OS wipe-and-replace workflow
-  partition-staging.md — Swap reclaim & hot-migrate for
-                         repartitioning
   mise.md              — Language runtime manager (mise)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
