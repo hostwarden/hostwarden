@@ -99,9 +99,11 @@ fi
 # URLs are stripped first: linking to a project's documentation is
 # not the same as pretending to own a name.
 CORPUS_FILES=$(
-  find "$ROOT/rules" "$ROOT/.agents" "$ROOT/contrib" -name '*.md' \
-    2>/dev/null
-  ls "$ROOT/AGENTS.md" "$ROOT/CLAUDE.md" 2>/dev/null
+  find "$ROOT/rules" "$ROOT/.agents" "$ROOT/contrib" \
+       "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" "$CLAUDE_DIR/hooks" \
+       "$ROOT/.github" -type f 2>/dev/null
+  ls "$ROOT/AGENTS.md" "$ROOT/CLAUDE.md" "$ROOT/README.md" \
+     "$ROOT/CHANGELOG.md" 2>/dev/null
 )
 
 strip_urls() { sed -E 's#https?://[^ )"`,]*##g' "$1"; }
@@ -141,23 +143,54 @@ if [ -z "$BAD_MAIL" ]; then ok; else
   FAIL=$((FAIL + 1))
 fi
 
-# SSH targets. A hostname a command connects to may well be real
-# infrastructure -- security.debian.org, time.apple.com -- and no
-# pattern tells that from a borrowed example, so hostnames at
-# large are a review matter. An SSH target never is: hostwarden
-# only ever logs into a user's machine, so every one in an
-# instruction file is an example and must say so.
+# SSH targets. A hostname a command connects to may well be
+# real infrastructure -- security.debian.org, time.apple.com --
+# and no pattern tells that from a borrowed example, so
+# hostnames at large are a review matter. The target of an ssh
+# or scp command never is: hostwarden only ever logs into a
+# user's machine, so every one in an instruction file is an
+# example and must say so. Both forms count, with a user and
+# without.
+#
+# The command word must be followed by a space, or every
+# rules/ssh-*.md reference in the tree reads as an invocation.
+# A candidate ending in a file extension is a path, not a host,
+# and openssh.com suffixes cipher and MAC names rather than
+# naming a machine (ssh -c aes256-gcm@openssh.com host).
 BAD_SSH=$(
   for f in $CORPUS_FILES; do
     strip_urls "$f" \
-      | grep -oE '[a-z0-9_-]+@[a-z0-9][a-z0-9.-]*\.[a-z]{2,}' \
-      | grep -vE '@(.*\.)?example\.(com|net|org)$' \
-      | grep -vE '@openssh\.com$' | sed "s#^#$f: #"
+      | grep -oE '(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
+      | grep -oE '[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
+      | sed -E 's#^[ =]##; s#^[a-z0-9_-]+@##' \
+      | grep -E '\.[a-z]{2,}$' \
+      | grep -vE '\.(md|sh|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
+      | grep -vE '(^|\.)example\.(com|net|org)$' \
+      | grep -vE '^(localhost|openssh\.com)$' \
+      | sed "s#^#$f: #"
   done
 )
 if [ -z "$BAD_SSH" ]; then ok; else
   printf '%s\n' "$BAD_SSH" | while read -r l; do
     echo "FAIL: $l is not an RFC 2606 example target"
+  done
+  FAIL=$((FAIL + 1))
+fi
+
+# IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
+# Matching every colon-hex string would catch timestamps and
+# MAC addresses, so this looks for the global-unicast shape --
+# a 2xxx: or 3xxx: literal with at least two more groups.
+BAD_IP6=$(
+  for f in $CORPUS_FILES; do
+    strip_urls "$f" \
+      | grep -oiE '\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
+      | grep -viE '^2001:0?db8[:0-9a-f]*$' | sed "s#^#$f: #"
+  done
+)
+if [ -z "$BAD_IP6" ]; then ok; else
+  printf '%s\n' "$BAD_IP6" | while read -r l; do
+    echo "FAIL: $l is not an RFC 3849 documentation address"
   done
   FAIL=$((FAIL + 1))
 fi
