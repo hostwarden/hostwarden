@@ -1043,4 +1043,9 @@ rules — please open an issue or submit a PR.
 
 ## License
 
-MIT
+MIT, © Julian Pawlowski. hostwarden contains
+substantial portions of
+[heinzel](https://github.com/wintermeyer/heinzel) by
+Stefan Wintermeyer, whose copyright notice the MIT
+terms require this project to keep — both notices are
+in `LICENSE`.
