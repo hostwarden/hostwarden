@@ -150,7 +150,13 @@ same_content() {
   # difference on a fleet-sized tree.
   [ -e "$2" ] || return 1
   if [ -d "$1" ]; then
-    diff -r "$1" "$2" >/dev/null 2>&1
+    # For a directory: everything the old checkout has
+    # is here, unchanged. Extra entries on our side do
+    # not count against it — a host gains its
+    # heinzel-inventory.md, a todo, a longer log, and
+    # a byte-for-byte test would call it a conflict
+    # from the first session onwards.
+    ! diff -r "$1" "$2" 2>/dev/null | grep -qv "^Only in $2"
   else
     cmp -s "$1" "$2" 2>/dev/null
   fi
