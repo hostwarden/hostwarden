@@ -438,6 +438,18 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
   for H in $HOSTS; do
     SRC="$OLD/memory/servers/$H"
     { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
+    # Before anything else: is this host already
+    # here? Deciding that after the alias work would
+    # copy an alias's canonical host and then skip
+    # the alias itself, leaving an orphan the skill
+    # would build an inventory for.
+    # -L as well: a dangling alias in this clone is
+    # still this clone's state.
+    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
+        && [ -z "$FORCE" ]; then
+      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      continue
+    fi
     # A DNS alias is a symlink to the canonical host
     # (rules/dns-aliases.md). Naming one on its own
     # would copy a link to a directory that is not
@@ -507,14 +519,6 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
       fi
-    fi
-    # -L as well: a dangling alias in this clone is
-    # still this clone's state, and -e alone would
-    # let a non-force run replace it.
-    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
-        && [ -z "$FORCE" ]; then
-      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
-      continue
     fi
     NESTED=$(nested_link "$SRC")
     if [ -n "$NESTED" ]; then
