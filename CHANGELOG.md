@@ -32,6 +32,20 @@
   can run inside, and the FreeBSD image — are read
   only when a machine has no console.
 
+- **Rule overrides for the moved disk and boot rules
+  are no longer read.** An override is found by the
+  file name it overrides, and those files left
+  `rules/`, so a personal
+  `memory/custom-rules/os-replacement.md`,
+  `dual-boot.md`, `efi-boot.md`, `cloud-image.md` or
+  `partition-staging.md` stops taking effect with
+  this release. Merge what you still want into
+  `memory/custom-rules/hostwarden-os-install.md` and
+  delete the old file. `bin/hostwarden-migrate` names
+  the ones it finds and repeats the notice until they
+  are gone — but it runs from the update path, so a
+  plain `git pull` never shows it.
+
 - **heinzel is now hostwarden.** The project
   continues heinzel 2.22.0 as an independent
   project under a new name. Scripts, skills,
