@@ -16,7 +16,8 @@ When the old and new OS are entirely different
 (e.g. FreeBSD → Linux), `chroot` into the new
 rootfs does not work — the running kernel cannot
 execute binaries built for a different OS. Manual
-package extraction (see next section) is one
+package extraction (§ Manual Package Extraction
+into Offline Rootfs, below) is one
 workaround, but it is tedious and error-prone
 because every postinst script must be replicated
 by hand.

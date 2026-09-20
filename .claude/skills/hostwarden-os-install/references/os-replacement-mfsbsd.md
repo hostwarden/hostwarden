@@ -30,6 +30,12 @@ replacement: regular installer media (memstick,
 disc1 ISO) mount root from the disk. Partitioning
 that disk destroys the running system.
 
+**Never use the regular FreeBSD memstick/disc1
+installer for same-disk SSH-only replacement.** Any
+attempt to partition that disk from rc.local or
+`installerconfig` destroys the system it is running
+on.
+
 ### Pre-built mfsBSD images
 
 Download from https://mfsbsd.vx.sk/:
