@@ -978,9 +978,9 @@ bin/
     hostwarden-adopt/     — Take over a heinzel installation
                          (SKILL.md + references/)
     hostwarden-runtimes/  — Install language runtimes via mise
-                         (SKILL.md)
+                         (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
-                         (SKILL.md)
+                         (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules
   rhel.md              — RHEL, CentOS, Fedora, Rocky,
