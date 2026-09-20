@@ -93,8 +93,10 @@ rename.
   cloning; a checkout made without it turns every
   link into a text file, and hostwarden then has no
   skills and no alias resolution.
-  `sh .claude/hooks/instructions-test.sh` says
-  whether the links survived.
+  The session-start hook repairs the skill links when it
+  can, and says so when it cannot;
+  `sh .claude/hooks/instructions-test.sh` reports the
+  state at any time.
 - **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows. On Windows, the recommended path is

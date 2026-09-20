@@ -8,8 +8,10 @@
   `OPENCODE_DISABLE_CLAUDE_CODE` is set. Claude Code
   searches only `.claude/`, so `.claude/skills/*` are
   symlinks into the new home. Those links are
-  load-bearing: `sh .claude/hooks/instructions-test.sh`
-  and CI fail if a checkout turned them into files,
+  load-bearing, so `bin/hostwarden-migrate` repairs them
+  on every session start and after every update — the
+  failure lives in the user's clone, where CI can never
+  see it. The test and CI fail if they are wrong,
   and the README names symlink support as a
   prerequisite — it always was one, because DNS
   aliases are symlinks under `memory/servers/` too.

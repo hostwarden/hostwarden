@@ -42,6 +42,38 @@ if [ -n "$MOVED" ]; then
   echo "reference the old paths."
 fi
 
+# Claude Code searches only .claude/, so every skill needs a
+# link there into .agents/skills/. A clone made without symlink
+# support — native Windows without Developer Mode, or an
+# archive export — turns those links into text files, and the
+# session then has no skills at all, silently. CI cannot catch
+# that: it always checks out with symlinks.
+#
+# So repair them here, where the code runs in the user's own
+# clone on every session start and after every update. ln -sfn
+# is idempotent, and the link target is derivable, so a correct
+# clone produces no output.
+if [ -d .agents/skills ]; then
+  mkdir -p .claude/skills
+  for d in .agents/skills/*/; do
+    [ -d "$d" ] || continue
+    name=$(basename "$d")
+    link=".claude/skills/$name"
+    [ -L "$link" ] && [ -f "$link/SKILL.md" ] && continue
+    rm -f "$link"
+    if ln -sfn "../../.agents/skills/$name" "$link" 2>/dev/null \
+       && [ -f "$link/SKILL.md" ]; then
+      echo "hostwarden: relinked $link"
+    else
+      rm -f "$link"
+      echo "hostwarden: cannot create $link — this checkout has"
+      echo "  no symlink support, so no skill is visible to"
+      echo "  Claude Code. See Prerequisites in the README."
+      break
+    fi
+  done
+fi
+
 # SSH connection sharing needs its socket directory
 # before the first remote call
 # (rules/ssh-connections.md). A SessionStart hook
