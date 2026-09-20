@@ -36,9 +36,10 @@ attachments.
    <signature>
    ```
 
-   `From:` and `Reply-To:` are resolved per the rules
-   above. If `Reply-To:` could not be resolved (case 5),
-   omit the line entirely after warning the user.
+   `From:` and `Reply-To:` are resolved by
+   `references/compose.md` — step 6 ran before this one
+   and its last case leaves `Reply-To:` unresolved. When
+   it did, omit the line entirely after warning the user.
 
    **No attachments.** Pipe the message to
    `sendmail -t -oi` (`-oi` prevents a lone `.` on a line

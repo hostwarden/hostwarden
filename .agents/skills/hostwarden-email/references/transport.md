@@ -115,3 +115,4 @@ in this order:
    report **WARN** with the reason. Never invent a user.
 
 The install step (5R.3) still requires root/sudo — that is
+the only root-privileged operation in the workflow.

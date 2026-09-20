@@ -8,8 +8,10 @@ description: Send an email about a managed server — ad-hoc text
   first email per host asks where to send from (local
   workstation vs the server itself). On the remote path,
   prefers the existing MTA (postfix, sendmail, msmtp,
-  mail/mailx) and asks before installing one. Sends as a
-  non-root user via `runuser`/`su -`. Attachments check sender
+  mail/mailx) and asks before installing one. Sends
+  unprivileged — as the SSH user, or dropping from root via
+  `runuser`/`su -` when the session is root. Attachments
+  check sender
   readability, size, and offer a content preview before
   sending. **Never run automatically** — only on explicit user
   request.
@@ -98,8 +100,9 @@ operation in the whole workflow.
 7. **Send** — `references/send-verify.md`. The canonical
    path builds the message with headers, because hostwarden
    always injects the anti-auto-reply triple and MIME
-   headers when attaching. Remote sends drop from root via
-   `runuser`/`su -`.
+   headers when attaching. A remote send runs as the SSH
+   user when that is not root, and drops from root via
+   `runuser`/`su -` when it is.
 
 8. **Verify delivery** — `references/send-verify.md`. Exit
    code, then the mail log from the last minute.
