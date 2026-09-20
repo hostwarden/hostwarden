@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Examples name nobody real.** Hostnames and domains
+  come from RFC 2606 (`server1.example.com`), addresses
+  from RFC 5737 and RFC 3849, and people from the
+  Alice-and-Bob convention the field has used for
+  decades. `.claude/rules/instruction-authoring.md`
+  states it, along with where a new instruction belongs
+  and why instruction files never narrate their own
+  history, and `instructions-test.sh` enforces the parts
+  a pattern can decide: documentation addresses in both
+  IP families, example mail addresses, and the target of
+  an `ssh` or `scp` command. It also walks every
+  instruction pointer — `rules/` paths, skills named in
+  prose, and a skill's frontmatter name against its own
+  directory — because a pointer that resolves to nothing
+  fails silently, which is the failure the whole layout
+  is arranged to avoid. Hostnames at large it
+  deliberately leaves alone — a command may legitimately
+  contact `security.debian.org`, and no pattern tells
+  that from a borrowed name.
+
 - **The instruction set is `AGENTS.md`.** That is the
   file name Claude Code, OpenCode, Codex and Cursor all
   read natively, so hostwarden's rules reach a tool

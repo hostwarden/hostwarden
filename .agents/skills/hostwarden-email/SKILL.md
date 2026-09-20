@@ -492,9 +492,9 @@ the only root-privileged operation in the workflow.
    constructs the headers (including the anti-auto-reply
    triple) and the boundary itself, then pipes into
    `sendmail -t -oi` (or `msmtp -t` when only msmtp is
-   present). This replaces the earlier tool-specific
-   shell-outs to `mutt` and `mail -a`: a single code path
-   means headers are guaranteed to survive every send.
+   present). One code path for every MTA, which is what
+   makes the headers survive: a tool-specific shell-out to
+   `mutt` or `mail -a` drops them.
 
    **macOS local path.** `/usr/bin/sendmail` on macOS is a
    Postfix compatibility shim and accepts the same `-t`
@@ -562,8 +562,8 @@ absence means "ask next time".
 ```
 - Mail: <transport summary>          # remote path only
                                      # e.g. "postfix + bsd-mailx
-                                     #       (outbound via Google MX)"
-                                     # or  "msmtp via smtp.fastmail.com:587"
+                                     #       (outbound via the provider MX)"
+                                     # or  "msmtp via smtp.example.com:587"
 - Alert email: <recipient address>
 - Email source: local | remote       # gate 0 — sender side
 - Email sender: <username>           # remote path only — non-root user
