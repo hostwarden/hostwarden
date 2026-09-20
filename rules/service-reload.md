@@ -254,20 +254,12 @@ than quietly moving on to the next task.
 
 ## Override Chain
 
-This rule follows the standard hostwarden override
-chain. Later wins:
-
-1. **Base:** `rules/service-reload.md`
-2. **Global custom:** `memory/custom-rules/service-reload.md`
-   (with `## Add:`, `## Replace:`, `## Remove:`
-   prefixes)
-3. **Per-server:** `memory/servers/<hostname>/rules.md`
-
-The policy lists themselves
-(`reload-always-ask`, `restart-auto`,
-`restart-never`) can also be overridden per-server
-by putting `## Replace: reload-always-ask` (or
-similar) in the per-server rules file.
+Overrides work as `rules/overrides.md` describes, key
+`service-reload`. What is local to this rule: the
+policy lists themselves (`reload-always-ask`,
+`restart-auto`, `restart-never`) are sections, so a
+host can replace one on its own with
+`## Replace: reload-always-ask`.
 
 ## Logging
 

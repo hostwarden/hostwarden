@@ -24,9 +24,6 @@ irreversible moment. Read the gate below first, then the reference
 that matches what the user asked for.
 
 
-**Overrides.** Load them before anything else, key
-`hostwarden-os-install`, per `rules/overrides.md`.
-
 ## The gate — before anything touches a disk
 
 Every path here is destructive. None of them starts until all four

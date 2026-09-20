@@ -34,8 +34,7 @@ ignored.
 
 ## Where a customization goes
 
-**The override path mirrors the shipped path**, minus the
-top-level directory and minus the `references/` segment:
+Two shapes, because the shipped tree has two:
 
 | Shipped | Customize in `memory/custom-rules/` |
 | --- | --- |
@@ -44,24 +43,31 @@ top-level directory and minus the `references/` segment:
 | skill `hostwarden-security` | `hostwarden-security.md` |
 | that skill's `references/ssh.md` | `hostwarden-security/ssh.md` |
 
-One rule, and it is unambiguous by construction: two skills
-may both ship a `report-format.md` without their overrides
-colliding, because each sits under its own skill's
-directory. `.claude/hooks/instructions-test.sh` guards the
-single seam where a collision is still possible — a rule
-file and a skill with the same name.
+**A rule keeps its path under `rules/`. A skill is a
+directory named after itself, holding one file per
+reference.** Nothing else to work out: `references/` is
+noise in a path that is already inside a skill, and no
+two skills collide, because each has its own directory.
+
+The only way two things can want the same name is a rule
+file and a skill called the same — `rules/os/` and a
+skill named `os` included.
+`.claude/hooks/instructions-test.sh` guards exactly that.
 
 A user who wants to know what can be customized lists the
 shipped tree: `ls rules/ rules/os/ .agents/skills/` and the
 `references/` directory of any skill.
 
-The per-server file is one file per host,
-`memory/servers/<hostname>/rules.md`, holding blocks for
-however many topics that host needs. Its blocks name their
-subject in the heading:
+Per host, one file — `memory/servers/<hostname>/rules.md` —
+with an `H1` per subject, written the way the table above
+writes it, and the usual prefixed headings under each:
 
-    ## Replace: backups / Backup retention
-    ## Add: hostwarden-security / Listening services
+    # backups
+    ## Replace: Backup retention
+    Keep 90 days.
+
+    # hostwarden-security/ssh
+    ## Remove: Weak algorithm check
 
 When an upgrade moves a topic — out of `rules/` into a
 skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
@@ -73,16 +79,13 @@ old one is left for the user to merge, and named.
 **An override path that matches nothing shipped is almost
 always a typo or a stale name.** Say so once, name the file,
 and carry on — silently ignoring it is how a user ends up
-believing a customization is in force for months. This
-matters most after an upgrade moves a topic between
-mechanisms: the old path stops resolving, and the message is
-the only thing that tells them.
+believing a customization is in force for months.
 
 ## The format
 
-Markdown with heading prefixes. In a per-key file the
-heading names a section of the shipped file; in a per-server
-file it names the subject first, then the section.
+Markdown with heading prefixes naming a section of the
+shipped file. Load them before acting on that file, not
+after.
 
     ## Add: Nightly reboot window
     These hosts accept a reboot between 02:00 and 04:00
@@ -118,20 +121,14 @@ cannot both be meant. Apply neither and ask.
 
 ## When overrides are read
 
-At the moment the shipped file is read, not at session
-start — with one exception: `memory/custom-rules/all.md`
+At the moment the shipped file is read and **before acting on
+it**, not at session start — with one exception: `memory/custom-rules/all.md`
 and the access lists load during the session-start
 preflight, because they have to be in force before the
 first connection.
 
 Missing override files are the normal case. Their absence
 is never an error and never worth a line to the user.
-
-**Say what is active.** After the preflight, name the
-customizations in one line — *"Custom rules: all, backups,
-os/debian."* — or say nothing when there are none. A user
-who mistyped a path, or whose file was shadowed, finds out
-in the first second of the session instead of never.
 
 ## Skills are different in one way
 
