@@ -187,9 +187,18 @@ done
 # resolving them would duplicate a host's memory.
 # Local names only: sh has no scoping, and a plain
 # SRC here would clobber the caller's loop variable.
+# copy_item <src> memory/<dst> [link]
+#
+# `link` preserves a symlink source as a symlink —
+# for DNS aliases under servers/, whose target is a
+# validated sibling host. Everything else is copied
+# by content: a shared file that is a link in the old
+# checkout must arrive here as the file itself, since
+# its target is not part of what gets copied.
 copy_item() {
   ci_src="$1"
   ci_dst="memory/$2"
+  ci_keeplink="$3"
   # --force means the old checkout's copy wins, so an
   # occupied destination is replaced, not merged: a
   # stale rules.md, todo.md or heinzel-inventory.md
@@ -216,7 +225,7 @@ copy_item() {
   if [ -L "$ci_dst" ] || { [ -L "$ci_src" ] && [ -e "$ci_dst" ]; }; then
     rm -rf "$ci_dst"
   fi
-  if [ -L "$ci_src" ]; then
+  if [ -L "$ci_src" ] && [ -n "$ci_keeplink" ]; then
     ci_link=$(readlink "$ci_src")
     ln -s "$ci_link" "$ci_dst"
   elif [ -d "$ci_src" ]; then
@@ -236,7 +245,16 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 # half the shared state has been written leaves a
 # clone that cannot be described or re-run cleanly.
 SHARED_PENDING=""
+SHARED_BROKEN=""
 for ITEM in $SHARED; do
+  # A link in the old checkout that does not resolve
+  # has no content to copy. Silently skipping it
+  # would be how a host arrives here with no
+  # blacklist behind it.
+  if [ -L "$OLD/memory/$ITEM" ] && [ ! -e "$OLD/memory/$ITEM" ]; then
+    SHARED_BROKEN="$SHARED_BROKEN $ITEM"
+    continue
+  fi
   [ -e "$OLD/memory/$ITEM" ] || continue
   same_content "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
@@ -255,16 +273,31 @@ case " $SHARED_PENDING " in
   *" blacklist.md "*|*" readonly.md "*)
     [ -n "$SHARED_ONLY" ] || BLOCKED=yes ;;
 esac
+case " $SHARED_BROKEN " in
+  *" blacklist.md "*|*" readonly.md "*)
+    [ -n "$SHARED_ONLY" ] || BLOCKED=broken ;;
+esac
+if [ -n "$SHARED_BROKEN" ]; then
+  echo "the old checkout has a link that does not resolve:$SHARED_BROKEN" >&2
+fi
 if [ -n "$BLOCKED" ]; then
-  echo "this clone has its own$SHARED_PENDING" >&2
-  echo "A host denied or read-only in the old checkout would arrive here" >&2
-  echo "without that restriction. Merge the lists by hand, or re-run with" >&2
-  echo "--force to take the old checkout's, then adopt the hosts." >&2
-  if [ -z "$LIST" ]; then
-    echo "error: nothing was copied" >&2
-    exit 1
+  if [ "$BLOCKED" = broken ]; then
+    echo "An access list that cannot be read cannot come across, and a host" >&2
+    echo "denied there would arrive here unrestricted. Fix the link in the" >&2
+    echo "old checkout first." >&2
+  else
+    echo "this clone has its own$SHARED_PENDING" >&2
+    echo "A host denied or read-only in the old checkout would arrive here" >&2
+    echo "without that restriction. Merge the lists by hand, or re-run with" >&2
+    echo "--force to take the old checkout's, then adopt the hosts." >&2
   fi
-  echo "(--list: reporting the plan anyway, nothing is written)" >&2
+  # A dry run stops here too: everything after this
+  # point is disabled, so listing it would describe a
+  # plan that cannot run with these arguments.
+  [ -n "$LIST" ] && echo "nothing would be copied until this is resolved" >&2
+  [ -n "$LIST" ] && exit 0
+  echo "error: nothing was copied" >&2
+  exit 1
 fi
 
 # Shared state first, always: a per-server adoption
@@ -404,7 +437,7 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
         [ -n "$LIST" ] \
-          || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON"
+          || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
       fi
     fi
     # -L as well: a dangling alias in this clone is
@@ -416,7 +449,7 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
       continue
     fi
     plan "servers/$H"
-    [ -n "$LIST" ] || copy_item "$SRC" "servers/$H"
+    [ -n "$LIST" ] || copy_item "$SRC" "servers/$H" link
   done
 fi
 
