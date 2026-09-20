@@ -246,8 +246,9 @@ report "$(printf '%s\n' "$SCAN" \
       [ -f "$ROOT/$r" ] || echo "$f $r"
     done)" "a rule file that exists"
 
-# Skills named in prose. Several rules point at a skill by name
-# rather than by path, which a rename breaks without a trace.
+# Skills and subagents named in prose. Several rules point at
+# one by name rather than by path, which a rename breaks without
+# a trace. bin/hostwarden-* are scripts, not either.
 report "$(printf '%s\n' "$SCAN" \
   | grep -v '^CHANGELOG\.md: ' \
   | grep -oE '^[^ ]+:|`hostwarden-[a-z-]+`' \
@@ -255,15 +256,28 @@ report "$(printf '%s\n' "$SCAN" \
   | tr -d '`' \
   | grep -vE ' hostwarden-(migrate|update|backup)$' \
   | while IFS=' ' read -r f s; do
-      [ -d "$ROOT/.agents/skills/$s" ] || echo "$f $s"
-    done)" "a skill that exists"
+      [ -d "$ROOT/.agents/skills/$s" ] && continue
+      [ -f "$CLAUDE_DIR/agents/$s.md" ] && continue
+      echo "$f $s"
+    done)" "a skill or subagent that exists"
 
-# A skill's frontmatter name against its directory. The override
-# path keys off the directory; the slash command and the
-# harness's own matching key off the frontmatter. Let them
-# diverge and a user's override file names one while the skill
-# fires as the other.
+# A skill's frontmatter name against its directory, and a
+# subagent's against its file name. The override path keys off the
+# directory; the slash command and the harness's own matching key
+# off the frontmatter. Let them diverge and a user's override file
+# names one while the skill fires as the other -- and a subagent
+# is dispatched by its frontmatter name, so the same split leaves
+# the fleet audit calling for an agent nothing answers to.
 MISNAMED=$(
+  for a in "$CLAUDE_DIR"/agents/*.md; do
+    [ -f "$a" ] || continue
+    an=$(basename "$a" .md)
+    afn=$(awk 'NR == 1 && $0 != "---" { exit }
+      NR > 1 && $0 == "---" { exit }
+      NR > 1' "$a" \
+      | sed -n 's/^name:[[:space:]]*//p' | head -1)
+    [ "$afn" = "$an" ] || echo ".claude/agents/$an.md: frontmatter name '$afn'"
+  done
   for d in "$ROOT"/.agents/skills/*/; do
     [ -f "$d/SKILL.md" ] || continue
     dn=$(basename "$d")
@@ -276,7 +290,7 @@ MISNAMED=$(
     [ "$fn" = "$dn" ] || echo ".agents/skills/$dn: frontmatter name '$fn'"
   done
 )
-report "$MISNAMED" "the name of its own directory"
+report "$MISNAMED" "the name it is dispatched by"
 
 # --- examples name nobody real ----------------------------------
 # .claude/rules/instruction-authoring.md: hostnames from RFC 2606,

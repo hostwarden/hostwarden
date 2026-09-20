@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **The fleet audit gives each host its own subagent.**
+  A dozen hosts used to mean a dozen `sshd -T` dumps in
+  one context; now each `hostwarden-host-probe` returns
+  a single comparison row and keeps its raw output to
+  itself — and reads the probe list from the skill's own
+  `references/`, so the commands are not copied into a
+  dozen prompts the main session never needed. The probe
+  inherits the project instructions and the taboo guard
+  hook applies to its commands, both measured rather
+  than assumed, so it runs the first-connection pipeline
+  like any other session and cannot change a
+  configuration. Parallelism is across different hosts
+  only, because rate limits count per host. Without
+  subagents the skill probes one host after another and
+  produces the same tables.
+
 - **Taking over heinzel is two mechanisms.** The
   `hostwarden-adopt` skill is asked for by name —
   `/hostwarden-adopt`, or the same request in prose — and

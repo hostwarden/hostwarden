@@ -993,6 +993,9 @@ bin/
                          date (called automatically on update)
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
+  agents/              — Subagent definitions
+    hostwarden-host-probe.md — Probes one host for the fleet
+                         audit and returns one row
   rules/               — Conventions for working on this repo,
                          loaded only when those files are read
   hooks/
