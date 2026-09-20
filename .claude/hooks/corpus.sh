@@ -29,7 +29,7 @@ CORPUS_ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 # it would otherwise split into arguments find cannot resolve,
 # and every scan would silently cover nothing.
 CORPUS_PATHS=".agents rules contrib .github
-.claude/rules .claude/agents .claude/hooks .claude/commands
+.claude/rules .claude/agents .claude/hooks
 AGENTS.md CLAUDE.md README.md CHANGELOG.md"
 
 corpus_files() {

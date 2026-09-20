@@ -205,7 +205,7 @@ The migration renames skill overrides in
   entries as well, so earlier work stays visible.
 - Point hostwarden at your old checkout — "my
   heinzel is in ~/heinzel, take it over", or
-  `/adopt-heinzel ~/heinzel` in Claude Code. The copy
+  `/hostwarden-adopt ~/heinzel` in Claude Code. The copy
   itself is a script — `bin/hostwarden-adopt <path>`
   moves access lists, custom rules and every server's
   memory across and renames what is found by name.
