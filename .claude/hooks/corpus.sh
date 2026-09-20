@@ -13,8 +13,7 @@
 # Expects CLAUDE_DIR (.../.claude) to be set. Defines:
 #   CORPUS_ROOT   — the repository root, so a path printed in a
 #                   failure reads the way a reader would write it
-#   CORPUS_DIRS   — directories and files to walk
-#   corpus_files  — prints every file in them, one per line
+#   corpus_files  — prints every file in the corpus, one per line
 #
 # A path that does not exist yet is dropped rather than passed
 # to find, which fails on a missing argument and would take the
@@ -22,16 +21,19 @@
 
 CORPUS_ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 
-CORPUS_DIRS=""
-for _p in .agents rules contrib .github \
-          .claude/rules .claude/agents .claude/hooks \
-          AGENTS.md CLAUDE.md README.md CHANGELOG.md; do
-  [ -e "$CORPUS_ROOT/$_p" ] &&
-    CORPUS_DIRS="$CORPUS_DIRS $CORPUS_ROOT/$_p"
-done
-unset _p
+# Held as positional parameters inside corpus_files rather than
+# a space-joined string: a checkout under a path with a space in
+# it would otherwise split into arguments find cannot resolve,
+# and every scan would silently cover nothing.
+CORPUS_PATHS=".agents rules contrib .github
+.claude/rules .claude/agents .claude/hooks
+AGENTS.md CLAUDE.md README.md CHANGELOG.md"
 
 corpus_files() {
-  # shellcheck disable=SC2086
-  find $CORPUS_DIRS -type f 2>/dev/null
+  set --
+  for _p in $CORPUS_PATHS; do
+    [ -e "$CORPUS_ROOT/$_p" ] && set -- "$@" "$CORPUS_ROOT/$_p"
+  done
+  [ "$#" -gt 0 ] || return 0
+  find "$@" -type f 2>/dev/null
 }

@@ -81,6 +81,33 @@ if [ "$NSKILLS" -eq 0 ]; then
   bad "no skills found under .agents/skills/ -- the search broke"
 fi
 
+# --- every override the migration moves has somewhere to land ---
+# bin/hostwarden-migrate carries a table of topics that changed
+# address, and moves a user's override to the new one. A row whose
+# destination does not exist relocates a customization to a path
+# nothing reads -- the exact failure the table exists to prevent.
+MIGRATE="$ROOT/bin/hostwarden-migrate"
+if [ -f "$MIGRATE" ]; then
+  BAD_MAP=$(
+    sed -n "/^MAP='/,/'\$/p" "$MIGRATE" \
+      | sed "s/^MAP='//; s/'\$//" \
+      | while read -r _old new; do
+          [ -n "$new" ] || continue
+          skill="${new%%/*}"
+          leaf="${new##*/}"
+          if [ "$skill" = "$new" ]; then
+            # a bare name is a skill's own SKILL.md
+            [ -f "$ROOT/.agents/skills/${new%.md}/SKILL.md" ] && continue
+          else
+            [ -f "$ROOT/.agents/skills/$skill/references/$leaf" ] && continue
+          fi
+          [ -f "$ROOT/rules/$new" ] && continue
+          echo "bin/hostwarden-migrate: $new"
+        done
+  )
+  report "$BAD_MAP" "a path anything ships"
+fi
+
 # --- override paths are unambiguous -----------------------------
 # rules/overrides.md mirrors every shipped path into
 # memory/custom-rules/, dropping the top-level directory and the
@@ -129,8 +156,8 @@ fi
 
 # `rules/...md` paths, named from anywhere.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+: |`rules/[a-z0-9/_-]+\.md`' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+:|`rules/[a-z0-9/_-]+\.md`' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | tr -d '`' \
   | while IFS=' ' read -r f r; do
       [ -f "$ROOT/$r" ] || echo "$f $r"
@@ -139,8 +166,8 @@ report "$(printf '%s\n' "$SCAN" \
 # Skills named in prose. Several rules point at a skill by name
 # rather than by path, which a rename breaks without a trace.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+: |`hostwarden-[a-z-]+`' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+:|`hostwarden-[a-z-]+`' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | tr -d '`' \
   | grep -vE ' hostwarden-(migrate|update|backup)$' \
   | while IFS=' ' read -r f s; do
@@ -177,8 +204,8 @@ report "$MISNAMED" "the name of its own directory"
 # Addresses outside the documentation ranges. Private, loopback,
 # link-local and netmasks are legitimate subjects of an example.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+: |\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+:|\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | grep -vE ': (192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
   | grep -vE ': (127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
   | grep -vE ': 172\.(1[6-9]|2[0-9]|3[01])\.' \
@@ -188,15 +215,15 @@ report "$(printf '%s\n' "$SCAN" \
 # Matching every colon-hex string would catch timestamps and MAC
 # addresses, so this looks for the global-unicast shape.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oiE '^[^ ]+: |\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oiE '^[^ ]+:|\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | grep -viE ': 2001:0?db8')" "an RFC 3849 documentation address"
 
 # Mail addresses outside example.*. openssh.com is allowed because
 # it suffixes algorithm names (umac-64@openssh.com), not people.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+: |[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | grep -vE '@(.*\.)?example\.(com|net|org)$' \
   | grep -vE '@openssh\.com$')" "an RFC 2606 example address"
 
@@ -212,10 +239,10 @@ report "$(printf '%s\n' "$SCAN" \
 # ending in a file extension is a path, not a host, and
 # openssh.com suffixes cipher names rather than naming a machine.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+: |(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
-  | grep -oE '^[^ ]+: |[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+:|(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | grep -oE '^[^ ]+:|[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
+  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | sed -E 's#: [ =]#: #; s#: [a-z0-9_-]+@#: #' \
   | grep -E '\.[a-z]{2,}$' \
   | grep -vE '\.(md|sh|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
