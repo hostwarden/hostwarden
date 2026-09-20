@@ -343,8 +343,16 @@ report "$(printf '%s\n' "$SCAN" \
 # separates words in a shell as well as a space -- or every
 # rules/ssh-*.md reference reads as an invocation. The destination
 # may be quoted. A candidate ending in a file extension is a path,
-# not a host, and openssh.com suffixes cipher names rather than
-# naming a machine.
+# not a host.
+#
+# What is left on that suffix list is file extensions only. Two
+# came off it: `.example` is a reserved TLD and belongs with the
+# other reserved names below, and `.local` is what an internal
+# machine is actually called -- excusing it as a file extension
+# was excusing exactly the target this check exists to catch. The
+# rest are not plausible hostname suffixes in this corpus; a
+# hostname that genuinely ends in one is a review matter, which
+# is what the comment above says about hostnames at large.
 #
 # Only a candidate shaped like a network name is examined: this
 # corpus is prose, and after the word "ssh" it usually says "key",
@@ -382,9 +390,9 @@ report "$(printf '%s\n' "$SCAN" \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | sed -E 's#: [[:blank:]="'"'"']#: #; s#: .*@#: #' \
   | grep -E '\.[a-z]{2,}$' \
-  | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
+  | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|d|bak|gz|img|sock)$' \
   | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \
-  | grep -vE ': ([a-z0-9-]+\.)*(test|invalid)$' \
+  | grep -vE ': ([a-z0-9-]+\.)*(test|invalid|example)$' \
   | grep -vE ': localhost$')" "an RFC 2606 example target"
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
