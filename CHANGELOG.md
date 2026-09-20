@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The OS-family files sit in `rules/os/`.** They
+  are reference data, not rules: nothing about a
+  situation triggers them, OS detection picks exactly
+  one per host by the `ID`/`ID_LIKE` it read. The
+  directory now says so, and `rules/os-detection.md`
+  names itself as what makes them reachable.
+
 - **Language runtimes and CI/CD deploy users are
   skills.** `hostwarden-runtimes` and
   `hostwarden-deploy-user` carry what used to be two

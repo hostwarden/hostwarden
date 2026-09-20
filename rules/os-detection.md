@@ -3,6 +3,12 @@
 Before doing any work on a server, you **must** know
 its OS.
 
+Detection is what makes `rules/os/` reachable. Those
+five files are not rules that fire on a situation —
+they are reference data addressed by a fact this
+procedure establishes, and exactly one of them is
+read per host.
+
 ## On first connection
 
 0. **Check access control and DNS alias.** For remote
@@ -27,21 +33,21 @@ its OS.
    the user, proceed cautiously with generic
    commands, and apply extra verify-before-running
    care.
-   Read `rules/<family>.md`. Gather hardware info
+   Read `rules/os/<family>.md`. Gather hardware info
    (`lscpu`, `free -h`, `df -h`).
 
 3. **If macOS** — detect version and arch:
    ```
    sw_vers -productVersion && uname -m
    ```
-   Read `rules/macos.md`. Gather hardware info
+   Read `rules/os/macos.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`).
 
 4. **If FreeBSD** — detect version and arch:
    ```
    freebsd-version && uname -m
    ```
-   Read `rules/freebsd.md`. Gather hardware info
+   Read `rules/os/freebsd.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`,
    `zpool status` if ZFS).
 
