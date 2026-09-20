@@ -9,17 +9,20 @@
   session. A `paths` glob could not do this: it fires on
   a read, and reading a rule to follow it on a server
   looks the same as reading it to change it.
-- **The checked corpus is what git tracks.** A new
-  instruction file is covered the moment it is
-  committed, instead of waiting for someone to add its
-  directory to a list. The shipped templates under
-  `memory/` are scanned for the first time, and
-  `settings.json` is checked for hooks whose script has
-  been renamed away.
+- **The checked corpus is what git would carry.** A new
+  instruction file is covered by the guard matrix and
+  the layout test the moment it exists, staged or not,
+  while everything a user generates stays out because
+  it is gitignored. The shipped templates under
+  `memory/` are scanned too, and `settings.json` is
+  checked for a hook whose script has been renamed
+  away.
 - **The guard fixture matrix runs in parallel** — 54
-  seconds down to 25 on a 12-core machine, same 673
-  checks. A pre-commit check nobody waits for is a
-  pre-commit check nobody runs.
+  seconds down to 25 on a 12-core machine, same
+  fixtures, and a fixture that comes back without a
+  verdict fails the run instead of going uncounted. A
+  pre-commit check nobody waits for is a pre-commit
+  check nobody runs.
 
 - **A `references/` pointer resolves inside its own
   skill.** The fleet audit and the housekeeping baseline
@@ -129,8 +132,8 @@
   that works on production servers may have.
 
 - **`AGENTS.md` keeps the trigger, the file keeps the
-  procedure.** It is down from 668 lines to 316, and
-  from 3356 words to under 2000, because a moment and
+  procedure.** It is down from 668 lines to 337, and
+  from 3356 words to about 2250, because a moment and
   the file that covers it is one line — not a
   paragraph that restates what the file already says.
   Nothing that has to fire unasked left: the taboos,
@@ -161,8 +164,8 @@
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the
   heinzel porting trailer, scoped to `VERSION`,
-  `CHANGELOG.md` and `.github/`, so a sysadmin session
-  never pays for them.
+  `CHANGELOG.md`, `.github/` and the hooks, so a
+  sysadmin session never pays for them.
 
 - **The OS-family files sit in `rules/os/`.** They
   are reference data, not rules: nothing about a
@@ -215,7 +218,7 @@
   a skill.** `hostwarden-os-install` carries OS
   replacement, dual-boot, EFI boot management, cloud
   images and partition staging behind one trigger, so
-  2452 lines of instruction load when someone asks
+  2600 lines of instruction load when someone asks
   for that work and not before. The destructive-work
   gate — explicit request, understood loss, verified
   backup, guard disabled by the operator — is stated
