@@ -46,20 +46,43 @@ servers" — that maps to single-host housekeeping.
    `memory/servers/` whose name resolves to a real host
    (skip placeholders like `server1.example.com` and
    `192.168.64.20` unless the user names them explicitly).
-   The user may pass an explicit subset as arguments — in
-   that case audit only those.
+   **Skip entries that are symlinks** — those are DNS
+   aliases of a canonical host already in the list
+   (`rules/dns-aliases.md`), and auditing one twice would
+   put the same machine in two columns. The user may pass
+   an explicit subset as arguments — in that case audit
+   only those.
 
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
    report).
 
-3. **Probe in parallel.** For each in-scope host, run the
-   probes from `references/probes.md` in a single batched
-   SSH command, with the standard options from `AGENTS.md` →
-   SSH Options.
-   Hosts that time out or refuse the connection go on a
-   "skipped: unreachable" list.
+3. **Probe each host.** Run the probes from
+   `references/probes.md`, bundled into as few SSH calls as
+   the host allows, with the standard options from
+   `AGENTS.md` → SSH Options. Hosts that time out or refuse
+   the connection go on a "skipped: unreachable" list.
+
+   **In Claude Code, give each host its own subagent.**
+   Dispatch one `hostwarden-host-probe` per host, in a
+   single message so they run concurrently, and pass it the
+   hostname, the SSH user, the probe list, and the journal
+   line from step 6. Each returns one row and keeps the raw
+   command output out of this conversation — which is the
+   point: a fleet of a dozen hosts otherwise fills the
+   context with `sshd -T` dumps nobody reads.
+
+   Parallelism across *different* hosts is safe. Rate
+   limits and fail2ban count per host
+   (`rules/ssh-connections.md`), and each host gets one
+   agent, so nothing is competing. Never give one agent two
+   hosts, and never give two agents the same host.
+
+   Elsewhere, and whenever a host needs a decision the
+   agent cannot make alone, do the same probing here, one
+   host after another. The tables come out identical; only
+   the wall-clock and the context cost differ.
 
 4. **Render comparison.** Build one table per probe category
    using the format in `references/output-format.md`. Hosts
@@ -76,7 +99,9 @@ servers" — that maps to single-host housekeeping.
        logger -t hostwarden "fleet-audit: read-only policy probe"
 
    (One line per host — this is an audit trail, not a
-   change record.)
+   change record.) When a subagent probed the host, it
+   writes this line itself, inside its own session; do not
+   reconnect to write it again.
 
 7. **No memory updates.** The audit is a snapshot; it does
    not own server state. If the audit uncovers a memory
