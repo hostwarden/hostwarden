@@ -403,9 +403,8 @@ The `hostwarden-housekeeping` skill in
 workflow, baseline checks, report format, and
 service-specific probes. Custom cross-server checks
 still live in `memory/housekeeping.md` (gitignored).
-For running housekeeping on a schedule (cron or
-systemd timer + `claude -p`), read
-`rules/scheduled-housekeeping.md`.
+The same skill covers running it on a schedule (cron
+or systemd timer + `claude -p`).
 
 ## Security Audit
 
@@ -457,10 +456,11 @@ check across the fleet.
 
 ## Programming Language Runtimes
 
-Use [mise](https://mise.jdx.dev) — see
-`rules/mise.md`. Do not install runtimes from
-distro repos or use other version managers unless
-the user requests it.
+Never install a language runtime from distro repos,
+and never use nvm, rbenv, pyenv or asdf, unless the
+user asks for one by name. The runtime comes from
+[mise](https://mise.jdx.dev) — the
+`hostwarden-runtimes` skill carries the procedure.
 
 ## Service Reload & Restart
 
@@ -534,9 +534,10 @@ without explicit user approval.**
 
 ## CI/CD Deployment
 
-Read `rules/deployment.md`. Never use root or
-personal accounts for automated deployments. Create
-a dedicated deploy user with minimal privileges.
+Never use root or a personal account for automated
+deployments. A pipeline gets a dedicated deploy user
+with minimal privileges — the `hostwarden-deploy-user`
+skill carries the procedure.
 
 ## Backups
 

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Language runtimes and CI/CD deploy users are
+  skills.** `hostwarden-runtimes` and
+  `hostwarden-deploy-user` carry what used to be two
+  rule files nobody needs until they ask for that
+  work. Scheduling a housekeeping run joins the
+  housekeeping skill as `references/scheduled.md`.
+  The policies stay where they fire without being
+  asked: no runtime from distro repos or another
+  version manager, no pipeline on root or a personal
+  account. Both skills route rather than recite:
+  `hostwarden-runtimes` is 147 lines with installing
+  mise and the non-interactive shell path in
+  `references/`, so asking which Node version a host
+  runs no longer loads the installer behind it, and
+  `hostwarden-deploy-user` is 112, with the SSH key,
+  the hardening steps and the removal procedure split
+  out — removing an account used to load the whole
+  setup workflow to use thirteen lines of it.
+
 - **Skills live in `.agents/skills/`.** That is where
   OpenCode and other AGENTS-style tools look, and it
   no longer matters there whether
