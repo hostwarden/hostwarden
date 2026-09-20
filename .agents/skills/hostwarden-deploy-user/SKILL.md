@@ -15,18 +15,12 @@ description: Set up, audit or remove a dedicated account for
 
 # CI/CD Deployment Users
 
-When setting up automated deployments (GitHub
-Actions, GitLab CI, etc.), **never use the root
-account or a personal user account**. Always create
-a dedicated deploy user with minimal privileges.
+## Never root, never a person's account
 
-## Never Root for CI/CD
-
-Automated pipelines must not SSH as root. If the
-user asks to set up deployment with root, explain
-the risk and create a dedicated user instead.
-
-**Risks of root deployments:**
+An automated pipeline — GitHub Actions, GitLab CI,
+anything else — gets a dedicated deploy user with
+minimal privileges. If the user asks to deploy as
+root, explain the risk and create one instead:
 
 - A compromised CI secret grants full server access.
 - No audit trail separating human from automated

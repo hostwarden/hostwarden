@@ -32,66 +32,32 @@ Python, Elixir, Go, Java, etc. Do **not** use mise for
 system tools or services (nginx, PostgreSQL, etc.) —
 those should come from the distro's package manager.
 
-## Common Pitfalls
-
-- mise must be installed as the SSH user, not root.
-  Running `mise use` as root installs runtimes for
-  root only.
-- The shims PATH setup in `~/.bashrc` must be
-  **before** the interactive guard (`case $- in ...`).
-  If placed after, `ssh user@host "command"` won't
-  find mise-installed binaries.
-- After installing a language, always verify over SSH:
-  `ssh user@host "node --version"`. If it fails, the
-  PATH setup is wrong.
-- `mise use --global` sets the default version. Without
-  `--global`, it creates a local `.tool-versions` file
-  in the current directory.
-- For standalone installs, `~/.local/bin` must be in
-  PATH for the `mise` binary itself. This is separate
-  from the shims directory (`~/.local/share/mise/shims`)
-  which provides the language runtime binaries. Both
-  must be in PATH.
-
 ## Pre-Install Check
 
-Before installing mise, check whether it is already
-present on the system. A system-wide installation
-(via package manager) is preferred over a per-user
-standalone install.
-
-**Step 1 — Check if mise exists for the SSH user:**
+Before installing anything, find out whether mise is
+already there:
 
 ```
-# Remote — the standard SSH options from AGENTS.md apply
+# Remote — the standard SSH options from CLAUDE.md apply
 ssh <options> user@host "command -v mise"
 
 # Local
 command -v mise
 ```
 
-`command -v` prints the absolute path, so that one call
-already answers both questions — whether mise is there
-and which kind it is. Do not follow it with `which`.
+`command -v` prints the absolute path, so one call answers
+both questions — whether mise is there and which kind it
+is. Do not follow it with `which`.
 
-- **System-wide** (`/usr/bin/mise`,
-  `/usr/local/bin/mise`): Use it as-is. Skip the
-  Installation section. Proceed to SSH
-  Non-Interactive Shell Setup (shims PATH still
-  needs to be configured per user).
-- **User-local** (`~/.local/bin/mise`): Use it
-  as-is. Skip the Installation section. Proceed to
-  SSH Non-Interactive Shell Setup if not already
-  configured.
+Any hit is used as is. Never install a second copy beside
+one already there, and go straight to § Making a runtime
+visible over SSH: the shims directory
+(`~/.local/share/mise/shims`) is per-user whichever kind
+was found. A system-wide mise (`/usr/bin/mise`,
+`/usr/local/bin/mise`) only lets you skip the
+`~/.local/bin` half of that setup.
 
-If `command -v mise` fails, proceed to Installation.
-
-**Note:** When a system-wide mise is found, do
-**not** install a second copy locally. The shims
-directory (`~/.local/share/mise/shims`) is still
-per-user and still needs PATH setup — only the
-`~/.local/bin` part of the PATH setup can be
-skipped.
+No hit: install.
 
 ## Installing mise
 
@@ -99,18 +65,24 @@ Only when the pre-install check above found none:
 `references/install-mise.md`. It covers the official installer,
 the distro-package trap, and the FreeBSD and macOS paths.
 
-## When the runtime is invisible over SSH
+## Making a runtime visible over SSH
 
-`ssh host "node --version"` failing after a successful install is
-a shell-initialisation problem, not an install problem:
-`references/shell-setup.md`.
+Every install ends here, and so does every
+`ssh host "node --version"` that fails after one — a
+non-interactive shell does not read the files an
+interactive one does, so the runtime is there and
+unreachable. `references/shell-setup.md` carries the
+per-shell setup and the order the lines have to go in.
 
 ## Installing Languages
 
 Install languages **as the SSH user** (not root).
 Web-search the current LTS/stable version first —
 never trust training data (see CLAUDE.md). Use
-`mise use --global` to set a default version:
+`mise use --global` to set a default version — without
+`--global` it writes a `.tool-versions` into the current
+directory instead, which is not what a server-wide install
+means:
 
 ```
 mise use --global node@<current-LTS>
