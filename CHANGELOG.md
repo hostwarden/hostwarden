@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The email skill loads in pieces.** Its `SKILL.md`
+  was 604 lines, every one of them entering context the
+  moment anyone asked to send a mail, including the MIME
+  construction for a message with no attachment. It is
+  now 181 lines of workflow, with transport, composition
+  and sending in `references/` — read only when that
+  step is reached.
+
 - **The fleet audit gives each host its own subagent.**
   A dozen hosts used to mean a dozen `sshd -T` dumps in
   one context; now each `hostwarden-host-probe` returns
