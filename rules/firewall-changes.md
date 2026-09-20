@@ -7,7 +7,7 @@ time — the change they asked for is the service, not the
 exposure that comes with it.
 
 A firewall mistake cuts off SSH. Before any of this, re-read
-`CLAUDE.md` → Critical Safety Rules: read the ports sshd
+`AGENTS.md` → Critical Safety Rules: read the ports sshd
 listens on and keep every one of them open, and never remove
 or block port 22.
 
@@ -39,7 +39,7 @@ or block port 22.
 5. **Explain the risk in plain language** — what becomes
    reachable, by whom, and what an attacker gets if the
    service has a bad day. This is one of the few places
-   where the length ceilings in `CLAUDE.md` → Talking to
+   where the length ceilings in `AGENTS.md` → Talking to
    Humans do not apply.
 
 ## Removing a service

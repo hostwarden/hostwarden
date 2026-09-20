@@ -52,7 +52,7 @@ moment") — don't skip.
 
 In local mode (`localhost`, the user's own
 hostname), skip steps 1–4 — they are remote-only
-(see `CLAUDE.md` → How It Works → Local mode).
+(see `AGENTS.md` → How It Works → Local mode).
 Still run OS detection, server memory, activity
 check, and the heinzel legacy check — on the
 workstation the latter looks at scheduled runs
