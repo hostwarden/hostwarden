@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Language runtimes and CI/CD deploy users are
+  skills.** `hostwarden-runtimes` and
+  `hostwarden-deploy-user` carry what used to be two
+  rule files nobody needs until they ask for that
+  work. Scheduling a housekeeping run joins the
+  housekeeping skill as `references/scheduled.md`.
+  The policies stay where they fire without being
+  asked: no runtime from distro repos or another
+  version manager, no pipeline on root or a personal
+  account.
+
 - **Skills live in `.agents/skills/`.** That is where
   OpenCode and other AGENTS-style tools look, and it
   no longer matters there whether

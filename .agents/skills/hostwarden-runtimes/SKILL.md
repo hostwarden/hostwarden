@@ -1,8 +1,32 @@
+---
+name: hostwarden-runtimes
+argument-hint: "[hostname] [runtime@version]"
+description: Install or upgrade a programming language runtime on
+  a server — Node.js, Python, Ruby, Go, Java, Elixir, Rust and
+  anything else mise carries. Use when the user asks to "install
+  Node on <host>", "put the latest stable Ruby on this server",
+  "upgrade Python", "which Node version is on web1", "install
+  Rails", or names any language or framework that needs a runtime
+  before it can run. The runtime always comes from mise, never
+  from the distribution's packages and never from nvm, rbenv,
+  pyenv or asdf, unless the user asks for one of those by name.
+  Also covers the non-interactive shell setup that makes the
+  runtime visible over SSH.
+---
+
 # mise — Language Runtime Manager
 
-Rules for installing programming languages on servers
-using [mise](https://mise.jdx.dev). This is a cross-distro
-rule file — it applies to all distro families.
+Installing programming languages on servers using
+[mise](https://mise.jdx.dev). Applies to every distro family and
+to macOS and FreeBSD alike.
+
+**The policy, before the procedure:** a language runtime comes
+from mise. Distro packages (`apt-get install nodejs`,
+`dnf install python3.12`) are too old, too entangled with system
+tooling, and upgrade on the distro's schedule rather than the
+application's. Another version manager on the same host is a
+second source of truth. Either is fine when the user asks for it
+by name — never by default, and never silently.
 
 ## When to Use mise
 

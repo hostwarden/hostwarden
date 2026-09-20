@@ -150,7 +150,7 @@ heinzel — a crontab line, a systemd timer, a
 `heinzel-housekeeping.service`, `~/heinzel-cron.log`,
 a lock in `/tmp` — pointing at `bin/heinzel-*`
 scripts that a hostwarden clone does not have
-(`rules/scheduled-housekeeping.md`). They fail
+(the `hostwarden-housekeeping` skill, scheduled). They fail
 silently: nobody gets the report they believe they
 are getting.
 

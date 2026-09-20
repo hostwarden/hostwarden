@@ -48,7 +48,7 @@ Before reaching for `testing` or `unstable`:
    CLI tools or services, install to `/usr/local/` or
    `/opt/` to keep the package manager untouched.
 5. **mise.** For language runtimes, use mise instead
-   of any Debian package. See `rules/mise.md`.
+   of any Debian package. See the `hostwarden-runtimes` skill.
 
 ### Last Resort: Pinned Single Package
 

@@ -1,3 +1,18 @@
+---
+name: hostwarden-deploy-user
+argument-hint: "[hostname] [app-name]"
+description: Set up, audit or remove a dedicated account for
+  automated deployments — a CI/CD deploy user with a restricted
+  shell, its own SSH key, a deployment directory it owns, and
+  narrowly scoped sudo if it needs any at all. Use when the user
+  asks to "set up deployment for <app>", "add a deploy user",
+  "connect GitHub Actions to this server", "GitLab CI should
+  deploy here", "give the pipeline SSH access", "einen Deploy-User
+  anlegen", or asks how a build server should reach a host. Also
+  use when removing such an account. Never hand a pipeline root or
+  a person's own account.
+---
+
 # CI/CD Deployment Users
 
 When setting up automated deployments (GitHub
