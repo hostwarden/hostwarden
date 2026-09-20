@@ -120,10 +120,17 @@ same_content() {
 # would follow them and write through to their
 # targets — outside the repo, in the worst case.
 user_data() {
-  find "$1" \( -type f -o -type l \) \
-    ! -name '.gitkeep' \
-    ! -name '.DS_Store' \
-    ! -name '*.lock' \
+  # The noise names are ignorable only as plain
+  # files. A *symlink* called .gitkeep is not the
+  # repo's placeholder, and calling the directory
+  # empty over it would let cp -R follow that link
+  # and write to its target outside the repo.
+  find "$1" \( \
+      \( -type f \
+         ! -name '.gitkeep' \
+         ! -name '.DS_Store' \
+         ! -name '*.lock' \) \
+      -o -type l \) \
     | head -n 1
 }
 
