@@ -149,7 +149,10 @@ MIRRORED=$(
   find "$ROOT/.agents/skills" -path '*/references/*.md' 2>/dev/null \
     | sed "s#^$ROOT/.agents/skills/##; s#/references/#/#"
 )
-CLASH=$(printf '%s\n' "$MIRRORED" | sed '/^$/d' \
+# `all.md` is the every-file override the preflight loads, so a
+# rules/all.md or a skill called `all` would mirror onto it and be
+# both at once. Seeding the list with it makes that a duplicate.
+CLASH=$(printf '%s\nall.md\n' "$MIRRORED" | sed '/^$/d' \
   | LC_ALL=C sort | LC_ALL=C uniq -d)
 if [ -z "$CLASH" ]; then
   ok
@@ -236,10 +239,16 @@ report "$(printf '%s\n' "$SCAN" \
 
 # IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
 # Matching every colon-hex string would catch timestamps and MAC
-# addresses, so this looks for the global-unicast shape.
+# addresses, so this looks for the global-unicast shape, including
+# the compressed forms that end in `::`.
+#
+# The file prefix carries its trailing space here, and awk splits
+# on `: ` rather than on a final colon: an address ending in `::`
+# ends in a colon too, so the plain test read it as a filename and
+# dropped it -- the one shape this check has to catch.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oiE '^[^ ]+:|\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | grep -oiE '^[^ ]+: |\b[23][0-9a-f]{3}:[0-9a-f]*(:[0-9a-f]*)+' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
   | grep -viE ': 2001:0?db8')" "an RFC 3849 documentation address"
 
 # Mail addresses outside example.*. openssh.com is allowed because
@@ -248,6 +257,7 @@ report "$(printf '%s\n' "$SCAN" \
   | grep -oE '^[^ ]+:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | grep -vE '@(.*\.)?example\.(com|net|org)$' \
+  | grep -vE '@([a-z0-9-]+\.)*(test|invalid)$' \
   | grep -vE '@openssh\.com$')" "an RFC 2606 example address"
 
 # SSH targets. A hostname a command connects to may well be real
@@ -268,8 +278,9 @@ report "$(printf '%s\n' "$SCAN" \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
   | sed -E 's#: [ =]#: #; s#: [a-z0-9_-]+@#: #' \
   | grep -E '\.[a-z]{2,}$' \
-  | grep -vE '\.(md|sh|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
+  | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
   | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \
+  | grep -vE ': ([a-z0-9-]+\.)*(test|invalid)$' \
   | grep -vE ': (localhost|openssh\.com)$')" "an RFC 2606 example target"
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
