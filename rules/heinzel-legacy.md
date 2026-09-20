@@ -53,13 +53,19 @@ step):
 echo "##paths"; ls -d /var/backups/heinzel \
   ~/.heinzel-backups ~/heinzel-scratch \
   /root/heinzel-scratch /etc/heinzel /opt/heinzel \
-  2>/dev/null
-echo "##cron"; ls -1 /etc/cron.d 2>/dev/null \
+  2>/dev/null || true
+echo "##cron"; { ls -1 /etc/cron.d 2>/dev/null \
   | grep -i heinzel; crontab -l 2>/dev/null \
-  | grep -i heinzel
+  | grep -i heinzel; } || true
 echo "##units"; systemctl list-unit-files 2>/dev/null \
-  | grep -i heinzel
+  | grep -i heinzel || true
 ```
+
+Every search ends in `|| true`: `ls` and `grep`
+report "nothing found" with a non-zero status, and on
+a clean host — the normal case — that would mark the
+whole probe as a failed command and send the session
+looking for an SSH problem that is not there.
 
 Split the output on the markers. Use the OS's own
 equivalents where these commands do not exist

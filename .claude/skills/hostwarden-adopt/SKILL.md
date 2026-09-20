@@ -103,15 +103,17 @@ leads, the host confirms them.
 
 6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files
-   from `contrib/heinzel-coexistence/` into the old checkout's
-   `memory/custom-rules/`. Without them heinzel reads only its own
-   journal tag, so hostwarden's work stays invisible to it and its
-   memory drifts. This writes into the old tree, so it needs an
-   explicit yes. Never replace a file that is already there: append
-   the sections to an existing `all.md`, and for an existing
-   `activity-check.md` or `backups.md` show the user what would be
-   added and let them merge. On a no, say the directory is there when
-   they change their mind.
+   from `contrib/heinzel-coexistence/` into the directory that
+   checkout reads overrides from — `memory/custom-rules/` from
+   heinzel 2.0 on, `rules/custom/` before it, same file names.
+   Without them heinzel reads only its own journal tag, so
+   hostwarden's work stays invisible to it and its memory drifts.
+   This writes into the old tree, so it needs an explicit yes.
+   Never replace a file that is already there: append the sections
+   to an existing `all.md`, and for an existing `activity-check.md`
+   or `backups.md` show the user what would be added and let them
+   merge. On a no, say the directory is there when they change their
+   mind.
 
 7. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:
