@@ -1,0 +1,79 @@
+# Custom Rules — Running Beside hostwarden
+
+Read once per session. Applies to every host in this
+installation.
+
+## Add: A second tool administers these hosts
+
+[hostwarden](https://github.com/jpawlowski/hostwarden)
+grew out of heinzel and is in use on the same
+machines during a transition. It follows the same
+safety rules, logs to the same journal under the tag
+`hostwarden`, and keeps its own state:
+
+- journal tag `hostwarden` beside `heinzel`
+- `/var/backups/hostwarden/` for config backups
+- `~/.cache/hostwarden/` for SSH control sockets
+- `~/.hostwarden-backups/`, `hostwarden-scratch/`
+
+Anything under those names belongs to the other tool.
+Do not clean it up, move it, or report it as stray
+litter. It is not an anomaly
+(`rules/anomaly-detection.md`).
+
+## Add: Server memory may be behind the host
+
+The memory files here describe what *this*
+installation last saw. hostwarden works on the same
+hosts and writes its own memory elsewhere, so a fact
+in `memory/servers/<host>/memory.md` can be out of
+date through no fault of anyone's.
+
+Treat server memory as a lead, not as truth: before
+reporting that something is missing, changed or
+broken, confirm it against the live host
+(`rules/verify-before-reporting.md`). During the
+parallel phase this matters more than usual — a
+service that memory does not mention, a package
+version that jumped, a config file with a newer
+timestamp is most likely the other tool's work, not
+an intruder.
+
+When the host and memory disagree, fix memory from
+the host and say so in one line. Do not infer a cause
+you have not shown.
+
+## Add: Two agents on one host at the same time
+
+The real risk of the parallel phase is not stale
+memory; it is both tools editing or reloading the
+same service within the same minute. The journal is
+the only shared signal, so use it:
+
+- Before starting work, look at the newest entries
+  from both tags. An entry tagged `hostwarden` from
+  the last 15 minutes means a session is probably
+  active right now.
+- In that case, tell the user before doing anything
+  that changes the host, and let them decide. Reading
+  is fine.
+- Log as usual (`rules/changelog.md`). heinzel's
+  entries are what the other tool watches for in
+  return.
+
+Two tools also mean twice the SSH connections. Rate
+limits and fail2ban count them per source address
+(`rules/ssh-connections.md`), so a lockout during the
+parallel phase is more likely than usual — one more
+reason not to retry a hanging call more than once.
+
+## Add: What the other tool may have moved
+
+hostwarden offers, once per host, to adopt what
+heinzel left there. If it did, `/var/backups/heinzel/`
+is gone and its content now sits in
+`/var/backups/hostwarden/`. Nothing was deleted.
+
+Check for the new path before concluding that backups
+were lost, and say "adopted by hostwarden", not
+"missing".

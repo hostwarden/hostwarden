@@ -205,6 +205,14 @@ The migration renames skill overrides in
   list of leads: the scripts, configs, units and cron
   jobs your sessions improvised. It contacts no
   server.
+- Keeping heinzel around during the switch?
+  `contrib/heinzel-coexistence/` holds three custom
+  rules for your heinzel checkout so it reads both
+  journal tags, treats its server memory as a lead
+  rather than a fact, and leaves hostwarden's files
+  alone. hostwarden warns in the other direction when
+  a heinzel journal entry is minutes old, and leaves
+  a host alone that heinzel still uses.
 - On the first connection to a host, hostwarden
   reports what heinzel left there — config backups,
   scratch directories — and offers to move it under
