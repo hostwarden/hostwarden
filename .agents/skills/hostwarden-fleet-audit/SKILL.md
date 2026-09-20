@@ -49,9 +49,15 @@ servers" — that maps to single-host housekeeping.
    **Skip entries that are symlinks** — those are DNS
    aliases of a canonical host already in the list
    (`rules/dns-aliases.md`), and auditing one twice would
-   put the same machine in two columns. The user may pass
-   an explicit subset as arguments — in that case audit
-   only those.
+   put the same machine in two columns.
+
+   The user may pass an explicit subset as arguments — in
+   that case audit only those, and audit an alias they
+   named *as that alias*. The deduplication above is for
+   the list this skill builds itself; a name the user typed
+   is not a duplicate of anything, it may carry its own SSH
+   user, and silently auditing the canonical host instead
+   answers a question nobody asked.
 
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
@@ -66,18 +72,47 @@ servers" — that maps to single-host housekeeping.
 
    **In Claude Code, give each host its own subagent.**
    Dispatch one `hostwarden-host-probe` per host, in a
-   single message so they run concurrently, and pass it the
-   hostname, the SSH user, the probe list, and the journal
-   line from step 6. Each returns one row and keeps the raw
-   command output out of this conversation — which is the
-   point: a fleet of a dozen hosts otherwise fills the
-   context with `sshd -T` dumps nobody reads.
+   single message so they run concurrently. Each returns
+   one row and keeps the raw command output out of this
+   conversation — which is the point: a fleet of a dozen
+   hosts otherwise fills the context with `sshd -T` dumps
+   nobody reads.
+
+   Each task prompt carries four things:
+
+   - the hostname and the SSH user;
+   - which probe categories to run, and the journal line
+     from step 6;
+   - **the keys its row must come back with** — name them,
+     one per probe category, using the row keys
+     `references/probes.md` lists. Agents that are each
+     told "return the structured row" and nothing more
+     return four different shapes, and step 4 cannot build
+     a column out of that. `unknown(needs-root)` is a
+     value; a missing key is not;
+   - **anything the user restricted this run to.** "Without
+     sudo", "no journal entries", "only the firewall
+     section" reach the agent only if you put them there —
+     it cannot see what the user said to you. A constraint
+     that does not make the trip is a constraint the audit
+     breaks on every host at once.
 
    Parallelism across *different* hosts is safe. Rate
    limits and fail2ban count per host
    (`rules/ssh-connections.md`), and each host gets one
    agent, so nothing is competing. Never give one agent two
    hosts, and never give two agents the same host.
+
+   **One exception, and it is not about the targets.**
+   Hosts reached through a shared bastion all open a
+   connection to that bastion as well
+   (`rules/ssh-connections.md`), so a dozen agents are a
+   dozen near-simultaneous logins to one machine, which is
+   what rate limiting and fail2ban exist to stop — and
+   being locked out of the jump host locks you out of
+   everything behind it. Read `ssh -G <host>` for each
+   target before dispatching, group the ones sharing a
+   `proxyjump`, and run each group in sequence.
 
    Elsewhere, and whenever a host needs a decision the
    agent cannot make alone, do the same probing here, one
@@ -104,11 +139,16 @@ servers" — that maps to single-host housekeeping.
    `rules/ssh-connections.md` exists to avoid. A subagent
    writes its own; do not reconnect to write it again.
 
-7. **No memory updates.** The audit is a snapshot; it does
-   not own server state. If the audit uncovers a memory
-   file that contradicts the live config, mention it in
-   the "Drift detected" section so the user can decide
-   what to fix.
+7. **No memory rewrite.** `Last connected` updates for
+   every host reached, because each was in fact connected
+   to (`rules/server-memory.md`). Nothing else in a host's
+   memory file changes: the audit compares hosts, it does
+   not own what any one of them records. A memory file that
+   contradicts the live config goes in the "Drift detected"
+   section for the user to decide on — as does anything a
+   probe agent returned under `notices:`, which is where
+   activity findings, heinzel artifacts and pending
+   `todo.md` items come back from the pipeline it ran.
 
 ## References
 
