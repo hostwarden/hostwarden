@@ -167,14 +167,9 @@ and `restart-never`.
 
 ## References (read on demand)
 
-- `references/transport.md` — step 5: local vs remote
-  transport, the two MTA consent gates, install targets,
-  sender identity.
-- `references/compose.md` — step 6: subject, body,
-  attachments and their gates, greeting, signature.
-- `references/send-verify.md` — steps 7 and 8: building the
-  message with headers, dropping from root, and checking
-  the mail log.
+- `references/transport.md` — step 5.
+- `references/compose.md` — step 6.
+- `references/send-verify.md` — steps 7 and 8.
 - `rules/first-connection.md` — the mandatory onboarding
   pipeline.
 - `rules/server-memory.md` — server memory file format.
