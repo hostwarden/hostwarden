@@ -22,28 +22,80 @@ memory.
 - `/root/heinzel-scratch/`, `~/heinzel-scratch/` —
   probe output (`rules/secrets.md`). Offer to adopt.
 
-Nothing else on a host belongs to heinzel. A file
-that merely has "heinzel" in its name elsewhere is
-someone else's — a customer's script, a user's note.
-Never rename or move it, and never search the whole
-filesystem for the word. This rule touches the four
-paths above and nothing else.
+That is what heinzel's own rules prescribe. It is
+not what a host actually carries.
+
+## What sessions improvised
+
+heinzel sessions wrote scripts, config files, units
+and cron jobs under names they invented on the spot.
+They differ per host, they are not in any rule, and
+some of them do real work every night. Typical
+shapes:
+
+- a script in `/usr/local/bin/`, `/opt/` or
+  `/root/bin/`
+- a config file or directory, often `/etc/heinzel/`
+- a systemd unit or timer, a file in
+  `/etc/cron.d/`, a crontab line, a FreeBSD periodic
+  script, a launchd plist on macOS
+- a log or dump directory the script writes to
+
+The name is no guide: half of them say "heinzel",
+half say "backup" or "cleanup". What identifies them
+is that a heinzel session created them — and the
+record of that is in the server's memory and
+changelog, not on the host.
 
 ## Detect
 
-One read-only command, after OS detection:
+**First, read the leads.** If
+`memory/servers/<hostname>/heinzel-inventory.md`
+exists, it lists what memory and changelog say this
+host carries (written by the `hostwarden-adopt`
+skill). Each entry is a lead, not a fact
+(`rules/verify-before-reporting.md`): check whether
+it is there, gone, or different.
+
+**Then the fixed paths,** one read-only command
+after OS detection:
 
 ```
 ls -d /var/backups/heinzel ~/.heinzel-backups \
   /root/heinzel-scratch ~/heinzel-scratch \
-  2>/dev/null
+  /etc/heinzel /opt/heinzel 2>/dev/null
 ```
 
-Nothing listed and no `heinzel` entries in the
-activity check: record `- heinzel legacy: none` in
+**Then a bounded scan** of the places a session
+would have put something, never the whole
+filesystem:
+
+```
+ls -1 /etc/cron.d 2>/dev/null | grep -i heinzel
+systemctl list-unit-files 2>/dev/null \
+  | grep -i heinzel
+crontab -l 2>/dev/null | grep -i heinzel
+```
+
+Use the OS's own equivalents where these do not
+exist (`rules/freebsd.md`, `rules/macos.md`). A
+hit here is a lead like any other.
+
+Nothing listed, no inventory file, and no `heinzel`
+entries in the activity check: record
+`- heinzel legacy: none` in
 `memory/servers/<hostname>/memory.md` and move on
 without saying anything. Silence is the normal case
 on a host heinzel never touched.
+
+## What is not ours
+
+A file with "heinzel" in its name that no session
+created belongs to someone else — a colleague's
+script, a customer's note. Being named after the
+tool is not ownership. If neither the inventory nor
+the changelog claims it, report it and leave it
+alone.
 
 ## Report and ask
 
@@ -98,7 +150,36 @@ this host in `memory/servers/<hostname>/rules.md`.
 Do not silently move files that the next cleanup
 eats.
 
-## Adopt
+## Adopting is not renaming
+
+For the four fixed paths above, adopting means
+moving them. For everything a session improvised,
+adopting means **knowing about it and writing it
+down** — not renaming it.
+
+A script called `heinzel-backup.sh` that a cron file
+invokes every night is not broken by the rename.
+Renaming it breaks it, silently, and the failure
+surfaces weeks later as a missing backup. The same
+goes for a unit other units depend on, a config file
+a script reads, a log directory a rotation config
+names.
+
+So the default is: keep the name, record the
+ownership. Renaming happens only when the user asks
+for it, and then it follows
+`rules/file-naming-changes.md` in full — every
+consumer found first, fixed in the same change,
+verified afterwards. A rename whose callers were not
+enumerated is not offered at all.
+
+What always happens instead is that each confirmed
+artifact goes into the host's memory, with its path,
+what it does and when it runs. An improvised script
+nobody remembers is the real risk here, not its
+name.
+
+## Adopt the fixed paths
 
 Never overwrite. `mv -n` keeps a same-named file at
 the destination, and what stays behind gets
@@ -138,6 +219,23 @@ In `memory/servers/<hostname>/memory.md`:
 
 or `- heinzel legacy: left in place (/var/backups/heinzel/)`
 or `- heinzel legacy: none`.
+
+Confirmed artifacts go into memory as facts of this
+host, in its own words — what it is, where it is,
+when it runs:
+
+```markdown
+- Backup script: /usr/local/bin/heinzel-backup.sh,
+  nightly 03:00 via /etc/cron.d/heinzel-backup
+```
+
+Keep the old name in the path, because that is the
+path. Leads the host did not confirm are struck from
+`heinzel-inventory.md` with a one-line note; a
+script memory claims and the host lacks usually
+means somebody removed it on purpose. When every
+lead is resolved, the inventory file is deleted and
+the `heinzel legacy:` line carries the outcome.
 
 A recorded line means the check does not run again.
 "Left in place" is a decision, not a to-do: don't
