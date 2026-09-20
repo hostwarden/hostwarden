@@ -31,6 +31,10 @@ checkout is only read, anything this clone already holds is reported
 before it would be overwritten, no server is contacted, and the one
 write into the old tree (step 6) needs its own yes.
 
+
+**Overrides.** Load them before anything else, key
+`hostwarden-adopt`, per `rules/overrides.md`.
+
 ## Why an inventory instead of a migration
 
 heinzel's own rules cover config backups, scratch directories and the

@@ -11,7 +11,7 @@ description: Install or upgrade a programming language runtime on
   that makes the runtime visible over SSH.
 ---
 
-# mise — Language Runtime Manager
+# hostwarden-runtimes
 
 Installing programming languages on servers using
 [mise](https://mise.jdx.dev). Applies to every distro family and
@@ -24,6 +24,9 @@ reasoning under "Runtime via apt/dnf/zypper"; what it adds here
 is that a second version manager on the same host is a second
 source of truth. Either is fine when the user asks for it by
 name — never by default, and never silently.
+
+**Overrides.** Load them before anything else, key
+`hostwarden-runtimes`, per `rules/overrides.md`.
 
 ## When to Use mise
 

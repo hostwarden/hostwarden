@@ -13,12 +13,15 @@ description: Set up, audit or remove a dedicated account for
   a person's own account.
 ---
 
-# CI/CD Deployment Users
+# hostwarden-deploy-user
 
 When setting up automated deployments (GitHub
 Actions, GitLab CI, etc.), **never use the root
 account or a personal user account**. Always create
 a dedicated deploy user with minimal privileges.
+
+**Overrides.** Load them before anything else, key
+`hostwarden-deploy-user`, per `rules/overrides.md`.
 
 ## Never Root for CI/CD
 
