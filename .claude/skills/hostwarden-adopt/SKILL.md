@@ -82,10 +82,12 @@ leads, the host confirms them.
    about a host: point it out and ask whether to change it.
 
 5. **Build the inventory.** This is the part no script can do. It
-   covers the hosts this run selected: the ones it listed as copied
-   and the ones it named `already adopted: memory/servers/<host>` —
-   a repeat or interrupted run copies nothing and would otherwise
-   leave those without leads. A selection that is a DNS alias means
+   covers every host the run named: listed as copied,
+   `already adopted: memory/servers/<host>`, or
+   `kept memory/servers/<host> — …`. A repeat or interrupted run
+   copies nothing, and a kept host is one whose leads sit in the old
+   checkout's records — both would otherwise end up with no leads at
+   all. A selection that is a DNS alias means
    the canonical host it points at (`rules/dns-aliases.md`): take
    that one, drop the alias. Never every host under
    `memory/servers/`, or a `--shared` run builds inventories for
