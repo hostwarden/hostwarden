@@ -29,9 +29,6 @@ per-host fixes, or manual edits with explicit user approval).
 **Never run automatically** — only on explicit user request.
 
 
-**Overrides.** Load them before anything else, key
-`hostwarden-fleet-audit`, per `rules/overrides.md`.
-
 ## When to use
 
 - "Run a fleet audit"

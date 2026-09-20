@@ -26,9 +26,6 @@ is that a second version manager on the same host is a second
 source of truth. Either is fine when the user asks for it by
 name — never by default, and never silently.
 
-**Overrides.** Load them before anything else, key
-`hostwarden-runtimes`, per `rules/overrides.md`.
-
 ## When to Use mise
 
 Use mise for **language runtimes** — Node.js, Ruby,

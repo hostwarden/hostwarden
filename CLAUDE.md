@@ -76,16 +76,11 @@ file: access control, DNS aliases, SSH user, OS detection, server
 memory, activity check, heinzel legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
-`uname -a` and every other one-liner run the pipeline first. Do not
-skip steps because the request seems small, because you already know
-the server, or because the user appears to want a fast answer. If
-the pipeline reveals nothing new, the overhead is a few extra
-commands — acceptable. Silently skipping it is a bug, not an
-optimization.
-
-If following the pipeline will visibly slow the answer, say so up
-front ("first-contact onboarding on this host — one moment") rather
-than skipping.
+`uname -a` and every other one-liner run the pipeline first — not
+because the request is big, but because skipping it has caused real
+incidents, which that file records. Silently skipping it is a bug,
+not an optimization. If it will visibly slow the answer, say so up
+front ("first-contact onboarding on this host — one moment").
 
 ## Critical Safety Rules
 
@@ -217,9 +212,9 @@ present), and glance at `memory/servers/` and
 `memory/custom-rules/` to see what's there.
 
 **How:** use the Read tool for each individual file and a plain `ls`
-for directory listings. Do **not** use a shell `for`-loop with `cat`
-— it triggers a permission prompt for no good reason and looks
-alarming to new users.
+for directory listings, all in one message so they run together. Do
+**not** use a shell `for`-loop with `cat` — it triggers a permission
+prompt for no good reason and looks alarming to new users.
 
 **What to say:** one short, friendly line before any reads — *"Fresh
 hostwarden install detected — nothing in memory yet. Ready when you
@@ -307,10 +302,8 @@ A user's customizations win over anything shipped, including over a
 skill. Whenever you read an instruction file, check
 `memory/custom-rules/` and the host's
 `memory/servers/<hostname>/rules.md` for a block that adds to,
-replaces, or removes part of it. The override path mirrors the
-shipped path without its top-level directory: `rules/backups.md` →
-`backups.md`, a skill's `references/ssh.md` → `<skill>/ssh.md`.
-Precedence, format, and what is never overridable:
+replaces, or removes part of it — before acting on what you read.
+Where those blocks live, what wins, and what is never overridable:
 `rules/overrides.md`.
 
 ## Writing in this repo
