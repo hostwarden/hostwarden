@@ -269,6 +269,14 @@ check pass 'gpart show ada0'
 check pass 'gpart status'
 check pass 'lsblk -f'
 check pass 'diskutil list'
+# Boot entries are outside the gate, and the hostwarden-os-install
+# skill says so in plain words. Nothing here writes data, so every
+# form stays allowed -- including the ones that change what boots.
+check pass 'efibootmgr -v'
+check pass 'efibootmgr -n 0003'
+check pass 'efibootmgr -o 0003,0001,0000'
+check pass 'efibootmgr -c -d /dev/sda -p 1 -L Debian -l /EFI/debian/shimx64.efi'
+check pass 'efibootmgr -b 0003 -B'
 check pass 'shutdown -r now'
 check pass 'ssh root@h "shutdown -r now"'
 check pass 'shutdown -c'
