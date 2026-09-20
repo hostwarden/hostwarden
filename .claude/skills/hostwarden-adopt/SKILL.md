@@ -81,13 +81,22 @@ leads, the host confirms them.
    `user.md` (`Greeting: … Heinzel`) is about this tool rather than
    about a host: point it out and ask whether to change it.
 
-5. **Build the inventory.** This is the part no script can do. For
-   each host **this run copied** — not every host under
-   `memory/servers/`, or a `--shared` run would build inventories for
-   hosts nothing was adopted for and send later connections into the
-   legacy workflow over nothing — read `memory.md` and
-   `changelog.log` and collect every path, unit, cron job or script a
-   heinzel session created or configured — the shapes are listed in
+5. **Build the inventory.** This is the part no script can do. It
+   covers every host the run named: listed as copied,
+   `already adopted: memory/servers/<host>`, or
+   `kept memory/servers/<host> — …`. A repeat or interrupted run
+   copies nothing, and a kept host is one whose leads sit in the old
+   checkout's records — both would otherwise end up with no leads at
+   all. A selection that is a DNS alias means
+   the canonical host it points at (`rules/dns-aliases.md`): take
+   that one, drop the alias. Never every host under
+   `memory/servers/`, or a `--shared` run builds inventories for
+   hosts nothing was adopted for. Skip a host that already has an
+   inventory file.
+
+   For each host in that set, read `memory.md` and `changelog.log`
+   and collect every path, unit, cron job or script a heinzel session
+   created or configured — the shapes are listed in
    `rules/heinzel-legacy.md` § "What to look for",
    `references/inventory.md` has the file format and what does not
    count. Write it to `memory/servers/<host>/heinzel-inventory.md`.
@@ -96,10 +105,7 @@ leads, the host confirms them.
 
    Read the **old checkout's** copy of a host's files whenever this
    clone kept its own — the leads live in the records that were not
-   copied. And skip the DNS alias symlinks under `memory/servers/`
-   (`rules/dns-aliases.md`): they point at the canonical directory,
-   so following one writes a second inventory into the same host and
-   counts it twice.
+   copied.
 
 6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files

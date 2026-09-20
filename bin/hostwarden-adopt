@@ -30,7 +30,8 @@
 # into a per-host inventory, the coexistence rules)
 # lives in the hostwarden-adopt skill; this script is
 # only the deterministic part.
-set -e
+# -f: a host name is data, never a glob to expand.
+set -ef
 
 SELF=$0
 usage() {
@@ -40,10 +41,18 @@ usage() {
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 
-# Shared state, in the order it is reported.
-SHARED="user.md blacklist.md readonly.md \
-service-policy.md network.md housekeeping.md \
-opencode.json custom-rules"
+# Shared state, in the order it is reported. One per
+# line, like every list in here: a name is data, and
+# splitting data on spaces is how an entry with a
+# space in it disappears without a word.
+SHARED="user.md
+blacklist.md
+readonly.md
+service-policy.md
+network.md
+housekeeping.md
+opencode.json
+custom-rules"
 
 # The first symlink below <dir>, if there is one.
 # cp -R keeps nested links as links, so a
@@ -73,15 +82,36 @@ nested_link() {
 # same thing — it keeps pointing somewhere else, and
 # an edit there would silently change an access list
 # nobody touched.
+# Two entries are the same alias when they point at
+# the same name. Only that — where the name resolves
+# is the canonical host's business, checked there.
+same_link() {
+  [ -L "$1" ] && [ -L "$2" ] \
+    && [ "$(readlink "$1")" = "$(readlink "$2")" ]
+}
+
+# A host name is one path component, and it must
+# survive being put into the pipe-delimited sets this
+# script matches against. Checked wherever a name
+# enters — arguments, the directory listing, an alias
+# target — not only at the command line.
+valid_hostname() {
+  case "$1" in
+    ""|.|..|*/*) return 1 ;;
+    *"|"*) return 1 ;;
+    *[[:space:]]*) return 1 ;;
+  esac
+  return 0
+}
+
 already_adopted() {
-  # Two aliases are the same alias when they point at
-  # the same name. Otherwise a destination link never
-  # counts: its target can change under us, and the
-  # content matching today says nothing about that.
-  if [ -L "$1" ] && [ -L "$2" ]; then
-    [ "$(readlink "$1")" = "$(readlink "$2")" ]
-    return
-  fi
+  # A destination link never counts: its target can
+  # change under us, and two links with the same text
+  # can resolve to different files in the two
+  # checkouts — for an access list that would drop a
+  # restriction while the hosts come across behind
+  # it. Matching link text means something only for a
+  # server alias, and the host loop says so there.
   [ -L "$2" ] && return 1
   same_content "$1" "$2"
 }
@@ -120,7 +150,13 @@ same_content() {
   # difference on a fleet-sized tree.
   [ -e "$2" ] || return 1
   if [ -d "$1" ]; then
-    diff -r "$1" "$2" >/dev/null 2>&1
+    # For a directory: everything the old checkout has
+    # is here, unchanged. Extra entries on our side do
+    # not count against it — a host gains its
+    # heinzel-inventory.md, a todo, a longer log, and
+    # a byte-for-byte test would call it a conflict
+    # from the first session onwards.
+    ! diff -r "$1" "$2" 2>/dev/null | grep -qv "^Only in $2"
   else
     cmp -s "$1" "$2" 2>/dev/null
   fi
@@ -151,6 +187,8 @@ user_data() {
     | head -n 1
 }
 
+NL="
+"
 OLD=""
 LIST=""
 FORCE=""
@@ -159,7 +197,7 @@ HOSTS=""
 WANT_SERVER=""
 for ARG in "$@"; do
   if [ -n "$WANT_SERVER" ]; then
-    HOSTS="$HOSTS $ARG"
+    HOSTS="$HOSTS$ARG$NL"
     WANT_SERVER=""
     continue
   fi
@@ -178,6 +216,8 @@ if [ -n "$WANT_SERVER" ]; then
   echo "error: --server needs a hostname" >&2
   exit 2
 fi
+
+IFS=$NL
 
 if [ -n "$SHARED_ONLY" ] && [ -n "$HOSTS" ]; then
   echo "error: --shared and --server are exclusive" >&2
@@ -213,11 +253,10 @@ cd "$REPO_DIR"
 # outside memory/servers/ — `--server ../../bin/foo`
 # would land in the repo root.
 for H in $HOSTS; do
-  case "$H" in
-    */*|..|.|"")
-      echo "error: --server takes one host name, not a path: $H" >&2
-      exit 2 ;;
-  esac
+  valid_hostname "$H" || {
+    echo "error: --server takes one plain host name: $H" >&2
+    exit 2
+  }
 done
 
 # Named hosts must exist in the source, or a typo
@@ -293,6 +332,21 @@ copy_item() {
 
 COPIED=""
 NOTHING_LEFT=""
+SKIPPED_HOST=""
+HOSTS_PENDING=""
+# Two outcomes, not one. A host that is already this
+# clone's own is kept and the run is still a success;
+# only a host that cannot be handled at all makes it
+# a failure. The shared state has drawn that line
+# since the beginning — see SHARED_PENDING.
+keep_host() {
+  echo "kept memory/servers/$1 — $2" >&2
+  HOSTS_PENDING="$HOSTS_PENDING $1"
+}
+skip_host() {
+  echo "skipped memory/servers/$1 — $2" >&2
+  SKIPPED_HOST=yes
+}
 plan() { COPIED="$COPIED\n  memory/$1"; }
 
 # Which shared files this clone would keep. Decided
@@ -392,108 +446,144 @@ for ITEM in $SHARED; do
 done
 
 if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
-  [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
+  if [ -z "$HOSTS" ]; then
+    # Globbing, briefly and deliberately: it is the
+    # one listing that does not split a name on
+    # whitespace the way ls output does.
+    set +f
+    for E in "$OLD"/memory/servers/*; do
+      { [ -e "$E" ] || [ -L "$E" ]; } || continue
+      HOSTS="$HOSTS${E##*/}$NL"
+    done
+    set -f
+  fi
   [ -n "$LIST" ] || mkdir -p memory/servers
   # One walk of the whole servers tree instead of a
   # find per host: the fork is the cost, and over a
   # fleet that is the difference between seconds and
   # milliseconds. The result is the set of hosts that
   # hold a link pointing out of the old checkout.
-  ESCAPING="|$(find -H "$OLD/memory/servers" -mindepth 2 -type l 2>/dev/null \
-    | sed -e "s|^$OLD/memory/servers/||" -e 's|/.*||' \
+  # Run find from inside the directory: a checkout
+  # path holding the sed delimiter would otherwise
+  # break the program, and a broken scan reports no
+  # escaping links at all.
+  ESCAPING="|$(cd "$OLD/memory/servers" 2>/dev/null \
+    && find -H . -mindepth 2 -type l 2>/dev/null \
+    | sed -e 's|^\./||' -e 's|/.*||' \
     | LC_ALL=C sort -u | tr '\n' '|')"
   # Hosts this run already handled, so one pulled in
   # as an alias's canonical target is not reported as
   # a conflict with itself afterwards.
   DONE_HOSTS="|"
   for H in $HOSTS; do
+    valid_hostname "$H" || {
+      skip_host "$H" "not a plain host name"
+      continue
+    }
     SRC="$OLD/memory/servers/$H"
+    DST="memory/servers/$H"
     { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
     case "$DONE_HOSTS" in *"|$H|"*) continue ;; esac
-    # Before anything else: is this host already
-    # here? Deciding that after the alias work would
-    # copy an alias's canonical host and then skip
-    # the alias itself, leaving an orphan the skill
-    # would build an inventory for.
-    # -L as well: a dangling alias in this clone is
-    # still this clone's state.
-    # Identical content is not a conflict, it is this
-    # host already adopted — the same rule the shared
-    # state follows, so repeating a --server run is a
-    # no-op rather than an error.
-    if already_adopted "$SRC" "memory/servers/$H"; then
+
+    # A DNS alias is a symlink to a sibling host
+    # (rules/dns-aliases.md). Resolve and validate the
+    # name once, here, so everything below works with
+    # a target that is known to be a host name.
+    CANON=""
+    if [ -L "$SRC" ]; then
+      CANON=$(readlink "$SRC")
+      valid_hostname "$CANON" || {
+        skip_host "$H" "alias points outside memory/servers/: $CANON"
+        continue
+      }
+    fi
+
+    # new      — nothing of this host is here yet
+    # repair   — the alias is here and right, the
+    #            memory behind it may not be
+    # adopted  — this host is already here as it is
+    STATE=new
+    CANON_SAME=""
+    if [ -n "$CANON" ]; then
+      if same_link "$SRC" "$DST"; then
+        STATE=repair
+        case "$DONE_HOSTS" in
+          *"|$CANON|"*)
+            STATE=adopted ;;
+          *)
+            if already_adopted "$OLD/memory/servers/$CANON" \
+                "memory/servers/$CANON"; then
+              STATE=adopted
+            else
+              CANON_SAME=no
+            fi ;;
+        esac
+      fi
+    elif already_adopted "$SRC" "$DST"; then
+      STATE=adopted
+    fi
+
+    if [ "$STATE" = adopted ]; then
+      # Named on stdout: the adopt skill builds an
+      # inventory for the hosts a run selected, and a
+      # repeat run copies none of them.
+      echo "already adopted: memory/servers/$H"
       DONE_HOSTS="$DONE_HOSTS$H|"
+      [ -z "$CANON" ] || DONE_HOSTS="$DONE_HOSTS$CANON|"
       NOTHING_LEFT=yes
       continue
     fi
-    if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
+
+    # An alias here that already points at the same
+    # name is not in the way — only the memory behind
+    # it is missing, and that gets repaired below.
+    if [ "$STATE" = new ] && occupied "$SRC" "$DST" \
         && [ -z "$FORCE" ]; then
-      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      keep_host "$H" "already here, use --force to overwrite"
       continue
     fi
-    # A DNS alias is a symlink to the canonical host
-    # (rules/dns-aliases.md). Naming one on its own
-    # would copy a link to a directory that is not
-    # here, so the canonical host comes first.
-    if [ -L "$SRC" ]; then
-      CANON=$(readlink "$SRC")
-      # The link is copied verbatim, so its target
-      # has to be a sibling host and nothing else.
-      # `alias -> /tmp/web1` would otherwise validate
-      # against memory/servers/web1 and still point
-      # into /tmp afterwards, and every read or write
-      # through that alias would land outside the
-      # repo (rules/dns-aliases.md: aliases link to
-      # the canonical directory beside them).
-      case "$CANON" in
-        */*|..|.|"")
-          echo "skipped memory/servers/$H — alias points outside memory/servers/: $CANON" >&2
-          continue ;;
-      esac
+
+    if [ -n "$CANON" ]; then
+      # The canonical entry in the old checkout has to
+      # be the host itself. A chain — alias ->
+      # canonical, canonical -> /tmp/x — would leave
+      # both links pointing out of the tree.
       if [ ! -e "$OLD/memory/servers/$CANON" ]; then
-        echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
+        skip_host "$H" "alias to $CANON, which the old checkout does not have"
         continue
       fi
-      # And the canonical entry has to be the host
-      # itself. A chain — alias -> canonical,
-      # canonical -> /tmp/x — would pass the text
-      # check above and still leave both links
-      # pointing out of the tree once copied.
       if [ -L "$OLD/memory/servers/$CANON" ] \
           || [ ! -d "$OLD/memory/servers/$CANON" ]; then
-        echo "skipped memory/servers/$H — alias to $CANON, which is not a host directory" >&2
-        continue
-      fi
-      # The destination's canonical entry has to be a
-      # real directory, or the alias would resolve to
-      # a file, or follow a link of theirs out of
-      # memory/servers/. Without --force such an
-      # entry is left alone and the alias with it.
-      DST_CANON="memory/servers/$CANON"
-      if [ -L "$DST_CANON" ] \
-          || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; then
-        if [ -z "$FORCE" ]; then
-          echo "skipped memory/servers/$H — $DST_CANON is not a host directory here, use --force to replace it" >&2
-          continue
-        fi
-      fi
-      # An alias is only worth having if it resolves
-      # to the host it names. A canonical directory
-      # already here with different content is not
-      # that host: without --force nothing is copied,
-      # and an alias pointing at this clone's older
-      # memory would be worse than none.
-      if [ -d "$DST_CANON" ] && [ ! -L "$DST_CANON" ] \
-          && [ -z "$FORCE" ] \
-          && ! same_content "$OLD/memory/servers/$CANON" "$DST_CANON"; then
-        echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
+        skip_host "$H" "alias to $CANON, which is not a host directory"
         continue
       fi
       case "$ESCAPING" in
         *"|$CANON|"*)
-          echo "skipped memory/servers/$H — $CANON holds a link out of the old checkout" >&2
+          skip_host "$H" "$CANON holds a link out of the old checkout"
           continue ;;
       esac
+      # And here it has to be a real directory, or the
+      # alias would resolve to a file or follow a link
+      # of theirs out of memory/servers/.
+      DST_CANON="memory/servers/$CANON"
+      if [ -z "$FORCE" ] \
+          && { [ -L "$DST_CANON" ] \
+            || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; }; then
+        keep_host "$H" "$DST_CANON is not a host directory here, use --force to replace it"
+        continue
+      fi
+      # An alias is only worth having if it resolves
+      # to the host it names. A canonical directory
+      # already here with different content is not
+      # that host, and an alias pointing at this
+      # clone's older memory is worse than none.
+      if [ -z "$FORCE" ] && [ -d "$DST_CANON" ] && [ ! -L "$DST_CANON" ]; then
+        if [ "$CANON_SAME" = no ] \
+            || ! same_content "$OLD/memory/servers/$CANON" "$DST_CANON"; then
+          keep_host "$H" "$DST_CANON differs from the old checkout's, use --force"
+          continue
+        fi
+      fi
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
@@ -502,9 +592,10 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
       fi
     fi
+
     case "$ESCAPING" in
       *"|$H|"*)
-        echo "skipped memory/servers/$H — it holds a link out of the old checkout" >&2
+        skip_host "$H" "it holds a link out of the old checkout"
         continue ;;
     esac
     plan "servers/$H"
@@ -519,11 +610,20 @@ if [ -n "$SHARED_PENDING" ]; then
 fi
 
 if [ -z "$COPIED" ]; then
-  # Already here is a different answer from nothing
-  # there: a gradual migration re-runs these commands,
-  # and a loop over hosts must not die on a repeat.
-  if [ -n "$NOTHING_LEFT" ]; then
-    echo "already adopted from $OLD — nothing left to copy"
+  # A host that could not be handled is a failure. A
+  # host that is simply already here is not: a gradual
+  # migration re-runs these commands, and a loop over
+  # hosts must not die on a repeat.
+  if [ -n "$SKIPPED_HOST" ]; then
+    if [ -n "$NOTHING_LEFT" ] || [ -n "$HOSTS_PENDING" ]; then
+      echo "error: the rest is already here, but the hosts above could not be handled" >&2
+    else
+      echo "error: nothing was copied — see the skipped hosts above" >&2
+    fi
+    exit 1
+  fi
+  if [ -n "$NOTHING_LEFT" ] || [ -n "$HOSTS_PENDING" ]; then
+    echo "nothing left to copy from $OLD"
     exit 0
   fi
   echo "nothing to copy from $OLD/memory" >&2
