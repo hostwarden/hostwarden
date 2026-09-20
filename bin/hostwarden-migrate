@@ -36,6 +36,29 @@ if [ -d memory/custom-rules ]; then
   done
 fi
 
+# The disk, boot and OS-installation rules left
+# rules/ for the hostwarden-os-install skill, and a
+# skill has one override slot named after it. Five
+# files cannot be merged into one mechanically, so
+# they stay where they are and the user is told. The
+# notice repeats until they are merged or deleted —
+# a silent no-op here would mean a silently ignored
+# override on the most destructive workflow there is.
+STALE=""
+for name in os-replacement dual-boot efi-boot \
+            cloud-image partition-staging; do
+  [ -e "memory/custom-rules/$name.md" ] || continue
+  STALE="$STALE\n  memory/custom-rules/$name.md"
+done
+
+if [ -n "$STALE" ]; then
+  printf "hostwarden: rule overrides no longer read:%b\n" "$STALE"
+  echo "Those rules are now the hostwarden-os-install"
+  echo "skill. Merge what you still want into"
+  echo "memory/custom-rules/hostwarden-os-install.md,"
+  echo "then delete the old files."
+fi
+
 if [ -n "$MOVED" ]; then
   printf "hostwarden migration — moved user state:%b\n" "$MOVED"
   echo "Review any personal scripts or cron jobs that"
