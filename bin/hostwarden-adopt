@@ -74,14 +74,13 @@ nested_link() {
 # an edit there would silently change an access list
 # nobody touched.
 already_adopted() {
-  # Two aliases are the same alias when they point at
-  # the same name. Otherwise a destination link never
-  # counts: its target can change under us, and the
-  # content matching today says nothing about that.
-  if [ -L "$1" ] && [ -L "$2" ]; then
-    [ "$(readlink "$1")" = "$(readlink "$2")" ]
-    return
-  fi
+  # A destination link never counts: its target can
+  # change under us, and two links with the same text
+  # can resolve to different files in the two
+  # checkouts — for an access list that would drop a
+  # restriction while the hosts come across behind
+  # it. Matching link text means something only for a
+  # server alias, and the host loop says so there.
   [ -L "$2" ] && return 1
   same_content "$1" "$2"
 }
@@ -293,6 +292,11 @@ copy_item() {
 
 COPIED=""
 NOTHING_LEFT=""
+SKIPPED_HOST=""
+skip_host() {
+  echo "skipped memory/servers/$1 — $2" >&2
+  SKIPPED_HOST=yes
+}
 plan() { COPIED="$COPIED\n  memory/$1"; }
 
 # Which shared files this clone would keep. Decided
@@ -399,8 +403,13 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   # fleet that is the difference between seconds and
   # milliseconds. The result is the set of hosts that
   # hold a link pointing out of the old checkout.
-  ESCAPING="|$(find -H "$OLD/memory/servers" -mindepth 2 -type l 2>/dev/null \
-    | sed -e "s|^$OLD/memory/servers/||" -e 's|/.*||' \
+  # Run find from inside the directory: a checkout
+  # path holding the sed delimiter would otherwise
+  # break the program, and a broken scan reports no
+  # escaping links at all.
+  ESCAPING="|$(cd "$OLD/memory/servers" 2>/dev/null \
+    && find -H . -mindepth 2 -type l 2>/dev/null \
+    | sed -e 's|^\./||' -e 's|/.*||' \
     | LC_ALL=C sort -u | tr '\n' '|')"
   # Hosts this run already handled, so one pulled in
   # as an alias's canonical target is not reported as
@@ -427,21 +436,6 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     # the memory behind them, and stopping here would
     # report a host as adopted whose memory is absent
     # or stale — even under --force.
-    ADOPTED=""
-    if already_adopted "$SRC" "memory/servers/$H"; then
-      if [ -L "$SRC" ]; then
-        A_CANON=$(readlink "$SRC")
-        already_adopted "$OLD/memory/servers/$A_CANON" \
-          "memory/servers/$A_CANON" && ADOPTED=yes
-      else
-        ADOPTED=yes
-      fi
-    fi
-    if [ -n "$ADOPTED" ]; then
-      DONE_HOSTS="$DONE_HOSTS$H|"
-      NOTHING_LEFT=yes
-      continue
-    fi
     # An alias here that already points at the same
     # name is not in the way: the entry is right and
     # only the memory behind it may be missing, so the
@@ -451,10 +445,27 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
         && [ "$(readlink "$SRC")" = "$(readlink "memory/servers/$H")" ]; then
       SAME_ALIAS=yes
     fi
+    ADOPTED=""
+    if [ -L "$SRC" ]; then
+      # The alias is adopted when it points at the
+      # same name and the host behind it is adopted.
+      if [ -n "$SAME_ALIAS" ]; then
+        A_CANON=$(readlink "$SRC")
+        already_adopted "$OLD/memory/servers/$A_CANON" \
+          "memory/servers/$A_CANON" && ADOPTED=yes
+      fi
+    elif already_adopted "$SRC" "memory/servers/$H"; then
+      ADOPTED=yes
+    fi
+    if [ -n "$ADOPTED" ]; then
+      DONE_HOSTS="$DONE_HOSTS$H|"
+      NOTHING_LEFT=yes
+      continue
+    fi
     if [ -z "$SAME_ALIAS" ] \
         && { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
         && [ -z "$FORCE" ]; then
-      echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      skip_host "$H" "already here, use --force to overwrite"
       continue
     fi
     # A DNS alias is a symlink to the canonical host
@@ -473,11 +484,11 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       # the canonical directory beside them).
       case "$CANON" in
         */*|..|.|"")
-          echo "skipped memory/servers/$H — alias points outside memory/servers/: $CANON" >&2
+          skip_host "$H" "alias points outside memory/servers/: $CANON"
           continue ;;
       esac
       if [ ! -e "$OLD/memory/servers/$CANON" ]; then
-        echo "skipped memory/servers/$H — alias to $CANON, which the old checkout does not have" >&2
+        skip_host "$H" "alias to $CANON, which the old checkout does not have"
         continue
       fi
       # And the canonical entry has to be the host
@@ -487,7 +498,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       # pointing out of the tree once copied.
       if [ -L "$OLD/memory/servers/$CANON" ] \
           || [ ! -d "$OLD/memory/servers/$CANON" ]; then
-        echo "skipped memory/servers/$H — alias to $CANON, which is not a host directory" >&2
+        skip_host "$H" "alias to $CANON, which is not a host directory"
         continue
       fi
       # The destination's canonical entry has to be a
@@ -499,7 +510,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       if [ -L "$DST_CANON" ] \
           || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; then
         if [ -z "$FORCE" ]; then
-          echo "skipped memory/servers/$H — $DST_CANON is not a host directory here, use --force to replace it" >&2
+          skip_host "$H" "$DST_CANON is not a host directory here, use --force to replace it"
           continue
         fi
       fi
@@ -512,12 +523,12 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       if [ -d "$DST_CANON" ] && [ ! -L "$DST_CANON" ] \
           && [ -z "$FORCE" ] \
           && ! same_content "$OLD/memory/servers/$CANON" "$DST_CANON"; then
-        echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
+        skip_host "$H" "$DST_CANON differs from the old checkout's, use --force"
         continue
       fi
       case "$ESCAPING" in
         *"|$CANON|"*)
-          echo "skipped memory/servers/$H — $CANON holds a link out of the old checkout" >&2
+          skip_host "$H" "$CANON holds a link out of the old checkout"
           continue ;;
       esac
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
@@ -530,7 +541,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     fi
     case "$ESCAPING" in
       *"|$H|"*)
-        echo "skipped memory/servers/$H — it holds a link out of the old checkout" >&2
+        skip_host "$H" "it holds a link out of the old checkout"
         continue ;;
     esac
     plan "servers/$H"
@@ -548,9 +559,13 @@ if [ -z "$COPIED" ]; then
   # Already here is a different answer from nothing
   # there: a gradual migration re-runs these commands,
   # and a loop over hosts must not die on a repeat.
-  if [ -n "$NOTHING_LEFT" ]; then
+  if [ -n "$NOTHING_LEFT" ] && [ -z "$SKIPPED_HOST" ]; then
     echo "already adopted from $OLD — nothing left to copy"
     exit 0
+  fi
+  if [ -n "$SKIPPED_HOST" ]; then
+    echo "error: nothing was copied — see the skipped hosts above" >&2
+    exit 1
   fi
   echo "nothing to copy from $OLD/memory" >&2
   exit 1
