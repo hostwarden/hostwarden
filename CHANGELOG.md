@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Taking over heinzel is two mechanisms.** The
+  `hostwarden-adopt` skill is asked for by name —
+  `/hostwarden-adopt`, or the same request in prose — and
+  reads the old checkout. `heinzel-legacy` and
+  `heinzel-adoption` are reflexes that fire on a host
+  without anyone asking. The skill states that division
+  rather than leaving it to be inferred, so it does not
+  drift into a third place.
+
 - **Examples name nobody real.** Hostnames and domains
   come from RFC 2606 (`server1.example.com`), addresses
   from RFC 5737 and RFC 3849, and people from the
@@ -176,7 +185,7 @@
   the per-host legacy check entirely. It copies
   memory, access lists and custom rules out of an old
   checkout; the `hostwarden-adopt` skill around it
-  (`/adopt-heinzel <path>`, or the same request in
+  (`/hostwarden-adopt <path>`, or the same request in
   prose) reads its memory files and changelogs into a
   per-host inventory of what sessions improvised on
   the servers — scripts,

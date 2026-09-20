@@ -38,6 +38,15 @@ release is cut.
 — what it does for them now, not what the diff touched. A bold lead
 clause, then the detail in a sentence or two.
 
+**`## Unreleased` describes the state that will ship, not the way
+it was reached.** Nothing under it has reached a user, so a thing
+introduced and then withdrawn before the release is not two
+entries — it is none. Delete the entry that introduced it rather
+than adding one that takes it back. Once a release is cut its
+section is history and is never edited again; only `## Unreleased`
+can still be rewritten this way, and that is the whole reason it
+can.
+
 This is the only file in the repository where a change may be
 described *as a change*. Instruction files describe the current
 state and nothing else: no "previously", no "this used to live

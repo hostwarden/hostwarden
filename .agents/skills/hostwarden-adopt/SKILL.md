@@ -22,7 +22,7 @@ an inventory that the first connection to each host verifies later
 (`rules/heinzel-legacy.md`).
 
 **Only on an explicit request** — the user naming their old checkout,
-or `/adopt-heinzel <path>` in Claude Code. A session that merely
+or `/hostwarden-adopt <path>` in Claude Code. A session that merely
 mentions heinzel is not a request, and neither is a question about
 what adoption would do: answer it, don't start.
 
@@ -136,6 +136,34 @@ leads, the host confirms them.
    both tools in parallel. In the parallel case the first connection
    reports what heinzel left but does not move it
    (`rules/heinzel-legacy.md`).
+
+## Who owns what
+
+Taking over heinzel is one feature split across two mechanisms,
+because its two halves are triggered by different things:
+
+- **This skill** — the old checkout. The user asks for it by name,
+  and again for each further piece: a migration moved host by host
+  is several requests, one per run. It reads their heinzel
+  directory, copies memory, access lists and custom rules into
+  this clone, and writes down what heinzel appears to have left on
+  each host.
+- **`rules/heinzel-legacy.md`** — the host. Step 8 of the
+  first-connection pipeline, so it fires without anyone asking:
+  on the first connection to a machine, while anything is still
+  unresolved, and whenever the activity check turns up `heinzel`
+  entries — which is what catches heinzel touching a host again
+  after the question was settled. It detects; it never moves.
+- **`rules/heinzel-adoption.md`** — what to do about a detection.
+  Also a reflex. Every path that would *move* something ends in a
+  question, because moving files on a live server is a change.
+  The path that moves nothing does not ask: while heinzel is
+  still in use, adoption is premature, and that one reports and
+  records a deferral instead.
+
+Nothing is stated twice: this file describes the checkout, the
+rules describe the hosts, and each names the other rather than
+summarizing it.
 
 ## What this skill does not do
 
