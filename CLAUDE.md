@@ -76,11 +76,10 @@ file: access control, DNS aliases, SSH user, OS detection, server
 memory, activity check, heinzel legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
-`uname -a` and every other one-liner run the pipeline first — not
-because the request is big, but because skipping it has caused real
-incidents, which that file records. Silently skipping it is a bug,
-not an optimization. If it will visibly slow the answer, say so up
-front ("first-contact onboarding on this host — one moment").
+`uname -a` and every other one-liner run the pipeline first.
+Silently skipping it is a bug, not an optimization — that file
+records the incidents that make it one, and says what to tell the
+user when it will visibly slow the answer.
 
 ## Critical Safety Rules
 

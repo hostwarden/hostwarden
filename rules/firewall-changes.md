@@ -6,10 +6,11 @@ anyone touches the firewall. Raise it with the user every
 time — the change they asked for is the service, not the
 exposure that comes with it.
 
-A firewall mistake cuts off SSH. Before any of this, re-read
-`CLAUDE.md` → Critical Safety Rules: read the ports sshd
-listens on and keep every one of them open, and never remove
-or block port 22.
+A firewall mistake cuts off SSH. `CLAUDE.md` → Critical
+Safety Rules applies here in full — it carries the command
+that reads which ports sshd actually listens on, and what
+`ufw allow OpenSSH` does not cover. It is in context
+already, so it is not repeated here.
 
 ## The five steps
 
