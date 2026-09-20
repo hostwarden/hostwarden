@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **A `references/` pointer resolves inside its own
+  skill.** The fleet audit and the housekeeping baseline
+  both sent a reader to
+  `references/firewall-nftables-docker.md`, which only
+  the security skill ships — a path relative to the
+  skill that writes it, pointing at nothing. Both now
+  spell the cross-skill path out in full, and
+  `instructions-test.sh` checks every such pointer.
+
 - **The email skill loads in pieces.** Its `SKILL.md`
   was 604 lines, every one of them entering context the
   moment anyone asked to send a mail, including the MIME

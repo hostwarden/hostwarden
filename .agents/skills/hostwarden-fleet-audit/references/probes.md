@@ -125,9 +125,10 @@ Classify the tool in this order, first match wins:
    Docker or kube-proxy add with `policy accept;`.
 
 Default deny for `nftables`, and what `legacy4` and
-`legacy6` in the `--legacy` block mean: `hostwarden-security` →
-`references/firewall-nftables-docker.md`. No count means
-no legacy table.
+`legacy6` in the `--legacy` block mean: the security skill's
+`firewall-nftables-docker` reference,
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
+No count means no legacy table.
 
 ```bash
 if [ "$(id -u)" = "0" ]; then

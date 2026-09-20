@@ -87,6 +87,30 @@ for e in "$CLAUDE_DIR"/skills/*; do
   fi
 done
 
+# --- a references/ pointer resolves inside its own skill --------
+# `references/x.md` is relative to the skill that writes it, so a
+# pointer at another skill's reference silently resolves to
+# nothing. Cross-skill pointers spell the path out from the repo
+# root instead, which is longer and unambiguous.
+NREFS=0
+for d in "$ROOT"/.agents/skills/*/; do
+  [ -d "$d" ] || continue
+  for r in $(grep -rho '`references/[a-z0-9._-]*\.md`' "$d" \
+      2>/dev/null | tr -d '`' | LC_ALL=C sort -u); do
+    NREFS=$((NREFS + 1))
+    if [ -f "$d$r" ]; then
+      ok
+    else
+      bad "$(basename "$d") points at $r, which it does not" \
+          "ship -- a references/ path is relative to its own" \
+          "skill"
+    fi
+  done
+done
+if [ "$NREFS" -eq 0 ]; then
+  bad "no references/ pointers found -- the search broke"
+fi
+
 # --- override paths are unambiguous -----------------------------
 # rules/overrides.md mirrors the shipped path into
 # memory/custom-rules/, dropping the top-level directory and the
