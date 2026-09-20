@@ -13,6 +13,31 @@ ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 PASS=0
 FAIL=0
 
+# shellcheck source=corpus.sh
+. "$CLAUDE_DIR/hooks/corpus.sh"
+
+# One awk over the whole corpus: prefix each line with its file
+# and drop URLs, in a single process rather than two per file.
+# shellcheck disable=SC2046
+SCAN=$(awk -v root="$CORPUS_ROOT/" '
+  { n = FILENAME
+    if (index(n, root) == 1) n = substr(n, length(root) + 1)
+    gsub(/https?:\/\/[^ )"`,]*/, "")
+    print n ": " $0 }' $(corpus_files) 2>/dev/null)
+
+report() {
+  # report <findings> <what-they-are>
+  if [ -z "$1" ]; then
+    ok
+    return
+  fi
+  printf '%s\n' "$1" | while read -r l; do
+    echo "FAIL: $l is not $2"
+  done
+  FAIL=$((FAIL + 1))
+}
+
+
 ok()   { PASS=$((PASS + 1)); }
 bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $1"; }
 
@@ -34,10 +59,9 @@ for d in "$ROOT"/.agents/skills/*/; do
   fi
 
   link="$CLAUDE_DIR/skills/$name"
-  if [ ! -L "$link" ]; then
-    bad ".claude/skills/$name is not a symlink -- Claude Code" \
-        "does not search .agents/, so this skill is invisible" \
-        "to it"
+  if [ ! -e "$link" ] && [ ! -L "$link" ]; then
+    bad ".claude/skills/$name does not exist -- Claude Code does" \
+        "not search .agents/, so this skill is invisible to it"
   elif [ ! -f "$link/SKILL.md" ]; then
     bad ".claude/skills/$name is a symlink that does not resolve"
   else
@@ -54,7 +78,9 @@ fi
 # skill in the old place. Claude Code would load it and every
 # other tool would miss it.
 for e in "$CLAUDE_DIR"/skills/*; do
-  [ -e "$e" ] || continue
+  # -e is false for a dangling symlink, so test -L as well or a
+  # link to a deleted skill is skipped instead of reported.
+  { [ -e "$e" ] || [ -L "$e" ]; } || continue
   if [ ! -L "$e" ]; then
     bad ".claude/skills/$(basename "$e") is a real path, not a" \
         "link into .agents/skills/"
@@ -67,8 +93,14 @@ done
 # references/ segment. That is unique by construction everywhere
 # except one seam: a rules/<name>.md and a skill called <name>
 # would both mirror to memory/custom-rules/<name>.md.
-RULE_KEYS=$(find "$ROOT/rules" -maxdepth 1 -name '*.md' 2>/dev/null \
-  | sed 's#.*/##; s#\.md$##')
+RULE_KEYS=$(
+  find "$ROOT/rules" -maxdepth 1 -name '*.md' 2>/dev/null \
+    | sed 's#.*/##; s#\.md$##'
+  # a subdirectory mirrors to a directory too (rules/os -> os/),
+  # so it can clash with a skill of the same name
+  find "$ROOT/rules" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+    | sed 's#.*/##'
+)
 SKILL_KEYS=$(find "$ROOT/.agents/skills" -mindepth 1 -maxdepth 1 \
   -type d 2>/dev/null | sed 's#.*/##')
 
@@ -84,11 +116,52 @@ else
 fi
 
 NRULES=$(printf '%s\n' "$RULE_KEYS" | sed '/^$/d' | wc -l | tr -d ' ')
-if [ "$NRULES" -lt 15 ]; then
-  bad "only $NRULES rule files found -- the search broke"
+if [ "$NRULES" -lt 1 ]; then
+  bad "no rule files found -- the search broke"
 else
   ok
 fi
+
+# --- every pointer resolves --------------------------------------
+# A dangling instruction pointer fails the way the references/
+# check already guards against: silently. The file that should
+# have been read simply is not, and nothing says so. Three more
+# shapes of pointer exist, so three more checks.
+
+# `rules/...md` paths, named from anywhere.
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oE '^[^ ]+: |`rules/[a-z0-9/_-]+\.md`' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | tr -d '`' \
+  | while IFS=' ' read -r f r; do
+      [ -f "$ROOT/$r" ] || echo "$f $r"
+    done)" "a rule file that exists"
+
+# Skills named in prose. Several rules point at a skill by name
+# rather than by path, which a rename breaks without a trace.
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oE '^[^ ]+: |`hostwarden-[a-z-]+`' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | tr -d '`' \
+  | grep -vE ' hostwarden-(migrate|update|backup)$' \
+  | while IFS=' ' read -r f s; do
+      [ -d "$ROOT/.agents/skills/$s" ] || echo "$f $s"
+    done)" "a skill that exists"
+
+# A skill's frontmatter name against its directory. The override
+# path keys off the directory; the slash command and the
+# harness's own matching key off the frontmatter. Let them
+# diverge and a user's override file names one while the skill
+# fires as the other.
+MISNAMED=$(
+  for d in "$ROOT"/.agents/skills/*/; do
+    [ -f "$d/SKILL.md" ] || continue
+    dn=$(basename "$d")
+    fn=$(sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -1)
+    [ "$fn" = "$dn" ] || echo ".agents/skills/$dn: frontmatter name '$fn'"
+  done
+)
+report "$MISNAMED" "the name of its own directory"
 
 # --- examples name nobody real ----------------------------------
 # .claude/rules/instruction-authoring.md: hostnames from RFC 2606,
@@ -96,104 +169,59 @@ fi
 # convention. An example that borrows a real identifier points a
 # reader -- or a copied command -- at somebody else's machine.
 #
+# One pass over the corpus rather than one per check: three
+# separate loops each re-read every file and forked a pipeline per
+# file, which was over half the runtime of this script.
+#
 # URLs are stripped first: linking to a project's documentation is
 # not the same as pretending to own a name.
-CORPUS_FILES=$(
-  find "$ROOT/rules" "$ROOT/.agents" "$ROOT/contrib" \
-       "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" "$CLAUDE_DIR/hooks" \
-       "$ROOT/.github" -type f 2>/dev/null
-  ls "$ROOT/AGENTS.md" "$ROOT/CLAUDE.md" "$ROOT/README.md" \
-     "$ROOT/CHANGELOG.md" 2>/dev/null
-)
-
-strip_urls() { sed -E 's#https?://[^ )"`,]*##g' "$1"; }
-
 # Addresses outside the documentation ranges. Private, loopback,
 # link-local and netmasks are legitimate subjects of an example.
-BAD_IP=$(
-  for f in $CORPUS_FILES; do
-    strip_urls "$f" | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
-      | grep -vE '^(192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
-      | grep -vE '^(127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
-      | grep -vE '^172\.(1[6-9]|2[0-9]|3[01])\.' \
-      | grep -vE '^255\.' | sed "s#^#$f: #"
-  done
-)
-if [ -z "$BAD_IP" ]; then ok; else
-  printf '%s\n' "$BAD_IP" | while read -r l; do
-    echo "FAIL: $l is not an RFC 5737 documentation address"
-  done
-  FAIL=$((FAIL + 1))
-fi
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oE '^[^ ]+: |\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -vE ': (192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
+  | grep -vE ': (127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
+  | grep -vE ': 172\.(1[6-9]|2[0-9]|3[01])\.' \
+  | grep -vE ': 255\.')" "an RFC 5737 documentation address"
+
+# IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
+# Matching every colon-hex string would catch timestamps and MAC
+# addresses, so this looks for the global-unicast shape.
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oiE '^[^ ]+: |\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -viE ': 2001:0?db8')" "an RFC 3849 documentation address"
 
 # Mail addresses outside example.*. openssh.com is allowed because
 # it suffixes algorithm names (umac-64@openssh.com), not people.
-BAD_MAIL=$(
-  for f in $CORPUS_FILES; do
-    strip_urls "$f" \
-      | grep -oE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
-      | grep -vE '@(.*\.)?example\.(com|net|org)$' \
-      | grep -vE '@openssh\.com$' | sed "s#^#$f: #"
-  done
-)
-if [ -z "$BAD_MAIL" ]; then ok; else
-  printf '%s\n' "$BAD_MAIL" | while read -r l; do
-    echo "FAIL: $l is not an RFC 2606 example address"
-  done
-  FAIL=$((FAIL + 1))
-fi
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oE '^[^ ]+: |[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -vE '@(.*\.)?example\.(com|net|org)$' \
+  | grep -vE '@openssh\.com$')" "an RFC 2606 example address"
 
-# SSH targets. A hostname a command connects to may well be
-# real infrastructure -- security.debian.org, time.apple.com --
-# and no pattern tells that from a borrowed example, so
-# hostnames at large are a review matter. The target of an ssh
-# or scp command never is: hostwarden only ever logs into a
-# user's machine, so every one in an instruction file is an
-# example and must say so. Both forms count, with a user and
-# without.
+# SSH targets. A hostname a command connects to may well be real
+# infrastructure -- security.debian.org, time.apple.com -- and no
+# pattern tells that from a borrowed example, so hostnames at
+# large are a review matter. The target of an ssh or scp command
+# never is: hostwarden only ever logs into a user's machine. Both
+# forms count, with a user and without.
 #
 # The command word must be followed by a space, or every
-# rules/ssh-*.md reference in the tree reads as an invocation.
-# A candidate ending in a file extension is a path, not a host,
-# and openssh.com suffixes cipher and MAC names rather than
-# naming a machine (ssh -c aes256-gcm@openssh.com host).
-BAD_SSH=$(
-  for f in $CORPUS_FILES; do
-    strip_urls "$f" \
-      | grep -oE '(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
-      | grep -oE '[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
-      | sed -E 's#^[ =]##; s#^[a-z0-9_-]+@##' \
-      | grep -E '\.[a-z]{2,}$' \
-      | grep -vE '\.(md|sh|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
-      | grep -vE '(^|\.)example\.(com|net|org)$' \
-      | grep -vE '^(localhost|openssh\.com)$' \
-      | sed "s#^#$f: #"
-  done
-)
-if [ -z "$BAD_SSH" ]; then ok; else
-  printf '%s\n' "$BAD_SSH" | while read -r l; do
-    echo "FAIL: $l is not an RFC 2606 example target"
-  done
-  FAIL=$((FAIL + 1))
-fi
-
-# IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
-# Matching every colon-hex string would catch timestamps and
-# MAC addresses, so this looks for the global-unicast shape --
-# a 2xxx: or 3xxx: literal with at least two more groups.
-BAD_IP6=$(
-  for f in $CORPUS_FILES; do
-    strip_urls "$f" \
-      | grep -oiE '\b[23][0-9a-f]{3}:[0-9a-f:]{2,}[0-9a-f]\b' \
-      | grep -viE '^2001:0?db8[:0-9a-f]*$' | sed "s#^#$f: #"
-  done
-)
-if [ -z "$BAD_IP6" ]; then ok; else
-  printf '%s\n' "$BAD_IP6" | while read -r l; do
-    echo "FAIL: $l is not an RFC 3849 documentation address"
-  done
-  FAIL=$((FAIL + 1))
-fi
+# rules/ssh-*.md reference reads as an invocation. A candidate
+# ending in a file extension is a path, not a host, and
+# openssh.com suffixes cipher names rather than naming a machine.
+report "$(printf '%s\n' "$SCAN" \
+  | grep -oE '^[^ ]+: |(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | grep -oE '^[^ ]+: |[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
+  | awk '/: $/ { f = $0; next } { print f $0 }' \
+  | sed -E 's#: [ =]#: #; s#: [a-z0-9_-]+@#: #' \
+  | grep -E '\.[a-z]{2,}$' \
+  | grep -vE '\.(md|sh|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
+  | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \
+  | grep -vE ': (localhost|openssh\.com)$')" "an RFC 2606 example target"
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

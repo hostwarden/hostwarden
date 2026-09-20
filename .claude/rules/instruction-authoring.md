@@ -3,11 +3,9 @@ paths:
   - "AGENTS.md"
   - "CLAUDE.md"
   - "README.md"
-  - "CHANGELOG.md"
   - ".claude/rules/**"
   - ".claude/hooks/**"
   - "contrib/**"
-  - ".github/**"
 description: How hostwarden's own instruction text is written —
   layout, wrapping, example identifiers, and where a new
   instruction belongs. For work on this repository, never for a
@@ -51,13 +49,9 @@ A file keyed by a fact rather than a moment — the OS-family files
 
 ## Current state only
 
-Instruction files describe how things are. Never "previously",
-never "this used to live in", never a migration note. A reader of
-`rules/backups.md` needs to know what to do, not what the file
-said last month.
-
-`CHANGELOG.md` is the only place a change is recorded as a change,
-one entry per item.
+Instruction files describe how things are, never how they came
+to be. `.claude/rules/repo-release.md` states the rule and owns
+its one exception, `CHANGELOG.md`.
 
 ## Layout
 
@@ -121,13 +115,8 @@ Two fence markers change that:
   operator relaunched with `HOSTWARDEN_GUARD_DISABLE=1`, and the
   file must say so.
 
-The guard scans the whole command string and cannot tell a taboo
-word used as data from an invocation, so a probe that merely
-*mentions* `mkfs` or a key path gets denied. Write patterns that
-never spell one from the start (`grep 'power[o]ff'`), and keep a
-probe naming a guarded path in a call of its own — two innocent
-commands deny each other when batched.
-
-The same applies to writing about this. A commit message piped
-into `git commit -m` flows through the command string; write it to
-a file and use `git commit -F <file>`.
+How to write a probe that the guard does not mistake for an
+invocation is in `AGENTS.md` → Critical Safety Rules, where it
+is in context at the moment a probe is written. The fence
+markers above are the part that is specific to writing
+instruction text.
