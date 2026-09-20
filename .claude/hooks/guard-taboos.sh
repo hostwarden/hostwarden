@@ -188,6 +188,12 @@ fi
 # same shape. Telling them apart needs a per-command list of
 # which arguments are data, which is open-ended and would reopen
 # issue #4. Rephrase the probe (grep 'shut[d]own') instead.
+#
+# Only commands that carry a << at all can have a heredoc, and
+# the awk below can do nothing but reprint the rest. The guard
+# runs on every Bash call, so that fork is worth skipping.
+case "$CMD" in
+*'<<'*)
 CMD_NOHEREDOC=$(printf '%s\n' "$CMD" | awk '
   BEGIN { q = sprintf("%c", 39) }
   NR == 1 {
@@ -252,6 +258,8 @@ GUARD_STRIP_STATUS=$?
 if [ "$GUARD_STRIP_STATUS" -eq 0 ] && [ -n "$CMD_NOHEREDOC" ]; then
   CMD="$CMD_NOHEREDOC"
 fi
+  ;;
+esac
 
 # The command string, plus one line per invocation it contains.
 # Separators are ; & | quotes and newlines. Quotes count on
@@ -260,9 +268,15 @@ fi
 # only splitting there puts fdisk in a segment that no longer
 # holds ssh's -l. The FULL string stays in the list, so this can
 # only ever block more, never less.
+#
+# CMD is final by now, so the split is computed once. The rules
+# below ask dozens of questions of it, and re-forking tr for each
+# of them costs more than the whole rest of the hook.
+SEGS=$(printf '%s\n' "$CMD"
+       printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n')
+
 segments() {
-  printf '%s\n' "$CMD"
-  printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n'
+  printf '%s\n' "$SEGS"
 }
 
 hit() {
@@ -377,7 +391,10 @@ deny() {
   printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
   printf '(CLAUDE.md - Critical Safety Rules). Blocked in all '
   printf 'permission modes. Explain this to the user; do not '
-  printf 'rephrase the command to evade the guard."}}\n'
+  printf 'rephrase the command to evade the guard. Installing or '
+  printf 'replacing an OS is the one flow that legitimately '
+  printf 'needs these commands: read the hostwarden-os-install '
+  printf 'skill, which states what has to hold first."}}\n'
   exit 0
 }
 

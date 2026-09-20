@@ -305,7 +305,8 @@ check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd
 # into arguments find cannot resolve, and the scan would silently
 # cover nothing.
 set --
-for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
+for p in "$CLAUDE_DIR/skills" "$CLAUDE_DIR/commands" \
+         "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
          "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
   [ -e "$p" ] && set -- "$@" "$p"
 done
