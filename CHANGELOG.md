@@ -2,7 +2,21 @@
 
 ## Unreleased
 
-- **`CLAUDE.md` keeps the trigger, the file keeps the
+- **The instruction set is `AGENTS.md`.** That is the
+  file name Claude Code, OpenCode, Codex and Cursor all
+  read natively, so hostwarden's rules reach a tool
+  without it having to know about Claude Code at all.
+  `CLAUDE.md` stays as a thin file that imports it and
+  adds the handful of things only Claude Code has — the
+  taboo guard hook, the SessionStart hooks, the pickers,
+  the slash commands. It is not there for old versions:
+  Claude Code also declines to read `AGENTS.md` directly
+  on Amazon Bedrock, with telemetry off, and in the
+  first session after every upgrade, and a session with
+  no project instructions at all is not something a tool
+  that works on production servers may have.
+
+- **`AGENTS.md` keeps the trigger, the file keeps the
   procedure.** It is down from 668 lines to 316, and
   from 3356 words to under 2000, because a moment and
   the file that covers it is one line — not a

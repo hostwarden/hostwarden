@@ -59,7 +59,7 @@ Before installing anything, find out whether mise is
 already there:
 
 ```
-# Remote — the standard SSH options from CLAUDE.md apply
+# Remote — the standard SSH options from AGENTS.md apply
 ssh <options> user@host "command -v mise"
 
 # Local
@@ -104,7 +104,7 @@ Install languages **as the SSH user** (not root).
 it as given and do not substitute the current release for
 it. Only when the request names no version does the version
 have to be looked up, and then by web search, never from
-training data (see CLAUDE.md).
+training data (see AGENTS.md).
 
 Use `mise use --global` to set a default version — without
 `--global` it writes a `.tool-versions` into the current

@@ -444,12 +444,12 @@ This works on both Linux and macOS:
 ## Supported AI Tools
 
 Hostwarden works with Claude Code and OpenCode out of the
-box. Both read `CLAUDE.md` (OpenCode via its
+box. Both read `AGENTS.md` (OpenCode via its
 Claude-Code-compat fallback). The skills live in
 `.agents/skills/`, which OpenCode searches directly and
 Claude Code reaches through the `.claude/skills` link.
 The `rules/` directory is picked up via prose references
-in `CLAUDE.md`, so any other terminal AI tool that reads
+in `AGENTS.md`, so any other terminal AI tool that reads
 project files and runs shell commands will also handle
 the rule layer — only the on-demand skills (housekeeping,
 security audit, email reports, fleet audit, OS
@@ -459,7 +459,7 @@ workflows by naming the file:
 `.agents/skills/<name>/SKILL.md`.
 
 OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` stops
-OpenCode from reading `CLAUDE.md`. Leave that variable
+OpenCode from reading `AGENTS.md`. Leave that variable
 unset (the default) for hostwarden to work. The skills
 are unaffected either way.
 
@@ -467,7 +467,7 @@ are unaffected either way.
 
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 is Anthropic's CLI for Claude. It natively reads
-`CLAUDE.md` and is the primary tool Hostwarden was
+`AGENTS.md` and is the primary tool Hostwarden was
 developed with.
 
 ```
@@ -952,7 +952,7 @@ under `memory/custom-rules/` matches nothing shipped
 in an upgrade.
 
 Two things you cannot override: the Critical Safety
-Rules in `CLAUDE.md`, and whether a skill triggers at
+Rules in `AGENTS.md`, and whether a skill triggers at
 all — a skill's description is matched before any of
 your files are read. Trigger wording belongs in
 `memory/custom-rules/all.md`, which is in context
@@ -963,8 +963,10 @@ from the start. Full rules: `rules/overrides.md`.
 ```
 VERSION                — Current version number (semver)
 CHANGELOG.md           — Release history
-CLAUDE.md              — Main instructions (read by Claude Code
-                         and OpenCode)
+AGENTS.md              — The instruction set, read by every
+                         AGENTS-aware tool
+CLAUDE.md              — Imports AGENTS.md, plus the handful of
+                         things only Claude Code has
 bin/
   hostwarden-update       — Update, pin, or check hostwarden version
   hostwarden-backup       — Back up / restore your memory/ tree

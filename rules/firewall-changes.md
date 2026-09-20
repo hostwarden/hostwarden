@@ -6,7 +6,7 @@ anyone touches the firewall. Raise it with the user every
 time — the change they asked for is the service, not the
 exposure that comes with it.
 
-A firewall mistake cuts off SSH. `CLAUDE.md` → Critical
+A firewall mistake cuts off SSH. `AGENTS.md` → Critical
 Safety Rules applies here in full — it carries the command
 that reads which ports sshd actually listens on, and what
 `ufw allow OpenSSH` does not cover. It is in context
@@ -40,7 +40,7 @@ already, so it is not repeated here.
 5. **Explain the risk in plain language** — what becomes
    reachable, by whom, and what an attacker gets if the
    service has a bad day. This is one of the few places
-   where the length ceilings in `CLAUDE.md` → Talking to
+   where the length ceilings in `AGENTS.md` → Talking to
    Humans do not apply.
 
 ## Removing a service

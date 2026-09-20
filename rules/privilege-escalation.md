@@ -3,7 +3,7 @@
 **Local mode:** when the target is the local
 machine, skip the root SSH fallback entirely. If
 sudo is unusable, go straight to unprivileged mode
-(see `CLAUDE.md` → Local mode).
+(see `AGENTS.md` → Local mode).
 
 ## Sudo
 

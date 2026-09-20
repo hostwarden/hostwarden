@@ -38,7 +38,7 @@ Enterprise Server (SLES).
   cuts off the SSH session immediately. The `ssh`
   service covers port 22 only: add every other port
   sshd listens on with `--add-port=<port>/tcp`
-  (`CLAUDE.md` → Firewall & network).
+  (`AGENTS.md` → Firewall & network).
 - Verify the default zone drops unsolicited traffic:
   `firewall-cmd --get-default-zone` (should be `public`).
   Then `firewall-cmd --info-zone=public` — the target

@@ -24,7 +24,7 @@ and a mirrored file is the narrower statement of one topic,
 not a stronger one. The host file is last because it is the
 most specific thing the user can say.
 
-**Not overridable at any level:** `CLAUDE.md` → Critical
+**Not overridable at any level:** `AGENTS.md` → Critical
 Safety Rules. The absolute taboos, the ask-before list, the
 port-22 refusal, secrets hygiene. The taboo guard enforces
 the hardest of them mechanically, so an override that tries
