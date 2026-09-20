@@ -118,13 +118,14 @@ user when it will visibly slow the answer.
   runtime (`python3 -c`, `node -e`, `perl -e`, `awk`). Such a
   command line cannot be shown to be read-only, so it counts as a
   write and is blocked.
-  A mechanical guard (`.claude/hooks/guard-taboos.sh`, a PreToolUse
-  hook) backs these taboos in every permission mode. Being blocked
-  by it is expected: explain it to the user, never rephrase or
-  re-quote a command to evade the guard. Legitimate exceptions —
-  OS installation and replacement, the `hostwarden-os-install`
-  skill — require the operator to set `HOSTWARDEN_GUARD_DISABLE=1`
-  before launching the session.
+  This list holds on its own. Some tools also run a mechanical
+  guard behind it — `CLAUDE.md` says where, and where nothing does,
+  this list is the whole of the protection. Being blocked by the
+  guard is expected: explain it to the user, never rephrase or
+  re-quote a command to evade it. Legitimate exceptions — OS
+  installation and replacement, the `hostwarden-os-install` skill —
+  need the operator to export the guard-disable variable named in
+  that skill before launching the session.
   When *writing* a probe, remember the guard scans the whole command
   string and cannot tell a taboo word used as data from an
   invocation. So write patterns that never spell one from the start,
