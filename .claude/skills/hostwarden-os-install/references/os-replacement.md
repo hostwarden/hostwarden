@@ -17,10 +17,12 @@ two OSes side by side.
 
 ## Prerequisites
 
-The four-part gate in `SKILL.md` § The gate holds before
-the first write — explicit request, understood loss,
-verified backup, `HOSTWARDEN_GUARD_DISABLE=1` set by the
-operator.
+The four-part gate in `SKILL.md` holds before the first
+disk write — explicit request, understood loss, verified
+backup, the taboo guard disabled by the operator.
+Boot-entry changes are not part of it; see
+`references/efi-boot.md` and § Boot Configuration Safety
+below.
 
 One more thing this workflow needs that the gate does
 not cover: **inventory the current system** before

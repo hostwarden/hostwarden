@@ -34,10 +34,28 @@ often invoked for exactly that.
 Never ask an operator to disable a safety mechanism in order to
 look at something.
 
-## The gate — before the first write
+## Boot entries are not the gate
 
-The moment a step would change a disk, a partition table or a boot
-entry, all four have to hold:
+Changing an EFI boot entry destroys no data, and the guard does not
+block `efibootmgr` in any form. Setting `BootNext` for a one-shot
+test is the *safe* way to try a new OS, and needing the guard off
+to do it would be backwards.
+
+So boot-entry work follows `references/efi-boot.md` instead:
+prefer `BootNext` over reordering, never delete an entry without
+asking, show the current state before changing it, and keep the
+working entry as a fallback until the new OS is confirmed.
+
+The one place boot configuration turns dangerous is ordering, not
+permission — pointing the firmware at a root filesystem that is
+not written yet, or overwriting the fallback binary before it is.
+`references/os-replacement.md` § Boot Configuration Safety owns
+that, and it applies whether or not the guard is on.
+
+## The gate — before the first disk write
+
+The moment a step would write to a disk or a partition table, all
+four have to hold:
 
 1. **The user asked for it in this session.** Not inferred from a
    full disk, a broken boot, or an old release. This skill is never
@@ -108,7 +126,7 @@ remote command here, like everywhere else. Beyond that:
 - `rules/backups.md` — the backup that gate step 3 verifies.
 - `rules/secrets.md` — host keys and credentials recovered from
   the old system are secrets; inspect metadata, never contents.
-- `rules/<family>.md` — for every OS involved, old and new.
+- `rules/os/<family>.md` — for every OS involved, old and new.
 - `rules/server-memory.md` — the host's memory file describes a
   machine that is about to stop existing. Capture the inventory
   before the wipe, and rewrite memory after.
