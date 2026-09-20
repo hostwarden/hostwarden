@@ -5,17 +5,6 @@ repartitioning, OS replacement, or other disk
 layout changes — without losing data and without
 physical access.
 
-## When to Read
-
-Read this file when:
-- Replacing an OS on a server (cross-reference
-  with `rules/os-replacement.md`)
-- Repartitioning a live system
-- Needing temporary workspace on a partition that
-  is currently in use (e.g. swap)
-- Needing to free a partition that belongs to a
-  volume manager or pooled filesystem
-
 ## Core Idea
 
 Most servers have at least one partition that can
@@ -63,10 +52,10 @@ table:
    write command — not once per session.
 4. **Guard override.** Steps 2 and 3 run `mkfs`,
    `newfs` and `gpart` writes, which the taboo
-   guard blocks. The user relaunches with
-   `HOSTWARDEN_GUARD_DISABLE=1` first, as
-   `rules/os-replacement.md` (Prerequisites, step
-   4) describes.
+   guard blocks. The gate in `SKILL.md` § The gate
+   holds first, including the operator having
+   relaunched with `HOSTWARDEN_GUARD_DISABLE=1` set
+   in the environment.
 
 ### RAM Check
 
@@ -244,7 +233,8 @@ gpart add -t linux-data vtbd0  # new root (rest)
 The old OS continues running from the swap
 partition. Install the new OS to the new root
 partition, set up the bootloader, and reboot. See
-`rules/os-replacement.md` §"SSH-Only Replacement
+`references/os-replacement-ssh-only.md`
+§"SSH-Only Replacement
 via Hot-Migration" for the full workflow.
 
 ## Step 4: Repartition

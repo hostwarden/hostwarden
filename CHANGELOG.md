@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **The disk, boot and OS-installation workflows are
+  a skill.** `hostwarden-os-install` carries OS
+  replacement, dual-boot, EFI boot management, cloud
+  images and partition staging behind one trigger, so
+  2452 lines of instruction load when someone asks
+  for that work and not before. The destructive-work
+  gate — explicit request, understood loss, verified
+  backup, guard disabled by the operator — is stated
+  once in the skill instead of per file. OS
+  replacement routes further: the generic path is
+  under 300 lines, and the console-less paths — the
+  SSH-only rescue, filling a root filesystem nothing
+  can run inside, and the FreeBSD image — are read
+  only when a machine has no console.
+
 - **heinzel is now hostwarden.** The project
   continues heinzel 2.22.0 as an independent
   project under a new name. Scripts, skills,

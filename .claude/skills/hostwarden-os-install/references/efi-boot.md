@@ -1,16 +1,9 @@
 # EFI Boot Management
 
 Cross-OS rules for EFI boot management, dual-boot
-setups, and boot loader configuration.
-
-## When to Read
-
-Read this file when:
-- EFI is mentioned or relevant
-- Setting up dual-boot
-- Managing boot entries or boot order
-- Installing or configuring a boot loader
-- Troubleshooting boot issues
+setups, and boot loader configuration. Boot-entry
+changes write no data and are outside the skill's
+gate; these rules govern them instead.
 
 ## Safety
 
@@ -220,9 +213,10 @@ console output. This does not mean the boot failed.
 ## QEMU Cross-OS Installation and EFI
 
 When using QEMU to install a new OS (see
-`rules/os-replacement.md` §"QEMU as a Cross-OS
-Chroot Alternative"), the QEMU VM's EFI is
-separate from the real hardware's EFI NVRAM.
+`references/os-replacement-offline-rootfs.md`
+§ "QEMU as a Cross-OS Chroot Alternative"), the
+QEMU VM's EFI is separate from the real hardware's
+EFI NVRAM.
 
 **QEMU cannot update the real EFI NVRAM.** Boot
 entries created inside QEMU only exist in QEMU's
@@ -271,7 +265,7 @@ already been destroyed — there is nothing left
 to fall back to — and even then, ask the user
 first (see §"Safety"). While the old OS is still
 intact and bootable, keep its loader; it *is*
-the fallback (see `rules/os-replacement.md`
+the fallback (see `references/os-replacement.md`
 §"Boot Configuration Safety"). Once the old root
 is gone, leftover EFI files are a hazard: the
 firmware may try the old boot loader (which

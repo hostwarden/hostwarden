@@ -1,20 +1,11 @@
 # Dual-Boot Setup
 
-Workflow rule for installing a second OS alongside
-an existing one on the same machine.
+Installing a second OS alongside an existing one on
+the same machine.
 
-## When to Read
-
-Read this file when the user asks to:
-- Install a second OS alongside an existing one
-- Set up dual-boot (any combination of Linux,
-  FreeBSD, macOS)
-- Add Linux to a FreeBSD system or vice versa
-
-Also read:
-- `rules/efi-boot.md` — EFI boot management
-- `rules/cloud-image.md` — if using a cloud image
-- `rules/<family>.md` — for each OS involved
+The boot-entry work continues in
+`references/efi-boot.md`; a cloud image as the
+source is `references/cloud-image.md`.
 
 ## Prerequisites
 
@@ -151,7 +142,7 @@ partition, consider cross-OS compatibility:
 ### Cloud Image (Quickest)
 
 Write a cloud image directly to the target
-partition. See `rules/cloud-image.md` for post-
+partition. See `references/cloud-image.md` for post-
 deployment steps (SSH keys, cloud-init, network).
 
 Best when: the target filesystem doesn't need to
@@ -178,7 +169,7 @@ experience.
 
 ## Boot Setup
 
-See `rules/efi-boot.md` for detailed instructions.
+See `references/efi-boot.md` for detailed instructions.
 
 Summary:
 - **Linux on ARM64:** use systemd-boot (GRUB does
