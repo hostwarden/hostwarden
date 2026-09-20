@@ -24,8 +24,8 @@ A `paths` glob cannot tell reading a rule in order to follow it
 from reading it in order to edit it, so this file does not list
 `rules/**` — it would then load in every sysadmin session, which
 is exactly the cost the layout removes. What matters most here is
-checked mechanically instead:
-`sh .claude/hooks/instructions-test.sh`.
+checked mechanically instead, across every other path this
+file names: `sh .claude/hooks/instructions-test.sh`.
 
 ## Where a new instruction belongs
 
@@ -85,7 +85,8 @@ somebody else already set, so nobody has to judge case by case.
   `198.51.100.0/24`, `203.0.113.0/24`, `2001:db8::/32`. Private
   ranges, loopback and link-local are fine where the example is
   genuinely about one (`127.0.0.1`, `10.0.0.0/8`,
-  `192.168.0.0/16`, `169.254.169.254` for cloud metadata).
+  `192.168.0.0/16`, `169.254.169.254` for cloud metadata). Both
+  families are checked.
 - **People: Alice and Bob**, then Carol, Dave, Eve, and on through
   the alphabet when an example needs more actors — the convention
   cryptography has used for decades. `alice`, `bob` as usernames,
@@ -97,8 +98,13 @@ somebody else already set, so nobody has to judge case by case.
   says more than a borrowed one: `root@<production-host>`.
 
 A real domain is fine in a *link* to its documentation —
-`https://mise.jdx.dev`, `https://brew.sh`. The rule is about
-identifiers an example pretends to own.
+`https://mise.jdx.dev`, `https://brew.sh` — and in a command
+that genuinely has to reach it, such as an apt source or an
+NTP server. The rule is about identifiers an example pretends
+to own, which no pattern can separate from the rest; the test
+therefore checks the two places where the answer is never
+ambiguous, mail addresses and the target of an `ssh` or `scp`
+command. Everything else is a matter for review.
 
 ## Commands in instruction text
 
