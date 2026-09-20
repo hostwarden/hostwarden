@@ -230,10 +230,12 @@ systemctl is-active nftables
 nft list chains | grep -B1 -e ^table -e "hook input"
 ```
 
-Default deny as in `hostwarden-security` →
-`references/firewall-nftables-docker.md`. Input chains that
-fail2ban or Docker add with `policy accept;` are not a
-firewall, and neither is the stock config's empty chain.
+Default deny as in the security skill's
+`firewall-nftables-docker` reference,
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
+Input chains that fail2ban or Docker add with `policy accept;`
+are not a firewall, and neither is the stock config's empty
+chain.
 
 - **WARN** if ufw or firewalld is active and
   `systemctl is-enabled nftables` says `enabled`: the
