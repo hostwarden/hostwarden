@@ -45,6 +45,23 @@ SHARED="user.md blacklist.md readonly.md \
 service-policy.md network.md housekeeping.md \
 opencode.json custom-rules"
 
+# The first symlink below <dir>, if there is one.
+# cp -R keeps nested links as links, so a
+# memory.md -> /outside/file in the old checkout
+# would still point out of the tree here, and the
+# next memory update would write there. Aliases are
+# a top-level arrangement (rules/dns-aliases.md);
+# anything nested is not one, and is refused rather
+# than followed — dereferencing could pull in an
+# unbounded amount of somebody else's files.
+nested_link() {
+  # Always succeeds: a non-zero status here would end
+  # the run at `NESTED=$(nested_link ...)` under
+  # set -e, and a plain file has no nested anything.
+  [ -d "$1" ] && find "$1" -mindepth 1 -type l -print 2>/dev/null | head -n 1
+  return 0
+}
+
 # True when this clone already has the item itself:
 # same content, and not through a symlink. A link
 # whose target happens to match today is not the
@@ -258,6 +275,7 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 SHARED_PENDING=""
 SHARED_BROKEN=""
 SHARED_BADTYPE=""
+SHARED_NESTED=""
 for ITEM in $SHARED; do
   # A link in the old checkout that does not resolve
   # has no content to copy. Silently skipping it
@@ -281,6 +299,12 @@ for ITEM in $SHARED; do
       [ -f "$OLD/memory/$ITEM" ] || {
         SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
   esac
+  NESTED=$(nested_link "$OLD/memory/$ITEM")
+  if [ -n "$NESTED" ]; then
+    echo "skipped memory/$ITEM — $NESTED is a link out of the old checkout" >&2
+    SHARED_NESTED="$SHARED_NESTED $ITEM"
+    continue
+  fi
   already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
   if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
@@ -338,7 +362,7 @@ fi
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
   already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
-  case " $SHARED_PENDING $SHARED_BROKEN $SHARED_BADTYPE " in
+  case " $SHARED_PENDING $SHARED_BROKEN $SHARED_BADTYPE $SHARED_NESTED " in
     *" $ITEM "*) continue ;;
   esac
   plan "$ITEM"
@@ -465,6 +489,11 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
         continue
       fi
+      NESTED=$(nested_link "$OLD/memory/servers/$CANON")
+      if [ -n "$NESTED" ]; then
+        echo "skipped memory/servers/$H — $NESTED is a link out of the old checkout" >&2
+        continue
+      fi
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
@@ -478,6 +507,11 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
     if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
         && [ -z "$FORCE" ]; then
       echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
+      continue
+    fi
+    NESTED=$(nested_link "$SRC")
+    if [ -n "$NESTED" ]; then
+      echo "skipped memory/servers/$H — $NESTED is a link out of the old checkout" >&2
       continue
     fi
     plan "servers/$H"
