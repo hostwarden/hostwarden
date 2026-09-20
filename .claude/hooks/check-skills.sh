@@ -22,7 +22,16 @@ set -e
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$ROOT"
 
-[ -d .agents/skills ] || exit 0
+# This script ships beside the skill tree, so a tree that is
+# gone is a broken checkout, not a repository that never had
+# one -- and it costs the session every skill just as surely as
+# a missing link does. Say so rather than exit quietly.
+if [ ! -d .agents/skills ]; then
+  echo "hostwarden: .agents/skills/ is missing, so there is no"
+  echo "  skill to load at all — no housekeeping, no security"
+  echo "  audit. This checkout is incomplete; clone it again."
+  exit 0
+fi
 
 # The same question instructions-test.sh asks: does the link
 # land on the skill tree? A link to anywhere else is somebody's
