@@ -20,8 +20,12 @@ memory/servers/*
 
 # Custom rule overrides — keep the folder in git
 # but ignore its contents (solo mode). For team
-# mode, un-ignore *.md by uncommenting the
-# `!memory/custom-rules/*.md` line below.
+# mode, uncomment all three `!memory/custom-rules`
+# lines below: an override can sit one level down
+# (os/debian.md, a skill's reference), and git will
+# not look inside a directory it has excluded, so
+# the directory has to be un-ignored before the
+# files in it can be.
 !memory/custom-rules/
 memory/custom-rules/*
 !memory/custom-rules/.gitkeep
@@ -39,6 +43,8 @@ memory/custom-rules/*
 # memory/servers/localhost/
 # memory/servers/127.0.0.1/
 # !memory/custom-rules/*.md
+# !memory/custom-rules/*/
+# !memory/custom-rules/*/*.md
 
 # Project history (auto-maintained by Claude Code).
 HISTORY.md

@@ -50,7 +50,7 @@ softwareupdate -l 2>&1
 ## Critical Auto-Updates
 
 Check that critical security updates install automatically — see
-`rules/macos.md` for the specific check.
+`rules/os/macos.md` for the specific check.
 
 - **WARN** if critical auto-updates are disabled
 

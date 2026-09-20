@@ -240,7 +240,7 @@ references** before rebooting:
 ```
 # In /boot/loader.conf (using real device name):
 vfs.root.mountfrom="ufs:/dev/ada0p3"
-# Console — see rules/freebsd.md §Console:
+# Console — see rules/os/freebsd.md §Console:
 console="vidconsole"  # x86_64 UTM/QEMU or VGA
 # console="efi"       # ARM64 UTM/QEMU only
 ```
@@ -250,7 +250,7 @@ When installing FreeBSD via QEMU for a target that
 boots natively, the console in loader.conf must
 match the real hardware (e.g. `efi` for a UTM VM,
 `vidconsole` for physical server). See
-`rules/freebsd.md` §"Console Configuration".
+`rules/os/freebsd.md` §"Console Configuration".
 
 Without it, the loader guesses root from
 `currdev`, which may resolve differently between

@@ -3,6 +3,24 @@
 Before doing any work on a server, you **must** know
 its OS.
 
+Detection is what makes `rules/os/` reachable. Those
+five files are not rules that fire on a situation —
+they are reference data addressed by a fact this
+procedure establishes. Detection reads **at most one**
+of them: the family it just established, and no other.
+A distribution no family covers gets none of them; step
+2 below says what to do instead. Never reach for the
+nearest file — a Debian reference on an Alpine host
+prescribes the wrong package manager and the wrong
+firewall.
+
+That cap is on detection, not on the session. A
+workflow that deals with two operating systems at once
+— an OS replacement, a dual-boot setup — reads the
+file for each of them, old and new, because each is a
+fact about a real system. The `hostwarden-os-install`
+skill says so where it needs it.
+
 ## On first connection
 
 0. **Check access control and DNS alias.** For remote
@@ -27,21 +45,21 @@ its OS.
    the user, proceed cautiously with generic
    commands, and apply extra verify-before-running
    care.
-   Read `rules/<family>.md`. Gather hardware info
+   Read `rules/os/<family>.md`. Gather hardware info
    (`lscpu`, `free -h`, `df -h`).
 
 3. **If macOS** — detect version and arch:
    ```
    sw_vers -productVersion && uname -m
    ```
-   Read `rules/macos.md`. Gather hardware info
+   Read `rules/os/macos.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`).
 
 4. **If FreeBSD** — detect version and arch:
    ```
    freebsd-version && uname -m
    ```
-   Read `rules/freebsd.md`. Gather hardware info
+   Read `rules/os/freebsd.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`,
    `zpool status` if ZFS).
 

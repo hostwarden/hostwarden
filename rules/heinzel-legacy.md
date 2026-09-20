@@ -83,7 +83,7 @@ looking for an SSH problem that is not there.
 
 Split the output on the markers. Use the OS's own
 equivalents where these commands do not exist
-(`rules/freebsd.md`, `rules/macos.md`).
+(`rules/os/freebsd.md`, `rules/os/macos.md`).
 
 `/root/heinzel-scratch` and `/var/backups/heinzel`
 are usually unreadable as an ordinary user, and

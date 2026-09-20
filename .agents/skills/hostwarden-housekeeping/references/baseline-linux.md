@@ -55,7 +55,7 @@ or last session, flag it:
 
 ## Pending Security Updates
 
-Use the distro-specific command from the loaded `rules/<family>.md`
+Use the distro-specific command from the loaded `rules/os/<family>.md`
 file. Report two numbers where cheap: total pending upgrades and
 the security-only subset. Do not present the total as "security
 updates" — that overstates the finding.

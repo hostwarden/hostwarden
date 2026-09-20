@@ -59,6 +59,25 @@ if [ -n "$STALE" ]; then
   echo "then delete the old files."
 fi
 
+# The five OS-family files moved from rules/<name>.md
+# into rules/os/<name>.md, and an override answers to
+# the path of what it overrides — so a personal
+# debian.md is read at os/debian.md now, and one left
+# at the old path is silently never read again. Unlike
+# the five above, each of these has exactly one
+# destination, so move it rather than ask.
+for name in debian rhel suse freebsd macos; do
+  f="memory/custom-rules/$name.md"
+  [ -e "$f" ] || continue
+  if [ -e "memory/custom-rules/os/$name.md" ]; then
+    echo "hostwarden: kept $f — memory/custom-rules/os/$name.md exists, merge by hand"
+    continue
+  fi
+  mkdir -p memory/custom-rules/os
+  mv "$f" "memory/custom-rules/os/$name.md"
+  MOVED="$MOVED\n  $f → memory/custom-rules/os/$name.md"
+done
+
 if [ -n "$MOVED" ]; then
   printf "hostwarden migration — moved user state:%b\n" "$MOVED"
   echo "Review any personal scripts or cron jobs that"
