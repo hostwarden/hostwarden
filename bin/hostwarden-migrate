@@ -17,66 +17,66 @@ cd "$REPO_DIR"
 
 MOVED=""
 
-# memory/custom-rules/heinzel-<skill>.md →
-# hostwarden-<skill>.md: skill overrides are found by
-# the skill's name, which changed with the rename from
-# heinzel. An existing hostwarden-* file wins; the
-# heinzel-* one then stays for the user to merge.
+# move_override <old-path> <new-name-under-custom-rules>
+# An override already at the new path wins: only the user
+# can merge two customizations, so the old file stays and
+# says so.
+move_override() {
+  [ -e "$1" ] || return 0
+  if [ -e "memory/custom-rules/$2" ]; then
+    echo "hostwarden: kept $1 — memory/custom-rules/$2 exists, merge by hand"
+    return 0
+  fi
+  mkdir -p "memory/custom-rules/$(dirname "$2")"
+  mv "$1" "memory/custom-rules/$2"
+  MOVED="$MOVED\n  $1 → memory/custom-rules/$2"
+}
+
+# An override's path mirrors the path of what it
+# overrides (rules/overrides.md). Topics that moved
+# between rules/ and a skill therefore answer to a new
+# path, and a customization left at the old one is
+# silently never read again — which is the one failure
+# this file exists to prevent. Same rule as above: an
+# override already at the new path wins and the old one
+# stays for the user to merge.
+#
+# One line per topic that moved. A topic that only
+# changes directory keeps its file name.
+MAP='mise hostwarden-runtimes.md
+deployment hostwarden-deploy-user.md
+scheduled-housekeeping hostwarden-housekeeping/scheduled.md
+os-replacement hostwarden-os-install/os-replacement.md
+partition-staging hostwarden-os-install/partition-staging.md
+dual-boot hostwarden-os-install/dual-boot.md
+efi-boot hostwarden-os-install/efi-boot.md
+cloud-image hostwarden-os-install/cloud-image.md
+debian os/debian.md
+rhel os/rhel.md
+suse os/suse.md
+freebsd os/freebsd.md
+macos os/macos.md'
+
 if [ -d memory/custom-rules ]; then
+  # memory/custom-rules/heinzel-<skill>.md →
+  # hostwarden-<skill>.md: a skill override is found by the
+  # skill's name, which changed with the rename from heinzel.
   for f in memory/custom-rules/heinzel-*.md; do
     [ -e "$f" ] || continue
     name=$(basename "$f")
-    new="hostwarden-${name#heinzel-}"
-    if [ -e "memory/custom-rules/$new" ]; then
-      echo "hostwarden: kept $f — memory/custom-rules/$new exists, merge by hand"
-      continue
-    fi
-    mv "$f" "memory/custom-rules/$new"
-    MOVED="$MOVED\n  $f → memory/custom-rules/$new"
+    move_override "$f" "hostwarden-${name#heinzel-}"
   done
+
+  # Fed by redirection, not `echo "$MAP" | while`: a pipeline
+  # runs the loop in a subshell, where every move it recorded
+  # would be lost before the summary below reads it.
+  while read -r old new; do
+    [ -n "$old" ] || continue
+    move_override "memory/custom-rules/$old.md" "$new"
+  done <<EOF
+$MAP
+EOF
 fi
-
-# The disk, boot and OS-installation rules left
-# rules/ for the hostwarden-os-install skill, and a
-# skill has one override slot named after it. Five
-# files cannot be merged into one mechanically, so
-# they stay where they are and the user is told. The
-# notice repeats until they are merged or deleted —
-# a silent no-op here would mean a silently ignored
-# override on the most destructive workflow there is.
-STALE=""
-for name in os-replacement dual-boot efi-boot \
-            cloud-image partition-staging; do
-  [ -e "memory/custom-rules/$name.md" ] || continue
-  STALE="$STALE\n  memory/custom-rules/$name.md"
-done
-
-if [ -n "$STALE" ]; then
-  printf "hostwarden: rule overrides no longer read:%b\n" "$STALE"
-  echo "Those rules are now the hostwarden-os-install"
-  echo "skill. Merge what you still want into"
-  echo "memory/custom-rules/hostwarden-os-install.md,"
-  echo "then delete the old files."
-fi
-
-# The five OS-family files moved from rules/<name>.md
-# into rules/os/<name>.md, and an override answers to
-# the path of what it overrides — so a personal
-# debian.md is read at os/debian.md now, and one left
-# at the old path is silently never read again. Unlike
-# the five above, each of these has exactly one
-# destination, so move it rather than ask.
-for name in debian rhel suse freebsd macos; do
-  f="memory/custom-rules/$name.md"
-  [ -e "$f" ] || continue
-  if [ -e "memory/custom-rules/os/$name.md" ]; then
-    echo "hostwarden: kept $f — memory/custom-rules/os/$name.md exists, merge by hand"
-    continue
-  fi
-  mkdir -p memory/custom-rules/os
-  mv "$f" "memory/custom-rules/os/$name.md"
-  MOVED="$MOVED\n  $f → memory/custom-rules/os/$name.md"
-done
 
 if [ -n "$MOVED" ]; then
   printf "hostwarden migration — moved user state:%b\n" "$MOVED"

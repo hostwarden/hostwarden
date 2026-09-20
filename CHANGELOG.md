@@ -25,7 +25,12 @@
   when one matches nothing shipped instead of ignoring
   it silently. A skill's *trigger* stays uncustomizable
   per file and belongs in `all.md`; `rules/overrides.md`
-  says so rather than leaving it to be discovered.
+  says so rather than leaving it to be discovered. When
+  an upgrade moves a topic between mechanisms,
+  `bin/hostwarden-migrate` moves the matching override
+  with it instead of leaving it at a path nothing reads
+  — which matters for a checkout adopted from heinzel,
+  where such files already exist.
 - **Repo-development conventions load only when repo
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the
@@ -96,18 +101,19 @@
   only when a machine has no console.
 
 - **Rule overrides for the moved disk and boot rules
-  are no longer read.** An override is found by the
-  file name it overrides, and those files left
-  `rules/`, so a personal
-  `memory/custom-rules/os-replacement.md`,
+  are relocated with them.** An override is found by
+  the file name it overrides, and those files left
+  `rules/` for the `hostwarden-os-install` skill, so
+  a personal `memory/custom-rules/os-replacement.md`,
   `dual-boot.md`, `efi-boot.md`, `cloud-image.md` or
-  `partition-staging.md` stops taking effect with
-  this release. Merge what you still want into
-  `memory/custom-rules/hostwarden-os-install.md` and
-  delete the old file. `bin/hostwarden-migrate` names
-  the ones it finds and repeats the notice until they
-  are gone — but it runs from the update path, so a
-  plain `git pull` never shows it.
+  `partition-staging.md` would stop taking effect at
+  its old path. `bin/hostwarden-migrate` moves each
+  one into `memory/custom-rules/hostwarden-os-install/`
+  under the same name, and keeps a file whose
+  destination already exists so nothing is
+  overwritten. It runs from the update path, so a
+  checkout refreshed with a plain `git pull` keeps the
+  old paths until `bin/hostwarden-update` runs once.
 
 - **heinzel is now hostwarden.** The project
   continues heinzel 2.22.0 as an independent
