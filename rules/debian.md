@@ -108,7 +108,7 @@ to the user immediately.
 **Step 5 — Log the override:**
 
 ```bash
-logger -t heinzel \
+logger -t hostwarden \
   "Installed <package> from testing (pinned, \
 user override: stable had no option)"
 ```
@@ -161,7 +161,7 @@ third-party PPAs.
   `/etc/nftables.conf`, whose stock version starts
   with `flush ruleset`, so starting, reloading or
   stopping it wipes ufw's rules. A host that runs it
-  needs no ufw on top. Checks: `heinzel-security` →
+  needs no ufw on top. Checks: `hostwarden-security` →
   `references/firewall-nftables-docker.md`.
 
 ## Automatic Security Updates

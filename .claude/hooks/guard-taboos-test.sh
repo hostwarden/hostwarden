@@ -25,7 +25,7 @@ check() {
   EXPECT=$1
   CMDSTR=$2
   OUT=$(json_for "$CMDSTR" \
-    | env -u HEINZEL_GUARD_DISABLE sh "$HOOK")
+    | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
     GOT=deny
@@ -69,8 +69,8 @@ check deny "sed -i 's/^/#/' /etc/ssh/sshd_config"
 check deny 'ssh h "echo PermitRootLogin yes >> /etc/ssh/sshd_config"'
 check deny 'tee /etc/ssh/sshd_config < new.conf'
 check deny 'vi /etc/ssh/sshd_config'
-check deny 'HEINZEL_GUARD_DISABLE=1 mkfs.ext4 /dev/sda1'
-check deny 'export HEINZEL_GUARD_DISABLE=1; fdisk /dev/sda'
+check deny 'HOSTWARDEN_GUARD_DISABLE=1 mkfs.ext4 /dev/sda1'
+check deny 'export HOSTWARDEN_GUARD_DISABLE=1; fdisk /dev/sda'
 
 # --- exemption must belong to the taboo invocation (issue #4) ---
 # A -l / -r / -c anywhere in the string used to disarm the rule,
@@ -253,10 +253,10 @@ check deny "perl -e 'open(D,\">\",\"/dev/nvme0n1\"); print D chr(0)'"
 check deny "node -e \"require('fs').writeFileSync('/dev/vda','')\""
 
 # --- SSH connection sharing (rules/ssh-connections.md) ---------
-# heinzel's control socket must not read as key material, or
+# hostwarden's control socket must not read as key material, or
 # every remote rm/mv/chmod sent with the standard options is
 # denied (see the accepted false positives in the guard).
-check pass 'ssh -o ControlMaster=auto -o ControlPath=~/.cache/heinzel/ssh-%C root@h "rm -f /var/tmp/old.log; chmod 644 /etc/motd"'
+check pass 'ssh -o ControlMaster=auto -o ControlPath=~/.cache/hostwarden/ssh-%C root@h "rm -f /var/tmp/old.log; chmod 644 /etc/motd"'
 
 # --- must pass -------------------------------------------------
 check pass 'fdisk -l'
@@ -282,7 +282,7 @@ check pass 'df -h'
 check pass 'echo halting services'
 check pass 'dd if=/dev/sda of=/root/disk-backup.img'
 check pass 'uname -a'
-check pass 'echo see HEINZEL_GUARD_DISABLE in the docs'
+check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 
 # --- every code block the skills and rules ship passes ---------
 # A taboo word used as data in a documented probe is denied like
@@ -290,8 +290,8 @@ check pass 'echo see HEINZEL_GUARD_DISABLE in the docs'
 # security skill once skipped inert login shells by a regex of
 # their names; the deny pins why that shape was retired. A block
 # meant to be denied says so after the language on its fence:
-# `operator` (the user runs it, heinzel never does) or `guard-off`
-# (heinzel runs it only after the user relaunched with the
+# `operator` (the user runs it, hostwarden never does) or `guard-off`
+# (hostwarden runs it only after the user relaunched with the
 # override, so its file must say how). The file name in each
 # block path keeps names unique when find starts awk twice.
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
@@ -324,12 +324,12 @@ NGUARDOFF=0
 while read -r md; do
   [ -n "$md" ] || continue
   NGUARDOFF=$((NGUARDOFF + 1))
-  if grep -q 'HEINZEL_GUARD_DISABLE' "$md"; then
+  if grep -q 'HOSTWARDEN_GUARD_DISABLE' "$md"; then
     PASS=$((PASS + 1))
   else
     FAIL=$((FAIL + 1))
     echo "FAIL: $md has guard-off blocks but never names" \
-      "HEINZEL_GUARD_DISABLE"
+      "HOSTWARDEN_GUARD_DISABLE"
   fi
 done <<EOF
 $(grep -rlE --include='*.md' \
@@ -350,7 +350,7 @@ PROBE=$(awk '/^## System Accounts with Login Shells/ { s = 1 }
   s && b && /^```$/ { exit }
   b { print }
   s && /^```bash$/ { b = 1 }' \
-  "$CLAUDE_DIR/skills/heinzel-security/references/user-accounts.md")
+  "$CLAUDE_DIR/skills/hostwarden-security/references/user-accounts.md")
 WANT="bash empty ksh postgres py root "
 GOT=$(printf '%s\n' \
   'root:x:0:0:root:/root:/bin/bash' \
@@ -522,9 +522,9 @@ check pass 'ls -ln /etc/ssh/sshd_config'
 # are the ones that make the exemption safe; if any of them ever
 # flips to pass, the exemption has become a hole.
 #
-# The exact command that exposed this: heinzel's own changelog
+# The exact command that exposed this: hostwarden's own changelog
 # write, blocked over the word inside the prose.
-check pass 'cat >> /Users/s/heinzel/memory/servers/h/changelog.log <<EOF
+check pass 'cat >> /Users/s/hostwarden/memory/servers/h/changelog.log <<EOF
   Verify: clean shutdown checkpoint + database ready.
 EOF'
 check pass 'cat >> notes.md <<EOF
@@ -582,7 +582,7 @@ fdisk /dev/sda'
 check deny 'cat > /dev/sda <<EOF
 anything
 EOF'
-check deny 'cat > /etc/cron.d/heinzel-job <<EOF
+check deny 'cat > /etc/cron.d/hostwarden-job <<EOF
 0 3 * * * root shutdown -h now
 EOF'
 check deny 'cat > /etc/systemd/system/x.service <<EOF
@@ -661,7 +661,7 @@ printf '#!/bin/sh\nexit 2\n' > "$SHIM2/awk"
 chmod +x "$SHIM2/awk"
 OUT=$(json_for 'cat >> /tmp/doc.md <<EOF
 shutdown -h now
-EOF' | env -u HEINZEL_GUARD_DISABLE PATH="$SHIM2:$PATH" sh "$HOOK")
+EOF' | env -u HOSTWARDEN_GUARD_DISABLE PATH="$SHIM2:$PATH" sh "$HOOK")
 if printf '%s' "$OUT" \
   | grep -q '"permissionDecision":"deny"'; then
   PASS=$((PASS + 1))
@@ -673,7 +673,7 @@ rm -rf "$SHIM2"
 
 # --- fallback path: malformed (non-JSON) stdin -----------------
 OUT=$(printf '%s' 'mkfs.ext4 /dev/sda1' \
-  | env -u HEINZEL_GUARD_DISABLE sh "$HOOK")
+  | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
 if printf '%s' "$OUT" \
   | grep -q '"permissionDecision":"deny"'; then
   PASS=$((PASS + 1))
@@ -684,12 +684,12 @@ fi
 
 # --- operator override via inherited environment ---------------
 OUT=$(json_for 'mkfs.ext4 /dev/sda1' \
-  | HEINZEL_GUARD_DISABLE=1 sh "$HOOK")
+  | HOSTWARDEN_GUARD_DISABLE=1 sh "$HOOK")
 if [ -z "$OUT" ]; then
   PASS=$((PASS + 1))
 else
   FAIL=$((FAIL + 1))
-  echo "FAIL: HEINZEL_GUARD_DISABLE=1 env did not disable guard"
+  echo "FAIL: HOSTWARDEN_GUARD_DISABLE=1 env did not disable guard"
 fi
 
 # --- degraded awk must fail CLOSED -----------------------------
@@ -701,7 +701,7 @@ SHIM=$(mktemp -d)
 printf '#!/bin/sh\nexit 2\n' > "$SHIM/awk"
 chmod +x "$SHIM/awk"
 OUT=$(json_for 'fdisk -l /dev/sda' \
-  | env -u HEINZEL_GUARD_DISABLE PATH="$SHIM:$PATH" sh "$HOOK")
+  | env -u HOSTWARDEN_GUARD_DISABLE PATH="$SHIM:$PATH" sh "$HOOK")
 if printf '%s' "$OUT" \
   | grep -q '"permissionDecision":"deny"'; then
   PASS=$((PASS + 1))

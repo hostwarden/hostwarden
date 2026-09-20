@@ -5,7 +5,7 @@ when working with code in this repository.
 
 ## Project
 
-heinzel — Administration of Linux servers, FreeBSD
+hostwarden — Administration of Linux servers, FreeBSD
 servers, and macOS machines via SSH or locally.
 Supports any Linux distribution (Debian, Ubuntu,
 RHEL, CentOS, Fedora, SUSE, and others), FreeBSD,
@@ -22,7 +22,7 @@ machines happens over SSH.
 
 When the target is `localhost`, the user's own
 hostname, or otherwise clearly the local machine,
-heinzel operates in **local mode**:
+hostwarden operates in **local mode**:
 
 - **No SSH.** Commands run directly in the shell.
 - **No user prompt.** Use the current OS user.
@@ -66,14 +66,14 @@ SCP/rsync-over-SSH command (for rsync inside
 
     ssh -o BatchMode=yes -o ConnectTimeout=5 \
       -o ControlMaster=auto \
-      -o ControlPath=~/.cache/heinzel/ssh-%C \
+      -o ControlPath=~/.cache/hostwarden/ssh-%C \
       -o ControlPersist=10m \
       -o ServerAliveInterval=15 -o ServerAliveCountMax=3 …
 
 They share one connection per host and remote user
 across calls. A SessionStart hook creates the socket
 directory; where hooks do not run (OpenCode), run
-`mkdir -p -m 700 ~/.cache/heinzel` first.
+`mkdir -p -m 700 ~/.cache/hostwarden` first.
 
 **Fresh-login options** — for access tests and the
 single retry after a hanging call:
@@ -152,7 +152,7 @@ remote connection before any other work.
   explain it to the user, never rephrase or re-quote
   a command to evade the guard. Legitimate exceptions
   (e.g. OS replacement) require the operator to set
-  `HEINZEL_GUARD_DISABLE=1` before launching the
+  `HOSTWARDEN_GUARD_DISABLE=1` before launching the
   session.
   When *writing* a probe, remember the guard scans the
   whole command string and cannot tell a taboo word
@@ -271,10 +271,10 @@ are additions.
 The same override chain applies to skills in
 `.claude/skills/`. The global custom file for a skill
 mirrors the skill's full name — e.g.
-`memory/custom-rules/heinzel-housekeeping.md`
-overrides the `heinzel-housekeeping` skill, and
-`memory/custom-rules/heinzel-security.md` overrides
-`heinzel-security`. Per-server overrides live in the
+`memory/custom-rules/hostwarden-housekeeping.md`
+overrides the `hostwarden-housekeeping` skill, and
+`memory/custom-rules/hostwarden-security.md` overrides
+`hostwarden-security`. Per-server overrides live in the
 same `memory/servers/<hostname>/rules.md` file.
 
 ## Server Output and Anomaly Detection
@@ -332,7 +332,7 @@ short, friendly line before any reads, so the
 user understands what's happening:
 
 - Fresh install (nothing in memory yet):
-  *"Fresh heinzel install detected — nothing in
+  *"Fresh hostwarden install detected — nothing in
   memory yet. Ready when you are."*
 - Returning user: *"Session start — loading your
   preferences and access lists."*
@@ -365,7 +365,7 @@ server memory file.
 ## Activity Check
 
 Read `rules/activity-check.md`. On every connection,
-check the system journal for recent heinzel activity
+check the system journal for recent hostwarden activity
 and summarize it for the user.
 
 ## DNS Aliases
@@ -386,8 +386,8 @@ and less critical — see `rules/macos.md`.
 ## Housekeeping
 
 Routine health inspections. Only when the user asks.
-The `heinzel-housekeeping` skill in
-`.claude/skills/heinzel-housekeeping/` carries the full
+The `hostwarden-housekeeping` skill in
+`.claude/skills/hostwarden-housekeeping/` carries the full
 workflow, baseline checks, report format, and
 service-specific probes. Custom cross-server checks
 still live in `memory/housekeeping.md` (gitignored).
@@ -397,15 +397,15 @@ systemd timer + `claude -p`), read
 
 ## Security Audit
 
-Only when the user asks. The `heinzel-security` skill
-in `.claude/skills/heinzel-security/` carries the full
+Only when the user asks. The `hostwarden-security` skill
+in `.claude/skills/hostwarden-security/` carries the full
 workflow, SSH / firewall / account / sysctl / file-
 permission checks, and the report format.
 
 ## Email Reports
 
-Only when the user asks. The `heinzel-email` skill in
-`.claude/skills/heinzel-email/` carries the full workflow:
+Only when the user asks. The `hostwarden-email` skill in
+`.claude/skills/hostwarden-email/` carries the full workflow:
 recipient resolution, sender-side choice (local vs remote),
 remote MTA detection, install fallback, least-privilege send
 (drops from root via `runuser`/`su -` when SSH'd as root),
@@ -417,8 +417,8 @@ existing `Mail:` / `Alert email:` lines pattern.
 
 ## Fleet Audit
 
-Only when the user asks. The `heinzel-fleet-audit` skill in
-`.claude/skills/heinzel-fleet-audit/` compares key policies
+Only when the user asks. The `hostwarden-fleet-audit` skill in
+`.claude/skills/hostwarden-fleet-audit/` compares key policies
 (unattended-upgrades, sshd effective config, firewall
 posture, MTA, time sync, auto-reboot behaviour) across all
 servers in `memory/servers/` and surfaces silent drift in a
@@ -445,9 +445,9 @@ out via `memory/service-policy.md` (three lists:
 `restart-never`). When asking about a restart,
 offer four options: once, always, no, never — the
 "always" and "never" answers write the service into
-the policy file so heinzel stops asking about it.
+the policy file so hostwarden stops asking about it.
 
-If the *agent harness* (not heinzel) refuses a
+If the *agent harness* (not hostwarden) refuses a
 reload or restart — a permission error rather than
 a policy explanation — no rule file can lift it.
 Say so plainly and stop, rather than leaving the
@@ -609,7 +609,7 @@ for newer stable versions of installed software
 during housekeeping and when touching specific
 software. Nudge the user but never force upgrades.
 
-## Heinzel Versioning
+## Hostwarden Versioning
 
 The `VERSION` file at the repo root contains the
 current version (semver). Release notes are in
@@ -617,7 +617,7 @@ current version (semver). Release notes are in
 versions before and after `git pull` — if the
 version changed, inform the user what's new.
 Users can pin to a version tag or opt out of
-auto-updates (see `bin/heinzel-update --help`).
+auto-updates (see `bin/hostwarden-update --help`).
 
 Tags are created automatically by
 `.github/workflows/tag-release.yml` when a `VERSION`
@@ -625,10 +625,23 @@ bump lands on `main`. Do not create tags manually;
 just commit the bump and push.
 
 **Do not read `CHANGELOG.md` unless the user asks.**
-It's mostly for heinzel developers tracking
+It's mostly for hostwarden developers tracking
 releases, not for sysadmin sessions, and loading
 it just inflates context. For repo history, use
 `git log`.
+
+## Upstream heinzel
+
+hostwarden grew out of
+[heinzel](https://github.com/wintermeyer/heinzel)
+and branched off at tag `heinzel-2.22.0`. The
+`upstream` remote points there, read-only and
+without tags. Improvements from heinzel are ported
+selectively, not merged: cherry-pick or rewrite,
+then rename to hostwarden, and add a trailer
+`Ported-from: wintermeyer/heinzel@<sha>` so
+`git log --grep Ported-from` shows what is already in.
+Nothing from hostwarden is pushed to `upstream`.
 
 ## Conventions
 

@@ -21,7 +21,7 @@ pre-create them.
 203.0.113.50
 ```
 
-The user can add or remove entries by asking heinzel
+The user can add or remove entries by asking hostwarden
 to edit the file, or by editing it directly.
 
 ## Shared Lookup Logic
@@ -84,7 +84,7 @@ read-only does not block access.
 - Local memory and changelog updates, including
   creating `todo.md` (a purely local file — only
   the remote host is read-only)
-- `logger -t heinzel` entries on the server
+- `logger -t hostwarden` entries on the server
 
 **Blocked in read-only mode:**
 - Package install, update, or remove
@@ -101,5 +101,5 @@ unprivileged mode sysadmin report.
 
 **No override:** read-only mode is a hard constraint.
 The user must remove the entry from
-`memory/readonly.md` before heinzel will modify the
+`memory/readonly.md` before hostwarden will modify the
 server.

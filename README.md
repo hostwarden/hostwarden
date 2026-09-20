@@ -1,6 +1,6 @@
-# Heinzel — System Administration with Safety Guardrails
+# Hostwarden — System Administration with Safety Guardrails
 
-Heinzel is a set of rules that turns an AI coding
+Hostwarden is a set of rules that turns an AI coding
 assistant into a cautious, methodical sysadmin. It
 works with
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code),
@@ -12,7 +12,7 @@ local machine alike — and runs on any workstation
 where your AI tool runs, including Windows (via WSL
 or natively).
 
-Describe what you need in plain English, and Heinzel
+Describe what you need in plain English, and Hostwarden
 figures out the right commands for your OS, proposes
 each one with an explanation, and waits for your
 approval before running anything. It backs up configs,
@@ -23,12 +23,22 @@ report when it's finished.
 Using it feels like pair-programming with a colleague
 who always checks the docs first and never skips a
 step because he's in a hurry. The bigger the network,
-the more it pays off — Heinzel remembers every server's
+the more it pays off — Hostwarden remembers every server's
 OS, services, and quirks so you don't have to. Not
-sure yet? Ask Heinzel to plan first before making
+sure yet? Ask Hostwarden to plan first before making
 changes — no changes until you say go.
 
+hostwarden continues
+[heinzel](https://github.com/wintermeyer/heinzel) by
+Stefan Wintermeyer as an independent project. It keeps
+heinzel's history and still takes over heinzel's
+improvements where they fit. Coming from heinzel? See
+[Moving over from heinzel](#moving-over-from-heinzel).
+
 ## Screencast: Debug and fix some webserver problems
+
+The screencasts were recorded with heinzel, before the
+rename.
 
 ![Screencast: Debug and fix some webserver problems](assets/webshop-bugfix-example.gif)
 
@@ -40,7 +50,7 @@ changes — no changes until you say go.
 
 ## Press
 
-- [German Artikel about Heinzel on heise.de](https://www.heise.de/ratgeber/KI-Assistent-Heinzel-fuer-die-Server-Administration-im-Ueberblick-11244463.html)
+- [German article about heinzel, the predecessor, on heise.de](https://www.heise.de/ratgeber/KI-Assistent-Heinzel-fuer-die-Server-Administration-im-Ueberblick-11244463.html)
 
 ## How to Install
 
@@ -57,9 +67,9 @@ changes — no changes until you say go.
   This is not needed for local administration
   (localhost / your own machine).
 
-  Heinzel shares one SSH connection per host and
+  Hostwarden shares one SSH connection per host and
   keeps it open for 10 minutes after the last call.
-  The sockets live in `~/.cache/heinzel` (mode 0700),
+  The sockets live in `~/.cache/hostwarden` (mode 0700),
   so any process of your local user can use an open
   connection without asking for the key again.
 
@@ -72,7 +82,7 @@ changes — no changes until you say go.
 - Linux (any distribution), FreeBSD, or macOS on the
   target machines. All supported systems can also be
   managed locally without SSH.
-- **Workstation:** Heinzel itself runs wherever
+- **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows. On Windows, the recommended path is
   [WSL](https://learn.microsoft.com/windows/wsl/)
@@ -81,16 +91,16 @@ changes — no changes until you say go.
   [Git for Windows](https://gitforwindows.org/) —
   launch Claude Code or OpenCode from the bundled
   Git Bash terminal so the SessionStart
-  auto-update hook and `bin/heinzel-*` scripts can
+  auto-update hook and `bin/hostwarden-*` scripts can
   execute. PowerShell and `cmd.exe` are not
   supported as the launch shell.
 
 ### Steps
 
-1. **Clone the repo and start heinzel**
+1. **Clone the repo and start hostwarden**
    ```
-   git clone https://github.com/wintermeyer/heinzel.git
-   cd heinzel
+   git clone https://github.com/jpawlowski/hostwarden.git
+   cd hostwarden
    claude
    ```
    Or use `opencode` to launch OpenCode.
@@ -99,23 +109,23 @@ changes — no changes until you say go.
    ❯ Install postgresql on server1.example.com
    ```
 3. **Answer a few questions on the first connection**
-   The first time Heinzel connects to a new server,
+   The first time Hostwarden connects to a new server,
    it may ask for details it can't detect on its own
    — most commonly which SSH user to log in as. Your
    answers are stored in `memory/user.md` and the
-   per-server memory file, so Heinzel won't ask again
+   per-server memory file, so Hostwarden won't ask again
    on future sessions. You can also pre-fill
    `memory/user.md` by copying `memory/user.md.example`
    and editing it — this is also where you set a
    preferred language (e.g. `Language: German`).
 4. **Review and approve each command before it runs**
-   Heinzel proposes every SSH command, explains what
+   Hostwarden proposes every SSH command, explains what
    it does and why, and waits for your approval.
    Nothing runs without your say-so.
 
 ### Team setup
 
-Heinzel supports team use where multiple people share
+Hostwarden supports team use where multiple people share
 server state via git while keeping SSH usernames
 personal.
 
@@ -125,7 +135,7 @@ personal.
 2. Edit `.gitignore` to track server memory — the
    comments in the file explain which lines to
    comment out.
-3. If any team member uses heinzel locally (on their
+3. If any team member uses hostwarden locally (on their
    own machine), add their machine's hostname
    directory to `.gitignore` (e.g.
    `memory/servers/stefans-mbp/`).
@@ -134,7 +144,7 @@ personal.
 
 ## Updates & Versioning
 
-Heinzel uses [semantic versioning](https://semver.org).
+Hostwarden uses [semantic versioning](https://semver.org).
 The current version is in the `VERSION` file; changes
 are listed in `CHANGELOG.md`.
 
@@ -142,92 +152,62 @@ are listed in `CHANGELOG.md`.
 a hook runs `git pull` and reports version changes.
 No action needed. Auto-update is skipped when pinned
 to a tag (see below), when on a non-`main` branch, or
-when `HEINZEL_NO_UPDATE=1` is set.
+when `HOSTWARDEN_NO_UPDATE=1` is set.
 
 **Manual update (OpenCode / any tool):**
 
 ```bash
-bin/heinzel-update           # pull latest
-bin/heinzel-update --check   # check without pulling
+bin/hostwarden-update           # pull latest
+bin/hostwarden-update --check   # check without pulling
 ```
 
 **Pin to a stable version** (skip auto-updates):
 
 ```bash
-bin/heinzel-update --pin v1.0.0   # pin
-bin/heinzel-update --unpin        # back to main
+bin/hostwarden-update --pin vX.Y.Z   # pin
+bin/hostwarden-update --unpin        # back to main
 ```
 
 **Opt out of auto-update** without pinning:
 
 ```bash
-export HEINZEL_NO_UPDATE=1
+export HOSTWARDEN_NO_UPDATE=1
 ```
 
-### Upgrading from 1.x to 2.0.0
+### Moving over from heinzel
 
-2.0.0 consolidates all user state under `memory/`.
-Under 1.x, custom rules lived in `rules/custom/`
-and the OpenCode config lived at the repo root.
-The upgrade moves them automatically — no manual
-work in the common case.
-
-**Automatic (recommended).** Let the Claude Code
-session-start hook run on your next session, or run
-the update manually:
+hostwarden is a new clone, not an update of your
+heinzel checkout. Your state moves with the backup
+script, which both projects share:
 
 ```bash
-bin/heinzel-update
+cd /path/to/heinzel && bin/heinzel-backup
+cd /path/to/hostwarden && \
+  bin/hostwarden-backup --restore /path/to/heinzel-backup-<host>-<ts>.tar.gz
+bin/hostwarden-migrate
 ```
 
-The hook detects the old layout and migrates:
+The migration renames skill overrides in
+`memory/custom-rules/` from `heinzel-<skill>.md` to
+`hostwarden-<skill>.md`. What else changed:
 
-```
-rules/custom/*        →  memory/custom-rules/
-opencode.json         →  memory/opencode.json
-opencode.json.example →  memory/opencode.json.example
-```
-
-You'll see a one-time notice listing what moved.
-Re-running the hook is a no-op.
-
-**Manual** (if you're pinned to a 1.x tag or don't
-use the Claude Code hook). First unpin, then pull:
-
-```bash
-bin/heinzel-update --unpin
-bin/heinzel-update
-```
-
-Or move the files yourself:
-
-```bash
-mkdir -p memory/custom-rules
-[ -d rules/custom ] && \
-  mv rules/custom/* memory/custom-rules/ 2>/dev/null || true
-[ -f opencode.json ] && \
-  mv opencode.json memory/opencode.json
-[ -f opencode.json.example ] && \
-  mv opencode.json.example memory/opencode.json.example
-```
-
-**After upgrading**, review:
-
-- Any personal scripts or cron jobs that reference
-  the old paths.
-- Your `.gitignore` if you edited it for team mode
-  — the new defaults are re-organized around
-  `memory/` (see the comments in the file).
-- Take a fresh backup right after upgrading:
-  `bin/heinzel-backup`.
-
-**Rollback** if something goes wrong: restore your
-pre-upgrade backup, or pin back to the last 1.x
-release with `bin/heinzel-update --pin v1.0.6`.
+- Environment variables are now `HOSTWARDEN_*`.
+  `HEINZEL_NO_UPDATE` still works; the guard only
+  honours `HOSTWARDEN_GUARD_DISABLE`.
+- New journal entries on your servers use the tag
+  `hostwarden`. The activity check reads `heinzel`
+  entries as well, so earlier work stays visible.
+- New config backups go to `/var/backups/hostwarden/`.
+  Older ones stay in `/var/backups/heinzel/`.
+- SSH sockets live in `~/.cache/hostwarden`.
+- Scheduled runs (cron, systemd timers) need the new
+  path and script names.
+- heinzel's version tags are not carried over.
+  `--pin` only knows hostwarden releases.
 
 ## Backup & Restore
 
-Heinzel keeps all your personal state under a
+Hostwarden keeps all your personal state under a
 single directory — `memory/` — so backups are one
 `tar` command. The tree is text and typically well
 under a megabyte. No database, no hidden dotfiles,
@@ -250,18 +230,18 @@ no scattered config.
 ### Back up
 
 ```bash
-bin/heinzel-backup
+bin/hostwarden-backup
 ```
 
 Writes
-`heinzel-backup-<hostname>-<timestamp>.tar.gz` to
+`hostwarden-backup-<hostname>-<timestamp>.tar.gz` to
 the current directory. Use `--list` for a dry run,
 `-o <path>` to write somewhere specific.
 
 ### Restore
 
 ```bash
-bin/heinzel-backup --restore <file.tar.gz>
+bin/hostwarden-backup --restore <file.tar.gz>
 ```
 
 Refuses to overwrite existing `memory/` content
@@ -283,21 +263,21 @@ are always personal and still need this backup.
 
 ### Auto OS-detection
 
-The first time you point Heinzel at any machine, it
+The first time you point Hostwarden at any machine, it
 detects the OS, gathers hardware info, and remembers
 everything for future sessions.
 
 ### DNS alias detection
 
 When multiple DNS names point to the same server,
-Heinzel detects this automatically by comparing IP
+Hostwarden detects this automatically by comparing IP
 addresses. The first hostname becomes the canonical
 name; additional names become symlinks that share the
 same memory. Each alias can have its own SSH user.
 
 ### Memory across sessions
 
-After working on a machine, Heinzel remembers it.
+After working on a machine, Hostwarden remembers it.
 Next week you start a new session and type:
 
 ```
@@ -313,7 +293,7 @@ it left off.
 ### Session to-do list
 
 When a multi-step task gets interrupted — connection
-drop, conversation ends, laptop closes — Heinzel
+drop, conversation ends, laptop closes — Hostwarden
 keeps a to-do list in
 `memory/servers/<hostname>/todo.md` with checkboxes
 for each step. On reconnection it shows what's still
@@ -327,7 +307,7 @@ Run routine health inspections on any server:
  ❯ Run housekeeping on app.example.com
 ```
 
-Heinzel checks disk, memory, load, pending updates,
+Hostwarden checks disk, memory, load, pending updates,
 firewall, SSL certificates, failed services, and
 server-specific services. Problems are highlighted
 at the top of a concise report.
@@ -340,19 +320,19 @@ Check security configuration on any server:
  ❯ Run a security audit on app.example.com
 ```
 
-Heinzel checks SSH password authentication settings,
+Hostwarden checks SSH password authentication settings,
 firewall status, and reports issues by severity.
 
 ### Fleet audit
 
-Compare key policies across every server Heinzel knows about:
+Compare key policies across every server Hostwarden knows about:
 
 ```
  ❯ Run a fleet audit
  ❯ Vergleiche die Policies auf allen Servern
 ```
 
-Heinzel probes unattended-upgrades, sshd effective config,
+Hostwarden probes unattended-upgrades, sshd effective config,
 firewall posture, MTA, time sync, and auto-reboot behaviour
 on each host in `memory/servers/`, then renders a
 side-by-side table that highlights where servers disagree.
@@ -372,15 +352,15 @@ Send ad-hoc text or files by email about a managed server:
 
 The first email per host asks once where to send from
 (local workstation or the server itself) and remembers the
-answer. On the remote path Heinzel prefers an existing MTA
+answer. On the remote path Hostwarden prefers an existing MTA
 (postfix, sendmail, msmtp, mail/mailx) and asks before
 installing one. Sends as a non-root user when possible.
 Attachments check sender readability, file size, and offer
 a content preview before sending.
 
-Every message closes with a two-line greeting from Heinzel
-(`Viele Grüße / Heinzel`) followed by a short signature
-naming Heinzel, the project URL, and the operator who
+Every message closes with a two-line greeting from Hostwarden
+(`Viele Grüße / Hostwarden`) followed by a short signature
+naming Hostwarden, the project URL, and the operator who
 requested the send. The operator name comes from
 `Operator name:` in `memory/user.md` (with a sensible
 fallback chain to git config and the system full name).
@@ -389,7 +369,7 @@ overridable: a `Greeting:` line in `memory/user.md` or
 `memory/servers/<host>/memory.md` replaces the default
 wording.
 
-Every Heinzel email also carries the RFC 3834
+Every Hostwarden email also carries the RFC 3834
 `Auto-Submitted: auto-generated` header plus
 `Precedence: bulk` and `X-Auto-Response-Suppress: OOF,
 AutoReply`, so out-of-office and vacation auto-replies
@@ -405,18 +385,18 @@ before touching anything:
    PostgreSQL on db.example.com
 ```
 
-Heinzel explores the server, checks what's running,
+Hostwarden explores the server, checks what's running,
 reads configs, and drafts a step-by-step plan — but
 makes no changes. You discuss the approach, adjust
 it, and only when you approve does execution begin.
 
 > **Note:** The `/plan` command is a Claude Code
 > feature. OpenCode does not have an equivalent —
-> simply ask Heinzel to plan before acting.
+> simply ask Hostwarden to plan before acting.
 
 ### Local administration
 
-Heinzel also works on the local machine — no SSH
+Hostwarden also works on the local machine — no SSH
 needed, commands run directly. The same safety rules,
 memory, and guardrails apply whether the target is a
 remote server or your own laptop.
@@ -434,7 +414,7 @@ This works on both Linux and macOS:
 
 ## Supported AI Tools
 
-Heinzel works with Claude Code and OpenCode out of the
+Hostwarden works with Claude Code and OpenCode out of the
 box. Both read `CLAUDE.md` (OpenCode via its
 Claude-Code-compat fallback) and both auto-discover
 skills at `.claude/skills/*/SKILL.md`. The `rules/`
@@ -448,13 +428,13 @@ audit) need Skills-aware tooling.
 OpenCode note: if you've set
 `OPENCODE_DISABLE_CLAUDE_CODE=1`, OpenCode stops
 reading both `CLAUDE.md` and `.claude/skills/`. Leave
-that variable unset (the default) for heinzel to work.
+that variable unset (the default) for hostwarden to work.
 
 ### Claude Code
 
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 is Anthropic's CLI for Claude. It natively reads
-`CLAUDE.md` and is the primary tool Heinzel was
+`CLAUDE.md` and is the primary tool Hostwarden was
 developed with.
 
 ```
@@ -467,7 +447,7 @@ claude
 terminal AI tool that supports many providers,
 including local free models via
 [Ollama](https://ollama.com). This lets you run
-Heinzel entirely on your own hardware — no cloud
+Hostwarden entirely on your own hardware — no cloud
 API required.
 
 **1. Install Ollama and pull a model**
@@ -521,7 +501,7 @@ Start the model picker by typing `/models` in the OpenCode terminal.
 
 ## Command Line Interface
 
-You can script Heinzel from the command line without
+You can script Hostwarden from the command line without
 entering the interactive UI.
 
 ### Claude Code
@@ -654,12 +634,12 @@ on production servers.
 **When to stay with the default ask-everything mode:**
 
 - First time working on a production server
-- When you don't trust Heinzel or don't understand it
+- When you don't trust Hostwarden or don't understand it
 - Any time you want to understand what's happening
   step by step
 
-Whatever mode you pick, Heinzel's own safety rules
-still apply — Heinzel still backs up configs, tests
+Whatever mode you pick, Hostwarden's own safety rules
+still apply — Hostwarden still backs up configs, tests
 before applying, asks before destructive actions, and
 follows least privilege. Permission modes only change
 how often *you* are asked, not the built-in
@@ -672,11 +652,11 @@ practical — a nightly housekeeping run that emails
 you the report:
 
 ```
-17 6 * * * cd /path/to/heinzel && flock -n \
-  /tmp/heinzel-cron-server1.lock timeout 30m \
+17 6 * * * cd /path/to/hostwarden && flock -n \
+  /tmp/hostwarden-cron-server1.lock timeout 30m \
   /abs/path/to/claude --permission-mode auto \
   -p "Run housekeeping on server1.example.com and \
-email me the report" >> ~/heinzel-cron.log 2>&1
+email me the report" >> ~/hostwarden-cron.log 2>&1
 ```
 
 Two rules: run the exact prompt **interactively
@@ -689,8 +669,8 @@ pitfalls: `rules/scheduled-housekeeping.md`.
 
 ## Safety & Guardrails
 
-Heinzel's safety rules are not optional — they're
-baked into every session. Heinzel follows them
+Hostwarden's safety rules are not optional — they're
+baked into every session. Hostwarden follows them
 consistently, even when a human might skip steps
 under pressure.
 
@@ -715,19 +695,19 @@ under pressure.
   Read-only forms (`fdisk -l`, `gpart show`, …) stay
   allowed. For legitimate exceptions (OS
   replacement), launch the session with
-  `HEINZEL_GUARD_DISABLE=1`. OpenCode does not read
+  `HOSTWARDEN_GUARD_DISABLE=1`. OpenCode does not read
   Claude Code hooks — there the prose rules remain
   the safety layer.
 - **Verifies before it reports** — a finding that
   something is missing, broken, or "gone since the
   reboot" gets confirmed against the live system
   (real path from config, proof of absence, cause
-  actually shown) before Heinzel reports or
+  actually shown) before Hostwarden reports or
   escalates it, so a stale assumption never becomes
   a false alarm. See
   `rules/verify-before-reporting.md`.
 - **Backs up config files** — copies to
-  `/var/backups/heinzel/` before editing
+  `/var/backups/hostwarden/` before editing
   (auto-cleaned after 30 days).
 - **Tests before applying** — uses dry-run, test, or
   validation modes before real execution whenever a
@@ -736,7 +716,7 @@ under pressure.
   on Linux or `sw_vers` on macOS and applies the
   right commands for the platform. No guessing.
 - **Logs everything** — every change lands in the
-  system journal (`journalctl -t heinzel`) as a
+  system journal (`journalctl -t hostwarden`) as a
   one-line, plain-language headline (who did what,
   and why) that any admin can follow; the full
   technical detail (rollback paths, verification,
@@ -754,7 +734,7 @@ under pressure.
   root.
 - **Server blacklist** — add hostnames or IPs to
   `memory/blacklist.md` to permanently block
-  connection. Heinzel refuses to connect and won't
+  connection. Hostwarden refuses to connect and won't
   accept overrides.
 - **Read-only servers** — add hostnames or IPs to
   `memory/readonly.md` for servers you can inspect
@@ -775,7 +755,7 @@ under pressure.
   Likely-secret files are refused as email
   attachments by default.
 
-## How Heinzel Fights LLM Hallucinations
+## How Hostwarden Fights LLM Hallucinations
 
 LLMs can "hallucinate" — confidently produce commands
 with wrong flags, incorrect file paths, or syntax that
@@ -783,17 +763,17 @@ doesn't exist on the server's specific OS and version.
 On a live system, a hallucinated command can be
 dangerous.
 
-Heinzel reduces this risk with multiple layers:
+Hostwarden reduces this risk with multiple layers:
 
 - **Distro-specific rule files** — Instead of relying
-  on the LLM's memory, heinzel loads a verified rule
+  on the LLM's memory, hostwarden loads a verified rule
   file for each platform (Debian, RHEL, SUSE,
   macOS). These files contain the correct
   commands, package managers, firewall tools, and
   common pitfalls for each distro. The LLM reads
   the file and follows it — it doesn't have to
   guess.
-- **Verify before running** — heinzel is instructed
+- **Verify before running** — hostwarden is instructed
   to check `--help`, man pages, or upstream docs
   before running any command. This catches wrong
   flags and syntax before they reach the server.
@@ -813,23 +793,23 @@ of it at every step.
 
 ## Accessing Logs
 
-Heinzel logs every action to the system journal on
+Hostwarden logs every action to the system journal on
 each server. To query the log:
 
 ```bash
 # All entries
-journalctl -t heinzel
+journalctl -t hostwarden
 
 # Filter by date
-journalctl -t heinzel --since "2026-02-01"
+journalctl -t hostwarden --since "2026-02-01"
 
 # Last 20 entries
-journalctl -t heinzel -n 20
+journalctl -t hostwarden -n 20
 
 # macOS
 log show \
   --predicate 'senderImagePath CONTAINS "logger"' \
-  --info --last 7d | grep heinzel
+  --info --last 7d | grep hostwarden
 ```
 
 ## Supported Distributions
@@ -842,27 +822,27 @@ log show \
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/freebsd.md` |
 
-Other distributions work too — Heinzel will apply
+Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it
 detected.
 
 ## Risks & Responsibilities
 
 > [!CAUTION]
-> Heinzel operates on live servers and local machines
+> Hostwarden operates on live servers and local machines
 > — as root, with sudo, or in unprivileged mode.
 > Always review every command before approving it.
 
-Heinzel is for anyone willing to stay in the
+Hostwarden is for anyone willing to stay in the
 driver's seat and review every command — from
 newcomers learning Linux to veterans running fleets.
-In fact, Heinzel can be an especially good teacher:
+In fact, Hostwarden can be an especially good teacher:
 each proposed command comes with an explanation of
 *what* it does and *why*, so you learn the real
 sysadmin reasoning instead of copy-pasting Stack
 Overflow answers.
 
-We built Heinzel to be a help for everybody. By
+We built Hostwarden to be a help for everybody. By
 design, it follows the safety checklist every single
 time: it always backs up before editing, always
 dry-runs when it can, always checks the OS before
@@ -872,7 +852,7 @@ outage. But we can't guarantee it won't ever make
 one — LLMs can hallucinate, misread intent, or
 produce a command with unintended side effects.
 
-The question isn't whether Heinzel is risk-free —
+The question isn't whether Hostwarden is risk-free —
 it isn't. The question is whether a disciplined AI
 that follows every safety rule every time, with a
 human reviewing every command, produces fewer
@@ -884,7 +864,7 @@ not blindly approve.
 
 ## Rule Customization
 
-Heinzel supports layered rule overrides so you can
+Hostwarden supports layered rule overrides so you can
 customize behavior without editing the upstream rule
 files (which would cause merge conflicts on
 `git pull`).
@@ -927,9 +907,9 @@ CHANGELOG.md           — Release history
 CLAUDE.md              — Main instructions (read by Claude Code
                          and OpenCode)
 bin/
-  heinzel-update       — Update, pin, or check heinzel version
-  heinzel-backup       — Back up / restore your memory/ tree
-  heinzel-migrate      — One-shot 1.x→2.0 user-state migration
+  hostwarden-update       — Update, pin, or check hostwarden version
+  hostwarden-backup       — Back up / restore your memory/ tree
+  hostwarden-migrate      — One-shot 1.x→2.0 user-state migration
                          (called automatically on update)
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
@@ -941,13 +921,13 @@ bin/
     guard-taboos-test.sh — Dev-only fixture matrix for the
                          guard (run manually)
   skills/              — On-demand skills (progressive disclosure)
-    heinzel-housekeeping/  — Routine server inspection workflow
+    hostwarden-housekeeping/  — Routine server inspection workflow
                          (SKILL.md + references/)
-    heinzel-security/  — Security audit workflow
+    hostwarden-security/  — Security audit workflow
                          (SKILL.md + references/)
-    heinzel-email/     — Send ad-hoc text or files by email
+    hostwarden-email/     — Send ad-hoc text or files by email
                          from a server (SKILL.md)
-    heinzel-fleet-audit/   — Cross-server policy drift audit
+    hostwarden-fleet-audit/   — Cross-server policy drift audit
                          (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules
@@ -1025,32 +1005,20 @@ memory/                — All your user state (gitignored
     rules.md           — Per-server rule overrides
 ```
 
-## Why the Name Heinzel?
+## Why the Name Hostwarden?
 
-The name comes from the
-[Heinzelmännchen](https://en.wikipedia.org/wiki/Heinzelm%C3%A4nnchen)
-— the helpful gnomes of Cologne from German folklore.
-Every night, while the people of Cologne slept, the
-Heinzelmännchen crept out and did all the work: baking
-bread, building houses, finishing whatever was left
-undone. An invisible helper that quietly takes care of
-things — a fitting name for a system administration
-tool that handles the tedious work while you review
-and approve.
+A warden is the person responsible for a place: they
+look after it, keep it in order and answer for its
+state. hostwarden does that for your hosts, and you
+approve every step.
 
-## Professional Support
-
-Need help setting this up for your infrastructure, or
-want a team to manage your infrastructure with
-AI-assisted tooling?
-
-**[Wintermeyer Consulting](https://wintermeyer-consulting.de)**
-offers consulting and hands-on support for heinzel
-deployments — from initial setup to ongoing system
-management.
-
-Contact the project founder Stefan Wintermeyer and
-his team: **sw@wintermeyer-consulting.de**
+The project began as
+[heinzel](https://github.com/wintermeyer/heinzel),
+named after the
+[Heinzelmännchen](https://en.wikipedia.org/wiki/Heinzelm%C3%A4nnchen),
+the helpful house spirits of Cologne who did the work
+at night. hostwarden keeps that idea: an invisible
+helper that does the tedious work while you review.
 
 ## Contributing
 
