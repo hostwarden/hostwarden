@@ -2,7 +2,7 @@
 # guard-taboos.sh — PreToolUse hook (matcher: Bash).
 #
 # Mechanically enforces hostwarden's absolute taboos from
-# CLAUDE.md → Critical Safety Rules, below the model layer:
+# AGENTS.md → Critical Safety Rules, below the model layer:
 #
 #   - halt / poweroff / shutdown without -r / init 0 /
 #     telinit 0 / sysrq-trigger
@@ -389,7 +389,7 @@ deny() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
   printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
-  printf '(CLAUDE.md - Critical Safety Rules). Blocked in all '
+  printf '(AGENTS.md - Critical Safety Rules). Blocked in all '
   printf 'permission modes. Explain this to the user; do not '
   printf 'rephrase the command to evade the guard. Installing or '
   printf 'replacing an OS is the one flow that legitimately '

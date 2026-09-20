@@ -31,7 +31,7 @@ One call per logical step, not one per command:
 
 ## 2. Share connections
 
-The standard options in `CLAUDE.md` → SSH Options
+The standard options in `AGENTS.md` → SSH Options
 turn on OpenSSH connection sharing (`ControlMaster`):
 repeated calls ride **one TCP connection per local
 user, remote user, host and port**. Later calls are

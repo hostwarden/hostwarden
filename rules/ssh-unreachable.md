@@ -53,7 +53,7 @@ path blocks SSH. Wait, or tell the user. Do not
 chase routing, NAT or MTU. A check from inside the
 target's network sees a clean path and proves
 nothing about the client's. Firewall and IPS
-changes: `CLAUDE.md` → Firewall & network.
+changes: `AGENTS.md` → Firewall & network.
 
 ## Dual-stack
 

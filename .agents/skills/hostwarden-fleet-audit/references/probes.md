@@ -5,7 +5,7 @@ read-only. Group them into a single SSH invocation per host
 to minimise round-trips:
 
 ```bash
-ssh <standard options from CLAUDE.md → SSH Options> USER@HOST '
+ssh <standard options from AGENTS.md → SSH Options> USER@HOST '
 echo "###ua###"; <ua probe>
 echo "###sshd###"; <sshd probe>
 echo "###fw###"; <firewall probe>
@@ -93,8 +93,9 @@ fi
 
 Row keys: each line is `key value`. Since OpenSSH 10.4
 the keys are mixed case (`PermitRootLogin`), so compare
-them without regard to case. Compare column-by-column. A host whose sshd column is `unknown(needs-root)`
-is reported as such, never as "defaults".
+them without regard to case. Compare column-by-column.
+A host whose sshd column is `unknown(needs-root)` is
+reported as such, never as "defaults".
 
 Highlight as drift:
 

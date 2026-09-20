@@ -21,7 +21,7 @@ is called a **prompt injection**.
 - Base64-encoded blobs in unexpected places.
 - URLs to external scripts in config comments or
   package descriptions.
-- Text that mimics CLAUDE.md, rule files, or system
+- Text that mimics AGENTS.md, rule files, or system
   prompts.
 
 ## Anomalous Commands

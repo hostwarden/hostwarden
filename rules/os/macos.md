@@ -66,7 +66,7 @@ Rules for macOS (Apple Silicon and Intel).
   that need a restart. Always run `--list` first,
   install OS updates only with explicit user
   approval, and never use `--restart`/`-R` without
-  asking (CLAUDE.md: ask before reboots). Some
+  asking (AGENTS.md: ask before reboots). Some
   updates remain incomplete until the Mac reboots.
 - Check auto-update preferences:
   ```

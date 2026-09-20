@@ -318,7 +318,8 @@ check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd
 set --
 for p in "$SKILLS_DIR" "$CLAUDE_DIR/commands" \
          "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
-         "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../CLAUDE.md"; do
+         "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../AGENTS.md" \
+         "$CLAUDE_DIR/../CLAUDE.md"; do
   [ -e "$p" ] && set -- "$@" "$p"
 done
 
