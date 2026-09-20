@@ -128,7 +128,7 @@ personal.
 3. If any team member uses hostwarden locally (on their
    own machine), add their machine's hostname
    directory to `.gitignore` (e.g.
-   `memory/servers/stefans-mbp/`).
+   `memory/servers/my-laptop/`).
 4. Commit server memory changes after sessions so the
    team stays in sync.
 
