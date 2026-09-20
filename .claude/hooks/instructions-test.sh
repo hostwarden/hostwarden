@@ -13,17 +13,42 @@ ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 PASS=0
 FAIL=0
 
+ok()   { PASS=$((PASS + 1)); }
+bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+
 # shellcheck source=corpus.sh
 . "$CLAUDE_DIR/hooks/corpus.sh"
 
 # One awk over the whole corpus: prefix each line with its file
 # and drop URLs, in a single process rather than two per file.
-# shellcheck disable=SC2046
-SCAN=$(awk -v root="$CORPUS_ROOT/" '
+#
+# Fed NUL-separated through xargs rather than as an unquoted
+# $(corpus_files): a checkout under a path with a space in it split
+# into arguments awk could not open, and with its diagnostics
+# discarded SCAN came back empty -- every check below then passed
+# over nothing at all. That is the one failure this file cannot
+# have, so awk's stderr is kept and an empty scan is a failure.
+#
+# A URL's host is a link, not an identifier the example claims to
+# own, so it goes. Its path does not: an address literal written
+# as https://192.0.2.7/status is still an address, and the IPv4
+# check has to see it.
+SCAN=$(corpus_files | tr '\n' '\0' \
+  | xargs -0 awk -v root="$CORPUS_ROOT/" '
   { n = FILENAME
     if (index(n, root) == 1) n = substr(n, length(root) + 1)
-    gsub(/https?:\/\/[^ )"`,]*/, "")
-    print n ": " $0 }' $(corpus_files) 2>/dev/null)
+    gsub(/https?:\/\/[^\/ )"`,]*/, " ")
+    # A command continued with a trailing backslash puts its
+    # destination on the next line, where nothing says it belongs
+    # to an ssh. Join them, so the checks below see one command.
+    if (held != "") { $0 = held " " $0; held = "" }
+    if ($0 ~ /\\[ \t]*$/) { sub(/\\[ \t]*$/, "", $0); held = $0; next }
+    print n ": " $0 }
+  END { if (held != "") print n ": " held }')
+if [ -z "$SCAN" ]; then
+  bad "the corpus scan came back empty -- every identifier and" \
+      "pointer check below would pass over nothing"
+fi
 
 report() {
   # report <findings> <what-they-are>
@@ -41,8 +66,6 @@ report() {
 }
 
 
-ok()   { PASS=$((PASS + 1)); }
-bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 
 # --- the corpus still covers the tree --------------------------
 # A path that falls out of CORPUS_PATHS does not fail anything on
@@ -114,8 +137,23 @@ if [ -f "$MIGRATE" ]; then
   BAD_MAP=$(
     sed -n "/^MAP='/,/'\$/p" "$MIGRATE" \
       | sed "s/^MAP='//; s/'\$//" \
-      | while read -r _old new; do
-          [ -n "$new" ] || continue
+      | while read -r old new; do
+          # Only a wholly blank row is nothing. A row that names a
+          # topic and no destination makes the script move the
+          # override onto memory/custom-rules/ itself.
+          [ -n "$old" ] || continue
+          if [ -z "$new" ]; then
+            echo "bin/hostwarden-migrate: '$old' with no destination"
+            continue
+          fi
+          # The destination is a file name, and the override lookup
+          # reads .md. Without it the move lands somewhere nothing
+          # reads, which is the failure this table exists to stop.
+          case "$new" in
+            (*.md) ;;
+            (*) echo "bin/hostwarden-migrate: $new (no .md suffix)"
+                continue ;;
+          esac
           skill="${new%%/*}"
           leaf="${new##*/}"
           if [ "$skill" = "$new" ]; then
@@ -137,8 +175,8 @@ fi
 # references/ segment. Two shipped files that mirror to one path
 # leave the user's override pointing at both and applying to
 # whichever is read first. Comparing top-level names only would
-# miss the nested seam: rules/foo/bar.md and skill foo's
-# references/bar.md both mirror to foo/bar.md.
+# miss the nested seam: a rule file one level down and a skill
+# reference of the same name both mirror to one path.
 #
 # So mirror everything and look for a repeat.
 MIRRORED=$(
@@ -150,7 +188,8 @@ MIRRORED=$(
     | sed "s#^$ROOT/.agents/skills/##; s#/references/#/#"
 )
 # `all.md` is the every-file override the preflight loads, so a
-# rules/all.md or a skill called `all` would mirror onto it and be
+# a rule file named `all`, or a skill of that name, would mirror
+# onto it and be
 # both at once. Seeding the list with it makes that a duplicate.
 CLASH=$(printf '%s\nall.md\n' "$MIRRORED" | sed '/^$/d' \
   | LC_ALL=C sort | LC_ALL=C uniq -d)
@@ -180,11 +219,24 @@ fi
 # have been read simply is not, and nothing says so. Three more
 # shapes of pointer exist, so three more checks.
 
-# `rules/...md` paths, named from anywhere.
+# `rules/...md` paths, named from anywhere -- in backticks, in a
+# Markdown link, or bare in a sentence. A rename breaks all three
+# the same way, so the formatting is not part of the pointer.
+#
+# The left boundary earns its place: an override path under
+# `memory/custom-rules/`, and any path under `.claude/rules/`,
+# both end in the same shape a pointer has. Without a boundary
+# every one of them reads as a pointer at a rule that does not
+# exist, and this check drowns in its own corpus.
+#
+# CHANGELOG.md is out of scope. It is the one file that records a
+# change as a change -- the release rule in `.claude/rules/` says
+# so -- which means it names paths that moved, by design.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+:|`rules/[a-z0-9/_-]+\.md`' \
+  | grep -v '^CHANGELOG\.md: ' \
+  | grep -oE '^[^ ]+:|(^|[^a-z0-9/_.-])rules/[a-z0-9/_-]+\.md' \
+  | sed -E 's#^[^a-z0-9/_.-]rules/#rules/#' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
-  | tr -d '`' \
   | while IFS=' ' read -r f r; do
       [ -f "$ROOT/$r" ] || echo "$f $r"
     done)" "a rule file that exists"
@@ -209,7 +261,12 @@ MISNAMED=$(
   for d in "$ROOT"/.agents/skills/*/; do
     [ -f "$d/SKILL.md" ] || continue
     dn=$(basename "$d")
-    fn=$(sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -1)
+    # Only inside the opening --- block: a `name:` further down is
+    # body text, and the harness cannot key off it.
+    fn=$(awk 'NR == 1 && $0 != "---" { exit }
+      NR > 1 && $0 == "---" { exit }
+      NR > 1' "$d/SKILL.md" \
+      | sed -n 's/^name:[[:space:]]*//p' | head -1)
     [ "$fn" = "$dn" ] || echo ".agents/skills/$dn: frontmatter name '$fn'"
   done
 )
@@ -249,16 +306,23 @@ report "$(printf '%s\n' "$SCAN" \
 report "$(printf '%s\n' "$SCAN" \
   | grep -oiE '^[^ ]+: |\b[23][0-9a-f]{3}:[0-9a-f]*(:[0-9a-f]*)+' \
   | awk '/: $/ { f = $0; next } { print f $0 }' \
-  | grep -viE ': 2001:0?db8')" "an RFC 3849 documentation address"
+  | grep -viE ': 2001:0?db8:')" "an RFC 3849 documentation address"
 
-# Mail addresses outside example.*. openssh.com is allowed because
-# it suffixes algorithm names (umac-64@openssh.com), not people.
+# Mail addresses outside the reserved domains. Domain names are
+# case-insensitive, so the comparison is too -- alice@Example.COM
+# is the same example as alice@example.com and must not fail.
+#
+# openssh.com is exempt only where it does what it does in this
+# corpus: suffix an algorithm name (umac-64-etm@openssh.com). A
+# local part with no hyphen names a person, and an address of
+# that shape at that domain is borrowed like any other.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | grep -oiE '^[^ ]+:|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
+  | awk '/:$/ { f = $0; next } { print f " " tolower($0) }' \
   | grep -vE '@(.*\.)?example\.(com|net|org)$' \
   | grep -vE '@([a-z0-9-]+\.)*(test|invalid)$' \
-  | grep -vE '@openssh\.com$')" "an RFC 2606 example address"
+  | grep -vE ' [a-z0-9]+(-[a-z0-9]+)+@openssh\.com$')" \
+  "an RFC 2606 example address"
 
 # SSH targets. A hostname a command connects to may well be real
 # infrastructure -- security.debian.org, time.apple.com -- and no
@@ -267,16 +331,28 @@ report "$(printf '%s\n' "$SCAN" \
 # never is: hostwarden only ever logs into a user's machine. Both
 # forms count, with a user and without.
 #
-# The command word must be followed by a space, or every
-# rules/ssh-*.md reference reads as an invocation. A candidate
-# ending in a file extension is a path, not a host, and
-# openssh.com suffixes cipher names rather than naming a machine.
+# The command word must be followed by whitespace -- a tab
+# separates words in a shell as well as a space -- or every
+# rules/ssh-*.md reference reads as an invocation. The destination
+# may be quoted. A candidate ending in a file extension is a path,
+# not a host, and openssh.com suffixes cipher names rather than
+# naming a machine.
+#
+# Only a candidate shaped like a network name is examined: this
+# corpus is prose, and after the word "ssh" it usually says "key",
+# "access" or "user". A dot and a letter suffix is the only thing
+# that separates a host from a sentence here, so a single-label
+# destination is out of reach -- see the note at the end of this
+# check.
+#
+# Everything up to the *last* `@` is the login, so a dotted
+# account name like john.doe@example.com is not read as a host.
 report "$(printf '%s\n' "$SCAN" \
-  | grep -oE '^[^ ]+:|(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id) [^|;&`]*' \
+  | grep -oiE '^[^ ]+:|(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id)[[:blank:]]+[^|;&`]*' \
+  | awk '/:$/ { f = $0; next } { print f " " tolower($0) }' \
+  | grep -oiE '^[^ ]+:|[[:blank:]="'"'"']([a-z0-9._%+-]+@)*[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
   | awk '/:$/ { f = $0; next } { print f " " $0 }' \
-  | grep -oE '^[^ ]+:|[ =]([a-z0-9_-]+@)?[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
-  | sed -E 's#: [ =]#: #; s#: [a-z0-9_-]+@#: #' \
+  | sed -E 's#: [[:blank:]="'"'"']#: #; s#: .*@#: #' \
   | grep -E '\.[a-z]{2,}$' \
   | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|example|local|d|bak|gz|img|sock)$' \
   | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \

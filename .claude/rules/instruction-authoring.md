@@ -37,9 +37,12 @@ Four mechanisms, one question each:
   Lives by the moment that triggers it. The trigger line lives in
   `AGENTS.md`, the procedure lives in the file — never both.
 - **Does the user ask for it by name?** A skill in
-  `.agents/skills/`. Its `description` carries the phrasings that
-  should trigger it, in English and German. `SKILL.md` stays under
-  500 lines; detail goes to `references/`.
+  `.agents/skills/`. Its `description` carries the phrasings a
+  user would actually say — in every language they would say them
+  in, which for this project means German alongside English
+  wherever a German speaker would reach for the workflow.
+  Keep `SKILL.md` short enough to read in one go, around 500
+  lines; past that, route to `references/` instead of adding.
 - **Is it about this repository rather than a managed host?**
   `.claude/rules/`, with a `paths` glob that matches files a
   sysadmin session never reads.
