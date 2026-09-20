@@ -297,9 +297,9 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 
 # --- every code block the instruction layer ships passes -------
 # The corpus is every place an instruction can carry a command, so
-# a block stays covered when it moves between mechanisms. Paths
-# that do not exist yet are dropped, because find fails on a
-# missing one and would take the whole matrix down with it.
+# a block stays covered when it moves between mechanisms. It is
+# defined in corpus.sh, shared with instructions-test.sh, because
+# two lists in one directory drift apart.
 # A taboo word used as data in a documented probe is denied like
 # the command itself and cancels the whole parallel batch. The
 # security skill once skipped inert login shells by a regex of
@@ -311,28 +311,19 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 # block path keeps names unique when find starts awk twice.
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
 
-# Held as positional parameters, not a space-joined string: a
-# checkout under a path with a space in it would otherwise split
-# into arguments find cannot resolve, and the scan would silently
-# cover nothing.
-set --
-for p in "$SKILLS_DIR" "$CLAUDE_DIR/commands" \
-         "$CLAUDE_DIR/rules" "$CLAUDE_DIR/agents" \
-         "$CLAUDE_DIR/../rules" "$CLAUDE_DIR/../AGENTS.md" \
-         "$CLAUDE_DIR/../CLAUDE.md"; do
-  [ -e "$p" ] && set -- "$@" "$p"
-done
+# shellcheck source=corpus.sh
+. "$CLAUDE_DIR/hooks/corpus.sh"
 
 BLOCKS=$(mktemp -d)
-find "$@" -name '*.md' \
-  -exec awk -v dir="$BLOCKS" '
+corpus_files | grep '\.md$' | tr '\n' '\0' | xargs -0 \
+  awk -v dir="$BLOCKS" '
   /^[ \t]*```/ && !inb { inb = 1
                          if (/[ \t](operator|guard-off)[ \t]*$/) next
                          f = FILENAME; gsub(/\//, "_", f); n++
                          out = dir "/" f "." n; next }
   /^[ \t]*```[ \t]*$/  { if (out) close(out); out = ""; inb = 0; next }
   out                  { print > out }
-' {} +
+'
 NBLOCKS=0
 for blk in "$BLOCKS"/*; do
   [ -f "$blk" ] || continue
@@ -359,9 +350,8 @@ while read -r md; do
       "HOSTWARDEN_GUARD_DISABLE"
   fi
 done <<EOF
-$(grep -rlE --include='*.md' \
-  '^[[:space:]]*```.*[[:space:]]guard-off[[:space:]]*$' \
-  "$@")
+$(corpus_files | grep '\.md$' | tr '\n' '\0' | xargs -0 grep -lE \
+  '^[[:space:]]*```.*[[:space:]]guard-off[[:space:]]*$')
 EOF
 if [ "$NGUARDOFF" -eq 0 ]; then
   FAIL=$((FAIL + 1))

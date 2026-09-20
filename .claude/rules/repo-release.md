@@ -40,9 +40,10 @@ clause, then the detail in a sentence or two.
 
 This is the only file in the repository where a change may be
 described *as a change*. Instruction files describe the current
-state and nothing else: no "previously", no "this used to live in",
-no migration notes. A reader of `rules/backups.md` needs to know
-what to do, not what it said last month.
+state and nothing else: no "previously", no "this used to live
+in", no migration notes. A reader of `rules/backups.md` needs to
+know what to do, not what it said last month. That rule governs
+every instruction file, not just the ones near this one.
 
 ## Porting from heinzel
 
