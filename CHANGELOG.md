@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Skills live in `.agents/skills/`.** That is where
+  OpenCode and other AGENTS-style tools look, and it
+  no longer matters there whether
+  `OPENCODE_DISABLE_CLAUDE_CODE` is set. Claude Code
+  searches only `.claude/`, so `.claude/skills` is a
+  symlink to the new home. A new skill needs no link of
+  its own. That link is load-bearing, and a checkout
+  without symlink support turns it into a text file, so
+  `.claude/hooks/check-skills.sh` says so from a
+  session-start hook — without it a session simply has
+  no skill and never mentions it. The test and CI fail
+  if the link is wrong, and the README names symlink
+  support as a prerequisite — it always was one, because
+  DNS aliases are symlinks under `memory/servers/` too.
+
 - **The disk, boot and OS-installation workflows are
   a skill.** `hostwarden-os-install` carries OS
   replacement, dual-boot, EFI boot management, cloud
@@ -16,6 +31,20 @@
   SSH-only rescue, filling a root filesystem nothing
   can run inside, and the FreeBSD image — are read
   only when a machine has no console.
+
+- **Rule overrides for the moved disk and boot rules
+  are no longer read.** An override is found by the
+  file name it overrides, and those files left
+  `rules/`, so a personal
+  `memory/custom-rules/os-replacement.md`,
+  `dual-boot.md`, `efi-boot.md`, `cloud-image.md` or
+  `partition-staging.md` stops taking effect with
+  this release. Merge what you still want into
+  `memory/custom-rules/hostwarden-os-install.md` and
+  delete the old file. `bin/hostwarden-migrate` names
+  the ones it finds and repeats the notice until they
+  are gone — but it runs from the update path, so a
+  plain `git pull` never shows it.
 
 - **heinzel is now hostwarden.** The project
   continues heinzel 2.22.0 as an independent

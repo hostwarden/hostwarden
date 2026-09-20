@@ -270,7 +270,7 @@ the topic or section name. Sections without a prefix
 are additions.
 
 The same override chain applies to skills in
-`.claude/skills/`. The global custom file for a skill
+`.agents/skills/`. The global custom file for a skill
 mirrors the skill's full name — e.g.
 `memory/custom-rules/hostwarden-housekeeping.md`
 overrides the `hostwarden-housekeeping` skill, and
@@ -399,7 +399,7 @@ and less critical — see `rules/macos.md`.
 
 Routine health inspections. Only when the user asks.
 The `hostwarden-housekeeping` skill in
-`.claude/skills/hostwarden-housekeeping/` carries the full
+`.agents/skills/hostwarden-housekeeping/` carries the full
 workflow, baseline checks, report format, and
 service-specific probes. Custom cross-server checks
 still live in `memory/housekeeping.md` (gitignored).
@@ -410,14 +410,14 @@ systemd timer + `claude -p`), read
 ## Security Audit
 
 Only when the user asks. The `hostwarden-security` skill
-in `.claude/skills/hostwarden-security/` carries the full
+in `.agents/skills/hostwarden-security/` carries the full
 workflow, SSH / firewall / account / sysctl / file-
 permission checks, and the report format.
 
 ## Email Reports
 
 Only when the user asks. The `hostwarden-email` skill in
-`.claude/skills/hostwarden-email/` carries the full workflow:
+`.agents/skills/hostwarden-email/` carries the full workflow:
 recipient resolution, sender-side choice (local vs remote),
 remote MTA detection, install fallback, least-privilege send
 (drops from root via `runuser`/`su -` when SSH'd as root),
@@ -430,7 +430,7 @@ existing `Mail:` / `Alert email:` lines pattern.
 ## OS Installation, Replacement and Boot
 
 Only when the user asks. The `hostwarden-os-install`
-skill in `.claude/skills/hostwarden-os-install/`
+skill in `.agents/skills/hostwarden-os-install/`
 carries OS replacement, dual-boot, EFI boot
 management, cloud-image deployment and partition
 staging, plus the gate that holds before the first
@@ -445,7 +445,7 @@ reinstall.
 ## Fleet Audit
 
 Only when the user asks. The `hostwarden-fleet-audit` skill in
-`.claude/skills/hostwarden-fleet-audit/` compares key policies
+`.agents/skills/hostwarden-fleet-audit/` compares key policies
 (unattended-upgrades, sshd effective config, firewall
 posture, MTA, time sync, auto-reboot behaviour) across all
 servers in `memory/servers/` and surfaces silent drift in a
