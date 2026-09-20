@@ -124,8 +124,13 @@ after.
 - A heading with no prefix is an addition.
 
 The name after the prefix matches a section heading in the
-shipped file. When it matches none, what to do depends on
-the prefix, because the two directions fail differently:
+shipped file. A `>` narrows it to one entry inside that
+section — `## Remove: Notes > snap` drops the snap line and
+leaves the rest of `## Notes` standing. Narrow rather than
+take a whole section out for the sake of one line in it.
+
+When either part matches nothing, what to do depends on the
+prefix, because the two directions fail differently:
 
 - `## Add:` — treat it as a new section and say so once.
   An addition that lands beside nothing is still the

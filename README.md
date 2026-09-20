@@ -935,8 +935,8 @@ New rules applied alongside the base.
 ## Replace: Firewall
 Replaces the matching base section entirely.
 
-## Remove: Common Pitfalls > snap
-Skip this base section.
+## Remove: Notes > snap
+Drop one entry, leave the rest of that section.
 ```
 
 Sections without a prefix are treated as additions.
