@@ -31,16 +31,21 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **heinzel legacy check.** First connection, plus
-   every connection to a host whose memory carries a
-   `heinzel legacy: deferred` line or an unresolved
-   `heinzel-inventory.md`. Adoption writes that
-   inventory into hosts hostwarden already knows, so
-   first-connection alone would strand it. One
-   batched probe, folded into step 5 where possible;
-   silent unless it finds something. Skip it in an
-   installation that never ran heinzel. See
-   `rules/heinzel-legacy.md`.
+8. **heinzel legacy check.** Only in an installation
+   that has something to do with heinzel: an
+   `Adopted from heinzel:` line in `memory/user.md`,
+   a `heinzel legacy:` line or an unresolved
+   `heinzel-inventory.md` in this host's memory, or
+   `heinzel` entries in the activity check above —
+   that last one catches a host heinzel touched even
+   though this installation never ran it. Otherwise
+   skip the step and read nothing.
+
+   When it does apply: first connection, plus every
+   connection while a `deferred` line or an
+   unresolved inventory is there. One batched probe,
+   folded into step 5 where possible, silent unless
+   it finds something. See `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 
 ## Local mode

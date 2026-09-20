@@ -21,9 +21,7 @@ Copy them into the heinzel checkout, without
 clobbering anything that is already there:
 
 ```bash
-HZ=/path/to/heinzel
-DST=$HZ/memory/custom-rules          # heinzel 2.0 and later
-[ -d "$DST" ] || DST=$HZ/rules/custom  # before that
+DST=/path/to/heinzel/memory/custom-rules
 for f in all.md activity-check.md backups.md; do
   if [ -e "$DST/$f" ]; then
     echo "exists, merge by hand: $DST/$f"
@@ -44,16 +42,11 @@ its own rules.
 
 heinzel reads `all.md` once per session and
 `<rule>.md` whenever it reads `rules/<rule>.md`. The
-file names are the same in both layouts, only the
-directory moved: `rules/custom/` before heinzel 2.0,
-`memory/custom-rules/` from 2.0 on. Either directory
-is gitignored there, so this stays local unless the
-user shares custom rules deliberately.
+directory is gitignored there, so this stays local
+unless the user shares custom rules deliberately.
 
-The `hostwarden-adopt` skill installs them the same
-way: it never replaces a file, it reports what it
-skipped, and it appends sections to an existing
-`all.md` rather than writing over it.
+The `hostwarden-adopt` skill offers to do this for
+you, following this section.
 
 ## What they change
 

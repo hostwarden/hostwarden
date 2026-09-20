@@ -74,6 +74,14 @@ nested_link() {
 # an edit there would silently change an access list
 # nobody touched.
 already_adopted() {
+  # Two aliases are the same alias when they point at
+  # the same name. Otherwise a destination link never
+  # counts: its target can change under us, and the
+  # content matching today says nothing about that.
+  if [ -L "$1" ] && [ -L "$2" ]; then
+    [ "$(readlink "$1")" = "$(readlink "$2")" ]
+    return
+  fi
   [ -L "$2" ] && return 1
   same_content "$1" "$2"
 }
@@ -107,6 +115,10 @@ occupied() {
 # itself on the first one, and must not read them as
 # a conflict.
 same_content() {
+  # Nothing there is not the same content, and
+  # answering that without forking diff or cmp is the
+  # difference on a fleet-sized tree.
+  [ -e "$2" ] || return 1
   if [ -d "$1" ]; then
     diff -r "$1" "$2" >/dev/null 2>&1
   else
@@ -269,14 +281,18 @@ copy_item() {
     ci_link=$(readlink "$ci_src")
     ln -s "$ci_link" "$ci_dst"
   elif [ -d "$ci_src" ]; then
-    mkdir -p "$ci_dst"
-    cp -R "$ci_src/." "$ci_dst/"
+    if [ -d "$ci_dst" ]; then
+      cp -R "$ci_src/." "$ci_dst/"
+    else
+      cp -R "$ci_src" "$ci_dst"
+    fi
   else
     cp "$ci_src" "$ci_dst"
   fi
 }
 
 COPIED=""
+NOTHING_LEFT=""
 plan() { COPIED="$COPIED\n  memory/$1"; }
 
 # Which shared files this clone would keep. Decided
@@ -284,17 +300,28 @@ plan() { COPIED="$COPIED\n  memory/$1"; }
 # check below can refuse the run, and refusing after
 # half the shared state has been written leaves a
 # clone that cannot be described or re-run cleanly.
+# What this run will not copy, and — when one of the
+# access lists is among it — why the hosts may not
+# follow. One list and one reason: every skip has the
+# same two consequences, whatever caused it.
+SHARED_SKIP=""
 SHARED_PENDING=""
-SHARED_BROKEN=""
-SHARED_BADTYPE=""
-SHARED_NESTED=""
+BLOCK_REASON=""
+skip_shared() {
+  SHARED_SKIP="$SHARED_SKIP $1"
+  case "$1" in
+    blacklist.md|readonly.md)
+      [ -n "$SHARED_ONLY" ] || BLOCK_REASON="$2" ;;
+  esac
+}
 for ITEM in $SHARED; do
   # A link in the old checkout that does not resolve
   # has no content to copy. Silently skipping it
   # would be how a host arrives here with no
   # blacklist behind it.
   if [ -L "$OLD/memory/$ITEM" ] && [ ! -e "$OLD/memory/$ITEM" ]; then
-    SHARED_BROKEN="$SHARED_BROKEN $ITEM"
+    echo "skipped memory/$ITEM — a link in the old checkout that does not resolve" >&2
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
     continue
   fi
   [ -e "$OLD/memory/$ITEM" ] || continue
@@ -304,22 +331,27 @@ for ITEM in $SHARED; do
   # as a directory, and every host would arrive here
   # unrestricted.
   case "$ITEM" in
-    custom-rules)
-      [ -d "$OLD/memory/$ITEM" ] || {
-        SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
-    *)
-      [ -f "$OLD/memory/$ITEM" ] || {
-        SHARED_BADTYPE="$SHARED_BADTYPE $ITEM"; continue; } ;;
-  esac
+    custom-rules) [ -d "$OLD/memory/$ITEM" ] ;;
+    *) [ -f "$OLD/memory/$ITEM" ] ;;
+  esac || {
+    echo "skipped memory/$ITEM — not the kind of entry its name promises" >&2
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
+    continue
+  }
   NESTED=$(nested_link "$OLD/memory/$ITEM")
   if [ -n "$NESTED" ]; then
     echo "skipped memory/$ITEM — $NESTED is a link out of the old checkout" >&2
-    SHARED_NESTED="$SHARED_NESTED $ITEM"
+    skip_shared "$ITEM" "is not a readable list file in the old checkout"
     continue
   fi
-  already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
+  if already_adopted "$OLD/memory/$ITEM" "memory/$ITEM"; then
+    SHARED_SKIP="$SHARED_SKIP $ITEM"
+    NOTHING_LEFT=yes
+    continue
+  fi
   if occupied "$OLD/memory/$ITEM" "memory/$ITEM" && [ -z "$FORCE" ]; then
     SHARED_PENDING="$SHARED_PENDING $ITEM"
+    skip_shared "$ITEM" "is already here in a version of this clone's own"
   fi
 done
 
@@ -329,41 +361,19 @@ done
 # read-only list therefore stops the host import —
 # before the first write. A dry run reports it and
 # carries on; it changes nothing either way.
-BLOCKED=""
-case " $SHARED_PENDING " in
-  *" blacklist.md "*|*" readonly.md "*)
-    [ -n "$SHARED_ONLY" ] || BLOCKED=yes ;;
-esac
-case " $SHARED_BROKEN " in
-  *" blacklist.md "*|*" readonly.md "*)
-    [ -n "$SHARED_ONLY" ] || BLOCKED=broken ;;
-esac
-case " $SHARED_BADTYPE " in
-  *" blacklist.md "*|*" readonly.md "*)
-    [ -n "$SHARED_ONLY" ] || BLOCKED=broken ;;
-esac
-if [ -n "$SHARED_BROKEN" ]; then
-  echo "the old checkout has a link that does not resolve:$SHARED_BROKEN" >&2
-fi
-if [ -n "$SHARED_BADTYPE" ]; then
-  echo "the old checkout has the wrong kind of entry for:$SHARED_BADTYPE" >&2
-fi
-if [ -n "$BLOCKED" ]; then
-  if [ "$BLOCKED" = broken ]; then
-    echo "An access list that is not a readable list file cannot come across," >&2
-    echo "and a host denied there would arrive here unrestricted. Fix it in" >&2
-    echo "the old checkout first." >&2
-  else
-    echo "this clone has its own$SHARED_PENDING" >&2
-    echo "A host denied or read-only in the old checkout would arrive here" >&2
-    echo "without that restriction. Merge the lists by hand, or re-run with" >&2
-    echo "--force to take the old checkout's, then adopt the hosts." >&2
-  fi
+if [ -n "$BLOCK_REASON" ]; then
+  echo "memory/blacklist.md or memory/readonly.md $BLOCK_REASON." >&2
+  echo "A host denied or read-only in the old checkout would arrive here" >&2
+  echo "without that restriction, so no host is copied. Fix it in the old" >&2
+  echo "checkout, merge the lists by hand, or re-run with --force to take" >&2
+  echo "the old checkout's." >&2
   # A dry run stops here too: everything after this
   # point is disabled, so listing it would describe a
   # plan that cannot run with these arguments.
-  [ -n "$LIST" ] && echo "nothing would be copied until this is resolved" >&2
-  [ -n "$LIST" ] && exit 0
+  if [ -n "$LIST" ]; then
+    echo "nothing would be copied until this is resolved" >&2
+    exit 0
+  fi
   echo "error: nothing was copied" >&2
   exit 1
 fi
@@ -371,78 +381,35 @@ fi
 # Shared state first, always: a per-server adoption
 # without the blacklist and the read-only list would
 # work on hosts whose access rules stayed behind.
+[ -n "$LIST" ] || mkdir -p memory
 for ITEM in $SHARED; do
   [ -e "$OLD/memory/$ITEM" ] || continue
-  already_adopted "$OLD/memory/$ITEM" "memory/$ITEM" && continue
-  case " $SHARED_PENDING $SHARED_BROKEN $SHARED_BADTYPE $SHARED_NESTED " in
+  case " $SHARED_SKIP " in
     *" $ITEM "*) continue ;;
   esac
   plan "$ITEM"
-  [ -n "$LIST" ] || { mkdir -p memory
-    copy_item "$OLD/memory/$ITEM" "$ITEM"; }
+  [ -n "$LIST" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
 done
 
-# heinzel 1.x kept custom rules in rules/custom/ and
-# the OpenCode config at the repo root. Those are
-# outside memory/, so hostwarden-migrate in this clone
-# never sees them — they are copied to their 2.x
-# location here.
-if [ -d "$OLD/rules/custom" ]; then
-  for F in "$OLD"/rules/custom/*; do
-    [ -e "$F" ] || continue
-    B=$(basename "$F")
-    [ "$B" = ".gitkeep" ] && continue
-    # hostwarden-migrate renames a copied
-    # heinzel-<skill>.md to hostwarden-<skill>.md, so
-    # a second run would not recognise its own work
-    # and would copy the old name back in beside it.
-    case "$B" in
-      heinzel-*) MAPPED="hostwarden-${B#heinzel-}" ;;
-      *) MAPPED="$B" ;;
-    esac
-    # -L too: a dangling link is still an entry of
-    # theirs, and -e alone would let rm -rf below
-    # take it without --force.
-    if { [ -e "memory/custom-rules/$B" ] \
-        || [ -L "memory/custom-rules/$B" ] \
-        || [ -e "memory/custom-rules/$MAPPED" ] \
-        || [ -L "memory/custom-rules/$MAPPED" ]; } \
-        && [ -z "$FORCE" ]; then
-      echo "kept memory/custom-rules/$MAPPED — use --force for the old checkout's" >&2
-      continue
-    fi
-    plan "custom-rules/$B (from rules/custom/)"
-    # rm first: cp would follow a destination symlink
-    # and write through to its target. -r as well, or
-    # a destination that is a directory fails the rm
-    # and set -e ends the run half done.
-    # Both names: the migrator renamed an earlier
-    # copy, and leaving that one in place would let
-    # it win the very conflict --force resolved.
-    [ -n "$LIST" ] || { mkdir -p memory/custom-rules
-      rm -rf "memory/custom-rules/$B" "memory/custom-rules/$MAPPED"
-      cp "$F" "memory/custom-rules/$B"; }
-  done
-fi
-if [ -f "$OLD/opencode.json" ]; then
-  if { [ -e memory/opencode.json ] || [ -L memory/opencode.json ]; } \
-      && [ -z "$FORCE" ]; then
-    same_content "$OLD/opencode.json" memory/opencode.json \
-      || echo "kept memory/opencode.json — the old checkout has its own at the repo root, use --force for that one" >&2
-  else
-    plan "opencode.json (from the repo root)"
-    [ -n "$LIST" ] || { rm -rf memory/opencode.json
-      cp "$OLD/opencode.json" memory/opencode.json; }
-  fi
-fi
-
-if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
-    && [ -d "$OLD/memory/servers" ]; then
+if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   [ -n "$HOSTS" ] || HOSTS=$(ls -1 "$OLD/memory/servers" 2>/dev/null)
   [ -n "$LIST" ] || mkdir -p memory/servers
+  # One walk of the whole servers tree instead of a
+  # find per host: the fork is the cost, and over a
+  # fleet that is the difference between seconds and
+  # milliseconds. The result is the set of hosts that
+  # hold a link pointing out of the old checkout.
+  ESCAPING="|$(find -H "$OLD/memory/servers" -mindepth 2 -type l 2>/dev/null \
+    | sed -e "s|^$OLD/memory/servers/||" -e 's|/.*||' \
+    | LC_ALL=C sort -u | tr '\n' '|')"
+  # Hosts this run already handled, so one pulled in
+  # as an alias's canonical target is not reported as
+  # a conflict with itself afterwards.
+  DONE_HOSTS="|"
   for H in $HOSTS; do
     SRC="$OLD/memory/servers/$H"
     { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
+    case "$DONE_HOSTS" in *"|$H|"*) continue ;; esac
     # Before anything else: is this host already
     # here? Deciding that after the alias work would
     # copy an alias's canonical host and then skip
@@ -450,6 +417,15 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
     # would build an inventory for.
     # -L as well: a dangling alias in this clone is
     # still this clone's state.
+    # Identical content is not a conflict, it is this
+    # host already adopted — the same rule the shared
+    # state follows, so repeating a --server run is a
+    # no-op rather than an error.
+    if already_adopted "$SRC" "memory/servers/$H"; then
+      DONE_HOSTS="$DONE_HOSTS$H|"
+      NOTHING_LEFT=yes
+      continue
+    fi
     if { [ -e "memory/servers/$H" ] || [ -L "memory/servers/$H" ]; } \
         && [ -z "$FORCE" ]; then
       echo "skipped memory/servers/$H — already here, use --force to overwrite" >&2
@@ -513,24 +489,26 @@ if [ -z "$SHARED_ONLY" ] && [ -z "$BLOCKED" ] \
         echo "skipped memory/servers/$H — $DST_CANON differs from the old checkout's, use --force" >&2
         continue
       fi
-      NESTED=$(nested_link "$OLD/memory/servers/$CANON")
-      if [ -n "$NESTED" ]; then
-        echo "skipped memory/servers/$H — $NESTED is a link out of the old checkout" >&2
-        continue
-      fi
+      case "$ESCAPING" in
+        *"|$CANON|"*)
+          echo "skipped memory/servers/$H — $CANON holds a link out of the old checkout" >&2
+          continue ;;
+      esac
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
+        DONE_HOSTS="$DONE_HOSTS$CANON|"
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
       fi
     fi
-    NESTED=$(nested_link "$SRC")
-    if [ -n "$NESTED" ]; then
-      echo "skipped memory/servers/$H — $NESTED is a link out of the old checkout" >&2
-      continue
-    fi
+    case "$ESCAPING" in
+      *"|$H|"*)
+        echo "skipped memory/servers/$H — it holds a link out of the old checkout" >&2
+        continue ;;
+    esac
     plan "servers/$H"
+    DONE_HOSTS="$DONE_HOSTS$H|"
     [ -n "$LIST" ] || copy_item "$SRC" "servers/$H" link
   done
 fi
@@ -541,6 +519,13 @@ if [ -n "$SHARED_PENDING" ]; then
 fi
 
 if [ -z "$COPIED" ]; then
+  # Already here is a different answer from nothing
+  # there: a gradual migration re-runs these commands,
+  # and a loop over hosts must not die on a repeat.
+  if [ -n "$NOTHING_LEFT" ]; then
+    echo "already adopted from $OLD — nothing left to copy"
+    exit 0
+  fi
   echo "nothing to copy from $OLD/memory" >&2
   exit 1
 fi
@@ -551,6 +536,15 @@ if [ -n "$LIST" ]; then
 fi
 
 printf "copied from %s:%b\n" "$OLD" "$COPIED"
+
+# One line, once per installation: the fact that this
+# clone came from heinzel. rules/first-connection.md
+# reads it to decide whether the per-host legacy check
+# has any reason to run at all.
+if ! grep -q '^Adopted from heinzel:' memory/user.md 2>/dev/null; then
+  printf 'Adopted from heinzel: %s (%s)\n' \
+    "$(date +%Y-%m-%d)" "$OLD" >> memory/user.md
+fi
 
 # Renames skill overrides heinzel-* → hostwarden-*
 # and creates directories new versions need.

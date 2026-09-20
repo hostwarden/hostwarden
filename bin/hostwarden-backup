@@ -151,10 +151,16 @@ do_restore() {
   # would swallow files of theirs that happen to end
   # in .example.
   if [ -d memory ] && [ "$FORCE" != "--force" ]; then
-    EXISTING=$(find memory -type f \
-      ! -name '.gitkeep' \
-      ! -name '.DS_Store' \
-      ! -name '*.lock' \
+    # Symlinks count: a memory/ holding only links
+    # would otherwise read as empty, and the copy
+    # below would follow them and write through to
+    # their targets.
+    EXISTING=$(find memory \( \
+        \( -type f \
+           ! -name '.gitkeep' \
+           ! -name '.DS_Store' \
+           ! -name '*.lock' \) \
+        -o -type l \) \
       | grep -vxF "$(shipped_paths)" \
       | head -n 1)
     if [ -n "$EXISTING" ]; then

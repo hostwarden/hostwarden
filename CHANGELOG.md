@@ -23,7 +23,10 @@
   heinzel entry is minutes old, and does not adopt a
   host that heinzel still uses.
 - **A heinzel installation can be taken over
-  wholesale.** `bin/hostwarden-adopt <path>` copies
+  wholesale.** `bin/hostwarden-adopt <path>` records
+  the move once in `memory/user.md`, which is what
+  lets an installation that never ran heinzel skip
+  the per-host legacy check entirely. It copies
   memory, access lists and custom rules out of an old
   checkout; the `hostwarden-adopt` skill around it
   (`/adopt-heinzel <path>`, or the same request in

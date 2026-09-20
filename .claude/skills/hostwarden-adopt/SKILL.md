@@ -34,11 +34,12 @@ write into the old tree (step 6) needs its own yes.
 ## Why an inventory instead of a migration
 
 heinzel's own rules cover config backups, scratch directories and the
-journal tag. They do not cover what agents improvised on the way: a
-script under `/usr/local/bin/`, a directory `/etc/heinzel/`, a
-systemd unit, a cron file, a log rotation config. Those exist, they
-differ per host, and the only local trace is what the session wrote
-into `memory/servers/<host>/` and its changelog.
+journal tag. They do not cover what agents improvised on the way —
+the shapes are listed in `rules/heinzel-legacy.md` § "What to look
+for", which is also what the first connection probes for, so the two
+sides cannot drift apart. Those artifacts differ per host, and the
+only local trace is what the session wrote into
+`memory/servers/<host>/` and its changelog.
 
 Memory says what was true when it was written. It is a lead, not a
 finding (`rules/verify-before-reporting.md`) — this skill collects the
@@ -58,8 +59,7 @@ leads, the host confirms them.
 
 3. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
    state — access lists, service policy, custom rules, network and
-   housekeeping notes, including heinzel 1.x's `rules/custom/` and
-   root `opencode.json` — then every server's memory, then
+   housekeeping notes — then every server's memory, then
    `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
    `hostwarden-<skill>.md` renames. It keeps this clone's version of
    anything that already holds user data and says so; `--list` shows
@@ -103,17 +103,13 @@ leads, the host confirms them.
 
 6. **Offer the coexistence rules.** Ask whether heinzel stays in use
    during the transition. If it does, offer to copy the three files
-   from `contrib/heinzel-coexistence/` into the directory that
-   checkout reads overrides from — `memory/custom-rules/` from
-   heinzel 2.0 on, `rules/custom/` before it, same file names.
-   Without them heinzel reads only its own journal tag, so
+   from `contrib/heinzel-coexistence/` into that checkout's
+   `memory/custom-rules/`, the way its README § Install describes —
+   never replacing a file, and reporting what has to be merged by
+   hand. Without them heinzel reads only its own journal tag, so
    hostwarden's work stays invisible to it and its memory drifts.
-   This writes into the old tree, so it needs an explicit yes.
-   Never replace a file that is already there: append the sections
-   to an existing `all.md`, and for an existing `activity-check.md`
-   or `backups.md` show the user what would be added and let them
-   merge. On a no, say the directory is there when they change their
-   mind.
+   This writes into the old tree, so it needs an explicit yes. On a
+   no, say the directory is there when they change their mind.
 
 7. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:
@@ -139,8 +135,8 @@ leads, the host confirms them.
 - **No server contact.** Not even a read-only probe. The
   first-connection pipeline owns that.
 - **No renaming on hosts.** A script keeps its name until every
-  caller is known — see `rules/heinzel-legacy.md` and
-  `rules/file-naming-changes.md`.
+  caller is known — see `rules/heinzel-adoption.md` § "An improvised
+  script keeps its name".
 - **No scheduled runs.** Cron lines and timers on the workstation
   that call `bin/heinzel-*` are reported by the legacy check in local
   mode, and changed only with explicit approval.

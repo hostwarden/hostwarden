@@ -129,10 +129,6 @@ report-and-ask flow above runs.
 Note the reason in the line, as the examples do.
 Without it there is nothing to re-check against, and
 the question comes back every time.
-Without that exception the promised re-offer would
-never happen, because the check is otherwise
-first-connection only.
-
 Leads the host did not confirm move into the same
 memory file as a one-line note when they matter (a
 script memory claims and the host lacks usually means

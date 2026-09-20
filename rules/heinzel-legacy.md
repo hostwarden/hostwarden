@@ -11,6 +11,20 @@ connection to a host**. On a hit, read
 was found. No hit, no second file, nothing recorded,
 nothing said — that is the normal case.
 
+## When this ends
+
+The transition is over once no host memory carries a
+`heinzel legacy:` line, no `heinzel-inventory.md` is
+left, and `memory/user.md` has no
+`Adopted from heinzel:` line. At that point delete
+this file and `rules/heinzel-adoption.md`, drop step
+8 from `rules/first-connection.md`, the "Coming From
+heinzel" section in `CLAUDE.md`, the `heinzel` tag
+from `rules/activity-check.md`, the old backup paths
+from `rules/backups.md`, and the `hostwarden-adopt`
+skill with its command. Written down here because a
+transition nobody ends becomes permanent by default.
+
 ## What to look for
 
 heinzel's own rules prescribe four things:

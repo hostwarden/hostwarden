@@ -368,9 +368,10 @@ Only when the user asks: the `hostwarden-adopt` skill
 takes over an existing heinzel checkout.
 
 Read `rules/heinzel-legacy.md` on the first
-connection to a host — silent unless it finds state
-heinzel left there, and skipped entirely in an
-installation that never ran heinzel.
+connection to a host, but only when this installation
+has something to do with heinzel — the gate is step 8
+of `rules/first-connection.md`. Silent unless it
+finds state heinzel left there.
 
 ## Activity Check
 
