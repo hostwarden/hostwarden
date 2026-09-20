@@ -110,9 +110,13 @@ servers" — that maps to single-host housekeeping.
    dozen near-simultaneous logins to one machine, which is
    what rate limiting and fail2ban exist to stop — and
    being locked out of the jump host locks you out of
-   everything behind it. Read `ssh -G <host>` for each
-   target before dispatching, group the ones sharing a
-   `proxyjump`, and run each group in sequence.
+   everything behind it. Read `ssh -G <user>@<host>` for
+   each target before dispatching — with the user from
+   step 2, because a `Match user` block can select the
+   jump host, and without it `ssh -G` reports a different
+   config than the connection will use. Group the targets
+   that share a `proxyjump`, and run each group in
+   sequence.
 
    Elsewhere, and whenever a host needs a decision the
    agent cannot make alone, do the same probing here, one
@@ -139,11 +143,14 @@ servers" — that maps to single-host housekeeping.
    `rules/ssh-connections.md` exists to avoid. A subagent
    writes its own; do not reconnect to write it again.
 
-7. **No memory rewrite.** `Last connected` updates for
-   every host reached, because each was in fact connected
-   to (`rules/server-memory.md`). Nothing else in a host's
-   memory file changes: the audit compares hosts, it does
-   not own what any one of them records. A memory file that
+7. **No audit result in memory.** What the pipeline owns,
+   it still writes: `Last connected` for every host
+   reached, because each was in fact connected to
+   (`rules/server-memory.md`), and a changed OS version
+   where detection found one (`rules/os-detection.md`).
+   What the probes found goes nowhere near a memory file:
+   the audit compares hosts, it does not own what any one
+   of them records. A memory file that
    contradicts the live config goes in the "Drift detected"
    section for the user to decide on — as does anything a
    probe agent returned under `notices:`, which is where

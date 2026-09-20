@@ -44,10 +44,13 @@ Bash calls as it does anywhere else.
 - **No configuration change of any kind.** Not a fix, not a tidy-up,
   not a "while I was here". If a probe shows something broken,
   that is a cell in the row, not a task.
-- **No memory rewrite.** `Last connected` updates as it does for
-  any connection — you did connect. Nothing else in the host's
-  memory file is touched: an audit compares hosts, it does not
-  own what any one of them records.
+- **No audit result in memory.** What the pipeline owns, it still
+  writes: `Last connected`, and the OS version when detection
+  finds it has changed (`rules/os-detection.md` — a stale OS line
+  is what makes a later session reach for the wrong package
+  manager and the wrong `rules/os/` file). What the *probes*
+  found goes in the row and nowhere else: an audit compares
+  hosts, it does not own what any one of them records.
 - **No second host.** You were given one. Another agent has the rest.
 - **No questions.** You have no user to ask. A decision the user
   must make comes back as `blocked:` or as a notice, and the main
