@@ -58,9 +58,13 @@
   than assumed, so it runs the first-connection pipeline
   like any other session and cannot change a
   configuration. Parallelism is across different hosts
-  only, because rate limits count per host. Without
-  subagents the skill probes one host after another and
-  produces the same tables.
+  only, because rate limits count per host. The probe
+  also returns what its criteria say is wrong with its
+  own host, so a fleet that agrees on a pending reboot
+  or on legacy iptables rules is reported with the
+  warning rather than as consistent. Without subagents
+  the skill probes one host after another and produces
+  the same tables.
 
 - **Taking over heinzel is two mechanisms.** The
   `hostwarden-adopt` skill is asked for by name —

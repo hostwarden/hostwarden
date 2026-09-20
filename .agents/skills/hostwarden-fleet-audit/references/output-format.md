@@ -1,7 +1,8 @@
 # Fleet Audit Output Format
 
-Render one Markdown table per probe category, then a single
-"Drift detected" section at the end. Keep the text scannable.
+Render one Markdown table per probe category, then a "Drift
+detected" section, then a "Warnings" section. Keep the text
+scannable.
 
 ## Header
 
@@ -101,6 +102,38 @@ with a single line:
 ### Drift detected
 
 None — fleet is consistent across all audited categories.
+```
+
+Consistent is not the same as healthy, and this line only ever
+claims the first. The Warnings section below still gets rendered.
+
+## Warnings
+
+Every `warnings:` line the probes returned, grouped by host.
+These judge one host against the criteria in
+`references/probes.md`, not against the other hosts, so a fleet
+that agrees on a bad value produces no drift and every warning:
+
+```
+### Warnings
+
+- **host1**: 14 legacy iptables rules alongside nf_tables —
+  `nft list ruleset` does not show them, so the effective policy
+  is not what the firewall tool reports.
+- **host1, host2, host3**: pending kernel reboot, uptime 31d —
+  automatic reboot has not fired.
+- **host2**: `nftables.service` enabled next to an active ufw —
+  the unit flushes ufw's rules on start.
+```
+
+If no probe returned a warning, say so in one line rather than
+dropping the heading — an absent section reads as an oversight,
+and the reader cannot tell it from one nobody rendered:
+
+```
+### Warnings
+
+None.
 ```
 
 ## Skipped hosts
