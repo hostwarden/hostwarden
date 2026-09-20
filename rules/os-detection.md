@@ -6,8 +6,12 @@ its OS.
 Detection is what makes `rules/os/` reachable. Those
 five files are not rules that fire on a situation —
 they are reference data addressed by a fact this
-procedure establishes, and exactly one of them is
-read per host.
+procedure establishes, and **at most one** of them is
+read per host. A distribution no family covers gets
+none of them; step 2 below says what to do instead.
+Never reach for the nearest file — a Debian reference
+on an Alpine host prescribes the wrong package
+manager and the wrong firewall.
 
 ## On first connection
 
