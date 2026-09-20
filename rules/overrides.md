@@ -69,6 +69,15 @@ writes it, and the usual prefixed headings under each:
     # hostwarden-security/ssh
     ## Remove: Weak algorithm check
 
+A prefixed heading that sits outside any `H1` names no
+shipped file, so there is nothing to resolve it against —
+`## Replace: Backup retention` alone could mean the backups
+rule or a skill's own backup section. Do not guess which:
+name the file and the headings, and ask which subject they
+belong under. Same reason as an unmatched `## Replace:`
+below — a heading that says "the shipped text must not
+apply" is the wrong one to resolve by nearest match.
+
 When an upgrade moves a topic — out of `rules/` into a
 skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
 the matching override with it, and says which files it

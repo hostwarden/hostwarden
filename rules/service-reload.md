@@ -258,8 +258,11 @@ Overrides work as `rules/overrides.md` describes, key
 `service-reload`. What is local to this rule: the
 policy lists themselves (`reload-always-ask`,
 `restart-auto`, `restart-never`) are sections, so a
-host can replace one on its own with
-`## Replace: reload-always-ask`.
+host can replace one on its own — under the `H1` that
+names the subject, as `rules/overrides.md` writes it:
+
+    # service-reload
+    ## Replace: reload-always-ask
 
 ## Logging
 

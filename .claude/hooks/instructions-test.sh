@@ -54,26 +54,37 @@ if [ "$NSKILLS" -eq 0 ]; then
 fi
 
 # --- override paths are unambiguous -----------------------------
-# rules/overrides.md mirrors the shipped path into
+# rules/overrides.md mirrors every shipped path into
 # memory/custom-rules/, dropping the top-level directory and the
-# references/ segment. That is unique by construction everywhere
-# except one seam: a rules/<name>.md and a skill called <name>
-# would both mirror to memory/custom-rules/<name>.md.
-RULE_KEYS=$(find "$ROOT/rules" -maxdepth 1 -name '*.md' 2>/dev/null \
-  | sed 's#.*/##; s#\.md$##')
-SKILL_KEYS=$(find "$ROOT/.agents/skills" -mindepth 1 -maxdepth 1 \
-  -type d 2>/dev/null | sed 's#.*/##')
-
-CLASH=$(printf '%s\n%s\n' "$RULE_KEYS" "$SKILL_KEYS" | sed '/^$/d' \
+# references/ segment. Two shipped files that mirror to one path
+# leave the user's override pointing at both and applying to
+# whichever is read first. Comparing top-level names only would
+# miss the nested seam: rules/foo/bar.md and skill foo's
+# references/bar.md both mirror to foo/bar.md.
+#
+# So mirror everything and look for a repeat.
+MIRRORED=$(
+  find "$ROOT/rules" -name '*.md' 2>/dev/null \
+    | sed "s#^$ROOT/rules/##"
+  find "$ROOT/.agents/skills" -mindepth 1 -maxdepth 1 -type d \
+    2>/dev/null | sed 's#.*/##; s#$#.md#'
+  find "$ROOT/.agents/skills" -path '*/references/*.md' 2>/dev/null \
+    | sed "s#^$ROOT/.agents/skills/##; s#/references/#/#"
+)
+CLASH=$(printf '%s\n' "$MIRRORED" | sed '/^$/d' \
   | LC_ALL=C sort | LC_ALL=C uniq -d)
 if [ -z "$CLASH" ]; then
   ok
 else
   for c in $CLASH; do
-    bad "'$c' is both a rule file and a skill -- both would" \
-        "mirror to memory/custom-rules/$c.md"
+    bad "two shipped files both mirror to" \
+        "memory/custom-rules/$c -- an override there is" \
+        "ambiguous"
   done
 fi
+
+RULE_KEYS=$(find "$ROOT/rules" -maxdepth 1 -name '*.md' 2>/dev/null \
+  | sed 's#.*/##; s#\.md$##')
 
 NRULES=$(printf '%s\n' "$RULE_KEYS" | sed '/^$/d' | wc -l | tr -d ' ')
 if [ "$NRULES" -lt 15 ]; then

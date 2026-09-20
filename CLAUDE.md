@@ -215,6 +215,11 @@ for directory listings, all in one message so they run together. Do
 **not** use a shell `for`-loop with `cat` — it triggers a permission
 prompt for no good reason and looks alarming to new users.
 
+`ls -R memory/custom-rules/` for that one: an override can sit a
+level down (`os/debian.md`, a skill's reference), and a top-level
+listing shows the directory rather than the file in it — which is
+the thing that has to be named below.
+
 **What to say:** one short, friendly line before any reads — *"Fresh
 hostwarden install detected — nothing in memory yet. Ready when you
 are."* on a fresh install, *"Session start — loading your
@@ -267,10 +272,15 @@ trigger — not a request from the user.
 - Touching installed software, or naming any version →
   `rules/version-check.md`
 
-**After you change something**
+**Before the session ends**
 
 - `rules/changelog.md` — the journal line on the host and the local
-  changelog
+  changelog. **Every session, including one that changed nothing**
+  — a session with no entry is a session the next connection's
+  activity check cannot see.
+
+**After you change something**
+
 - `rules/server-memory.md` — the host's memory file, its `todo.md`
   for a session of two steps or more, and which memory files are
   personal versus shared in team mode

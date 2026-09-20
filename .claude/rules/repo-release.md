@@ -3,6 +3,7 @@ paths:
   - "VERSION"
   - "CHANGELOG.md"
   - ".github/**"
+  - ".claude/hooks/**"
 description: Versioning, tagging and porting from heinzel — for
   work on the hostwarden repository itself, not for sysadmin
   sessions.
@@ -74,6 +75,9 @@ severity. Run the two test scripts locally before pushing:
     sh .claude/hooks/guard-taboos-test.sh
     sh .claude/hooks/instructions-test.sh
 
-A guard change without a new line in the fixture matrix is
-incomplete. The matrix is how a taboo stays blocked after somebody
-refactors the pattern that blocks it.
+**A change to `.claude/hooks/guard-taboos.sh` without a new line in
+the fixture matrix is incomplete.** The matrix is how a taboo stays
+blocked after somebody refactors the pattern that blocks it — and
+it is why `.claude/hooks/**` is in this file's `paths`. A rule that
+only loads when someone opens the changelog does not reach the
+person editing the guard.
