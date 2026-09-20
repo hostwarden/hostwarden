@@ -14,7 +14,7 @@ Read this file when the user asks to:
 Also read:
 - `references/efi-boot.md` — EFI boot management
 - `references/cloud-image.md` — if using a cloud image
-- `rules/<family>.md` — for each OS involved
+- `rules/os/<family>.md` — for each OS involved
 
 ## Prerequisites
 

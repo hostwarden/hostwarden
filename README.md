@@ -854,13 +854,13 @@ log show \
 
 ## Supported Distributions
 
-| Family  | Distributions                     | Rule file          |
-| ------- | --------------------------------- | ------------------ |
-| Debian  | Debian, Ubuntu                    | `rules/debian.md`  |
-| RHEL    | RHEL, CentOS, Fedora, Rocky, Alma | `rules/rhel.md`   |
-| SUSE    | openSUSE, SLES                    | `rules/suse.md`   |
-| macOS   | macOS (Apple Silicon & Intel)     | `rules/macos.md`   |
-| FreeBSD | FreeBSD (all versions)            | `rules/freebsd.md` |
+| Family  | Distributions                     | Reference file        |
+| ------- | --------------------------------- | --------------------- |
+| Debian  | Debian, Ubuntu                    | `rules/os/debian.md`  |
+| RHEL    | RHEL, CentOS, Fedora, Rocky, Alma | `rules/os/rhel.md`    |
+| SUSE    | openSUSE, SLES                    | `rules/os/suse.md`    |
+| macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
+| FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
 
 Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it
@@ -986,12 +986,13 @@ bin/
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md)
 rules/                 — Upstream rule files (git-tracked)
-  debian.md            — Debian & Ubuntu rules
-  rhel.md              — RHEL, CentOS, Fedora, Rocky,
-                         Alma rules
-  suse.md              — openSUSE & SLES rules
-  macos.md             — macOS rules
-  freebsd.md           — FreeBSD rules
+  os/                  — Reference data, one file read per
+                         host, picked by OS detection
+    debian.md          — Debian & Ubuntu
+    rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
+    suse.md            — openSUSE & SLES
+    macos.md           — macOS
+    freebsd.md         — FreeBSD
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management
