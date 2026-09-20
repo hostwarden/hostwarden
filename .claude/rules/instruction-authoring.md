@@ -18,16 +18,20 @@ The product is the instruction set. These conventions apply to
 `AGENTS.md`, everything under `rules/`, every `SKILL.md` and its
 references, the files in `.claude/rules/`, and `contrib/`.
 
-A `paths` glob fires on a *read*, and cannot tell reading a rule
-in order to follow it on a production host from reading it in
-order to edit it. So neither `rules/**` nor `.agents/skills/**`
-is listed above — a glob over the product would load these
-conventions into every sysadmin session, which is exactly the cost
-the layout removes. The consequence is worth saying plainly:
-editing a rule file or a skill does not load this file by itself.
-Read it first.
+A `paths` glob fires on a *read*, and it cannot tell reading a
+rule in order to follow it on a production host from reading it in
+order to edit it. So `rules/**` and `.agents/skills/**` are not
+listed above — a glob over the product would load these
+conventions into every sysadmin session, which is the cost the
+layout exists to remove.
 
-What matters most here is checked mechanically instead:
+An *edit* carries no such ambiguity, so that is the trigger for
+those two: `.claude/hooks/authoring-conventions.sh`, a PostToolUse
+hook on `Edit|Write`, names this file once per session when one of
+them is touched. Where hooks do not run, read it yourself before
+changing the product.
+
+The mechanical half is checked rather than remembered:
 `sh .claude/hooks/instructions-test.sh`.
 
 ## Where a new instruction belongs

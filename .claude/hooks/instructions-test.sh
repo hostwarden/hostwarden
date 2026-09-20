@@ -75,6 +75,26 @@ report() {
 
 
 
+# --- every registered hook script exists -----------------------
+# A hook whose script is missing fails open: Claude Code carries
+# on, and the only sign is the thing the hook would have done not
+# happening. That is the taboo guard as much as anything else, so
+# a rename that misses settings.json has to fail here.
+NHOOKS=0
+for h in $(sed -n 's#.*\$CLAUDE_PROJECT_DIR/\([^"]*\.sh\).*#\1#p' \
+    "$CLAUDE_DIR/settings.json"); do
+  NHOOKS=$((NHOOKS + 1))
+  if [ -f "$ROOT/$h" ]; then
+    ok
+  else
+    bad "settings.json registers $h, which does not exist"
+  fi
+done
+if [ "$NHOOKS" -eq 0 ]; then
+  bad "settings.json registers no hook script -- either the" \
+      "guard is gone or this check stopped matching"
+fi
+
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other
 # AGENTS-style tools read directly. Claude Code does NOT search
