@@ -362,6 +362,17 @@ Read `rules/os-detection.md`. Before doing any work
 on a server, you **must** detect its OS and create a
 server memory file.
 
+## State heinzel Left Behind
+
+Read `rules/heinzel-legacy.md`. On the first
+connection to a host, check for backups, scratch
+directories and scheduled runs that heinzel left
+under its own name, report them, and offer to adopt
+them. Ask before moving anything, and record the
+answer in server memory so the check runs once.
+Journal entries keep the old tag and are read, not
+migrated.
+
 ## Activity Check
 
 Read `rules/activity-check.md`. On every connection,

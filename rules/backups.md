@@ -18,7 +18,10 @@ edited — defer those to the sysadmin report.
 Backups made before the rename from heinzel sit in
 `/var/backups/heinzel/` and `~/.heinzel-backups/`.
 Look there too when restoring, but write new backups
-only to the paths above.
+only to the paths above. Those directories are never
+cleaned by the retention `find` below, which is why
+the first connection to a host offers to adopt them
+— see `rules/heinzel-legacy.md`.
 
 ## Never back up in place inside drop-in directories
 

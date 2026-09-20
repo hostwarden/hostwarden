@@ -31,15 +31,20 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **Then** execute the user's request.
+8. **heinzel legacy check** (first connection only,
+   and only until the answer is recorded in server
+   memory). See `rules/heinzel-legacy.md`.
+9. **Then** execute the user's request.
 
 ## Local mode
 
 In local mode (`localhost`, the user's own
 hostname), skip steps 1–4 — they are remote-only
 (see `CLAUDE.md` → How It Works → Local mode).
-Still run OS detection, server memory, and activity
-check.
+Still run OS detection, server memory, activity
+check, and the heinzel legacy check — on the
+workstation the latter looks at scheduled runs
+instead of backup directories.
 
 ## Why it's mandatory
 
