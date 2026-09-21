@@ -114,6 +114,17 @@ welcome banner and waits for input.
   automation for the duration. `rules/service-reload.md` decides
   when to ask. `ha core rebuild` recreates the container; ask
   first.
+- Entities, automations and dashboards are Home Assistant's own
+  domain, changed through its UI or API. Hostwarden edits YAML only
+  where the user keeps that configuration in files.
+
+## Apps and Stores
+
+- `ha apps` lists, starts, stops, updates and installs apps; ask
+  before installing, removing or stopping one.
+- `ha store` manages the app repositories. A repository other than
+  the official ones is a third-party source (`AGENTS.md`: official
+  repos only): ask before adding one, and report the ones present.
 
 ## Updates
 
@@ -162,9 +173,33 @@ welcome banner and waits for input.
 ## Housekeeping and Audits
 
 - The Linux baseline does not apply (see What Does Not Apply).
-  Check `ha available-updates`, `ha resolution info` and
-  `ha backups list` instead. For a security audit, also report the
-  SSH app's options and which apps publish ports.
+  Housekeeping checks instead, in one call:
+  - `ha available-updates` — pending updates are the finding;
+  - `ha resolution info` — issues and an unsupported or unhealthy
+    system;
+  - `ha backups list` — no backup, or none recent, is a finding;
+  - `ha host info` — disk usage;
+  - `ha time info` — time synchronisation;
+  - `ha mounts info` — whether backup and media mounts are up.
+- A security audit reports instead:
+  - the SSH app's options (password login, keys, user);
+  - which apps publish ports;
+  - `ha security info`;
+  - app repositories beyond the official ones (`ha store`);
+  - the `http:` settings in the configuration (trusted proxies,
+    login attempt bans), and credentials written into the
+    configuration instead of `secrets.yaml`.
+- Verify each command with `--help` before relying on its output
+  (`AGENTS.md` → Verify Before Running); the top-level commands are
+  listed by `ha --help`.
+
+## Credentials
+
+- `ha authentication` resets a user's password: a credential
+  rotation, so ask first, and never with the password on the
+  command line (`rules/secrets.md`). The same holds for the
+  credentials of `ha mounts` and of `ha docker` registries: never
+  print them, never pass them as arguments.
 
 ## Never
 
