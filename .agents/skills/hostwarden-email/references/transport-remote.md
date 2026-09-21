@@ -1,38 +1,12 @@
-# Email transport: local or remote
+# Email transport: sending from the server
 
-Reached from step 5 of the `hostwarden-email` skill, once
-gate 0 has decided which side sends. Read only the branch
-that applies.
-
-### 5L. Local-side workflow
-
-**5L.1** Probe the workstation for a local transport:
-`command -v mail || command -v mailx || command -v sendmail
-|| command -v msmtp`. On macOS, also confirm Postfix is
-loaded: `launchctl print system/com.apple.postfix.master`
-exits 0.
-
-**5L.2** **No install fallback locally.** If nothing's there,
-refuse cleanly: "no mail tooling on this workstation —
-install msmtp locally and rerun, or pick remote next time by
-deleting `Email source: local` from `memory.md`." Do not
-auto-install on the workstation.
-
-**5L.3** Skip Gate A (5R.2) and Gate B (5R.3) entirely —
-those are remote-only.
-
-**5L.4** Skip the sender-identity step (5R.4). Local sending
-runs as the current shell user.
-
-**5L.5** Continue at the shared step **6 (Compose)**. At steps
-**7 (Send)** and **8 (Verify)** the commands run locally;
-`references/send-verify.md` has the local branch of both,
-including which log to read.
-
-### 5R. Remote-side workflow
+Step 5R of the `hostwarden-email` skill, reached when gate 0
+decided the managed host sends. The install in 5R.3 is the only
+root-privileged operation in the whole workflow.
 
 **5R.1 Resolve transport** — probe in this order on the
 remote host:
+
 - `command -v mail || command -v mailx || command -v s-nail`
 - `command -v sendmail`
 - `command -v msmtp`
@@ -41,6 +15,7 @@ remote host:
 **5R.2 Consent gate A — existing MTA.** If 5R.1 found a
 working MTA, check `memory.md` for `Email send policy:
 <always|never>`:
+
 - `always` → proceed silently.
 - `never` → refuse with the reason; do not send.
 - missing → ask:
@@ -56,6 +31,7 @@ If 5R.1 found a working MTA, skip 5R.3 entirely.
 **5R.3 Consent gate B — install a new MTA.** Only reached
 when 5R.1 found nothing. Check `memory.md` for `MTA install
 policy: <always|never>`:
+
 - `always` → install silently using the OS-family default
   below.
 - `never` → refuse; do not install, do not send.
@@ -149,5 +125,4 @@ in this order:
 3. If no non-root sender is viable, send as root and tag the
    report **WARN** with the reason. Never invent a user.
 
-The install step (5R.3) still requires root/sudo — that is
-the only root-privileged operation in the workflow.
+Then continue at the shared step **6 (Compose)**.

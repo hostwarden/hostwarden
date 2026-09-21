@@ -55,11 +55,15 @@
   workflow loads first now, and each step reads its own
   part when it gets there. An exchange that stops early —
   the where-to-send-from question the first mail per host
-  asks — reads the workflow and nothing else. A full send
-  still reads all of it, in three pieces instead of one.
+  asks — reads the workflow and nothing else. Transport is
+  split again by the answer to that question, because the
+  two sides share no step: sending from your workstation
+  no longer loads the consent gates, the MTA choice and the
+  privilege-dropping that only a server has.
 
   If you customized one of those topics, it has its own
-  override key now — `hostwarden-email/transport.md`,
+  override key now — `hostwarden-email/transport-local.md`,
+  `…/transport-remote.md`,
   `…/compose.md`, `…/send-verify.md` under
   `memory/custom-rules/`. An existing
   `hostwarden-email.md` still applies as a whole; a
