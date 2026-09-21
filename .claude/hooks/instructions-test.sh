@@ -559,5 +559,27 @@ $CONTEXTS
 EOF
 fi
 
+# --- the ignore rules keep personal files out, and only those -----
+# .gitignore ignores all of .claude/ but the shared configuration.
+# Both directions fail silently otherwise: a tracked file the rules
+# match is shared configuration someone forgot to un-ignore, and a
+# personal file that stops matching is one `git add` from a public
+# repo.
+# The repository's own .gitignore files only: --exclude-standard
+# would add .git/info/exclude and the contributor's global excludes,
+# and a personal `.claude/` there must not fail this check.
+TRACKED_IGNORED=$(git -C "$ROOT" ls-files -ci \
+  --exclude-per-directory=.gitignore)
+report "$TRACKED_IGNORED" "a tracked file, yet the ignore rules match it"
+for p in .claude/settings.local.json .claude/worktrees/x \
+         .claude/scheduled_tasks.json .claude/agent-memory-local/x \
+         .claude/x.lock CLAUDE.local.md memory/user.md; do
+  if git -C "$ROOT" check-ignore -q "$p"; then
+    ok
+  else
+    bad ".gitignore no longer ignores $p"
+  fi
+done
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

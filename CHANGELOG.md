@@ -11,7 +11,11 @@
   two collide; a session on the same machine can be
   messaged directly. Read-only sessions register nothing,
   and a stale entry can be removed by anyone.
-
+- **Personal Claude Code files stay out of git**, the
+  ones Claude Code adds later included: everything under
+  `.claude/` except the shared configuration is ignored,
+  and so is `CLAUDE.local.md`. The layout test fails when
+  a tracked file matches the ignore rules.
 - **A checkout either operates servers or develops
   hostwarden.** `bin/hostwarden-init` turns `memory/`
   into the workspace, a git repository of its own, and
