@@ -260,7 +260,7 @@ for f in "$HOOKS"/shim/*; do
   t=${f##*/} n=$((n + 1))
   [ -x "$f" ] && grep -q '/../shim.sh"$' "$f" && ok \
     || bad "shim/$t does not source shim.sh"
-  grep -q "T = .*[(|]$t[|)]" "$HOOKS/guard-mode.sh" && ok \
+  grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" && ok \
     || bad "shim/$t names a tool the guard does not"
 done
 [ "$n" -eq 8 ] && ok || bad "shim/ holds $n tools, the guard names 8"
