@@ -37,7 +37,8 @@ skill says so where it needs it.
    ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
      'echo @release; cat /etc/os-release; freebsd-version;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
-     'lscpu; free -h; sysctl hw.model hw.ncpu hw.physmem;' \
+     'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
+     'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
      'ls -d /homeassistant'
@@ -55,7 +56,10 @@ skill says so where it needs it.
    command of `-c` in place and `ps` would then report
    itself. Every OS lacks some of these commands, so
    expect "not found" errors: read what the commands
-   that exist printed, and nothing else.
+   that exist printed, and nothing else. An error line
+   can turn up under any `@` marker, because ssh passes
+   stdout and stderr on separately; never read it as
+   belonging to the section it lands in.
 
    **The first line decides whether to go on.** If it
    is anything but `Linux`, `FreeBSD` or `Darwin` — a
@@ -98,7 +102,8 @@ skill says so where it needs it.
      line.
 
    Hardware comes from the lines after `@hardware`:
-   `lscpu` and `free` on Linux, `sysctl` elsewhere.
+   `nproc`, the CPU model and `free` on Linux, `sysctl`
+   elsewhere.
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS.
 
