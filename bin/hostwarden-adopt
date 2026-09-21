@@ -253,6 +253,20 @@ fi
 
 cd "$REPO_DIR"
 
+# With nativestrict, an ln -s that cannot link fails, and set -e
+# would stop the run with some hosts copied and others not. Find
+# out before the first copy instead. A dry run creates nothing.
+if [ -z "$LIST" ]; then
+  probe=$(mktemp -d)
+  if ! ln -s "$probe" "$probe/l" 2>/dev/null || [ ! -L "$probe/l" ]; then
+    rm -rf "$probe"
+    echo "error: this shell cannot create symbolic links, and DNS" >&2
+    echo "  aliases need them — see README → Windows" >&2
+    exit 1
+  fi
+  rm -rf "$probe"
+fi
+
 # A host name is one path component. Interpolated
 # into both the source and the destination path, a
 # value with a slash or .. would read and write
