@@ -41,9 +41,10 @@ Do NOT auto-invoke for generic phrases like "check my
 servers" — that maps to single-host housekeeping.
 
 A host with an `Appliance:` line in memory is compared only
-with hosts of the same appliance, as that appliance file's
-`## Housekeeping and Audits` section says — or skipped with
-the note it gives.
+with hosts of the same appliance, and only where that
+appliance file's `## Housekeeping and Audits` section says
+how. Otherwise it goes on a "skipped: appliance not yet
+supported" list, decided from memory before any probe runs.
 
 ## Workflow
 

@@ -2,12 +2,10 @@
 
 Base: `rules/os/debian.md`
 
-A Proxmox VE node is a Debian host. Read the base file first, then
-this one: its `## Replace:`, `## Remove:` and `## Add:` sections
-change the base the way an override does (`rules/overrides.md` →
-The format), and a heading without a prefix is a topic the base
-does not have. Every guest on the node, and on a cluster every
-other node, depends on what you do here.
+A Proxmox VE node is a Debian host, and this file applies on top of
+the base (`rules/os-detection.md` → Appliances). Every guest on the
+node, and on a cluster every other node, depends on what you do
+here.
 
 Source for everything below unless noted: the admin guide,
 <https://pve.proxmox.com/pve-docs/pve-admin-guide.html>.
@@ -29,9 +27,10 @@ Source for everything below unless noted: the admin guide,
   FAQ (<https://pve.proxmox.com/wiki/FAQ>), never from memory. A
   node on a release past its end of life is a finding.
 
-## Replace: Package Manager
+## Remove: Package Manager > Dry-run before upgrading
 
-- Use `apt-get` (not `apt`), and run `apt-get update` first.
+## Add: Package Manager
+
 - **Always `dist-upgrade` / `full-upgrade`, never plain
   `upgrade`.** Proxmox: `apt upgrade` "may result in a partially
   upgraded or broken package state", because only `full-upgrade`
@@ -47,9 +46,8 @@ Source for everything below unless noted: the admin guide,
 - `pveupgrade` runs an interactive `apt-get dist-upgrade` and
   refuses when the package index is older than 3 days. It waits
   for input, so Hostwarden uses `apt-get` directly.
-- Non-interactive install: `apt-get install -y <package>`. Keep it
-  to what the node needs: a desktop or other large extras are "not
-  supported" and make upgrades hard.
+- Install only what the node needs: a desktop or other large extras
+  are "not supported" and make upgrades hard.
 
 ## Remove: Common Pitfalls > Prefer `apt-get upgrade`
 
@@ -200,7 +198,8 @@ Source for everything below unless noted: the admin guide,
 
 ## Guests
 
-- List: `qm list` (VMs), `pct list` (containers).
+- List: `qm list` (VMs), `pct list` (containers). Task logs of the
+  web UI are under `/var/log/pve/tasks/`.
 - Config: `qm config <vmid>`, `pct config <vmid>`.
 - Migrate: `qm migrate <vmid> <target> --online` (VM, live),
   `pct migrate <vmid> <target> --restart` (containers have no live
@@ -257,11 +256,6 @@ Source for everything below unless noted: the admin guide,
   defaults in `/etc/vzdump.conf`, schedules in `/etc/pve/jobs.cfg`.
   Proxmox recommends Proxmox Backup Server on a separate host.
 
-## Logs
-
-- As on Debian: the systemd journal, so the activity check and
-  `rules/changelog.md` work unchanged. Task logs of the web UI are
-  under `/var/log/pve/tasks/`.
 
 ## Housekeeping and Audits
 

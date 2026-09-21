@@ -28,10 +28,8 @@ Hosts without one never had Heinzel state, which is
 the normal case.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
-add `Mode: local` for localhost). `Appliance:` only
-when `rules/os-detection.md` → Appliances found one,
-in the form the appliance file gives; `Shell:` once
-per SSH user, from the same file's step 1.
+add `Mode: local` for localhost). `Appliance:` and
+`Shell:` come from `rules/os-detection.md`.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

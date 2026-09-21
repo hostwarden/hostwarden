@@ -324,45 +324,6 @@ else
   ok
 fi
 
-# --- appliance files hold to their contract ---------------------
-# An appliance file is read on top of its family file, the way an
-# override is (rules/os-detection.md -> Appliances). Its
-# `## Replace:` and `## Remove:` headings name sections of that base,
-# and one that names nothing takes nothing out: the family's advice
-# then stands on a host where it is wrong. The activity check and
-# the audit skills read `## Logs` and `## Housekeeping and Audits`
-# by name, and detection reaches only the files its marker table
-# lists. Each of these fails silently on a live host, so each is
-# checked here.
-report "$(
-  for f in "$ROOT"/rules/appliance/*.md; do
-    [ -f "$f" ] || continue
-    rel=${f#"$ROOT"/}
-    base=$(sed -n 's/^Base: *//p' "$f" | head -1 | tr -d '`')
-    case $base in
-      (none) base= ;;
-      (rules/os/*.md)
-        [ -f "$ROOT/$base" ] \
-          || { echo "$rel: Base $base does not exist"; base=; } ;;
-      (*) echo "$rel: no 'Base: rules/os/<family>.md' or 'Base: none' line"
-         base= ;;
-    esac
-    for h in 'Logs' 'Housekeeping and Audits'; do
-      grep -qxF "## $h" "$f" || echo "$rel: no '## $h' section"
-    done
-    grep -qF "\`$rel\`" "$ROOT/rules/os-detection.md" \
-      || echo "$rel: not in the marker table of rules/os-detection.md"
-    sed -nE 's/^## (Replace|Remove): *//p' "$f" \
-      | sed 's/ > .*//' \
-      | while IFS= read -r sec; do
-          if [ -z "$base" ]; then
-            echo "$rel: '$sec' is replaced or removed, but there is no base"
-          elif ! grep -qxF "## $sec" "$ROOT/$base"; then
-            echo "$rel: '$sec' names no section of $base"
-          fi
-        done
-  done)" "an appliance file that fits its base"
-
 # --- every pointer resolves --------------------------------------
 # A dangling instruction pointer fails the way the references/
 # check already guards against: silently. The file that should
@@ -768,6 +729,54 @@ else
 $CONTEXTS
 EOF
 fi
+
+# --- appliance files hold to their contract ---------------------
+# An appliance file is read on top of its family file the way an
+# override is (rules/os-detection.md -> Appliances). A `Replace:` or
+# `Remove:` that names nothing in the base takes nothing out, and the
+# family's advice then stands where it is wrong; detection reaches
+# only the files its marker table lists. Whether the Base file exists
+# is the pointer check's job above.
+report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
+  "$LOAD_AWK"'
+  function done() {
+    if (rel == "") return
+    if (!based) print rel ": no Base line"
+    if (!ha) print rel ": no ## Housekeeping and Audits section"
+  }
+  function text(p,   l, t) {
+    if (p in RAW) return RAW[p]
+    while ((getline l < p) > 0) t = t "\n" l
+    close(p); return RAW[p] = t
+  }
+  FNR == 1 {
+    done(); FM = ""; based = ha = 0; base = ""
+    rel = substr(FILENAME, length(root) + 1)
+    if (!index(text(table), "`" rel "`"))
+      print rel ": not in the marker table of rules/os-detection.md"
+  }
+  fenced($0) { next }
+  /^Base: / {
+    based = 1; b = $2; gsub(/`/, "", b)
+    if (b == "none") next
+    if (b !~ /^rules\/os\/[a-z0-9-]+\.md$/) print rel ": Base " b " is no family file"
+    else base = root b
+    next
+  }
+  $0 == "## Housekeeping and Audits" { ha = 1 }
+  /^## (Replace|Remove): / {
+    sec = $0; sub(/^## [A-Za-z]+: */, "", sec); entry = ""
+    if ((i = index(sec, " > "))) { entry = substr(sec, i + 3); sec = substr(sec, 1, i - 1) }
+    if (base == "") { print rel ": " sec " has no base to take it from"; next }
+    fm = FM; ok = load(base); FM = fm
+    if (!ok) next
+    for (i = 1; i <= NH[base]; i++) if (H[base, i] == sec) break
+    if (i > NH[base]) print rel ": " sec " is no section of " substr(base, length(root) + 1)
+    else if (entry != "" && !index(text(base), entry))
+      print rel ": " entry " is no entry of " sec
+  }
+  END { done() }' "$ROOT"/rules/appliance/*.md)" \
+  "an appliance file that fits its base"
 
 # --- the ignore rules keep personal files out, and only those -----
 # .gitignore ignores all of .claude/ but the shared configuration.

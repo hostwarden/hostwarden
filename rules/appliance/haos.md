@@ -37,7 +37,6 @@ Record which of the three it is in server memory
 
 ## Version Detection
 
-- Markers: `rules/os-detection.md` → Appliances.
 - Versions: `ha os info`, `ha core info`, `ha supervisor info`.
   `ha info` gives an overview.
 - Health: `ha resolution info` lists issues, suggestions, and
@@ -126,12 +125,12 @@ Record which of the three it is in server memory
   `ha host logs` (the host journal, persistent). There is no
   `ha os logs`. Never add a follow flag over non-interactive SSH.
 - `logger -t hostwarden` inside an app container may not reach the
-  host journal. After the first entry, read it back with
-  `ha host logs -t hostwarden`; the activity check reads both tags
-  the same way (`-t hostwarden`, then `-t heinzel`). If the line is
-  missing, log to the local changelog only (`rules/changelog.md`)
-  and note `Journal: none` in server memory, so the activity check
-  does not read an empty journal as silence.
+  host journal. With the first entry, read it back in the same call:
+  `ha host logs -t hostwarden | tail -1`. The activity check reads
+  `-t heinzel` the same way. If the line is missing, log to the
+  local changelog only (`rules/changelog.md`) and note
+  `Journal: none` in server memory, so the activity check does not
+  read an empty journal as silence.
 
 ## Housekeeping and Audits
 
@@ -139,8 +138,6 @@ Record which of the three it is in server memory
   Check `ha available-updates`, `ha resolution info` and
   `ha backups list` instead. For a security audit, also report the
   SSH app's options and which apps publish ports.
-- Fleet audit: not covered yet. Skip the host with an "appliance
-  not yet supported" note.
 
 ## Never
 

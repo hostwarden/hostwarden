@@ -6,10 +6,8 @@ OPNsense is built on FreeBSD, so the base file supplies the
 vocabulary (`ifconfig`, `pfctl`, ZFS). Most of its instructions for
 changing the system are **wrong here**: OPNsense generates the
 system configuration from one XML file and overwrites manual edits.
-Read the base file first, then this one: its `## Replace:`,
-`## Remove:` and `## Add:` sections change the base the way an
-override does (`rules/overrides.md` → The format), and a heading
-without a prefix is a topic the base does not have.
+This file applies on top of the base (`rules/os-detection.md` →
+Appliances).
 
 The host is usually the network's only way out. A mistake here cuts
 off everyone behind it, not just your SSH session.
@@ -20,7 +18,6 @@ documentation, <https://docs.opnsense.org/>, and the
 
 ## Add: Version Detection
 
-- Marker: `which opnsense-version`.
 - `opnsense-version` prints e.g. `OPNsense 26.7.4 (amd64)`;
   `opnsense-version -v` only the version, `-V` the series (`26.7`).
 - Two major releases a year (`YY.1`, `YY.7`), minor updates in
@@ -230,5 +227,3 @@ documentation, <https://docs.opnsense.org/>, and the
   `pfctl -sr` and `pluginctl -s` instead.
 - Report settings OPNsense generates as web UI changes, not file
   edits.
-- Fleet audit: not covered yet. Skip the host with an "appliance
-  not yet supported" note.

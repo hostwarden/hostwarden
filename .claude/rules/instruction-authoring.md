@@ -60,20 +60,13 @@ Four mechanisms, one question each:
 A file keyed by a fact rather than a moment — the OS-family files
 — is reference data and lives in `rules/os/`.
 
-An appliance — a product whose vendor runs the OS underneath, with
-its own updater, configuration model or firewall — gets a file in
-`rules/appliance/`, and a row in the marker table of
-`rules/os-detection.md` → Appliances. A service that merely runs on
-a host is not one; it belongs in the housekeeping service checks.
-The file opens with a `Base:` line naming its family file, or
-`Base: none`, and changes the base with the prefixes an override
-uses: `## Replace:` and `## Remove:` for a section of the base,
-`## Add:` to extend one, and a plain heading for a topic the base
-does not have. Decide per section of the base; "this file wins
-wherever the two disagree" leaves the reader to find the
-disagreement on a live firewall. Every appliance file has a
-`## Logs` and a `## Housekeeping and Audits` section, because the
-activity check and the audit skills read them by name.
+An appliance (`rules/os-detection.md` → Appliances) gets a file in
+`rules/appliance/` and a row in that section's marker table. The
+file opens with a `Base:` line naming its family file, or
+`Base: none`, and has a `## Housekeeping and Audits` section.
+Decide per section of the base with the override prefixes; "this
+file wins wherever the two disagree" leaves the reader to find the
+disagreement on a live firewall.
 
 ## For people and for the agent
 

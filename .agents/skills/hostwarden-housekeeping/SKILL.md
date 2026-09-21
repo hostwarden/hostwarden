@@ -69,10 +69,9 @@ Read on demand, only when the relevant section applies:
   WireGuard. Only run the ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
-- The appliance file named by `Appliance:` in server memory
-  (`rules/os-detection.md` → Appliances) — its
-  `## Housekeeping and Audits` section replaces the baseline
-  checks it names.
+- On an appliance, its `## Housekeeping and Audits` section,
+  already loaded by the pipeline (`rules/os-detection.md` →
+  Appliances).
 - `references/scheduled.md` — running this inspection from cron
   or a systemd timer with no human at the keyboard, and mailing
   the result. Only when the user asks to schedule it.

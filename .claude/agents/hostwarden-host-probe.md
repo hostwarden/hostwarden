@@ -51,10 +51,8 @@ Bash calls as it does anywhere else.
    days — is yours, because the session that builds the report
    never reads `references/probes.md` and cannot rediscover it
    from a column. Each one you find is a `warnings:` line.
-   On an appliance, the pipeline has loaded its file
-   (`rules/os-detection.md` → Appliances): what its
-   `## Housekeeping and Audits` section says is not a finding
-   is not a warning either.
+   On an appliance, what its `## Housekeeping and Audits`
+   section says is not a finding is not a warning either.
 4. Return the row, the status, the warnings and the notices.
 
 ## What you never do

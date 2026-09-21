@@ -6,11 +6,8 @@ For pfSense CE and pfSense Plus. pfSense is built on FreeBSD, so the
 base file supplies the vocabulary (`ifconfig`, `pfctl`,
 `/usr/local/etc`). Most of its instructions for changing the system
 are **wrong here**: pfSense generates the system configuration from
-one XML file and overwrites manual edits. Read the base file first,
-then this one: its `## Replace:`, `## Remove:` and `## Add:`
-sections change the base the way an override does
-(`rules/overrides.md` → The format), and a heading without a prefix
-is a topic the base does not have.
+one XML file and overwrites manual edits. This file applies on top
+of the base (`rules/os-detection.md` → Appliances).
 
 The host is usually the network's only way out. A mistake here cuts
 off everyone behind it, not just your SSH session.
@@ -20,8 +17,7 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 
 ## Add: Version Detection
 
-- Marker: `which pfSense-upgrade` (CE and Plus); `/etc/platform`
-  contains `pfSense`.
+- `/etc/platform` contains `pfSense`, on CE and Plus.
 - Version: `cat /etc/version` (e.g. `2.9.0-RELEASE`), patch level
   in `/etc/version.patch` (`0` means unpatched).
 - **CE or Plus:** CE numbers its releases `2.x.y`, Plus uses
@@ -231,5 +227,3 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   instead.
 - Report settings pfSense generates as web UI changes, not file
   edits.
-- Fleet audit: not covered yet. Skip the host with an "appliance
-  not yet supported" note.

@@ -40,11 +40,9 @@ skill says so where it needs it.
    redirects or `&&`; and `ps` not last, because bash
    and dash exec the last command of `-c` in place and
    `ps` would then report itself. The account's login
-   shell runs it, and that is not always sh — OPNsense
-   runs root's commands in csh, pfSense gives other
-   users tcsh, FreeBSD before 14.0 gives root csh. A
-   command passed over SSH skips the console menus of
-   both firewalls.
+   shell runs it, and that is not always sh: csh and
+   tcsh are common on FreeBSD and the firewalls built
+   on it.
 
    If the first line is anything but `Linux`, `FreeBSD`
    or `Darwin` — a menu, a banner, "This account is
@@ -87,21 +85,20 @@ skill says so where it needs it.
 
 3. **If macOS** — detect version and arch:
    ```
-   sw_vers -productVersion && uname -m
+   sw_vers -productVersion
    ```
    Read `rules/os/macos.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`).
 
 4. **If FreeBSD** — detect version and arch:
    ```
-   freebsd-version && uname -m
+   freebsd-version
    ```
    Read `rules/os/freebsd.md`. Gather hardware info
    (`sysctl` for CPU/RAM, `df -h`,
    `zpool status` if ZFS).
 
-5. **Check for an appliance**, in the same call as
-   step 2 or 4. See Appliances below.
+5. **Check for an appliance.** See Appliances below.
 
 6. Create a server memory file.
 
@@ -129,27 +126,27 @@ Probe the markers in the same call as step 2 or 4:
 | FreeBSD | `pfSense-upgrade`               | `rules/appliance/pfsense.md`    |
 | none    | `ID=haos`, or `ha` + Supervisor | `rules/appliance/haos.md`       |
 
-On a match:
+On a match, read the family file its `Base:` line
+names, then the appliance file on top of it, the way
+an override is read (`rules/overrides.md` → The
+format): `## Replace:` and `## Remove:` take a section
+of the base out, `## Add:` and a heading without a
+prefix add to it, and a section the appliance file
+does not name applies as the base wrote it.
+`Base: none` means no family file at all. The user's
+overrides of the family file come before those of the
+appliance file. Record `Appliance: …` in server
+memory, in the form the appliance file gives.
 
-- Read the file its `Base:` line names first — the
-  family file from step 2 or 4 — then the appliance
-  file. `Base: none` means no family file at all.
-- Read the appliance file the way an override is read
-  (`rules/overrides.md` → The format): `## Replace:`
-  takes the named section of the base out and stands
-  in its place, `## Remove:` takes it out, `## Add:`
-  and a heading without a prefix add to it. A section
-  the appliance file does not name applies as the base
-  wrote it.
-- Load the user's overrides for both files
-  (`rules/overrides.md` → Precedence).
-- Record it in server memory as `Appliance: …`, in the
-  form the appliance file's detection section gives
-  (`rules/server-memory.md`).
-- Housekeeping, the security audit, the fleet audit and
-  the activity check read the appliance file's
-  `## Housekeeping and Audits` and `## Logs` sections,
-  which replace the baseline checks they name.
+**On an appliance, the family file with the appliance
+file applied is the OS file.** Wherever an instruction
+names the loaded OS file or `rules/os/<family>.md`, it
+means that. The appliance file's
+`## Housekeeping and Audits` section replaces the
+baseline checks of housekeeping and both audits that
+it names, and its `## Logs` section, where it has one,
+replaces the activity check's block for the base
+family.
 
 ## On subsequent connections
 
