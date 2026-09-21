@@ -37,6 +37,10 @@
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
 #                             three answers, and HOSTWARDEN_MAIN to
 #                             the main checkout of a worktree
+#   hostwarden_refusal <tool>
+#                           — sets HOSTWARDEN_REFUSAL to why <tool>
+#                             is refused in development, so the
+#                             guard and the shim say the same
 #   hostwarden_git_batch    — sets up git to reach the workspace's
 #                             remote without ever prompting
 
@@ -63,6 +67,24 @@ hostwarden_mode() {
     HOSTWARDEN_MODE=operations
   else
     HOSTWARDEN_MODE=development
+  fi
+}
+
+# Plain ASCII without quotes or backslashes: guard-mode.sh puts it
+# into JSON as it is. Expects hostwarden_mode to have run.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_refusal() {
+  if [ "$HOSTWARDEN_MODE" = worktree ]; then
+    HOSTWARDEN_REFUSAL="$1 reaches a server, and this session runs \
+in a linked git worktree. A worktree never carries memory/, so the \
+access lists and the server memory are missing here. Server work \
+runs only in the main checkout of an operations install"
+  else
+    HOSTWARDEN_REFUSAL="$1 reaches a server, and this checkout \
+develops hostwarden (memory/ holds no workspace). Server work runs \
+in an operations checkout: a separate clone, set up once with \
+bin/hostwarden-init. For a tool on this machine, run the command \
+yourself outside the agent"
   fi
 }
 

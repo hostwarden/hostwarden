@@ -17,7 +17,12 @@ tool reads. This file adds only what exists here and nowhere else.
   describes, and `.claude/hooks/guard-mode.sh` holds the session to
   it: no server from a development checkout or a worktree, no edit
   to shipped files in an operations one. The taboo guard's
-  disable variable does not reach it.
+  disable variable does not reach it. In development the same
+  SessionStart hook puts `.claude/hooks/shim/` first on the
+  `PATH` of every Bash call, subagents' included: `ssh`, `scp`,
+  `sudo` and the rest print the refusal on stderr and fail
+  however they are started. `git push` reaches the real `ssh`
+  through `GIT_SSH_COMMAND`.
 - **SessionStart hooks have already run.** They have:
   - in an operations checkout, checked for repo updates and
     pulled the workspace;

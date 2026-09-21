@@ -21,8 +21,12 @@
   into the workspace, a git repository of its own, and
   only a checkout with a workspace reaches a server. One
   without it — a fresh clone, a fork, and every git
-  worktree — is for changing hostwarden and denies
-  `ssh`, `scp`, rsync to a remote and `sudo`. In an
+  worktree — is for changing hostwarden and refuses
+  `ssh`, `scp`, `sudo` and the other tools that reach a
+  server, however they are started: in Claude Code a
+  shim that fails in their place comes first on the
+  `PATH` of every command, rsync's own `ssh` included,
+  while `git push` still reaches the real one. In an
   operations checkout hostwarden's own files are
   read-only, so a local edit cannot stop the
   auto-update. A team shares the workspace through a

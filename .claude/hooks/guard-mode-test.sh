@@ -35,7 +35,8 @@ checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/rules"
   cp "$HOOKS/mode.sh" "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" \
-    "$c/.claude/hooks/"
+    "$HOOKS/shim.sh" "$c/.claude/hooks/"
+  cp -R "$HOOKS/shim" "$c/.claude/hooks/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
     "$REPO/bin/hostwarden-backup" "$c/bin/"
   mkdir -p "$c/templates"
@@ -100,95 +101,44 @@ cmd() { verdict "$1" "$2" "$(bash_json "$3")"; }
 edit() { verdict "$1" "$2" "$(edit_json "$3")"; }
 write() { verdict "$1" "$2" "$(write_json "$3")"; }
 
-# Development: nothing reaches a server, this machine included.
-cmd deny "$DEV" 'ssh root@server1.example.com uptime'
-cmd deny "$DEV" 'ssh -o BatchMode=yes alice@server1.example.com "df -h"'
+# Development: the guard denies what goes past a PATH lookup. A
+# bare tool name is the shim's (below), wherever it stands.
 cmd deny "$DEV" '/usr/bin/ssh server1.example.com'
-cmd deny "$DEV" 'FOO=1 ssh server1.example.com'
-cmd deny "$DEV" 'env LC_ALL=C ssh server1.example.com'
-cmd deny "$DEV" 'timeout 10 ssh server1.example.com true'
-cmd deny "$DEV" 'cd /tmp && scp a.txt server1.example.com:/tmp/'
-cmd deny "$DEV" 'sftp server1.example.com'
-cmd deny "$DEV" 'bash -c "ssh server1.example.com"'
-cmd deny "$DEV" 'echo $(ssh server1.example.com hostname)'
-cmd deny "$DEV" 'if ssh server1.example.com true; then echo up; fi'
-cmd deny "$DEV" 'sudo apt-get update'
-cmd deny "$DEV" 'doas pkg upgrade'
-cmd deny "$DEV" 'rsync -av site/ server1.example.com:/srv/site/'
-cmd deny "$DEV" 'rsync -av -e "ssh -p 2222" site/ server1.example.com:/srv/'
-cmd deny "$DEV" 'rsync -av rsync://server1.example.com/mod/ here/'
-cmd deny "$DEV" 'rsync -a site/ "server1.example.com:/srv/"'
-cmd deny "$DEV" "rsync -a 'rsync://server1.example.com/mod/' here/"
-cmd pass "$DEV" 'rsync -a "my site/" /tmp/copy/'
-cmd pass "$DEV" 'rsync -a -e ssh src/ /tmp/copy/'
-cmd pass "$DEV" "rsync -a --out-format '%n:%l' src/ /tmp/copy/"
-cmd deny "$DEV" "rsync -a --out-format '%n' src/ server1.example.com:/srv/"
-cmd deny "$DEV" '2>/dev/null ssh server1.example.com true'
-cmd deny "$DEV" '> /tmp/out sudo whoami'
-cmd deny "$DEV" 'FOO=1 2>&1 ssh server1.example.com'
-cmd deny "$DEV" 'if false; then :; elif ssh server1.example.com true; then :; fi'
-cmd deny "$DEV" 'env -u FOO ssh server1.example.com'
-cmd deny "$DEV" 'timeout -s KILL 5 ssh server1.example.com'
-cmd deny "$DEV" 'stdbuf -o L ssh server1.example.com'
-cmd deny "$DEV" 'echo a | xargs -n 1 ssh server1.example.com'
-cmd deny "$DEV" 'sudoedit /etc/hosts'
-cmd deny "$DEV" 'pkexec whoami'
-cmd deny "$DEV" 'find . -exec ssh server1.example.com true \;'
-cmd deny "$DEV" 'find . -name x -execdir /usr/bin/scp {} server1.example.com: \;'
-cmd pass "$DEV" 'find . -name "*.sh" -exec shellcheck {} +'
-cmd deny "$DEV" 'find . -exec env ssh server1.example.com true \;'
-cmd pass "$DEV" 'find . -name "*.md" -exec rsync -a {} /tmp/copy/ \;'
-cmd deny "$DEV" 'find . -exec rsync -a {} server1.example.com:/srv/ \;'
-cmd deny "$DEV" "env -S 'ssh server1.example.com true'"
-cmd deny "$DEV" 'env --split-string="sudo whoami"'
-cmd deny "$DEV" 'env -S ssh server1.example.com'
-cmd deny "$DEV" 'find . -ok timeout -s KILL 5 sudo true \;'
-cmd deny "$DEV" 'env --unset FOO ssh server1.example.com true'
-cmd deny "$DEV" 'timeout --signal KILL 5 ssh server1.example.com'
-cmd deny "$DEV" 'stdbuf --output L ssh server1.example.com'
-cmd deny "$DEV" 'ssh server1.example.com bash -s <<EOF
-uptime
-EOF'
+cmd deny "$DEV" 'cd /tmp && /usr/bin/scp a.txt server1.example.com:/tmp/'
+cmd deny "$DEV" '! /usr/local/bin/mosh server1.example.com'
+cmd deny "$DEV" 'FOO=1 /usr/bin/sudo whoami'
+cmd deny "$DEV" 'echo $(/usr/bin/ssh server1.example.com hostname)'
+cmd deny "$DEV" 'bash -c "true; /usr/bin/sudo whoami"'
+cmd deny "$DEV" 'command -p ssh server1.example.com'
+cmd deny "$DEV" 'command -p sudo whoami'
+cmd deny "$DEV" 'exec /usr/bin/ssh server1.example.com'
+cmd deny "$DEV" 'PATH=/usr/bin:/bin ssh server1.example.com'
+cmd deny "$DEV" '$GIT_SSH_COMMAND root@server1.example.com uptime'
+cmd deny "$DEV" '"${GIT_SSH_COMMAND}" server1.example.com'
+cmd deny "$DEV" 'ssh-keygen -lf k.pub; /usr/bin/doas true'
 # ...and everything a development session actually does passes.
+cmd pass "$DEV" 'ssh root@server1.example.com uptime'
+cmd pass "$DEV" 'sudo apt-get update'
 cmd pass "$DEV" 'grep -rn ssh rules/'
 cmd pass "$DEV" 'git commit -F /tmp/msg.txt'
 cmd pass "$DEV" 'git push -u origin feat/28-workspace-mode'
 cmd pass "$DEV" 'ssh-keygen -lf key.pub'
+cmd pass "$DEV" 'ls -l /etc/ssh/'
 cmd pass "$DEV" 'rsync -a templates/ /tmp/copy/'
 cmd pass "$DEV" 'sh .claude/hooks/guard-taboos-test.sh'
 cmd pass "$DEV" 'git commit -m "ssh: keep one connection per host"'
-cmd pass "$DEV" 'uname -a; df -h'
-# Quoted text is data unless something runs it.
-cmd pass "$DEV" "grep -rn 'ssh ' rules/"
-cmd pass "$DEV" 'grep -nE "(ssh|scp|sudo)" .claude/hooks/guard-mode.sh'
-cmd pass "$DEV" "sed -n '/^ssh/p' README.md"
-cmd pass "$DEV" 'echo "sudo is blocked here"'
+cmd pass "$DEV" 'command -v ssh'
+cmd pass "$DEV" 'command -pv sudo'
+cmd pass "$DEV" 'PATH="$PWD/stub:$PATH" sh test.sh'
+cmd pass "$DEV" 'echo "$GIT_SSH_COMMAND"'
 cmd pass "$DEV" 'cat > notes.md <<EOF
 ssh root@server1.example.com uptime
 sudo systemctl reload nginx
 EOF'
-cmd pass "$DEV" "tee -a notes.md <<'EOF'
-	ssh server1.example.com
-EOF"
-cmd deny "$DEV" "sh -c 'sudo whoami'"
-cmd deny "$DEV" 'eval "ssh server1.example.com"'
-cmd deny "$DEV" 'echo "up: $(ssh server1.example.com uptime)"'
-cmd deny "$DEV" 'cat > notes.md <<EOF
-text
-EOF
-ssh server1.example.com'
-cmd deny "$DEV" 'cat <<EOF | bash
-ssh server1.example.com
-EOF'
-cmd deny "$DEV" "sh -ec 'ssh server1.example.com'"
-cmd deny "$DEV" 'bash -xc "sudo whoami"'
-cmd deny "$DEV" 'bash -s <<EOF
-ssh server1.example.com
-EOF'
 edit pass "$DEV" "$DEV/rules/backups.md"
 
 # The taboo guard's off switch does not reach the mode guard.
-out=$(bash_json 'ssh server1.example.com true' \
+out=$(bash_json '/usr/bin/ssh server1.example.com true' \
   | HOSTWARDEN_GUARD_DISABLE=1 sh "$DEV/.claude/hooks/guard-mode.sh")
 case "$out" in
 *'"permissionDecision":"deny"'*) ok ;;
@@ -196,7 +146,7 @@ case "$out" in
 esac
 
 # Worktree: development, whatever the main checkout is.
-cmd deny "$WT" 'ssh root@server1.example.com uptime'
+cmd deny "$WT" '/usr/bin/ssh root@server1.example.com uptime'
 cmd pass "$WT" 'git status'
 edit pass "$WT" "$WT/rules/backups.md"
 
@@ -247,7 +197,8 @@ nojq() {
   case "$out" in *'"permissionDecision":"deny"'*) got=deny ;; *) got=pass ;; esac
   if [ "$got" = "$1" ]; then ok; else bad "[$1, got $got] without jq: $3"; fi
 }
-nojq deny "$DEV" "$(bash_json 'ssh server1.example.com true')"
+nojq deny "$DEV" "$(bash_json '/usr/bin/ssh server1.example.com true')"
+nojq pass "$DEV" "$(bash_json 'ssh server1.example.com true')"
 nojq pass "$DEV" "$(bash_json 'git status')"
 nojq pass "$DEV" "$(edit_json "$DEV/rules/backups.md")"
 nojq deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
@@ -273,6 +224,109 @@ esac
 git -C "$DEV" remote remove origin
 says operations "$OPS" "operations checkout"
 says worktree "$WT" "linked worktree"
+out=$(unset CLAUDE_ENV_FILE; sh "$DEV/.claude/hooks/session-mode.sh")
+case "$out" in
+*"no CLAUDE_ENV_FILE"*) ok ;;
+*) bad "session-mode did not say that the shim is missing" ;;
+esac
+
+# --- the shim --------------------------------------------------
+# One link per tool the guard names, each to shim.sh.
+for t in ssh scp sftp mosh sudo sudoedit doas pkexec; do
+  [ "$(readlink "$HOOKS/shim/$t")" = ../shim.sh ] && ok \
+    || bad "shim/$t is not a link to ../shim.sh"
+done
+# session <checkout> <env file> [VAR=value...] — session-mode.sh
+# as Claude Code runs it at session start.
+session() {
+  c=$1 e=$2
+  shift 2
+  env "$@" CLAUDE_ENV_FILE="$e" sh "$c/.claude/hooks/session-mode.sh" >/dev/null
+}
+# refused <checkout> <env file> <command> — the command, run after
+# the env file as every Bash call is, prints the refusal. Whether
+# it fails is the wrapper's to say: find -exec succeeds anyway.
+refused() {
+  err=$(cd "$1" && sh -c '. "$1"; eval "$2"' _ "$2" "$3" 2>&1 >/dev/null)
+  case "$err" in
+  *"hostwarden mode guard: "*" reaches a server"*) ok ;;
+  *) bad "the shim did not refuse: $3 ($err)" ;;
+  esac
+}
+ENVF="$TMP/dev.env"
+session "$DEV" "$ENVF" -u GIT_SSH_COMMAND -u GIT_SSH
+sh -c '. "$1"; ssh server1.example.com' _ "$ENVF" 2>/dev/null
+[ $? -eq 1 ] && ok || bad "the shim does not exit 1"
+# Everything the parser used to have to read reaches the tool
+# through PATH, and so the shim.
+refused "$DEV" "$ENVF" 'ssh root@server1.example.com uptime'
+refused "$DEV" "$ENVF" 'sudo -n true'
+refused "$DEV" "$ENVF" 'sudoedit /etc/hosts'
+refused "$DEV" "$ENVF" 'pkexec whoami'
+refused "$DEV" "$ENVF" 'doas true'
+refused "$DEV" "$ENVF" 'scp a.txt server1.example.com:/tmp/'
+refused "$DEV" "$ENVF" 'sftp server1.example.com'
+refused "$DEV" "$ENVF" 'mosh server1.example.com'
+refused "$DEV" "$ENVF" 'bash -c "ssh server1.example.com"'
+refused "$DEV" "$ENVF" "sh -ec 'sudo whoami'"
+refused "$DEV" "$ENVF" 'eval "ssh server1.example.com"'
+refused "$DEV" "$ENVF" 'echo "up: $(ssh server1.example.com uptime)"'
+refused "$DEV" "$ENVF" 'env LC_ALL=C ssh server1.example.com'
+refused "$DEV" "$ENVF" 'env -S "ssh server1.example.com true"'
+refused "$DEV" "$ENVF" 'nohup ssh server1.example.com'
+refused "$DEV" "$ENVF" 'echo a | xargs -n 1 ssh server1.example.com'
+refused "$DEV" "$ENVF" 'find . -maxdepth 0 -exec ssh server1.example.com true \;'
+refused "$DEV" "$ENVF" 'cat <<EOF | sh
+ssh server1.example.com
+EOF'
+if command -v rsync >/dev/null 2>&1; then
+  refused "$DEV" "$ENVF" 'rsync -a rules/ server1.example.com:/srv/'
+  refused "$DEV" "$ENVF" 'rsync -a -e "ssh -p 2222" rules/ "server1.example.com:/srv/"'
+fi
+# Written once: a second start (resume, compaction) adds nothing,
+# and sourcing the file twice puts the shim on PATH once.
+session "$DEV" "$ENVF" -u GIT_SSH_COMMAND -u GIT_SSH
+[ "$(grep -c 'hooks/shim' "$ENVF")" -eq 1 ] && ok \
+  || bad "a second session start wrote the shim again"
+got=$(sh -c '. "$1"; . "$1"; printf %s "$PATH"' _ "$ENVF" \
+  | tr ':' '\n' | grep -c 'hooks/shim$')
+[ "$got" -eq 1 ] && ok || bad "sourcing the env file twice doubled the shim"
+# git push reaches the real ssh through GIT_SSH_COMMAND; a command
+# the user set keeps its options, and another program stays.
+# git_ssh <env file> — the program GIT_SSH_COMMAND starts.
+git_ssh() {
+  sh -c '. "$1"; eval "set -- $GIT_SSH_COMMAND"; printf "%s|%s" "$1" "$*"' _ "$1"
+}
+if command -v ssh >/dev/null 2>&1; then
+  got=$(git_ssh "$ENVF")
+  case "$got" in
+  */hooks/shim/*) bad "GIT_SSH_COMMAND leads to the shim: $got" ;;
+  /*/ssh"|"*) [ -x "${got%%|*}" ] && ok || bad "GIT_SSH_COMMAND is no ssh: $got" ;;
+  *) bad "no GIT_SSH_COMMAND for git push: $got" ;;
+  esac
+  E2="$TMP/user-ssh.env"
+  session "$DEV" "$E2" GIT_SSH_COMMAND='ssh -i /tmp/k'
+  case "$(git_ssh "$E2")" in
+  /*/ssh"|"*"-i /tmp/k") ok ;;
+  *) bad "a GIT_SSH_COMMAND of the user lost its options: $(git_ssh "$E2")" ;;
+  esac
+  E3="$TMP/other-ssh.env"
+  session "$DEV" "$E3" GIT_SSH_COMMAND=/opt/bin/myssh
+  grep -q GIT_SSH_COMMAND "$E3" && bad "a GIT_SSH_COMMAND of another program was replaced" \
+    || ok
+fi
+# A worktree says so; operations gets no shim at all.
+E4="$TMP/wt.env"
+session "$WT" "$E4" -u GIT_SSH_COMMAND
+err=$(cd "$WT" && sh -c '. "$1"; ssh server1.example.com' _ "$E4" 2>&1)
+case "$err" in
+*"linked git worktree"*) ok ;;
+*) bad "the shim in a worktree did not say so: $err" ;;
+esac
+E5="$TMP/ops.env"
+: > "$E5"
+session "$OPS" "$E5"
+[ -s "$E5" ] && bad "session-mode wrote to the env file in operations" || ok
 
 # --- bin/hostwarden-init ---------------------------------------
 [ -d "$OPS/memory/.git" ] && ok || bad "init made no repository in memory/"

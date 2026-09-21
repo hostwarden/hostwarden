@@ -1,7 +1,9 @@
 #!/bin/sh
 # session-mode.sh — SessionStart hook: announce the mode
 # (mode.sh) that guard-mode.sh enforces, so the session starts
-# in it instead of finding out from a denied call.
+# in it instead of finding out from a denied call. In development
+# it also puts the shim (shim.sh) in front of the tools that reach
+# a server.
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 # shellcheck source=mode.sh
@@ -35,6 +37,46 @@ worktree)
   echo "  set up once with bin/hostwarden-init."
   ;;
 esac
+
+# The shim (shim.sh) goes first on the PATH of every later Bash
+# call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE
+# before each one. The file survives resume and compaction, where
+# this hook runs again, so what it writes is written once and
+# would do nothing twice. It lives in the checkout because it is
+# code: versioned and reviewed with the guard, never a stale copy
+# in a cache that another checkout wrote.
+SHIM="$ROOT/.claude/hooks/shim"
+# q <string> — single-quoted for the shell that sources the file.
+q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+  echo "  Claude Code gave this hook no CLAUDE_ENV_FILE, so the"
+  echo "  shim that refuses ssh and sudo however they are started"
+  echo "  is not in place; only the guard's reading of each"
+  echo "  command stands in for it."
+elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
+  # The real ssh, for git: GIT_SSH_COMMAND is what git push over
+  # SSH runs, and a bare ssh there would find the shim. A command
+  # the user set that starts with a bare ssh gets the path in its
+  # place; one naming another program, and GIT_SSH, stay theirs.
+  REAL=
+  set -f
+  IFS=:
+  for d in $PATH; do
+    [ "$d" != "$SHIM" ] && [ -x "$d/ssh" ] && { REAL="$d/ssh"; break; }
+  done
+  unset IFS
+  set +f
+  CUR=${GIT_SSH_COMMAND:-$(git config core.sshCommand 2>/dev/null)}
+  {
+    echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
+    if [ -n "$REAL" ] && [ -z "${GIT_SSH:-}" ]; then
+      case "$CUR" in
+      "") echo "export GIT_SSH_COMMAND=$(q "$(q "$REAL")")" ;;
+      ssh | "ssh "*) echo "export GIT_SSH_COMMAND=$(q "$(q "$REAL")${CUR#ssh}")" ;;
+      esac
+    fi
+  } >> "$CLAUDE_ENV_FILE"
+fi
 
 # Where a pull request goes. Compared by URL, never by remote
 # name: in the maintainer's checkout `upstream` is heinzel, in a
