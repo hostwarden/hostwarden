@@ -54,13 +54,17 @@ if [ "${1:-}" = "--pre-push" ]; then
   # git gives one line per ref: <local ref> <sha> <remote ref> <sha>
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
-    case $rsha in
-      *[!0]*) r="$rsha..$lsha" ;;
-      # A new ref: every commit no ref of the destination has yet,
-      # not what origin/main lacks -- the destination may be
-      # another remote that has less.
-      *) r="$lsha --not --remotes=$remote" ;;
-    esac
+    # A new ref, or one whose remote tip was never fetched here:
+    # every commit no ref of the destination has yet. Not what
+    # origin/main lacks -- the destination may be another remote
+    # that has less -- and not a range git log cannot resolve,
+    # which would read as nothing pushed.
+    if case $rsha in *[!0]*) false ;; esac \
+      || ! git cat-file -e "$rsha^{commit}" 2>/dev/null; then
+      r="$lsha --not --remotes=$remote"
+    else
+      r="$rsha..$lsha"
+    fi
     PUSHED="$PUSHED
 $r"
   done
@@ -109,8 +113,6 @@ sh_syntax() {
   return $rc
 }
 
-# The matrix runs the guard and every fenced block under rules/ and
-# .agents/skills/ through it (corpus.sh).
 # The matrix reads the hooks, settings.json, and the fenced blocks
 # of every .md but CHANGELOG.md (corpus.sh).
 if [ -n "$PUSHED" ] && ! each_push git log --name-only --format= \
