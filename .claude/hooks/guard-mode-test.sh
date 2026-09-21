@@ -427,6 +427,34 @@ case "$err" in
 *"linked git worktree"*) ok ;;
 *) bad "the shim in a worktree did not say so: $err" ;;
 esac
+# The refusal names the next step: in a worktree the main checkout
+# to hand the check to, elsewhere the clone to set up, and in both
+# the rule that says how.
+case "$err" in
+*"hand the check to an operations session in the main checkout, $DEV,"*) ok ;;
+*) bad "the refusal in a worktree did not name the main checkout: $err" ;;
+esac
+err=$(cd "$DEV" && sh -c '. "$1"; ssh server1.example.com' _ "$ENVF" 2>&1)
+case "$err" in
+*"separate clone, set up once with bin/hostwarden-init"*) ok ;;
+*) bad "the refusal in development did not name the clone: $err" ;;
+esac
+for c in "$DEV" "$WT"; do
+  out=$(bash_json '/usr/bin/ssh server1.example.com' | sh "$c/.claude/hooks/guard-mode.sh")
+  printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecisionReason
+    | contains("rules/server-check-handoff.md")' >/dev/null 2>&1 && ok \
+    || bad "the guard in $(basename "$c") did not point at the handoff rule: $out"
+done
+# A main checkout whose path holds a quote or a backslash still
+# makes valid JSON: the refusal carries neither.
+got=$(. "$HOOKS/mode.sh"; HOSTWARDEN_MODE=worktree
+  HOSTWARDEN_MAIN='/srv/a"b\c'; hostwarden_refusal ssh
+  printf '%s' "$HOSTWARDEN_REFUSAL")
+case "$got" in
+*'"'* | *'\'*) bad "the refusal kept a quote or backslash: $got" ;;
+*/srv/abc,*) ok ;;
+*) bad "the refusal lost the main checkout: $got" ;;
+esac
 E5="$TMP/ops.env"
 : > "$E5"
 session "$OPS" "$E5" -u GIT_SSH_COMMAND PATH=/usr/bin:/bin

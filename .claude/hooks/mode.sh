@@ -71,22 +71,28 @@ hostwarden_mode() {
 }
 
 # Plain ASCII without quotes or backslashes: guard-mode.sh puts it
-# into JSON as it is. Expects hostwarden_mode to have run.
+# into JSON as it is, so the one part it does not write itself,
+# the main checkout's path, loses both. It names the next step,
+# because a refusal that only stops leaves the developer to find
+# the way to a live answer alone. Expects hostwarden_mode to have
+# run.
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_refusal() {
   if [ "$HOSTWARDEN_MODE" = worktree ]; then
+    hr_main=$(printf '%s' "$HOSTWARDEN_MAIN" | tr -d '"\\')
     hr_why="this session runs in a linked git worktree. A worktree \
 never carries memory/, so the access lists and the server memory are \
-missing here. Server work runs only in the main checkout of an \
-operations install"
+missing here. Next step: hand the check to an operations session in \
+the main checkout, ${hr_main:-of this clone}, if that is an operations \
+install"
   else
     hr_why="this checkout develops hostwarden (memory/ holds no \
-workspace). Server work runs in an operations checkout: a separate \
-clone, set up once with bin/hostwarden-init. For a tool on this \
-machine, run the command yourself outside the agent"
+workspace). Next step: hand the check to an operations session in a \
+separate clone, set up once with bin/hostwarden-init"
   fi
   HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server, and \
-$hr_why (AGENTS.md - Development or Operations)."
+$hr_why. How: rules/server-check-handoff.md (AGENTS.md - Development \
+or Operations)."
 }
 
 # The workspace's remote is reached by init --clone and by sync,
