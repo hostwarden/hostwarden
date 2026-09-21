@@ -569,8 +569,9 @@ report "$UNLISTED" "listed in docs/README.md"
 #
 # URLs are stripped first: linking to a project's documentation is
 # not the same as pretending to own a name.
-# Addresses outside the documentation ranges. Private, loopback,
-# link-local and netmasks are legitimate subjects of an example.
+# Addresses outside the documentation ranges. Private, shared
+# (RFC 6598), loopback, link-local and netmasks are legitimate
+# subjects of an example.
 report "$(scan \
   | sed -E 's#([[:space:]])[vV]ersion [0-9]+(\.[0-9]+)+#\1#g
             s#([[:space:]])v[0-9]+(\.[0-9]+)+#\1#g' \
@@ -578,6 +579,7 @@ report "$(scan \
   | grep -vE ': (192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
   | grep -vE ': (127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
   | grep -vE ': 172\.(1[6-9]|2[0-9]|3[01])\.' \
+  | grep -vE ': 100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' \
   | grep -vE ': 255\.')" "an RFC 5737 documentation address"
 
 # IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
