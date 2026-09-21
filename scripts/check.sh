@@ -41,7 +41,8 @@ esac
 
 # Which tools there are, and how to install the rest, is the
 # doctor's to say.
-sh bin/hostwarden-doctor --dev --quiet || exit 2
+missing=$(sh bin/hostwarden-doctor --dev --quiet)
+[ -z "$missing" ] || { printf '%s\n' "$missing" >&2; exit 2; }
 
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything.

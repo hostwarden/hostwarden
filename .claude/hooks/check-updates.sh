@@ -30,17 +30,12 @@ if [ "$HOSTWARDEN_NO_UPDATE" = "1" ] || [ "${HEINZEL_NO_UPDATE:-}" = "1" ]; then
   exit 0
 fi
 
-# Without git, or outside a clone, every git call below fails
-# and the branch test reports a detached HEAD -- the wrong cause,
-# and one that sends the user looking for a pin they never set.
-# A missing git is reported by bin/hostwarden-doctor, which runs
-# beside this hook, with the command to install it.
+# bin/hostwarden-doctor, beside this hook, reports a missing git.
 command -v git >/dev/null 2>&1 || exit 0
-# The top of a clone, not merely inside one: unpacked into some
-# other repository, git would otherwise pull that one.
-# And a clone of hostwarden: unpacked at the top of some other
-# checkout, the first test passes, but git does not track this
-# script there.
+# Outside a clone every git call below fails and the branch test
+# would report a detached HEAD instead; inside some other
+# repository, git would pull that one. So: the top of a clone, and
+# one that tracks hostwarden.
 if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
     || ! git ls-files --error-unmatch bin/hostwarden-update \
       >/dev/null 2>&1; then

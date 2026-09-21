@@ -14,9 +14,8 @@
 #
 # Checks the machine the AI tool runs on, never a managed host.
 # Prints install commands; never runs them.
-# Exit status: 1 when something required is missing, else 0 —
-# but --quiet without --dev always exits 0: Claude Code passes a
-# SessionStart hook's output to the session only then.
+# Exit status: 1 when something required is missing, else 0.
+# --quiet always exits 0 and prints only what is missing.
 
 QUIET='' DEV=''
 for a in "$@"; do
@@ -30,7 +29,12 @@ done
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
-case "$(uname -s 2>/dev/null)" in
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+MISE_TOOLS=$(sed -n 's/^"aqua:[^/]*\/\([^"]*\)".*/\1/p' \
+  "$ROOT/mise.dev.toml" 2>/dev/null | tr '\n' ' ')
+OS=$(uname -s 2>/dev/null)
+
+case "$OS" in
   MINGW*|MSYS*|CYGWIN*) PM=gitbash ;;
   *)
     PM=
@@ -76,118 +80,108 @@ hint() {
 }
 
 # Per tier: the labels of what is missing, and the tools to name
-# in its install hint. Features get one hint line each.
-NEED='' NEED_T='' WANT='' WANT_T='' FEAT=''
+# in its install hint. Features get one hint line each. NONMISE is
+# set once a required miss is something mise.dev.toml does not pin.
+NEED='' NEED_T='' WANT='' WANT_T='' FEAT='' NONMISE=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
-
-# check <tier> <label> <hint-tool> <tool...> — any one tool will do.
-check() {
-  tier=$1 label=$2 tool=$3
-  shift 3
-  for t in "$@"; do
-    has "$t" && { row "ok       $label"; return; }
-  done
-  row "missing  $label"
-  miss "$tier" "$label" "$tool"
-}
 
 miss() {
   case $1 in
-    need) NEED="$NEED, $2" NEED_T="$NEED_T $3" ;;
+    need) NEED="$NEED, $2" NEED_T="$NEED_T $3"
+      case " $MISE_TOOLS " in *" ${3:--} "*) ;; *) NONMISE=1 ;; esac ;;
     want) WANT="$WANT, $2" WANT_T="$WANT_T $3" ;;
     feat) FEAT="$FEAT
   $2: $(hint "$3")" ;;
   esac
 }
 
-# mail_ok -- the transport 5L.1 accepts. macOS ships a sendmail
-# that delivers only while its Postfix is loaded.
+# probe <tier> <label> <hint-tool> <command...> -- one row, and a
+# miss when the command fails.
+probe() {
+  tier=$1 label=$2 tool=$3
+  shift 3
+  if "$@" >/dev/null 2>&1; then
+    row "ok       $label"
+  else
+    row "missing  $label"
+    miss "$tier" "$label" "$tool"
+  fi
+}
+
+any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
+
+# Every call shares one connection (AGENTS.md → SSH Options).
+# -G parses the options and connects to nothing; -F /dev/null
+# leaves the user's config, and any Match exec in it, out.
+ssh_shares() {
+  ssh -F /dev/null -G -o ControlMaster=auto \
+    -o "ControlPath=$HOME/.cache/hostwarden/ssh-%C" \
+    -o ControlPersist=10m example.invalid
+}
+
+# .claude/skills and every DNS alias are links, and Git Bash copies
+# where it should link unless MSYS says otherwise (README →
+# Windows). Probed in the clone: a temporary directory can sit on
+# a filesystem that links when this one does not.
+links_work() {
+  d=$(mktemp -d "$ROOT/.link-probe.XXXXXX") || return 1
+  ln -s "$d" "$d/l" 2>/dev/null
+  [ -L "$d/l" ]
+  rc=$?
+  rm -rf "$d"
+  return $rc
+}
+
+# The transport 5L.1 accepts. macOS ships a sendmail that delivers
+# only while its Postfix is loaded.
 mail_ok() {
   has msmtp && return 0
   has sendmail || return 1
-  [ "$(uname -s)" = Darwin ] || return 0
-  launchctl print system/com.apple.postfix.master >/dev/null 2>&1
+  [ "$OS" = Darwin ] || return 0
+  launchctl print system/com.apple.postfix.master
 }
+
+attach_ok() { has file && has base64; }
 
 [ -n "$QUIET" ] || echo "Required"
 for t in ssh git awk sed grep tar mktemp; do
-  check need "$t" "$t" "$t"
+  probe need "$t" "$t" has "$t"
 done
-# Every call shares one connection (AGENTS.md → SSH Options).
-# ssh -G parses the options and connects to nothing.
-if has ssh; then
-  if ssh -G -o ControlMaster=auto \
-      -o "ControlPath=$HOME/.cache/hostwarden/ssh-%C" \
-      -o ControlPersist=10m example.invalid >/dev/null 2>&1; then
-    row "ok       ssh connection sharing"
-  else
-    row "missing  ssh connection sharing"
-    miss need "ssh connection sharing (OpenSSH 6.8+)" ssh
-  fi
-fi
-
-# .claude/skills and every DNS alias are links. Git Bash copies
-# where it should link unless MSYS says otherwise, and says
-# nothing (README → Windows), so make one and look.
-d=$(mktemp -d 2>/dev/null) && {
-  if ln -s "$d" "$d/l" 2>/dev/null && [ -L "$d/l" ]; then
-    row "ok       symbolic links"
-  else
-    row "missing  symbolic links"
-    miss need "symbolic links (README → Windows)" ""
-  fi
-  rm -rf "$d"
-}
+has ssh && probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
+probe need "symbolic links (README → Windows)" "" links_work
 
 if [ -n "$DEV" ]; then
-  # The tools scripts/check.sh runs, pinned in mise.dev.toml.
   [ -n "$QUIET" ] || echo "Development"
-  for t in python3 shellcheck actionlint betterleaks; do
-    check need "$t" "$t" "$t"
+  # What scripts/check.sh runs: python3, and what mise.dev.toml pins.
+  for t in python3 $MISE_TOOLS; do
+    probe need "$t" "$t" has "$t"
   done
 else
   [ -n "$QUIET" ] || echo "Recommended"
   # Without it the guard reads the raw hook input and over-blocks
   # (.claude/hooks/guard-taboos.sh).
-  check want jq jq jq
-  # The order rules/dns-aliases.md tries them in; any one resolves.
-  check want "hostname resolver" python3 getent dscacheutil python3 dig
+  probe want jq jq has jq
+  # The ones rules/dns-aliases.md tries; any one resolves.
+  probe want "hostname resolver" python3 any getent dscacheutil python3 dig
 
   [ -n "$QUIET" ] || echo "Per feature"
   # rules/ssh-connections.md, rules/directory-copy.md
-  check feat "file transfer to and from servers" rsync rsync scp
+  probe feat "file transfer to and from servers" rsync any rsync scp
   # hostwarden-email: transport-local.md step 5L.1, send-verify.md
-  if mail_ok; then
-    row "ok       email from this workstation"
-  else
-    row "missing  email from this workstation"
-    miss feat "email from this workstation" msmtp
-  fi
-  if has file && has base64; then
-    row "ok       email attachments from this workstation"
-  else
-    row "missing  email attachments from this workstation"
-    miss feat "email attachments from this workstation" file
-  fi
+  probe feat "email from this workstation" msmtp mail_ok
+  probe feat "email attachments from this workstation" file attach_ok
   # hostwarden-deploy-user: references/ssh-key.md
-  check feat "SSH keys for a deploy user" ssh-keygen ssh-keygen
+  probe feat "SSH keys for a deploy user" ssh-keygen has ssh-keygen
   # rules/ssh-unreachable.md
-  check feat "reachability checks when SSH fails" curl curl
+  probe feat "reachability checks when SSH fails" curl has curl
 fi
 
 [ -n "$QUIET" ] || echo
 if [ -n "$NEED" ]; then
   fix=$(hint "$NEED_T")
-  # mise.dev.toml pins these three and nothing else, so it is an
-  # alternative only when they are all that is missing.
-  case "$DEV:$NEED_T" in
-    1:*[!\ ]*) mise_only=1
-      for t in $NEED_T; do
-        case $t in shellcheck|actionlint|betterleaks) ;;
-          *) mise_only= ;; esac
-      done
-      [ -z "$mise_only" ] || fix="$fix, or mise trust mise.dev.toml && MISE_ENV=dev mise install" ;;
-  esac
+  if [ -n "$DEV" ] && [ -z "$NONMISE" ]; then
+    fix="$fix, or mise trust mise.dev.toml && MISE_ENV=dev mise install"
+  fi
   echo "hostwarden: required, missing: ${NEED#, } — $fix"
 fi
 if [ -n "$WANT" ]; then
@@ -200,6 +194,7 @@ if [ -z "$QUIET$NEED$WANT$FEAT" ]; then
   echo "Everything hostwarden runs locally is here."
 fi
 
-[ -z "$NEED" ] && exit 0
-[ -n "$QUIET" ] && [ -z "$DEV" ] && exit 0
-exit 1
+# --quiet reports and exits 0: Claude Code passes a SessionStart
+# hook's output on only then, and a caller that needs a verdict
+# reads whether anything was printed.
+[ -n "$QUIET" ] || [ -z "$NEED" ]
