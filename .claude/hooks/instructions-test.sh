@@ -513,8 +513,8 @@ if [ -z "$CONTEXTS" ]; then
   bad "main.json requires no check -- the ruleset is gone or this" \
       "check stopped matching"
 else
-  for ctx in $CONTEXTS
-  do
+  # One context per line: a job name may hold spaces.
+  while IFS= read -r ctx; do
     # What GitHub reports is a job's `name:` if it has one, else its
     # key; and only under jobs: -- `on:` has two-space keys too.
     if awk '/^jobs:/ { j = 1; next }
@@ -523,13 +523,15 @@ else
         j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
                                 gsub(/["\047]/, "", n); ctx[k] = n }
         END { for (k in ctx) print ctx[k] }' \
-        "$ROOT/.github/workflows/ci.yml" | grep -qx "$ctx"; then
+        "$ROOT/.github/workflows/ci.yml" | grep -qxF "$ctx"; then
       ok
     else
       bad "main.json requires check '$ctx', which no job in" \
         "ci.yml reports"
     fi
-  done
+  done <<EOF
+$CONTEXTS
+EOF
 fi
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
