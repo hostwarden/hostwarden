@@ -747,6 +747,110 @@ else
   echo "FAIL: HOSTWARDEN_GUARD_DISABLE=1 env did not disable guard"
 fi
 
+# --- settings files: guard-settings.sh -------------------------
+# The env key of a settings file reaches the guard, so writing the
+# variable there is denied through every tool, whether or not the
+# guard is already off, and taking it out again is not.
+expect() {
+  # expect <label> <command...> — passes when the command succeeds.
+  L=$1; shift
+  if "$@"; then
+    PASS=$((PASS + 1))
+  else
+    FAIL=$((FAIL + 1))
+    echo "FAIL: $L"
+  fi
+}
+SGUARD="$CLAUDE_DIR/hooks/guard-settings.sh"
+settings_case() {
+  # settings_case <expect> <label> <json> [env assignment]
+  OUT=$(printf '%s' "$3" \
+    | env -u HOSTWARDEN_GUARD_DISABLE ${4:+"$4"} sh "$SGUARD")
+  case "$OUT" in
+    *'"permissionDecision":"deny"'*) GOT=deny ;;
+    *) GOT=pass ;;
+  esac
+  expect "guard-settings [$1, got $GOT]: $2" [ "$GOT" = "$1" ]
+}
+V=HOSTWARDEN_GUARD_DISABLE
+settings_case deny 'Write settings.local.json' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"{\"env\":{\"'"$V"'\":\"1\"}}"}}'
+settings_case deny 'Edit user settings.json' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"/h/.claude/settings.json","old_string":"{","new_string":"{\"env\":{\"'"$V"'\":\"1\"},"}}'
+settings_case deny 'MultiEdit managed-settings.json' \
+  '{"tool_name":"MultiEdit","tool_input":{"file_path":"/etc/claude-code/managed-settings.json","edits":[{"old_string":"a","new_string":"b"},{"old_string":"{","new_string":"{\"'"$V"'\":1,"}]}}'
+settings_case deny 'Write while the guard is already off' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"'"$V"'"}}' \
+  "$V=1"
+settings_case pass 'Edit that removes it again' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/settings.local.json","old_string":"\"'"$V"'\": \"1\"","new_string":""}}'
+settings_case pass 'README naming it' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"/r/README.md","old_string":"a","new_string":"'"$V"'"}}'
+settings_case pass 'settings file without it' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"{\"env\":{\"HOSTWARDEN_NO_UPDATE\":\"1\"}}"}}'
+settings_case deny 'Bash: jq into settings.local.json' \
+  "$(json_for 'jq ".env.'"$V"' = \"1\"" .claude/settings.local.json')"
+settings_case deny 'Bash: heredoc into settings.local.json' \
+  "$(json_for 'cat > .claude/settings.local.json <<EOF
+{"env": {"'"$V"'": "1"}}
+EOF')"
+settings_case deny 'Bash: append to user settings.json, guard off' \
+  "$(json_for "printf x $V >> ~/.claude/settings.json")" "$V=1"
+settings_case pass 'Bash: naming it in the docs' \
+  "$(json_for "echo see $V in the docs")"
+settings_case pass 'Bash: reading the settings file' \
+  "$(json_for 'jq .env .claude/settings.local.json')"
+# No jq: judged on the raw text, which may over-block, never under.
+NOJQ=$(mktemp -d)
+for t in sh cat grep printf sed; do
+  P=$(command -v "$t" 2>/dev/null) && ln -s "$P" "$NOJQ/$t"
+done
+settings_case deny 'no jq: Write settings.local.json' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"'"$V"'"}}' \
+  "PATH=$NOJQ"
+rm -rf "$NOJQ"
+
+# --- check-session.sh: worktree and guard-off notices ----------
+# Silent in an ordinary checkout, loud in a linked worktree, and
+# loud whenever the guard is off.
+CSESSION="$CLAUDE_DIR/hooks/check-session.sh"
+if command -v git >/dev/null 2>&1; then
+  REPO=$(mktemp -d)
+  mkdir -p "$REPO/main/.claude/hooks"
+  cp "$CSESSION" "$REPO/main/.claude/hooks/"
+  (
+    cd "$REPO/main" && git init -q && git add -A &&
+      git -c user.name=t -c user.email=t@example.com \
+        commit -qm t && git worktree add -q "$REPO/wt" 2>/dev/null
+  )
+  session_out() {
+    env -u HOSTWARDEN_GUARD_DISABLE ${2:+"$2"} \
+      sh "$REPO/$1/.claude/hooks/check-session.sh"
+  }
+  expect "check-session.sh spoke in an ordinary checkout" \
+    [ -z "$(session_out main)" ]
+  expect "check-session.sh missed a linked worktree" \
+    sh -c 'printf "%s" "$1" | grep -q "linked git worktree"' _ \
+    "$(session_out wt)"
+  # A submodule's .git file is not a worktree; a relative gitdir
+  # (worktree.useRelativePaths) still names the main checkout.
+  for d in sub rel; do
+    mkdir -p "$REPO/$d/.claude/hooks"
+    cp "$CSESSION" "$REPO/$d/.claude/hooks/"
+  done
+  printf 'gitdir: ../.git/modules/sub\n' > "$REPO/sub/.git"
+  printf 'gitdir: ../main/.git/worktrees/wt\n' > "$REPO/rel/.git"
+  expect "check-session.sh took a submodule for a worktree" \
+    [ -z "$(session_out sub)" ]
+  expect "check-session.sh did not resolve a relative gitdir" \
+    sh -c 'printf "%s" "$1" | grep -qF "$2"' _ \
+    "$(session_out rel)" "$REPO/main."
+  expect "check-session.sh did not report the guard as off" \
+    sh -c 'printf "%s" "$1" | grep -q "taboo guard is OFF"' _ \
+    "$(session_out main "$V=1")"
+  rm -rf "$REPO"
+fi
+
 # --- degraded awk must fail CLOSED -----------------------------
 # hit_without() decides the read-only exemptions via awk. If awk
 # is missing or cannot evaluate POSIX classes, the exemption
