@@ -1,0 +1,156 @@
+#!/bin/sh
+# hostwarden-init — turn this checkout into an operations
+# install: memory/ becomes a git repository of its own,
+# marked as the workspace.
+#
+# Usage:
+#   hostwarden-init              Create the workspace
+#   hostwarden-init --clone URL  Join a team: clone its shared
+#                                workspace into an empty memory/
+#   hostwarden-init --help       Show this help
+#
+# Idempotent: on a workspace it fills in whatever is
+# missing and changes nothing else.
+#
+# Solo use needs nothing more. A team, or one admin on
+# several machines, shares the workspace by giving memory/
+# a private remote; bin/hostwarden-sync keeps it in step.
+# The files that are always personal are ignored there
+# already.
+set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+cd "$REPO_DIR"
+# shellcheck source=../.claude/hooks/mode.sh
+. .claude/hooks/mode.sh
+
+usage() {
+  awk '/^# hostwarden-init/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' \
+    "$SCRIPT_DIR/hostwarden-init"
+}
+
+CLONE=""
+case "${1:-}" in
+  "") ;;
+  --clone) CLONE="${2:?Usage: hostwarden-init --clone URL}" ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+if [ -f .git ]; then
+  echo "hostwarden-init: this is a linked git worktree, which never" >&2
+  echo "  carries memory/. Run this in the main checkout." >&2
+  exit 1
+fi
+
+hostwarden_mode "$REPO_DIR"
+WAS=$HOSTWARDEN_MODE
+
+if [ -n "$CLONE" ]; then
+  # rmdir succeeds on an empty directory only.
+  if [ -e memory ] && ! rmdir memory 2>/dev/null; then
+    echo "hostwarden-init: memory/ is not empty. --clone needs an" >&2
+    echo "  empty one; move the existing state aside first." >&2
+    exit 1
+  fi
+  git clone --quiet -- "$CLONE" memory
+  # DNS aliases are symlinks under memory/servers/. A clone that
+  # cannot make links turns each into a text file, and alias
+  # resolution stops working without a word.
+  if [ "$(git -C memory config --bool core.symlinks)" = false ]; then
+    echo "hostwarden: git made no symlinks in memory/, so DNS aliases"
+    echo "  arrive as text files. See README → Windows, then"
+    echo "  clone again."
+  fi
+  echo "hostwarden: keep this remote private — the workspace holds"
+  echo "  hostnames, addresses and the layout of your network."
+fi
+
+# Every step only fills in what is missing, so running this on
+# a workspace repairs it and changes nothing else.
+mkdir -p memory/servers memory/custom-rules
+[ -e memory/.git ] || {
+  git -C memory init --quiet
+  git -C memory symbolic-ref HEAD refs/heads/main
+}
+# The secret scan below only holds if git runs its hooks: not
+# when core.hooksPath sends git elsewhere, and not when a hook
+# of the user's own sits where ours would go. Refuse both,
+# before anything marks this as a workspace, rather than leave
+# one that looks scanned and is not.
+if [ -n "$(git -C memory config core.hooksPath)" ]; then
+  echo "hostwarden-init: core.hooksPath is set for memory/, so git would" >&2
+  echo "  not run the workspace's secret scan. Unset it there" >&2
+  echo "  (git -C memory config --unset core.hooksPath, or set it" >&2
+  echo "  to .git/hooks) and run this again." >&2
+  exit 1
+fi
+for h in pre-commit pre-push; do
+  f=memory/.git/hooks/$h
+  if [ -e "$f" ] && ! grep -q 'Installed by bin/hostwarden-init' "$f"; then
+    echo "hostwarden-init: $f is a hook of your own, and the workspace" >&2
+    echo "  needs its secret scan there. Move it aside, run this again," >&2
+    echo "  then call yours from the new one." >&2
+    exit 1
+  fi
+done
+
+# templates/workspace/ holds exactly the files a workspace
+# starts with; bin/hostwarden-backup reads the same list.
+for f in templates/workspace/.[!.]* templates/workspace/*; do
+  [ -f "$f" ] || continue
+  [ -e "memory/${f##*/}" ] || cp "$f" memory/
+done
+
+# Keep a secret out of every commit the workspace makes. The
+# hook lives in the workspace's own .git, so each clone gets
+# it from here rather than from the remote.
+HOOK=memory/.git/hooks/pre-commit
+if [ ! -e "$HOOK" ]; then
+  mkdir -p "${HOOK%/*}"
+  cat > "$HOOK" <<'EOF'
+#!/bin/sh
+# Installed by bin/hostwarden-init: scan what is about to be
+# committed for secrets (rules/secrets.md).
+if command -v betterleaks >/dev/null 2>&1; then
+  exec betterleaks git --pre-commit --staged --redact --verbose \
+    --no-banner .
+fi
+# Without a remote nothing leaves this machine, so a warning
+# will do. With one, an unscanned commit could be pushed.
+if [ -n "$(git remote)" ]; then
+  echo "hostwarden: betterleaks is not installed, and this workspace" >&2
+  echo "  has a remote — commit refused unscanned. Install it" >&2
+  echo "  (https://github.com/betterleaks/betterleaks) and retry." >&2
+  exit 1
+fi
+echo "hostwarden: betterleaks is not installed, so this workspace" >&2
+echo "  commit was not scanned for secrets." >&2
+EOF
+  chmod +x "$HOOK"
+fi
+# A commit made before the remote existed was only warned about,
+# so the push scans again, and never goes out unscanned.
+HOOK=memory/.git/hooks/pre-push
+if [ ! -e "$HOOK" ]; then
+  cat > "$HOOK" <<'EOF'
+#!/bin/sh
+# Installed by bin/hostwarden-init: scan the workspace's history
+# for secrets before anything leaves this machine.
+if ! command -v betterleaks >/dev/null 2>&1; then
+  echo "hostwarden: betterleaks is not installed — push refused" >&2
+  echo "  unscanned. Install it" >&2
+  echo "  (https://github.com/betterleaks/betterleaks) and retry." >&2
+  exit 1
+fi
+exec betterleaks git --redact --verbose --no-banner .
+EOF
+  chmod +x "$HOOK"
+fi
+
+if [ "$WAS" = operations ]; then
+  echo "hostwarden: memory/ is already the workspace"
+else
+  echo "hostwarden: memory/ is now the workspace — this checkout operates servers"
+fi

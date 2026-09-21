@@ -123,3 +123,19 @@ lines continue the previous entry. Use the labels
 applicable — skip empty ones.
 
 Trim entries older than 2 years when writing.
+
+## The Workspace
+
+Last, once the changelog is written: commit the workspace
+with the session's journal headline as the message —
+`bin/hostwarden-sync commit "<headline>"`. A session that
+changed nothing in `memory/` commits nothing; the command
+says so by doing nothing.
+
+Then push, if the workspace has a remote:
+`bin/hostwarden-sync push`. The first push of a session
+waits for the user's yes — *"Push the workspace to its
+remote?"* — because it sends hostnames and the network's
+layout off this machine. After a yes, later pushes in the
+same session go without asking. A no stands for the rest
+of the session; the commits wait for the next one.

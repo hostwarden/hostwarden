@@ -57,25 +57,24 @@ of now, not a history.
 
 ## Personal versus shared
 
-Solo use is the default: server memory and
-changelogs are gitignored. A team shares them by
-editing `.gitignore`, and then the split matters.
+`memory/` is the workspace, a git repository of its
+own, never part of hostwarden's. Solo use is the
+default: it has no remote. A team gives it a private
+one, and then the split matters.
 
 **Always personal, never shared:** `memory/user.md`
 (SSH usernames and language), `memory/blacklist.md`,
 `memory/readonly.md`, and the memory directory of
-anyone's local machine.
+anyone's local machine. The workspace's own
+`.gitignore` names them; a machine's hostname
+directory has to be added there by hand.
 
-**Shared in team mode:** `memory/servers/*/`,
-`memory/network.md`, `memory/housekeeping.md`.
-
-**Custom rules** (`memory/custom-rules/`, see
-`rules/overrides.md`) are gitignored by default and
-can be shared team-wide by commenting out that
-entry. Per-server `rules.md` follows whatever the
-team decided for server memory.
+**Shared in team mode:** everything else —
+`memory/servers/*/` with each host's `rules.md`,
+`memory/network.md`, `memory/housekeeping.md`,
+`memory/service-policy.md` and `memory/custom-rules/`.
 
 When a teammate's session shows up in the activity
 check (`rules/activity-check.md`), their memory
-edits may not be pulled yet. Trust the host over the
-file.
+edits may not be pulled into the workspace yet. Trust
+the host over the file.

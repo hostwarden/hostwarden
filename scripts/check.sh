@@ -114,6 +114,7 @@ then
 else
   step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
 fi
+step "mode matrix" sh .claude/hooks/guard-mode-test.sh
 step "instruction layout" sh .claude/hooks/instructions-test.sh
 step "JSON" json_valid
 step "shell syntax" sh_syntax

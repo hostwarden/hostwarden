@@ -37,17 +37,13 @@ resolve_path() {
   esac
 }
 
-# The files the repo itself ships under memory/.
-# Enumerated, not matched by extension: a user's own
-# memory/network.example is their data, and the
-# backup archives it. Adding a template to the repo
-# means adding it here.
-SHIPPED_TEMPLATES="MEMORY.md user.md.example \
-opencode.json.example service-policy.md.example"
-
-shipped_paths() {
-  for t in $SHIPPED_TEMPLATES; do
-    printf 'memory/%s\n' "$t"
+# The files a workspace starts with, as bin/hostwarden-init
+# copies them from templates/workspace/. They say nothing
+# about the user's servers, so a workspace holding only
+# these counts as empty.
+workspace_paths() {
+  for f in templates/workspace/.[!.]* templates/workspace/*; do
+    if [ -f "$f" ]; then printf 'memory/%s\n' "${f##*/}"; fi
   done
 }
 
@@ -56,16 +52,18 @@ archive_hostname() {
 }
 
 # Build the list of files to archive. We exclude
-# transient noise (.DS_Store, *.lock) but keep
-# everything else under memory/.
+# transient noise (.DS_Store, *.lock) and the
+# workspace's git history, which lives with its
+# remote, but keep everything else under memory/.
 archive_list() {
   if [ ! -d memory ]; then
     echo "error: memory/ does not exist — nothing to back up" >&2
     exit 1
   fi
-  find memory -type f \
+  find memory -path memory/.git -prune -o -type f \
     ! -name '.DS_Store' \
     ! -name '*.lock' \
+    -print \
     | LC_ALL=C sort
 }
 
@@ -137,31 +135,31 @@ do_restore() {
     exit 1
   fi
 
+  # A linked worktree never keeps memory/ (init says
+  # why), so refuse before anything is touched.
+  if [ -f .git ]; then
+    echo "error: this is a linked git worktree; restore in the main checkout" >&2
+    exit 1
+  fi
+
   # Refuse to overwrite existing content unless
-  # --force. An empty memory/ (only .gitkeep,
-  # transient files the backup excludes anyway, and
-  # the templates the repo ships) counts as empty.
-  # Without the template exception a fresh clone
-  # could never be restored into.
-  #
-  # The templates are named exactly, not matched by
-  # extension or by whether git tracks them: in team
-  # mode the user's own server memory is tracked on
-  # purpose (see .gitignore), and an extension match
-  # would swallow files of theirs that happen to end
-  # in .example.
+  # --force. A memory/ holding only .gitkeep, noise
+  # the backup excludes anyway, and the files init
+  # writes counts as empty. Checked before anything is
+  # written, so a refused restore leaves the checkout
+  # exactly as it was — a development one stays one.
   if [ -d memory ] && [ "$FORCE" != "--force" ]; then
     # Symlinks count: a memory/ holding only links
     # would otherwise read as empty, and the copy
     # below would follow them and write through to
     # their targets.
-    EXISTING=$(find memory \( \
+    EXISTING=$(find memory -path memory/.git -prune -o \( \
         \( -type f \
            ! -name '.gitkeep' \
            ! -name '.DS_Store' \
            ! -name '*.lock' \) \
-        -o -type l \) \
-      | grep -vxF "$(shipped_paths)" \
+        -o -type l \) -print \
+      | grep -vxF "$(workspace_paths)" \
       | head -n 1)
     if [ -n "$EXISTING" ]; then
       echo "error: memory/ already contains user data (e.g. $EXISTING)" >&2
@@ -181,15 +179,9 @@ do_restore() {
     echo "error: archive did not produce a memory/ tree" >&2
     exit 1
   fi
-  # Templates the repo ships stay at the checked-out
-  # version; the archive's copy may be older. Exactly
-  # those paths — anything else in the archive is the
-  # user's, and dropping it would make the restore
-  # quietly incomplete.
-  for t in $SHIPPED_TEMPLATES; do
-    rm -f "$TMPEX/memory/$t"
-  done
-  mkdir -p memory
+  # Restored state is state to operate with, so the
+  # checkout becomes an operations install now.
+  sh bin/hostwarden-init >/dev/null
   cp -R "$TMPEX/memory/." memory/
   echo "restored $FILE into $REPO_DIR"
 }

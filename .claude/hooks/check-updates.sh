@@ -30,6 +30,15 @@ if [ "$HOSTWARDEN_NO_UPDATE" = "1" ] || [ "${HEINZEL_NO_UPDATE:-}" = "1" ]; then
   exit 0
 fi
 
+# Only an operations install follows main. A development
+# checkout moves by its own branches and pull requests, and a
+# pull on its main would only surprise whoever works there
+# (.claude/hooks/mode.sh).
+# shellcheck source=mode.sh
+. "${0%/*}/mode.sh"
+hostwarden_mode "${0%/*}/../.."
+[ "$HOSTWARDEN_MODE" = operations ] || exit 0
+
 # Skip if not on the main branch (user pinned to a
 # version tag or is on a custom branch).
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)

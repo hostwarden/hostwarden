@@ -11,6 +11,28 @@ macOS machines via SSH or locally. Supports any Linux distribution
 (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, and others), FreeBSD,
 and macOS. Manual administration only — no Ansible, Puppet or Chef.
 
+## Development or Operations
+
+A checkout of hostwarden does one of two jobs, never both. Decide
+which before anything else, from the files, never from the remote:
+
+- **Operations** — `memory/.hostwarden-workspace` exists and `.git`
+  is a directory. Everything below applies. hostwarden's own files
+  are read-only here: only `memory/` and other gitignored files
+  change. A request to change hostwarden itself gets a pointer to a
+  development checkout and a pull request, not an edit.
+- **Development** — there is no marker, or `.git` is a file: a
+  linked worktree, which never carries `memory/` and so has no
+  access lists and no server memory. The session works on
+  hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
+  to a remote, no `sudo`, and no local mode either. Session Start
+  and the pipeline below do not apply. A request for server work
+  gets a pointer to an operations checkout, a separate clone set up
+  with `bin/hostwarden-init`, not a workaround.
+
+A fork is a development checkout like any other; its pull requests
+go to `jpawlowski/hostwarden`.
+
 ## How It Works
 
 The user provides a server hostname and optionally a user. SSH
@@ -264,10 +286,10 @@ trigger — not a request from the user.
 
 **Before the session ends**
 
-- `rules/changelog.md` — the journal line on the host and the local
-  changelog. **Every session, including one that changed nothing**
-  — a session with no entry is a session the next connection's
-  activity check cannot see.
+- `rules/changelog.md` — the journal line on the host, the local
+  changelog, and the workspace commit. **Every session, including
+  one that changed nothing** — a session with no entry is a session
+  the next connection's activity check cannot see.
 
 **After you change something**
 

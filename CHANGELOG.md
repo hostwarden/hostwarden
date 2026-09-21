@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **A checkout either operates servers or develops
+  hostwarden.** `bin/hostwarden-init` turns `memory/`
+  into the workspace, a git repository of its own, and
+  only a checkout with a workspace reaches a server. One
+  without it — a fresh clone, a fork, and every git
+  worktree — is for changing hostwarden and denies
+  `ssh`, `scp`, rsync to a remote and `sudo`. In an
+  operations checkout hostwarden's own files are
+  read-only, so a local edit cannot stop the
+  auto-update. A team shares the workspace through a
+  remote of its own (`bin/hostwarden-init --clone`),
+  which also keeps one admin's machines in step:
+  `bin/hostwarden-sync` pulls at session start, commits
+  at the end and asks once before it pushes. Changelogs
+  from two machines merge on their own, and a workspace
+  commit is scanned for secrets — with betterleaks
+  required once the workspace has a remote, so nothing
+  unscanned can be pushed. A skill of your own goes
+  into `memory/.claude/skills/` and travels with the
+  workspace.
+  Claude Code announces the mode at session start and
+  enforces it with a hook; `AGENTS.md` carries the same
+  rule for every other tool. The templates live in
+  `templates/memory/`.
+
 - **Native Windows: the README lists the three settings
   symlinks need** and how to repair a clone made without
   them. Without them Git Bash copies where it should link,
@@ -30,7 +55,7 @@
   the layout test the moment it exists, staged or not,
   while everything a user generates stays out because
   it is gitignored. The shipped templates under
-  `memory/` are scanned too, and `settings.json` is
+  `templates/memory/` are scanned too, and `settings.json` is
   checked for a hook whose script has been renamed
   away.
 - **The guard fixture matrix runs in parallel** — 54

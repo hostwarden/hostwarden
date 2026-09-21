@@ -10,10 +10,17 @@ tool reads. This file adds only what exists here and nowhere else.
   permission mode, `--dangerously-skip-permissions` included. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
   are the entire safety layer.
-- **SessionStart hooks have already run.** They check for repo
-  updates and create `~/.cache/hostwarden` with mode 0700, so the
-  `mkdir` named under `AGENTS.md` → SSH Options is done. Where hooks
-  do not run, it is not.
+- **The mode is announced and enforced.** A SessionStart hook
+  names the mode `AGENTS.md` → Development or Operations
+  describes, and `.claude/hooks/guard-mode.sh` holds the session to
+  it: no server from a development checkout or a worktree, no edit
+  to shipped files in an operations one. The taboo guard's
+  disable variable does not reach it.
+- **SessionStart hooks have already run.** In an operations
+  checkout they check for repo updates and pull the workspace
+  (`rules/session-start.md`), and they create `~/.cache/hostwarden`
+  with mode 0700, so the `mkdir` named under `AGENTS.md` → SSH
+  Options is done. Where hooks do not run, none of it is.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.

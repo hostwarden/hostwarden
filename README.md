@@ -50,6 +50,10 @@ hostwarden session looks the same.
   terminal — e.g.
   [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
   or [OpenCode](https://opencode.ai).
+- **[jq](https://jqlang.org)** for Claude Code's
+  guard hooks. Without it they cannot read what a
+  tool call does, and the mode guard refuses
+  whatever it cannot show to be safe.
 - **SSH access** to the target server — either as a
   normal user or as root. The SSH connection must
   not prompt for a password or passphrase (use
@@ -156,13 +160,23 @@ replaced with a link.
 
 ### Steps
 
-1. **Clone the repo and start hostwarden**
+1. **Clone the repo, set up the workspace, start hostwarden**
    ```
    git clone https://github.com/jpawlowski/hostwarden.git
    cd hostwarden
+   bin/hostwarden-init
    claude
    ```
    Or use `opencode` to launch OpenCode.
+   `bin/hostwarden-init` turns `memory/` into the
+   workspace — a git repository of its own that holds
+   everything hostwarden learns about your servers —
+   and so makes this an **operations checkout**.
+   Without it, the checkout is for developing
+   hostwarden and reaches no server (see
+   [Operations and development](#operations-and-development)).
+   Always start sessions in this directory itself,
+   never in a git worktree of it.
 2. **Describe what you need in plain English**
    ```
    ❯ Install postgresql on server1.example.com
@@ -174,32 +188,58 @@ replaced with a link.
    answers are stored in `memory/user.md` and the
    per-server memory file, so Hostwarden won't ask again
    on future sessions. You can also pre-fill
-   `memory/user.md` by copying `memory/user.md.example`
-   and editing it — this is also where you set a
+   `memory/user.md` by copying
+   `templates/memory/user.md.example` and editing
+   it — this is also where you set a
    preferred language (e.g. `Language: German`).
 4. **Review and approve each command before it runs**
    Hostwarden proposes every SSH command, explains what
    it does and why, and waits for your approval.
    Nothing runs without your say-so.
 
-### Team setup
+### Team setup and several machines
 
-Hostwarden supports team use where multiple people share
-server state via git while keeping SSH usernames
-personal.
+A team — or one admin on several machines — shares
+the workspace, `memory/`, through a git remote of its
+own. **Keep that remote private:** the workspace
+holds hostnames, addresses, the blacklist and the
+layout of your network. hostwarden itself stays an
+unmodified clone that keeps updating.
 
-1. Each team member copies `memory/user.md.example`
-   to `memory/user.md` and sets their own SSH
-   usernames. This file is always gitignored.
-2. Edit `.gitignore` to track server memory — the
-   comments in the file explain which lines to
-   comment out.
-3. If any team member uses hostwarden locally (on their
-   own machine), add their machine's hostname
-   directory to `.gitignore` (e.g.
-   `memory/servers/my-laptop/`).
-4. Commit server memory changes after sessions so the
-   team stays in sync.
+1. Set the workspace up as above, then publish it
+   once:
+   ```
+   git -C memory add -A
+   git -C memory commit -m "Start the shared workspace"
+   git -C memory remote add origin <private-repo-url>
+   git -C memory push -u origin main
+   ```
+2. On every other machine, clone hostwarden and
+   join:
+   ```
+   bin/hostwarden-init --clone <private-repo-url>
+   ```
+3. From then on it keeps itself in step. Every
+   session starts with `bin/hostwarden-sync pull`
+   (Claude Code runs it for you) and ends with a
+   commit of whatever it learned. It asks once per
+   session before pushing. A changelog both machines
+   added to merges on its own; two different edits
+   of the same `memory.md` stop the pull and are left
+   for you.
+4. Personal files never reach the remote:
+   `memory/.gitignore` names `user.md`,
+   `blacklist.md`, `readonly.md` and `opencode.json`.
+   Add your own machine's hostname directory there
+   (e.g. `/servers/my-laptop/`). Alone on several
+   machines, you may want your SSH usernames on all
+   of them: delete the `/user.md` line.
+5. Every workspace commit is scanned for secrets by
+   [betterleaks](https://github.com/betterleaks/betterleaks),
+   and every push scans the whole history again. A
+   push without it is refused, and so is a commit once
+   the workspace has a remote; without one, a commit
+   only says it was not scanned.
 
 ## Updates & Versioning
 
@@ -207,11 +247,13 @@ Hostwarden uses [semantic versioning](https://semver.org).
 The current version is in the `VERSION` file; changes
 are listed in `CHANGELOG.md`.
 
-**Auto-update (Claude Code):** On every session start,
-a hook runs `git pull` and reports version changes.
-No action needed. Auto-update is skipped when pinned
-to a tag (see below), when on a non-`main` branch, or
-when `HOSTWARDEN_NO_UPDATE=1` is set.
+**Auto-update (Claude Code):** On every session start
+in an operations checkout, a hook runs `git pull` and
+reports version changes. No action needed.
+Auto-update is skipped in a development checkout,
+when pinned to a tag (see below), when on a
+non-`main` branch, or when `HOSTWARDEN_NO_UPDATE=1`
+is set.
 
 **Manual update (OpenCode / any tool):**
 
@@ -334,12 +376,13 @@ rejected.
 
 ### Team mode note
 
-In team mode, `memory/servers/`, `memory/network.md`,
-`memory/housekeeping.md`, and
-`memory/custom-rules/` are shared via git already.
-But `memory/user.md`, `memory/blacklist.md`,
-`memory/readonly.md`, and `memory/opencode.json`
-are always personal and still need this backup.
+In team mode, most of `memory/` lives on the team's
+remote already. But `memory/user.md`,
+`memory/blacklist.md`, `memory/readonly.md`, and
+`memory/opencode.json` are always personal and still
+need this backup. The archive leaves out
+`memory/.git`; a restore sets the workspace up
+first.
 
 ## Features
 
@@ -578,7 +621,7 @@ ollama run qwen3.5:9b
 Copy the example config and adjust if needed:
 
 ```bash
-cp memory/opencode.json.example memory/opencode.json
+cp templates/memory/opencode.json.example memory/opencode.json
 ```
 
 Edit `memory/opencode.json` to match your setup —
@@ -979,12 +1022,10 @@ Four layers, read in order (later wins):
 1. **Shipped** — the rule file or skill (upstream,
    git-tracked)
 2. **Global custom** — the mirroring file under
-   `memory/custom-rules/` (gitignored by default,
-   opt-in team sharing)
+   `memory/custom-rules/` (in the workspace)
 3. **Every file** — `memory/custom-rules/all.md`
 4. **Per-server** —
    `memory/servers/<hostname>/rules.md`
-   (gitignored with server memory)
 
 **Your file's path mirrors the shipped one**, minus
 the top-level directory and minus `references/`:
@@ -1029,6 +1070,20 @@ your files are read. Trigger wording belongs in
 `memory/custom-rules/all.md`, which is in context
 from the start. Full rules: `rules/overrides.md`.
 
+### Your own skills
+
+A workflow hostwarden does not ship goes into
+`memory/.claude/skills/<name>/SKILL.md` and travels
+with the workspace. Claude Code offers it as
+`/memory:<name>` once the session has read your
+memory, or at once after `/add-dir memory`. OpenCode
+and Codex only find skills in the project's own
+directories and in your home, so link it into
+`~/.config/opencode/skills/` or `~/.agents/skills/`
+there. To change what a shipped skill does, override
+it as above instead — a copy stops receiving
+updates.
+
 ## Project Structure
 
 ```
@@ -1043,6 +1098,9 @@ CLAUDE.md              — Imports AGENTS.md, plus the handful of
 bin/
   hostwarden-update       — Update, pin, or check hostwarden version
   hostwarden-backup       — Back up / restore your memory/ tree
+  hostwarden-init         — Set up (or join) the workspace
+  hostwarden-sync         — Keep the workspace in step with
+                            its remote
   hostwarden-adopt        — Take over a heinzel checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
@@ -1141,23 +1199,28 @@ rules/                 — Upstream rule files (git-tracked)
                          (auto-proceed rules + opt-out)
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
-memory/                — All your user state (gitignored
-                         by default; single-directory backup)
+templates/workspace/   — What bin/hostwarden-init puts
+                         into a new workspace
+templates/memory/      — Templates to copy into memory/
   MEMORY.md            — Index for server memory
   user.md.example      — SSH username template (copy to
-                         user.md)
+                         memory/user.md)
+  service-policy.md.example — Service reload/restart
+                         policy template
+  opencode.json.example — OpenCode config template
+memory/                — The workspace: all your user
+                         state, a git repository of its
+                         own (never part of hostwarden's)
+  .hostwarden-workspace — Marks an operations checkout
+  .gitignore           — Files that stay personal even
+                         in a team
   user.md              — Your preferences and SSH usernames
   blacklist.md         — Blocked servers
   readonly.md          — Read-only servers
-  service-policy.md.example — Service reload/restart
-                         policy template (copy to
-                         service-policy.md)
   service-policy.md    — Your per-service opt-out /
                          opt-in for reload/restart
   housekeeping.md      — User-added custom checks
   network.md           — Cross-server network facts
-  opencode.json.example — OpenCode config template (copy to
-                         opencode.json)
   opencode.json        — Your local OpenCode config
   custom-rules/        — Your rule overrides that layer on
                          top of rules/*.md
@@ -1183,6 +1246,28 @@ the helpful house spirits of Cologne who did the work
 at night. hostwarden keeps that idea: an invisible
 helper that does the tedious work while you review.
 
+## Operations and development
+
+A hostwarden checkout does one of two jobs, and the
+workspace decides which:
+
+- **Operations** — `memory/` is the workspace
+  (`bin/hostwarden-init`). hostwarden administers
+  servers. Its own files are read-only here, so the
+  auto-update keeps working and every change to
+  hostwarden goes through review.
+- **Development** — no workspace. The session changes
+  hostwarden itself and reaches no server, not even
+  the local machine. Every git worktree counts as
+  development, whatever its main checkout is.
+
+In Claude Code a hook announces the mode at session
+start and another enforces it; other tools follow
+the same rule from `AGENTS.md`. To try a change
+against a test server, run it from an operations
+checkout of your branch — a separate clone, never
+the one you administer production from.
+
 ## Contributing
 
 Bug reports, feature requests, and pull requests are
@@ -1191,6 +1276,11 @@ new distro support, or improvements to the safety
 rules — please open an issue or submit a PR. See
 [CONTRIBUTING.md](CONTRIBUTING.md) and
 [SECURITY.md](SECURITY.md).
+
+Work in a development checkout: a clone of
+hostwarden, or of your fork, without
+`bin/hostwarden-init`. One git worktree per branch
+keeps parallel sessions apart.
 
 ## License
 
