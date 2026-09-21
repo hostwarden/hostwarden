@@ -229,6 +229,18 @@ case "$out" in
 *"no CLAUDE_ENV_FILE"*) ok ;;
 *) bad "session-mode did not say that the shim is missing" ;;
 esac
+# Without symbolic links git writes each link as a text file, which
+# PATH passes over: say so, and write nothing that pretends.
+NL=$(checkout nolinks)
+for t in "$NL"/.claude/hooks/shim/*; do
+  rm "$t" && echo ../shim.sh > "$t"
+done
+: > "$TMP/nolinks.env"
+case "$(CLAUDE_ENV_FILE="$TMP/nolinks.env" sh "$NL/.claude/hooks/session-mode.sh")" in
+*"no symbolic links"*) [ -s "$TMP/nolinks.env" ] \
+  && bad "session-mode wrote a shim of text files to the env file" || ok ;;
+*) bad "session-mode did not say that the shim has no links" ;;
+esac
 
 # --- the shim --------------------------------------------------
 # One link per tool the guard names, each to shim.sh.

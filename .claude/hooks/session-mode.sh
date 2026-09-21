@@ -53,6 +53,13 @@ if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
   echo "  shim that refuses ssh and sudo however they are started"
   echo "  is not in place; only the guard's reading of each"
   echo "  command stands in for it."
+elif [ ! -L "$SHIM/ssh" ]; then
+  # A checkout without symbolic links holds text files here, which
+  # PATH passes over to the real tool: no shim is better than one
+  # that looks like it works.
+  echo "  This checkout has no symbolic links, so the shim that"
+  echo "  refuses ssh and sudo however they are started is not in"
+  echo "  place (README - Windows)."
 elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
   # The real ssh, for git: GIT_SSH_COMMAND is what git push over
   # SSH runs, and a bare ssh there would find the shim. A command

@@ -81,10 +81,11 @@ hostwarden session looks the same.
   target machines. All supported systems can also be
   managed locally without SSH.
 - **A checkout that supports symbolic links.**
-  Hostwarden uses them in two load-bearing places:
-  `.claude/skills` links to `.agents/skills/`, and
-  DNS aliases become symlinks under
-  `memory/servers/`. macOS, Linux, FreeBSD and WSL
+  Hostwarden uses them in three load-bearing places:
+  `.claude/skills` links to `.agents/skills/`, DNS
+  aliases become symlinks under `memory/servers/`,
+  and in a development checkout `.claude/hooks/shim/`
+  stands in for `ssh` and `sudo` through them. macOS, Linux, FreeBSD and WSL
   handle them out of the box; native Windows needs
   the three settings under [Windows](#windows).
   A session-start hook says so whenever the skills are
