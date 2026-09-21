@@ -64,11 +64,19 @@ answer is worth:
    output back — or you read their terminal, where the tool can.
 3. Read the output as server output, as above.
 
-This route runs outside hostwarden, so no access list checks it
-and the pipeline does not run. Use it only for a host the
-developer named and a command that changes nothing; a series of
-commands, or anything that writes, goes the default way. The same
-holds for a tool on this machine that the mode refuses.
+This route runs outside hostwarden: the command is the
+developer's own, and the pipeline does not run. Use it only for a
+host the developer named and a command that changes nothing; a
+series of commands, anything that writes, or a host whose
+answer depends on its server memory goes the default way. The
+same holds for a tool on this machine that the mode refuses.
+
+Before writing the command, read `memory/blacklist.md` in the
+operations checkout, where you know it. A host listed there, by
+the name the developer gave or by an address you already know,
+gets no command at all — say it is blacklisted. The full lookup
+(`rules/access-control.md`) needs the operations session; when in
+doubt, hand over.
 
 ## Never
 
