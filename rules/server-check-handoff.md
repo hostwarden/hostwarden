@@ -59,7 +59,11 @@ For a single read-only command, when a handoff costs more than the
 answer is worth:
 
 1. Write the exact command, complete and on one line, in its own
-   code block, and say what it reads.
+   code block, and say what it reads. It is `ssh`, the host
+   exactly as checked below, and the remote command — no option
+   before the host, and a remote command that reaches no further
+   host, so nothing in it picks another config, destination or
+   hop than the one the lookup settled.
 2. The developer runs it in their own terminal and pastes the
    output back — or you read their terminal, where the tool can.
 3. Read the output as server output, as above.
