@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **A development session that needs a live server hands
+  the question over** to a session in your operations
+  checkout, which runs the access lists and the full
+  pipeline and answers back; the refusal and the session
+  start name that checkout. The README shows how to
+  validate a branch from a second, test-only clone.
 - **Parallel sessions on one machine keep out of each
   other's workspace changes.** `bin/hostwarden-sync
   commit` takes the files a session names and nothing
@@ -15,7 +21,6 @@
   deleted or crashed session left behind are found
   through the host's session register and committed on
   their own after you say so.
-
 - **Sessions that change the same host see each
   other.** Before its first change a session registers on
   the managed host itself, in `/tmp/hostwarden/`, without

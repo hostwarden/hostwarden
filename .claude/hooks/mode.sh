@@ -37,6 +37,10 @@
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
 #                             three answers, and HOSTWARDEN_MAIN to
 #                             the main checkout of a worktree
+#   hostwarden_next_step    — sets HOSTWARDEN_NEXT_STEP to where
+#                             server work goes from development, so
+#                             the session start and every refusal
+#                             name the same way
 #   hostwarden_refusal <tool>
 #                           — sets HOSTWARDEN_REFUSAL to why <tool>
 #                             is refused in development, so the
@@ -70,23 +74,36 @@ hostwarden_mode() {
   fi
 }
 
-# Plain ASCII without quotes or backslashes: guard-mode.sh puts it
-# into JSON as it is. Expects hostwarden_mode to have run.
+# A refusal that only stops leaves the developer to find the way
+# to a live answer alone, so the session start and every refusal
+# name the next step. Expects hostwarden_mode to have run.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_next_step() {
+  if [ "$HOSTWARDEN_MODE" = worktree ]; then
+    HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
+the main checkout, $HOSTWARDEN_MAIN, if that is an operations install"
+  else
+    HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
+a separate clone, set up once with bin/hostwarden-init"
+  fi
+  HOSTWARDEN_NEXT_STEP="$HOSTWARDEN_NEXT_STEP; how: \
+rules/server-check-handoff.md"
+}
+
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_refusal() {
   if [ "$HOSTWARDEN_MODE" = worktree ]; then
     hr_why="this session runs in a linked git worktree. A worktree \
 never carries memory/, so the access lists and the server memory are \
-missing here. Server work runs only in the main checkout of an \
-operations install"
+missing here"
   else
     hr_why="this checkout develops hostwarden (memory/ holds no \
-workspace). Server work runs in an operations checkout: a separate \
-clone, set up once with bin/hostwarden-init. For a tool on this \
-machine, run the command yourself outside the agent"
+workspace)"
   fi
+  hostwarden_next_step
   HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server, and \
-$hr_why (AGENTS.md - Development or Operations)."
+$hr_why. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - Development \
+or Operations)."
 }
 
 # The workspace's remote is reached by init --clone and by sync,

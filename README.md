@@ -1503,10 +1503,35 @@ first also puts a shim in front of `ssh`, `scp`,
 `sudo` and the rest on the `PATH` of every command
 the agent runs, so they refuse however they are
 started; `git push` still reaches the real `ssh`.
-Other tools follow the same rule from `AGENTS.md`. To try a change
-against a test server, run it from an operations
-checkout of your branch — a separate clone, never
-the one you administer production from.
+Other tools follow the same rule from `AGENTS.md`.
+
+When development needs to know something about a
+live server, the agent hands the question to a
+session in your operations checkout — a message to
+one already running, or one command that starts it —
+and reads the answer. That session runs the access
+lists and the full first-connection pipeline as
+always, a one-line question included. Details:
+`rules/server-check-handoff.md`.
+
+**Validating a branch** needs the branch's own
+instructions on a server, and those never go near
+production. Keep a second operations clone for test
+servers only:
+
+```
+git clone <hostwarden-url> hostwarden-test
+cd hostwarden-test
+git switch <branch>
+bin/hostwarden-init
+```
+
+Give it a workspace of its own — never `--clone` of
+the production one — and list your production hosts
+in its `memory/blacklist.md`. Off `main` it does not
+auto-update; `git pull` brings the branch's next
+push, and `bin/hostwarden-update --unpin` returns it
+to `main`.
 
 ## Contributing
 
