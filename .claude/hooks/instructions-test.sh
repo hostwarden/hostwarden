@@ -446,7 +446,7 @@ function load(p,   l, fence, h) {
 # (CRITICAL)". A bold bullet is not a heading; point at the
 # heading above it. README alone is README.md. A relative target
 # resolves against the root, the skill it is written in, then its
-# own directory. Someone else's README ("its README", "heinzel's
+# own directory. Someone else's README ("its README", "Heinzel's
 # README") is not ours.
 SEP=$(printf '\037')
 PTR_RE="(^|[^A-Za-z0-9_./<>-])(its |[A-Za-z]+'s )?\`?([A-Za-z0-9_./-]*[A-Za-z0-9_-]\\.md|README)\`?[[:blank:]]*(→|§| - ).*"
