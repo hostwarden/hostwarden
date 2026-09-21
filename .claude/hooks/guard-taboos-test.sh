@@ -876,16 +876,22 @@ session_out() {
 contains() { case "$1" in *"$2"*) true ;; *) false ;; esac; }
 expect "check-session.sh spoke in an ordinary checkout" \
   [ -z "$(session_out main)" ]
-expect "check-session.sh missed a linked worktree or its checkout" \
-  contains "$(session_out wt)" "not in
-  $REPO/main."
-expect "check-session.sh missed a worktree with a relative gitdir" \
-  contains "$(session_out rel)" "not in
-  $REPO/main."
-expect "check-session.sh missed a worktree of a separate git dir" \
-  contains "$(session_out sep)" "linked git worktree"
-expect "check-session.sh took a submodule for a worktree" \
-  [ -z "$(session_out sub)" ]
+# The worktree itself is mode.sh's to detect and session-mode.sh's
+# to announce; check-session.sh stays out of it.
+mode_of() {
+  (. "$CLAUDE_DIR/hooks/mode.sh"; hostwarden_mode "$REPO/$1"
+   echo "$HOSTWARDEN_MODE $HOSTWARDEN_MAIN")
+}
+expect "mode.sh missed a linked worktree or its checkout" \
+  [ "$(mode_of wt)" = "worktree $REPO/main" ]
+expect "mode.sh missed a worktree with a relative gitdir" \
+  [ "$(mode_of rel)" = "worktree $REPO/main" ]
+expect "mode.sh missed a worktree of a separate git dir" \
+  contains "$(mode_of sep)" "worktree "
+expect "mode.sh took a submodule for a worktree" \
+  [ "$(mode_of sub)" = "development " ]
+expect "check-session.sh announced a worktree session-mode.sh owns" \
+  [ -z "$(session_out wt)" ]
 # The record: made at startup with the variable set, never at a
 # compaction, and taken away once the variable is gone.
 REC="$REPO/home/.cache/hostwarden/guard-off-s1"

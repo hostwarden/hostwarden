@@ -35,9 +35,11 @@
 #   - Look inside a variable or a script file. A backstop against
 #     the everyday mistake, not a sandbox.
 #
-# It runs on every tool call, so it forks little: in development
-# nothing at all unless the input names a blocked tool, and then
-# one jq for the whole input and one awk for the command.
+# It runs on every tool call, so it forks little. In development
+# nothing at all unless the input names a blocked tool, then one jq
+# for the whole input and an awk or two for the command. In
+# operations a Bash call ends before jq; an edit runs one jq, and
+# git only for a path outside memory/.
 #
 # Being blocked is EXPECTED behavior. Explain it to the user.
 # Never rephrase, re-quote, or otherwise obfuscate a command to
@@ -70,6 +72,13 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
   *ssh*|*scp*|*sftp*|*mosh*|*sudo*|*doas*|*pkexec*|*rsync*) ;;
   *) exit 0 ;;
+  esac
+else
+  # Operations restricts edits only, so a Bash call ends here. Inside
+  # the text of an edit every quote is escaped, so this pattern can
+  # only match the tool name itself; anything else goes on to jq.
+  case "$INPUT" in
+  *'"tool_name":"Bash"'*) exit 0 ;;
   esac
 fi
 
@@ -168,11 +177,13 @@ case "$TOOL" in
 Bash|"") ;;
 *) exit 0 ;;
 esac
-[ -n "$CMD" ] || CMD="$INPUT"
 # Without jq the command is buried in JSON, and it names a
 # blocked tool (the prefilter above). Refuse rather than guess.
 [ -n "$JQ" ] || deny "without jq this command cannot be read, and \
 it names a tool that reaches a server - install jq"
+# jq could not parse the input: scan it raw, which can only
+# over-block.
+[ -n "$CMD" ] || CMD="$INPUT"
 
 # A heredoc body handed to cat or tee is text being written, not
 # commands: documentation about ssh is most of what this project
@@ -239,6 +250,15 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
         return 1
     return 0
   }
+  # hit(k) — what the command word v[k] reaches a server with, or
+  # nothing: a blocked tool, or rsync with a remote operand.
+  function hit(k,   c) {
+    if (k > nw) return ""
+    c = v[k]; sub(/^.*\//, "", c)
+    if (c ~ BLOCKED) return c
+    if (c == "rsync" && remote(k + 1)) return "rsync to a remote"
+    return ""
+  }
   function lastword(t) {
     sub(/[ \t]+$/, "", t)
     return match(t, /[^ \t\n;&|(]*$/) ? substr(t, RSTART, RLENGTH) : ""
@@ -295,22 +315,17 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
       nw = split(line[l], v, /[ \t]+/)
       i = cmdword(1)
       if (i > nw) continue
-      c = v[i]
-      sub(/^.*\//, "", c)
-      if (c ~ BLOCKED) { print c; exit }
+      if ((h = hit(i)) != "") { print h; exit }
       # find runs the word after -exec and its kin as a command,
       # read like any other: env ssh there is ssh.
+      c = v[i]; sub(/^.*\//, "", c)
       if (c == "find") {
         for (j = i + 1; j < nw; j++) {
-          if (v[j] ~ /^-(exec|execdir|ok|okdir)$/) {
-            k = cmdword(j + 1)
-            e = v[k]; sub(/^.*\//, "", e)
-            if (e ~ BLOCKED) { print e; exit }
-            if (e == "rsync" && remote(k + 1)) { print "rsync to a remote"; exit }
+          if (v[j] ~ /^-(exec|execdir|ok|okdir)$/ && (h = hit(cmdword(j + 1))) != "") {
+            print h; exit
           }
         }
       }
-      if (c == "rsync" && remote(i + 1)) { print "rsync to a remote"; exit }
     }
   }')
 

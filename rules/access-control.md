@@ -107,12 +107,14 @@ server.
 ## Linked Worktrees
 
 **When to check:** before the blacklist check, once
-per session. A `SessionStart` hook says so on its
-own where hooks run; elsewhere, read `.git` in the
-hostwarden directory. A file whose `gitdir:` names a
-directory holding a `commondir` file means a linked
-worktree; a directory, or a submodule's `.git` file,
-does not.
+per session. A linked worktree is a development
+checkout (`AGENTS.md` → Development or Operations);
+where hooks run, the session was told so at its
+start and the mode guard enforces it. Elsewhere,
+read `.git` in the hostwarden directory: a file whose
+`gitdir:` names a directory holding a `commondir`
+file means a linked worktree; a directory, or a
+submodule's `.git` file, does not.
 
 **Why:** `memory/` is gitignored, so a worktree
 carries none of the user's state — no
@@ -135,8 +137,6 @@ common git directory.
 main checkout's `memory/` and carry on. Every rule
 names `memory/...` relative to where it runs, so one
 missed path reads or writes the empty tree here
-instead — and `memory/` mixes tracked templates with
-the user's state, so it cannot simply be linked in.
-Working on hostwarden's own source is what a
-worktree is for; that reaches no machine and needs
+instead. Working on hostwarden's own source is what
+a worktree is for; that reaches no machine and needs
 no check.

@@ -218,8 +218,7 @@ unmodified clone that keeps updating.
 1. Set the workspace up as above, then publish it
    once:
    ```
-   git -C memory add -A
-   git -C memory commit -m "Start the shared workspace"
+   bin/hostwarden-sync commit "Start the shared workspace"
    git -C memory remote add origin <private-repo-url>
    git -C memory push -u origin main
    ```

@@ -19,6 +19,8 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 
 ok() { PASS=$((PASS + 1)); }
 bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+# fails <message> <command...> — the command must fail.
+fails() { m=$1; shift; if "$@" >/dev/null 2>&1; then bad "$m"; else ok; fi; }
 
 # commit <dir> <message> — as alice, whatever git is configured.
 commit() {
@@ -70,9 +72,7 @@ cp -R "$DEV/.claude" "$DEV/bin" "$DEV/templates" "$ARC/"
 cp "$OPS/memory/.hostwarden-workspace" "$ARC/memory/"
 mode_is development "$ARC"
 rm "$ARC/memory/.hostwarden-workspace"
-if sh "$ARC/bin/hostwarden-init" >/dev/null 2>&1; then
-  bad "init made a workspace outside a git clone"
-else ok; fi
+fails "init made a workspace outside a git clone" sh "$ARC/bin/hostwarden-init"
 
 # --- guard-mode.sh ---------------------------------------------
 bash_json() {
@@ -209,6 +209,9 @@ edit pass "$OPS" "$OPS/memory/user.md"
 edit pass "$OPS" "$OPS/.claude/settings.local.json"
 edit pass "$OPS" "$TMP/elsewhere.txt"
 write deny "$OPS" "$OPS/rules/x.md"
+# Text that looks like the tool name does not pass for a Bash call.
+verdict deny "$OPS" "$(jq -n --arg p "$OPS/rules/x.md" \
+  '{tool_name:"Write",tool_input:{file_path:$p,content:"\"tool_name\":\"Bash\""}}')"
 write pass "$OPS" "$OPS/memory/network.md"
 write pass "$OPS" "$OPS/memory/servers/server2.example.com/memory.md"
 # A link in memory/ that leads to a shipped file is that file.
@@ -295,15 +298,11 @@ sh "$OPS/bin/hostwarden-init" >/dev/null 2>&1 && ok || bad "second init failed"
 H=$(checkout hooks)
 git -C "$H" init --quiet memory
 printf '#!/bin/sh\nexit 0\n' > "$H/memory/.git/hooks/pre-push"
-if sh "$H/bin/hostwarden-init" >/dev/null 2>&1; then
-  bad "init ran beside a pre-push hook of the user's own"
-else ok; fi
+fails "init ran beside a pre-push hook of the user's own" sh "$H/bin/hostwarden-init"
 mode_is development "$H"
 rm "$H/memory/.git/hooks/pre-push"
 git -C "$H/memory" config core.hooksPath /tmp/elsewhere
-if sh "$H/bin/hostwarden-init" >/dev/null 2>&1; then
-  bad "init ran with core.hooksPath pointing elsewhere"
-else ok; fi
+fails "init ran with core.hooksPath pointing elsewhere" sh "$H/bin/hostwarden-init"
 mode_is development "$H"
 # The override the refusal recommends is accepted.
 git -C "$H/memory" config core.hooksPath .git/hooks
@@ -311,9 +310,7 @@ sh "$H/bin/hostwarden-init" >/dev/null 2>&1 && ok \
   || bad "init refused core.hooksPath set to the workspace's own hooks"
 mode_is operations "$H"
 # Never in a worktree.
-if sh "$WT/bin/hostwarden-init" >/dev/null 2>&1; then
-  bad "init ran in a linked worktree"
-else ok; fi
+fails "init ran in a linked worktree" sh "$WT/bin/hostwarden-init"
 [ -x "$OPS/memory/.git/hooks/pre-commit" ] \
   && [ -x "$OPS/memory/.git/hooks/pre-push" ] && ok \
   || bad "init installed no secret scan in the workspace"
@@ -329,11 +326,12 @@ if [ -s "$TMP/modes" ]; then
 else ok; fi
 
 # --- bin/hostwarden-sync ---------------------------------------
+sync_a() { sh "$OPS/bin/hostwarden-sync" "$@"; }
 # Outside operations, every verb does nothing.
 sh "$DEV/bin/hostwarden-sync" commit x && [ ! -e "$DEV/memory" ] && ok \
   || bad "sync acted in a development checkout"
 # Without a remote, pull and push do nothing and succeed.
-sh "$OPS/bin/hostwarden-sync" pull && sh "$OPS/bin/hostwarden-sync" push \
+sync_a pull && sync_a push \
   && ok || bad "sync without a remote failed"
 
 # Two machines on one private remote. Commits need an identity;
@@ -347,13 +345,9 @@ git init --quiet --bare --initial-branch=main "$TMP/remote.git"
 if ! command -v betterleaks >/dev/null 2>&1; then
   git -C "$OPS/memory" remote add probe "$TMP/remote.git"
   echo x > "$OPS/memory/network.md"
-  if sh "$OPS/bin/hostwarden-sync" commit probe >/dev/null 2>&1; then
-    bad "a workspace with a remote committed without a secret scan"
-  else ok; fi
+  fails "a workspace with a remote committed without a secret scan" sync_a commit probe
   # ...and never pushes unscanned either.
-  if git -C "$OPS/memory" push --quiet probe HEAD:main >/dev/null 2>&1; then
-    bad "a workspace pushed without a secret scan"
-  else ok; fi
+  fails "a workspace pushed without a secret scan" git -C "$OPS/memory" push --quiet probe HEAD:main
   git -C "$OPS/memory" remote remove probe
   git -C "$OPS/memory" reset --quiet
 fi
@@ -361,8 +355,7 @@ mkdir -p "$TMP/stub"
 printf '#!/bin/sh\nexit 0\n' > "$TMP/stub/betterleaks"
 chmod +x "$TMP/stub/betterleaks"
 PATH="$TMP/stub:$PATH"
-sync_a() { sh "$OPS/bin/hostwarden-sync" "$@"; }
-sh "$OPS/bin/hostwarden-sync" commit "start the workspace" \
+sync_a commit "start the workspace" \
   && ok || bad "sync commit failed"
 git -C "$OPS/memory" remote add origin "$TMP/remote.git"
 git -C "$OPS/memory" push --quiet -u origin main
@@ -386,7 +379,8 @@ if GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath \
   bad "init --clone ran with core.hooksPath pointing elsewhere"
 else ok; fi
 mode_is development "$G"
-[ ! -e "$G/memory" ] && ok || bad "a refused clone was left behind"
+[ ! -e "$G/memory" ] && [ ! -e "$G/memory.clone" ] && ok \
+  || bad "a refused clone was left behind"
 # A clone without symlink support says so.
 C=$(checkout c)
 out=$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.symlinks \
@@ -470,9 +464,7 @@ sh "$OPS/bin/hostwarden-backup" -o "$TMP/ws.tgz" >/dev/null
 R=$(checkout refused)
 mkdir -p "$R/memory"
 echo 'Language: German' > "$R/memory/user.md"
-if sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null 2>&1; then
-  bad "a restore overwrote user data without --force"
-else ok; fi
+fails "a restore overwrote user data without --force" sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz"
 mode_is development "$R"
 R=$(checkout restored)
 sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null

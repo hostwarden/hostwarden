@@ -29,21 +29,35 @@
 #                worktree is removed.
 #
 # Cheap on purpose: the guard asks on every tool call, so this is
-# three file tests, never a process — and it sets a variable rather
-# than printing, so the caller needs no subshell either.
+# file tests, with a process only inside a linked worktree — and
+# it sets variables rather than printing, so the caller needs no
+# subshell either.
 #
 # Expects nothing. Defines:
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
-#                             three answers
+#                             three answers, and HOSTWARDEN_MAIN to
+#                             the main checkout of a worktree
 #   hostwarden_git_batch    — sets up git to reach the workspace's
 #                             remote without ever prompting
 
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_mode() {
-  # A linked worktree has a .git FILE pointing at the common
-  # directory; the main checkout has a .git directory.
+  HOSTWARDEN_MAIN=
+  # A linked worktree's .git is a FILE ("gitdir: <path>"), and the
+  # directory it names holds a `commondir` file pointing at the
+  # shared git directory, whose parent is the main checkout. A
+  # submodule has a .git file too, but no commondir: it is no
+  # clone of its own, so it is development. Only this rare branch
+  # starts a process (cd resolves relative and drive-letter paths).
   if [ -f "$1/.git" ]; then
-    HOSTWARDEN_MODE=worktree
+    HOSTWARDEN_MODE=development
+    read -r hm_git < "$1/.git"
+    hm_git=$(cd "$1" && cd "${hm_git#gitdir: }" 2>/dev/null && pwd)
+    if [ -n "$hm_git" ] && [ -f "$hm_git/commondir" ]; then
+      read -r hm_common < "$hm_git/commondir"
+      HOSTWARDEN_MAIN=$(cd "$hm_git" && cd "$hm_common/.." 2>/dev/null && pwd)
+      HOSTWARDEN_MODE=worktree
+    fi
   elif [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]; then
     # A clone, not an archive copy: operations needs updates.
     HOSTWARDEN_MODE=operations

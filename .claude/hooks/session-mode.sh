@@ -20,13 +20,11 @@ operations)
   exit 0
   ;;
 worktree)
-  MAIN=$(git rev-parse --git-common-dir 2>/dev/null)
-  MAIN=$(cd "$MAIN/.." 2>/dev/null && pwd -P)
   echo "hostwarden: linked worktree — development mode. This session"
   echo "  changes hostwarden itself and reaches no server: a worktree"
   echo "  never carries memory/, so the access lists and the server"
   echo "  memory are not here. Server work runs only in the main"
-  echo "  checkout${MAIN:+ ($MAIN)}, and only if that is an"
+  echo "  checkout${HOSTWARDEN_MAIN:+ ($HOSTWARDEN_MAIN)}, and only if that is an"
   echo "  operations install."
   ;;
 *)

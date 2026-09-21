@@ -39,6 +39,8 @@ esac
 hostwarden_git_batch
 
 W() { git -C memory "$@"; }
+# The files a merge left unresolved, one per line.
+conflicts() { W diff --name-only --diff-filter=U 2>/dev/null; }
 
 # The branch's upstream, or nothing when there is no remote
 # to follow.
@@ -55,7 +57,7 @@ GITDIR=$(W rev-parse --git-dir 2>/dev/null) || exit 0
 case "$GITDIR" in /*) ;; *) GITDIR="memory/$GITDIR" ;; esac
 if [ -d "$GITDIR/rebase-merge" ] || [ -d "$GITDIR/rebase-apply" ] \
     || [ -f "$GITDIR/MERGE_HEAD" ] \
-    || [ -n "$(W diff --name-only --diff-filter=U 2>/dev/null)" ]; then
+    || [ -n "$(conflicts)" ]; then
   echo "hostwarden: the workspace is in the middle of a rebase, a"
   echo "  merge or an unresolved conflict; finish it with git -C memory"
   echo "  first. Nothing synced."
@@ -72,7 +74,7 @@ pull)
     printf '%s\n' "$OUT" | sed 's/^/    /'
     echo "  Resolve it with git -C memory pull before relying on"
     echo "  server memory another machine may have changed."
-  elif [ -n "$(W diff --name-only --diff-filter=U)" ]; then
+  elif CONFLICTS=$(conflicts) && [ -n "$CONFLICTS" ]; then
     # The pull itself worked, but putting back uncommitted
     # edits clashed with it: the stash is kept, and the files
     # hold conflict markers.
@@ -80,7 +82,7 @@ pull)
     echo "  uncommitted edits clash with it. These files hold conflict"
     echo "  markers and must not be read as server memory until they"
     echo "  are resolved (the edits are also kept in git -C memory stash):"
-    W diff --name-only --diff-filter=U | sed 's/^/    /'
+    printf '%s\n' "$CONFLICTS" | sed 's/^/    /'
   fi
   ;;
 commit)
