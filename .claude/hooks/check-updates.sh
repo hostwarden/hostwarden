@@ -39,6 +39,28 @@ fi
 hostwarden_mode "${0%/*}/../.."
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
 
+# Without git, or outside a clone, every git call below fails
+# and the branch test reports a detached HEAD -- the wrong cause,
+# and one that sends the user looking for a pin they never set.
+if ! command -v git >/dev/null 2>&1; then
+  echo "hostwarden: git is not installed, so no update check —" \
+    "install git to get updates"
+  exit 0
+fi
+# The top of a clone, not merely inside one: unpacked into some
+# other repository, git would otherwise pull that one.
+# And a clone of hostwarden: unpacked at the top of some other
+# checkout, the first test passes, but git does not track this
+# script there.
+if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
+    || ! git ls-files --error-unmatch bin/hostwarden-update \
+      >/dev/null 2>&1; then
+  echo "hostwarden: this is not a git clone (an archive" \
+    "download?), so no update check — clone the repository" \
+    "to get updates"
+  exit 0
+fi
+
 # Skip if not on the main branch (user pinned to a
 # version tag or is on a custom branch).
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)

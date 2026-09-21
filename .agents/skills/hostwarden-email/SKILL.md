@@ -7,8 +7,8 @@ description: Send an email about a managed server — ad-hoc text
   /var/log/foo to an email", or "send a report by email". The
   first email per host asks where to send from (local
   workstation vs the server itself). On the remote path,
-  prefers the existing MTA (postfix, sendmail, msmtp,
-  mail/mailx) and asks before installing one. Sends
+  prefers the existing MTA (postfix, sendmail, msmtp) and
+  asks before installing one. Sends
   unprivileged — as the SSH user, or dropping from root via
   `runuser`/`su -` when the session is root. Attachments
   check sender

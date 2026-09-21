@@ -27,6 +27,20 @@
   rule for every other tool. The templates live in
   `templates/memory/`.
 
+- **The taboo guard no longer depends on bash.** Without
+  bash the hook could not start, which Claude Code does not
+  treat as a block, so the guard silently did not run. Every
+  hook now starts with `sh`, and the layout test fails on
+  one that does not.
+- **The update check names the real cause** when git is
+  missing or the checkout is not a clone, at session start
+  and in `bin/hostwarden-update --check`, instead of
+  reporting a detached HEAD.
+- **Email only counts `sendmail` or `msmtp` as a
+  transport**, on the workstation and on the server. A host
+  with only `mail` or `mailx` goes on to the install
+  question, since neither can carry the headers hostwarden
+  writes.
 - **Native Windows: the README lists the three settings
   symlinks need** and how to repair a clone made without
   them. Without them Git Bash copies where it should link,
