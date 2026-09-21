@@ -6,6 +6,7 @@ to minimise round-trips:
 
 ```bash
 ssh <standard options from AGENTS.md → SSH Options> USER@HOST '
+<privilege prefix>
 echo "###ua###"; <ua probe>
 echo "###sshd###"; <sshd probe>
 echo "###fw###"; <firewall probe>
@@ -18,15 +19,45 @@ echo "###reboot###"; <reboot probe>
 Then split the output on `###<key>###` markers to fill the
 comparison table.
 
+The commands below are the family defaults. Where the loaded
+OS file covers a category — its Automatic Security Updates,
+Firewall or Logs section — its commands and expectations win:
+a mechanism it says is not expected is `n/a`, not drift and
+not a warning.
+
+On Alpine, the probes without an **Alpine** variant below run
+unchanged; the others would fail on OpenRC or busybox
+(`rules/os/alpine.md` → Notes). Run `rc-status -a` once, under
+its own `###rc###` marker: it lists every runlevel with each
+service's state, and the Alpine variants read services and
+runlevels from it rather than calling OpenRC again. It also
+answers whether a syslog daemon runs, which decides whether the
+audit-trail line was written (`rules/os/alpine.md` → Logs).
+
 **Privilege handling.** The sshd and firewall probes need
-root. When the SSH user is not root, try `sudo -n` (never an
-interactive sudo — BatchMode means no prompts). When neither
-root nor passwordless sudo is available, the probe must emit
-the sentinel `unknown(needs-root)` instead of a degraded
-answer — an active ufw must never be reported as `none` just
-because the probe lacked permission to read its state. See
-`references/output-format.md` for how the sentinel is
-rendered and why it is excluded from drift detection.
+root. Work out the prefix once, at the top of the bundle —
+never an interactive prompt, BatchMode allows none; `doas` is
+Alpine's default (`rules/privilege-escalation.md` → Doas):
+
+```bash
+if [ "$(id -u)" = "0" ]; then
+  SUDO=""
+elif sudo -n true 2>/dev/null; then
+  SUDO="sudo -n"
+elif doas -n true 2>/dev/null; then
+  SUDO="doas -n"
+else
+  SUDO="-"
+fi
+```
+
+(`$SUDO` is intentionally unquoted below so an empty value
+disappears; `-` marks "no privilege path".) Without one, a
+probe must emit the sentinel `unknown(needs-root)` instead of
+a degraded answer — an active ufw must never be reported as
+`none` just because the probe lacked permission to read its
+state. See `references/output-format.md` for how the sentinel
+is rendered and why it is excluded from drift detection.
 
 ## 1. Unattended-upgrades (Debian/Ubuntu)
 
@@ -59,24 +90,30 @@ Row keys to extract for the table:
   preferred fleet policy)
 - `Remove-Unused-Kernel-Packages`
 
+**Alpine** has no unattended-upgrades. Run the probe from
+`rules/os/alpine.md` → Automatic Security Updates, and take
+`crond` from the `###rc###` block. Every key above is
+`n/a (Alpine)`; the Alpine rows are
+
+- `apk upgrade job` — the script or crontab line that runs it,
+  or `none`
+- `crond` — `started` or `stopped`
+
+`crontab -l` shows the SSH user's crontab only, so as a normal
+user a root crontab line stays invisible. The verdict is the OS
+file's, judged on this host alone: a warning, worded as a gap
+Alpine ships no mechanism for.
+
 ## 2. sshd effective config
 
-`sshd -T` needs root (it reads host keys). Probe with the
-privilege ladder — direct as root, `sudo -n` otherwise, and
-the sentinel when neither works:
+`sshd -T` needs root (it reads host keys). Run it with the
+privilege prefix, and emit the sentinel when there is none:
 
 ```bash
-if [ "$(id -u)" = "0" ]; then
-  SSHD="sshd"
-elif sudo -n true 2>/dev/null; then
-  SSHD="sudo -n sshd"
-else
-  SSHD=""
-fi
-if [ -z "$SSHD" ]; then
+if [ "$SUDO" = "-" ]; then
   echo "unknown(needs-root)"
 else
-  $SSHD -T 2>/dev/null | grep -i \
+  $SUDO sshd -T 2>/dev/null | grep -i \
     -e '^permitrootlogin ' \
     -e '^passwordauthentication ' \
     -e '^pubkeyauthentication ' \
@@ -97,6 +134,10 @@ them without regard to case. Compare column-by-column.
 A host whose sshd column is `unknown(needs-root)` is
 reported as such, never as "defaults".
 
+On Alpine the probe runs unchanged. Alpine's default
+`openssh-server` is built without PAM, so the `usepam` line may
+be missing there: a missing line is `n/a (Alpine)`, not `no`.
+
 Highlight as drift:
 
 - Any host with `passwordauthentication yes` while others
@@ -110,8 +151,8 @@ Highlight as drift:
 Reading firewall state needs root (`ufw status`,
 `firewall-cmd` and `nft list` all refuse for normal users).
 Detect the *tools* via `command -v` (no root needed), but
-only report their *state* when root or `sudo -n` is
-available — otherwise emit the sentinel. Never let a
+only report their *state* with a privilege prefix —
+otherwise emit the sentinel. Never let a
 permission error degrade to `tool=none`: that fabricates
 "no firewall" on a host whose firewall is simply unreadable.
 
@@ -132,13 +173,6 @@ Default deny for `nftables`, and what `legacy4` and
 No count means no legacy table.
 
 ```bash
-if [ "$(id -u)" = "0" ]; then
-  SUDO=""
-elif sudo -n true 2>/dev/null; then
-  SUDO="sudo -n"
-else
-  SUDO="-"
-fi
 # Prefer ufw on Debian/Ubuntu; firewall-cmd on RHEL family.
 TOOLS=""
 for t in ufw firewall-cmd nft; do
@@ -171,12 +205,19 @@ elif [ -n "$TOOLS" ]; then
 fi
 ```
 
-(`$SUDO` is intentionally unquoted so an empty value
-disappears; `-` marks "no privilege path".)
+**Alpine** runs the script above as well — its `systemctl`
+lines print nothing there — and then classifies and judges
+default deny as `rules/os/alpine.md` → Firewall → Checks says,
+with `$SUDO` in front of the reads that need root. That adds
+`awall` and saved `iptables` rules to the tools above. Take
+the runlevels from the `###rc###` block instead of
+`rc-update show`: a runlevel that lists `nftables` is what
+`nftables.enabled=enabled` means below.
 
 Row keys for the table:
 
-- Tool in use (`ufw` / `firewalld` / `nftables` / `none`)
+- Tool in use (`ufw` / `firewalld` / `nftables` / `none`;
+  on Alpine also `awall` / `iptables`)
 - State — `unknown(needs-root)` when a tool exists but
   its status is unreadable without root
 - Legacy iptables rules next to nf_tables (count; > 0 is
@@ -186,7 +227,9 @@ Row keys for the table:
 - Whether the SSH port is open (must be yes: 22, or each
   `port` from section 2)
 - `nftables.enabled=enabled` next to an active ufw or
-  firewalld (WARN: the unit flushes their rules)
+  firewalld, or on Alpine awall (WARN: the unit flushes their
+  rules; Alpine's `/etc/nftables.nft` starts with
+  `flush ruleset` too)
 
 Highlight as drift:
 
@@ -213,6 +256,21 @@ for unit in postfix opensmtpd exim4; do
 done
 hostname -f
 ```
+
+**Alpine** (no `dpkg`, no `systemctl`):
+
+```bash
+apk info | grep -x -e postfix -e exim -e opensmtpd \
+  -e msmtp -e dma | sed "s/^/pkg=/"
+ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
+hostname -f
+```
+
+The package names are the MTA class of
+`rules/service-class-check.md` → Phase 1 — Already-installed
+probe, Alpine. For `active=`, look for `postfix`, `smtpd`
+(OpenSMTPD's service on Alpine) or `exim` as `started` in the
+`###rc###` block.
 
 Row keys:
 
@@ -251,6 +309,29 @@ Highlight as drift:
 - Different timesync daemons across the fleet.
 - Different timezones.
 
+**Alpine** has no `timedatectl`. The time service comes from the
+`###rc###` block: busybox `ntpd` (the default) reports no sync
+state, chrony does. Run `chronyc tracking` only when `chronyd`
+is started there, and read the timezone directly:
+
+```bash
+readlink /etc/localtime
+date +%Z
+```
+
+Row keys on an Alpine host:
+
+- `NTPSynchronized` — `yes` when `chronyc tracking` reports
+  `Leap status : Normal`, `no` for any other leap status, and
+  `n/a (busybox ntpd)` under busybox `ntpd`
+- Active time service — its name and state in `###rc###`
+- Timezone — the zone `/etc/localtime` points to, else the
+  abbreviation `date` prints
+
+Judge on the host alone: no time service started is a warning,
+except in LXC (`openrc --sys` prints `LXC`), whose clock is the
+hypervisor's.
+
 ## 6. Auto-reboot behaviour (cross-check with UA)
 
 ```bash
@@ -271,3 +352,24 @@ Highlight as drift / warning:
   has not fired despite a pending kernel.
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
+
+**Alpine** has no `/var/run/reboot-required`, and busybox
+`uptime` takes no options. A kernel upgrade removes the running
+kernel's modules, so a missing directory for `uname -r` is a
+kernel waiting for a reboot (`rules/os/alpine.md` → Common
+Pitfalls). In LXC the kernel is the hypervisor's, and the check
+does not apply:
+
+```bash
+if [ "$(openrc --sys 2>/dev/null)" = "LXC" ]; then
+  echo "pending=n/a(container)"
+elif [ -d "/lib/modules/$(uname -r)" ]; then
+  echo "pending=no"
+else
+  echo "pending=yes"
+fi
+uptime
+```
+
+The row keys and the criteria above apply unchanged; read the
+uptime from the `up …` part of the line.

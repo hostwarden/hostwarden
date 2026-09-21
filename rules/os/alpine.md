@@ -197,7 +197,7 @@ or a crontab line that runs `apk upgrade`, which busybox `crond`
 runs only while its service does:
 
 ```
-ls /etc/periodic/*/
+grep -l "apk.*upgrade" /etc/periodic/*/* 2>/dev/null
 crontab -l | grep apk
 rc-service crond status
 ```
