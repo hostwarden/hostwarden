@@ -55,11 +55,15 @@
   workflow loads first now, and each step reads its own
   part when it gets there. An exchange that stops early —
   the where-to-send-from question the first mail per host
-  asks — reads the workflow and nothing else. A full send
-  still reads all of it, in three pieces instead of one.
+  asks — reads the workflow and nothing else. Transport is
+  split again by the answer to that question, because the
+  two sides share no step: sending from your workstation
+  no longer loads the consent gates, the MTA choice and the
+  privilege-dropping that only a server has.
 
   If you customized one of those topics, it has its own
-  override key now — `hostwarden-email/transport.md`,
+  override key now — `hostwarden-email/transport-local.md`,
+  `…/transport-remote.md`,
   `…/compose.md`, `…/send-verify.md` under
   `memory/custom-rules/`. An existing
   `hostwarden-email.md` still applies as a whole; a
@@ -132,8 +136,8 @@
   that works on production servers may have.
 
 - **`AGENTS.md` keeps the trigger, the file keeps the
-  procedure.** It is down from 668 lines to 337, and
-  from 3356 words to about 2250, because a moment and
+  procedure.** It is down from 668 lines to 315, and
+  from 3356 words to about 2000, because a moment and
   the file that covers it is one line — not a
   paragraph that restates what the file already says.
   Nothing that has to fire unasked left: the taboos,
@@ -142,8 +146,13 @@
   list, port 22, secrets, untrusted server output. The
   four sections describing skills are gone, because a
   skill's description is in context every turn anyway.
-  `rules/firewall-changes.md` and `rules/overrides.md`
-  now hold procedures that used to sit inline.
+  `rules/firewall-changes.md`, `rules/overrides.md`
+  and `rules/session-start.md` now hold procedures
+  that used to sit inline — the last of those is the
+  preferences and customizations to load before a
+  session does anything, which is a moment like any
+  other and not the thing that keeps you off a
+  blacklisted host.
 - **Custom rules mirror the path of what they
   override.** `rules/os/debian.md` is customized in
   `memory/custom-rules/os/debian.md`, a skill's
@@ -152,14 +161,20 @@
   their overrides colliding. hostwarden names the
   customizations it loaded at session start, and says
   when one matches nothing shipped instead of ignoring
-  it silently. A skill's *trigger* stays uncustomizable
-  per file and belongs in `all.md`; `rules/overrides.md`
-  says so rather than leaving it to be discovered. When
-  an upgrade moves a topic between mechanisms,
-  `bin/hostwarden-migrate` moves the matching override
-  with it instead of leaving it at a path nothing reads
-  — which matters for a checkout adopted from heinzel,
-  where such files already exist.
+  it silently. Where the shipped file has since split —
+  your `transport.md` against a shipped
+  `transport-local.md` and `transport-remote.md` — it
+  names both siblings and asks which one you meant,
+  rather than calling your customization a stale name
+  or picking the nearer of the two. A skill's *trigger*
+  stays uncustomizable per file and belongs in
+  `all.md`; `rules/overrides.md` says so rather than
+  leaving it to be discovered. When an upgrade moves a
+  topic between mechanisms, `bin/hostwarden-migrate`
+  moves the matching override with it instead of
+  leaving it at a path nothing reads — which matters
+  for a checkout adopted from heinzel, where such files
+  already exist.
 - **Repo-development conventions load only when repo
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the

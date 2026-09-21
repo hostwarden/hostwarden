@@ -95,10 +95,27 @@ headings matching nothing, and the rule above applies:
 name them, name the sibling files the section could have
 gone to, and ask. Do not resolve them by nearest match.
 
-**An override path that matches nothing shipped is almost
-always a typo or a stale name.** Say so once, name the file,
-and carry on — silently ignoring it is how a user ends up
-believing a customization is in force for months.
+**An override path that matches nothing shipped needs an
+answer before you carry on.** Silently ignoring it is how a
+user ends up believing a customization is in force for
+months. Which answer depends on what is shipped beside the
+name it claims:
+
+- **Sibling files extending that name** —
+  `transport-local.md` and `transport-remote.md` where the
+  override says `transport.md` — mean the shipped file was
+  **split**. The override is live text about a topic that
+  still exists. Name it, name the siblings, and ask which
+  one it belongs under. Never pick one yourself: the two
+  branches of a split are exactly the case the user can
+  tell apart and a nearest-match guess cannot.
+- **Nothing of the sort beside it** is a typo or a stale
+  name. Say so once, name the file, and carry on.
+
+A file can split without moving, so this is not something
+`bin/hostwarden-migrate` has a row for — and it could not
+use one. Moving a whole file is all that script can do, and
+a whole file is precisely what a split has stopped being.
 
 ## The format
 

@@ -80,14 +80,17 @@ per-host preference that's asked once and remembered.
 
 ### 5. Transport
 
-Read `references/transport.md` and follow the branch gate 0
-chose — **5L** for the workstation, **5R** for the server.
-It covers probing for a transport, the two consent gates
-around using or installing an MTA, the install targets per
-OS family, and picking a non-root sender identity.
+Read the one file for the side gate 0 chose, and only that
+one — the two branches share no step, so reading both is
+reading a workflow that will not run.
 
-The install step (5R.3) is the only root-privileged
-operation in the whole workflow.
+- **Local** → `references/transport-local.md`. Probing the
+  workstation, and why nothing is installed there.
+- **Remote** → `references/transport-remote.md`. Probing the
+  host, the two consent gates around using or installing an
+  MTA, what to install and why that one, and picking a
+  non-root sender identity. The install (5R.3) is the only
+  root-privileged operation in the whole workflow.
 
 ## Shared steps (both 5L and 5R converge here)
 
@@ -165,7 +168,7 @@ and `restart-never`.
 
 ## Rules this skill leans on
 
-The three `references/` files are named by the steps that need
+The `references/` files are named by the steps that need
 them. Beyond those:
 
 - `rules/first-connection.md` — the mandatory onboarding
