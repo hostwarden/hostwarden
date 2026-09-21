@@ -327,8 +327,8 @@ fi
 # --- every pointer resolves --------------------------------------
 # A dangling instruction pointer fails the way the references/
 # check already guards against: silently. The file that should
-# have been read simply is not, and nothing says so. Three more
-# shapes of pointer exist, so three more checks.
+# have been read simply is not, and nothing says so. Every other
+# shape of pointer gets a check of its own below.
 
 # `rules/...md` paths, named from anywhere -- in backticks, in a
 # Markdown link, or bare in a sentence. A rename breaks all three
@@ -398,6 +398,155 @@ MISNAMED=$(
   done
 )
 report "$MISNAMED" "the name it is dispatched by"
+
+# fenced(line) -- awk: whether a line opens, sits in or closes a
+# fenced block. Inside one, a `#` line is a shell comment rather
+# than a heading, and a long line is a command rather than prose --
+# the wrap check below reads it too. As in Markdown, only a run of
+# the opener's character at least as long, and nothing after it,
+# closes the block: a four-backtick fence that shows a three-backtick
+# example stays open across it. FM holds the open marker; reset it
+# per file.
+FENCE_AWK='
+function fenced(l,   m) {
+  m = l; sub(/^[ \t]*/, "", m); sub(/[ \t]+$/, "", m)
+  if (FM == "") {
+    if (!match(m, /^(```+|~~~+)/)) return 0
+    FM = substr(m, 1, RLENGTH)
+  } else if (m ~ /^(`+|~+)$/ && index(m, FM) == 1) FM = ""
+  return 1
+}'
+
+# load(path) -- awk, for the two checks below: reads the ATX
+# headings of a Markdown file once into H[path, 1..NH[path]] and
+# returns whether the file could be read. Each target is named by
+# dozens of pointers; reading it once per pointer tripled the
+# runtime of this file.
+LOAD_AWK="$FENCE_AWK"'
+function load(p,   l, h) {
+  if (p in NH) return NH[p] >= 0
+  NH[p] = -1
+  if ((getline l < p) <= 0) return 0
+  NH[p] = 0; FM = ""
+  do {
+    # Seven or more #s are text, not a heading.
+    if (!fenced(l) && l ~ /^#+[ \t]/ && l !~ /^#######/) {
+      h = l; sub(/^#+[ \t]+/, "", h); sub(/[ \t]+(#+[ \t]*)?$/, "", h)
+      H[p, ++NH[p]] = h }
+  } while ((getline l < p) > 0)
+  close(p)
+  return 1
+}'
+
+# Headings named in prose: `AGENTS.md` → SSH Options,
+# `rules/dns-aliases.md` § Detection, and the ASCII spelling
+# `AGENTS.md - Critical Safety Rules` a hook's printf uses. A renamed heading leaves every one of them pointing at a
+# section the reader then cannot find, and nothing says so.
+#
+# Such a pointer wraps wherever the sentence does, often between
+# the arrow and the heading, and a comment or an echo line wraps
+# without the backslash the scan joins on. So every line that names
+# a file is read together with the next, minus the comment marker
+# or the echo that opens it. A separator marks the seam: a match
+# that does not cross it started on the next line, which is read
+# in its own turn.
+#
+# The heading has to be where the pointer text begins, not the
+# whole of it -- "Detection step 1" is a pointer at Detection, and
+# where a heading ends in a sentence no pattern can say. A heading
+# is named without its step number, subtitle or parenthetical:
+# "Boot Configuration Safety" for "Boot Configuration Safety
+# (CRITICAL)". A bold bullet is not a heading; point at the
+# heading above it. README alone is README.md. A relative target
+# resolves against the root, the skill it is written in, then its
+# own directory. Someone else's README ("its README", "Heinzel's
+# README") is not ours.
+SEP=$(printf '\037')
+PTR_RE="(^|[^A-Za-z0-9_./<>-])(its |[A-Za-z]+'s )?\`?([A-Za-z0-9_./-]*[A-Za-z0-9_-]\\.md|README)\`?[[:blank:]]*(→|§| - ).*"
+POINTERS=$(scan \
+  | grep -v '^CHANGELOG\.md: ' \
+  | awk -v sep="$SEP" '
+    { f = $1; t = substr($0, length($1) + 2) }
+    NR > 1 && (index(pt, ".md") || index(pt, "README")) {
+      n = (f == pf) ? t : ""
+      sub(/^[ \t]*(#+|\/\/)?[ \t]*((echo|printf)[ \t]+)?["\047]?/, "", n)
+      print pf " " pt sep " " n }
+    { pf = f; pt = t }
+    END { if (NR) print pf " " pt sep }' \
+  | tag "$PTR_RE" \
+  | grep "$SEP")
+NPTR=$(printf '%s\n' "$POINTERS" | grep -c . || true)
+if [ "$NPTR" -lt 10 ]; then
+  bad "only $NPTR heading pointers found -- the search broke"
+fi
+report "$(printf '%s\n' "$POINTERS" \
+  | awk -v sep="$SEP" -v root="$ROOT/" "$LOAD_AWK"'
+    function named(h, l) {
+      return index(h, l) == 1 && substr(h, length(l) + 1) !~ /^[A-Za-z0-9]/
+    }
+    NF {
+      f = $1; s = substr($0, length($1) + 2); gsub(sep, " ", s)
+      if (s ~ /^[^A-Za-z]?(its |[A-Za-z]+\047s )/) next
+      match(s, /[A-Za-z0-9_.\/-]*[A-Za-z0-9_-]\.md|README/)
+      t = substr(s, RSTART, RLENGTH)
+      h = substr(s, RSTART + RLENGTH)
+      sub(/^`?[ \t]*(→|§| - )[ \t]*["`]?/, "", h)
+      gsub(/[ \t]+/, " ", h)
+      if (t == "README") t = "README.md"
+      fp = f; sub(/:$/, "", fp)
+      dir = fp; sub(/[^\/]*$/, "", dir)
+      skill = ""
+      if (match(fp, /^\.agents\/skills\/[^\/]+\//))
+        skill = substr(fp, 1, RLENGTH)
+      if (load(root t)) p = root t
+      else if (skill != "" && load(root skill t)) p = root skill t
+      else if (load(root dir t)) p = root dir t
+      else { print f " " t " (no such file)"; next }
+      for (i = 1; i <= NH[p]; i++) {
+        l = H[p, i]
+        if (named(h, l)) next
+        sub(/^[0-9]+\. /, "", l); sub(/ (\(|—|–).*/, "", l)
+        if (named(h, l)) next
+      }
+      print f " " t " → " h }')" "a heading that exists"
+
+# Anchored links in the documents GitHub renders: the file has to
+# exist and the anchor has to be a slug GitHub derives from one of
+# its headings -- lower case, punctuation but `-` and `_` dropped,
+# spaces to `-`, and a slug already taken gets the first free -N,
+# counted per base the way github-slugger does. A dead anchor still
+# opens the page, at the top, which is why nobody notices.
+#
+# Bytes, not characters, so the punctuation class can keep every
+# letter outside ASCII. The price is tolower(), which then folds
+# ASCII only; the Latin-1 capitals (Ä, Ö, Ü, É …) are folded by
+# hand, and anything beyond them is a matter for review.
+report "$(scan \
+  | grep -E '^((README|CONTRIBUTING|SECURITY)\.md|docs/[^/]*\.md): ' \
+  | tag '\]\([^):[:space:]]*#[^)[:space:]]+([[:space:]][^)]*)?\)' \
+  | sed -E 's#^([^ ]+): \]\(([^#]*)\#([^)[:space:]]*).*$#\1|\2|\3#' \
+  | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
+    {
+      f = $1; dir = f; sub(/[^\/]*$/, "", dir)
+      p = root ($2 == "" ? f : dir $2)
+      if (!load(p)) { print f ": " $2 " (no such file)"; next }
+      if (!(p in SLUGGED)) {
+        SLUGGED[p] = 1
+        for (i = 1; i <= NH[p]; i++) {
+          s = tolower(H[p, i])
+          for (c = 128; c <= 158; c++)
+            if (c != 151)
+              gsub("\303" sprintf("%c", c), "\303" sprintf("%c", c + 32), s)
+          gsub(/\342\200[\223\224]/, "", s)
+          gsub(/[^a-z0-9 _\200-\377-]/, "", s)
+          gsub(/ /, "-", s)
+          b = s
+          while ((p, s) in SLUG) s = b "-" (++SEEN[p, b])
+          SLUG[p, s] = 1
+        }
+      }
+      if (!((p, $3) in SLUG)) print f ": " $2 "#" $3 }')" \
+  "an anchor GitHub renders"
 
 # --- examples name nobody real ----------------------------------
 # .claude/rules/instruction-authoring.md: hostnames from RFC 2606,
@@ -528,10 +677,9 @@ report "$(scan \
 # awk count bytes, and dropping the UTF-8 continuation bytes first
 # turns that into a count of characters on all of them.
 report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
-  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" '
-  FNR == 1 { fence = 0 }
-  /^[ \t]*(```|~~~)/ { fence = !fence; next }
-  fence { next }
+  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" "$FENCE_AWK"'
+  FNR == 1 { FM = "" }
+  fenced($0) { next }
   { s = $0
     gsub(/\]\([^)]*\)/, "]", s)
     gsub(/https?:\/\/[^ )>`]*/, "", s)

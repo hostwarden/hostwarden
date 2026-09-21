@@ -158,5 +158,5 @@ Report what points at the old paths and offer to fix
 it. A crontab or unit file is standing configuration,
 so each edit needs its own approval. Key material
 under `~/heinzel-keys/` is reported, never touched,
-moved or re-permissioned (`AGENTS.md` → Absolute
-taboos).
+moved or re-permissioned (`AGENTS.md` → Critical
+Safety Rules).

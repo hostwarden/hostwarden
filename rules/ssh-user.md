@@ -94,7 +94,7 @@ per-server override in `memory/user.md`.
 **After a rejected login**, never try another user
 name or root on your own; ask. A wrong name is an
 `Invalid user`, which fail2ban counts
-(`rules/ssh-connections.md` → 3).
+(`rules/ssh-connections.md` → Avoid failed logins).
 
 When the user explicitly specifies a username on the
 command line, skip the interview, use that name, and

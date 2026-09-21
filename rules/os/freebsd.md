@@ -40,7 +40,7 @@ Rules for FreeBSD (all versions).
   without an SSH rule locks you out immediately.
   The example below passes port 22 only: list every
   port sshd listens on (`to port { 22 2222 }`,
-  `AGENTS.md` → Firewall & network).
+  `AGENTS.md` → Critical Safety Rules).
 - Minimal safe `/etc/pf.conf`:
   ```
   ext_if = "vtnet0"  # set to the real interface, see ifconfig

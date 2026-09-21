@@ -57,7 +57,7 @@ Only probe when a privileged action is actually
 needed. On later connections, read `Root SSH:` from
 server memory instead of probing again: a refused
 root login can count toward a fail2ban ban
-(`rules/ssh-connections.md` → 3).
+(`rules/ssh-connections.md` → Avoid failed logins).
 
 ## Unprivileged Mode
 

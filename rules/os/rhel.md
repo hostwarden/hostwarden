@@ -42,7 +42,7 @@ finding. See `rules/version-check.md`.
   cuts off the SSH session immediately. The `ssh`
   service covers port 22 only: add every other port
   sshd listens on with `--add-port=<port>/tcp`
-  (`AGENTS.md` → Firewall & network).
+  (`AGENTS.md` → Critical Safety Rules).
 - Note the default zone:
   `firewall-cmd --get-default-zone`. A custom or
   renamed default zone is legitimate — what matters
