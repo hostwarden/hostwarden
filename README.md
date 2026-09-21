@@ -35,7 +35,7 @@ Hostwarden continues
 Stefan Wintermeyer as an independent project. It keeps
 Heinzel's history and still takes over Heinzel's
 improvements where they fit. Coming from Heinzel? See
-[Moving over from Heinzel](docs/heinzel.md).
+[Moving over from Heinzel](docs/operations.md#moving-over-from-heinzel).
 
 ## Screencast: Debug and fix some webserver problems
 
@@ -216,10 +216,7 @@ not blindly approve.
 | Topic | Page |
 | ----- | ---- |
 | Prerequisites in detail, native Windows | [docs/install.md](docs/install.md) |
-| Production, mirrors, teams, parallel sessions | [docs/operations.md](docs/operations.md) |
-| Updates, release lines, pinning | [docs/updates.md](docs/updates.md) |
-| Moving over from Heinzel | [docs/heinzel.md](docs/heinzel.md) |
-| Backup and restore of `memory/` | [docs/backup.md](docs/backup.md) |
+| Production, mirrors, updates, teams, backup, Heinzel | [docs/operations.md](docs/operations.md) |
 | Features with example prompts | [docs/features.md](docs/features.md) |
 | Claude Code, the desktop app, OpenCode with Ollama | [docs/ai-tools.md](docs/ai-tools.md) |
 | Command line, auto mode, scheduled runs | [docs/automation.md](docs/automation.md) |

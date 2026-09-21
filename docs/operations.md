@@ -1,8 +1,10 @@
 # Running Hostwarden in production
 
 How a checkout becomes the one that administers your
-servers, where it comes from, and how a team or
-several machines share what it learns.
+servers, where it comes from, how it stays current,
+how a team or several machines share what it learns,
+how to back that up, and how to move over from
+Heinzel.
 
 ## Operations and development
 
@@ -149,6 +151,61 @@ hostwarden-mirror:
 
 Production then clones the mirror instead of GitHub.
 
+## Updates and versioning
+
+Hostwarden uses [semantic versioning](https://semver.org).
+The current version is in the `VERSION` file; changes
+are listed in `CHANGELOG.md`.
+
+**Auto-update (Claude Code):** On every session start
+in an operations checkout, a hook runs `git pull` —
+or, on a release line, moves to its newest release —
+and reports version changes. No action needed.
+Auto-update is skipped in a development checkout,
+when pinned to a tag (see below), when on a
+non-`main` branch, or when `HOSTWARDEN_NO_UPDATE=1`
+is set.
+
+**Manual update (OpenCode / any tool):**
+
+```bash
+bin/hostwarden-update           # pull latest
+bin/hostwarden-update --check   # check without pulling
+```
+
+**Follow a release line** instead of `main`:
+
+```bash
+bin/hostwarden-update --follow 1     # every 1.x.y release
+bin/hostwarden-update --follow 1.2   # 1.2.x fixes only
+```
+
+The line is kept in this checkout's own git config
+(`hostwarden.follow`), so each machine chooses its own
+and an update never changes it. The auto-update checks
+out the highest `vX.Y.Z` tag on the line;
+pre-releases do not count.
+
+**Pin to a stable version** (skip auto-updates):
+
+```bash
+bin/hostwarden-update --pin vX.Y.Z   # pin
+bin/hostwarden-update --unpin        # back to main
+```
+
+A pin replaces a release line, and `--unpin` clears
+both.
+
+**Opt out of auto-update** without pinning:
+
+```bash
+export HOSTWARDEN_NO_UPDATE=1
+```
+
+In the desktop app, set it in the `env` of
+`.claude/settings.local.json` instead — see
+[Claude Code Desktop](ai-tools.md#claude-code-desktop).
+
 ## Team setup and several machines
 
 A team — or one admin on several machines — shares
@@ -209,3 +266,114 @@ whether the two get in each other's way; a session on
 the same machine can be messaged directly. Sessions
 that only read — housekeeping, audits — register
 nothing. Details: `rules/parallel-sessions.md`.
+
+## Backup and restore
+
+Hostwarden keeps all your personal state under a
+single directory — `memory/` — so backups are one
+`tar` command. The tree is text and typically well
+under a megabyte. No database, no hidden dotfiles,
+no scattered config. Claude Code's own personal files
+(`.claude/settings.local.json`, `CLAUDE.local.md`) are
+not Hostwarden state and not in the backup.
+
+### What lives in `memory/`
+
+- `user.md` — SSH usernames and language
+  preference
+- `blacklist.md`, `readonly.md` — access policies
+- `service-policy.md` — per-service opt-out /
+  opt-in for auto-reload and auto-restart
+- `servers/<hostname>/` — per-server memory,
+  changelog, todo, and per-server rule overrides
+- `custom-rules/` — your global rule overrides
+- `opencode.json` — your OpenCode config
+- `network.md`, `housekeeping.md` — cross-server
+  facts and custom checks
+
+### Back up
+
+```bash
+bin/hostwarden-backup
+```
+
+Writes
+`hostwarden-backup-<hostname>-<timestamp>.tar.gz` to
+the current directory. Use `--list` for a dry run,
+`-o <path>` to write somewhere specific.
+
+### Restore
+
+```bash
+bin/hostwarden-backup --restore <file.tar.gz>
+```
+
+Refuses to overwrite existing `memory/` content
+unless `--force` is passed. The archive is validated
+before any files are written: all entries must live
+under `memory/`, and symlink or hardlink entries are
+rejected.
+
+### Team mode note
+
+In team mode, most of `memory/` lives on the team's
+remote already. But `memory/user.md`,
+`memory/blacklist.md`, `memory/readonly.md`, and
+`memory/opencode.json` are always personal and still
+need this backup. The archive leaves out
+`memory/.git`; a restore sets the workspace up
+first.
+
+## Moving over from Heinzel
+
+Hostwarden is a new clone, not an update of your
+Heinzel checkout. Your state moves with the backup
+script, which both projects share:
+
+```bash
+cd /path/to/heinzel && bin/heinzel-backup
+cd /path/to/hostwarden && \
+  bin/hostwarden-backup --restore /path/to/heinzel-backup-<host>-<ts>.tar.gz
+bin/hostwarden-migrate
+```
+
+The migration renames skill overrides in
+`memory/custom-rules/` from `heinzel-<skill>.md` to
+`hostwarden-<skill>.md`. What else changed:
+
+- Environment variables are now `HOSTWARDEN_*`.
+  `HEINZEL_NO_UPDATE` still works; the guard only
+  honours `HOSTWARDEN_GUARD_DISABLE`.
+- New journal entries on your servers use the tag
+  `hostwarden`. The activity check reads `heinzel`
+  entries as well, so earlier work stays visible.
+- Point Hostwarden at your old checkout — "my
+  Heinzel is in ~/heinzel, take it over", or
+  `/hostwarden-adopt ~/heinzel` in Claude Code. The copy
+  itself is a script — `bin/hostwarden-adopt <path>`
+  moves access lists, custom rules and every server's
+  memory across and renames what is found by name.
+  The skill then reads your memory files and
+  changelogs into a per-host list of leads: the
+  scripts, configs, units and cron jobs your sessions
+  improvised. Neither contacts a server.
+- Keeping Heinzel around during the switch?
+  `contrib/heinzel-coexistence/` holds three custom
+  rules for your Heinzel checkout so it reads both
+  journal tags, treats its server memory as a lead
+  rather than a fact, and leaves Hostwarden's files
+  alone. Hostwarden warns in the other direction when
+  a Heinzel journal entry is minutes old, and leaves
+  a host alone that Heinzel still uses.
+- On the first connection to a host, Hostwarden
+  reports what Heinzel left there — config backups,
+  scratch directories — and offers to move it under
+  the new name. It asks first, and it says which old
+  backups the retention cleanup would then delete.
+  New config backups go to
+  `/var/backups/hostwarden/`.
+- SSH sockets live in `~/.cache/hostwarden`.
+- Scheduled runs (cron, systemd timers) need the new
+  path and script names.
+- Heinzel's version tags are not carried over.
+  `--pin` only knows Hostwarden releases.
