@@ -62,8 +62,12 @@ elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
   {
     echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
     if [ -z "${GIT_SSH:-}" ]; then
-      [ -n "${GIT_SSH_COMMAND:-}" ] &&
-        echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$GIT_SSH_COMMAND")"
+      # A session started from inside another inherits its
+      # git-ssh.sh, which kept as the user's own would run itself.
+      case "${GIT_SSH_COMMAND:-}" in
+      "" | *git-ssh.sh*) ;;
+      *) echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$GIT_SSH_COMMAND")" ;;
+      esac
       echo "export GIT_SSH_COMMAND=$(q "$(q "$ROOT/.claude/hooks/git-ssh.sh")")"
     fi
   } >> "$CLAUDE_ENV_FILE"

@@ -9,8 +9,9 @@
 #     (shim.sh): session-mode.sh puts it first on PATH, so the
 #     tools refuse wherever they are started from, rsync's own
 #     ssh included. This hook denies the forms that go past a
-#     PATH lookup: a path to the real binary (/usr/bin/ssh),
-#     command -p, a changed PATH, and $GIT_SSH_COMMAND, git's
+#     PATH lookup: a path to the real binary (/usr/bin/ssh, also
+#     as rsync -e or a core.sshCommand value), command -p, a
+#     changed PATH, and $GIT_SSH_COMMAND, git's
 #     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: hostwarden's local mode is server
 #     work too.
@@ -34,9 +35,9 @@
 #     reaches the tool through PATH, where the shim waits; a
 #     parser for them never closes. Nor does it look for a bare
 #     tool name, so grep ssh and a commit message about sudo
-#     pass. Quotes are not masked: a line of a commit message
-#     that starts with /usr/bin/ssh is denied, which is rare, and
-#     so is a command that changes PATH and mentions ssh at all.
+#     pass. Quotes are not masked: a commit message that names
+#     /usr/bin/ssh, or changes PATH and mentions ssh at all, is
+#     denied; either is rare.
 #   - Look inside a variable or a script file. A backstop against
 #     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
 #     or a script that resets PATH still reaches ssh, and only
@@ -90,7 +91,8 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
   */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
   */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*'command -p'*) ;;
-  *[!A-Za-z0-9_]PATH=*|*'unset PATH'*|*'env -i'*|*ignore-environment*) ;;
+  *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
+  *'-u PATH'*|*'env -i'*|*ignore-environment*) ;;
   *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
   esac
@@ -196,11 +198,14 @@ fi
 # --- Development: no server is reached ------------------------
 # A blocked tool named without a path is the shim's: it refuses
 # wherever the tool is started from. This denies the ways past a
-# PATH lookup: a path to the tool or command -p as the first word
-# of a segment (split on the shell's separators, past a negation
-# and variable assignments), $GIT_SSH_COMMAND there, and a command
-# that changes PATH (PATH=, unset PATH, env -i) and names a
-# blocked tool anywhere.
+# PATH lookup:
+#   - a path to a blocked tool as the first word of a segment (split
+#     on the shell's separators, past a negation and variable
+#     assignments), or anywhere else when it names an executable
+#     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh;
+#   - command -p, and $GIT_SSH_COMMAND, at the start of a segment;
+#   - a command that changes PATH (PATH=, zsh path=, unset PATH,
+#     env -i, env -u PATH) and names a blocked tool anywhere.
 case "$TOOL" in
 Bash|"") ;;
 *) exit 0 ;;
@@ -213,7 +218,9 @@ it may start a tool that reaches a server - install jq"
 # over-block.
 [ -n "$CMD" ] || CMD="$INPUT"
 
-BLOCKED=$(printf '%s' "$CMD" | awk '
+# One line: "deny <what>" for a verdict, or "path <p>" for a path
+# elsewhere in the command, which counts once it is a program.
+FOUND=$(printf '%s' "$CMD" | awk '
   BEGIN { RS = "\001"; T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$" }
   {
     s = $0
@@ -226,17 +233,24 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
       for (i = 1; i <= nw; i++) {
         c = v[i]
         gsub(/^["\047]+|["\047]+$/, "", c)
-        if (c ~ /^PATH=/ || c == "-i" && v[i - 1] == "env" || c == "--ignore-environment" || c == "PATH" && v[i - 1] == "unset")
+        if (c ~ /^(PATH|path)=/ || c == "--ignore-environment" \
+            || c == "-i" && v[i - 1] == "env" \
+            || c == "PATH" && (v[i - 1] == "unset" || v[i - 1] == "-u"))
           setpath = 1
-        sub(/^.*\//, "", c)
-        if (c ~ T && named == "") named = c
+        sub(/^.*=/, "", c)
+        b = c
+        sub(/^.*\//, "", b)
+        if (b ~ T) {
+          if (named == "") named = b
+          if (c ~ /\// && path == "") path = c
+        }
       }
       i = 1
       while (i <= nw && (v[i] == "" || v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
       w = v[i]
       # The real ssh that git push is given.
-      if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "ssh through GIT_SSH_COMMAND"; exit }
+      if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
       # command -p looks the tool up on a default PATH, never the shim.
       how = ""
       if (w == "command" || w == "exec") {
@@ -250,11 +264,20 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
       sub(/^.*\//, "", c)
       if (c !~ T) continue
       if (w ~ /\//) how = "by its path"
-      if (how != "") { print c " " how; exit }
+      if (how != "") { print "deny " c " " how; exit }
     }
-    if (setpath && named != "") print named " with PATH changed"
+    if (setpath && named != "") { print "deny " named " with PATH changed"; exit }
+    if (path != "") print "path " path
   }')
 
-[ -n "$BLOCKED" ] || exit 0
+case "$FOUND" in
+"deny "*) BLOCKED=${FOUND#deny } ;;
+# /etc/ssh is a directory, a path in a sentence names nothing, and
+# the shim only refuses.
+"path "*.claude/hooks/shim/*) ;;
+"path "*) [ -f "${FOUND#path }" ] && [ -x "${FOUND#path }" ] &&
+  BLOCKED="${FOUND##*/} by its path" ;;
+esac
+[ -n "${BLOCKED:-}" ] || exit 0
 hostwarden_refusal "$BLOCKED"
 emit "$HOSTWARDEN_REFUSAL"

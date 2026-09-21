@@ -121,6 +121,17 @@ cmd deny "$DEV" 'env -i ssh server1.example.com'
 cmd deny "$DEV" 'env PATH=/usr/bin sudo whoami'
 cmd deny "$DEV" 'unset PATH; ssh server1.example.com'
 cmd deny "$DEV" "PATH=/usr/bin sh -c 'ssh server1.example.com'"
+cmd deny "$DEV" 'path=(/usr/bin /bin); ssh server1.example.com'
+cmd deny "$DEV" 'env -u PATH sudo whoami'
+# A path elsewhere in the command counts once it is a program.
+mkdir -p "$TMP/bin"
+printf '#!/bin/sh\n' > "$TMP/bin/ssh"
+chmod +x "$TMP/bin/ssh"
+cmd deny "$DEV" "rsync -a -e $TMP/bin/ssh src/ server1.example.com:/srv/"
+cmd deny "$DEV" "rsync -a -e '$TMP/bin/ssh -p 2222' src/ server1.example.com:/srv/"
+cmd deny "$DEV" "git -c core.sshCommand=$TMP/bin/ssh push"
+cmd pass "$DEV" "grep -rn Port $TMP/bin/ssh.d/"
+cmd pass "$DEV" 'ls /etc/ssh'
 cmd deny "$DEV" '$GIT_SSH_COMMAND root@server1.example.com uptime'
 cmd deny "$DEV" '"${GIT_SSH_COMMAND}" server1.example.com'
 cmd deny "$DEV" 'ssh-keygen -lf k.pub; /usr/bin/doas true'
@@ -347,6 +358,12 @@ git -C "$DEV" config core.sshCommand 'ssh -p 2222'
 via "$ENVF" "-p 2222 server1.example.com" "core.sshCommand was not used" \
   git ls-remote server1.example.com:repo.git
 git -C "$DEV" config --unset core.sshCommand
+# A session started from inside another inherits its wrapper, which
+# must not become the user's own command: it would run itself.
+E6="$TMP/nested.env"
+session "$DEV" "$E6" -u GIT_SSH GIT_SSH_COMMAND="'$DEV/.claude/hooks/git-ssh.sh'"
+grep -q HOSTWARDEN_GIT_SSH_COMMAND "$E6" \
+  && bad "a nested session kept git-ssh.sh as the user's command" || ok
 E3="$TMP/git-ssh.env"
 session "$DEV" "$E3" GIT_SSH=/opt/bin/myssh
 grep -q GIT_SSH_COMMAND "$E3" && bad "GIT_SSH_COMMAND set over a GIT_SSH of the user" \
