@@ -62,9 +62,7 @@ attachments.
    **macOS local path.** `/usr/bin/sendmail` on macOS is a
    Postfix compatibility shim and accepts the same `-t`
    invocation, so the same composed message pipes through
-   without change. `/usr/bin/mail` is not used for the
-   send itself anymore; we only consulted it during the
-   5L.1 probe to confirm a working local MTA exists.
+   without change.
 
    Remote path: run under the user chosen in 5R.4, via
    `runuser -u <user> -- sh -c '…'` or

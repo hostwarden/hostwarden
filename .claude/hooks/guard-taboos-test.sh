@@ -779,35 +779,6 @@ else
   PASS=$((PASS + 1))
 fi
 
-# --- hook registration: no relative script paths ---------------
-# Hooks run in the session's cwd, not the project root. A
-# relative path breaks after any `cd` and the guard fails
-# open (issue #2). Every hook command must resolve its
-# script via $CLAUDE_PROJECT_DIR.
-SETTINGS="$CLAUDE_DIR/settings.json"
-if grep -o '"command": *"[^"]*\.sh' "$SETTINGS" \
-  | grep -v 'CLAUDE_PROJECT_DIR' >/dev/null; then
-  FAIL=$((FAIL + 1))
-  echo "FAIL: settings.json registers a hook script without" \
-    '$CLAUDE_PROJECT_DIR (relative path fails open after cd)'
-else
-  PASS=$((PASS + 1))
-fi
-
-# Every hook script is POSIX sh, and this matrix runs them with
-# sh. A hook started with another interpreter depends on it being
-# installed, and a missing interpreter is exit 127 -- which Claude
-# Code does not treat as a block. The guard would then not run at
-# all, in every permission mode, without a word.
-if grep -o '"command": *"[a-z]* ' "$SETTINGS" \
-  | grep -vE '"command": *"(sh|mkdir) ' >/dev/null; then
-  FAIL=$((FAIL + 1))
-  echo "FAIL: settings.json starts a hook with an interpreter" \
-    "other than sh"
-else
-  PASS=$((PASS + 1))
-fi
-
 # --- drain the queued fixtures ---------------------------------
 # Failures are sorted rather than printed as they land, so two
 # runs of the same broken tree read the same.

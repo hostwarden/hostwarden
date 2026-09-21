@@ -7,10 +7,13 @@ root-privileged operation in the whole workflow.
 **5R.1 Resolve transport** — probe in this order on the
 remote host:
 
-- `command -v mail || command -v mailx || command -v s-nail`
 - `command -v sendmail`
 - `command -v msmtp`
 - `systemctl is-active postfix opensmtpd exim4` (any active)
+
+Those are what step 7 pipes into. `mail`, `mailx` or
+`s-nail` alone does not count: they cannot take the headers
+step 7 writes, so a host with nothing else goes on to 5R.3.
 
 **5R.2 Consent gate A — existing MTA.** If 5R.1 found a
 working MTA, check `memory.md` for `Email send policy:

@@ -36,6 +36,18 @@ show_changelog_section() {
   fi
 }
 
+# Without git, or outside a clone, every git call below fails
+# and --check would report a detached HEAD: the wrong cause.
+if ! command -v git >/dev/null 2>&1; then
+  echo "hostwarden-update: git is not installed" >&2
+  exit 1
+fi
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "hostwarden-update: this is not a git clone (an archive" \
+    "download?); clone the repository to get updates" >&2
+  exit 1
+fi
+
 case "${1:-}" in
   --check)
     echo "hostwarden $(current_version)"
