@@ -1,8 +1,7 @@
 # Hostwarden documentation
 
-The [README](../README.md) is the short tour. These
-pages hold the detail behind it, in the order you are
-likely to need them.
+The detail behind the [README](../README.md), grouped
+by task.
 
 ## Getting started
 
@@ -15,7 +14,7 @@ likely to need them.
 - [Features](features.md) — what Hostwarden does,
   with example prompts.
 
-## Day to day
+## Running it
 
 - [Safety and guardrails](safety.md) — what it asks
   before doing, the hard taboos, how it keeps
@@ -27,9 +26,6 @@ likely to need them.
 - [Overrides](overrides.md) — changing a rule or a
   skill without editing Hostwarden's files, and
   adding skills of your own.
-
-## Running it for real
-
 - [Running Hostwarden in production](operations.md)
   — operations and development checkouts, mirrors,
   updates, teams and several machines, backup and
