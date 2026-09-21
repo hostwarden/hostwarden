@@ -159,9 +159,31 @@ fi
 # nothing reads -- the exact failure the table exists to prevent.
 MIGRATE="$ROOT/bin/hostwarden-migrate"
 if [ -f "$MIGRATE" ]; then
+  map_rows() {
+    sed -n "/^MAP='/,/'\$/p" "$MIGRATE" | sed "s/^MAP='//; s/'\$//"
+  }
+
+  # The other direction, and the one that costs a user their
+  # customization rather than misplacing it: a row moves
+  # `memory/custom-rules/<old>.md` away, which is right only while
+  # nothing ships under that key any more. Ship a rule file named
+  # after a row's left column again and the migration relocates a
+  # live override on the next pull, silently, because that move
+  # looks exactly like the intended one.
+  BAD_SRC=$(
+    map_rows \
+      | while read -r old new; do
+          [ -n "$old" ] && [ -n "$new" ] || continue
+          if [ -f "$ROOT/rules/$old.md" ] \
+            || [ -d "$ROOT/.agents/skills/$old" ]; then
+            echo "bin/hostwarden-migrate: $old"
+          fi
+        done
+  )
+  report "$BAD_SRC" "a topic that has actually moved away"
+
   BAD_MAP=$(
-    sed -n "/^MAP='/,/'\$/p" "$MIGRATE" \
-      | sed "s/^MAP='//; s/'\$//" \
+    map_rows \
       | while read -r old new; do
           # Only a wholly blank row is nothing. A row that names a
           # topic and no destination makes the script move the
