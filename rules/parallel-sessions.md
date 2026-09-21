@@ -37,36 +37,46 @@ still ahead; otherwise it is **stale**.
 `/tmp/hostwarden` is writable by everyone and has **no sticky
 bit**, so any session may remove any stale entry, whichever user
 made it. Only `mkdir`, `mv` and `rmdir` touch it, never a file
-write, so a session running as root cannot be steered through a
+write, and the directory is checked before anything is written
+into it, so a session running as root cannot be steered through a
 planted symlink. Every command below runs on the host — over SSH,
 or directly in local mode.
+
+The same openness lets any local account on the host rename,
+remove or forge an entry. That is the price of letting one user
+clear another's stale entry, and it is accepted: the register is a
+courtesy between hostwarden sessions, not a lock against the
+host's own users. Someone who can log in and forge entries can
+change the host directly too.
 
 ## Register, and renew
 
 Before the first change this session makes on a host, and before
-any later change once your last beat is more than 10 minutes old,
-one call registers or renews the entry and shows who else is
-there. It can ride along in the same SSH call as the change's
-backup (`rules/backups.md`):
+any later change once your last beat is more than 10 minutes old
+or your task has changed, one call registers or renews the entry
+and shows who else is there. It runs on its own, before the
+change's backup, so nothing is written to the host until the
+answer is read:
 
 ```
 D=/tmp/hostwarden
-mkdir "$D" 2>/dev/null && chmod 777 "$D"
+[ -e "$D" ] || { mkdir "$D" && chmod 777 "$D"; }
 ls -ld "$D"
-N="$D/<token>+$(date +%s)+alice@ws1+nginx-upgrade"
-E=$(ls -d "$D"/<token>+* 2>/dev/null)
-if [ -n "$E" ]; then mv "$E" "$N"; else mkdir "$N"; fi && echo registered
+if [ -d "$D" ] && [ ! -L "$D" ] \
+   && [ "$(ls -ld "$D" | cut -c1-10)" = drwxrwxrwx ]; then
+  N="$D/<token>+$(date +%s)+alice@ws1+nginx-upgrade"
+  E=$(ls -d "$D"/<token>+* 2>/dev/null)
+  if [ -n "$E" ]; then mv "$E" "$N"; else mkdir "$N"; fi && echo registered
+fi
 date +%s; ls -1 "$D"
 ```
 
-**Check the directory and the result.** The first ten characters
-of the `ls -ld` line must be exactly `drwxrwxrwx` — a directory,
-not a link, and no sticky `t` in the tenth place (a trailing `@` or
-`+` is fine) — and `registered` must appear. Anything else means
-the register is not one every session can use. Stop and tell the
-user, with the `ls -ld` line. Never carry on changing the host
-without an entry, and never remove or re-permission a directory
-you do not own.
+**`registered` missing** — the register is not one every session
+can use: `ls -ld` shows a link, a file, a sticky `t` in the tenth
+place, or permissions narrower than `drwxrwxrwx`. The call wrote
+nothing into it. Stop and tell the user, with the `ls -ld` line.
+Never carry on changing the host without an entry, and never
+remove or re-permission a directory you do not own.
 
 **Then read the other entries.**
 
