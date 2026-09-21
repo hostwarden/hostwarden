@@ -217,8 +217,8 @@ Tell them apart by who says no:
   "denied by the auto mode classifier".
 
 They fail differently, so fix them differently. A
-harness refusal is not something a rule file, a
-custom rule, or a per-server override can lift —
+harness refusal is not something a rule file or an
+override, global or per server, can lift —
 editing `memory/service-policy.md` in response to
 one changes nothing at all.
 

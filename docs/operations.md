@@ -269,13 +269,13 @@ nothing. Details: `rules/parallel-sessions.md`.
 
 ## Backup and restore
 
-Hostwarden keeps all your personal state under a
-single directory — `memory/` — so backups are one
-`tar` command. The tree is text and typically well
-under a megabyte. No database, no hidden dotfiles,
-no scattered config. Claude Code's own personal files
-(`.claude/settings.local.json`, `CLAUDE.local.md`) are
-not Hostwarden state and not in the backup.
+Everything the workspace holds is in `memory/`, so a
+backup is one `tar` command. The tree is text and
+typically well under a megabyte. No database, no
+hidden dotfiles, no scattered config. Claude Code's
+own personal files (`.claude/settings.local.json`,
+`CLAUDE.local.md`) are not Hostwarden state and not in
+the backup.
 
 ### What lives in `memory/`
 
@@ -314,15 +314,13 @@ before any files are written: all entries must live
 under `memory/`, and symlink or hardlink entries are
 rejected.
 
-### Team mode note
+### In a team
 
-In team mode, most of `memory/` lives on the team's
-remote already. But `memory/user.md`,
-`memory/blacklist.md`, `memory/readonly.md`, and
-`memory/opencode.json` are always personal and still
-need this backup. The archive leaves out
-`memory/.git`; a restore sets the workspace up
-first.
+With a shared workspace, most of `memory/` lives on
+its remote already. The personal files that
+`memory/.gitignore` keeps off it still need this
+backup. The archive leaves out `memory/.git`; a
+restore sets the workspace up first.
 
 ## Moving over from Heinzel
 
@@ -351,7 +349,7 @@ The migration renames skill overrides in
   Heinzel is in ~/heinzel, take it over", or
   `/hostwarden-adopt ~/heinzel` in Claude Code. The copy
   itself is a script — `bin/hostwarden-adopt <path>`
-  moves access lists, custom rules and every server's
+  moves access lists, overrides and every server's
   memory across and renames what is found by name.
   The skill then reads your memory files and
   changelogs into a per-host list of leads: the

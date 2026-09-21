@@ -178,7 +178,7 @@ local edits won't conflict on `git pull`.
 opencode
 ```
 
-Select the Ollama model from the model picker (search for qwen). 
+Select the Ollama model from the model picker (search for qwen).
 Start the model picker by typing `/models` in the OpenCode terminal.
 
 > **Note:** Larger models (14B+) produce more

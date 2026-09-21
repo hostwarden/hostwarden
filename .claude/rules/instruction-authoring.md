@@ -63,13 +63,19 @@ A file keyed by a fact rather than a moment — the OS-family files
 ## For people and for the agent
 
 `docs/` and the README are written for the person running
-Hostwarden; `rules/` and the skills for the agent. Where both
-describe the same thing — `docs/overrides.md` and
-`rules/overrides.md` — they use the same terms and the same names
-for the same parts, and a change to what the user writes or sees
-changes both in the same commit. The page for people says what to
+Hostwarden; `rules/` and the skills for the agent. Wherever a page
+for people describes what a rule or skill makes the user write,
+see or decide — overrides, parallel sessions, the Heinzel
+takeover, scheduled runs, the guardrails — both use the same terms
+and the same names for the same parts, and a change to that
+behaviour changes both in the same commit. The page says what to
 do and where; how the agent resolves the unclear cases stays in
-the rule.
+the rule, and the rule never sends the agent to the page.
+
+One term per thing. What a user writes under `memory/custom-rules/`
+is an **override**, never a customization or a custom rule; the
+directory keeps its name. `instructions-test.sh` fails on the
+retired words.
 
 ## Current state only
 

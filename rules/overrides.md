@@ -7,9 +7,6 @@ replaced on every update, so they are never edited to change
 behaviour. Overrides go under `memory/custom-rules/` and into
 `memory/servers/<hostname>/rules.md` instead.
 
-`docs/overrides.md` explains the same to the user. Talk about
-overrides in its terms.
-
 ## Precedence
 
 Later wins:

@@ -22,7 +22,7 @@ bin/
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
   hostwarden-doctor       — Check the workstation for the tools
-                         hostwarden runs locally
+                         Hostwarden runs locally
 scripts/
   check.sh             — Everything CI checks, runnable locally
 .githooks/             — Opt-in: secret scan on commit, check.sh
@@ -111,7 +111,7 @@ rules/                 — Upstream rule files (git-tracked)
                          against the live system before
                          reporting or escalating it
   overrides.md         — How overrides layer over what
-                         hostwarden ships
+                         Hostwarden ships
   firewall-changes.md  — Exposure review when a service is
                          installed, removed or reconfigured
   dns-aliases.md       — DNS alias detection & management
@@ -140,7 +140,7 @@ templates/memory/      — Templates to copy into memory/
   opencode.json.example — OpenCode config template
 memory/                — The workspace: all your user
                          state, a git repository of its
-                         own (never part of hostwarden's)
+                         own (never part of Hostwarden's)
   .hostwarden-workspace — Marks an operations checkout
   .gitignore           — Files that stay personal even
                          in a team

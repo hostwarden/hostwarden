@@ -12,13 +12,13 @@
 #   hostwarden-adopt --help              Show this help
 #
 # Copies memory/ state — access lists, service policy,
-# custom rules, per-server memory — and then runs
+# overrides, per-server memory — and then runs
 # hostwarden-migrate to rename skill overrides. Reads
 # the old checkout, never writes into it.
 #
 # Host by host: --server takes one hostname and may be
 # repeated. The shared state (access lists, service
-# policy, custom rules, network and housekeeping
+# policy, overrides, network and housekeeping
 # notes) comes along on the first run whatever is
 # selected, because a per-server move without it would
 # leave the blacklist and the read-only list behind —

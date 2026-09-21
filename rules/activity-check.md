@@ -102,7 +102,7 @@ tool when entries from both tags appear: "Installed
 nginx" reads differently once the user knows which
 session did it.
 
-`contrib/heinzel-coexistence/` holds the custom rules
+`contrib/heinzel-coexistence/` holds the overrides
 that teach Heinzel the same thing from its side.
 Another Hostwarden session that is changing the same
 host shows up in the host's session register instead

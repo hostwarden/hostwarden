@@ -2,7 +2,7 @@
 name: hostwarden-adopt
 argument-hint: "[path to the old Heinzel checkout]"
 description: Take over an existing Heinzel installation — copy its
-  memory, access lists and custom rules into this Hostwarden clone,
+  memory, access lists and overrides into this Hostwarden clone,
   rename what is found by name, and build a per-host inventory of the
   scripts, configs, units and cron jobs Heinzel left on the servers.
   Can run host by host, with the shared state moved first. Use when
@@ -59,7 +59,7 @@ leads, the host confirms them.
    exception is step 6, which the user approves explicitly.
 
 3. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
-   state — access lists, service policy, custom rules, network and
+   state — access lists, service policy, overrides, network and
    housekeeping notes — then every server's memory, then
    `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
    `hostwarden-<skill>.md` renames. It keeps this clone's version of
@@ -145,7 +145,7 @@ because its two halves are triggered by different things:
 - **This skill** — the old checkout. The user asks for it by name,
   and again for each further piece: a migration moved host by host
   is several requests, one per run. It reads their Heinzel
-  directory, copies memory, access lists and custom rules into
+  directory, copies memory, access lists and overrides into
   this clone, and writes down what Heinzel appears to have left on
   each host.
 - **`rules/heinzel-legacy.md`** — the host. Step 8 of the

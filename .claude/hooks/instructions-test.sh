@@ -505,6 +505,17 @@ report "$(scan \
   | grep -vE ': ([a-z0-9-]+\.)*(test|invalid|example)$' \
   | grep -vE ': localhost$')" "an RFC 2606 example target"
 
+# --- one term for an override -----------------------------------
+# .claude/rules/instruction-authoring.md → For people and for the
+# agent: what a user writes under memory/custom-rules/ is an
+# override. A second word for it reads, to people and agent alike,
+# as a second mechanism. CHANGELOG.md keeps what was released
+# under the old words, contrib/ speaks Heinzel's language, and the
+# two files that state the rule have to name what they retire.
+report "$(scan \
+  | grep -vE '^(CHANGELOG\.md|contrib/[^ ]*|\.claude/rules/instruction-authoring\.md|\.claude/hooks/instructions-test\.sh): ' \
+  | tag_i 'customi[sz]ations?|custom rules?')" "the one term, override"
+
 # --- every .md wraps at 80 -------------------------------------
 # .claude/rules/instruction-authoring.md → Layout: a URL or a
 # command line that cannot be broken may exceed it. So a fenced

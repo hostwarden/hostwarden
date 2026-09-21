@@ -6,19 +6,14 @@
   first steps, what Hostwarden does and how it keeps you
   safe fit on one page; everything deeper — native
   Windows, mirrors and teams, updates, the AI tools,
-  automation, customization — lives under `docs/`, with
+  automation, overrides — lives under `docs/`, with
   the optional parts folded away until you open them.
-- **Overrides go by one name.** What you write under
-  `memory/custom-rules/` is an override everywhere — in
-  `docs/overrides.md`, in the rule the agent follows, and
-  in the line the session start prints
-  (`Overrides: all, backups`).
 - **A development session that needs a live server hands
   the question over** to a session in your operations
   checkout, which runs the access lists and the full
   pipeline and answers back; the refusal and the session
-  start name that checkout. The README shows how to
-  validate a branch from a second, test-only clone.
+  start name that checkout. `docs/operations.md` shows how
+  to validate a branch from a second, test-only clone.
 - **Parallel sessions on one machine keep out of each
   other's workspace changes.** `bin/hostwarden-sync
   commit` takes the files a session names and nothing
@@ -74,10 +69,11 @@
   enforces it with a hook; `AGENTS.md` carries the same
   rule for every other tool. The templates live in
   `templates/memory/`.
-- **Hostwarden runs in the Claude desktop app.** The
-  README has a section for the app's Code tab: open the
-  folder with the worktree option off, set environment
-  variables in `.claude/settings.local.json`, pick the
+- **Hostwarden runs in the Claude desktop app.**
+  `docs/ai-tools.md` has a section for the app's Code
+  tab: open the folder with the worktree option off,
+  set environment variables in
+  `.claude/settings.local.json`, pick the
   permission mode from the menu, and use the app's own
   scheduled tasks where the CLI would use cron.
 - **A git worktree no longer hides the blacklist.**
@@ -109,9 +105,9 @@
   unattended.** `bin/hostwarden-mirror` fast-forwards a
   mirror's `main` and carries the tags from any CI or
   cron job, and fails instead of overwriting commits
-  the mirror has of its own. The README explains when
-  production should clone a mirror rather than GitHub,
-  why a GitHub fork is only for pull requests, and has
+  the mirror has of its own. `docs/operations.md`
+  explains when production should clone a mirror
+  rather than GitHub, why a GitHub fork is only for pull requests, and has
   job examples for GitHub Actions and GitLab CI.
 
 - **`bin/hostwarden-doctor` says what your workstation is
@@ -134,7 +130,7 @@
   with only `mail` or `mailx` goes on to the install
   question, since neither can carry the headers Hostwarden
   writes.
-- **Native Windows: the README lists the three settings
+- **Native Windows: `docs/install.md` lists the three settings
   symlinks need** and how to repair a clone made without
   them. Without them Git Bash copies where it should link,
   so a DNS alias got its own drifting copy of the server
@@ -210,7 +206,7 @@
   no longer loads the consent gates, the MTA choice and the
   privilege-dropping that only a server has.
 
-  If you customized one of those topics, it has its own
+  If you overrode one of those topics, it has its own
   override key now — `hostwarden-email/transport-local.md`,
   `…/transport-remote.md`,
   `…/compose.md`, `…/send-verify.md` under
@@ -298,25 +294,26 @@
   `rules/firewall-changes.md`, `rules/overrides.md`
   and `rules/session-start.md` now hold procedures
   that used to sit inline — the last of those is the
-  preferences and customizations to load before a
+  preferences and overrides to load before a
   session does anything, which is a moment like any
   other and not the thing that keeps you off a
   blacklisted host.
-- **Custom rules mirror the path of what they
-  override.** `rules/os/debian.md` is customized in
+- **Overrides mirror the path of what they
+  change.** `rules/os/debian.md` is overridden in
   `memory/custom-rules/os/debian.md`, a skill's
   `references/ssh.md` in `<skill>/ssh.md` — one rule,
   and two skills can ship a `report-format.md` without
   their overrides colliding. Hostwarden names the
-  customizations it loaded at session start, and says
+  overrides it loaded at session start (`Overrides: all,
+  backups`), and says
   when one matches nothing shipped instead of ignoring
   it silently. Where the shipped file has since split —
   your `transport.md` against a shipped
   `transport-local.md` and `transport-remote.md` — it
   names both siblings and asks which one you meant,
-  rather than calling your customization a stale name
+  rather than calling your override a stale name
   or picking the nearer of the two. A skill's *trigger*
-  stays uncustomizable per file and belongs in
+  cannot be overridden per file and belongs in
   `all.md`; `rules/overrides.md` says so rather than
   leaving it to be discovered. When an upgrade moves a
   topic between mechanisms, `bin/hostwarden-migrate`
@@ -341,7 +338,7 @@
   them reachable. An existing
   `memory/custom-rules/debian.md` and its four
   siblings move to `memory/custom-rules/os/` with the
-  files they override, so a customization does not
+  files they override, so an override does not
   stop applying at the upgrade.
 
 - **Language runtimes and CI/CD deploy users are
@@ -417,7 +414,7 @@
   reads `heinzel` journal entries, and
   `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
   renames skill overrides in `memory/custom-rules/`.
-  See "Moving over from Heinzel" in the README.
+  See "Moving over from Heinzel" in `docs/operations.md`.
 - **Both tools can work on the same hosts during a
   transition.** `contrib/heinzel-coexistence/` holds
   three custom rules for a Heinzel checkout: Heinzel
@@ -433,7 +430,7 @@
   the move once in `memory/user.md`, which is what
   lets an installation that never ran Heinzel skip
   the per-host legacy check entirely. It copies
-  memory, access lists and custom rules out of an old
+  memory, access lists and overrides out of an old
   checkout; the `hostwarden-adopt` skill around it
   (`/hostwarden-adopt <path>`, or the same request in
   prose) reads its memory files and changelogs into a
