@@ -6,12 +6,15 @@
   other's workspace changes.** `bin/hostwarden-sync
   commit` takes the files a session names and nothing
   another session changed or staged, and waits out a
-  moment when another session holds the index. `pull`
-  no longer stashes uncommitted changes from under a
-  running session: it leaves the workspace alone and
-  says so. Changes a deleted or crashed session left
-  behind are found through the host's session register
-  and committed on their own after you say so.
+  moment when another session holds the index. A session
+  commits when it is done with a host, not at a session
+  end it rarely sees. `pull` no longer stashes
+  uncommitted changes from under a running session: it
+  fast-forwards past them where git can, and otherwise
+  leaves the workspace alone and says so. Changes a
+  deleted or crashed session left behind are found
+  through the host's session register and committed on
+  their own after you say so.
 
 - **Sessions that change the same host see each
   other.** Before its first change a session registers on

@@ -20,13 +20,14 @@
 # as it was. The remote must be private — the workspace
 # holds hostnames, addresses and the network's layout.
 #
-# Several sessions can share one workspace. pull leaves it
-# alone while it holds uncommitted changes — they belong to
-# another session, or to one that ended before committing —
-# rather than stash them from under that session. commit
-# with PATHs takes only those files, whatever else another
-# session has changed or staged, and waits out a moment when
-# another session holds the index.
+# Several sessions can share one workspace. Uncommitted
+# changes in it belong to another session, or to one that
+# ended before committing, so pull never stashes them from
+# under that session: it only fast-forwards past them, and
+# leaves the workspace alone when that is not possible.
+# commit with PATHs takes only those files, whatever else
+# another session has changed or staged, and waits out a
+# moment when another session holds the index.
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -55,15 +56,18 @@ conflicts() { W diff --name-only --diff-filter=U 2>/dev/null; }
 
 # retry CMD... — run CMD, and run it again for a few seconds
 # while another session's git holds the workspace's index.lock.
+# A lock older than a minute is a crashed git's, not a busy
+# one: that fails at once.
 retry() {
-  n=0
-  while :; do
-    if OUT=$("$@" 2>&1); then
-      [ -z "$OUT" ] || printf '%s\n' "$OUT"
-      return 0
-    fi
+  tries=0
+  until OUT=$("$@" 2>&1); do
     case "$OUT" in
-      *index.lock*) n=$((n + 1)); [ "$n" -lt 10 ] && { sleep 1; continue; } ;;
+      *index.lock*)
+        tries=$((tries + 1))
+        if [ "$tries" -lt 10 ] \
+            && [ -z "$(find "$GITDIR/index.lock" -mmin +1 2>/dev/null)" ]; then
+          sleep 1; continue
+        fi ;;
     esac
     printf '%s\n' "$OUT" >&2
     return 1
@@ -95,16 +99,18 @@ fi
 case "$1" in
 pull)
   [ -n "$(upstream)" ] || exit 0
-  # Uncommitted changes belong to another session, or to one
-  # that ended before committing. Stashing them would pull
-  # files out from under a session at work, and the stash is
-  # shared by every session in this checkout.
-  if [ -n "$(W status --porcelain)" ]; then
+  # With uncommitted changes, only a fast-forward: git refuses
+  # it by itself where it would overwrite one of them.
+  ST=$(W status --porcelain)
+  if [ -n "$ST" ]; then
+    W fetch --quiet \
+      && W merge --quiet --ff-only '@{upstream}' >/dev/null 2>&1 \
+      && exit 0
     echo "hostwarden: the workspace holds uncommitted changes, so it"
     echo "  was not brought up to date with its remote:"
-    W status --short | sed 's/^/    /'
-    echo "  rules/parallel-sessions.md -> The workspace says whose"
-    echo "  they are and what to do with them."
+    printf '%s\n' "$ST" | sed 's/^/    /'
+    echo "  rules/parallel-sessions.md -> Changes a session left"
+    echo "  behind says whose they are and what to do with them."
     exit 0
   fi
   if ! OUT=$(W pull --quiet --rebase 2>&1); then
@@ -119,18 +125,10 @@ pull)
 commit)
   MSG="${2:?Usage: hostwarden-sync commit MESSAGE [PATH...]}"
   shift 2
-  if [ "$#" -eq 0 ]; then
-    retry W add -A
-    W diff --cached --quiet && exit 0
-    retry W commit --quiet -m "$MSG"
-    exit 0
-  fi
-  # Named paths, relative to the workspace: memory/servers/x
-  # and servers/x name the same file.
-  n=$#
-  while [ "$n" -gt 0 ]; do
-    p=$1; shift; set -- "$@" "${p#memory/}"; n=$((n - 1))
-  done
+  # No path means the whole workspace. Named paths are relative
+  # to it: memory/servers/x and servers/x name the same file.
+  [ "$#" -gt 0 ] || set -- .
+  for p do shift; set -- "$@" "${p#memory/}"; done
   retry W add -- "$@"
   W diff --cached --quiet -- "$@" && exit 0
   retry W commit --quiet -m "$MSG" -- "$@"
