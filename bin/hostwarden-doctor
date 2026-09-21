@@ -52,6 +52,7 @@ hint() {
   pkgs=
   # shellcheck disable=SC2086 # one word per tool is the point
   for t in $1; do pkgs="$pkgs $(pkgname "$t")"; done
+  [ -n "$pkgs" ] || { echo "see the README"; return; }
   case "$PM" in
     brew) echo "brew install$pkgs" ;;
     apt-get|dnf|zypper|pkg) echo "sudo $PM install$pkgs" ;;
@@ -103,6 +104,19 @@ if has ssh; then
     miss need "ssh connection sharing (OpenSSH 6.8+)" ssh
   fi
 fi
+
+# .claude/skills and every DNS alias are links. Git Bash copies
+# where it should link unless MSYS says otherwise, and says
+# nothing (README → Windows), so make one and look.
+d=$(mktemp -d 2>/dev/null) && {
+  if ln -s "$d" "$d/l" 2>/dev/null && [ -L "$d/l" ]; then
+    row "ok       symbolic links"
+  else
+    row "missing  symbolic links"
+    miss need "symbolic links (README → Windows)" ""
+  fi
+  rm -rf "$d"
+}
 
 [ -n "$QUIET" ] || echo "Recommended"
 # Without it the guard reads the raw hook input and over-blocks
