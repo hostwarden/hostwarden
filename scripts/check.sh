@@ -41,7 +41,8 @@ esac
 
 # Which tools there are, and how to install the rest, is the
 # doctor's to say.
-missing=$(sh bin/hostwarden-doctor --dev --quiet)
+# A doctor that fails to run at all must not read as nothing missing.
+missing=$(sh bin/hostwarden-doctor --dev --quiet) || exit 2
 [ -z "$missing" ] || { printf '%s\n' "$missing" >&2; exit 2; }
 
 # --pre-push skips the one slow step, the guard matrix, when the
