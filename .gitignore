@@ -57,6 +57,10 @@ HISTORY.md
 # the scheduler machinery in the Claude Code CLI.
 .claude/*.lock
 
+# Worktrees Claude Code creates for parallel sessions. Only this
+# path — the rest of .claude/ is committed agent configuration.
+.claude/worktrees/
+
 # Personal Claude Code permission overrides. ALWAYS personal,
 # never shared — same category as memory/user.md.
 #
