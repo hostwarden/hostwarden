@@ -109,13 +109,14 @@ report() {
 #   settings.json.
 # Every command is matched, not only *.sh: bin/ scripts carry no
 # extension. The mkdir hook runs no script and is the one other
-# shape allowed.
+# command allowed, exactly as written: a prefix match would let
+# `mkdir … && bash …` through.
 NHOOKS=0
 while IFS= read -r c; do
   [ -n "$c" ] || continue
   NHOOKS=$((NHOOKS + 1))
   case $c in
-    'mkdir '*) ok; continue ;;
+    'mkdir -p -m 700 \"$HOME/.cache/hostwarden\"') ok; continue ;;
     'sh \"$CLAUDE_PROJECT_DIR/'*) ;;
     *) bad "settings.json starts a hook as: $c"; continue ;;
   esac

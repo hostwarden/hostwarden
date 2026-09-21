@@ -38,6 +38,9 @@ show_changelog_section() {
 
 # Without git, or outside a clone, every git call below fails
 # and --check would report a detached HEAD: the wrong cause.
+# --help needs neither, and is what someone in that spot reaches
+# for, so it is left to the case below.
+case "${1:-}" in --help|-h) ;; *)
 if ! command -v git >/dev/null 2>&1; then
   echo "hostwarden-update: git is not installed" >&2
   exit 1
@@ -47,6 +50,7 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
     "download?); clone the repository to get updates" >&2
   exit 1
 fi
+;; esac
 
 case "${1:-}" in
   --check)
