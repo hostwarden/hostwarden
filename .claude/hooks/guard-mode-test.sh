@@ -126,6 +126,10 @@ cmd deny "$DEV" 'env PATH=/usr/bin sudo whoami'
 cmd deny "$DEV" 'unset PATH; ssh server1.example.com'
 cmd deny "$DEV" "PATH=/usr/bin sh -c 'ssh server1.example.com'"
 cmd deny "$DEV" 'path=(/usr/bin /bin); ssh server1.example.com'
+cmd deny "$DEV" 'true
+PATH=/usr/bin ssh server1.example.com'
+cmd deny "$DEV" 'true
+	path=(/usr/bin); ssh server1.example.com'
 cmd deny "$DEV" 'env -u PATH sudo whoami'
 cmd deny "$DEV" 'env --unset=PATH ssh server1.example.com'
 cmd deny "$DEV" 'env -uPATH ssh server1.example.com'

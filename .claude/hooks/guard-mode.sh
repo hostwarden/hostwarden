@@ -92,7 +92,9 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
   */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
   */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+  # In JSON a newline or tab before it is \n or \t, a letter too.
   *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
+  *'\n'PATH=*|*'\t'PATH=*|*'\n'path=*|*'\t'path=*) ;;
   *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
   *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
