@@ -223,17 +223,18 @@ firewall-cmd --state
 
 **Native nftables** (Debian installs it, with its unit
 off; check it when neither ufw nor firewalld is active;
-needs root):
+needs root).
 
-```bash
-systemctl is-active nftables
-nft list chains | grep -B1 -e ^table -e "hook input"
-```
-
-Default deny as in `hostwarden-security` →
-`references/firewall-nftables-docker.md`. Input chains that
+The probe and what counts as default deny are the security
+skill's, in
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`
+— run it from there rather than from a copy here. It carries
+the reason the grep is shaped the way it is, which a copy
+loses the first time someone tidies it: input chains that
 fail2ban or Docker add with `policy accept;` are not a
 firewall, and neither is the stock config's empty chain.
+
+What housekeeping does with the answer is below.
 
 - **WARN** if ufw or firewalld is active and
   `systemctl is-enabled nftables` says `enabled`: the

@@ -101,7 +101,8 @@ When the user asks to install a language runtime
 package manager and mise is available on the server:
 suggest mise. Distro packages are often outdated and
 harder to manage per-user.
-→ `mise use --global node@24`
+→ `mise use --global node@<current-LTS>` — look the version
+up, never write one from memory (`AGENTS.md`)
 Cross-reference: the `hostwarden-runtimes` skill
 
 **curl | bash as root**

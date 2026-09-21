@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **A `references/` pointer resolves inside its own
+  skill.** The fleet audit and the housekeeping baseline
+  both sent a reader to
+  `references/firewall-nftables-docker.md`, which only
+  the security skill ships — a path relative to the
+  skill that writes it, pointing at nothing. Both now
+  spell the cross-skill path out in full, and
+  `instructions-test.sh` checks every such pointer.
+
 - **An MTA hostwarden installs queues the mail.** The
   default was `msmtp`, which has no queue: it connects
   when called and exits non-zero when the relay does not
