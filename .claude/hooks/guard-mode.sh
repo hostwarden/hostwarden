@@ -94,7 +94,7 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
   # In JSON a newline or tab before it is \n or \t, a letter too.
   *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
-  *'\n'PATH=*|*'\t'PATH=*|*'\n'path=*|*'\t'path=*) ;;
+  *\\[nt]PATH=*|*\\[nt]path=*) ;;
   *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
   *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
