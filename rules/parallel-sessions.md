@@ -174,8 +174,11 @@ another session at work, or to one that was deleted or crashed
 before it committed. For files under `memory/servers/<hostname>/`,
 read that host's register when this session first reaches it: no
 live entry naming your own `<user>@<workstation>` means they were
-left behind. A file outside any host directory was left behind
-when no other session runs on this machine.
+left behind — provided nothing touched them for 30 minutes
+(`find memory/<path> -mmin -30` prints nothing), because a session
+that only reads never registers and still records its connection.
+A file outside any host directory was left behind when no other
+session runs on this machine.
 
 The workspace is the user's own, so those edits are the user's own
 earlier work, and taking them over is allowed — after asking. Name
