@@ -12,7 +12,8 @@ Ubuntu has is under **Ubuntu** below.
   non-interactive/scripted use.
 - Always run `apt-get update` before installing or upgrading.
 - Dry-run before upgrading: `apt-get --dry-run upgrade`
-- Non-interactive install: `apt-get install -y <package>`
+- Every install and upgrade runs non-interactively, in
+  the form under **Non-interactive apt runs**.
 
 ### Non-interactive apt runs
 
@@ -46,11 +47,9 @@ never reach apt; `env` after it sets them for root.
   and later, needrestart restarts them itself, in
   non-interactive runs too — a service restart nobody
   asked for (`AGENTS.md` → Critical Safety Rules). An
-  explicit restart mode switches that off. On Debian and
-  on Ubuntu 22.04 the default is to ask, and without a
-  terminal needrestart falls back to listing; the
-  variable makes both behave the same. It changes
-  nothing where needrestart is not installed.
+  explicit restart mode switches that off; elsewhere
+  needrestart already lists when there is no terminal.
+  Without needrestart the variable changes nothing.
   Afterwards, take the listed services through
   `rules/service-reload.md`.
 
@@ -412,35 +411,26 @@ subscription:
   effort, on no schedule.
 - **livepatch** — see **Livepatch**.
 
-Read the state, no root needed:
+What to read, none of it needs root:
 
-```bash
-pro status 2>/dev/null
-pro security-status 2>/dev/null
-pro api u.pro.packages.updates.v1 2>/dev/null
-```
+- `pro status` — attached or not, and whether esm-infra,
+  esm-apps and livepatch are enabled.
+- `pro security-status` — installed packages counted by
+  origin (main/restricted, universe/multiverse, third
+  party, no longer available).
+- `pro api u.pro.packages.updates.v1` — one entry per
+  pending update. `pending_attach` or `pending_enable` in
+  its `status` is a security fix that exists but cannot
+  be installed until Pro is attached or the service is
+  enabled. The output lists every package; the
+  housekeeping baseline has a probe that counts them.
 
-`pro security-status` counts installed packages by
-origin (main/restricted, universe/multiverse, third
-party, no longer available) and says whether esm-infra
-and esm-apps are enabled. In
-`u.pro.packages.updates.v1`, an update whose `status` is
-`pending_attach` or `pending_enable` is a security fix
-that exists but cannot be installed until Pro is attached
-or the service is enabled.
-
-What housekeeping reports:
-
-- Attached or not, and which of esm-infra, esm-apps and
-  livepatch are enabled.
-- The number of installed `universe` packages when
-  esm-apps is not enabled — **INFO**: they have no
-  guaranteed security coverage.
-- Any `pending_attach` / `pending_enable` security
-  updates — **WARN**, with the count per service.
-- An LTS past its standard support: covered only with
-  esm-infra enabled; otherwise **CRITICAL**
-  (`rules/version-check.md`).
+A `universe` package on a host without esm-apps has no
+guaranteed security coverage, and an LTS past standard
+support is covered only with esm-infra enabled. The
+severities are housekeeping's
+(`.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`
+→ Ubuntu Release and Support).
 
 Attaching (`pro attach`) takes a token — a secret
 (`rules/secrets.md`), and a subscription decision that is
@@ -517,10 +507,9 @@ It does not remove the need to reboot:
   it.
 - A kernel installed by apt still waits for a reboot;
   `/var/run/reboot-required` and the running-vs-installed
-  check stay valid. With Livepatch, report the pending
-  reboot as **INFO** rather than as an open
-  vulnerability, as long as `patch state` shows all
-  patches applied.
+  check stay valid. While `patch state` shows all
+  patches applied, that pending reboot is not an open
+  vulnerability.
 
 Sources: https://ubuntu.com/security/livepatch/docs/,
 https://ubuntu.com/security/livepatch/docs/client/how-to-guides/operations/check-client-status/
@@ -563,8 +552,6 @@ Sources: https://snapcraft.io/docs/how-to-guides/manage-snaps/manage-updates/
 - Debian and Ubuntu use the same package manager and mostly
   the same conventions, but package names and available
   versions may differ.
-- Ubuntu may have `snap` packages — prefer `apt-get` unless
-  the user specifically wants snaps.
 
 ## Common Pitfalls
 
@@ -583,9 +570,6 @@ Sources: https://snapcraft.io/docs/how-to-guides/manage-snaps/manage-updates/
   `apt-get dist-upgrade` (or `full-upgrade`) may
   remove packages — always dry-run with `-s` first
   and ask the user.
-- An apt run without `NEEDRESTART_MODE=l` restarts
-  services on Ubuntu 24.04 and later — see
-  **Non-interactive apt runs**.
 - Debian's `nginx` uses `sites-available/` +
   `sites-enabled/` symlinks. Ubuntu follows the same
   pattern. Do not put configs directly in `conf.d/`

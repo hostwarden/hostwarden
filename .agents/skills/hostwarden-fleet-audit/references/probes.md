@@ -12,7 +12,6 @@ echo "###fw###"; <firewall probe>
 echo "###mta###"; <mta probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
-echo "###ubuntu###"; <ubuntu probe>
 '
 ```
 
@@ -44,6 +43,14 @@ apt-config dump 2>/dev/null | grep \
   -e '^Unattended-Upgrade::Automatic-Reboot-Time ' \
   -e '^Unattended-Upgrade::Remove-Unused-Kernel-Packages ' \
   -e '^Unattended-Upgrade::Remove-Unused-Dependencies '
+# Ubuntu: Pro coverage decides what the security runs can
+# install (rules/os/debian.md → Ubuntu Pro and ESM).
+pro status --format json 2>/dev/null | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+print("pro.attached=%s" % s["attached"])
+for v in s["services"]:
+    print("pro.%s=%s" % (v["name"], v["status"]))'
 ```
 
 Row keys to extract for the table:
@@ -64,6 +71,11 @@ Row keys to extract for the table:
 - `Automatic-Reboot-Time` (present/absent — absent is the
   preferred fleet policy)
 - `Remove-Unused-Kernel-Packages`
+- Pro attached, and esm-infra, esm-apps, livepatch
+  enabled (Ubuntu; `n/a` elsewhere or without `pro`)
+
+Highlight as drift: Pro attached on some Ubuntu hosts but
+not others, or different ESM services enabled.
 
 ## 2. sshd effective config
 
@@ -263,6 +275,13 @@ Highlight as drift:
 test -f /var/run/reboot-required && echo "pending=yes" \
   || echo "pending=no"
 uptime -s
+# needrestart: an uncommented restart mode, if any.
+if command -v needrestart >/dev/null 2>&1; then
+  grep -rhs '^[[:space:]]*\$nrconf{restart}' /etc/needrestart/ \
+    || echo "needrestart=default"
+else
+  echo "needrestart=absent"
+fi
 ```
 
 Row keys:
@@ -270,6 +289,11 @@ Row keys:
 - `/var/run/reboot-required` present? (kernel waiting for
   reboot)
 - Boot time / uptime
+- needrestart restart mode: the value `$nrconf{restart}`
+  sets, `default`, or `absent`.
+  `default` on Ubuntu 24.04 and later means the apt hook
+  restarts services itself (`rules/os/debian.md` →
+  Non-interactive apt runs)
 
 Highlight as drift / warning:
 
@@ -277,54 +301,5 @@ Highlight as drift / warning:
   has not fired despite a pending kernel.
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
-
-## 7. Ubuntu support and restarts
-
-Ubuntu hosts only; on any other host the whole section is
-`n/a`. None of it needs root.
-
-```bash
-if [ "$(. /etc/os-release && echo "$ID")" = "ubuntu" ]; then
-  . /etc/os-release && echo "release=$VERSION_ID"
-  grep -i '^Prompt' /etc/update-manager/release-upgrades \
-    2>/dev/null
-  pro api u.pro.status.is_attached.v1 2>/dev/null
-  pro api u.pro.status.enabled_services.v1 2>/dev/null
-  grep -rhs 'nrconf{restart}' /etc/needrestart/ \
-    | grep -v '^ *#'
-  snap refresh --time 2>/dev/null | grep -i '^timer'
-else
-  echo "n/a"
-fi
-```
-
-Row keys:
-
-- Release (`VERSION_ID`)
-- `Prompt` in `release-upgrades` (`lts` expected on an
-  LTS)
-- Pro attached (`is_attached` from the first `pro api`
-  call; `n/a` when `pro` is missing)
-- esm-infra, esm-apps, livepatch enabled (yes/no each,
-  from `enabled_services`)
-- needrestart restart mode: the value an uncommented
-  `$nrconf{restart}` sets, or `default` — which on 24.04
-  and later means the apt hook restarts services itself
-  (`rules/os/debian.md` → Non-interactive apt runs)
-- snap refresh timer
-
-Highlight as drift:
-
-- Pro attached on some Ubuntu hosts but not others, or
-  different ESM services enabled.
 - Different needrestart restart modes: one host restarts
   services after every apt run, another only lists them.
-- Different `Prompt` values.
-
-Warnings, whatever the rest of the fleet does:
-
-- A release past its end of standard support without
-  esm-infra, or an interim release past its end of life
-  — dates from a live lookup of
-  https://ubuntu.com/about/release-cycle.
-- `Prompt` other than `lts` on an LTS release.

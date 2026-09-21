@@ -184,11 +184,12 @@ Severity:
 - `WARN` if EOL is within 6 months
 - `CRITICAL` if the OS is past EOL
 
-An Ubuntu LTS has two dates: the end of standard support,
-and the end of ESM, which only a host with Ubuntu Pro and
-esm-infra enabled reaches. Judge the host by the one that
-applies to it (`rules/os/debian.md` → Ubuntu Pro and
-ESM).
+Where a release has extended support on top of the
+standard one (Ubuntu ESM, Debian LTS, RHEL ELS, SUSE
+LTSS), judge the host by the end date it actually has:
+the extended one only when the host is enrolled in it.
+The OS file says how to tell (for Ubuntu,
+`rules/os/debian.md` → Ubuntu Pro and ESM).
 
 ## Server Memory
 

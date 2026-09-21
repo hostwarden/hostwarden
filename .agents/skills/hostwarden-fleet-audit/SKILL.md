@@ -186,8 +186,7 @@ supported" list, decided from memory before any probe runs.
 Read on demand:
 
 - `references/probes.md` — the exact commands to run per
-  category (UA, sshd, firewall, MTA, time, auto-reboot,
-  Ubuntu).
+  category (UA, sshd, firewall, MTA, time, auto-reboot).
 - `references/output-format.md` — table layout and the
   "Drift detected" section format.
 
