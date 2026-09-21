@@ -25,8 +25,7 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 GITDIR=""
 [ -f "$ROOT/.git" ] && GITDIR=$(sed -n 's|^gitdir: ||p' "$ROOT/.git")
 case "$GITDIR" in
-  "") ;;
-  /*) ;;
+  ""|/*) ;;
   *) GITDIR="$ROOT/$GITDIR" ;;
 esac
 if [ -n "$GITDIR" ] && [ -f "$GITDIR/commondir" ]; then

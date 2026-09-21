@@ -763,14 +763,18 @@ expect() {
 }
 SGUARD="$CLAUDE_DIR/hooks/guard-settings.sh"
 settings_case() {
-  # settings_case <expect> <label> <json> [env assignment]
-  OUT=$(printf '%s' "$3" \
-    | env -u HOSTWARDEN_GUARD_DISABLE ${4:+"$4"} sh "$SGUARD")
+  # settings_case <expect> <label> <json> [env assignment...]
+  # HOME points nowhere by default: a variable in the tester's own
+  # ~/.claude/settings.json must not decide a fixture.
+  E=$1 L=$2 J=$3; shift 3
+  OUT=$(printf '%s' "$J" \
+    | env -u HOSTWARDEN_GUARD_DISABLE HOME=/nonexistent "$@" \
+      sh "$SGUARD")
   case "$OUT" in
     *'"permissionDecision":"deny"'*) GOT=deny ;;
     *) GOT=pass ;;
   esac
-  expect "guard-settings [$1, got $GOT]: $2" [ "$GOT" = "$1" ]
+  expect "guard-settings [$E, got $GOT]: $L" [ "$GOT" = "$E" ]
 }
 V=HOSTWARDEN_GUARD_DISABLE
 settings_case deny 'Write settings.local.json' \
