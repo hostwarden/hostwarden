@@ -136,8 +136,8 @@
   that works on production servers may have.
 
 - **`AGENTS.md` keeps the trigger, the file keeps the
-  procedure.** It is down from 668 lines to 337, and
-  from 3356 words to about 2250, because a moment and
+  procedure.** It is down from 668 lines to 308, and
+  from 3356 words to about 2000, because a moment and
   the file that covers it is one line — not a
   paragraph that restates what the file already says.
   Nothing that has to fire unasked left: the taboos,
@@ -146,8 +146,13 @@
   list, port 22, secrets, untrusted server output. The
   four sections describing skills are gone, because a
   skill's description is in context every turn anyway.
-  `rules/firewall-changes.md` and `rules/overrides.md`
-  now hold procedures that used to sit inline.
+  `rules/firewall-changes.md`, `rules/overrides.md`
+  and `rules/session-start.md` now hold procedures
+  that used to sit inline — the last of those is the
+  preferences and customizations to load before a
+  session does anything, which is a moment like any
+  other and not the thing that keeps you off a
+  blacklisted host.
 - **Custom rules mirror the path of what they
   override.** `rules/os/debian.md` is customized in
   `memory/custom-rules/os/debian.md`, a skill's

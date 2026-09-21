@@ -203,45 +203,16 @@ any command on a server, verify it:
 training data, and the source URL is cited. Without a search tool,
 say so immediately instead of falling back on what you remember.
 
-## Session Start Preflight
+## Session Start
 
-At the start of every session, quietly load `memory/user.md`,
-`memory/blacklist.md`, `memory/readonly.md`,
-`memory/service-policy.md`, and `memory/custom-rules/all.md` (if
-present), and glance at `memory/servers/` and
-`memory/custom-rules/` to see what's there.
+**Follow `rules/session-start.md`**, before anything else in the
+session. It names the preference and customization files to load,
+the one line to say about them, and the setup question not to
+improvise.
 
-**How:** read each file on its own, with whatever your harness
-offers for reading a file, and list directories with a plain `ls`
-— all in one message so they run together. Do **not** use a shell
-`for`-loop with `cat`: it asks for a shell permission that reading
-files does not need, and looks alarming to new users.
-
-`ls -R memory/custom-rules/` for that one: an override can sit a
-level down (`os/debian.md`, a skill's reference), and a top-level
-listing shows the directory rather than the file in it — which is
-the thing that has to be named below.
-
-**What to say:** one short, friendly line before any reads — *"Fresh
-hostwarden install detected — nothing in memory yet. Ready when you
-are."* on a fresh install, *"Session start — loading your
-preferences and access lists."* otherwise. Missing files are normal
-on a fresh install; "No such file" is not an error.
-
-Then name the customizations that are in force, in one line —
-*"Custom rules: all, backups, os/debian."* — or say nothing when
-there are none. `rules/overrides.md` covers the rest.
-
-**Do not improvise setup questions.** If `memory/user.md` is
-missing *and* the session is about to reach a machine, follow the
-three-option interview in `rules/ssh-user.md` exactly, one question
-at a time.
-
-A session that only works on this repository — reading the
-instruction set, editing it, reviewing a change — reaches no
-machine and needs no SSH user. Do not ask. The file is gitignored,
-so it is missing in every fresh checkout, and a checkout is not a
-reason to interview anybody.
+Loading it is not what keeps you off a blacklisted host — that is
+step 1 of the pipeline below, and it runs on every connection
+either way.
 
 ## Where the Rest Lives
 

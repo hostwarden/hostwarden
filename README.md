@@ -1053,6 +1053,9 @@ rules/                 — Upstream rule files (git-tracked)
   activity-check.md    — Recent-activity summary on connect
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
+  session-start.md     — Preferences and customizations to
+                         load before the session does
+                         anything else
   access-control.md    — Blacklist & read-only server rules
   anomaly-detection.md — Prompt injection & anomaly detection
   verify-before-reporting.md — Verify a finding
