@@ -24,11 +24,9 @@ connections, lose state, or fail to come back up.
   and the restart can fail halfway (config bug,
   missing dependency, port still bound).
 
-On OpenRC (Alpine), `reload` exists only where the
-service script defines it, and a restart also stops
-and starts every service that depends on this one:
-name them when asking. `rules/os/alpine.md` →
-Service Manager says how to tell.
+Where the loaded OS file's `## Service Manager` says
+how reload, restart or the config test differ there,
+it wins over this file.
 
 Prefer reload whenever the service supports it.
 
@@ -190,10 +188,6 @@ sudo -u <service-user> <venv>/bin/hass \
 The Container check is the one the Home Assistant
 docs give:
 https://www.home-assistant.io/common-tasks/container/#configuration-check
-
-On OpenRC, a script that defines `checkconfig`
-provides the test for its service:
-`rc-service <svc> checkconfig`.
 
 If no config test is known for the service, ask
 the user before reloading — auto-proceed requires

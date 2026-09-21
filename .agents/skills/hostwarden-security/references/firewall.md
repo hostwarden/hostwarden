@@ -33,18 +33,6 @@ ufw status verbose
   default incoming policy is not deny"
 - Active and default deny → OK
 
-### Alpine
-
-Alpine installs no firewall; the host runs nftables, awall or
-ufw (`rules/os/alpine.md` → Firewall). ufw is checked as above.
-nftables and awall are checked with
-`references/firewall-nftables-docker.md`: awall generates
-iptables rules, which `iptables -S` lists as for any iptables
-host, and the `iptables` service loads at boot.
-
-- None of them active → **CRITICAL** "No active firewall"
-- Default incoming not deny → **WARN**, as for ufw above
-
 ### RHEL/Fedora/SUSE (firewalld)
 
 ```bash

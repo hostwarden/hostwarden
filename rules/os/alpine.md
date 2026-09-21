@@ -14,10 +14,12 @@ OpenRC manuals.
   exists; when it does, never answer a prompt over SSH.
 - Refresh the index before installing or upgrading: `apk update`,
   or `-U` on the command itself (`apk -U upgrade`).
-- Dry-run before upgrading: `apk upgrade --simulate` (`-s`). The
-  simulation does not refresh the index, so run `apk update`
-  first.
-- List pending upgrades: `apk list --upgradable`.
+- Dry-run before upgrading: `apk upgrade --simulate` (`-s`), after
+  `apk update` — a simulation does not refresh the index.
+- List pending upgrades: `apk list --upgradable`. apk has no
+  security-only view: report the total, and say no subset exists.
+  Which fixes a package carries is on
+  <https://security.alpinelinux.org/>.
 - Install: `apk add <package>`. Remove: `apk del <package>`.
 - `/etc/apk/world` lists what was asked for; `apk add` and
   `apk del` edit it. Never remove `alpine-base` or a `linux-*`
@@ -122,13 +124,10 @@ cat /etc/alpine-release /etc/apk/repositories
 - `/etc/alpine-release` — the version, e.g. `3.24.1`. The branch
   is its first two parts.
 - `/etc/os-release` — `ID=alpine`, `VERSION_ID`, `PRETTY_NAME`.
-- **Support period:** look up the branch in the release table,
-  <https://alpinelinux.org/releases/>, every time and cite it; the
-  dates move with every release. Report the end-of-support date of
-  the host's branch. A branch past it → **WARN**; a branch that is
-  not the latest stable while community packages are installed →
-  **INFO**, because community stops receiving fixes with the next
-  release.
+- **Support period:** `rules/version-check.md` → OS End-of-Life
+  Awareness, per branch. On top of it, a branch that is not the
+  latest stable while community packages are installed → **INFO**:
+  community stops receiving fixes with the next release.
 
 ## Firewall
 
@@ -140,16 +139,16 @@ Alpine installs none. What it packages:
   boot` keeps it across reboots.
 - **awall** (main) — Alpine's own front end, which generates
   iptables rules from the policies in `/etc/awall/`; the
-  `iptables` and `ip6tables` services load them at boot.
-  `awall translate --verify` tests a change. `awall activate`
-  restores the old rules unless Return is pressed within 10
-  seconds, and a non-interactive SSH call cannot be relied on to
-  confirm; `-f` saves without that safety net, so ask before
-  using it. `awall flush`
-  drops every packet: never run it.
-  Source: <https://gitlab.alpinelinux.org/alpine/awall>.
+  `iptables` and `ip6tables` services load them at boot
+  (<https://gitlab.alpinelinux.org/alpine/awall>).
 - **ufw** (community) — works, but carries community's short
   support period.
+
+`awall translate --verify` tests a change. `awall activate` rolls
+back unless Return is pressed within 10 seconds, which a
+non-interactive SSH call cannot be relied on to do; ask before
+`-f`, which skips that. Never run `awall flush` or
+`rc-service nftables panic`: both drop every packet, SSH included.
 
 Never add a second manager on top of one that is active
 (`rules/service-class-check.md`).
@@ -169,14 +168,21 @@ service as shipped cuts the SSH session. Before
 
 Discuss all of it with the user first (`rules/firewall-changes.md`).
 
-Checks: `rc-service nftables status`, then default deny as
-`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`
-describes. The service loads the rules and exits, so `rc-status`
-may not list it as running; the ruleset in `nft list chains` is
-what counts.
+Checks, for housekeeping and the security audit alike:
 
-`rc-service nftables panic` drops every packet on every interface,
-SSH included. Never run it.
+```
+rc-update show boot default
+ufw status verbose
+```
+
+A runlevel that lists `nftables` means nftables; one that lists
+`iptables` with policies in `/etc/awall/` means awall. Judge
+default deny for either with
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
+The nftables service loads the rules and exits, so `rc-status` may
+not show it as running: the runlevel entry and the ruleset count.
+No manager in a runlevel and ufw inactive → **CRITICAL** "No
+active firewall".
 
 ## Automatic Security Updates
 
@@ -184,13 +190,19 @@ Alpine has none built in, and apk cannot select security updates
 only. `apk-autoupdate` exists only in edge/testing and is not an
 option on a stable host (Stable Branch Only above).
 
-- Flag the missing mechanism as the standing expectation in
-  `AGENTS.md` says.
-- Look for one the user set up: a script under
-  `/etc/periodic/daily/` or `/etc/periodic/weekly/`, or a
-  crontab line that runs `apk upgrade`. Busybox `crond` runs
-  `/etc/periodic/*` only while its service runs:
-  `rc-service crond status`.
+Look for one the user set up — a script under `/etc/periodic/*/`
+or a crontab line that runs `apk upgrade`, which busybox `crond`
+runs only while its service does:
+
+```
+ls /etc/periodic/*/
+crontab -l | grep apk
+rc-service crond status
+```
+
+- No such job, or `crond` not started → the finding the standing
+  expectation in `AGENTS.md` asks for. Present it as a gap Alpine
+  ships no mechanism for, not as a broken setup.
 - If the user wants one, it upgrades the whole branch, not just
   security fixes, and restarts nothing. Agree on both before
   writing it.
@@ -238,19 +250,17 @@ Alpine logs through syslog, to `/var/log/messages`:
 Kernel messages: `dmesg`.
 
 Hostwarden's journal entries (`rules/changelog.md`) are read back
-from there, both tags (`rules/activity-check.md`):
+from there, both tags (`rules/activity-check.md`), in one call
+that also names the syslog daemon in the runlevel:
 
 ```
-if [ -r /var/log/messages ]; then
+rc-status boot | grep -E "syslog|rsyslog"
+if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
+then logread | grep -E "hostwarden|heinzel" | tail -20
+elif [ -r /var/log/messages ]; then
   grep -hE "hostwarden|heinzel" /var/log/messages.0 \
     /var/log/messages 2>/dev/null | tail -20
 else echo "messages: not readable"; fi
-```
-
-Where `SYSLOGD_OPTS` has `-C`:
-
-```
-logread | grep -E "hostwarden|heinzel" | tail -20
 ```
 
 This shows the last 20 matches, not a strict 7-day window.
@@ -261,9 +271,8 @@ check could not see the log.
 
 **`logger` succeeds even when nothing is listening.** Busybox
 `logger` exits 0 whether or not a syslog daemon runs, and the
-entry is lost. Before relying on it, check that one does:
-`rc-service syslog status` (or `syslog-ng`, `rsyslog`). When none
-runs, log to the local changelog only and tell the user.
+entry is lost. When the first line shows no started syslog
+daemon, log to the local changelog only and tell the user.
 
 ## Directory Conventions
 
@@ -305,6 +314,8 @@ common checks:
   prints: use `openssl x509 -checkend <seconds>` instead.
 - `ps` takes `-o` but not `-p`.
 - No `ss`: use busybox `netstat -tulnp`.
+- No `lscpu`: use `nproc` and `/proc/cpuinfo`.
+- `last` takes no filter, so no `last reboot`.
 - No `timedatectl`, `journalctl` or `systemctl`.
 
 The GNU tools are packages (`coreutils`, `findutils`, `grep`,
@@ -345,22 +356,13 @@ and ask before committing.
 
 ## Common Pitfalls
 
-- Starting nftables with the stock ruleset drops SSH — see the
-  Firewall section above.
-- `latest-stable` in `/etc/apk/repositories` upgrades the whole
-  release on an ordinary `apk upgrade`.
 - Upgrading to a new branch: back up `/etc/apk/repositories`,
   replace the version in it, `apk update`, `apk add --upgrade
   apk-tools`, then `apk upgrade --available`, simulated first.
   Read the release notes and ask before starting; a new kernel
   needs a reboot, which is the user's call.
-- `apk upgrade` restarts nothing and leaves `.apk-new` files —
-  check both afterwards.
 - A kernel upgrade removes the running kernel's modules: when
   `ls /lib/modules` has no directory for `uname -r`, the next
   module load fails until the host reboots.
 - A service enabled with `rc-update add` but never started is not
   running; `rc-update` does not start it.
-- The firewall and logging belong in the `boot` runlevel,
-  application services in `default`.
-- A glibc binary copied onto the host does not run (musl above).

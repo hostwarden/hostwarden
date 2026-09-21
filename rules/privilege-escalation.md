@@ -33,12 +33,13 @@ the sudo flag.
 
 ## Doas
 
-Where `sudo` is not installed, probe `doas` the same
-way before falling back to root SSH. It is the
-default on Alpine (`rules/os/alpine.md` → Notes):
+Where `sudo` may be missing — on Alpine, whose
+default is `doas` (`rules/os/alpine.md` → Notes) —
+send this probe in place of the one above, before
+falling back to root SSH:
 
 ```
-command -v doas && doas -n true
+command -v sudo && sudo -n true; command -v doas && doas -n true
 ```
 
 Record `- Doas: passwordless` or

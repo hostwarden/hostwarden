@@ -16,8 +16,7 @@ unprivileged, omit `-p`:
 ss -tuln
 ```
 
-Alpine has no `ss` unless `iproute2-ss` is installed. Use
-busybox `netstat`, which takes the same letters:
+Alpine, without `iproute2-ss`:
 
 ```bash
 netstat -tulnp 2>/dev/null

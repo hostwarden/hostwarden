@@ -58,8 +58,7 @@ and fight for the same role.
   starting, reloading or stopping that unit wipes
   ufw's or firewalld's rules. Raw `iptables` is a
   backend, not a member. On Alpine, awall is a
-  member, and nftables counts when a runlevel starts
-  it. FreeBSD's pf and ipfw are in base, no frontend
+  member. FreeBSD's pf and ipfw are in base, no frontend
   packages compete.
 - **Container runtime:** docker.io, docker-ce,
   moby-engine, podman, containerd.io
@@ -235,7 +234,6 @@ zypper --non-interactive install --dry-run <pkg>
 apk update -q && apk add --simulate <pkg>
 ```
 
-A simulation does not refresh the index itself.
 Each `Installing <package> (<version>)` line is one
 package of the plan.
 

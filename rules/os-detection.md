@@ -89,9 +89,8 @@ skill says so where it needs it.
    - **Linux:** the os-release `ID` and `ID_LIKE`
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
-     variants → `suse`; `alpine`, or `ID_LIKE`
-     containing `alpine` → `alpine`); the version from
-     `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
+     variants → `suse`; `alpine` → `alpine`); the
+     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
      `ID=alpine` inside a Home Assistant app container,
      have no family: see Appliances below. If no family
      file matches (e.g. Arch, Gentoo), tell the user,
