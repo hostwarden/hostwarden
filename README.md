@@ -121,7 +121,8 @@ So, once, **before cloning**:
    git config --global core.symlinks true
    ```
 3. Tell Git Bash to link rather than copy, and to fail
-   loudly when it cannot — add this to `~/.bashrc`:
+   loudly when it cannot — add this to `~/.bashrc`, then
+   open a new Git Bash (one already open has not read it):
    ```
    export MSYS=winsymlinks:nativestrict
    ```
