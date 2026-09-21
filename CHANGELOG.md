@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **The authoring conventions reach the files they
+  govern.** Editing anything under `rules/` or
+  `.agents/skills/` names
+  `.claude/rules/instruction-authoring.md` once per
+  session. A `paths` glob could not do this: it fires on
+  a read, and reading a rule to follow it on a server
+  looks the same as reading it to change it.
+- **The checked corpus is what git would carry.** A new
+  instruction file is covered by the guard matrix and
+  the layout test the moment it exists, staged or not,
+  while everything a user generates stays out because
+  it is gitignored. The shipped templates under
+  `memory/` are scanned too, and `settings.json` is
+  checked for a hook whose script has been renamed
+  away.
+- **The guard fixture matrix runs in parallel** — 54
+  seconds down to 25 on a 12-core machine, same
+  fixtures, and a fixture that comes back without a
+  verdict fails the run instead of going uncounted. A
+  pre-commit check nobody waits for is a pre-commit
+  check nobody runs.
+
 - **A `references/` pointer resolves inside its own
   skill.** The fleet audit and the housekeeping baseline
   both sent a reader to
@@ -58,9 +80,13 @@
   than assumed, so it runs the first-connection pipeline
   like any other session and cannot change a
   configuration. Parallelism is across different hosts
-  only, because rate limits count per host. Without
-  subagents the skill probes one host after another and
-  produces the same tables.
+  only, because rate limits count per host. The probe
+  also returns what its criteria say is wrong with its
+  own host, so a fleet that agrees on a pending reboot
+  or on legacy iptables rules is reported with the
+  warning rather than as consistent. Without subagents
+  the skill probes one host after another and produces
+  the same tables.
 
 - **Taking over heinzel is two mechanisms.** The
   `hostwarden-adopt` skill is asked for by name —
@@ -106,8 +132,8 @@
   that works on production servers may have.
 
 - **`AGENTS.md` keeps the trigger, the file keeps the
-  procedure.** It is down from 668 lines to 316, and
-  from 3356 words to under 2000, because a moment and
+  procedure.** It is down from 668 lines to 337, and
+  from 3356 words to about 2250, because a moment and
   the file that covers it is one line — not a
   paragraph that restates what the file already says.
   Nothing that has to fire unasked left: the taboos,
@@ -138,8 +164,8 @@
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the
   heinzel porting trailer, scoped to `VERSION`,
-  `CHANGELOG.md` and `.github/`, so a sysadmin session
-  never pays for them.
+  `CHANGELOG.md`, `.github/` and the hooks, so a
+  sysadmin session never pays for them.
 
 - **The OS-family files sit in `rules/os/`.** They
   are reference data, not rules: nothing about a
@@ -192,7 +218,7 @@
   a skill.** `hostwarden-os-install` carries OS
   replacement, dual-boot, EFI boot management, cloud
   images and partition staging behind one trigger, so
-  2452 lines of instruction load when someone asks
+  2600 lines of instruction load when someone asks
   for that work and not before. The destructive-work
   gate — explicit request, understood loss, verified
   backup, guard disabled by the operator — is stated

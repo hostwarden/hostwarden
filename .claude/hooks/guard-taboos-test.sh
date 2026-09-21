@@ -24,10 +24,9 @@ print(json.dumps({"tool_name":"Bash","tool_input":\
   fi
 }
 
-check() {
-  EXPECT=$1
-  CMDSTR=$2
-  OUT=$(json_for "$CMDSTR" \
+verdict() {
+  # verdict <expect> <command> — one fixture, one line of output.
+  OUT=$(json_for "$2" \
     | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
@@ -35,12 +34,38 @@ check() {
   else
     GOT=pass
   fi
-  if [ "$GOT" = "$EXPECT" ]; then
-    PASS=$((PASS + 1))
+  if [ "$GOT" = "$1" ]; then
+    echo ok
   else
-    FAIL=$((FAIL + 1))
-    echo "FAIL [$EXPECT, got $GOT]: $CMDSTR"
+    echo "FAIL [$1, got $GOT]: $2"
   fi
+}
+
+# Child of the parallel drain at the bottom. Everything it needs
+# is defined above; it must exit before the fixtures below, or
+# each of the hundreds of children would queue the whole matrix
+# again.
+if [ "$1" = "--verdict" ]; then
+  verdict "$2" "$3"
+  exit 0
+fi
+
+SELF="$CLAUDE_DIR/hooks/$(basename "$0")"
+QUEUE=$(mktemp)
+trap 'rm -f "$QUEUE"' EXIT INT TERM
+NCHECKS=0
+# One core is the floor, not the default: a machine that will not
+# say how many it has still runs the matrix, just no faster.
+JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+
+check() {
+  # Queued, not run. Every fixture is an independent invocation of
+  # the guard costing ~80 ms, and nothing in one depends on
+  # another, so running them one after the other spent ~55 s to
+  # learn what ~13 s answers. A check that slow is a check people
+  # stop running before they commit.
+  printf '%s\0%s\0' "$1" "$2" >> "$QUEUE"
+  NCHECKS=$((NCHECKS + 1))
 }
 
 # --- must block ------------------------------------------------
@@ -767,6 +792,34 @@ if grep -o '"command": *"[^"]*\.sh' "$SETTINGS" \
     '$CLAUDE_PROJECT_DIR (relative path fails open after cd)'
 else
   PASS=$((PASS + 1))
+fi
+
+# --- drain the queued fixtures ---------------------------------
+# Failures are sorted rather than printed as they land, so two
+# runs of the same broken tree read the same.
+if [ "$NCHECKS" -gt 0 ]; then
+  RESULT=$(xargs -0 -n2 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  XSTATUS=$?
+  NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
+  NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)
+  PASS=$((PASS + NOK))
+  BADS=$(printf '%s\n' "$RESULT" | grep -v '^ok$' | grep . \
+    | LC_ALL=C sort || true)
+  if [ -n "$BADS" ]; then
+    printf '%s\n' "$BADS"
+    FAIL=$((FAIL + $(printf '%s\n' "$BADS" | wc -l)))
+  fi
+  # Every queued fixture has to come back with a line. A child
+  # that dies before it prints one -- a failed spawn, an OOM kill
+  # -- leaves a fixture unjudged, and a matrix that ran in part
+  # is not a matrix that passed: that is how a taboo stops being
+  # blocked without anything saying so.
+  if [ "$XSTATUS" -ne 0 ] || [ "$NGOT" -ne "$NCHECKS" ]; then
+    FAIL=$((FAIL + 1))
+    echo "FAIL: the parallel drain returned $NGOT verdicts for" \
+      "$NCHECKS fixtures (xargs exit $XSTATUS) -- the matrix did" \
+      "not run in full, which is not the same as it passing"
+  fi
 fi
 
 echo "guard-taboos tests: $PASS passed, $FAIL failed"

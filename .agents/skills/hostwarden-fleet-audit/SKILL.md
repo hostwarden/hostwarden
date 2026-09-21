@@ -64,11 +64,8 @@ servers" — that maps to single-host housekeeping.
    "skipped: no SSH user known" list (do not prompt — just
    report).
 
-3. **Probe each host.** Run the probes from
-   `references/probes.md`, bundled into as few SSH calls as
-   the host allows, with the standard options from
-   `AGENTS.md` → SSH Options. Hosts that time out or refuse
-   the connection go on a "skipped: unreachable" list.
+3. **Probe each host.** Hosts that time out or refuse the
+   connection go on a "skipped: unreachable" list.
 
    **In Claude Code, give each host its own subagent.**
    Dispatch one `hostwarden-host-probe` per host, in a
@@ -82,7 +79,11 @@ servers" — that maps to single-host housekeeping.
 
    - the hostname and the SSH user;
    - which probe categories to run, and the journal line
-     from step 6;
+     from step 6. Not the probe commands: the agent reads
+     `references/probes.md` itself, and a fleet of a dozen
+     hosts would otherwise carry the same 8 KB thirteen
+     times — once here and once per prompt — for commands
+     this session never runs;
    - **the keys its row must come back with** — name them,
      one per probe category, using the row keys
      `references/probes.md` lists. Agents that are each
@@ -119,19 +120,35 @@ servers" — that maps to single-host housekeeping.
    sequence.
 
    Elsewhere, and whenever a host needs a decision the
-   agent cannot make alone, do the same probing here, one
-   host after another. The tables come out identical; only
-   the wall-clock and the context cost differ.
+   agent cannot make alone, read `references/probes.md`
+   here and do the same probing one host after another,
+   bundled into as few SSH calls as the host allows, with
+   the standard options from `AGENTS.md` → SSH Options. The
+   tables come out identical; only the wall-clock and the
+   context cost differ.
 
 4. **Render comparison.** Build one table per probe category
    using the format in `references/output-format.md`. Hosts
    are columns, settings are rows. Cells that differ across
    columns get visual emphasis.
 
-5. **Surface drift.** After the tables, emit a short "Drift
-   detected" section that lists each disagreement and the
-   recommended fix (link to the relevant rule or skill). Do
-   not change anything.
+5. **Surface drift, then warnings.** After the tables, emit a
+   short "Drift detected" section that lists each disagreement
+   and the recommended fix (link to the relevant rule or skill).
+   Then a "Warnings" section carrying every `warnings:` line the
+   probes returned, grouped by host.
+
+   The two sections answer different questions and neither
+   covers the other. Drift is a comparison, and a fleet where
+   every host has the same pending reboot or the same legacy
+   iptables rules has none — the criteria that catch those judge
+   one host at a time, they live in `references/probes.md`, and
+   this session does not read that file. So a warning reaches
+   the report only because the probe returned it. Never fold
+   them into "Drift detected" and never let an empty drift
+   section stand for an empty report.
+
+   Do not change anything.
 
 6. **Log to the system journal** on each audited host:
 

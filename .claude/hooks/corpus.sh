@@ -14,38 +14,51 @@
 #   CORPUS_ROOT   — the repository root, so a path printed in a
 #                   failure reads the way a reader would write it
 #   corpus_files  — prints every file in the corpus, one per line
-#   CORPUS_EXEMPT — what is deliberately outside it, so that
-#                   instructions-test.sh can fail on anything
-#                   that is in neither list
 #
-# A path that does not exist yet is dropped rather than passed
-# to find, which fails on a missing argument and would take the
-# whole matrix down with it.
+# The corpus is what the repository ships, which is what git
+# would carry: tracked files, plus files that are new and not
+# ignored. Everything a user generates — server memory, their own
+# overrides — is gitignored by construction, so it cannot wander
+# in. Naming the directories instead meant a new one was outside
+# every scan until somebody remembered to add it, and nothing
+# failed while it was. This way a new file is covered the moment
+# it exists, which is the moment its author runs the tests, and
+# the list below is only what is genuinely not instruction text.
 
 CORPUS_ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 
-# Held as positional parameters inside corpus_files rather than
-# a space-joined string: a checkout under a path with a space in
-# it would otherwise split into arguments find cannot resolve,
-# and every scan would silently cover nothing.
-CORPUS_PATHS=".agents rules contrib .github
-.claude/rules .claude/agents .claude/hooks
-AGENTS.md CLAUDE.md README.md CHANGELOG.md"
+# Binaries awk and grep cannot read, machine-read files that carry
+# no prose, and `.claude/skills`, which is the symlink to
+# `.agents/skills` and would scan that tree a second time.
+#
+# Anchored at the start of a repo-relative path, so a directory
+# here takes its contents with it.
+CORPUS_EXEMPT_RE='^(assets/|\.claude/skills$|\.claude/settings\.json$|\.gitattributes$|\.gitignore$|LICENSE$|VERSION$)'
 
 corpus_files() {
-  set --
-  for _p in $CORPUS_PATHS; do
-    [ -e "$CORPUS_ROOT/$_p" ] && set -- "$@" "$CORPUS_ROOT/$_p"
-  done
-  [ "$#" -gt 0 ] || return 0
-  find "$@" -type f 2>/dev/null
+  # A tree without git is a tree this cannot describe, and a
+  # silently empty corpus is the failure both callers exist to
+  # rule out — so say so and return nothing rather than pretend.
+  if ! git -C "$CORPUS_ROOT" rev-parse --git-dir >/dev/null 2>&1
+  then
+    echo "corpus.sh: $CORPUS_ROOT is not a git checkout," \
+      "so the instruction corpus cannot be listed" >&2
+    return 1
+  fi
+  # --others --exclude-standard adds the files that are new and
+  # not ignored: an instruction written this session is what the
+  # author is about to run the tests over, and a scan that sees
+  # it only once it is staged passes the one file nobody has
+  # checked yet.
+  #
+  # quotePath=false so a non-ASCII name arrives as itself rather
+  # than as git's \nnn escaping, and the root is prefixed through
+  # ENVIRON rather than a sed replacement, where a checkout path
+  # containing & or # would be read as syntax and every path the
+  # scan produced would name a file that does not exist.
+  git -C "$CORPUS_ROOT" -c core.quotePath=false ls-files \
+    --cached --others --exclude-standard \
+    | grep -vE "$CORPUS_EXEMPT_RE" \
+    | CORPUS_ROOT="$CORPUS_ROOT" awk \
+      '{ print ENVIRON["CORPUS_ROOT"] "/" $0 }'
 }
-
-# Carries no instruction text, so nothing here has to survive the
-# taboo guard. `.claude/skills` is the symlink to `.agents/skills`
-# and would scan that tree a second time. A path that appears in
-# neither list is a new directory nobody decided about, which is
-# how a scan silently stops covering something.
-CORPUS_EXEMPT=".claude/settings.json .claude/skills
-assets bin memory
-.gitattributes .gitignore LICENSE VERSION"

@@ -50,6 +50,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/authoring-conventions.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

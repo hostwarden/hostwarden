@@ -75,33 +75,25 @@ report() {
 
 
 
-# --- the corpus still covers the tree --------------------------
-# A path that falls out of CORPUS_PATHS does not fail anything on
-# its own: the scans simply stop reaching it and keep reporting
-# success, which is indistinguishable from there being nothing
-# wrong. So every tracked entry at the repository root and under
-# .claude/ has to be named by one list or the other.
-COVERED=0
-# Both lists span several lines; flatten them so a name at the
-# start of a line is still surrounded by spaces to match against.
-KNOWN=" $(printf '%s %s' "$CORPUS_PATHS" "$CORPUS_EXEMPT" \
-  | tr '\n' ' ') "
-# From the index, not from HEAD: this file tells you to run it
-# before committing, and a newly staged directory is invisible to
-# a tree-ish. Cut to the first path segment, and to two under
-# .claude/, to get the same entries a directory listing would.
-for e in $(git -C "$ROOT" ls-files \
-             | sed -E 's#^(\.claude/[^/]+|[^/]+).*#\1#' \
-             | LC_ALL=C sort -u); do
-  case "$KNOWN" in
-    *" $e "*) continue ;;
-  esac
-  [ "$e" = ".claude" ] && continue
-  bad "$e is in neither CORPUS_PATHS nor CORPUS_EXEMPT --" \
-      "decide whether the instruction scans should read it"
-  COVERED=1
+# --- every registered hook script exists -----------------------
+# A hook whose script is missing fails open: Claude Code carries
+# on, and the only sign is the thing the hook would have done not
+# happening. That is the taboo guard as much as anything else, so
+# a rename that misses settings.json has to fail here.
+NHOOKS=0
+for h in $(sed -n 's#.*\$CLAUDE_PROJECT_DIR/\([^"]*\.sh\).*#\1#p' \
+    "$CLAUDE_DIR/settings.json"); do
+  NHOOKS=$((NHOOKS + 1))
+  if [ -f "$ROOT/$h" ]; then
+    ok
+  else
+    bad "settings.json registers $h, which does not exist"
+  fi
 done
-[ "$COVERED" -eq 0 ] && ok
+if [ "$NHOOKS" -eq 0 ]; then
+  bad "settings.json registers no hook script -- either the" \
+      "guard is gone or this check stopped matching"
+fi
 
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other
