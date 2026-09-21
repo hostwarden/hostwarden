@@ -176,13 +176,15 @@ ufw status verbose
 ```
 
 A runlevel that lists `nftables` means nftables; one that lists
-`iptables` with policies in `/etc/awall/` means awall. Judge
-default deny for either with
-`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
-The nftables service loads the rules and exits, so `rc-status` may
-not show it as running: the runlevel entry and the ruleset count.
-No manager in a runlevel and ufw inactive → **CRITICAL** "No
-active firewall".
+`iptables` means awall when `/etc/awall/` holds policies, and saved
+iptables rules otherwise. Judge default deny for nftables with
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`,
+for iptables as root with `iptables -S INPUT` and
+`ip6tables -S INPUT` (`-P INPUT DROP`, or a final `DROP` or
+`REJECT` rule). The nftables service loads the rules and exits, so
+`rc-status` may not show it as running: the runlevel entry and the
+ruleset count. Neither service in a runlevel and ufw inactive →
+**CRITICAL** "No active firewall".
 
 ## Automatic Security Updates
 
@@ -251,10 +253,10 @@ Kernel messages: `dmesg`.
 
 Hostwarden's journal entries (`rules/changelog.md`) are read back
 from there, both tags (`rules/activity-check.md`), in one call
-that also names the syslog daemon in the runlevel:
+that also shows whether a syslog daemon runs:
 
 ```
-rc-status boot | grep -E "syslog|rsyslog"
+rc-status -a | grep syslog
 if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
 then logread | grep -E "hostwarden|heinzel" | tail -20
 elif [ -r /var/log/messages ]; then
@@ -271,8 +273,8 @@ check could not see the log.
 
 **`logger` succeeds even when nothing is listening.** Busybox
 `logger` exits 0 whether or not a syslog daemon runs, and the
-entry is lost. When the first line shows no started syslog
-daemon, log to the local changelog only and tell the user.
+entry is lost. When no `rc-status` line shows a syslog daemon as
+`started`, log to the local changelog only and tell the user.
 
 ## Directory Conventions
 
@@ -307,7 +309,8 @@ Verify with `<command> --help` before using a GNU flag
 (`AGENTS.md` → Verify Before Running). Differences that break
 common checks:
 
-- `df` has no `--output` or `-x`: use `df -h` and filter.
+- `df` has no `--output` or `-x`: use `df -Ph` and filter; without
+  `-P`, a long device name wraps onto its own line.
 - `uptime` takes no options, so no `uptime -s`.
 - `grep` has no `-P`.
 - `date -d` does not parse the `notAfter` format `openssl`

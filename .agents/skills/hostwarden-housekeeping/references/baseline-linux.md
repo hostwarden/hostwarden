@@ -30,7 +30,7 @@ df -h --output=target,pcent,size,used,avail \
 **Alpine:**
 
 ```bash
-df -h | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
+df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ```
 
 - **WARN** if any filesystem > 85% used
@@ -283,8 +283,9 @@ systemctl --failed --no-pager --no-legend
 
 **Alpine:** from the `rc-status` output of the first call.
 `rc-status --crashed` exits non-zero when nothing crashed; a
-service in a runlevel shown as `stopped` was enabled but is not
-running.
+service in the `sysinit`, `boot` or `default` runlevel shown as
+`stopped` was enabled but is not running. Services of the runlevel
+OpenRC enters to power down are stopped by design.
 
 - **WARN** for each failed unit, crashed service, or enabled
   service that is stopped — list them by name
@@ -303,7 +304,8 @@ so the `rc-status` output of the first call shows whether
 synchronised.
 
 - **WARN** if NTP is not synchronized, or on Alpine if no time
-  service runs
+  service runs — except in a container (`openrc --sys` prints
+  `LXC`), whose clock is the host's
 
 ## Log Anomalies
 
@@ -366,6 +368,7 @@ done
 
 ```bash
 for cert in /etc/letsencrypt/live/*/cert.pem; do
+  [ -r "$cert" ] || { echo "$cert: not readable"; continue; }
   domain=$(basename "$(dirname "$cert")")
   openssl x509 -checkend 2592000 -noout -in "$cert" \
     >/dev/null && continue
