@@ -87,6 +87,9 @@ hostwarden session looks the same.
 - **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows.
+- **Local tools.** `bin/hostwarden-doctor` lists
+  what hostwarden needs on your workstation, what is
+  missing, and the command to install it.
 
 ### Windows
 
@@ -1046,6 +1049,8 @@ bin/
   hostwarden-adopt        — Take over a heinzel checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
+  hostwarden-doctor       — Check the workstation for the tools
+                         hostwarden runs locally
 scripts/
   check.sh             — Everything CI checks, runnable locally
 .githooks/             — Opt-in: secret scan on commit, check.sh

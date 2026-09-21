@@ -2,15 +2,21 @@
 
 ## Unreleased
 
+- **`bin/hostwarden-doctor` says what your workstation is
+  missing**, and which feature each missing tool switches
+  off, with the install command for your package manager.
+  It runs quietly at session start, so the agent knows its
+  limits before it hits them, and never installs anything.
 - **The taboo guard no longer depends on bash.** Without
   bash the hook could not start, which Claude Code does not
   treat as a block, so the guard silently did not run. Every
   hook now starts with `sh`, and the layout test fails on
   one that does not.
-- **The update check names the real cause** when git is
-  missing or the checkout is not a clone, at session start
-  and in `bin/hostwarden-update --check`, instead of
-  reporting a detached HEAD.
+- **The update check names the real cause** when the
+  checkout is not a clone, and `bin/hostwarden-update`
+  also when git is missing, instead of reporting a detached
+  HEAD. At session start a missing git is the doctor's to
+  report.
 - **Email only counts `sendmail` or `msmtp` as a
   transport**, on the workstation and on the server. A host
   with only `mail` or `mailx` goes on to the install

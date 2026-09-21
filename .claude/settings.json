@@ -37,6 +37,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/bin/hostwarden-doctor\" --quiet",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PreToolUse": [
