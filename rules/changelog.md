@@ -126,11 +126,12 @@ Trim entries older than 2 years when writing.
 
 ## The Workspace
 
-As soon as the changes on a host are done and this changelog
-is written — the moment the session deregisters from the host
-(`rules/parallel-sessions.md`), not at a session end the agent
-rarely sees — commit the files this session wrote there, with
-the journal headline as the message:
+As soon as this session is done with a host and this
+changelog is written — for a session that changed it, the
+moment it deregisters (`rules/parallel-sessions.md`); for one
+that only read, once its visit is recorded — commit the files
+it wrote there, not at a session end the agent rarely sees,
+with the journal headline as the message:
 `bin/hostwarden-sync commit "<headline>" <paths>`. Which paths,
 and what to leave out: `rules/parallel-sessions.md` → The
 workspace. A session that changed nothing in `memory/` commits
