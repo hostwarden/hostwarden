@@ -69,7 +69,12 @@ four have to hold:
    design. The operator relaunches with `HOSTWARDEN_GUARD_DISABLE=1`
    in the environment; an inline assignment on the command line
    does not work and is itself blocked. Ask them to unset it again
-   when the work is done.
+   when the work is done. In the Claude Code desktop app there is
+   no shell to export it from: the operator adds it to the `env`
+   of `.claude/settings.local.json` by hand and starts a new
+   session, which then opens with a note that the guard is off
+   (README → Claude Code Desktop). Set mid-session it has no
+   effect, and writing it there yourself is blocked.
 
 Being blocked by the guard before step 4 is the expected outcome.
 Never rephrase a command to get past it.

@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- **Hostwarden runs in the Claude desktop app.** The
+  README has a section for the app's Code tab: open the
+  folder with the worktree option off, set environment
+  variables in `.claude/settings.local.json`, pick the
+  permission mode from the menu, and use the app's own
+  scheduled tasks where the CLI would use cron.
+- **A git worktree no longer hides the blacklist.**
+  `memory/` is gitignored, so a session in a linked
+  worktree — the desktop app can make that the default
+  — had no blacklist, no read-only list and no server
+  memory, and lost whatever it learned with the
+  worktree. Hostwarden now refuses to reach any machine
+  from one, and a session-start hook says so at once.
+- **The taboo guard can only be switched off before a
+  session starts.** The `env` key of a Claude Code
+  settings file reaches the guard mid-session, so a
+  write there could switch it off without any shell
+  command. The guard now honours the variable only for
+  a session that started with it, which a session-start
+  hook records; a new hook keeps the variable out of
+  settings files for the next session, and every session
+  that starts with the guard off opens with a note
+  saying so.
+
 - **`bin/hostwarden-doctor` says what your workstation is
   missing**, and which feature each missing tool switches
   off, with the install command for your package manager.
@@ -38,6 +62,7 @@
   files pinned so far. An
   `.editorconfig` carries the same settings and the
   80-column wrap into the editor.
+
 - **The authoring conventions reach the files they
   govern.** Editing anything under `rules/` or
   `.agents/skills/` names

@@ -120,14 +120,22 @@
 # HOSTWARDEN_GUARD_DISABLE=1 in the environment BEFORE launching
 # the session. An inline assignment inside a proposed command
 # does not count and is itself blocked, so the model cannot
-# disarm the guard.
-
-# Operator-level override: inherited environment only.
-if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
-  exit 0
-fi
+# disarm the guard. Nor can a value that reaches the environment
+# mid-session through a reloaded settings file: the variable counts
+# only when check-session.sh recorded at SessionStart that this
+# session started with it (~/.cache/hostwarden/guard-off-<id>).
 
 INPUT=$(cat)
+
+# Operator-level override: inherited at launch, and recorded then.
+if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
+  SID=$(printf '%s' "$INPUT" \
+    | sed -n 's/.*"session_id"[[:blank:]]*:[[:blank:]]*"\([A-Za-z0-9_-]*\)".*/\1/p' \
+    | head -1)
+  if [ -n "$SID" ] && [ -e "$HOME/.cache/hostwarden/guard-off-$SID" ]; then
+    exit 0
+  fi
+fi
 
 # Extract the Bash tool's command string. Without jq (or on
 # malformed input) fall back to scanning the raw stdin text —
