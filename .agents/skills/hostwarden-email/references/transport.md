@@ -74,23 +74,58 @@ the check can find a member the 5R.1 transport probe missed
 (e.g. an installed-but-stopped postfix), and a second MTA
 must never be added without explicit user approval.
 
-Install targets (OS-family defaults):
-- Debian/Ubuntu: `apt-get install -y msmtp-mta bsd-mailx`
-- RHEL/Fedora: `dnf install -y msmtp s-nail`
-- SUSE: `zypper install -y msmtp s-nail`
-- FreeBSD: `pkg install -y msmtp` (`mail(1)` is in base)
-- macOS as a managed target: do **not** install. Use
-  `/usr/bin/mail` if a working Postfix is already
-  configured; otherwise refuse cleanly and explain
-  (residential macOS rarely sends).
+**What to install — the requirement before the package.**
+This host will send unattended mail: cron output,
+unattended-upgrades, hostwarden's own reports. None of those
+senders retries. So whatever receives the mail has to hold it
+and retry itself, or a relay that is down for a minute loses
+the message with nobody to notice.
+
+**msmtp does not queue.** It connects when called and exits
+non-zero when the relay does not answer; the mail is gone. It
+is the right choice for a container or a host that is
+recreated rather than repaired, and the wrong one for a
+server that is expected to report about itself. Install it
+only when the user asks for it, or on such a host — and say
+what it costs when you do.
+
+So: **a spooling agent first.** Check what the host's package
+manager actually offers before choosing — availability
+differs by distribution and release, and a name that works on
+Debian may need an extra repository elsewhere, which is a
+bigger change than the mail is worth
+(`rules/best-practices.md`):
+
+1. `nullmailer` — relay-only by design, a spool with
+   exponential backoff and a `failed` queue. The smallest
+   thing that satisfies the requirement.
+2. `dma` — same shape, where nullmailer is not packaged.
+3. `postfix` as a null client — heavier, but in the base
+   repository nearly everywhere, so it is often the one that
+   needs no third-party repo at all.
+
+Pair it with a `mail(1)`: `bsd-mailx` on Debian/Ubuntu,
+`s-nail` on RHEL and SUSE, base on FreeBSD.
+
+Tell the user which one you picked and why that one, in a
+line — "nullmailer, because apt has it and the queue means a
+relay outage does not drop a report".
+
+macOS as a managed target: do **not** install. Use
+`/usr/bin/mail` if a working Postfix is already configured;
+otherwise refuse cleanly and explain (residential macOS
+rarely sends).
 
 Before installing, surface the deliverability caveat: the
 server's IP probably has no PTR/SPF/DKIM, so mail to
 gmail-style providers will likely be filtered. Recommend a
-smarthost relay (msmtp config) if the user has one. If a
-smarthost is configured during install, follow
-`rules/backups.md` (back up `/etc/msmtprc` before edits) and
-store credentials with `0600 root:root`.
+smarthost relay if the user has one — every agent above
+takes one (`/etc/nullmailer/remotes`,
+`/etc/dma/auth.conf`, postfix's `relayhost`,
+`/etc/msmtprc`). If a smarthost is configured during
+install, follow `rules/backups.md` and back up that file
+before editing it, and store the credentials `0600
+root:root`.
 
 **5R.4 Pick the sender identity — least privilege.** Sending
 mail almost never needs root. Choose the UID for the send,
@@ -107,7 +142,7 @@ in this order:
    - `id <user>` to verify the account exists on the host.
    - `su - <user> -c 'command -v <transport>'` to verify the
      account can invoke the chosen transport. If group perms
-     on `/etc/msmtprc` block it, fall to case 3.
+     on its credentials file block it, fall to case 3.
    - Drop privileges for the send only:
      `runuser -u <user> -- sh -c '…'` (Linux util-linux) or
      `su - <user> -c '…'` (portable, FreeBSD).

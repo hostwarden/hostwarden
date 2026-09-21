@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **An MTA hostwarden installs queues the mail.** The
+  default was `msmtp`, which has no queue: it connects
+  when called and exits non-zero when the relay does not
+  answer. Nothing that sends unattended mail on a server
+  — cron, unattended-upgrades, hostwarden's own reports —
+  retries, so a relay down for a minute lost the message
+  with nobody to notice. The install now picks a spooling
+  agent from what the host's package manager offers
+  (`nullmailer`, `dma`, or postfix as a null client), and
+  says which and why. `msmtp` stays the right answer for
+  a container or a host that gets recreated rather than
+  repaired, and is installed when asked for — with what
+  it costs said out loud.
+
 - **Asking for an email no longer loads the whole mail
   stack.** "Mail me the housekeeping report" used to pull
   in MIME construction, attachment gates and both

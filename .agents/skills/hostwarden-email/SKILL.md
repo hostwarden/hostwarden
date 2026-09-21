@@ -138,7 +138,7 @@ absence means "ask next time".
 - Mail: <transport summary>          # remote path only
                                      # e.g. "postfix + bsd-mailx
                                      #       (outbound via the provider MX)"
-                                     # or  "msmtp via smtp.example.com:587"
+                                     # or  "nullmailer via smtp.example.com:587"
 - Alert email: <recipient address>
 - Email source: local | remote       # gate 0 — sender side
 - Email sender: <username>           # remote path only — non-root user
@@ -177,6 +177,6 @@ them. Beyond those:
 - `rules/service-class-check.md` — mandatory conflict check
   before installing an MTA (gate B).
 - `rules/backups.md` — config backup before any edit (e.g.
-  `/etc/msmtprc`).
+  the smarthost credentials file).
 - `rules/secrets.md` — secrets hygiene; default-refuse
   attachment gate for likely-secret files.
