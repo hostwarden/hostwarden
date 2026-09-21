@@ -75,9 +75,10 @@ the target before relying on them.
 ```bash
 apt-get update -qq 2>/dev/null
 
+inst=$(apt-get --just-print upgrade 2>/dev/null | grep "^Inst")
+
 # Total pending upgrades.
-apt-get --just-print upgrade 2>/dev/null \
-  | grep -c "^Inst"
+printf '%s\n' "$inst" | grep -c .
 
 # Security-only subset: filter the Inst lines for
 # security origins (Debian-Security on older
@@ -85,9 +86,7 @@ apt-get --just-print upgrade 2>/dev/null \
 # <codename>-security on Ubuntu, and the ESM
 # pockets <codename>-apps-security and
 # <codename>-infra-security once Pro is attached).
-apt-get --just-print upgrade 2>/dev/null \
-  | grep "^Inst" \
-  | grep -ciE "debian-security|[a-z]+-security"
+printf '%s\n' "$inst" | grep -ciE "debian-security|[a-z]+-security"
 ```
 
 **Ubuntu:** fixes that apt cannot see because they wait
