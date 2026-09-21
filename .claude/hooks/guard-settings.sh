@@ -40,9 +40,12 @@ INPUT=$(cat)
 V=HOSTWARDEN_GUARD_DISABLE
 
 # Nearly every call names neither the variable nor a settings file;
-# one case, no fork.
+# one case, no fork. Settings names match in any letter case: the
+# default filesystems of macOS and Windows resolve SETTINGS.JSON to
+# the same file.
 case "$INPUT" in
-  *"$V"*|*settings.json*|*settings.local.json*) ;;
+  *"$V"*|*[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss].[Jj][Ss][Oo][Nn]*) ;;
+  *[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss].[Ll][Oo][Cc][Aa][Ll].[Jj][Ss][Oo][Nn]*) ;;
   *) exit 0 ;;
 esac
 
@@ -86,10 +89,10 @@ any_holds_var() {
   US=$(printf '\037')
   {
     printf '%s\n' "$1" \
-      | grep -oE "'[^']*($SETTINGS_RE)'|\"[^\"]*($SETTINGS_RE)\"" \
+      | grep -oiE "'[^']*($SETTINGS_RE)'|\"[^\"]*($SETTINGS_RE)\"" \
       | sed "s/^['\"]//; s/['\"]\$//"
     printf '%s\n' "$1" | sed "s/\\\\ /$US/g" \
-      | grep -oE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
+      | grep -oiE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
       | sed "s/$US/ /g"
   } | while IFS= read -r f; do
         case "$f" in \~/*) f="$HOME/${f#\~/}" ;; esac
@@ -140,7 +143,7 @@ result_holds_var() {
 }
 
 if [ -z "$TOOL" ]; then
-  printf '%s' "$INPUT" | grep -Eq "$SETTINGS_RE" || exit 0
+  printf '%s' "$INPUT" | grep -Eiq "$SETTINGS_RE" || exit 0
   case "$INPUT" in *"$V"*) deny ;; esac
   any_holds_var "$INPUT" && deny
   exit 0
@@ -148,11 +151,11 @@ fi
 
 case "$TOOL" in
   Bash)
-    printf '%s' "$NEW" | grep -Eq "$SETTINGS_RE" || exit 0
+    printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
     any_holds_var "$NEW" && deny ;;
   *)
-    printf '%s' "${FILE##*/}" | grep -Eqx "$SETTINGS_RE" || exit 0
+    printf '%s' "${FILE##*/}" | grep -Eiqx "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
     # Already set: only an edit that leaves the file without it
     # may pass. A Write's whole new content was checked above.

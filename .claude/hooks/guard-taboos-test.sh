@@ -788,6 +788,8 @@ settings_case deny 'Write while the guard is already off' \
   "$V=1"
 settings_case pass 'Edit that removes it again' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/settings.local.json","old_string":"\"'"$V"'\": \"1\"","new_string":""}}'
+settings_case deny 'Write to the settings file in upper case' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/SETTINGS.LOCAL.JSON","content":"'"$V"'"}}'
 settings_case pass 'README naming it' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/README.md","old_string":"a","new_string":"'"$V"'"}}'
 settings_case pass 'settings file without it' \
@@ -843,6 +845,9 @@ settings_case deny 'Bash: quoted managed path with a space' \
 settings_case deny 'Bash: managed path with an escaped space' \
   "$(json_for "sed -i 's/0/1/' $(printf '%s' "$SET/App Support" | sed 's/ /\\ /g')/managed-settings.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none"
+settings_case deny 'Bash: upper-case settings path with the key' \
+  "$(json_for "sed -i 's/0/1/' .claude/SETTINGS.LOCAL.JSON")" \
+  "CLAUDE_PROJECT_DIR=$SET"
 settings_case pass 'Bash: sed on settings without the key' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none"
