@@ -823,6 +823,11 @@ settings_case deny 'Edit flipping the key while removing another mention' \
 settings_case deny 'MultiEdit: a removal beside a value flip' \
   '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","edits":[{"old_string":",\"note\":\"'"$V"'\"","new_string":""},{"old_string":"\"0\"","new_string":"\"1\""}]}}'
 rm -f "$SET/.claude/settings.json"
+# The name put together across two edits of a file without it.
+printf '{"env":{"A":"1"}}\n' > "$SET/.claude/settings.json"
+settings_case deny 'MultiEdit: the name assembled across edits' \
+  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","edits":[{"old_string":"\"A\"","new_string":"\"HOSTWARDEN_X\""},{"old_string":"X","new_string":"GUARD_DISABLE"}]}}'
+rm -f "$SET/.claude/settings.json"
 settings_case pass 'MultiEdit: every edit a removal' \
   '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"\"'"$V"'\": \"0\"","new_string":""}]}}'
 settings_case pass 'Edit taking the existing key out' \
@@ -847,6 +852,9 @@ settings_case deny 'Bash: managed path with an escaped space' \
   "CLAUDE_PROJECT_DIR=$SET/none"
 settings_case deny 'Bash: upper-case settings path with the key' \
   "$(json_for "sed -i 's/0/1/' .claude/SETTINGS.LOCAL.JSON")" \
+  "CLAUDE_PROJECT_DIR=$SET"
+settings_case deny 'Bash: a glob over the settings while the key exists' \
+  "$(json_for "sed -i 's/0/1/' .claude/s*.json")" \
   "CLAUDE_PROJECT_DIR=$SET"
 settings_case pass 'Bash: sed on settings without the key' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \

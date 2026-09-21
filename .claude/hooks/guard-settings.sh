@@ -16,9 +16,11 @@
 #   - a Bash command that names both the variable and a settings
 #     file. That cannot tell a read from a write, so a grep of the
 #     two together is denied too; grep one of them at a time.
-#   - while a settings file already carries the variable: an Edit
-#     of that file that does not take it out, and any Bash command
-#     that names a settings file. Either could flip the value
+#   - an Edit or MultiEdit of a settings file whose result, replayed
+#     on the current content, still names the variable.
+#   - while a settings file already carries the variable, any Bash
+#     command that could reach one — naming `settings`, `.claude` or
+#     a managed directory, a glob included. It could flip the value
 #     without naming the variable at all.
 #
 # The operator sets it by hand in an editor, which reaches no hook.
@@ -39,13 +41,15 @@ INPUT=$(cat)
 
 V=HOSTWARDEN_GUARD_DISABLE
 
-# Nearly every call names neither the variable nor a settings file;
-# one case, no fork. Settings names match in any letter case: the
-# default filesystems of macOS and Windows resolve SETTINGS.JSON to
-# the same file.
+# Nearly every call names neither the variable nor anything that
+# can reach a settings file; one case, no fork. Loose on purpose: a
+# glob such as .claude/settings*.json names no file, so `settings`,
+# `.claude` and Claude Code's managed directories count on their
+# own, in any letter case — the default filesystems of macOS and
+# Windows resolve SETTINGS.JSON to the same file.
 case "$INPUT" in
-  *"$V"*|*[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss].[Jj][Ss][Oo][Nn]*) ;;
-  *[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss].[Ll][Oo][Cc][Aa][Ll].[Jj][Ss][Oo][Nn]*) ;;
+  *"$V"*|*[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss]*|*.[Cc][Ll][Aa][Uu][Dd][Ee]*) ;;
+  *[Cc][Ll][Aa][Uu][Dd][Ee]-[Cc][Oo][Dd][Ee]*|*[Cc]laude[Cc]ode*) ;;
   *) exit 0 ;;
 esac
 
@@ -63,6 +67,9 @@ deny() {
 }
 
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
+# What a shell command can reach a settings file through, a glob
+# included.
+REACH_RE='settings|\.claude|claude-?code'
 
 # holds_var <file> — the file already carries the variable. Then a
 # change that does not name it can still flip its value ("0" to
@@ -151,19 +158,23 @@ fi
 
 case "$TOOL" in
   Bash)
-    printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" || exit 0
-    case "$NEW" in *"$V"*) deny ;; esac
+    printf '%s' "$NEW" | grep -Eiq "$REACH_RE" || exit 0
+    case "$NEW" in *"$V"*)
+      printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" && deny ;;
+    esac
     any_holds_var "$NEW" && deny ;;
   *)
     printf '%s' "${FILE##*/}" | grep -Eiqx "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
-    # Already set: only an edit that leaves the file without it
-    # may pass. A Write's whole new content was checked above.
-    if holds_var "$FILE"; then
-      case "$TOOL" in
-        Write) ;;
-        *) result_holds_var && deny ;;
-      esac
-    fi ;;
+    # Every Edit and MultiEdit is replayed on the current file: the
+    # result may name the variable although no single new_string
+    # does (one edit writes half the name, the next the rest), or
+    # flip a value without naming it at all. A Write's whole new
+    # content was checked above, and an Edit of a file that does
+    # not exist fails in the tool itself.
+    case "$TOOL" in
+      Write) ;;
+      *) [ -f "$FILE" ] && result_holds_var && deny ;;
+    esac ;;
 esac
 exit 0
