@@ -811,45 +811,36 @@ settings_case deny 'no jq: Write settings.local.json' \
 rm -rf "$NOJQ"
 
 # --- check-session.sh: worktree and guard-off notices ----------
-# Silent in an ordinary checkout, loud in a linked worktree, and
-# loud whenever the guard is off.
+# The hook only reads .git, so hand-written ones cover every case:
+# a checkout (a directory), a linked worktree with an absolute and
+# with a relative gitdir, and a submodule, which is not one.
 CSESSION="$CLAUDE_DIR/hooks/check-session.sh"
-if command -v git >/dev/null 2>&1; then
-  REPO=$(mktemp -d)
-  mkdir -p "$REPO/main/.claude/hooks"
-  cp "$CSESSION" "$REPO/main/.claude/hooks/"
-  (
-    cd "$REPO/main" && git init -q && git add -A &&
-      git -c user.name=t -c user.email=t@example.com \
-        commit -qm t && git worktree add -q "$REPO/wt" 2>/dev/null
-  )
-  session_out() {
-    env -u HOSTWARDEN_GUARD_DISABLE ${2:+"$2"} \
-      sh "$REPO/$1/.claude/hooks/check-session.sh"
-  }
-  expect "check-session.sh spoke in an ordinary checkout" \
-    [ -z "$(session_out main)" ]
-  expect "check-session.sh missed a linked worktree" \
-    sh -c 'printf "%s" "$1" | grep -q "linked git worktree"' _ \
-    "$(session_out wt)"
-  # A submodule's .git file is not a worktree; a relative gitdir
-  # (worktree.useRelativePaths) still names the main checkout.
-  for d in sub rel; do
-    mkdir -p "$REPO/$d/.claude/hooks"
-    cp "$CSESSION" "$REPO/$d/.claude/hooks/"
-  done
-  printf 'gitdir: ../.git/modules/sub\n' > "$REPO/sub/.git"
-  printf 'gitdir: ../main/.git/worktrees/wt\n' > "$REPO/rel/.git"
-  expect "check-session.sh took a submodule for a worktree" \
-    [ -z "$(session_out sub)" ]
-  expect "check-session.sh did not resolve a relative gitdir" \
-    sh -c 'printf "%s" "$1" | grep -qF "$2"' _ \
-    "$(session_out rel)" "$REPO/main."
-  expect "check-session.sh did not report the guard as off" \
-    sh -c 'printf "%s" "$1" | grep -q "taboo guard is OFF"' _ \
-    "$(session_out main "$V=1")"
-  rm -rf "$REPO"
-fi
+REPO=$(mktemp -d)
+for d in main wt rel sub; do
+  mkdir -p "$REPO/$d/.claude/hooks"
+  cp "$CSESSION" "$REPO/$d/.claude/hooks/"
+done
+mkdir "$REPO/main/.git"
+printf 'gitdir: %s/main/.git/worktrees/wt\n' "$REPO" > "$REPO/wt/.git"
+printf 'gitdir: ../main/.git/worktrees/rel\n' > "$REPO/rel/.git"
+printf 'gitdir: ../.git/modules/sub\n' > "$REPO/sub/.git"
+session_out() {
+  env -u HOSTWARDEN_GUARD_DISABLE ${2:+"$2"} \
+    sh "$REPO/$1/.claude/hooks/check-session.sh"
+}
+contains() { case "$1" in *"$2"*) true ;; *) false ;; esac; }
+expect "check-session.sh spoke in an ordinary checkout" \
+  [ -z "$(session_out main)" ]
+expect "check-session.sh missed a linked worktree or its checkout" \
+  contains "$(session_out wt)" "not in
+  $REPO/main."
+expect "check-session.sh missed a worktree with a relative gitdir" \
+  contains "$(session_out rel)" "linked git worktree"
+expect "check-session.sh took a submodule for a worktree" \
+  [ -z "$(session_out sub)" ]
+expect "check-session.sh did not report the guard as off" \
+  contains "$(session_out main "$V=1")" "taboo guard is OFF"
+rm -rf "$REPO"
 
 # --- degraded awk must fail CLOSED -----------------------------
 # hit_without() decides the read-only exemptions via awk. If awk

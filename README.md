@@ -646,9 +646,7 @@ Start the model picker by typing `/models` in the OpenCode terminal.
 ## Command Line Interface
 
 You can script Hostwarden from the command line without
-entering the interactive UI. This needs the CLI; the
-desktop app has no equivalent beyond its scheduled
-tasks ([Claude Code Desktop](#claude-code-desktop)).
+entering the interactive UI.
 
 ### Claude Code
 
@@ -748,8 +746,7 @@ For that, use **auto mode**
 about everything, a background safety check reviews
 each action: routine commands run without a prompt,
 risky ones still stop and ask. Press Shift+Tab in the
-interactive UI to cycle modes (in the desktop app,
-use the mode selector), or pass the flag for
+interactive UI to cycle modes, or pass the flag for
 scripted use:
 
 ```bash

@@ -18,19 +18,17 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 # A linked worktree's .git is a file ("gitdir: <main>/.git/
 # worktrees/<name>"), not a directory. No git call needed. A
 # submodule has a .git file too, pointing into .git/modules/, so
-# only a gitdir under .git/worktrees/ counts. git can write it
-# relative to the worktree (worktree.useRelativePaths).
+# only a gitdir under .git/worktrees/ counts. The main checkout is
+# named when git wrote an absolute path; a relative one
+# (worktree.useRelativePaths) the rule derives itself.
 MAIN=""
 [ -f "$ROOT/.git" ] &&
   MAIN=$(sed -n 's|^gitdir: \(.*\)/\.git/worktrees/[^/]*$|\1|p' "$ROOT/.git")
 if [ -n "$MAIN" ]; then
-  case "$MAIN" in
-    /*) ;;
-    *) MAIN=$(cd "$ROOT/$MAIN" 2>/dev/null && pwd) || MAIN="" ;;
-  esac
+  case "$MAIN" in /*) ;; *) MAIN="the main checkout" ;; esac
   echo "hostwarden: this session runs in a linked git worktree, not in"
-  echo "  the checkout at ${MAIN:-the main checkout}. Do not reach any"
-  echo "  machine from it: rules/access-control.md -> Linked Worktrees."
+  echo "  $MAIN. Do not reach any machine from it:"
+  echo "  rules/access-control.md -> Linked Worktrees."
 fi
 
 if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then

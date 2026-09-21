@@ -14,8 +14,8 @@ tool reads. This file adds only what exists here and nowhere else.
 - **SessionStart hooks have already run.** They check for repo
   updates and create `~/.cache/hostwarden` with mode 0700, so the
   `mkdir` named under `AGENTS.md` → SSH Options is done. Where hooks
-  do not run, it is not. A notice that this is a linked worktree,
-  or that the guard is off, is binding from the first reply.
+  do not run, it is not. They also report a linked worktree or a
+  guard that is off.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.
