@@ -50,12 +50,32 @@ if [ -z "$SCAN" ]; then
       "pointer check below would pass over nothing"
 fi
 
+scan() { printf '%s\n' "$SCAN"; }
+
+# tag <extended-regex> -- reads the corpus on stdin and prints
+# every match, each prefixed with the file it came from. On stdin
+# rather than straight from SCAN, because several checks below
+# filter or rewrite the corpus before they look at it.
+#
+# The prefix carries its trailing space and the split is on `: `
+# rather than on a final colon. A match may itself end in a colon
+# -- a compressed IPv6 address does -- and a bare `/:$/` reads
+# that as the next filename and drops it, which is precisely the
+# shape the address check has to catch.
 tag() {
-  # tag <extended-regex> -- every match in the corpus, each line
-  # prefixed with the file it came from.
-  printf '%s\n' "$SCAN" \
-    | grep -oE "^[^ ]+:|$1" \
-    | awk '/:$/ { f = $0; next } { print f " " $0 }'
+  grep -oE "^[^ ]+: |$1" \
+    | awk '/: $/ { f = $0; next } { print f $0 }'
+}
+
+# tag_i <extended-regex> -- tag, case-insensitively, folding the
+# match to lower case so one spelling reaches the comparisons
+# below: domain names are case-insensitive, and alice@Example.COM
+# is the same example as alice@example.com. The file name is left
+# alone, since it is a path and a failure names it back to the
+# reader.
+tag_i() {
+  grep -oiE "^[^ ]+: |$1" \
+    | awk '/: $/ { f = $0; next } { print f tolower($0) }'
 }
 
 report() {
@@ -189,9 +209,9 @@ fi
 # shape appears in a table *describing* the mirror scheme, and no
 # pattern separates an example of a path from a use of one. Those
 # two files document; they do not route.
-NREFS=0
+REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'
 BAD_REFS=$(
-  tag '`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`' \
+  scan | tag "$REF_RE" \
     | tr -d '`' \
     | while IFS=' ' read -r f r; do
         fp="${f%:}"
@@ -207,8 +227,7 @@ BAD_REFS=$(
         esac
       done
 )
-NREFS=$(tag '`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`' \
-  | grep -c . || true)
+NREFS=$(scan | tag "$REF_RE" | grep -c . || true)
 report "$BAD_REFS" "a reference that resolves"
 if [ "$NREFS" -lt 5 ]; then
   bad "only $NREFS references/ pointers found -- the search broke"
@@ -277,11 +296,10 @@ fi
 # CHANGELOG.md is out of scope. It is the one file that records a
 # change as a change -- the release rule in `.claude/rules/` says
 # so -- which means it names paths that moved, by design.
-report "$(printf '%s\n' "$SCAN" \
+report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
-  | grep -oE '^[^ ]+:|(^|[^a-z0-9/_.-])rules/[a-z0-9/_-]+\.md' \
-  | sed -E 's#^[^a-z0-9/_.-]rules/#rules/#' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | tag '(^|[^a-z0-9/_.-])rules/[a-z0-9/_-]+\.md' \
+  | sed -E 's#^([^ ]+:) [^a-z0-9/_.-]?rules/#\1 rules/#' \
   | while IFS=' ' read -r f r; do
       [ -f "$ROOT/$r" ] || echo "$f $r"
     done)" "a rule file that exists"
@@ -289,10 +307,9 @@ report "$(printf '%s\n' "$SCAN" \
 # Skills and subagents named in prose. Several rules point at
 # one by name rather than by path, which a rename breaks without
 # a trace. bin/hostwarden-* are scripts, not either.
-report "$(printf '%s\n' "$SCAN" \
+report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
-  | grep -oE '^[^ ]+:|`hostwarden-[a-z-]+`' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | tag '`hostwarden-[a-z-]+`' \
   | tr -d '`' \
   | grep -vE ' hostwarden-(migrate|update|backup)$' \
   | while IFS=' ' read -r f s; do
@@ -346,11 +363,10 @@ report "$MISNAMED" "the name it is dispatched by"
 # not the same as pretending to own a name.
 # Addresses outside the documentation ranges. Private, loopback,
 # link-local and netmasks are legitimate subjects of an example.
-report "$(printf '%s\n' "$SCAN" \
+report "$(scan \
   | sed -E 's#([[:space:]])[vV]ersion [0-9]+(\.[0-9]+)+#\1#g
             s#([[:space:]])v[0-9]+(\.[0-9]+)+#\1#g' \
-  | grep -oE '^[^ ]+:|\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | tag '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' \
   | grep -vE ': (192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)' \
   | grep -vE ': (127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0)' \
   | grep -vE ': 172\.(1[6-9]|2[0-9]|3[01])\.' \
@@ -359,28 +375,20 @@ report "$(printf '%s\n' "$SCAN" \
 # IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
 # Matching every colon-hex string would catch timestamps and MAC
 # addresses, so this looks for the global-unicast shape, including
-# the compressed forms that end in `::`.
-#
-# The file prefix carries its trailing space here, and awk splits
-# on `: ` rather than on a final colon: an address ending in `::`
-# ends in a colon too, so the plain test read it as a filename and
-# dropped it -- the one shape this check has to catch.
-report "$(printf '%s\n' "$SCAN" \
-  | grep -oiE '^[^ ]+: |\b[23][0-9a-f]{3}:[0-9a-f]*(:[0-9a-f]*)+' \
-  | awk '/: $/ { f = $0; next } { print f $0 }' \
-  | grep -viE ': 2001:0?db8:')" "an RFC 3849 documentation address"
+# the compressed forms that end in `::` -- which is why `tag`
+# splits on `: ` and not on a final colon.
+report "$(scan \
+  | tag_i '\b[23][0-9a-f]{3}:[0-9a-f]*(:[0-9a-f]*)+' \
+  | grep -vE ': 2001:0?db8:')" "an RFC 3849 documentation address"
 
-# Mail addresses outside the reserved domains. Domain names are
-# case-insensitive, so the comparison is too -- alice@Example.COM
-# is the same example as alice@example.com and must not fail.
+# Mail addresses outside the reserved domains.
 #
 # openssh.com is exempt only where it does what it does in this
 # corpus: suffix an algorithm name (umac-64-etm@openssh.com). A
 # local part with no hyphen names a person, and an address of
 # that shape at that domain is borrowed like any other.
-report "$(printf '%s\n' "$SCAN" \
-  | grep -oiE '^[^ ]+:|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
-  | awk '/:$/ { f = $0; next } { print f " " tolower($0) }' \
+report "$(scan \
+  | tag_i '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
   | grep -vE '@(.*\.)?example\.(com|net|org)$' \
   | grep -vE '@([a-z0-9-]+\.)*(test|invalid)$' \
   | grep -vE ' [a-z0-9]+(-[a-z0-9]+)+@openssh\.com$')" \
@@ -417,10 +425,9 @@ report "$(printf '%s\n' "$SCAN" \
 #
 # Everything up to the *last* `@` is the login, so a dotted
 # account name like john.doe@example.com is not read as a host.
-report "$(printf '%s\n' "$SCAN" \
+report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
-  | grep -oiE '^[^ ]+:|(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id)[[:blank:]]+[^|;&`]*' \
-  | awk '/:$/ { f = $0; next } { print f " " tolower($0) }' \
+  | tag_i '(^|[^a-z0-9_.-])(ssh|scp|ssh-copy-id)[[:blank:]]+[^|;&`]*' \
   | awk '{ n = 0; out = $1
       # When the command carries a login@host, that is the
       # destination and every other dotted word on the line is an
@@ -440,8 +447,7 @@ report "$(printf '%s\n' "$SCAN" \
         tmp = substr(tmp, RSTART + RLENGTH)
       }
       print (n ? out : $0) }' \
-  | grep -oiE '^[^ ]+:|[[:blank:]="'"'"']([a-z0-9._%+-]+@)*[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
-  | awk '/:$/ { f = $0; next } { print f " " $0 }' \
+  | tag '[[:blank:]="'"'"']([a-z0-9._%+-]+@)*[a-z0-9][a-z0-9-]*(\.[a-z0-9-]+)+' \
   | sed -E 's#: [[:blank:]="'"'"']#: #; s#: .*@#: #' \
   | grep -E '\.[a-z]{2,}$' \
   | grep -vE '\.(md|conf|service|real|pub|txt|xz|json|ya?ml|log|key|d|bak|gz|img|sock)$' \
