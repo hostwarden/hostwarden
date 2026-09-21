@@ -452,6 +452,12 @@ Q=$(checkout 'q"u\o')
 git -C "$Q" worktree add --quiet -b feat/q "$TMP/qwt" 2>/dev/null
 has "$(reason "$TMP/qwt")" "main checkout, $Q, if" \
   "the guard garbled a main checkout with a quote in its path"
+# ...and a shipped file named with a tab and a newline still gets
+# a refusal in valid JSON.
+has "$(edit_json "$OPS/rules/a	b
+c.md" | sh "$OPS/.claude/hooks/guard-mode.sh" \
+  | jq -r .hookSpecificOutput.permissionDecision 2>&1)" "deny" \
+  "a control character in a path broke the guard's JSON"
 E5="$TMP/ops.env"
 : > "$E5"
 session "$OPS" "$E5" -u GIT_SSH_COMMAND PATH=/usr/bin:/bin

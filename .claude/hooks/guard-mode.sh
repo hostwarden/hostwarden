@@ -63,12 +63,13 @@ INPUT=$(cat)
 
 # emit <message> — the JSON decision on stdout; blocks in all
 # permission modes. The message is escaped here, without jq, so it
-# may carry a path or a piece of the command as it is.
+# may carry a path or a piece of the command as it is; a control
+# character, which JSON would need escaped too, becomes a space.
 emit() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
   printf '"permissionDecisionReason":"%s Blocked in all ' \
-    "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+    "$(printf '%s' "$1" | tr '\001-\037' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
   printf 'permission modes. Explain this to the user; do not '
   printf 'rephrase the command or pick another tool to evade the '
   printf 'guard."}}\n'
