@@ -12,6 +12,7 @@ echo "###fw###"; <firewall probe>
 echo "###mta###"; <mta probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
+echo "###ubuntu###"; <ubuntu probe>
 '
 ```
 
@@ -35,6 +36,7 @@ apt-config dump 2>/dev/null | grep \
   -e '^APT::Periodic::Update-Package-Lists ' \
   -e '^APT::Periodic::Unattended-Upgrade ' \
   -e '^Unattended-Upgrade::Origins-Pattern::' \
+  -e '^Unattended-Upgrade::Allowed-Origins::' \
   -e '^Unattended-Upgrade::Mail ' \
   -e '^Unattended-Upgrade::MailReport ' \
   -e '^Unattended-Upgrade::Automatic-Reboot ' \
@@ -48,9 +50,13 @@ Row keys to extract for the table:
 
 - `APT::Periodic::Update-Package-Lists`
 - `APT::Periodic::Unattended-Upgrade`
-- `Origins-Pattern` count (number of `::` entries)
-- `Origins-Pattern` contains `${distro_codename}-security`
-  pattern (yes/no)
+- Origins count (number of `Origins-Pattern::` plus
+  `Allowed-Origins::` entries)
+- Origins cover the security archive (yes/no): Debian
+  lists it in `Origins-Pattern` as
+  `codename=${distro_codename}-security`, Ubuntu in
+  `Allowed-Origins` as
+  `${distro_id}:${distro_codename}-security`
 - `Mail`
 - `MailReport` (or legacy `MailOnlyOnError`)
 - `Automatic-Reboot`
@@ -271,3 +277,54 @@ Highlight as drift / warning:
   has not fired despite a pending kernel.
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
+
+## 7. Ubuntu support and restarts
+
+Ubuntu hosts only; on any other host the whole section is
+`n/a`. None of it needs root.
+
+```bash
+if [ "$(. /etc/os-release && echo "$ID")" = "ubuntu" ]; then
+  . /etc/os-release && echo "release=$VERSION_ID"
+  grep -i '^Prompt' /etc/update-manager/release-upgrades \
+    2>/dev/null
+  pro api u.pro.status.is_attached.v1 2>/dev/null
+  pro api u.pro.status.enabled_services.v1 2>/dev/null
+  grep -rhs 'nrconf{restart}' /etc/needrestart/ \
+    | grep -v '^ *#'
+  snap refresh --time 2>/dev/null | grep -i '^timer'
+else
+  echo "n/a"
+fi
+```
+
+Row keys:
+
+- Release (`VERSION_ID`)
+- `Prompt` in `release-upgrades` (`lts` expected on an
+  LTS)
+- Pro attached (`is_attached` from the first `pro api`
+  call; `n/a` when `pro` is missing)
+- esm-infra, esm-apps, livepatch enabled (yes/no each,
+  from `enabled_services`)
+- needrestart restart mode: the value an uncommented
+  `$nrconf{restart}` sets, or `default` — which on 24.04
+  and later means the apt hook restarts services itself
+  (`rules/os/debian.md` → Non-interactive apt runs)
+- snap refresh timer
+
+Highlight as drift:
+
+- Pro attached on some Ubuntu hosts but not others, or
+  different ESM services enabled.
+- Different needrestart restart modes: one host restarts
+  services after every apt run, another only lists them.
+- Different `Prompt` values.
+
+Warnings, whatever the rest of the fleet does:
+
+- A release past its end of standard support without
+  esm-infra, or an interim release past its end of life
+  — dates from a live lookup of
+  https://ubuntu.com/about/release-cycle.
+- `Prompt` other than `lts` on an LTS release.

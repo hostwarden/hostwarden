@@ -82,11 +82,29 @@ apt-get --just-print upgrade 2>/dev/null \
 # Security-only subset: filter the Inst lines for
 # security origins (Debian-Security on older
 # releases, <codename>-security on newer ones,
-# <codename>-security on Ubuntu).
+# <codename>-security on Ubuntu, and the ESM
+# pockets <codename>-apps-security and
+# <codename>-infra-security once Pro is attached).
 apt-get --just-print upgrade 2>/dev/null \
   | grep "^Inst" \
   | grep -ciE "debian-security|[a-z]+-security"
 ```
+
+**Ubuntu, in addition** — security fixes apt cannot
+see. Without Pro, the ESM pockets are not configured,
+so their fixes never appear in the count above:
+
+```bash
+pro api u.pro.packages.updates.v1 2>/dev/null
+```
+
+Its `summary` counts `num_esm_apps_updates`,
+`num_esm_infra_updates` and
+`num_standard_security_updates`; each entry in
+`updates` has a `status`. Report the entries whose
+status is `pending_attach` or `pending_enable` as a
+count per `provided_by` service. `rules/os/debian.md` →
+Ubuntu Pro and ESM says what they mean.
 
 **RHEL/CentOS/Fedora:**
 
@@ -114,6 +132,9 @@ zypper list-patches --category security 2>/dev/null
 
 - **WARN** if any security updates are pending
 - Report both counts (total pending and security-only)
+- **WARN** (Ubuntu) if any update is `pending_attach` or
+  `pending_enable`: a known fix that cannot be
+  installed on this host as it is
 
 ## Automatic Security Updates
 
@@ -149,13 +170,17 @@ systemctl is-enabled apt-daily-upgrade.timer 2>/dev/null
 apt-config dump APT::Periodic 2>/dev/null \
   | grep -E "(Update-Package-Lists|Unattended-Upgrade) "
 
-# 4. Origins-Pattern covers the codename-security archive
-#    (Debian Trixie+ publishes Codename: <release>-security).
+# 4. The allowed origins cover the codename-security
+#    archive. Debian uses Origins-Pattern (Trixie+
+#    publishes Codename: <release>-security), Ubuntu
+#    uses Allowed-Origins ("<distro>:<codename>-security").
 codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
 pattern="codename=\\\$\{distro_codename\}-security"
 pattern="${pattern}|codename=${codename}-security"
-apt-config dump Unattended-Upgrade::Origins-Pattern \
-  2>/dev/null \
+pattern="${pattern}|:\\\$\{distro_codename\}-security\""
+pattern="${pattern}|:${codename}-security\""
+apt-config dump 2>/dev/null \
+  | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::" \
   | grep -qE "$pattern" \
   && echo "origins=ok" \
   || echo "origins=MISSING ${codename}-security pattern"
@@ -171,7 +196,7 @@ zgrep -h "Pakete, welche aktualisiert werden\|Packages that will be upgraded" \
   2>/dev/null | tail -5
 ```
 
-Severity rules (Debian-specific):
+Severity rules (Debian and Ubuntu):
 
 - **CRITICAL** if `20auto-upgrades` is missing or any of its
   values is `0`. The timer fires but does nothing — silent
@@ -179,11 +204,20 @@ Severity rules (Debian-specific):
 - **CRITICAL** if `Origins-Pattern` is missing the
   `${distro_codename}-security` entry on Trixie or later.
   Every Debian security update is silently skipped.
+- **CRITICAL** (Ubuntu) if `Allowed-Origins` is missing
+  `${distro_id}:${distro_codename}-security`, for the
+  same reason.
+- On Ubuntu, which installs and enables
+  unattended-upgrades on every server, a missing package
+  or a zeroed value was done on purpose. Report it with
+  the same severity, ask why, and record the answer in
+  server memory.
 - **WARN** if neither `Mail` nor `MailReport` is set. UA
   errors will be invisible.
-- **WARN** if the log shows no Debian package upgrade lines
-  in the last 30 days despite the timer running daily. UA is
-  alive but accomplishing nothing for the Debian archive.
+- **WARN** if the log shows no package upgrade lines in
+  the last 30 days despite the timer running daily. UA is
+  alive but accomplishing nothing for the distribution
+  archive.
 - **INFO** if `Automatic-Reboot-Time` is set to a fixed
   HH:MM: this defers the post-kernel reboot to that time
   the next day, leaving the new userland on the old kernel
@@ -214,6 +248,11 @@ Check that the firewall is still active.
 ```bash
 ufw status
 ```
+
+On Ubuntu, `Status: inactive` is how `ufw` ships. Word
+the finding as "ufw installed but never enabled" and
+recommend enabling it, not installing a firewall;
+`rules/os/debian.md` → Firewall has the safe sequence.
 
 **RHEL/CentOS/Fedora (firewalld):**
 
@@ -359,8 +398,44 @@ echo "Running: $running"
 echo "Installed: $installed"
 ```
 
+On Ubuntu with Livepatch (`rules/os/debian.md` →
+Livepatch):
+
+```bash
+canonical-livepatch status 2>/dev/null
+```
+
 - **INFO** if running kernel differs from installed (reboot
   recommended)
+- **WARN** (Ubuntu) if Livepatch's `kernel state` shows a
+  coverage end date within 30 days, or is not covered:
+  the running kernel stops receiving live patches then
+
+## Ubuntu Release and Support
+
+Ubuntu only (`ID=ubuntu` in `/etc/os-release`).
+
+```bash
+. /etc/os-release && echo "$VERSION_ID $VERSION_CODENAME"
+grep -i '^Prompt' /etc/update-manager/release-upgrades \
+  2>/dev/null
+pro status 2>/dev/null
+pro security-status 2>/dev/null
+```
+
+- End of standard support and of ESM from a live lookup
+  of https://ubuntu.com/about/release-cycle
+  (`rules/version-check.md`). An LTS past standard
+  support is covered only when `pro status` shows
+  `esm-infra` enabled; otherwise **CRITICAL**. An interim
+  release past its nine months is **CRITICAL** — it has
+  no ESM.
+- **INFO** attached or not, and which of `esm-infra`,
+  `esm-apps` and `livepatch` are enabled.
+- **INFO** the number of installed `universe` packages
+  when `esm-apps` is not enabled: they have no guaranteed
+  security coverage.
+- **WARN** if `Prompt` is not `lts` on an LTS release.
 
 ## Critical Services: Running Binary vs Installed Package
 
@@ -373,8 +448,8 @@ services because restarting them is risky (notably
 `systemd-logind`). The result: the security fix is
 installed but not active, and nothing complains.
 
-**Debian/Ubuntu** (needrestart is in the default
-install since Bookworm):
+**Debian/Ubuntu** (Ubuntu Server installs needrestart;
+on Debian it is an optional package):
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then

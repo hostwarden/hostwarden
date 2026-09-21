@@ -5,7 +5,8 @@ description: Compare key policies across all servers in
   memory/servers/ to surface silent drift. Makes no configuration
   changes; writes one audit-trail line to each host's journal.
   Probes unattended-upgrades, sshd effective config, firewall
-  posture, MTA, time sync, and auto-reboot behaviour. Use when
+  posture, MTA, time sync, auto-reboot behaviour, and Ubuntu
+  Pro/ESM coverage and needrestart mode. Use when
   the user asks to "fleet audit", "vergleiche alle server",
   "policy drift check", "are my servers configured the same?",
   or after a fix on one host to find which others carry the
@@ -185,7 +186,8 @@ supported" list, decided from memory before any probe runs.
 Read on demand:
 
 - `references/probes.md` — the exact commands to run per
-  category (UA, sshd, firewall, MTA, time, auto-reboot).
+  category (UA, sshd, firewall, MTA, time, auto-reboot,
+  Ubuntu).
 - `references/output-format.md` — table layout and the
   "Drift detected" section format.
 
