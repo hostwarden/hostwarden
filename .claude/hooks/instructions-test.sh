@@ -503,5 +503,22 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
       print n ":" FNR " (" length(s) ")"
     } }')" "wrapped at 80 characters"
 
+# --- every required check is a CI job ---------------------------
+# The ruleset names the checks a pull request waits for, ci.yml
+# names the jobs that report them. Rename one without the other
+# and every pull request waits for a check that never comes.
+RULESET="$ROOT/.github/rulesets/main.json"
+if [ -f "$RULESET" ]; then
+  for ctx in $(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET")
+  do
+    if grep -q "^  $ctx:" "$ROOT/.github/workflows/ci.yml"; then
+      ok
+    else
+      bad "main.json requires check '$ctx', which no job in" \
+        "ci.yml reports"
+    fi
+  done
+fi
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
