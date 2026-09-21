@@ -32,8 +32,9 @@ need() {
     command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
   done
   [ -z "$missing" ] && return
-  echo "check: missing:$missing — MISE_ENV=dev mise install" \
-    "(mise.dev.toml pins them)" >&2
+  echo "check: missing:$missing — mise trust mise.dev.toml, then" \
+    "MISE_ENV=dev mise install for ShellCheck, actionlint and" \
+    "betterleaks; python3 from the package manager" >&2
   exit 2
 }
 
@@ -48,7 +49,7 @@ need python3 shellcheck actionlint betterleaks
 # the guard matrix runs only when the push touches what it reads,
 # and the secret scan reads only the commits the destination lacks.
 # The rest costs a second or two and runs as always. CI runs it all.
-PUSHED=
+PUSHED='' SCAN=''
 if [ "${1:-}" = "--pre-push" ]; then
   remote=${2:-origin}
   # git gives one line per ref: <local ref> <sha> <remote ref> <sha>
@@ -62,19 +63,26 @@ if [ "${1:-}" = "--pre-push" ]; then
     if case $rsha in *[!0]*) false ;; esac \
       || ! git cat-file -e "$rsha^{commit}" 2>/dev/null; then
       r="$lsha --not --remotes=$remote"
+      # The secret scan does not trust those refs: a branch deleted
+      # on the destination lingers in refs/remotes until a prune and
+      # would hide its commits. All of a new ref's history, then.
+      s=$lsha
     else
-      r="$rsha..$lsha"
+      r="$rsha..$lsha" s=$r
     fi
     PUSHED="$PUSHED
-$r"
+$r" SCAN="$SCAN
+$s"
   done
   [ -n "$PUSHED" ] || exit 0
 fi
 
-# each_push <command...> -- run once per pushed ref, with its
-# git log arguments appended.
+# each_push <list> <command...> -- run once per line of the list
+# (PUSHED or SCAN), with that line's git log arguments appended.
 each_push() {
-  printf '%s\n' "$PUSHED" | while read -r r; do
+  list=$1
+  shift
+  printf '%s\n' "$list" | while read -r r; do
     [ -n "$r" ] || continue
     # shellcheck disable=SC2086 # the log arguments are several words
     "$@" $r || exit 1 # leaves the pipeline, which is the result
@@ -115,7 +123,7 @@ sh_syntax() {
 
 # The matrix reads the hooks, settings.json, and the fenced blocks
 # of every .md but CHANGELOG.md (corpus.sh).
-if [ -n "$PUSHED" ] && ! each_push git log --name-only --format= \
+if [ -n "$PUSHED" ] && ! each_push "$PUSHED" git log --name-only --format= \
     | grep -v '^CHANGELOG\.md$' \
     | grep -qE '\.md$|^\.claude/(hooks/|settings\.json$)'
 then
@@ -136,7 +144,7 @@ secrets() {
   if [ -z "$PUSHED" ]; then
     betterleaks git --redact --verbose --no-banner .
   else
-    each_push leaks
+    each_push "$SCAN" leaks
   fi
 }
 leaks() { betterleaks git --log-opts="$*" --redact --verbose --no-banner .; }
