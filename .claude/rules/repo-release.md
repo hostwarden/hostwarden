@@ -81,23 +81,15 @@ layer, and they stay.
 
 ## CI
 
-Everything CI checks is in `scripts/check.sh`, and
-`.github/workflows/ci.yml` runs that script and nothing else: the
-guard matrix, the instruction layout test, JSON validation,
-`sh -n`, ShellCheck at warning severity, actionlint, and a
-betterleaks scan of the whole history. Run it before pushing:
+`.github/workflows/ci.yml` runs `scripts/check.sh` and nothing
+else; its `step` lines are the list of checks. Run it before
+pushing, and add a new check there, never to the workflow alone:
 
     sh scripts/check.sh
 
-A new check goes into the script, never into the workflow alone —
-a check only CI runs is first heard of after the merge. The tools
-it needs are pinned in `mise.dev.toml`, which CI installs from;
-Renovate (`renovate.json`) proposes new versions of those tools and
-of the actions once a month.
-
-Once per clone, `git config core.hooksPath .githooks` makes git
-run betterleaks over every commit's staged changes and the full
-script before every push.
+Tool versions are pinned in `mise.dev.toml` and kept current by
+Renovate. Setup, including the opt-in git hooks, is in
+`CONTRIBUTING.md`.
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays

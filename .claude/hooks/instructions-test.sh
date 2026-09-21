@@ -478,9 +478,10 @@ report "$(scan \
   | grep -vE ': localhost$')" "an RFC 2606 example target"
 
 # --- every .md wraps at 80 -------------------------------------
-# AGENTS.md → Writing in this repo. What may exceed it is what
-# cannot be broken: a line inside a fenced block, a line carrying
-# a URL, a Markdown link or image target.
+# .claude/rules/instruction-authoring.md → Layout: a URL or a
+# command line that cannot be broken may exceed it. Here that is a
+# line inside a fence, a line carrying a URL, or a Markdown link
+# or image target.
 #
 # Characters, not bytes: an em dash is three bytes, and the awk
 # on a CI runner is not the awk on a Mac. The C locale makes every

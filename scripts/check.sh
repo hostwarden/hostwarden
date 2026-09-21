@@ -1,20 +1,16 @@
 #!/bin/sh
 # check.sh — everything CI checks, in one place.
 #
-#   sh scripts/check.sh
+#   sh scripts/check.sh               every check, as CI runs it
+#   sh scripts/check.sh --pre-commit  the staged changes' secret scan
 #
 # CI runs this file and nothing else, so a green run here is a
-# green run there. A step added to the workflow instead of here is
-# a step nobody runs before pushing, and the first to hear of it
-# is CI after the merge.
+# green run there. A check added to the workflow instead is first
+# heard of after the merge. Every step runs even after one fails,
+# so one run lists everything that is wrong.
 #
-# Every step runs even after one fails, so a single run lists all
-# of what is wrong; the exit code is 1 if any step failed.
-#
-# The tools it needs are pinned in mise.dev.toml, which CI
-# installs from. Locally any recent version will do. A missing
-# tool fails the run instead of skipping its step: a check that
-# quietly did not happen reads exactly like one that passed.
+# A missing tool fails the run instead of skipping its step: a
+# check that quietly did not happen reads like one that passed.
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || {
   echo "check: not inside a git checkout" >&2
@@ -22,32 +18,45 @@ ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || {
 }
 cd "$ROOT" || exit 2
 
-missing=
-for t in python3 shellcheck actionlint betterleaks; do
-  command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
-done
-if [ -n "$missing" ]; then
-  echo "check: missing:$missing" >&2
-  echo "  with mise:     MISE_ENV=dev mise install" >&2
-  echo "  with Homebrew: brew install shellcheck actionlint" \
-    "betterleaks" >&2
-  exit 2
+# Tools installed from mise.dev.toml are on PATH only with
+# MISE_ENV=dev; bring them in here, so no shell has to export it.
+if command -v mise >/dev/null 2>&1; then
+  eval "$(MISE_ENV=dev mise env -s bash 2>/dev/null)"
 fi
+
+need() {
+  missing=
+  for t in "$@"; do
+    command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
+  done
+  [ -z "$missing" ] && return
+  echo "check: missing:$missing — MISE_ENV=dev mise install," \
+    "or see CONTRIBUTING.md" >&2
+  exit 2
+}
+
+if [ "${1:-}" = "--pre-commit" ]; then
+  need betterleaks
+  exec betterleaks git --pre-commit --staged --redact --verbose \
+    --no-banner .
+fi
+need python3 shellcheck actionlint betterleaks
 
 failed=
 step() {
-  # step <name> <command...>
-  echo "== $1"
   name=$1
   shift
+  echo "== $name"
   "$@" || failed="$failed
   $name"
 }
 
 json_valid() {
-  git ls-files '*.json' | while read -r f; do
-    python3 -m json.tool "$f" >/dev/null || { echo "  $f"; exit 1; }
+  rc=0
+  for f in $(git ls-files '*.json'); do
+    python3 -m json.tool "$f" >/dev/null || { echo "  $f"; rc=1; }
   done
+  return $rc
 }
 
 # Every shell file the repository ships: the bin/ scripts carry

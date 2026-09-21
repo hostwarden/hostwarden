@@ -1,5 +1,4 @@
 #!/bin/sh
-# pre-push — run what CI runs, before CI does.
-#
-# Enabled once per clone:  git config core.hooksPath .githooks
+# pre-push — run what CI runs, before CI does. An early warning:
+# it checks the working tree, and CI stays the gate.
 exec sh "$(git rev-parse --show-toplevel)/scripts/check.sh"

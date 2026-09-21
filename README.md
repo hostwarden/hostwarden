@@ -993,10 +993,10 @@ bin/
                          date (called automatically on update)
 scripts/
   check.sh             — Everything CI checks, runnable locally
-.githooks/             — Secret scan on commit, check.sh on push
-                         (git config core.hooksPath .githooks)
+.githooks/             — Opt-in: secret scan on commit, check.sh
+                         on push
 mise.dev.toml          — Pinned versions of the tools check.sh
-                         needs (MISE_ENV=dev mise install)
+                         needs
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   agents/              — Subagent definitions

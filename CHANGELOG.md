@@ -2,16 +2,10 @@
 
 ## Unreleased
 
-- **One command runs everything CI runs:**
-  `sh scripts/check.sh`. CI calls the same script, so a
-  green run on your machine is a green run there, and a
-  forge other than GitHub needs one line to run it too.
-  It adds actionlint for the workflows, ShellCheck at
-  warning severity, an 80-column check for every `.md`,
-  and a betterleaks scan of the whole history.
-  `git config core.hooksPath .githooks` scans each commit
-  for secrets and runs the script before each push.
-  `mise.dev.toml` pins the tool versions CI uses.
+- **For contributors: `sh scripts/check.sh` runs
+  everything CI runs**, now including a secret scan of the
+  whole history, workflow linting and the 80-column wrap.
+  Opt-in git hooks run it before each push.
 - **Every text file checks out with LF**, on Windows too
   and whatever `core.autocrlf` says — the rule files and
   skills as well as the shell scripts, which were the only
