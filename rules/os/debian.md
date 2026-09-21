@@ -241,6 +241,12 @@ https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html
   `ufw allow OpenSSH && ufw enable`. Both cover
   port 22 only: allow every other port sshd listens
   on as well (`AGENTS.md` → Critical Safety Rules).
+- Enabling `ufw` or changing its rules over SSH goes
+  through `rules/ssh-safety-net.md`. Check:
+  `ufw --dry-run <command>`; revert: `ufw disable` for
+  enabling it, and for a rule change the backed-up
+  `/etc/ufw/user.rules` and `user6.rules` restored,
+  then `ufw reload`.
 - After enabling, verify the default policy:
   `ufw status verbose` — look for
   `Default: deny (incoming)`. If incoming is set to
@@ -253,6 +259,9 @@ https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html
   stopping it wipes ufw's rules. A host that runs it
   needs no ufw on top. Checks:
   `.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
+  A change to it goes through `rules/ssh-safety-net.md`.
+  Check: `nft -c -f /etc/nftables.conf`; revert: the
+  backed-up file restored, then `nft -f /etc/nftables.conf`.
 
 Sources: https://documentation.ubuntu.com/security/security-features/network/firewall/,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/standard?h=resolute
@@ -303,41 +312,28 @@ Find out which tool owns the network before touching it:
 
 ### Changing netplan safely
 
-A wrong network config cuts off SSH just like a wrong
-firewall rule. `netplan try` is netplan's safe apply: it
-applies the config and rolls it back unless confirmed
-within the timeout (120 s by default). The confirmation
-is ENTER on a terminal; Hostwarden's calls have none, and
-with stdin at end-of-file it rolls back at once.
+Over SSH, a netplan change goes through
+`rules/ssh-safety-net.md` with `/etc/netplan/` backed up
+as a whole:
 
-So, over SSH:
+- Check: `netplan generate`.
+- Apply: `netplan apply`.
+- Revert:
+  `rm -rf /etc/netplan && cp -a <backup-dir> /etc/netplan && netplan apply`.
 
-1. Discuss the change with the user first
-   (`AGENTS.md` → Critical Safety Rules).
-2. Back up `/etc/netplan/` as a whole, to
-   `/var/backups/hostwarden/` (`rules/backups.md`). The
-   rollback below restores that copy as `<backup-dir>`.
-3. `netplan generate` must pass (syntax check).
-4. When the user can run it in a terminal of their own,
-   hand them the try:
-   ```bash operator
-   ssh -t root@<production-host> netplan try
-   ```
-   Otherwise, schedule the rollback before applying:
-   ```bash
-   systemd-run --unit=hostwarden-netplan-rollback \
-     --on-active=5min \
-     sh -c 'rm -rf /etc/netplan && cp -a <backup-dir> /etc/netplan && netplan apply'
-   netplan apply
-   ```
-5. Test with a fresh login (`rules/ssh-connections.md`
-   → Fresh-login options). If it works, cancel the
-   rollback: `systemctl stop hostwarden-netplan-rollback.timer`.
-   Do not leave it behind.
+`netplan try` is netplan's own safe apply: it rolls the
+change back unless ENTER confirms it within 120 seconds.
+Hostwarden's calls have no terminal, and with stdin at
+end-of-file it rolls back at once, so it is for the user
+to run in a terminal of their own:
+
+```bash operator
+ssh -t root@<production-host> netplan try
+```
 
 Bonds and other virtual devices are not always reverted
 by either path: say so before changing one, and check the
-result instead of trusting the rollback.
+result instead of trusting the revert.
 
 Sources: https://ubuntu.com/server/docs/explanation/networking/configuring-networks/,
 https://netplan.readthedocs.io/en/stable/netplan-try/

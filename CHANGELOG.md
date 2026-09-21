@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A firewall or network change undoes itself unless SSH
+  still works.** Before applying one, Hostwarden arms a
+  revert on the host that fires after five minutes, and
+  cancels it only once a new login succeeds — for ufw,
+  nftables, firewalld, pf and netplan alike. Where the
+  host has no way to schedule it, the change is yours to
+  make with console access ready.
 - **Ubuntu servers are covered in their own right.** The
   Debian family file now knows what Ubuntu does
   differently: an inactive ufw is how Ubuntu ships and

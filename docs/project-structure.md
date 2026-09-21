@@ -105,6 +105,8 @@ rules/                 — Upstream rule files (git-tracked)
                          avoiding failed logins
   ssh-unreachable.md   — No retry loops; blocked path vs
                          broken host
+  ssh-safety-net.md    — Timed revert armed before a
+                         firewall or network change
   server-memory.md     — Server memory file format
   changelog.md         — Session logging procedure
   activity-check.md    — Recent-activity summary on connect
