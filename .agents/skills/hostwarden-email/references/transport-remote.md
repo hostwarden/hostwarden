@@ -85,8 +85,12 @@ bigger change than the mail is worth
    repository nearly everywhere, so it is often the one that
    needs no third-party repo at all.
 
-Pair it with a `mail(1)`: `bsd-mailx` on Debian/Ubuntu,
-`s-nail` on RHEL and SUSE, base on FreeBSD.
+Pair it with a `mail(1)` — `bsd-mailx` on Debian/Ubuntu,
+`s-nail` on RHEL and SUSE, base on FreeBSD — for the host's
+other senders that call `mail` rather than sendmail, such as
+logwatch or apticron. hostwarden itself never uses it (step 7
+pipes into sendmail), so on a host with no such sender, leave
+it out.
 
 Tell the user which one you picked and why that one, in a
 line — "nullmailer, because apt has it and the queue means a
