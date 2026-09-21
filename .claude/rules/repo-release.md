@@ -88,8 +88,8 @@ pushing, and add a new check there, never to the workflow alone:
     sh scripts/check.sh
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
-Renovate. Once per clone, `git config core.hooksPath .githooks`
-turns on the git hooks.
+Renovate. Setup, including the git hooks, is in
+`CONTRIBUTING.md`.
 
 `main` is protected by `.github/rulesets/main.json`. GitHub does
 not read the file. Import it once (Settings → Rules → Rulesets →
