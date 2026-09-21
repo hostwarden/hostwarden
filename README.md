@@ -1188,11 +1188,9 @@ helper that does the tedious work while you review.
 Bug reports, feature requests, and pull requests are
 very welcome! If you have ideas for better guardrails,
 new distro support, or improvements to the safety
-rules — please open an issue or submit a PR.
-[CONTRIBUTING.md](CONTRIBUTING.md) has the setup and
-the one command that runs every check; security
-problems go privately, as [SECURITY.md](SECURITY.md)
-describes.
+rules — please open an issue or submit a PR. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and
+[SECURITY.md](SECURITY.md).
 
 ## License
 

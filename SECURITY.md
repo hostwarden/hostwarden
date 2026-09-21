@@ -11,26 +11,22 @@ vulnerability** on this repository. Do not open a public issue,
 discussion or pull request for it.
 
 Say what you did, what hostwarden did, and what it should have
-done. Leave out anything real: no production hostnames, IP
-addresses, keys, tokens or memory files. Use `example.com`,
-`192.0.2.0/24` and placeholders such as `<production-host>`
-instead.
+done. Leave out anything real — no production hostnames,
+addresses, keys, tokens or memory files — and use the example
+identifiers from `.claude/rules/instruction-authoring.md`.
 
 ## What counts
 
 - **The taboo guard lets a command through** that
-  `AGENTS.md` → Critical Safety Rules forbids — a partition
-  table write, a whole-disk erase, a write to `sshd_config`, an
-  SSH key deleted or overwritten, a halt or power-off — in any
-  spelling, wrapper or permission mode.
+  `AGENTS.md` → Critical Safety Rules forbids, in any spelling,
+  wrapper or permission mode.
 - **A secret reaches the conversation, a report, an email, the
   journal or `memory/`**, against `rules/secrets.md`.
 - **Output from a managed host steers hostwarden** into acting
   on it instead of reporting it: a file, a log line, a banner
   that works as an instruction (`rules/anomaly-detection.md`).
-- **A change runs without the confirmation** the rules require
-  before it — a restart, a firewall change, a destructive
-  command.
+- **A change runs without the confirmation** that
+  `AGENTS.md` → Critical Safety Rules requires before it.
 - **A script in `bin/` or a hook in `.claude/hooks/`** that can
   be made to act outside the checkout or the user's own memory.
 

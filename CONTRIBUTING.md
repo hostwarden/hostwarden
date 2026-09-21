@@ -1,40 +1,27 @@
 # Contributing
 
-Bug reports, ideas and pull requests are welcome — better
-guardrails, another distribution, a rule that caught you out.
 For anything beyond a small fix, open an issue first, so the
-approach is settled before the work is done.
-
-Security problems are the exception: report them privately, as
-[SECURITY.md](SECURITY.md) describes.
+approach is settled before the work is done. Security problems go
+privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## Setup
 
-Clone with symbolic links working. On native Windows that takes
-three settings before cloning — README → Windows.
-
-The checks need ShellCheck, actionlint and betterleaks, plus
-`python3` and a POSIX shell. `mise.dev.toml` pins the versions
-CI uses:
+Clone with symbolic links working; native Windows needs three
+settings first (README → Windows). The checks need ShellCheck,
+actionlint, betterleaks and `python3`. `mise.dev.toml` pins the
+versions CI uses:
 
 ```bash
 MISE_ENV=dev mise install
 ```
 
-Any recent version works locally too:
-
-```bash
-brew install shellcheck actionlint betterleaks
-```
-
-Then let git run the checks for you, once per clone:
+Any recent version from your package manager works too. Once per
+clone, let git run the checks — a secret scan on every commit,
+the full check before every push:
 
 ```bash
 git config core.hooksPath .githooks
 ```
-
-Every commit is then scanned for secrets, and every push runs
-the full check first.
 
 ## Checks
 
@@ -42,35 +29,20 @@ the full check first.
 sh scripts/check.sh
 ```
 
-That is exactly what CI runs, so green here is green there. A
-new check goes into that script, not into the workflow.
+That is what CI runs.
 
 ## What goes where
 
-hostwarden's product is its instruction text, and where a new
-instruction lives decides when it reaches a session. Read
+Read
 [.claude/rules/instruction-authoring.md](.claude/rules/instruction-authoring.md)
 before changing anything under `rules/`, `.agents/skills/` or
-`AGENTS.md`: which of the four mechanisms fits, the 80-column
-wrap, and the example identifiers allowed.
-
+`AGENTS.md` — where a new instruction belongs, the wrap, and
+the example identifiers allowed — and
 [.claude/rules/repo-release.md](.claude/rules/repo-release.md)
-covers the rest: `VERSION` is not bumped in a pull request,
-`CHANGELOG.md` gets an entry under `## Unreleased` written for
-someone who uses hostwarden, and a change to the taboo guard
-comes with a new line in its fixture matrix.
-
-Working with an AI assistant is fine. It reads the same two
-files through `AGENTS.md` and `CLAUDE.md`.
+for `VERSION`, `CHANGELOG.md` and the guard's fixture matrix.
 
 ## Commits and pull requests
 
-- [Conventional Commits](https://www.conventionalcommits.org/)
-  for commit messages and pull request titles:
-  `fix(email): queue mail when the relay is down`.
-- Pull requests are squash-merged, so the title is what lands
-  on `main`. Branch commits can be as small as you like.
-- Nothing real in a commit, an issue or a pull request: no
-  production hostnames, addresses, customer names or secrets.
-  `server1.example.com`, `192.0.2.10` and `alice` are there for
-  that.
+[Conventional Commits](https://www.conventionalcommits.org/)
+for commit messages and pull request titles. Pull requests are
+squash-merged, so the title is what lands on `main`.
