@@ -25,8 +25,8 @@ Every session gets at least one entry — sessions
 that change nothing log a single `read-only:`
 summary.
 
-Reading back: the loaded OS file's `## Logs`
-section.
+Reading back: `rules/activity-check.md` → How to
+check.
 
 If `logger` fails, log to the local changelog only.
 

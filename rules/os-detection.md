@@ -168,9 +168,11 @@ the blacklist and read-only checks. Specific to
 known servers: read the memory file, changelog, and
 `todo.md` (if present) before any work, read the
 family file and the appliance file from `Appliance:`.
-Shell and hardware come from memory. Check the
-versions in the activity check's call: the version
-command from the OS file's Version Detection section
-and, for an appliance, its own. Update memory if one
-changed; if the command fails or the OS no longer
-matches memory, run the full probe from step 1.
+Shell and hardware come from memory. The first call
+still goes without stdin, in the shape of step 1:
+`uname -s`, then the version command from the OS
+file's Version Detection section and, for an
+appliance, its own. Its first line decides as in
+step 1. Update memory if a version changed; if a
+command fails or the OS no longer matches memory, run
+the full probe from step 1.

@@ -14,8 +14,8 @@
   file, and an override can target an appliance file like any other.
 - **Detection is one SSH call.** OS, version, login shell, hardware
   and appliance markers come back from a single probe that runs in
-  sh, bash, zsh, csh and tcsh alike; later connections check the
-  versions in the activity check's call. It stops at a console menu
+  sh, bash, zsh, csh and tcsh alike; later connections send only a
+  short version check. It stops at a console menu
   instead of answering it, and every later command goes through
   `sh -s`, so a csh login works too.
 

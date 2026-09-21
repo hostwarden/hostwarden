@@ -200,6 +200,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 
 ## Remove: Common Pitfalls > `sudo` is not installed by default
 
+## Remove: Common Pitfalls > `freebsd-update` vs `pkg`
+
 ## Replace: Logs
 
 - Plain text in `/var/log/*.log` since CE 2.5.0 / Plus 21.02; older

@@ -11,7 +11,7 @@ overrides — see `rules/overrides.md`).
 ```markdown
 # hostname.example.com
 - IP: 203.0.113.10
-- OS: Debian 12 (Bookworm)
+- OS: Debian 13 (Trixie)
 - Distro family: debian
 - Appliance: Proxmox VE 9.0.3, standalone
 - Shell: bash (root)

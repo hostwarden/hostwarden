@@ -51,6 +51,10 @@ Source for everything below unless noted: the admin guide,
 
 ## Remove: Common Pitfalls > Prefer `apt-get upgrade`
 
+## Remove: Common Pitfalls > Before enabling `ufw`
+
+## Remove: Common Pitfalls > `ufw` must be enabled
+
 ## Repositories
 
 - Three Proxmox repositories:

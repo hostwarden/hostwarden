@@ -81,11 +81,15 @@ Read on demand, only when the relevant section applies:
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
   macOS are fully covered by the baseline references above.
 - FreeBSD baselines are not yet covered. On a FreeBSD host,
-  do not silently skip: take the checks from the loaded OS
-  file's Package Manager, Automatic Security Updates, Firewall
-  and Service Manager sections, add `df -h` / `swapinfo` /
-  `uptime` for the basics, and state in the report that
-  FreeBSD has no baseline reference yet.
+  do not silently skip: run the closest read-only
+  equivalents — `pkg audit -F`, `pkg upgrade -n`,
+  `freebsd-update fetch` without `install`, the read-only
+  firewall commands of the loaded OS file's `## Firewall`
+  section, `df -h` / `swapinfo` / `uptime` for the basics,
+  `service -e` for enabled services — and state in the report
+  that FreeBSD has no baseline reference yet. On an appliance,
+  its `## Housekeeping and Audits` section replaces the update
+  commands.
 
 ## Custom checks
 

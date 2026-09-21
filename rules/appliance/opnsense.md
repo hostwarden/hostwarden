@@ -198,6 +198,8 @@ documentation, <https://docs.opnsense.org/>, and the
 
 ## Remove: Common Pitfalls > `sudo` is not installed by default
 
+## Remove: Common Pitfalls > `freebsd-update` vs `pkg`
+
 ## Replace: Logs
 
 - One file per day: `/var/log/<area>/<area>_<YYYYMMDD>.log`,
