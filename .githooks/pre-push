@@ -1,4 +1,4 @@
 #!/bin/sh
 # pre-push — run what CI runs, before CI does, narrowed to what is
 # being pushed. An early warning: CI stays the gate.
-exec sh "$(git rev-parse --show-toplevel)/scripts/check.sh" --pre-push "$1"
+exec sh "$(git rev-parse --show-toplevel)/scripts/check.sh" --pre-push

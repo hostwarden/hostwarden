@@ -48,32 +48,28 @@ need python3 shellcheck actionlint betterleaks
 
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything.
-PUSHED=''
+PUSHED='' ALL=''
 if [ "${1:-}" = "--pre-push" ]; then
-  remote=${2:-origin}
   # One line per ref: <local ref> <sha> <remote ref> <sha>.
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
-    # A new ref, or a remote tip never fetched here: whatever no
-    # ref of the destination has.
     if git cat-file -e "$rsha^{commit}" 2>/dev/null; then
-      r="$rsha..$lsha"
+      PUSHED="$PUSHED $rsha..$lsha"
     else
-      r="$lsha --not --remotes=$remote"
+      # A new ref, or a remote tip never fetched here: what the
+      # destination lacks is not knowable from local refs, which
+      # may be stale. Run everything.
+      ALL=1
     fi
-    PUSHED="$PUSHED
-$r"
   done
-  [ -n "$PUSHED" ] || exit 0
+  [ -n "$PUSHED$ALL" ] || exit 0
 fi
 
-# pushed_files -- every file the pushed commits touch.
+# pushed_files -- every file the pushed commits touch; -m shows a
+# merge's own changes too, conflict resolutions included.
 pushed_files() {
-  printf '%s\n' "$PUSHED" | while read -r r; do
-    [ -n "$r" ] || continue
-    # shellcheck disable=SC2086 # the log arguments are several words
-    git log --name-only --format= $r || exit 1
-  done
+  # shellcheck disable=SC2086 # one range per word
+  for r in $PUSHED; do git log -m --name-only --format= "$r" || exit 1; done
 }
 
 failed=
@@ -110,7 +106,7 @@ sh_syntax() {
 
 # The matrix reads the hooks, settings.json, and the fenced blocks
 # of every .md but CHANGELOG.md (corpus.sh).
-if [ -n "$PUSHED" ] && ! pushed_files \
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
     | grep -v '^CHANGELOG\.md$' \
     | grep -qE '\.md$|^\.claude/(hooks/|settings\.json$)'
 then
