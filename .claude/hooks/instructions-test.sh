@@ -548,6 +548,15 @@ report "$(scan \
       if (!((p, $3) in SLUG)) print f ": " $2 "#" $3 }')" \
   "an anchor GitHub renders"
 
+# Every page under docs/, subdirectories included, is listed in its
+# index. The README points there instead of keeping a list of its
+# own, so a page the index leaves out is a page no link reaches.
+UNLISTED=$(cd "$ROOT/docs" && find . -name '*.md' ! -path ./README.md \
+  | sed 's#^\./##' | sort | while read -r n; do
+    grep -qF "]($n" README.md || echo "docs/$n"
+  done)
+report "$UNLISTED" "listed in docs/README.md"
+
 # --- examples name nobody real ----------------------------------
 # .claude/rules/instruction-authoring.md: hostnames from RFC 2606,
 # addresses from RFC 5737/3849, people from the Alice-and-Bob

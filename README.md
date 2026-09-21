@@ -213,16 +213,8 @@ not blindly approve.
 
 ## Documentation
 
-| Topic | Page |
-| ----- | ---- |
-| Prerequisites in detail, native Windows | [docs/install.md](docs/install.md) |
-| Production, mirrors, updates, teams, backup, Heinzel | [docs/operations.md](docs/operations.md) |
-| Features with example prompts | [docs/features.md](docs/features.md) |
-| Claude Code, the desktop app, OpenCode with Ollama | [docs/ai-tools.md](docs/ai-tools.md) |
-| Command line, auto mode, scheduled runs | [docs/automation.md](docs/automation.md) |
-| Guardrails, hallucinations, logs | [docs/safety.md](docs/safety.md) |
-| Overrides and your own skills | [docs/overrides.md](docs/overrides.md) |
-| What every file in the repository is for | [docs/project-structure.md](docs/project-structure.md) |
+Every page, grouped by task:
+[docs/README.md](docs/README.md).
 
 ## Why the Name Hostwarden?
 
