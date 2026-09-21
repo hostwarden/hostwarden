@@ -3,8 +3,9 @@
 # workspace of an operations install. It is never part of
 # this repository, in solo use or in a team; a team shares it
 # through a remote of its own. The templates it starts from
-# live in templates/memory/.
-memory/
+# live in templates/memory/, which the leading slash keeps
+# tracked: `memory/` alone would match that directory too.
+/memory/
 
 # Project history (auto-maintained by Claude Code).
 HISTORY.md
