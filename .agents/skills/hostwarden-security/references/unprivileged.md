@@ -10,8 +10,8 @@ Many checks in this audit work without root:
   accounts, system accounts with login shells, listening services
   (without process names on Linux), all sysctl checks,
   world-writable system files, SUID/SGID audit, mount options,
-  unowned files, fail2ban status (systemctl), macOS checks (SIP,
-  FileVault, Gatekeeper).
+  unowned files, fail2ban status (`systemctl`, `rc-service`),
+  macOS checks (SIP, FileVault, Gatekeeper).
 - **Needs root:** `sshd -T`, empty password accounts
   (`/etc/shadow`), listening services with process names on Linux
   (`ss -tulnp`), cron directory permissions (some dirs may be

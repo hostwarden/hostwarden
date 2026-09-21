@@ -176,6 +176,8 @@ end-of-life date. Use official sources:
 - **RHEL/CentOS:** Red Hat lifecycle policy
 - **FreeBSD:** freebsd.org/security
 - **SUSE:** suse.com/lifecycle
+- **Alpine:** alpinelinux.org/releases, per `vX.Y`
+  branch
 - **macOS:** Apple typically supports current and
   two prior major versions
 
