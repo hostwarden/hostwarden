@@ -81,6 +81,13 @@ mkdir -p memory/servers memory/custom-rules
   git -C memory init --quiet
   git -C memory symbolic-ref HEAD refs/heads/main
 }
+# refuse — say why, and take back a clone made by this very run:
+# it carries the workspace marker, and left behind it would make
+# an operations checkout without the scan that was just refused.
+refuse() {
+  [ -z "$CLONE" ] || rm -rf memory
+  exit 1
+}
 # The secret scan below only holds if git runs its hooks: not
 # when core.hooksPath sends git elsewhere, and not when a hook
 # of the user's own sits where ours would go. Refuse both,
@@ -99,7 +106,8 @@ if [ -n "$HP" ]; then
     echo "  not run the workspace's secret scan. Point it at the" >&2
     echo "  workspace's own hooks and run this again:" >&2
     echo "    git -C memory config core.hooksPath .git/hooks" >&2
-    exit 1
+    [ -z "$CLONE" ] || echo "  (the clone was removed; clone again after that)" >&2
+    refuse
   fi
 fi
 for h in pre-commit pre-push; do
@@ -108,7 +116,7 @@ for h in pre-commit pre-push; do
     echo "hostwarden-init: $f is a hook of your own, and the workspace" >&2
     echo "  needs its secret scan there. Move it aside, run this again," >&2
     echo "  then call yours from the new one." >&2
-    exit 1
+    refuse
   fi
 done
 

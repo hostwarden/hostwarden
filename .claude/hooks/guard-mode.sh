@@ -230,12 +230,12 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     return i
   }
   # remote(i) — whether the rsync arguments from v[i] on reach a
-  # server. rsync is fine between local paths; it reaches one
-  # through a remote shell (-e, --rsh), a host:path operand or an
-  # rsync:// URL. The arguments end where a find action does.
+  # server. rsync is fine between local paths, -e or not: it
+  # reaches one only through a host:path or host::module operand
+  # or an rsync:// URL. The arguments end where a find action does.
   function remote(i) {
     for (; i <= nw && v[i] !~ /^(\\?;|\+)$/; i++)
-      if (v[i] ~ /^(-e|--rsh)/ || v[i] ~ /^[^\/:-][^\/:]*::?/ || v[i] ~ /^rsync:\/\//)
+      if (v[i] ~ /^[^\/:-][^\/:]*::?/ || v[i] ~ /^rsync:\/\//)
         return 1
     return 0
   }

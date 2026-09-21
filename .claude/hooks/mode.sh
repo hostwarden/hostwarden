@@ -62,8 +62,12 @@ hostwarden_git_batch() {
   # Only the socket directory needs 0700; ~/.cache keeps the umask.
   # shellcheck disable=SC2174
   mkdir -p -m 700 "$HOME/.cache/hostwarden"
-  GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=5 \
--o ControlMaster=auto -o ControlPath=~/.cache/hostwarden/ssh-%C \
--o ControlPersist=10m -o ServerAliveInterval=15 -o ServerAliveCountMax=3}
+  # Appended to a command the user set, not replaced by it: ssh
+  # takes the first value it sees, so their own options still win,
+  # and ours fill in what they left open.
+  GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
+-o ConnectTimeout=5 -o ControlMaster=auto \
+-o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \
+-o ServerAliveInterval=15 -o ServerAliveCountMax=3"
   export GIT_TERMINAL_PROMPT GIT_SSH_COMMAND
 }

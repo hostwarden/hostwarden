@@ -120,6 +120,7 @@ cmd deny "$DEV" 'rsync -av rsync://server1.example.com/mod/ here/'
 cmd deny "$DEV" 'rsync -a site/ "server1.example.com:/srv/"'
 cmd deny "$DEV" "rsync -a 'rsync://server1.example.com/mod/' here/"
 cmd pass "$DEV" 'rsync -a "my site/" /tmp/copy/'
+cmd pass "$DEV" 'rsync -a -e ssh src/ /tmp/copy/'
 cmd deny "$DEV" 'if false; then :; elif ssh server1.example.com true; then :; fi'
 cmd deny "$DEV" 'env -u FOO ssh server1.example.com'
 cmd deny "$DEV" 'timeout -s KILL 5 ssh server1.example.com'
@@ -361,6 +362,23 @@ B=$(checkout b)
 sh "$B/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null
 mode_is operations "$B"
 sync_b() { sh "$B/bin/hostwarden-sync" "$@"; }
+# A GIT_SSH_COMMAND the user set gets the no-prompt options too.
+got=$(GIT_SSH_COMMAND='ssh -i /tmp/k' HOME="$TMP" sh -c \
+  '. "$1"; hostwarden_git_batch; echo "$GIT_SSH_COMMAND"' _ "$HOOKS/mode.sh")
+case "$got" in
+"ssh -i /tmp/k -o BatchMode=yes"*ServerAliveInterval=15*) ok ;;
+*) bad "an inherited GIT_SSH_COMMAND lost the required options: $got" ;;
+esac
+# A clone refused for its hooks path is taken back: the marker it
+# brought must not make an operations checkout without the scan.
+G=$(checkout global-hooks)
+if GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath \
+    GIT_CONFIG_VALUE_0=/tmp/elsewhere \
+    sh "$G/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null 2>&1; then
+  bad "init --clone ran with core.hooksPath pointing elsewhere"
+else ok; fi
+mode_is development "$G"
+[ ! -e "$G/memory" ] && ok || bad "a refused clone was left behind"
 # A clone without symlink support says so.
 C=$(checkout c)
 out=$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.symlinks \
