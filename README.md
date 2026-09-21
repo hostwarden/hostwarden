@@ -76,13 +76,9 @@ hostwarden session looks the same.
   Hostwarden uses them in two load-bearing places:
   `.claude/skills` links to `.agents/skills/`, and
   DNS aliases become symlinks under
-  `memory/servers/`. Git, macOS, Linux, FreeBSD and
-  WSL do this out of the box. Native Windows needs
-  Developer Mode (or an elevated shell) plus
-  `git config --global core.symlinks true` *before*
-  cloning; a checkout made without it turns every
-  link into a text file, and hostwarden then has no
-  skills and no alias resolution.
+  `memory/servers/`. macOS, Linux, FreeBSD and WSL
+  handle them out of the box; native Windows needs
+  the three settings under [Windows](#windows).
   A session-start hook says so whenever the skills are
   out of reach, because a session without them is
   otherwise silent about it;
@@ -90,16 +86,65 @@ hostwarden session looks the same.
   state at any time.
 - **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
-  Windows. On Windows, the recommended path is
-  [WSL](https://learn.microsoft.com/windows/wsl/)
-  (full Linux environment). You can also run
-  natively via
-  [Git for Windows](https://gitforwindows.org/) —
-  launch Claude Code or OpenCode from the bundled
-  Git Bash terminal so the SessionStart
-  auto-update hook and `bin/hostwarden-*` scripts can
-  execute. PowerShell and `cmd.exe` are not
-  supported as the launch shell.
+  Windows.
+
+### Windows
+
+**Use [WSL](https://learn.microsoft.com/windows/wsl/)
+if you can.** It is a full Linux environment, and
+hostwarden runs in it exactly as on Linux, with
+nothing below to set up.
+
+Running natively through
+[Git for Windows](https://gitforwindows.org/) works,
+but Windows does not create symbolic links for an
+ordinary user, and both git and Git Bash fall back to
+something else **without an error**:
+
+- git writes each link as a small text file holding
+  the target path. `.claude/skills` then leads
+  nowhere, and hostwarden runs without a single skill
+  — no housekeeping, no security audit.
+- Git Bash's `ln -s`
+  [copies the target](https://gitforwindows.org/symbolic-links.html)
+  instead of linking to it. A DNS alias then gets its own copy of
+  the server memory, and the two drift apart.
+
+So, once, **before cloning**:
+
+1. Turn on Developer Mode (Windows 11: Settings →
+   System → For developers). It lets an ordinary user create
+   symbolic links; without it, only an elevated shell
+   can.
+2. Tell git to create real links:
+   ```
+   git config --global core.symlinks true
+   ```
+3. Tell Git Bash to link rather than copy, and to fail
+   loudly when it cannot — add this to `~/.bashrc`:
+   ```
+   export MSYS=winsymlinks:nativestrict
+   ```
+
+Then clone as below and start Claude Code or OpenCode
+from **Git Bash**, so the SessionStart hooks and the
+`bin/hostwarden-*` scripts can run. PowerShell and
+`cmd.exe` are not supported as the launch shell.
+
+Already cloned without these settings? After steps
+1–3, replace the text file with the link:
+
+```
+rm .claude/skills
+git checkout -- .claude/skills
+test -L .claude/skills && echo ok
+```
+
+A DNS alias created before step 3 is a directory
+where `ls -l memory/servers/` should show a link. Its
+memory has diverged from the canonical host's and has
+to be merged back by hand before the directory is
+replaced with a link.
 
 ### Steps
 
