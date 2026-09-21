@@ -10,9 +10,16 @@
   `configctl` instead of `sysrc` on the firewalls, the `ha` CLI on
   Home Assistant. Housekeeping, the audits and the activity check
   follow it, and an override can target an appliance file like any
-  other. Detection also records the login shell, stops at a
-  console menu instead of answering it, and wraps commands for a
-  csh login.
+  other. The housekeeping and security baselines take the firewall
+  and the update mechanism from that merged OS file, and each
+  family file now carries the command that reads Hostwarden's
+  journal entries back.
+- **Detection is one SSH call.** OS, version, login shell,
+  hardware and appliance markers come back from a single probe that
+  runs in sh, bash, zsh, csh and tcsh alike, on the first
+  connection and every later one. It stops at a console menu
+  instead of answering it, and wraps later commands for a csh
+  login.
 
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you

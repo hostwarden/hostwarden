@@ -68,9 +68,11 @@ entry is a lead, not a fact
 (`rules/verify-before-reporting.md`).
 
 **Then probe the host in one call,** batched into
-the OS-detection call where possible
+the activity check's call where possible
 (`rules/ssh-connections.md` — one call per logical
-step):
+step). It needs sh, so on a host whose `Shell:` is
+not sh-like it goes through `sh -s`, as that call
+does (`rules/os-detection.md` step 1):
 
 ```
 echo "##paths"; ls -d /var/backups/heinzel \

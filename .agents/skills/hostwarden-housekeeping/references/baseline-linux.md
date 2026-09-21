@@ -56,7 +56,9 @@ or last session, flag it:
 ## Pending Security Updates
 
 Use the distro-specific command from the loaded `rules/os/<family>.md`
-file. Report two numbers where cheap: total pending upgrades and
+file; where its Package Manager or Updates section prescribes
+another upgrade command or dry run, count with that one. Report two
+numbers where cheap: total pending upgrades and
 the security-only subset. Do not present the total as "security
 updates" — that overstates the finding.
 
@@ -110,6 +112,12 @@ zypper list-patches --category security 2>/dev/null
 - Report both counts (total pending and security-only)
 
 ## Automatic Security Updates
+
+The loaded OS file's `## Automatic Security Updates` section says
+which mechanism counts. Where it names another one, or none, check
+what it says and skip the family checks below: a missing
+`unattended-upgrades` on a host whose OS file says it is not
+expected is not a finding.
 
 Verify that auto-updates are actually installing security
 updates, not just that the unit is enabled. A unit can be
@@ -201,7 +209,10 @@ configured.
 
 ## Firewall Status
 
-Check that the firewall is still active.
+Check that the firewall is still active. Which firewall counts comes
+from the loaded OS file's `## Firewall` section. Where it names
+another one than the family defaults below, check that one with the
+read-only commands it gives, at the same severities.
 
 **Debian/Ubuntu (ufw):**
 
@@ -330,7 +341,9 @@ echo | openssl s_client -connect localhost:443 \
 
 ## Kernel: Running vs Installed
 
-Check whether a reboot is needed for a kernel update.
+Check whether a reboot is needed for a kernel update. Where the
+loaded OS file says how to tell, use that instead of the commands
+below.
 
 **Debian/Ubuntu:**
 

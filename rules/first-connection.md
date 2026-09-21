@@ -48,7 +48,7 @@ moment") — don't skip.
    When it does apply: first connection, plus every
    connection while a `deferred` line or an
    unresolved inventory is there. One batched probe,
-   folded into step 5 where possible, silent unless
+   folded into step 7 where possible, silent unless
    it finds something. See `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 

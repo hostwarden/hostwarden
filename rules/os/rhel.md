@@ -84,6 +84,24 @@ finding. See `rules/version-check.md`.
 - Do **not** disable SELinux without discussing with the
   user. Prefer adding proper SELinux policies.
 
+## Logs
+
+Hostwarden's journal entries (`rules/changelog.md`) are read back
+from the systemd journal, both tags (`rules/activity-check.md`):
+
+```
+journalctl -t hostwarden -t heinzel --since "7 days ago" \
+  --no-pager -q 2>/dev/null
+```
+
+As a non-root user outside the `systemd-journal` / `adm` groups,
+`journalctl` silently shows only the user's own entries. When
+connected as non-root, try `sudo -n journalctl -t hostwarden -t
+heinzel ...` first. If sudo is unavailable, run the command without
+`-q` and watch for the "not seeing messages from other users" hint.
+When visibility is limited, tell the user the activity check may be
+incomplete — do not stay silent.
+
 ## Directory Conventions
 
 - Config files: `/etc/`

@@ -25,11 +25,8 @@ Every session gets at least one entry — sessions
 that change nothing log a single `read-only:`
 summary.
 
-Reading back:
-- systemd: `journalctl -t hostwarden`
-- macOS: `log show --predicate
-  'senderImagePath CONTAINS "logger"'
-  --info --last 7d | grep hostwarden`
+Reading back: the loaded OS file's `## Logs`
+section.
 
 If `logger` fails, log to the local changelog only.
 

@@ -129,6 +129,33 @@ Rules for macOS (Apple Silicon and Intel).
   - Controls which apps can run based on code signing.
   - Do not disable without user request.
 
+## Logs
+
+Hostwarden's journal entries (`rules/changelog.md`) are read back
+from the unified log, both tags (`rules/activity-check.md`):
+
+```
+/usr/bin/log show --last 7d \
+  --predicate 'process == "logger"' --info 2>&1 \
+  | grep -E "hostwarden|heinzel"
+```
+
+Two details that are not optional here:
+
+- **Call `/usr/bin/log` by absolute path.** `log` is a common shell
+  alias or function (git log wrappers, oh-my-zsh plugins). A
+  shadowed `log` fails with something like
+  `(eval):log:1: too many arguments`, which looks nothing like a
+  missing-entries result.
+- **Never redirect stderr to `/dev/null`.** With `2>/dev/null` a
+  shadowed or failing `log` produces empty output, and empty output
+  is what the activity check reads as "no activity" — so a broken
+  check reads as a clean host. Keep `2>&1` and treat any line that
+  is not a log entry as a failed check, not silence.
+
+`senderImagePath CONTAINS "logger"` also works but matches more
+broadly; `process == "logger"` is the narrower predicate.
+
 ## Directory Conventions
 
 - Homebrew prefix: detect with `brew --prefix`

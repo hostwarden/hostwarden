@@ -198,7 +198,7 @@ documentation, <https://docs.opnsense.org/>, and the
 
 ## Remove: Common Pitfalls > `sudo` is not installed by default
 
-## Logs
+## Replace: Logs
 
 - One file per day: `/var/log/<area>/<area>_<YYYYMMDD>.log`,
   written by syslog-ng.
@@ -221,9 +221,8 @@ documentation, <https://docs.opnsense.org/>, and the
 
 ## Housekeeping and Audits
 
-- The FreeBSD checks for `freebsd-update`, `pf.conf` and enabled
-  rc services do not apply. Check `configctl firmware probe`
-  (pending updates are the finding), the anti-lockout rule,
-  `pfctl -sr` and `pluginctl -s` instead.
+- Pending updates come from `configctl firmware probe` (see
+  Updates); they are the finding. Check that the anti-lockout rule
+  is on.
 - Report settings OPNsense generates as web UI changes, not file
   edits.

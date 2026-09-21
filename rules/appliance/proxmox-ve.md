@@ -259,10 +259,8 @@ Source for everything below unless noted: the admin guide,
 
 ## Housekeeping and Audits
 
-- The ufw and `unattended-upgrades` checks from the Linux baseline
-  do not apply. Check `pve-firewall status`, pending updates
-  (`apt-get -s dist-upgrade`), quorum (`pvecm status`) and a
-  pending reboot (see Updates) instead.
+- Check quorum (`pvecm status`) and a pending reboot (see
+  Updates).
 - A missing backup job for running guests is a finding.
 - Fleet audit: compare Proxmox VE nodes only with each other. Show
   `pve-firewall` in the firewall rows; a missing

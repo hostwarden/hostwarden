@@ -56,7 +56,7 @@ applies before any of this runs.
 - FreeBSD baselines are not yet covered. On a FreeBSD host,
   do not silently skip: run the closest equivalent checks
   manually (`pkg audit -F` for known-vulnerable packages,
-  `pfctl -s info` / `pfctl -sr` for the firewall, `sshd -T`
+  the loaded OS file's `## Firewall` section, `sshd -T`
   for SSH hardening, `find / -perm -4000` for SUID, sysctl
   `security.*` knobs) and state in the report that FreeBSD
   has no baseline reference yet.

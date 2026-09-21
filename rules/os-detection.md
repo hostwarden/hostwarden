@@ -30,77 +30,82 @@ skill says so where it needs it.
    (see `rules/dns-aliases.md`). If the hostname is
    an alias for a known server, skip OS detection.
 
-1. **Determine the OS, the login shell and the
-   architecture:**
+1. **Probe everything in one call** — OS, login shell,
+   architecture, version, hardware and appliance
+   markers:
    ```
-   ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m'
+   ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
+     'echo @release; cat /etc/os-release; freebsd-version;' \
+     'sw_vers -productVersion; echo @hardware; df -h /;' \
+     'lscpu; free -h; sysctl hw.model hw.ncpu hw.physmem;' \
+     'sysctl hw.memsize; echo @appliance;' \
+     'which pveversion ha opnsense-version pfSense-upgrade;' \
+     'ls -d /homeassistant'
    ```
-   Send it exactly like this: single quotes, so the
-   local shell does not expand `$$`; no pipes,
-   redirects or `&&`; and `ps` not last, because bash
-   and dash exec the last command of `-c` in place and
-   `ps` would then report itself. The account's login
-   shell runs it, and that is not always sh: csh and
-   tcsh are common on FreeBSD and the firewalls built
-   on it.
+   `ssh` joins the quoted pieces with spaces into one
+   command line. In local mode, run the same commands
+   without `ssh`.
 
-   If the first line is anything but `Linux`, `FreeBSD`
-   or `Darwin` — a menu, a banner, "This account is
-   currently not available" — the account has no
-   command shell. Stop and show the user the output.
-   Never answer a menu over SSH: the same menus reboot
-   the machine or reset it to factory defaults.
+   Keep its shape: single quotes, so the local shell
+   does not expand `$$`; no pipes, redirects, `&&` or
+   `$(…)`, because the account's login shell runs it
+   and that is not always sh — csh and tcsh are common
+   on FreeBSD and the firewalls built on it; and `ps`
+   not last, because bash and dash exec the last
+   command of `-c` in place and `ps` would then report
+   itself. Every OS lacks some of these commands, so
+   expect "not found" errors: read what the commands
+   that exist printed, and nothing else.
 
-   The second line is the shell (compare its basename;
-   macOS may print `-zsh` or a path). Record it per SSH
-   user in server memory (`Shell: csh (root)`). Unless
-   it is `sh`, `bash`, `dash`, `ash`, `ksh` or `zsh`,
-   every command with sh syntax (`2>/dev/null`, `$(…)`,
-   `VAR=x cmd`, `[ … ]`) goes through the `sh -s`
-   bundle from `rules/ssh-connections.md` → Bundle
-   commands, for the whole session — the activity check
-   and the sudo probe included. That also covers an
-   error in place of the second line (fish rejects
-   `$$`, busybox `ps` may reject `-p`): record
-   `Shell: unknown` and wrap.
+   **The first line decides whether to go on.** If it
+   is anything but `Linux`, `FreeBSD` or `Darwin` — a
+   menu, a banner, "This account is currently not
+   available" — the account has no command shell. Stop
+   and show the user the output. Never answer a menu
+   over SSH: the same menus reboot the machine or reset
+   it to factory defaults.
 
-2. **If Linux** — detect distro and version:
-   ```
-   . /etc/os-release && \
-     echo "${ID}|${VERSION_ID}|${PRETTY_NAME}"
-   ```
-   Distro families: `debian`, `rhel`, `suse`.
-   Map the distro to a family via the os-release
-   `ID` and `ID_LIKE` fields (e.g. `ubuntu` →
-   `debian`; `centos`, `rocky`, `alma`, `fedora` →
-   `rhel`; `opensuse*` variants → `suse`). `ID=haos`,
-   and `ID=alpine` inside a Home Assistant app
-   container, have no family: see Appliances below. If
-   no family file matches (e.g. Alpine, Arch), tell
-   the user, proceed cautiously with generic
-   commands, and apply extra verify-before-running
-   care.
-   Read `rules/os/<family>.md`. Gather hardware info
-   (`lscpu`, `free -h`, `df -h`).
+   **The second line is the shell** (compare its
+   basename; macOS may print `-zsh` or a path). Record
+   it per SSH user in server memory (`Shell: csh
+   (root)`). Unless it is `sh`, `bash`, `dash`, `ash`,
+   `ksh` or `zsh`, every command with sh syntax
+   (`2>/dev/null`, `$(…)`, `VAR=x cmd`, `[ … ]`) goes
+   through the `sh -s` bundle from
+   `rules/ssh-connections.md` → Bundle commands, for
+   the whole session — the activity check and the sudo
+   probe included. That also covers an error in place
+   of the second line (busybox `ps` may reject `-p`),
+   and a shell that rejects the whole line (fish
+   rejects `$$`): record `Shell: unknown`, wrap, and
+   send the probe again through `sh -s`.
 
-3. **If macOS** — detect version and arch:
-   ```
-   sw_vers -productVersion
-   ```
-   Read `rules/os/macos.md`. Gather hardware info
-   (`sysctl` for CPU/RAM, `df -h`).
+2. **Map the OS to a family** from the lines after
+   `@release`, and read `rules/os/<family>.md`:
+   - **Linux:** the os-release `ID` and `ID_LIKE`
+     fields (e.g. `ubuntu` → `debian`; `centos`,
+     `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
+     variants → `suse`); the version from `VERSION_ID`
+     and `PRETTY_NAME`. `ID=haos`, and `ID=alpine`
+     inside a Home Assistant app container, have no
+     family: see Appliances below. If no family file
+     matches (e.g. Alpine, Arch), tell the user,
+     proceed cautiously with generic commands, and
+     apply extra verify-before-running care.
+   - **FreeBSD:** `freebsd`, version from the
+     `freebsd-version` line.
+   - **macOS:** `macos`, version from the `sw_vers`
+     line.
 
-4. **If FreeBSD** — detect version and arch:
-   ```
-   freebsd-version
-   ```
-   Read `rules/os/freebsd.md`. Gather hardware info
-   (`sysctl` for CPU/RAM, `df -h`,
-   `zpool status` if ZFS).
+   Hardware comes from the lines after `@hardware`:
+   `lscpu` and `free` on Linux, `sysctl` elsewhere.
+   Add `zpool status` to the next call on a FreeBSD
+   host with ZFS.
 
-5. **Check for an appliance.** See Appliances below.
+3. **Check for an appliance** from the lines after
+   `@appliance`. See Appliances below.
 
-6. Create a server memory file.
+4. Create a server memory file.
 
 ## Appliances
 
@@ -112,19 +117,18 @@ in `rules/appliance/` says which. A service that merely
 runs on a host — Docker, a database, a web server — is
 not one.
 
-Probe the markers in the same call as step 2 or 4:
+The probe in step 1 reports the markers. `which`
+prints a path for a command that exists; what it
+prints for a missing one depends on the shell.
 
-- Linux: `command -v pveversion ha;
-  echo "${SUPERVISOR_TOKEN:+supervisor}"` (prints only
-  whether the token is set, never the token)
-- FreeBSD: `which opnsense-version pfSense-upgrade`
+| Base    | Marker             | Appliance file                  |
+| ------- | ------------------ | ------------------------------- |
+| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
+| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
+| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
+| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
 
-| Base    | Marker                          | Appliance file                  |
-| ------- | ------------------------------- | ------------------------------- |
-| Debian  | `pveversion`                    | `rules/appliance/proxmox-ve.md` |
-| FreeBSD | `opnsense-version`              | `rules/appliance/opnsense.md`   |
-| FreeBSD | `pfSense-upgrade`               | `rules/appliance/pfsense.md`    |
-| none    | `ID=haos`, or `ha` + Supervisor | `rules/appliance/haos.md`       |
+`ha` counts only where `/homeassistant` exists too.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
@@ -142,11 +146,9 @@ memory, in the form the appliance file gives.
 file applied is the OS file.** Wherever an instruction
 names the loaded OS file or `rules/os/<family>.md`, it
 means that. The appliance file's
-`## Housekeeping and Audits` section replaces the
-baseline checks of housekeeping and both audits that
-it names, and its `## Logs` section, where it has one,
-replaces the activity check's block for the base
-family.
+`## Housekeeping and Audits` section adds the checks
+housekeeping and both audits run on top of that, and
+where it says a baseline does not apply, it does not.
 
 ## On subsequent connections
 
@@ -156,6 +158,6 @@ the blacklist and read-only checks. Specific to
 known servers: read the memory file, changelog, and
 `todo.md` (if present) before any work, read the
 family file and the appliance file from `Appliance:`,
-and verify the OS and appliance versions in one call
-— update memory if either changed. Take the shell from
-`Shell:` instead of probing it again.
+and send the probe from step 1 again. It checks the
+OS version, the appliance version and the shell in
+one call; update memory if any of them changed.

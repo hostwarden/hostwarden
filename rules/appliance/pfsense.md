@@ -200,7 +200,7 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 
 ## Remove: Common Pitfalls > `sudo` is not installed by default
 
-## Logs
+## Replace: Logs
 
 - Plain text in `/var/log/*.log` since CE 2.5.0 / Plus 21.02; older
   versions use binary clog files (`clog /var/log/filter.log`).
@@ -220,10 +220,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 
 ## Housekeeping and Audits
 
-- The FreeBSD checks for `freebsd-update`, `pf.conf` and enabled rc
-  services do not apply. Check `pfSense-upgrade -d -c` (never
-  without `-c`: it reboots), the anti-lockout rule, `pfctl -sr` and
-  Status > Services (`pfSsh.php playback svc status <service>`)
-  instead.
+- Pending updates come from `pfSense-upgrade -d -c` (never without
+  `-c`: it reboots); they are the finding. Check that the
+  anti-lockout rule is on.
 - Report settings pfSense generates as web UI changes, not file
   edits.
