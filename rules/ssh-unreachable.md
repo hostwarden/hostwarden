@@ -13,7 +13,7 @@ no retry, no other user name, no root instead.
 Guessed names and refused root logins are what
 fail2ban counts, and its `ddos` and `aggressive`
 modes count every rejected login
-(`rules/ssh-connections.md` → 3). Tell the user.
+(`rules/ssh-connections.md` → Avoid failed logins). Tell the user.
 For too many keys the fix is on the client:
 `IdentitiesOnly yes` and one `IdentityFile` for the
 host in `~/.ssh/config`; check with
@@ -53,7 +53,7 @@ path blocks SSH. Wait, or tell the user. Do not
 chase routing, NAT or MTU. A check from inside the
 target's network sees a clean path and proves
 nothing about the client's. Firewall and IPS
-changes: `AGENTS.md` → Firewall & network.
+changes: `AGENTS.md` → Critical Safety Rules.
 
 ## Dual-stack
 
