@@ -126,6 +126,40 @@ welcome banner and waits for input.
   the official ones is a third-party source (`AGENTS.md`: official
   repos only): ask before adding one, and report the ones present.
 
+## Configuring Home Assistant with an AI Client
+
+A user who wants an AI client to work on Home Assistant itself —
+entities, automations, dashboards — needs an MCP server there.
+Hostwarden sets up what SSH reaches and hands the rest to the user;
+the work over MCP then happens in that client, outside Hostwarden.
+
+- **Model Context Protocol Server**, built into Home Assistant
+  (<https://www.home-assistant.io/integrations/mcp_server/>): set up
+  in the UI only, and it offers the Assist API — controlling and
+  querying the entities the user exposed. It cannot change the
+  configuration.
+- **ha-mcp**, a community project
+  (<https://github.com/homeassistant-ai/ha-mcp>): can also edit
+  automations, scripts, dashboards and YAML. It comes as an app
+  ("Home Assistant MCP Server") and as a custom component through
+  HACS.
+
+What Hostwarden does for ha-mcp as an app, each step after asking:
+add its repository (`ha store`, a third-party source, see Apps and
+Stores), install and start the app, and check that it runs
+(`ha apps`). Verify each subcommand with `--help` first.
+
+What stays with the user: the built-in integration, HACS and the
+custom component (UI only), exposing entities, and registering the
+server in their client — Hostwarden names the steps and the command
+the client's documentation gives, and runs none of them.
+
+**The app's MCP URL is a secret.** Its path is a random token and
+the only thing guarding a server that can change the whole
+configuration; the app prints it in its log. Never read it out of
+`ha apps logs` into the conversation, memory or a report
+(`rules/secrets.md`): the user copies it from the app's Logs tab.
+
 ## Updates
 
 - List pending updates: `ha available-updates`.
@@ -183,7 +217,9 @@ welcome banner and waits for input.
   - `ha mounts info` — whether backup and media mounts are up.
 - A security audit reports instead:
   - the SSH app's options (password login, keys, user);
-  - which apps publish ports;
+  - which apps publish ports — a running ha-mcp app is full
+    configuration access over plain HTTP on the LAN, guarded only
+    by its secret URL path; report it as WARN with that note;
   - `ha security info`;
   - app repositories beyond the official ones (`ha store`);
   - the `http:` settings in the configuration (trusted proxies,
