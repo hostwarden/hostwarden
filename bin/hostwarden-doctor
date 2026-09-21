@@ -4,41 +4,33 @@
 #
 # Usage:
 #   hostwarden-doctor           Full report
-#   hostwarden-doctor --quiet   Only what is missing; nothing
-#                               at all when nothing is
-#                               (the SessionStart hook)
+#   hostwarden-doctor --quiet   Only what is missing; nothing at
+#                               all when nothing is (the
+#                               SessionStart hook)
 #   hostwarden-doctor --help    Show this help
 #
-# Checks the workstation only — the machine the AI tool runs
-# on. What a managed host has is found out over SSH, per host.
-#
-# It never installs anything. The workstation is the user's own
-# machine, not a host hostwarden administers, and none of the
-# consent gates that make a remote install safe cover it. It
-# prints the command; the user runs it.
-#
-# Exit status: 0 when everything required is there, 1 when not.
+# Checks the machine the AI tool runs on, never a managed host.
+# Prints install commands; never runs them.
+# Exit status: 1 when something required is missing, else 0.
 
 QUIET=
 case "${1:-}" in
   --quiet) QUIET=1 ;;
-  -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,/^$/s/^# \{0,1\}//p' "$0"; exit 0 ;;
   '') ;;
   *) echo "hostwarden-doctor: unknown option $1" >&2; exit 2 ;;
 esac
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
-# --- package manager, for the install hint ----------------------
-PM=
 case "$(uname -s 2>/dev/null)" in
   MINGW*|MSYS*|CYGWIN*) PM=gitbash ;;
+  *)
+    PM=
+    for p in brew apt-get dnf zypper pkg pacman apk; do
+      has "$p" && { PM=$p; break; }
+    done ;;
 esac
-if [ -z "$PM" ]; then
-  for p in brew apt-get dnf zypper pkg pacman apk; do
-    has "$p" && { PM=$p; break; }
-  done
-fi
 
 # pkgname <tool> — the package that ships it under $PM.
 pkgname() {
@@ -47,8 +39,7 @@ pkgname() {
     dig:apt-get) echo dnsutils ;;
     dig:dnf|dig:zypper) echo bind-utils ;;
     dig:pkg|dig:apk) echo bind-tools ;;
-    python3:brew) echo python ;;
-    python3:pacman) echo python ;;
+    python3:brew|python3:pacman) echo python ;;
     ssh:apt-get|ssh-keygen:apt-get) echo openssh-client ;;
     ssh:dnf|ssh-keygen:dnf) echo openssh-clients ;;
     ssh:*|ssh-keygen:*) echo openssh ;;
@@ -56,136 +47,93 @@ pkgname() {
   esac
 }
 
-# hint <tool...> — one install command for all of them.
+# hint "<tool> ..." — one install command for all of them.
 hint() {
   pkgs=
-  for t in "$@"; do pkgs="$pkgs $(pkgname "$t")"; done
+  # shellcheck disable=SC2086 # one word per tool is the point
+  for t in $1; do pkgs="$pkgs $(pkgname "$t")"; done
   case "$PM" in
     brew) echo "brew install$pkgs" ;;
-    apt-get) echo "sudo apt-get install$pkgs" ;;
-    dnf) echo "sudo dnf install$pkgs" ;;
-    zypper) echo "sudo zypper install$pkgs" ;;
-    pkg) echo "sudo pkg install$pkgs" ;;
+    apt-get|dnf|zypper|pkg) echo "sudo $PM install$pkgs" ;;
     pacman) echo "sudo pacman -S$pkgs" ;;
     apk) echo "sudo apk add$pkgs" ;;
-    gitbash) echo "Git Bash cannot install these; WSL can (README → Windows)" ;;
+    gitbash) echo "Git Bash cannot install$pkgs; WSL can (README → Windows)" ;;
     *) echo "install:$pkgs" ;;
   esac
 }
 
-REQ_MISSING=
-SSH_OLD=
-REC_MISSING=
-FEAT_MISSING=
-report() { [ -n "$QUIET" ] || echo "$@"; }
+# Per tier: the labels of what is missing, and the tools to name
+# in its install hint. Features get one hint line each.
+NEED='' NEED_T='' WANT='' WANT_T='' FEAT=''
+row() { [ -n "$QUIET" ] || echo "  $1"; }
 
-# --- required: without these hostwarden does not work ------------
-report "Required"
+# check <tier> <label> <hint-tool> <tool...> — any one tool will do.
+check() {
+  tier=$1 label=$2 tool=$3
+  shift 3
+  for t in "$@"; do
+    has "$t" && { row "ok       $label"; return; }
+  done
+  row "missing  $label"
+  miss "$tier" "$label" "$tool"
+}
+
+miss() {
+  case $1 in
+    need) NEED="$NEED, $2" NEED_T="$NEED_T $3" ;;
+    want) WANT="$WANT, $2" WANT_T="$WANT_T $3" ;;
+    feat) FEAT="$FEAT
+  $2: $(hint "$3")" ;;
+  esac
+}
+
+[ -n "$QUIET" ] || echo "Required"
 for t in ssh git awk sed grep tar mktemp; do
-  if has "$t"; then
-    report "  ok       $t"
-  else
-    report "  MISSING  $t"
-    REQ_MISSING="$REQ_MISSING $t"
-  fi
+  check need "$t" "$t" "$t"
 done
-
-# Every SSH call shares one connection (AGENTS.md → SSH Options).
-# ssh -G only parses the options and connects to nothing, so an
-# OpenSSH too old for them fails here instead of on a server.
+# Every call shares one connection (AGENTS.md → SSH Options).
+# ssh -G parses the options and connects to nothing.
 if has ssh; then
   if ssh -G -o ControlMaster=auto \
       -o "ControlPath=$HOME/.cache/hostwarden/ssh-%C" \
       -o ControlPersist=10m example.invalid >/dev/null 2>&1; then
-    report "  ok       ssh connection sharing"
+    row "ok       ssh connection sharing"
   else
-    report "  MISSING  ssh connection sharing (OpenSSH 6.8 or newer)"
-    SSH_OLD=1
+    row "missing  ssh connection sharing"
+    miss need "ssh connection sharing (OpenSSH 6.8+)" ssh
   fi
 fi
 
-# --- recommended: missing costs precision, not function ----------
-report "Recommended"
-check_rec() {
-  # check_rec <tool> <what goes without it...>
-  t=$1
-  shift
-  if has "$t"; then
-    report "  ok       $t"
-  else
-    report "  missing  $t — $*"
-    REC_MISSING="$REC_MISSING $t"
-  fi
-}
-check_rec jq "the taboo guard reads the raw hook input" \
-  "instead of the command, and blocks more than it has to"
-# A resolver is needed to compare a hostname against the
-# blacklist and to recognise a DNS alias (rules/dns-aliases.md).
-# One of these is enough, in the order that file tries them.
-if has getent || has dscacheutil || has python3 || has dig; then
-  report "  ok       hostname resolver"
-else
-  report "  missing  hostname resolver — the blacklist and DNS" \
-    "aliases can only be matched by name, not by address"
-  REC_MISSING="$REC_MISSING python3"
+[ -n "$QUIET" ] || echo "Recommended"
+# Without it the guard reads the raw hook input and over-blocks
+# (.claude/hooks/guard-taboos.sh).
+check want jq jq jq
+# The order rules/dns-aliases.md tries them in; any one resolves.
+check want "hostname resolver" python3 getent dscacheutil python3 dig
+
+[ -n "$QUIET" ] || echo "Per feature"
+# rules/ssh-connections.md, rules/directory-copy.md
+check feat "file transfer to and from servers" rsync rsync scp
+# hostwarden-email: transport-local.md, send-verify.md
+check feat "email from this workstation" msmtp msmtp sendmail
+check feat "email attachments from this workstation" file file
+# hostwarden-deploy-user: references/ssh-key.md
+check feat "SSH keys for a deploy user" ssh-keygen ssh-keygen
+# rules/ssh-unreachable.md
+check feat "reachability checks when SSH fails" curl curl
+
+[ -n "$QUIET" ] || echo
+if [ -n "$NEED" ]; then
+  echo "hostwarden: required, missing: ${NEED#, } — $(hint "$NEED_T")"
+fi
+if [ -n "$WANT" ]; then
+  echo "hostwarden: recommended, missing: ${WANT#, } — $(hint "$WANT_T")"
+fi
+if [ -n "$FEAT" ]; then
+  echo "hostwarden: not available on this workstation:$FEAT"
+fi
+if [ -z "$QUIET$NEED$WANT$FEAT" ]; then
+  echo "Everything hostwarden runs locally is here."
 fi
 
-# --- per feature: missing switches off that one feature ----------
-report "Per feature"
-check_feat() {
-  # check_feat <feature> <tool...> — any one of the tools will do.
-  feat=$1
-  shift
-  for t in "$@"; do
-    if has "$t"; then
-      report "  ok       $feat ($t)"
-      return
-    fi
-  done
-  report "  missing  $feat — needs $*"
-  FEAT_MISSING="$FEAT_MISSING
-  $feat: $(hint "$1")"
-}
-check_feat "file transfer to and from servers" rsync scp
-check_feat "email sent from this workstation" msmtp sendmail
-check_feat "SSH keys for a deploy user" ssh-keygen
-check_feat "reachability checks when SSH fails" curl
-
-# --- summary -----------------------------------------------------
-if [ -n "$QUIET" ]; then
-  # Only what someone has to act on, in as few lines as it takes:
-  # this lands in the session's context.
-  if [ -n "$REQ_MISSING" ]; then
-    echo "hostwarden: this workstation lacks required tools:$REQ_MISSING"
-    # shellcheck disable=SC2086 # one word per tool is the point
-    echo "  $(hint $REQ_MISSING)"
-    echo "  Remote administration will not work until they are there."
-  fi
-  if [ -n "$SSH_OLD" ]; then
-    echo "hostwarden: this ssh cannot share connections" \
-      "(AGENTS.md → SSH Options needs OpenSSH 6.8 or newer)" \
-      "— $(hint ssh)"
-  fi
-  if [ -n "$REC_MISSING" ]; then
-    # shellcheck disable=SC2086
-    echo "hostwarden: recommended but missing:$REC_MISSING" \
-      "— $(hint $REC_MISSING)"
-  fi
-  if [ -n "$FEAT_MISSING" ]; then
-    echo "hostwarden: not available on this workstation:$FEAT_MISSING"
-  fi
-else
-  echo
-  [ -n "$SSH_OLD" ] && echo "To share connections: $(hint ssh)"
-  if [ -n "$REQ_MISSING$REC_MISSING" ]; then
-    # shellcheck disable=SC2086 # one word per tool is the point
-    echo "To install: $(hint $REQ_MISSING $REC_MISSING)"
-  fi
-  if [ -n "$FEAT_MISSING" ]; then
-    echo "For the features above:$FEAT_MISSING"
-  fi
-  [ -z "$REQ_MISSING$REC_MISSING$FEAT_MISSING$SSH_OLD" ] \
-    && echo "Everything hostwarden runs locally is here."
-fi
-
-[ -z "$REQ_MISSING$SSH_OLD" ]
+[ -z "$NEED" ]

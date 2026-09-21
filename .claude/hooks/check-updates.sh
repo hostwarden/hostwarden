@@ -33,11 +33,9 @@ fi
 # Without git, or outside a clone, every git call below fails
 # and the branch test reports a detached HEAD -- the wrong cause,
 # and one that sends the user looking for a pin they never set.
-if ! command -v git >/dev/null 2>&1; then
-  echo "hostwarden: git is not installed, so no update check —" \
-    "install git to get updates"
-  exit 0
-fi
+# A missing git is reported by bin/hostwarden-doctor, which runs
+# beside this hook, with the command to install it.
+command -v git >/dev/null 2>&1 || exit 0
 # The top of a clone, not merely inside one: unpacked into some
 # other repository, git would otherwise pull that one.
 # And a clone of hostwarden: unpacked at the top of some other

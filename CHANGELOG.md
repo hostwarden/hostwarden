@@ -12,10 +12,11 @@
   treat as a block, so the guard silently did not run. Every
   hook now starts with `sh`, and the layout test fails on
   one that does not.
-- **The update check names the real cause** when git is
-  missing or the checkout is not a clone, at session start
-  and in `bin/hostwarden-update --check`, instead of
-  reporting a detached HEAD.
+- **The update check names the real cause** when the
+  checkout is not a clone, and `bin/hostwarden-update`
+  also when git is missing, instead of reporting a detached
+  HEAD. At session start a missing git is the doctor's to
+  report.
 - **Email only counts `sendmail` or `msmtp` as a
   transport**, on the workstation and on the server. A host
   with only `mail` or `mailx` goes on to the install
