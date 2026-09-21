@@ -25,8 +25,10 @@ three ways in:
   this app's container." The SSH port is whatever the user set in
   the app's options.
 - **Advanced SSH & Web Terminal** (community): also a container,
-  zsh, with the host network and the host journal (read-only).
-  `docker` works only when the user has turned protection mode off.
+  zsh, with the host network and the host journal (read-only). The
+  login is whatever user the app's options set, often a non-root
+  one with `sudo`. `docker` works only when the user has turned
+  protection mode off.
 - **Host SSH on port 22222**: dropbear on the HAOS host itself,
   root, keys only. It exists for developers; the docs say it is
   "not for end users". Never set it up on your own.
@@ -34,6 +36,25 @@ three ways in:
 Record which of the three it is in server memory
 (`Appliance: Home Assistant OS <version>, via <app name | host port
 22222>`).
+
+## The `ha` CLI
+
+A command sent over SSH has no `SUPERVISOR_TOKEN` in its
+environment, and every `ha` call then answers "unauthorized". Send
+each one through `/command/with-contenv`, which loads the app
+container's environment, token included. It needs root, so a
+non-root login prefixes `sudo -n`:
+
+```
+sudo -n /command/with-contenv ha os info
+```
+
+Every `ha` command in this file is written bare and runs this way.
+Never read, print or pass the token itself: not with `--api-token`
+(`rules/secrets.md`), not out of
+`/run/s6/container_environment/`. Do not reach for a login shell
+(`zsh -l -c …`) instead: the Advanced app's login profile starts its
+welcome banner and waits for input.
 
 ## Version Detection
 
@@ -51,10 +72,12 @@ Record which of the three it is in server memory
   one is needed for good, the user adds it to the app's package
   option. Language runtimes (the `hostwarden-runtimes` skill) do
   not belong here either.
-- **Privileges.** The app's shell is already root of its container,
-  and it cannot reach the host beyond what the Supervisor allows.
-  There is no `sudo` to probe and no root SSH fallback
-  (`rules/privilege-escalation.md`).
+- **Root SSH fallback.** The official app logs in as root of its
+  container, the Advanced app as the user its options set, often
+  with `sudo`; probe it as usual (`rules/privilege-escalation.md`).
+  Either way the container reaches the host only as far as the
+  Supervisor allows, and there is no root SSH to the host to fall
+  back on.
 - **Firewall.** HAOS has no user-managed firewall. A missing one is
   not a finding. Exposure is decided by the router and by which
   apps publish ports. Core listens on 8123 by default, the
@@ -124,13 +147,14 @@ Record which of the three it is in server memory
 - `ha core logs`, `ha supervisor logs`, `ha apps logs <slug>`,
   `ha host logs` (the host journal, persistent). There is no
   `ha os logs`. Never add a follow flag over non-interactive SSH.
-- `logger -t hostwarden` inside an app container may not reach the
-  host journal. With the first entry, read it back in the same call:
-  `ha host logs -t hostwarden | tail -1`. The activity check reads
-  `-t heinzel` the same way. If the line is missing, log to the
-  local changelog only (`rules/changelog.md`) and note
-  `Journal: none` in server memory, so the activity check does not
-  read an empty journal as silence.
+- `logger` inside an app container does not reach the host journal.
+  Log to the local changelog only (`rules/changelog.md`) and record
+  `Journal: none` in server memory.
+- The activity check still reads the host journal, because a session
+  on host port 22222 can write there:
+  `ha host logs -t hostwarden -n 20` and `ha host logs -t heinzel
+  -n 20`. With `Journal: none`, an empty result says nothing about
+  this installation's own sessions; the local changelog does.
 
 ## Housekeeping and Audits
 
