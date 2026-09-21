@@ -18,7 +18,12 @@
   short version check. It stops at a console menu
   instead of answering it, and every later command goes through
   `sh -s`, so a csh login works too.
-
+- **Housekeeping checks Home Assistant on a normal Linux
+  host.** It tells Container, Supervised and Core apart,
+  reports the running version and runs the config check
+  each install type has. Supervised and Core are reported
+  once as unsupported since 2025.12; migrating stays your
+  decision.
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you
   safe fit on one page; everything deeper — native

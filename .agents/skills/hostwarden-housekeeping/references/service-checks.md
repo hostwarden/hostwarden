@@ -108,6 +108,102 @@ docker ps --format \
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
+## Home Assistant
+
+Triggered when `memory.md` mentions Home Assistant. This section
+covers Home Assistant running on a normal Linux host. Home
+Assistant OS, where the whole machine is the appliance, is out of
+scope here.
+
+Tell the install type apart first:
+
+```bash
+docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
+  2>/dev/null | grep -E 'home-assistant|hassio_supervisor'
+command -v ha
+```
+
+- **Container** — a container runs an image from
+  `ghcr.io/home-assistant/home-assistant`, and there is no
+  `hassio_supervisor` container. The container name varies; take
+  it from the output above, never assume `homeassistant`.
+- **Supervised** — a `hassio_supervisor` container runs beside
+  the Home Assistant one, and the host has the `ha` CLI.
+- **Core** — no container at all. Home Assistant runs from a
+  Python virtual environment, usually under a systemd unit, with
+  neither a Supervisor nor an `ha` CLI.
+
+These are checks only. Housekeeping reports and changes nothing:
+no update, no restart, no migration. A restart the user asks for
+afterwards needs the config check for its install type to pass
+first (`rules/service-reload.md`).
+
+### Container
+
+Container is an officially supported install type.
+
+```bash
+docker exec <container> python -m homeassistant --version
+docker exec <container> python -m homeassistant \
+  --script check_config --config /config
+```
+
+The config check is the one the Home Assistant docs give for
+Container:
+https://www.home-assistant.io/common-tasks/container/#configuration-check
+`--version` is a flag of the same entry point:
+https://github.com/home-assistant/core/blob/dev/homeassistant/__main__.py
+
+- **CRITICAL** if the Home Assistant container is not "Up"
+- **WARN** if the config check reports errors; quote them
+- Report the running version and the image tag (`stable`, a
+  pinned version, `beta` or `dev`); a newer release is named only
+  through `rules/version-check.md`
+
+### Supervised and Core
+
+Both install types are unsupported since Home Assistant 2025.12:
+https://www.home-assistant.io/blog/2025/05/22/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/
+
+- **INFO**, once per report: the install type, that it is
+  unsupported since 2025.12, and the link above. Migrating to
+  Home Assistant OS or Container is the user's decision; do not
+  repeat the finding under other checks or turn it into a WARN.
+
+On **Supervised**, the Supervisor runs the Home Assistant
+container, and the `ha` CLI answers for it:
+
+```bash
+ha core info
+ha core check
+```
+
+`ha` talks to the Supervisor. If it refuses as the SSH user,
+`rules/privilege-escalation.md` decides how to go on.
+
+- **CRITICAL** if `hassio_supervisor` or the Home Assistant
+  container is not "Up"
+- **WARN** if `ha core check` reports errors; quote them
+- Report the version from `ha core info`
+
+On **Core**, `memory.md` names the systemd unit, the virtual
+environment and the config directory. Where it does not, read
+them from the unit: `ExecStart` holds the path to `hass` and
+its `-c` argument, `User=` the account it runs as. Without `-c`,
+the config directory is `~/.homeassistant` of that account.
+Run both commands as that account:
+
+```bash
+systemctl is-active <unit>
+sudo -u <service-user> <venv>/bin/hass --version
+sudo -u <service-user> <venv>/bin/hass \
+  --script check_config --config <config-dir>
+```
+
+- **CRITICAL** if the unit is not active
+- **WARN** if the config check reports errors; quote them
+- Report the running version
+
 ## nginx
 
 Triggered when `memory.md` mentions nginx.
