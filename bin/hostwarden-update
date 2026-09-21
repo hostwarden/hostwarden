@@ -27,13 +27,24 @@ current_version() {
   fi
 }
 
+# Bring an older state layout up to date. Idempotent and silent
+# when there's nothing to do.
+run_migration() {
+  if [ -f bin/hostwarden-migrate ]; then sh bin/hostwarden-migrate; fi
+}
+
 # report <old version> — what the update did, once it is done.
 report() {
-  if [ "$1" = "$(current_version)" ]; then
-    echo "hostwarden $(current_version) — already up to date."
-  else
-    echo "hostwarden updated: $1 -> $(current_version)"
-    show_changelog_section "$(current_version)"
+  NEW=$(current_version)
+  if [ "$1" = "$NEW" ]; then
+    echo "hostwarden $NEW — already up to date."
+    return
+  fi
+  echo "hostwarden updated: $1 -> $NEW"
+  show_changelog_section "$NEW"
+  if [ "${1%%.*}" != "${NEW%%.*}" ]; then
+    echo ""
+    echo "BREAKING CHANGES — read CHANGELOG.md"
   fi
 }
 
@@ -89,7 +100,7 @@ FOLLOW=$(hostwarden_follow)
 
 # follow_update <line> — check out the newest release on the line.
 follow_update() {
-  if ! OUTPUT=$(git fetch --tags --quiet origin 2>&1); then
+  if ! OUTPUT=$(hostwarden_follow_fetch 2>&1); then
     echo "hostwarden update failed: $OUTPUT"
     exit 1
   fi
@@ -107,7 +118,7 @@ follow_update() {
     echo "Likely cause: local changes (run 'git status')."
     exit 1
   fi
-  [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
+  run_migration
   report "$OLD_VERSION"
 }
 
@@ -115,13 +126,12 @@ case "${1:-}" in
   --check)
     echo "hostwarden $(current_version)"
     if [ -n "$FOLLOW" ]; then
-      git fetch --tags --quiet origin
+      hostwarden_follow_fetch
       TAG=$(hostwarden_follow_tag "$FOLLOW")
-      CUR=$(git describe --tags --exact-match 2>/dev/null || true)
       echo "Following $FOLLOW (the newest v$FOLLOW.x release)."
       if [ -z "$TAG" ]; then
         echo "No v$FOLLOW.x release on origin yet."
-      elif [ "$CUR" = "$TAG" ]; then
+      elif [ "$(git rev-parse HEAD)" = "$(git rev-parse "$TAG^{commit}")" ]; then
         echo "Up to date."
       else
         echo "$TAG is available."
@@ -163,7 +173,7 @@ case "${1:-}" in
       exit 1
     fi
     follow_update "$LINE"
-    git config hostwarden.follow "$LINE"
+    hostwarden_follow_set "$LINE"
     echo "hostwarden follows $LINE: the auto-update moves to each"
     echo "new v$LINE.x release. 'hostwarden-update --unpin' returns"
     echo "to main."
@@ -183,21 +193,21 @@ case "${1:-}" in
     fi
     git checkout "$VER"
     # An exact version replaces a line.
-    git config --unset hostwarden.follow || true
+    hostwarden_follow_clear
     echo "hostwarden pinned to $VER ($(current_version))"
     echo "Auto-update is disabled while pinned."
     echo "Run 'hostwarden-update --unpin' to return to main."
     ;;
 
   --unpin)
-    git config --unset hostwarden.follow || true
+    hostwarden_follow_clear
     git checkout main
     git pull --ff-only --quiet
     # Same as the default path: a pinned checkout can be many
     # releases behind, so this is exactly where an override
     # left at an obsolete path needs moving. Without it the
     # update succeeds and the customization is silently dead.
-    [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
+    run_migration
     echo "hostwarden unpinned — now on main ($(current_version))"
     ;;
 
@@ -230,10 +240,7 @@ case "${1:-}" in
       echo "diverged main, or no network. Fix and re-run."
       exit 1
     fi
-
-    # Bring an older state layout up to date. Idempotent
-    # and silent when there's nothing to do.
-    [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
+    run_migration
     report "$OLD_VERSION"
     ;;
 

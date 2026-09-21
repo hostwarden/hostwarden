@@ -160,6 +160,12 @@ case "$(hook)" in
 *"pinned to v1.0.0"*) at v1.0.0 && ok || bad "the hook moved a pin" ;;
 *) bad "the hook did not report the pin" ;;
 esac
+# A line with no release yet is reported, and nothing moves.
+git -C "$P" config hostwarden.follow 9
+case "$(hook)" in
+*"auto-update failed"*"no release v9.x"*) at v1.0.0 && ok || bad "moved" ;;
+*) bad "the hook did not report a line without a release" ;;
+esac
 update --follow 2 >/dev/null
 update --unpin >/dev/null && follows '' \
   && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] \

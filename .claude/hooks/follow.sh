@@ -12,20 +12,36 @@
 #
 # Expects nothing. Defines:
 #   hostwarden_follow          — prints the line, or nothing
+#   hostwarden_follow_set L    — follows line L from now on
+#   hostwarden_follow_clear    — follows no line
 #   hostwarden_follow_valid L  — true when L is a major or a
 #                                major.minor
+#   hostwarden_follow_fetch    — brings origin's tags, and only
+#                                its tags
 #   hostwarden_follow_tag L    — prints the highest vX.Y.Z tag on
 #                                line L this clone knows, or
-#                                nothing; fetch the tags first
+#                                nothing
 
 hostwarden_follow() {
   git config --get hostwarden.follow 2>/dev/null || true
+}
+
+hostwarden_follow_set() { git config hostwarden.follow "$1"; }
+
+hostwarden_follow_clear() {
+  git config --unset hostwarden.follow 2>/dev/null || true
 }
 
 hostwarden_follow_valid() {
   case $1 in
   '' | *[!0-9.]* | .* | *. | *..* | *.*.*) return 1 ;;
   esac
+}
+
+# No branch: a follower never uses main, and this runs at session
+# start. No force: a tag that moved upstream stays as it was here.
+hostwarden_follow_fetch() {
+  git fetch --quiet --no-tags origin 'refs/tags/*:refs/tags/*'
 }
 
 # v1.* never matches v10.0.0, and v1.2.* never v1.20.0: the dot

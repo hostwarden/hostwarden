@@ -23,35 +23,6 @@ run_migration() {
   [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
 }
 
-# report <old version> <what git said> — the version change, with
-# its changelog section, or git's own words when the version
-# stayed; nothing when nothing changed.
-report() {
-  NEW_VERSION=$(cat VERSION 2>/dev/null)
-  if [ "$1" = "$NEW_VERSION" ] || [ -z "$1" ] || [ -z "$NEW_VERSION" ]
-  then
-    [ -n "$2" ] && echo "hostwarden repo updated: $2"
-    return 0
-  fi
-  echo "hostwarden updated: $1 -> $NEW_VERSION"
-
-  # Print lines between "## $NEW_VERSION" and the next "## "
-  # heading (or end of file). Compare the whole second field so
-  # "## 2.8.0" does not also match "## 2.8.0-rc1".
-  if [ -f CHANGELOG.md ]; then
-    awk -v ver="$NEW_VERSION" '
-      /^## / { if (insec) exit; insec = ($2 == ver); next }
-      insec && NF { print }
-    ' CHANGELOG.md
-  fi
-
-  # Warn on major version change.
-  if [ "${1%%.*}" != "${NEW_VERSION%%.*}" ]; then
-    echo ""
-    echo "BREAKING CHANGES — read CHANGELOG.md"
-  fi
-}
-
 # Opt-out via environment variable. HEINZEL_NO_UPDATE
 # is the name from before the rename and still works.
 if [ "$HOSTWARDEN_NO_UPDATE" = "1" ] || [ "${HEINZEL_NO_UPDATE:-}" = "1" ]; then
@@ -83,32 +54,19 @@ if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
   exit 0
 fi
 
-# A checkout that follows a release line moves from tag to tag
-# on that line and never onto main (follow.sh).
+# A checkout that follows a release line moves from tag to tag on
+# it, never onto main. bin/hostwarden-update does that; this hook
+# only keeps quiet when it did not move.
 # shellcheck source=follow.sh
 . "${0%/*}/follow.sh"
-FOLLOW=$(hostwarden_follow)
-if [ -n "$FOLLOW" ]; then
-  if ! OUTPUT=$(git fetch --tags --quiet origin 2>&1); then
-    echo "hostwarden auto-update failed: $OUTPUT"
-    echo "Likely cause: no network, or origin is unreachable."
-    exit 0
+if [ -n "$(hostwarden_follow)" ]; then
+  BEFORE=$(git rev-parse HEAD)
+  if ! OUTPUT=$(sh bin/hostwarden-update 2>&1); then
+    echo "hostwarden auto-update failed:"
+    printf '%s\n' "$OUTPUT" | sed 's/^/  /'
+  elif [ "$(git rev-parse HEAD)" != "$BEFORE" ]; then
+    printf '%s\n' "$OUTPUT"
   fi
-  TAG=$(hostwarden_follow_tag "$FOLLOW")
-  if [ -z "$TAG" ]; then
-    echo "hostwarden follows $FOLLOW, but origin has no v$FOLLOW.x"
-    echo "  release — skipping auto-update"
-    exit 0
-  fi
-  [ "$(git rev-parse HEAD)" = "$(git rev-parse "$TAG^{commit}")" ] && exit 0
-  OLD_VERSION=$(cat VERSION 2>/dev/null)
-  if ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
-    echo "hostwarden auto-update to $TAG failed: $OUTPUT"
-    echo "Likely cause: local changes. Run 'git status' to inspect."
-    exit 0
-  fi
-  run_migration
-  report "$OLD_VERSION" "now at $TAG"
   exit 0
 fi
 
@@ -132,7 +90,10 @@ if [ "$BRANCH" != "main" ]; then
 fi
 
 # Remember current version before pulling.
-OLD_VERSION=$(cat VERSION 2>/dev/null)
+OLD_VERSION=""
+if [ -f VERSION ]; then
+  OLD_VERSION=$(cat VERSION)
+fi
 
 # Pull latest changes. --ff-only: a diverged local
 # main should fail loudly here, never produce a
@@ -152,4 +113,42 @@ fi
 # and silent when there's nothing to do.
 run_migration
 
-report "$OLD_VERSION" "$OUTPUT"
+# Read new version after pulling.
+NEW_VERSION=""
+if [ -f VERSION ]; then
+  NEW_VERSION=$(cat VERSION)
+fi
+
+# Report what happened.
+if [ -z "$OUTPUT" ] && [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+  # Nothing changed — stay quiet.
+  exit 0
+fi
+
+if [ "$OLD_VERSION" != "$NEW_VERSION" ] \
+   && [ -n "$OLD_VERSION" ] \
+   && [ -n "$NEW_VERSION" ]; then
+  echo "hostwarden updated: $OLD_VERSION -> $NEW_VERSION"
+
+  # Extract changelog section for the new version.
+  if [ -f CHANGELOG.md ]; then
+    # Print lines between "## $NEW_VERSION" and the
+    # next "## " heading (or end of file). Compare
+    # the whole second field so "## 2.8.0" does not
+    # also match "## 2.8.0-rc1".
+    awk -v ver="$NEW_VERSION" '
+      /^## / { if (insec) exit; insec = ($2 == ver); next }
+      insec && NF { print }
+    ' CHANGELOG.md
+  fi
+
+  # Warn on major version change.
+  OLD_MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
+  NEW_MAJOR=$(echo "$NEW_VERSION" | cut -d. -f1)
+  if [ "$OLD_MAJOR" != "$NEW_MAJOR" ]; then
+    echo ""
+    echo "BREAKING CHANGES — read CHANGELOG.md"
+  fi
+elif [ -n "$OUTPUT" ]; then
+  echo "hostwarden repo updated: $OUTPUT"
+fi
