@@ -48,8 +48,8 @@ esac
 #
 # git push over SSH runs GIT_SSH_COMMAND, and a bare ssh there
 # would find the shim: git-ssh.sh takes its place and runs what
-# the user set, kept in HOSTWARDEN_GIT_SSH_COMMAND. GIT_SSH, a
-# program of the user's own, stays theirs.
+# the user set, kept in HOSTWARDEN_GIT_SSH_COMMAND. A GIT_SSH on
+# its own, a program of the user's, stays theirs.
 SHIM="$ROOT/.claude/hooks/shim"
 # q <string> — single-quoted for the shell that sources the file.
 q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
@@ -61,7 +61,9 @@ if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
 elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
   {
     echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
-    if [ -z "${GIT_SSH:-}" ]; then
+    # GIT_SSH_COMMAND outranks GIT_SSH, so only a GIT_SSH on its
+    # own is left alone.
+    if [ -n "${GIT_SSH_COMMAND:-}" ] || [ -z "${GIT_SSH:-}" ]; then
       # A session started from inside another inherits its
       # git-ssh.sh, which kept as the user's own would run itself.
       case "${GIT_SSH_COMMAND:-}" in

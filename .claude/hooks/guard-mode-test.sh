@@ -123,6 +123,19 @@ cmd deny "$DEV" 'unset PATH; ssh server1.example.com'
 cmd deny "$DEV" "PATH=/usr/bin sh -c 'ssh server1.example.com'"
 cmd deny "$DEV" 'path=(/usr/bin /bin); ssh server1.example.com'
 cmd deny "$DEV" 'env -u PATH sudo whoami'
+cmd deny "$DEV" 'env --unset=PATH ssh server1.example.com'
+cmd deny "$DEV" 'env -uPATH ssh server1.example.com'
+cmd deny "$DEV" 'env --unset PATH ssh server1.example.com'
+cmd deny "$DEV" 'env - ssh server1.example.com'
+cmd deny "$DEV" 'env -iv sudo whoami'
+cmd pass "$DEV" 'env -u LANG sort file.txt'
+# rsync talks to a daemon itself; no ssh, so no shim, on the way.
+cmd deny "$DEV" 'rsync -a rsync://server1.example.com/mod/ here/'
+cmd deny "$DEV" "rsync -a 'rsync://server1.example.com/mod/' here/"
+cmd deny "$DEV" 'rsync -av server1.example.com::mod here/'
+cmd deny "$DEV" 'rsync -av here/ "server1.example.com::mod/x"'
+cmd pass "$DEV" 'rsync -a src/ /tmp/copy/'
+cmd pass "$DEV" 'grep -rn "std::string" src/ | rsync -a src/ /tmp/copy/'
 # A path elsewhere in the command counts once it is a program.
 mkdir -p "$TMP/bin"
 printf '#!/bin/sh\n' > "$TMP/bin/ssh"
@@ -364,6 +377,12 @@ E6="$TMP/nested.env"
 session "$DEV" "$E6" -u GIT_SSH GIT_SSH_COMMAND="'$DEV/.claude/hooks/git-ssh.sh'"
 grep -q HOSTWARDEN_GIT_SSH_COMMAND "$E6" \
   && bad "a nested session kept git-ssh.sh as the user's command" || ok
+# GIT_SSH_COMMAND outranks GIT_SSH: with both set, git runs the
+# command, which the wrapper has to carry.
+E7="$TMP/both.env"
+session "$DEV" "$E7" GIT_SSH=/opt/bin/myssh GIT_SSH_COMMAND='ssh -i /tmp/k'
+via "$E7" "-i /tmp/k server1.example.com" "GIT_SSH_COMMAND beside GIT_SSH hit the shim" \
+  git ls-remote server1.example.com:repo.git
 E3="$TMP/git-ssh.env"
 session "$DEV" "$E3" GIT_SSH=/opt/bin/myssh
 grep -q GIT_SSH_COMMAND "$E3" && bad "GIT_SSH_COMMAND set over a GIT_SSH of the user" \

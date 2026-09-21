@@ -11,7 +11,8 @@
 #     ssh included. This hook denies the forms that go past a
 #     PATH lookup: a path to the real binary (/usr/bin/ssh, also
 #     as rsync -e or a core.sshCommand value), command -p, a
-#     changed PATH, and $GIT_SSH_COMMAND, git's
+#     changed PATH, rsync to a daemon (rsync:// or host::module,
+#     which never starts ssh), and $GIT_SSH_COMMAND, git's
 #     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: hostwarden's local mode is server
 #     work too.
@@ -31,7 +32,7 @@
 #     set of shell writers cannot be closed; Edit and Write are
 #     how an agent changes a file, and the prose in AGENTS.md
 #     covers the rest.
-#   - Read quotes, wrappers or rsync operands. Every such case
+#   - Read quotes, wrappers or rsync operands over ssh. Every such case
 #     reaches the tool through PATH, where the shim waits; a
 #     parser for them never closes. Nor does it look for a bare
 #     tool name, so grep ssh and a commit message about sudo
@@ -92,7 +93,7 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
   */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*'command -p'*) ;;
   *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
-  *'-u PATH'*|*'env -i'*|*ignore-environment*) ;;
+  *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
   *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
   esac
@@ -205,7 +206,10 @@ fi
 #     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh;
 #   - command -p, and $GIT_SSH_COMMAND, at the start of a segment;
 #   - a command that changes PATH (PATH=, zsh path=, unset PATH,
-#     env -i, env -u PATH) and names a blocked tool anywhere.
+#     env -i or -, env -u PATH in its spellings) and names a
+#     blocked tool anywhere;
+#   - rsync with an rsync:// or host::module operand, which talks
+#     to the daemon itself and never starts ssh.
 case "$TOOL" in
 Bash|"") ;;
 *) exit 0 ;;
@@ -233,10 +237,17 @@ FOUND=$(printf '%s' "$CMD" | awk '
       for (i = 1; i <= nw; i++) {
         c = v[i]
         gsub(/^["\047]+|["\047]+$/, "", c)
-        if (c ~ /^(PATH|path)=/ || c == "--ignore-environment" \
-            || c == "-i" && v[i - 1] == "env" \
-            || c == "PATH" && (v[i - 1] == "unset" || v[i - 1] == "-u"))
+        # env -i, -iv, a lone -, --ignore-environment; env -u PATH,
+        # -uPATH, --unset PATH, --unset=PATH; unset PATH.
+        if (c ~ /^(PATH|path)=/ || c ~ /^--ignore-env/ \
+            || v[i - 1] == "env" && (c == "-" || c ~ /^-[A-Za-z]*i[A-Za-z]*$/) \
+            || c ~ /^(-u|--unset=)PATH$/ \
+            || c == "PATH" && (v[i - 1] == "unset" || v[i - 1] == "-u" || v[i - 1] == "--unset"))
           setpath = 1
+        # rsync reaches a daemon itself, no ssh on the way:
+        # rsync://host/module and host::module.
+        if (c ~ /^rsync:\/\// || c ~ /^[^\/:=-][^\/:=]*::/) daemon = 1
+        if (c ~ /(^|\/)rsync$/) rsync = 1
         sub(/^.*=/, "", c)
         b = c
         sub(/^.*\//, "", b)
@@ -267,6 +278,7 @@ FOUND=$(printf '%s' "$CMD" | awk '
       if (how != "") { print "deny " c " " how; exit }
     }
     if (setpath && named != "") { print "deny " named " with PATH changed"; exit }
+    if (rsync && daemon) { print "deny rsync to a daemon"; exit }
     if (path != "") print "path " path
   }')
 
