@@ -53,7 +53,7 @@ case "$OS" in
   MINGW*|MSYS*|CYGWIN*) PM=gitbash ;;
   *)
     PM=
-    for p in brew apt-get dnf zypper pkg pacman apk; do
+    for p in brew apt-get dnf yum zypper pkg pacman apk; do
       has "$p" && { PM=$p; break; }
     done ;;
 esac
@@ -63,7 +63,7 @@ pkgname() {
   case "$1:$PM" in
     dig:brew|dig:pacman) echo bind ;;
     dig:apt-get) echo dnsutils ;;
-    dig:dnf|dig:zypper) echo bind-utils ;;
+    dig:dnf|dig:yum|dig:zypper) echo bind-utils ;;
     dig:pkg|dig:apk) echo bind-tools ;;
     python3:brew|python3:pacman) echo python ;;
     # A command, not a package: awk is virtual under apt and
@@ -72,7 +72,7 @@ pkgname() {
     awk:*) echo gawk ;;
     mktemp:*|base64:*) echo coreutils ;;
     ssh:apt-get|ssh-keygen:apt-get) echo openssh-client ;;
-    ssh:dnf|ssh-keygen:dnf) echo openssh-clients ;;
+    ssh:dnf|ssh:yum|ssh-keygen:dnf|ssh-keygen:yum) echo openssh-clients ;;
     ssh:*|ssh-keygen:*) echo openssh ;;
     *) echo "$1" ;;
   esac
@@ -86,7 +86,7 @@ hint() {
   [ -n "$pkgs" ] || { echo "see the README"; return; }
   case "$PM" in
     brew) echo "brew install$pkgs" ;;
-    apt-get|dnf|zypper|pkg) echo "sudo $PM install$pkgs" ;;
+    apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$pkgs" ;;
     pacman) echo "sudo pacman -S$pkgs" ;;
     apk) echo "sudo apk add$pkgs" ;;
     gitbash) echo "Git Bash cannot install$pkgs; WSL can (README → Windows)" ;;
@@ -155,7 +155,9 @@ links_work() {
 # only while its Postfix is loaded.
 mail_ok() {
   has msmtp && return 0
-  has sendmail || return 1
+  # The absolute path too, as 5L.1 does: a PATH without /usr/sbin
+  # is common, and the MTA puts it there.
+  has sendmail || [ -x /usr/sbin/sendmail ] || return 1
   [ "$OS" = Darwin ] || return 0
   launchctl print system/com.apple.postfix.master
 }
