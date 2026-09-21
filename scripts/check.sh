@@ -38,54 +38,41 @@ need() {
   exit 2
 }
 
-if [ "${1:-}" = "--pre-commit" ]; then
-  need betterleaks
-  exec betterleaks git --pre-commit --staged --redact --verbose \
-    --no-banner .
-fi
+case "${1:-}" in
+  --pre-commit)
+    need betterleaks
+    exec betterleaks git --pre-commit --staged --redact --verbose \
+      --no-banner . ;;
+esac
 need python3 shellcheck actionlint betterleaks
 
-# --pre-push narrows the two slow steps to what is being pushed:
-# the guard matrix runs only when the push touches what it reads,
-# and the secret scan reads only the commits the destination lacks.
-# The rest costs a second or two and runs as always. CI runs it all.
-PUSHED='' SCAN=''
+# --pre-push skips the one slow step, the guard matrix, when the
+# pushed commits touch nothing it reads. CI runs everything.
+PUSHED=''
 if [ "${1:-}" = "--pre-push" ]; then
   remote=${2:-origin}
-  # git gives one line per ref: <local ref> <sha> <remote ref> <sha>
+  # One line per ref: <local ref> <sha> <remote ref> <sha>.
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
-    # A new ref, or one whose remote tip was never fetched here:
-    # every commit no ref of the destination has yet. Not what
-    # origin/main lacks -- the destination may be another remote
-    # that has less -- and not a range git log cannot resolve,
-    # which would read as nothing pushed.
-    if case $rsha in *[!0]*) false ;; esac \
-      || ! git cat-file -e "$rsha^{commit}" 2>/dev/null; then
-      r="$lsha --not --remotes=$remote"
-      # The secret scan does not trust those refs: a branch deleted
-      # on the destination lingers in refs/remotes until a prune and
-      # would hide its commits. All of a new ref's history, then.
-      s=$lsha
+    # A new ref, or a remote tip never fetched here: whatever no
+    # ref of the destination has.
+    if git cat-file -e "$rsha^{commit}" 2>/dev/null; then
+      r="$rsha..$lsha"
     else
-      r="$rsha..$lsha" s=$r
+      r="$lsha --not --remotes=$remote"
     fi
     PUSHED="$PUSHED
-$r" SCAN="$SCAN
-$s"
+$r"
   done
   [ -n "$PUSHED" ] || exit 0
 fi
 
-# each_push <list> <command...> -- run once per line of the list
-# (PUSHED or SCAN), with that line's git log arguments appended.
-each_push() {
-  list=$1
-  shift
-  printf '%s\n' "$list" | while read -r r; do
+# pushed_files -- every file the pushed commits touch.
+pushed_files() {
+  printf '%s\n' "$PUSHED" | while read -r r; do
     [ -n "$r" ] || continue
     # shellcheck disable=SC2086 # the log arguments are several words
-    "$@" $r || exit 1 # leaves the pipeline, which is the result
+    git log --name-only --format= $r || exit 1
   done
 }
 
@@ -123,7 +110,7 @@ sh_syntax() {
 
 # The matrix reads the hooks, settings.json, and the fenced blocks
 # of every .md but CHANGELOG.md (corpus.sh).
-if [ -n "$PUSHED" ] && ! each_push "$PUSHED" git log --name-only --format= \
+if [ -n "$PUSHED" ] && ! pushed_files \
     | grep -v '^CHANGELOG\.md$' \
     | grep -qE '\.md$|^\.claude/(hooks/|settings\.json$)'
 then
@@ -137,18 +124,10 @@ step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point
 step "ShellCheck" shellcheck -S warning $(shell_files)
 step "workflows" actionlint
-# History, not the working tree: a secret committed and deleted
-# again is still published by the push. All of it, or with
-# --pre-push the commits being pushed.
-secrets() {
-  if [ -z "$PUSHED" ]; then
-    betterleaks git --redact --verbose --no-banner .
-  else
-    each_push "$SCAN" leaks
-  fi
-}
-leaks() { betterleaks git --log-opts="$*" --redact --verbose --no-banner .; }
-step "secrets" secrets
+# The whole history, pre-push too: a secret committed and deleted
+# again is still published, and scanning it all takes a fraction
+# of a second -- less than proving which part the remote lacks.
+step "secrets" betterleaks git --redact --verbose --no-banner .
 
 if [ -n "$failed" ]; then
   echo "check: failed:$failed"
