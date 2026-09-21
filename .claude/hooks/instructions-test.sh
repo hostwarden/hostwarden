@@ -511,7 +511,9 @@ RULESET="$ROOT/.github/rulesets/main.json"
 if [ -f "$RULESET" ]; then
   for ctx in $(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET")
   do
-    if grep -q "^  $ctx:" "$ROOT/.github/workflows/ci.yml"; then
+    # Only under jobs: -- `on:` has two-space keys of its own.
+    if sed -n '/^jobs:/,$p' "$ROOT/.github/workflows/ci.yml" \
+      | grep -q "^  $ctx:"; then
       ok
     else
       bad "main.json requires check '$ctx', which no job in" \
