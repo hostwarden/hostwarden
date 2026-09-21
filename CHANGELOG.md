@@ -24,6 +24,12 @@
   session that starts with the guard off opens with a
   note saying so.
 
+- **Native Windows: the README lists the three settings
+  symlinks need** and how to repair a clone made without
+  them. Without them Git Bash copies where it should link,
+  so a DNS alias got its own drifting copy of the server
+  memory; hostwarden and `bin/hostwarden-adopt` now make
+  sure a link is a link.
 - **For contributors: `sh scripts/check.sh` runs
   everything CI runs**, now including a secret scan of the
   whole history, workflow linting and the 80-column wrap.
