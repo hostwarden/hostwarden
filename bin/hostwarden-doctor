@@ -88,15 +88,19 @@ hint() {
 }
 
 # Per tier: the labels of what is missing, and the tools to name
-# in its install hint. Features get one hint line each. NONMISE is
-# set once a required miss is something mise.dev.toml does not pin.
-NEED='' NEED_T='' WANT='' WANT_T='' FEAT='' NONMISE=''
+# in its install hint. Features get one hint line each. A tool
+# mise.dev.toml pins goes to MISE_T instead: no package manager
+# has it under that name, mise does.
+NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
 
 miss() {
   case $1 in
-    need) NEED="$NEED, $2" NEED_T="$NEED_T $3"
-      case " $MISE_TOOLS " in *" ${3:--} "*) ;; *) NONMISE=1 ;; esac ;;
+    need) NEED="$NEED, $2"
+      case " $MISE_TOOLS " in
+        *" ${3:--} "*) MISE_T="$MISE_T $3" ;;
+        *) NEED_T="$NEED_T $3" ;;
+      esac ;;
     want) WANT="$WANT, $2" WANT_T="$WANT_T $3" ;;
     feat) FEAT="$FEAT
   $2: $(hint "$3")" ;;
@@ -186,10 +190,10 @@ fi
 
 [ -n "$QUIET" ] || echo
 if [ -n "$NEED" ]; then
-  fix=$(hint "$NEED_T")
-  if [ -n "$DEV" ] && [ -z "$NONMISE" ]; then
-    fix="$fix, or mise trust mise.dev.toml && MISE_ENV=dev mise install"
-  fi
+  fix=''
+  [ -z "$NEED_T" ] || fix=$(hint "$NEED_T")
+  [ -z "$MISE_T" ] \
+    || fix="${fix:+$fix; }mise trust mise.dev.toml && MISE_ENV=dev mise install"
   echo "hostwarden: required, missing: ${NEED#, } — $fix"
 fi
 if [ -n "$WANT" ]; then
