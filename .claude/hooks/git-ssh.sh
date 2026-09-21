@@ -14,14 +14,16 @@
 # $GIT_SSH_COMMAND form; beyond that, the prose rule in AGENTS.md
 # is the whole protection.
 
-# session-mode.sh writes both paths from the same root, so the
-# shim's PATH entry is this directory's shim/, spelled alike.
-SHIM=${0%/*}/shim
+# Every hostwarden shim goes, not only this checkout's: a session
+# started from inside another one carries both on PATH.
 P=
 set -f
 IFS=:
 for d in $PATH; do
-  [ "$d" = "$SHIM" ] || P="$P${P:+:}$d"
+  case "$d" in
+  */.claude/hooks/shim) ;;
+  *) P="$P${P:+:}$d" ;;
+  esac
 done
 unset IFS
 set +f

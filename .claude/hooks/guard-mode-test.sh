@@ -129,6 +129,9 @@ cmd deny "$DEV" 'env --unset PATH ssh server1.example.com'
 cmd deny "$DEV" 'env - ssh server1.example.com'
 cmd deny "$DEV" 'env -iv sudo whoami'
 cmd pass "$DEV" 'env -u LANG sort file.txt'
+cmd deny "$DEV" 'env -u LANG -i ssh server1.example.com'
+cmd deny "$DEV" 'env FOO=1 --unset PATH ssh server1.example.com'
+cmd pass "$DEV" 'env LANG=C grep -i ssh rules/ssh-user.md'
 # rsync talks to a daemon itself; no ssh, so no shim, on the way.
 cmd deny "$DEV" 'rsync -a rsync://server1.example.com/mod/ here/'
 cmd deny "$DEV" "rsync -a 'rsync://server1.example.com/mod/' here/"
@@ -136,6 +139,7 @@ cmd deny "$DEV" 'rsync -av server1.example.com::mod here/'
 cmd deny "$DEV" 'rsync -av here/ "server1.example.com::mod/x"'
 cmd pass "$DEV" 'rsync -a src/ /tmp/copy/'
 cmd pass "$DEV" 'grep -rn "std::string" src/ | rsync -a src/ /tmp/copy/'
+cmd pass "$DEV" 'rsync -a src/ /tmp/copy/ && grep -rn "std::string" src/'
 # A path elsewhere in the command counts once it is a program.
 mkdir -p "$TMP/bin"
 printf '#!/bin/sh\n' > "$TMP/bin/ssh"
@@ -145,6 +149,8 @@ cmd deny "$DEV" "rsync -a -e '$TMP/bin/ssh -p 2222' src/ server1.example.com:/sr
 cmd deny "$DEV" "git -c core.sshCommand=$TMP/bin/ssh push"
 cmd pass "$DEV" "grep -rn Port $TMP/bin/ssh.d/"
 cmd pass "$DEV" 'ls /etc/ssh'
+# Every path in the command is looked at, not only the first.
+cmd deny "$DEV" "ls /etc/ssh && rsync -a -e $TMP/bin/ssh src/ server1.example.com:/srv/"
 cmd deny "$DEV" '$GIT_SSH_COMMAND root@server1.example.com uptime'
 cmd deny "$DEV" '"${GIT_SSH_COMMAND}" server1.example.com'
 cmd deny "$DEV" 'ssh-keygen -lf k.pub; /usr/bin/doas true'
@@ -377,6 +383,19 @@ E6="$TMP/nested.env"
 session "$DEV" "$E6" -u GIT_SSH GIT_SSH_COMMAND="'$DEV/.claude/hooks/git-ssh.sh'"
 grep -q HOSTWARDEN_GIT_SSH_COMMAND "$E6" \
   && bad "a nested session kept git-ssh.sh as the user's command" || ok
+# A session started inside another carries both shims on PATH; git
+# still reaches the real ssh past the outer one.
+mkdir -p "$TMP/outer/.claude/hooks/shim"
+printf '#!/bin/sh\necho outer > "%s/ssh.log"\nexit 1\n' "$TMP" \
+  > "$TMP/outer/.claude/hooks/shim/ssh"
+chmod +x "$TMP/outer/.claude/hooks/shim/ssh"
+rm -f "$TMP/ssh.log"
+(cd "$DEV" && PATH="$TMP/outer/.claude/hooks/shim:$TMP/realssh:$PATH" \
+  sh -c '. "$1"; git ls-remote server1.example.com:repo.git' _ "$ENVF") >/dev/null 2>&1
+case "$(cat "$TMP/ssh.log" 2>/dev/null)" in
+*server1.example.com*) ok ;;
+*) bad "git-ssh.sh left the shim of an outer session on PATH" ;;
+esac
 # GIT_SSH_COMMAND outranks GIT_SSH: with both set, git runs the
 # command, which the wrapper has to carry.
 E7="$TMP/both.env"

@@ -234,28 +234,36 @@ FOUND=$(printf '%s' "$CMD" | awk '
     n = split(s, seg, "\n")
     for (l = 1; l <= n; l++) {
       nw = split(seg[l], v, /[ \t]+/)
+      # env: 1 while the words are options of an env command, 2 when
+      # the next word is the value of -u, -C or -S.
+      env = rsync = daemon = 0
       for (i = 1; i <= nw; i++) {
         c = v[i]
         gsub(/^["\047]+|["\047]+$/, "", c)
+        if (env == 2) env = 1
+        else if (env && c !~ /^-/ && c !~ /=/) env = 0
         # env -i, -iv, a lone -, --ignore-environment; env -u PATH,
         # -uPATH, --unset PATH, --unset=PATH; unset PATH.
-        if (c ~ /^(PATH|path)=/ || c ~ /^--ignore-env/ \
-            || v[i - 1] == "env" && (c == "-" || c ~ /^-[A-Za-z]*i[A-Za-z]*$/) \
-            || c ~ /^(-u|--unset=)PATH$/ \
-            || c == "PATH" && (v[i - 1] == "unset" || v[i - 1] == "-u" || v[i - 1] == "--unset"))
+        if (c ~ /^(PATH|path)=/ \
+            || env && (c == "-" || c ~ /^-[A-Za-z]*i[A-Za-z]*$/ || c ~ /^--ignore-env/) \
+            || env && c ~ /^(-u|--unset=)PATH$/ \
+            || c == "PATH" && (v[i - 1] == "unset" || env && v[i - 1] ~ /^(-u|--unset)$/))
           setpath = 1
+        if (env && c ~ /^(-[uCS]|--unset|--chdir|--split-string)$/) env = 2
         # rsync reaches a daemon itself, no ssh on the way:
         # rsync://host/module and host::module.
         if (c ~ /^rsync:\/\// || c ~ /^[^\/:=-][^\/:=]*::/) daemon = 1
         if (c ~ /(^|\/)rsync$/) rsync = 1
+        if (c ~ /(^|\/)env$/) env = 1
         sub(/^.*=/, "", c)
         b = c
         sub(/^.*\//, "", b)
         if (b ~ T) {
           if (named == "") named = b
-          if (c ~ /\// && path == "") path = c
+          if (c ~ /\//) paths = paths "path " c "\n"
         }
       }
+      if (rsync && daemon) { print "deny rsync to a daemon"; exit }
       i = 1
       while (i <= nw && (v[i] == "" || v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
@@ -278,18 +286,27 @@ FOUND=$(printf '%s' "$CMD" | awk '
       if (how != "") { print "deny " c " " how; exit }
     }
     if (setpath && named != "") { print "deny " named " with PATH changed"; exit }
-    if (rsync && daemon) { print "deny rsync to a daemon"; exit }
-    if (path != "") print "path " path
+    printf "%s", paths
   }')
 
+BLOCKED=
 case "$FOUND" in
 "deny "*) BLOCKED=${FOUND#deny } ;;
-# /etc/ssh is a directory, a path in a sentence names nothing, and
-# the shim only refuses.
-"path "*.claude/hooks/shim/*) ;;
-"path "*) [ -f "${FOUND#path }" ] && [ -x "${FOUND#path }" ] &&
-  BLOCKED="${FOUND##*/} by its path" ;;
+*)
+  # /etc/ssh is a directory, a path in a sentence names nothing,
+  # and the shim only refuses.
+  while IFS= read -r p; do
+    p=${p#path }
+    case "$p" in *.claude/hooks/shim/*) continue ;; esac
+    if [ -f "$p" ] && [ -x "$p" ]; then
+      BLOCKED="${p##*/} by its path"
+      break
+    fi
+  done <<EOF
+$FOUND
+EOF
+  ;;
 esac
-[ -n "${BLOCKED:-}" ] || exit 0
+[ -n "$BLOCKED" ] || exit 0
 hostwarden_refusal "$BLOCKED"
 emit "$HOSTWARDEN_REFUSAL"
