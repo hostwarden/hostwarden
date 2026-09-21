@@ -5,7 +5,8 @@ decided this workstation sends. Nothing here touches the managed
 host.
 
 **5L.1 Probe for a local transport:**
-`command -v sendmail || command -v msmtp`. Those are the two
+`command -v sendmail || test -x /usr/sbin/sendmail ||
+command -v msmtp`. Those are the two
 step 7 pipes into; `mail` or `mailx` alone does not count,
 because it cannot take the headers step 7 writes. On
 macOS, also confirm Postfix is loaded:

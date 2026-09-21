@@ -7,7 +7,9 @@ root-privileged operation in the whole workflow.
 **5R.1 Resolve transport** — probe in this order on the
 remote host:
 
-- `command -v sendmail`
+- `command -v sendmail || test -x /usr/sbin/sendmail` — a
+  normal user's `PATH` often lacks `/usr/sbin`, where the MTA
+  puts it
 - `command -v msmtp`
 - `systemctl is-active postfix opensmtpd exim4` (any active)
 

@@ -40,7 +40,12 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 # The top of a clone, not merely inside one: unpacked into some
 # other repository, git would otherwise pull that one.
-if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ]; then
+# And a clone of hostwarden: unpacked at the top of some other
+# checkout, the first test passes, but git does not track this
+# script there.
+if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
+    || ! git ls-files --error-unmatch bin/hostwarden-update \
+      >/dev/null 2>&1; then
   echo "hostwarden: this is not a git clone (an archive" \
     "download?), so no update check — clone the repository" \
     "to get updates"

@@ -55,7 +55,12 @@ if ! command -v git >/dev/null 2>&1; then
   echo "hostwarden-update: git is not installed" >&2
   exit 1
 fi
-if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ]; then
+# And a clone of hostwarden: unpacked at the top of some other
+# checkout, the first test passes, but git does not track this
+# script there.
+if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
+    || ! git ls-files --error-unmatch bin/hostwarden-update \
+      >/dev/null 2>&1; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2
   exit 1
