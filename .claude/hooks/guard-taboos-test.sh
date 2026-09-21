@@ -813,6 +813,26 @@ settings_case deny 'Write a guard-off record' \
   '{"tool_name":"Write","tool_input":{"file_path":"/h/.cache/hostwarden/guard-off-abc","content":""}}'
 settings_case deny 'Bash: touch a guard-off record' \
   "$(json_for 'cd ~/.cache/hostwarden && touch guard-off-abc')"
+settings_case deny 'Write a Windows path to the settings file' \
+  '{"tool_name":"Write","tool_input":{"file_path":"C:\\\\Users\\\\alice\\\\hw\\\\.claude\\\\settings.local.json","content":"'"$V"'"}}'
+# While a settings file carries the variable, a change that never
+# names it could flip its value: every Edit of it is denied, and so
+# is a shell command naming a settings file. A Write without it, or
+# the operator by hand, takes it out.
+SET=$(mktemp -d)
+mkdir -p "$SET/.claude"
+printf '{"env": {"%s": "0"}}\n' "$V" > "$SET/.claude/settings.local.json"
+settings_case deny 'Edit flipping the value of an existing key' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"0\"","new_string":"\"1\""}}'
+settings_case pass 'Write taking the existing key out' \
+  '{"tool_name":"Write","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","content":"{}"}}'
+settings_case deny 'Bash: sed on settings while the key exists' \
+  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
+  "CLAUDE_PROJECT_DIR=$SET" "HOME=$SET/none"
+settings_case pass 'Bash: sed on settings without the key' \
+  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
+  "CLAUDE_PROJECT_DIR=$SET/none" "HOME=$SET/none"
+rm -rf "$SET"
 settings_case pass 'Edit a hook that mentions the records' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/hooks/check-session.sh","old_string":"a","new_string":"guard-off-"}}'
 # No jq: judged on the raw text, which may over-block, never under.

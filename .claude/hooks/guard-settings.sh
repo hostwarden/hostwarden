@@ -12,10 +12,16 @@
 #   - keep the variable out of Claude Code settings files, where it
 #     would switch the guard off for the NEXT session: an Edit, Write
 #     or MultiEdit of a settings file (any letter case — macOS and
-#     Windows resolve SETTINGS.JSON to the same file) whose new text
-#     names it, and a Bash command that names it and a settings file.
-#     A Bash command naming both cannot be told from a read, so a
-#     grep of the two together is denied too; grep one at a time.
+#     Windows resolve SETTINGS.JSON to the same file; either path
+#     separator) whose new text names it, and a Bash command that
+#     names it and a settings file. A Bash command naming both
+#     cannot be told from a read, so a grep of the two together is
+#     denied too; grep one at a time.
+#   - while the project or user settings file already carries it,
+#     any Edit or MultiEdit of that file and any Bash command naming
+#     a settings file: either could flip "0" to "1" without naming
+#     the variable. A Write without it — or the operator, by hand —
+#     takes it out.
 #   - keep hands off the records: any write to a guard-off-* file,
 #     and any Bash command that names guard-off- at all (grep for
 #     "guard-off" without the hyphen when reading about it).
@@ -37,6 +43,7 @@ V=HOSTWARDEN_GUARD_DISABLE
 TI=${INPUT#*\"tool_input\"}
 case "$TI" in
   *"$V"*|*guard-off-*) ;;
+  *[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss]*.[Jj][Ss][Oo][Nn]*) ;;
   *) exit 0 ;;
 esac
 
@@ -55,6 +62,14 @@ deny() {
 
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
 RECORD_RE='guard-off-'
+
+# A settings file this session loads that already carries the
+# variable. Two files, test and grep, no parsing of paths.
+PROJECT=${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
+any_holds_var() {
+  grep -qs "$V" "$PROJECT/.claude/settings.local.json" \
+    "$PROJECT/.claude/settings.json" "$HOME/.claude/settings.json"
+}
 
 # One jq call, three lines: tool, target, and everything the call
 # would write. Without jq, or on input it cannot read, the raw text
@@ -76,22 +91,27 @@ fi
 
 if [ -z "$TOOL" ]; then
   printf '%s' "$TI" | grep -q "$RECORD_RE" && deny
-  case "$TI" in *"$V"*)
-    printf '%s' "$TI" | grep -Eiq "$SETTINGS_RE" && deny ;;
-  esac
+  printf '%s' "$TI" | grep -Eiq "$SETTINGS_RE" || exit 0
+  case "$TI" in *"$V"*) deny ;; esac
+  any_holds_var && deny
   exit 0
 fi
 
 case "$TOOL" in
   Bash)
     printf '%s' "$NEW" | grep -q "$RECORD_RE" && deny
-    case "$NEW" in *"$V"*)
-      printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" && deny ;;
-    esac ;;
+    printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" || exit 0
+    case "$NEW" in *"$V"*) deny ;; esac
+    any_holds_var && deny ;;
   *)
-    case "${FILE##*/}" in guard-off-*) deny ;; esac
-    case "$NEW" in *"$V"*)
-      printf '%s' "${FILE##*/}" | grep -Eiqx "$SETTINGS_RE" && deny ;;
+    # Either separator: a native Windows path uses backslashes.
+    B=${FILE##*[/\\]}
+    case "$B" in guard-off-*) deny ;; esac
+    printf '%s' "$B" | grep -Eiqx "$SETTINGS_RE" || exit 0
+    case "$NEW" in *"$V"*) deny ;; esac
+    case "$TOOL" in
+      Write) ;;
+      *) grep -qs "$V" "$FILE" && deny ;;
     esac ;;
 esac
 exit 0
