@@ -425,10 +425,9 @@ function load(p,   l, fence, h) {
   return 1
 }'
 
-# Headings named in prose: `AGENTS.md` → SSH Options, README →
-# Windows, `rules/dns-aliases.md` § Detection, and the ASCII
-# spelling `AGENTS.md - Critical Safety Rules` a hook's printf
-# uses. A renamed heading leaves every one of them pointing at a
+# Headings named in prose: `AGENTS.md` → SSH Options,
+# `rules/dns-aliases.md` § Detection, and the ASCII spelling
+# `AGENTS.md - Critical Safety Rules` a hook's printf uses. A renamed heading leaves every one of them pointing at a
 # section the reader then cannot find, and nothing says so.
 #
 # Such a pointer wraps wherever the sentence does, often between
