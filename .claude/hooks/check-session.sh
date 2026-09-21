@@ -20,17 +20,18 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 # git directory. A submodule has a .git file too, but its git
 # directory has no commondir. Neither the name of the common
 # directory (a separate --git-dir need not be called .git) nor an
-# absolute gitdir (worktree.useRelativePaths) is assumed. No git
+# absolute gitdir (worktree.useRelativePaths) is assumed, and a
+# drive-letter path from Git for Windows counts as absolute. No git
 # call needed.
 GITDIR=""
 [ -f "$ROOT/.git" ] && GITDIR=$(sed -n 's|^gitdir: ||p' "$ROOT/.git")
 case "$GITDIR" in
-  ""|/*) ;;
+  ""|/*|[A-Za-z]:[/\\]*) ;;
   *) GITDIR="$ROOT/$GITDIR" ;;
 esac
 if [ -n "$GITDIR" ] && [ -f "$GITDIR/commondir" ]; then
   COMMON=$(sed -n 1p "$GITDIR/commondir")
-  case "$COMMON" in /*) ;; *) COMMON="$GITDIR/$COMMON" ;; esac
+  case "$COMMON" in /*|[A-Za-z]:[/\\]*) ;; *) COMMON="$GITDIR/$COMMON" ;; esac
   COMMON=$(cd "$COMMON" 2>/dev/null && pwd)
   case "$COMMON" in
     */.git) MAIN="${COMMON%/.git}" ;;

@@ -97,32 +97,47 @@ any_holds_var() {
       done | grep -q hit
 }
 
-# One jq call, four lines: tool, target, everything the call would
-# write, and whether every single replacement takes out text naming
-# the variable ("all") or not. Judged per edit, never on the edits
-# joined: in a MultiEdit one removal must not carry a flip beside
-# it. Without jq, or on input it cannot read, the raw text is judged
-# as a whole, which can only over-block.
+# One jq call, three lines: tool, target, and everything the call
+# would write. Without jq, or on input it cannot read, the raw text
+# is judged as a whole, which can only over-block.
 TOOL=""
 if command -v jq >/dev/null 2>&1; then
-  PARSED=$(printf '%s' "$INPUT" | jq -r --arg v "$V" '
+  PARSED=$(printf '%s' "$INPUT" | jq -r '
     .tool_name // "",
     .tool_input.file_path // "",
     ([.tool_input.command, .tool_input.content,
       .tool_input.new_string,
       (.tool_input.edits // [] | .[].new_string)]
-     | map(strings) | join(" ") | gsub("\n"; " ")),
-    ([.tool_input.old_string,
-      (.tool_input.edits // [] | .[].old_string)]
-     | map(strings)
-     | if length > 0 and all(contains($v)) then "all" else "not" end)
+     | map(strings) | join(" ") | gsub("\n"; " "))
     ' 2>/dev/null) \
     || PARSED=""
   TOOL=$(printf '%s\n' "$PARSED" | sed -n 1p)
   FILE=$(printf '%s\n' "$PARSED" | sed -n 2p)
   NEW=$(printf '%s\n' "$PARSED" | sed -n 3p)
-  OLD=$(printf '%s\n' "$PARSED" | sed -n 4p)
 fi
+
+# result_holds_var — the settings file as this Edit or MultiEdit
+# would leave it still names the variable. The edits are replayed
+# on the current content, in order, the way the tool applies them:
+# the first occurrence, or all with replace_all. Judging the edit
+# texts instead cannot work — an old_string that names the variable
+# may remove some other occurrence while the key flips beside it.
+# Anything jq cannot replay counts as still naming it.
+result_holds_var() {
+  RESULT=$(printf '%s' "$INPUT" | jq -r --rawfile cur "$FILE" '
+    def rep($o; $n; $all):
+      if $o == "" then .
+      elif $all then split($o) | join($n)
+      else split($o) as $p
+        | if ($p | length) < 2 then .
+          else $p[0] + $n + ($p[1:] | join($o)) end
+      end;
+    reduce ((.tool_input.edits // [.tool_input])[]) as $e
+      ($cur; rep($e.old_string // ""; $e.new_string // "";
+                 $e.replace_all // false))' 2>/dev/null) || return 0
+  case "$RESULT" in *"$V"*) return 0 ;; esac
+  return 1
+}
 
 if [ -z "$TOOL" ]; then
   printf '%s' "$INPUT" | grep -Eq "$SETTINGS_RE" || exit 0
@@ -139,13 +154,12 @@ case "$TOOL" in
   *)
     printf '%s' "${FILE##*/}" | grep -Eqx "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
-    # Already set: a Write that leaves it out, or an Edit whose
-    # every replacement takes out text naming it, removes it.
-    # Anything else may be the value-only flip.
+    # Already set: only an edit that leaves the file without it
+    # may pass. A Write's whole new content was checked above.
     if holds_var "$FILE"; then
       case "$TOOL" in
         Write) ;;
-        *) [ "$OLD" = all ] || deny ;;
+        *) result_holds_var && deny ;;
       esac
     fi ;;
 esac

@@ -811,8 +811,16 @@ mkdir -p "$SET/.claude"
 printf '{"env": {"%s": "0"}}\n' "$V" > "$SET/.claude/settings.local.json"
 settings_case deny 'Edit flipping the value of an existing key' \
   '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"0\"","new_string":"\"1\""}}'
+# A removal of some other occurrence beside a flip of the key: the
+# result still names the variable, so it is denied however the
+# edit texts look.
+printf '{"env":{"%s":"0"},"note":"%s"}\n' "$V" "$V" \
+  > "$SET/.claude/settings.json"
+settings_case deny 'Edit flipping the key while removing another mention' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","old_string":"\"0\"},\"note\":\"'"$V"'\"","new_string":"\"1\"}"}}'
 settings_case deny 'MultiEdit: a removal beside a value flip' \
-  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"'"$V"'","new_string":"x"},{"old_string":"\"0\"","new_string":"\"1\""}]}}'
+  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","edits":[{"old_string":",\"note\":\"'"$V"'\"","new_string":""},{"old_string":"\"0\"","new_string":"\"1\""}]}}'
+rm -f "$SET/.claude/settings.json"
 settings_case pass 'MultiEdit: every edit a removal' \
   '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"\"'"$V"'\": \"0\"","new_string":""}]}}'
 settings_case pass 'Edit taking the existing key out' \
