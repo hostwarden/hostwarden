@@ -9,8 +9,7 @@ privately, as [SECURITY.md](SECURITY.md) describes.
 Clone with symbolic links working; native Windows needs three
 settings first (README → Windows). The checks need ShellCheck,
 actionlint, betterleaks and `python3`. `mise.dev.toml` pins the
-versions CI uses; mise asks you to trust it once, and the checks
-find what it installs without `MISE_ENV` set in your shell:
+versions CI uses; mise asks you to trust it once:
 
 ```bash
 mise trust mise.dev.toml
