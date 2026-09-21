@@ -40,16 +40,12 @@ tool reads. This file adds only what exists here and nowhere else.
   here. The ASCII fallback those rules give is for tools without it.
 - **Sessions on this machine can be reached.** When a host's session
   register names your own `user@workstation`
-  (`rules/parallel-sessions.md`), `ListAgents` lists the sessions
-  here and `SendMessage` reaches them.
-- **A server check leaves development as a message.** For
-  `rules/server-check-handoff.md`, `ListAgents` shows the sessions
-  running in the operations checkout, `SendMessage` hands one the
-  question, and the answer comes back the same way, addressed to
-  this session's name. With none running, the one command is
-  `claude "<question>"`, run in that checkout. Never a task chip:
-  it starts in a new worktree of that checkout, which is a
-  development session and refuses the same way.
+  (`rules/parallel-sessions.md`), or a development session hands a
+  question over (`rules/server-check-handoff.md`), `ListAgents`
+  lists the sessions here and `SendMessage` reaches them. With none
+  in the operations checkout, the one command is
+  `claude "<question>"`, run there — never a task chip, which starts
+  in a new worktree.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.

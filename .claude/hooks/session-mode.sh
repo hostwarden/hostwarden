@@ -49,18 +49,16 @@ worktree)
   echo "hostwarden: linked worktree — development mode. This session"
   echo "  changes hostwarden itself and reaches no server: a worktree"
   echo "  never carries memory/, so the access lists and the server"
-  echo "  memory are not here. Server work runs only in the main"
-  echo "  checkout${HOSTWARDEN_MAIN:+ ($HOSTWARDEN_MAIN)}, and only if that is an"
-  echo "  operations install."
+  echo "  memory are not here."
   ;;
 *)
   echo "hostwarden: development checkout — this session changes"
   echo "  hostwarden itself and reaches no server, this machine"
   echo "  included. Changes go through a branch and a pull request."
-  echo "  Server work needs an operations checkout: a separate clone,"
-  echo "  set up once with bin/hostwarden-init."
   ;;
 esac
+hostwarden_next_step
+echo "  A question only a live server answers: $HOSTWARDEN_NEXT_STEP."
 
 # The shim (shim.sh) goes first on the PATH of every later Bash
 # call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE

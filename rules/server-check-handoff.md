@@ -3,14 +3,12 @@
 What a development session does when the work needs a fact only a
 live server has: what a command prints there, whether a change
 behaves, how a bug looks on a real host. It hands the question to
-an operations session and reads the answer. It never reaches the
-server itself, by any path — the refusal that sent you here is
-the rule working, not an obstacle to route around.
-
-The handoff exists so that the access lists, the server memory
-and the whole of `rules/first-connection.md` still stand between
-the question and the host. They live only in an operations
-checkout; a route that skips them is the thing the mode forbids.
+an operations session, which alone has the access lists, the
+server memory and `rules/first-connection.md` to put between the
+question and the host, and reads the answer. It never reaches the
+server itself, by any path, program or changed `PATH` — the
+refusal that sent you here is the rule working, not an obstacle
+to route around.
 
 ## Find the operations checkout
 
@@ -74,8 +72,6 @@ holds for a tool on this machine that the mode refuses.
 
 ## Never
 
-- Call a refused tool by another path, through another program,
-  or with a changed `PATH`.
 - Ask the developer to switch a guard off, or to start this
   session again in an operations checkout for the development
   work.

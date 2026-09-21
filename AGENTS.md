@@ -275,7 +275,6 @@ trigger — not a request from the user.
 
 - A development session needs a live server's answer →
   `rules/server-check-handoff.md`
-
 - A secret is anywhere near the command → `rules/secrets.md`
 - Reading what a server returned → `rules/anomaly-detection.md`
 - SSH stops answering → `rules/ssh-unreachable.md`
