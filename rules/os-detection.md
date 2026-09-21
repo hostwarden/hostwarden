@@ -41,7 +41,8 @@ skill says so where it needs it.
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'ls -d /homeassistant'
+     'ls -d /homeassistant; pveversion; opnsense-version;' \
+     'cat /etc/version'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -108,7 +109,10 @@ skill says so where it needs it.
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below.
+   `@appliance`. See Appliances below. The same lines
+   carry the version of Proxmox VE, OPNsense and
+   pfSense; any other appliance file says how to read
+   its own.
 
 4. Create a server memory file.
 
@@ -164,5 +168,6 @@ known servers: read the memory file, changelog, and
 `todo.md` (if present) before any work, read the
 family file and the appliance file from `Appliance:`,
 and send the probe from step 1 again. It checks the
-OS version, the appliance version and the shell in
-one call; update memory if any of them changed.
+OS version, the shell and, for the appliances step 3
+names, the appliance version in one call; update
+memory if any of them changed.
