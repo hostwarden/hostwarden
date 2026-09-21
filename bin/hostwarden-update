@@ -36,23 +36,30 @@ show_changelog_section() {
   fi
 }
 
-# Without git, or outside a clone, every git call below fails
-# and --check would report a detached HEAD: the wrong cause.
-# --help needs neither, and is what someone in that spot reaches
-# for, so it is left to the case below.
-case "${1:-}" in --help|-h) ;; *)
+case "${1:-}" in
+  --help|-h)
+    echo "Usage: hostwarden-update [--check|--pin VER|--unpin]"
+    echo ""
+    echo "  (no args)   Pull latest from main"
+    echo "  --check     Show version and update status"
+    echo "  --pin VER   Pin to a version tag (e.g. v0.1.0)"
+    echo "  --unpin     Return to main and pull latest"
+    exit 0 ;;
+esac
+
+# Without git, or outside a clone, every git call below fails and
+# --check would report a detached HEAD: the wrong cause. The top
+# of a clone, too, not merely inside one: unpacked into some other
+# repository, git would pull that one.
 if ! command -v git >/dev/null 2>&1; then
   echo "hostwarden-update: git is not installed" >&2
   exit 1
 fi
-# The top of a clone, not merely inside one: unpacked into some
-# other repository, git would otherwise pull that one.
 if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ]; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2
   exit 1
 fi
-;; esac
 
 case "${1:-}" in
   --check)
@@ -113,14 +120,6 @@ case "${1:-}" in
     echo "hostwarden unpinned — now on main ($(current_version))"
     ;;
 
-  --help|-h)
-    echo "Usage: hostwarden-update [--check|--pin VER|--unpin]"
-    echo ""
-    echo "  (no args)   Pull latest from main"
-    echo "  --check     Show version and update status"
-    echo "  --pin VER   Pin to a version tag (e.g. v0.1.0)"
-    echo "  --unpin     Return to main and pull latest"
-    ;;
 
   "")
     # Default: pull latest.

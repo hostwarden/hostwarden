@@ -96,22 +96,13 @@ report() {
 
 
 # --- every registered hook starts, and starts the right file -----
-# A hook that cannot start fails open: Claude Code carries on, and
-# the only sign is the thing the hook would have done not
-# happening. That is the taboo guard as much as anything else.
-# Three ways to get there, one check each command has to pass:
-# - an interpreter other than sh. The scripts are POSIX sh, and a
-#   missing bash is exit 127, which Claude Code does not treat as
-#   a block.
-# - a path not anchored at $CLAUDE_PROJECT_DIR. Hooks run in the
-#   session's cwd, so a relative path breaks after any cd (#2).
-# - a script that does not exist, after a rename that missed
-#   settings.json.
-# Every command is matched, not only *.sh: bin/ scripts carry no
-# extension. The mkdir hook runs no script and is the one other
-# command allowed, exactly as written: a prefix match would let
+# A hook that cannot start fails open, the taboo guard included.
+# So every command is `sh "$CLAUDE_PROJECT_DIR/<existing file>"`
+# with plain arguments at most -- not bash (exit 127 when it is
+# missing), not a relative path (breaks after a cd, #2), nothing
+# chained -- or the one mkdir, matched whole: a prefix would let
 # `mkdir … && bash …` through.
-NHOOKS=0
+NHOOKS=0 GUARD=''
 while IFS= read -r c; do
   [ -n "$c" ] || continue
   NHOOKS=$((NHOOKS + 1))
@@ -129,6 +120,7 @@ while IFS= read -r c; do
       bad "settings.json runs more than $h: $c"
       continue ;;
   esac
+  [ "$h" = .claude/hooks/guard-taboos.sh ] && GUARD=1
   if [ -f "$ROOT/$h" ]; then
     ok
   else
@@ -141,10 +133,8 @@ if [ "$NHOOKS" -eq 0 ]; then
   bad "settings.json registers no hook script -- either the" \
       "guard is gone or this check stopped matching"
 fi
-# Every hook present and correct says nothing about whether the
-# guard is among them: remove it and the checks above still pass.
-if grep -q '"command": *"sh \\"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-taboos.sh\\""' \
-    "$CLAUDE_DIR/settings.json"; then
+# Sound hooks say nothing about whether the guard is among them.
+if [ -n "$GUARD" ]; then
   ok
 else
   bad "settings.json no longer registers the taboo guard"
