@@ -34,13 +34,15 @@ That is what CI runs.
 
 ## What goes where
 
-Read
-[.claude/rules/instruction-authoring.md](.claude/rules/instruction-authoring.md)
-before changing anything under `rules/`, `.agents/skills/` or
-`AGENTS.md` — where a new instruction belongs, the wrap, and
-the example identifiers allowed — and
-[.claude/rules/repo-release.md](.claude/rules/repo-release.md)
-for `VERSION`, `CHANGELOG.md` and the guard's fixture matrix.
+Two files in `.claude/rules/` hold the conventions for changing
+this repository, and the `paths` at the top of each lists the
+files it governs. Read the one that covers what you change:
+[instruction-authoring.md](.claude/rules/instruction-authoring.md)
+for the instruction text — where a new instruction belongs, the
+wrap, the example identifiers allowed — and
+[repo-release.md](.claude/rules/repo-release.md) for releases,
+CI and the checks. Claude Code loads them on its own; every
+other tool has to be pointed at them.
 
 ## Commits and pull requests
 
