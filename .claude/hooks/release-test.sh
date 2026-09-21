@@ -191,6 +191,11 @@ case "$(hook)" in
 *) bad "the hook did not report a line without a release" ;;
 esac
 update --follow 2 >/dev/null
+# An unpin that cannot leave the tag keeps the line.
+echo local > "$P/VERSION"
+update --unpin >/dev/null && bad "--unpin succeeded over a local change"
+follows 2 && ok || bad "a failed --unpin dropped the line"
+git -C "$P" checkout --quiet -- VERSION
 update --unpin >/dev/null && follows '' \
   && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] \
   && [ "$(git -C "$P" rev-parse HEAD)" = "$(git -C "$M" rev-parse main)" ] \

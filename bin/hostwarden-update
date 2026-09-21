@@ -200,8 +200,10 @@ case "${1:-}" in
     ;;
 
   --unpin)
-    hostwarden_follow_clear
     git checkout main
+    # Only once off the tag: a failed checkout keeps the line, or
+    # the next session would take the tag for a pin.
+    hostwarden_follow_clear
     git pull --ff-only --quiet
     # Same as the default path: a pinned checkout can be many
     # releases behind, so this is exactly where an override
