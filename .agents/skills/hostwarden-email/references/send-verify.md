@@ -59,7 +59,7 @@ attachments.
    makes the headers survive: a tool-specific shell-out to
    `mutt` or `mail -a` drops them.
 
-   **macOS local path.** `/usr/bin/sendmail` on macOS is a
+   **macOS local path.** `/usr/sbin/sendmail` on macOS is a
    Postfix compatibility shim and accepts the same `-t`
    invocation, so the same composed message pipes through
    without change.
