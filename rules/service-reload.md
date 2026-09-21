@@ -155,6 +155,22 @@ show the test output if it fails.
 | sshd           | `sshd -t` (but sshd is "always ask" — see below) |
 | haproxy        | `haproxy -c -f <file>`             |
 | unbound        | `unbound-checkconf`                |
+| Home Assistant | per install type, below            |
+
+Home Assistant on a normal Linux host is restarted,
+not reloaded, and the restart needs a passing check
+too. Refuse it and show the output when the check
+fails. The check depends on the install type —
+Container, Supervised, then Core, run as the
+unit's `User=`:
+
+```bash
+docker exec <container> python -m homeassistant \
+  --script check_config --config /config
+ha core check
+sudo -u <service-user> <venv>/bin/hass \
+  --script check_config --config <config-dir>
+```
 
 If no config test is known for the service, ask
 the user before reloading — auto-proceed requires

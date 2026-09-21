@@ -23,7 +23,8 @@
   reports the running version and runs the config check
   each install type has. Supervised and Core are reported
   once as unsupported since 2025.12; migrating stays your
-  decision.
+  decision. A Home Assistant restart you ask for runs
+  that config check first and stops when it fails.
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you
   safe fit on one page; everything deeper — native
