@@ -3,6 +3,8 @@
 #
 #   sh scripts/check.sh               every check, as CI runs it
 #   sh scripts/check.sh --pre-commit  the staged changes' secret scan
+#   sh scripts/check.sh --pre-push    what the pushed commits need,
+#                                     refs on stdin as git gives them
 #
 # CI runs this file and nothing else, so a green run here is a
 # green run there. A check added to the workflow instead is first
@@ -42,6 +44,29 @@ if [ "${1:-}" = "--pre-commit" ]; then
 fi
 need python3 shellcheck actionlint betterleaks
 
+# --pre-push narrows the two slow steps to what is being pushed:
+# the guard matrix runs only when the push touches what it covers,
+# and the secret scan reads only the commits the remote lacks. The
+# rest costs a second or two and runs as always. CI runs it all.
+RANGES=
+if [ "${1:-}" = "--pre-push" ]; then
+  # git gives one line per ref: <local ref> <sha> <remote ref> <sha>
+  while read -r _ lsha _ rsha; do
+    case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
+    case $rsha in
+      *[!0]*) base=$rsha ;;
+      *) base=$(git merge-base "$lsha" origin/main 2>/dev/null) ;;
+    esac
+    RANGES="$RANGES ${base:+$base..}$lsha"
+  done
+  [ -n "$RANGES" ] || exit 0
+fi
+
+# pushed_files -- every file the pushed commits touch.
+pushed_files() {
+  for r in $RANGES; do git log --name-only --format= "$r"; done
+}
+
 failed=
 step() {
   name=$1
@@ -74,16 +99,37 @@ sh_syntax() {
   return $rc
 }
 
-step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
+# The matrix runs the guard and every fenced block under rules/ and
+# .agents/skills/ through it (corpus.sh).
+if [ -n "$RANGES" ] && ! pushed_files | grep -qE \
+    '^(\.claude/hooks/(guard-taboos|corpus)|rules/|\.agents/skills/)'
+then
+  echo "== guard matrix: nothing it covers is pushed, skipped"
+else
+  step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
+fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point
 step "ShellCheck" shellcheck -S warning $(shell_files)
 step "workflows" actionlint
-# The whole history, not the working tree: a secret that was
-# committed and deleted again is still published by the next push.
-step "secrets" betterleaks git --redact --verbose --no-banner .
+# History, not the working tree: a secret committed and deleted
+# again is still published by the push. All of it, or with
+# --pre-push the commits being pushed.
+secrets() {
+  [ -n "$RANGES" ] || {
+    betterleaks git --redact --verbose --no-banner .
+    return
+  }
+  rc=0
+  for r in $RANGES; do
+    betterleaks git --log-opts="$r" --redact --verbose --no-banner . \
+      || rc=1
+  done
+  return $rc
+}
+step "secrets" secrets
 
 if [ -n "$failed" ]; then
   echo "check: failed:$failed"
