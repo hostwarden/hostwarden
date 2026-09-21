@@ -198,9 +198,10 @@ configuration; the app prints it in its log. Never read it out of
 ## Housekeeping and Audits
 
 - The Linux baseline does not apply (see What Does Not Apply).
-  Housekeeping reads, in one call (as root, without `sudo -n`):
+  Housekeeping reads, in one call — a non-root login prefixes
+  `sudo -n` (The `ha` CLI):
   ```
-  sudo -n /command/with-contenv sh -c 'ha available-updates;
+  /command/with-contenv sh -c 'ha available-updates;
     ha resolution info; ha backups list; ha host info;
     ha time info; ha mounts info'
   ```

@@ -744,6 +744,14 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     if (!based) print rel ": no Base line"
     if (!ha) print rel ": no ## Housekeeping and Audits section"
   }
+  function body(p, sec,   l, h, on, t) {
+    if ((p, sec) in BODY) return BODY[p, sec]
+    while ((getline l < p) > 0) {
+      if (l ~ /^## /) { h = l; sub(/^## +/, "", h); on = (h == sec); continue }
+      if (on) t = t "\n" l
+    }
+    close(p); return BODY[p, sec] = t
+  }
   function text(p,   l, t) {
     if (p in RAW) return RAW[p]
     while ((getline l < p) > 0) t = t "\n" l
@@ -772,7 +780,7 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     if (!ok) next
     for (i = 1; i <= NH[base]; i++) if (H[base, i] == sec) break
     if (i > NH[base]) print rel ": " sec " is no section of " substr(base, length(root) + 1)
-    else if (entry != "" && !index(text(base), entry))
+    else if (entry != "" && !index(body(base, sec), entry))
       print rel ": " entry " is no entry of " sec
   }
   END { done() }' "$ROOT"/rules/appliance/*.md)" \

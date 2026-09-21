@@ -12,11 +12,15 @@ behaviour. Overrides go under `memory/custom-rules/` and into
 Later wins:
 
 1. **Shipped** — the instruction file in `rules/` or a
-   skill. On an appliance, the family file and the
-   appliance file on top of it, each with its global
-   override (`rules/os-detection.md` → Appliances).
+   skill. On an appliance, the family file with the
+   appliance file applied on top
+   (`rules/os-detection.md` → Appliances).
 2. **Global** — the file under
    `memory/custom-rules/` that mirrors it, see below.
+   On an appliance, the family file's override and then
+   the appliance file's, both on top of the merged
+   shipped file, so a shipped `Replace:` never takes
+   out what a user wrote.
 3. **Every file** — `memory/custom-rules/all.md`, loaded
    once at session start and applying to everything.
 4. **This host** — `memory/servers/<hostname>/rules.md`.
