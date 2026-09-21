@@ -49,8 +49,12 @@ finding. See `rules/version-check.md`.
   runtime configuration with the permanent one. Once a
   fresh login works, `firewall-cmd --runtime-to-permanent`
   keeps them; `firewall-cmd --check-config` checks the
-  permanent configuration. Starting firewalld reverts
-  with `systemctl stop firewalld`.
+  permanent configuration. A change made with
+  `--permanent` (the zone target, a service added before
+  starting firewalld) reverts by restoring the backed-up
+  `/etc/firewalld/`, then `firewall-cmd --reload`.
+  Starting firewalld reverts with
+  `systemctl stop firewalld`.
 - Note the default zone:
   `firewall-cmd --get-default-zone`. A custom or
   renamed default zone is legitimate — what matters

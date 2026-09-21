@@ -174,7 +174,7 @@ echo "$uu" \
 #    publishes Codename: <release>-security), Ubuntu
 #    uses Allowed-Origins ("<distro>:<codename>-security").
 codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
-pattern="(codename=|:)(\\\$\{distro_codename\}|${codename})-security"
+pattern="(codename=|archive=|[an]=|:)(\\\$\{distro_codename\}|${codename})-security"
 echo "$uu" \
   | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::" \
   | grep -qE "$pattern" \
@@ -459,7 +459,7 @@ import json, sys
 s = json.load(sys.stdin)
 print("attached=%s" % s["attached"])
 for v in s["services"]:
-    print("%s=%s" % (v["name"], v["status"]))'
+    print("%s=%s" % (v["name"], v.get("status", "not-attached")))'
 pro security-status 2>/dev/null | grep -i universe
 pro api u.pro.packages.updates.v1 2>/dev/null | python3 -c '
 import json, sys, collections

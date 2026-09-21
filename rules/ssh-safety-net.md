@@ -27,8 +27,8 @@ ready.
    On a host with systemd:
 
    ```bash
-   systemd-run --unit=hostwarden-revert --on-active=5min \
-     sh -c '<revert>'
+   systemd-run --unit=hostwarden-revert --collect \
+     --on-active=5min sh -c '<revert>'
    systemctl list-timers hostwarden-revert.timer
    ```
 

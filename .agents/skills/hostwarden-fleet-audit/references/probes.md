@@ -45,12 +45,16 @@ apt-config dump 2>/dev/null | grep \
   -e '^Unattended-Upgrade::Remove-Unused-Dependencies '
 # Ubuntu: Pro coverage decides what the security runs can
 # install (rules/os/debian.md → Ubuntu Pro and ESM).
-pro status --format json 2>/dev/null | python3 -c '
+if command -v pro >/dev/null 2>&1; then
+  pro status --format json 2>/dev/null | python3 -c '
 import json, sys
 s = json.load(sys.stdin)
 print("pro.attached=%s" % s["attached"])
 for v in s["services"]:
-    print("pro.%s=%s" % (v["name"], v["status"]))'
+    print("pro.%s=%s" % (v["name"], v.get("status", "not-attached")))'
+else
+  echo "pro=n/a"
+fi
 ```
 
 Row keys to extract for the table:
