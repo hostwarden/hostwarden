@@ -133,13 +133,19 @@ from **Git Bash**, so the SessionStart hooks and the
 
 Already cloned without these settings? After steps
 1–3, replace the text file with the link, then check it;
-no output means it is fine:
+no output means it is fine. The clone may have recorded
+`core.symlinks=false` for itself, which outranks the
+global setting, so set it here too:
 
 ```
+git config core.symlinks true
 rm .claude/skills
 git checkout -- .claude/skills
 sh .claude/hooks/check-skills.sh
 ```
+
+An archive download (ZIP) cannot be repaired this way,
+because it is no git clone: clone the repository instead.
 
 A DNS alias created before step 3 is a directory
 where `ls -l memory/servers/` should show a link. Its

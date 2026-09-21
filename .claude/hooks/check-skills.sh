@@ -49,6 +49,7 @@ fi
 echo "hostwarden: .claude/skills does not lead to .agents/skills/,"
 echo "  so Claude Code sees no skill at all — no housekeeping, no"
 echo "  security audit, and no warning but this one. The README"
-echo "  → Windows says how to repair the link in this clone."
+echo "  → Windows says how to repair the link in a clone; an"
+echo "  archive download has to be replaced by a clone."
 
 exit 0
