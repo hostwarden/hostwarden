@@ -15,8 +15,9 @@
 #
 # Three answers:
 #
-#   operations   main checkout with a workspace. Servers may be
-#                reached; hostwarden's own files are read-only.
+#   operations   main checkout of a git clone, with a workspace.
+#                Servers may be reached; hostwarden's own files
+#                are read-only.
 #   development  main checkout without a workspace. hostwarden's
 #                files may change; no server is reached, not even
 #                this machine.
@@ -28,7 +29,7 @@
 #                worktree is removed.
 #
 # Cheap on purpose: the guard asks on every tool call, so this is
-# two file tests, never a process — and it sets a variable rather
+# three file tests, never a process — and it sets a variable rather
 # than printing, so the caller needs no subshell either.
 #
 # Expects nothing. Defines:
@@ -43,7 +44,8 @@ hostwarden_mode() {
   # directory; the main checkout has a .git directory.
   if [ -f "$1/.git" ]; then
     HOSTWARDEN_MODE=worktree
-  elif [ -f "$1/memory/.hostwarden-workspace" ]; then
+  elif [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]; then
+    # A clone, not an archive copy: operations needs updates.
     HOSTWARDEN_MODE=operations
   else
     HOSTWARDEN_MODE=development

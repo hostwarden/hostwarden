@@ -229,6 +229,16 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     }
     return i
   }
+  # remote(i) — whether the rsync arguments from v[i] on reach a
+  # server. rsync is fine between local paths; it reaches one
+  # through a remote shell (-e, --rsh), a host:path operand or an
+  # rsync:// URL. The arguments end where a find action does.
+  function remote(i) {
+    for (; i <= nw && v[i] !~ /^(\\?;|\+)$/; i++)
+      if (v[i] ~ /^(-e|--rsh)/ || v[i] ~ /^[^\/:-][^\/:]*::?/ || v[i] ~ /^rsync:\/\//)
+        return 1
+    return 0
+  }
   function lastword(t) {
     sub(/[ \t]+$/, "", t)
     return match(t, /[^ \t\n;&|(]*$/) ? substr(t, RSTART, RLENGTH) : ""
@@ -239,7 +249,7 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     # Options of a wrapper that take the next word as their value,
     # so that word is not mistaken for the wrapped command.
     # Short and long spellings; --opt=value is one word anyway.
-    split("env -u|env --unset|env -C|env --chdir|env -S|env --split-string|timeout -s|timeout --signal|timeout -k|timeout --kill-after|stdbuf -i|stdbuf --input|stdbuf -o|stdbuf --output|stdbuf -e|stdbuf --error|nice -n|nice --adjustment|xargs -I|xargs -n|xargs --max-args|xargs -P|xargs --max-procs|xargs -L|xargs --max-lines|xargs -d|xargs --delimiter|xargs -E|xargs -s|xargs --max-chars|xargs -a|xargs --arg-file", a, "|")
+    split("env -u|env --unset|env -C|env --chdir|timeout -s|timeout --signal|timeout -k|timeout --kill-after|stdbuf -i|stdbuf --input|stdbuf -o|stdbuf --output|stdbuf -e|stdbuf --error|nice -n|nice --adjustment|xargs -I|xargs -n|xargs --max-args|xargs -P|xargs --max-procs|xargs -L|xargs --max-lines|xargs -d|xargs --delimiter|xargs -E|xargs -s|xargs --max-chars|xargs -a|xargs --arg-file", a, "|")
     for (k in a) takes[a[k]] = 1
   }
   { s = s $0 }
@@ -257,8 +267,9 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
         body = body c; j++
       }
       w = lastword(out)
-      # -c alone or ending a cluster of short options (sh -ec).
-      if (w ~ /^-[A-Za-z]*c$/ || w == "eval") {
+      # -c alone or ending a cluster of short options (sh -ec), and
+      # env -S, which splits its value into the command it runs.
+      if (w ~ /^-[A-Za-z]*c$/ || w == "eval" || w ~ /^(-S|--split-string=?)$/) {
         out = out "\n" body "\n"
       } else {
         # The placeholder keeps what makes an rsync operand remote:
@@ -275,6 +286,9 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
       }
       i = j + 1
     }
+    # The {} of find is an operand, not a brace group: keep the words
+    # after it on the same line.
+    gsub(/\{\}/, "Q", out)
     gsub(/[;&|()`{}]/, "\n", out)
     nl = split(out, line, "\n")
     for (l = 1; l <= nl; l++) {
@@ -291,20 +305,12 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
           if (v[j] ~ /^-(exec|execdir|ok|okdir)$/) {
             k = cmdword(j + 1)
             e = v[k]; sub(/^.*\//, "", e)
-            if (e ~ BLOCKED || e == "rsync") { print e; exit }
+            if (e ~ BLOCKED) { print e; exit }
+            if (e == "rsync" && remote(k + 1)) { print "rsync to a remote"; exit }
           }
         }
       }
-      # rsync is fine between local paths. It reaches a server
-      # through a remote shell (-e, --rsh), a host:path operand
-      # or an rsync:// URL.
-      if (c == "rsync") {
-        for (j = i + 1; j <= nw; j++) {
-          if (v[j] ~ /^(-e|--rsh)/ || v[j] ~ /^[^\/:-][^\/:]*::?/ || v[j] ~ /^rsync:\/\//) {
-            print "rsync to a remote"; exit
-          }
-        }
-      }
+      if (c == "rsync" && remote(i + 1)) { print "rsync to a remote"; exit }
     }
   }')
 

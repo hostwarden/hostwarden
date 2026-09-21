@@ -38,6 +38,12 @@ case "${1:-}" in
   *) usage >&2; exit 1 ;;
 esac
 
+if [ ! -e .git ]; then
+  echo "hostwarden-init: this is not a git clone (an archive" >&2
+  echo "  download?). An operations install has to be able to" >&2
+  echo "  update, so clone the repository and run this there." >&2
+  exit 1
+fi
 if [ -f .git ]; then
   echo "hostwarden-init: this is a linked git worktree, which never" >&2
   echo "  carries memory/. Run this in the main checkout." >&2

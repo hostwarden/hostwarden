@@ -62,6 +62,17 @@ mode_is() {
 mode_is development "$DEV"
 mode_is operations "$OPS"
 mode_is worktree "$WT"
+# An archive copy, not a clone: never operations, even with a
+# workspace in it, and init refuses to make one.
+ARC="$TMP/archive"
+mkdir -p "$ARC/memory"
+cp -R "$DEV/.claude" "$DEV/bin" "$DEV/templates" "$ARC/"
+cp "$OPS/memory/.hostwarden-workspace" "$ARC/memory/"
+mode_is development "$ARC"
+rm "$ARC/memory/.hostwarden-workspace"
+if sh "$ARC/bin/hostwarden-init" >/dev/null 2>&1; then
+  bad "init made a workspace outside a git clone"
+else ok; fi
 
 # --- guard-mode.sh ---------------------------------------------
 bash_json() {
@@ -120,6 +131,11 @@ cmd deny "$DEV" 'find . -exec ssh server1.example.com true \;'
 cmd deny "$DEV" 'find . -name x -execdir /usr/bin/scp {} server1.example.com: \;'
 cmd pass "$DEV" 'find . -name "*.sh" -exec shellcheck {} +'
 cmd deny "$DEV" 'find . -exec env ssh server1.example.com true \;'
+cmd pass "$DEV" 'find . -name "*.md" -exec rsync -a {} /tmp/copy/ \;'
+cmd deny "$DEV" 'find . -exec rsync -a {} server1.example.com:/srv/ \;'
+cmd deny "$DEV" "env -S 'ssh server1.example.com true'"
+cmd deny "$DEV" 'env --split-string="sudo whoami"'
+cmd deny "$DEV" 'env -S ssh server1.example.com'
 cmd deny "$DEV" 'find . -ok timeout -s KILL 5 sudo true \;'
 cmd deny "$DEV" 'env --unset FOO ssh server1.example.com true'
 cmd deny "$DEV" 'timeout --signal KILL 5 ssh server1.example.com'
