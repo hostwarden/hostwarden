@@ -89,7 +89,7 @@ under pressure.
   Likely-secret files are refused as email
   attachments by default.
 
-## How hostwarden fights LLM hallucinations
+## How Hostwarden fights LLM hallucinations
 
 LLMs can "hallucinate" — confidently produce commands
 with wrong flags, incorrect file paths, or syntax that
@@ -100,14 +100,14 @@ dangerous.
 Hostwarden reduces this risk with multiple layers:
 
 - **Distro-specific rule files** — Instead of relying
-  on the LLM's memory, hostwarden loads a verified rule
+  on the LLM's memory, Hostwarden loads a verified rule
   file for each platform (Debian, RHEL, SUSE,
   macOS). These files contain the correct
   commands, package managers, firewall tools, and
   common pitfalls for each distro. The LLM reads
   the file and follows it — it doesn't have to
   guess.
-- **Verify before running** — hostwarden is instructed
+- **Verify before running** — Hostwarden is instructed
   to check `--help`, man pages, or upstream docs
   before running any command. This catches wrong
   flags and syntax before they reach the server.

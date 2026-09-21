@@ -26,7 +26,7 @@ field() {
   # field <dotted.path> — one value out of the hook's JSON input.
   #
   # Three readers, because a workstation is whatever the user
-  # runs hostwarden from and this hook may not assume any one
+  # runs Hostwarden from and this hook may not assume any one
   # interpreter is on it. Without the sed branch a host with
   # neither jq nor python3 loses the pointer and says nothing
   # about it, which is the one failure a hook whose whole job is
@@ -87,7 +87,7 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "You are editing hostwarden's instruction set, which is the product. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
+    "additionalContext": "You are editing Hostwarden's instruction set, which is the product. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
   }
 }
 JSON

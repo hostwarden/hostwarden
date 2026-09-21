@@ -21,7 +21,7 @@ pre-create them.
 203.0.113.50
 ```
 
-The user can add or remove entries by asking hostwarden
+The user can add or remove entries by asking Hostwarden
 to edit the file, or by editing it directly.
 
 ## Shared Lookup Logic
@@ -101,7 +101,7 @@ unprivileged mode sysadmin report.
 
 **No override:** read-only mode is a hard constraint.
 The user must remove the entry from
-`memory/readonly.md` before hostwarden will modify the
+`memory/readonly.md` before Hostwarden will modify the
 server.
 
 ## Linked Worktrees
@@ -111,7 +111,7 @@ per session. A linked worktree is a development
 checkout (`AGENTS.md` → Development or Operations);
 where hooks run, the session was told so at its
 start and the mode guard enforces it. Elsewhere,
-read `.git` in the hostwarden directory: a file whose
+read `.git` in the Hostwarden directory: a file whose
 `gitdir:` names a directory holding a `commondir`
 file means a linked worktree; a directory, or a
 submodule's `.git` file, does not.
@@ -129,7 +129,7 @@ every session in one.
 included. Tell the user: "This session runs in a git
 worktree, where the blacklist, the read-only list
 and server memory do not exist. Start a new session
-in the hostwarden checkout itself, with the worktree
+in the Hostwarden checkout itself, with the worktree
 option off." Name that checkout: the parent of the
 common git directory.
 
@@ -137,6 +137,6 @@ common git directory.
 main checkout's `memory/` and carry on. Every rule
 names `memory/...` relative to where it runs, so one
 missed path reads or writes the empty tree here
-instead. Working on hostwarden's own source is what
+instead. Working on Hostwarden's own source is what
 a worktree is for; that reaches no machine and needs
 no check.

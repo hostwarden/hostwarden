@@ -14,7 +14,7 @@
 # $GIT_SSH_COMMAND form; beyond that, the prose rule in AGENTS.md
 # is the whole protection.
 
-# Every hostwarden shim goes, not only this checkout's: a session
+# Every Hostwarden shim goes, not only this checkout's: a session
 # started from inside another one carries both on PATH.
 P=
 set -f

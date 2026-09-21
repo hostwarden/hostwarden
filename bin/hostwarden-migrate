@@ -60,7 +60,7 @@ macos os/macos.md'
 if [ -d memory/custom-rules ]; then
   # memory/custom-rules/heinzel-<skill>.md →
   # hostwarden-<skill>.md: a skill override is found by the
-  # skill's name, which changed with the rename from heinzel.
+  # skill's name, which changed with the rename from Heinzel.
   for f in memory/custom-rules/heinzel-*.md; do
     [ -e "$f" ] || continue
     name=$(basename "$f")

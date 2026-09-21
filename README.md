@@ -30,19 +30,19 @@ OS, services, and quirks so you don't have to. Not
 sure yet? Ask Hostwarden to plan first before making
 changes — no changes until you say go.
 
-hostwarden continues
-[heinzel](https://github.com/wintermeyer/heinzel) by
+Hostwarden continues
+[Heinzel](https://github.com/wintermeyer/heinzel) by
 Stefan Wintermeyer as an independent project. It keeps
-heinzel's history and still takes over heinzel's
-improvements where they fit. Coming from heinzel? See
-[Moving over from heinzel](docs/heinzel.md).
+Heinzel's history and still takes over Heinzel's
+improvements where they fit. Coming from Heinzel? See
+[Moving over from Heinzel](docs/heinzel.md).
 
 ## Screencast: Debug and fix some webserver problems
 
 ![Screencast: Debug and fix some webserver problems](assets/webshop-bugfix-example.gif)
 
-Recorded with heinzel, before the rename — a
-hostwarden session looks the same.
+Recorded with Heinzel, before the rename — a
+Hostwarden session looks the same.
 
 ## How to Install
 
@@ -64,7 +64,7 @@ is missing and the command to install it.
 
 ### Steps
 
-1. **Clone the repo, set up the workspace, start hostwarden**
+1. **Clone the repo, set up the workspace, start Hostwarden**
    ```
    git clone https://github.com/jpawlowski/hostwarden.git
    cd hostwarden
@@ -78,10 +78,10 @@ is missing and the command to install it.
    says why that matters.
    `bin/hostwarden-init` turns `memory/` into the
    workspace — a git repository of its own that holds
-   everything hostwarden learns about your servers —
+   everything Hostwarden learns about your servers —
    and so makes this an **operations checkout**.
    Without it, the checkout is for developing
-   hostwarden and reaches no server (see
+   Hostwarden and reaches no server (see
    [Operations and development](docs/operations.md#operations-and-development)).
 2. **Describe what you need in plain English**
    ```
@@ -218,7 +218,7 @@ not blindly approve.
 | Prerequisites in detail, native Windows | [docs/install.md](docs/install.md) |
 | Production, mirrors, teams, parallel sessions | [docs/operations.md](docs/operations.md) |
 | Updates, release lines, pinning | [docs/updates.md](docs/updates.md) |
-| Moving over from heinzel | [docs/heinzel.md](docs/heinzel.md) |
+| Moving over from Heinzel | [docs/heinzel.md](docs/heinzel.md) |
 | Backup and restore of `memory/` | [docs/backup.md](docs/backup.md) |
 | Features with example prompts | [docs/features.md](docs/features.md) |
 | Claude Code, the desktop app, OpenCode with Ollama | [docs/ai-tools.md](docs/ai-tools.md) |
@@ -231,15 +231,15 @@ not blindly approve.
 
 A warden is the person responsible for a place: they
 look after it, keep it in order and answer for its
-state. hostwarden does that for your hosts, and you
+state. Hostwarden does that for your hosts, and you
 approve every step.
 
 The project began as
-[heinzel](https://github.com/wintermeyer/heinzel),
+[Heinzel](https://github.com/wintermeyer/heinzel),
 named after the
 [Heinzelmännchen](https://en.wikipedia.org/wiki/Heinzelm%C3%A4nnchen),
 the helpful house spirits of Cologne who did the work
-at night. hostwarden keeps that idea: an invisible
+at night. Hostwarden keeps that idea: an invisible
 helper that does the tedious work while you review.
 
 ## Contributing
@@ -253,9 +253,9 @@ rules — please open an issue or submit a PR. See
 
 ## License
 
-MIT, © Julian Pawlowski. hostwarden contains
+MIT, © Julian Pawlowski. Hostwarden contains
 substantial portions of
-[heinzel](https://github.com/wintermeyer/heinzel) by
+[Heinzel](https://github.com/wintermeyer/heinzel) by
 Stefan Wintermeyer, whose copyright notice the MIT
 terms require this project to keep — both notices are
 in `LICENSE`.

@@ -6,7 +6,7 @@ privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## Setup
 
-Work in a development checkout: a clone of hostwarden, or of your
+Work in a development checkout: a clone of Hostwarden, or of your
 fork, without `bin/hostwarden-init`
 ([docs/operations.md](docs/operations.md#operations-and-development)).
 One git worktree per branch keeps parallel sessions apart;

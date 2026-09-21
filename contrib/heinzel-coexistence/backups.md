@@ -1,11 +1,11 @@
 # Custom Rules — Backups
 
-Override for `rules/backups.md` while hostwarden
+Override for `rules/backups.md` while Hostwarden
 works on the same hosts.
 
 ## Add: The other tool's backup directory
 
-hostwarden writes config backups to
+Hostwarden writes config backups to
 `/var/backups/hostwarden/`, and
 `~/.hostwarden-backups/` in unprivileged mode. When
 looking for an earlier version of a config file, look
@@ -19,8 +19,8 @@ neither gains anything.
 
 ## Add: An empty backup directory is not data loss
 
-hostwarden offers, once per host, to adopt what
-heinzel left behind. If the user accepted,
+Hostwarden offers, once per host, to adopt what
+Heinzel left behind. If the user accepted,
 `/var/backups/heinzel/` was moved into
 `/var/backups/hostwarden/` and the old directory
 removed.

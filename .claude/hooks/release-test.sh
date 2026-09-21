@@ -1,6 +1,6 @@
 #!/bin/sh
 # release-test.sh — dev-only fixture matrix for how a copy of
-# hostwarden gets its releases: bin/hostwarden-mirror,
+# Hostwarden gets its releases: bin/hostwarden-mirror,
 # bin/hostwarden-update and check-updates.sh, with follow.sh
 # between them. Run before committing a change to any of them:
 #   sh .claude/hooks/release-test.sh

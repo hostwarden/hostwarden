@@ -1,6 +1,6 @@
 # Custom Rules and Overrides
 
-A user's customizations win over anything hostwarden ships.
+A user's customizations win over anything Hostwarden ships.
 Files under `rules/` and `.agents/skills/` are replaced on
 every update, so they are never edited to change behaviour.
 The files under `memory/custom-rules/` and
@@ -82,7 +82,7 @@ When an upgrade moves a topic — out of `rules/` into a
 skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
 the matching override with it, and says which files it
 moved. It runs on update and as the last step of adopting a
-heinzel checkout. A file already at the new path wins; the
+Heinzel checkout. A file already at the new path wins; the
 old one is left for the user to merge, and named.
 
 It moves whole files, which is all it can do: when a topic
@@ -227,7 +227,7 @@ its trigger needs customizing are served by `all.md`.
 
 ## A skill of the user's own
 
-A workflow hostwarden does not ship is a skill of the
+A workflow Hostwarden does not ship is a skill of the
 user's own, in `memory/.claude/skills/<name>/SKILL.md`.
 Claude Code loads it as `/memory:<name>` once the session
 has read a file in `memory/`, which the session-start

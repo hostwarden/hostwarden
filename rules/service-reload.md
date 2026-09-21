@@ -1,6 +1,6 @@
 # Service Reload & Restart Policy
 
-When the user asks hostwarden to reload or restart a
+When the user asks Hostwarden to reload or restart a
 service, this rule decides whether to run silently,
 ask first, or refuse. The goal is to drop the noise
 on truly low-risk operations (mainly
@@ -88,7 +88,7 @@ On FreeBSD and macOS, match the `service` /
 
 ## Prompt Shape When Asking
 
-When hostwarden has to ask (restart not on
+When Hostwarden has to ask (restart not on
 `restart-auto`, or reload on `reload-always-ask`),
 offer these four options.
 
@@ -176,12 +176,12 @@ even when the service is not in `reload-always-ask`:
   `service pf reload`). A rule error can drop SSH.
   Always ask. Covered by the "firewall changes"
   rule in `AGENTS.md`.
-- **Reload as part of a config change hostwarden is
-  making.** If hostwarden just edited
+- **Reload as part of a config change Hostwarden is
+  making.** If Hostwarden just edited
   `/etc/nginx/...` in the same session, the
   reload is still auto-proceed (the user approved
   the edit; the reload is the natural next step).
-  But if hostwarden is reloading to pick up changes
+  But if Hostwarden is reloading to pick up changes
   from an unknown source, ask first.
 - **Starting a stopped service.** Auto-proceed
   only applies to reload/restart of a service that
@@ -202,15 +202,15 @@ If an auto-proceeded reload or restart fails:
 
 ## When the Agent Harness Blocks the Reload
 
-Everything above is hostwarden's **policy** layer: what
-hostwarden decides it should do. The agent harness
-running hostwarden has its own, independent
+Everything above is Hostwarden's **policy** layer: what
+Hostwarden decides it should do. The agent harness
+running Hostwarden has its own, independent
 **permission** layer, and that one can refuse a
 reload this rule file has already auto-approved.
 
 Tell them apart by who says no:
 
-- **hostwarden** declines by explaining the policy
+- **Hostwarden** declines by explaining the policy
   ("nginx is on `reload-always-ask`").
 - **The harness** declines with a permission error
   naming the tool call, e.g. Claude Code's
@@ -243,17 +243,17 @@ inherits the built-in rules. Omit it and you
 replace the harness's own safety rules with just
 your line.
 
-This does not weaken hostwarden's taboos. Those are
+This does not weaken Hostwarden's taboos. Those are
 enforced by `.claude/hooks/guard-taboos.sh`, a
 PreToolUse hook, and hooks run regardless of
 permission mode; `permissions.deny` (halt,
 poweroff, mkfs) likewise still wins over any allow.
-Nor does it skip the gates above: hostwarden still
+Nor does it skip the gates above: Hostwarden still
 runs the config test, still honours
 `reload-always-ask` / `restart-never`, and still
 asks before a restart that is not in
 `restart-auto`. It only stops the harness blocking
-the reload mechanically before hostwarden's own policy
+the reload mechanically before Hostwarden's own policy
 gets to decide.
 
 **Why this matters more than it looks.** A blocked

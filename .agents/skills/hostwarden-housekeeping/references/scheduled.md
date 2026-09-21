@@ -1,6 +1,6 @@
 # Scheduled Housekeeping
 
-How to run hostwarden housekeeping on a schedule —
+How to run Hostwarden housekeeping on a schedule —
 nightly or weekly health reports delivered by email
 without a human at the keyboard. Read this when the
 user asks to "schedule housekeeping", "run a nightly
@@ -8,10 +8,10 @@ check", or "email me a weekly report automatically".
 
 ## Where the Scheduler Lives
 
-On the workstation or ops box that has the hostwarden
+On the workstation or ops box that has the Hostwarden
 repo, the `claude` CLI, and the SSH keys — **never
 on the managed server itself**. The managed server
-needs no hostwarden installation.
+needs no Hostwarden installation.
 
 ## The Command
 
@@ -71,7 +71,7 @@ nothing left to ask.
   `~/.claude` (CLI credentials) and the SSH keys —
   not root's.
 - The SSH key must work without an interactive
-  agent or passphrase prompt (hostwarden's standard
+  agent or passphrase prompt (Hostwarden's standard
   BatchMode requirement).
 
 ## Crontab Template
@@ -85,7 +85,7 @@ email me the report" >> ~/hostwarden-cron.log 2>&1
 ```
 
 - `flock -n` skips the run if the previous one is
-  still going — never two hostwarden sessions on the
+  still going — never two Hostwarden sessions on the
   same host at once. (`flock` is Linux; on macOS,
   prefer the launchd alternative below, which
   serializes runs by itself.)

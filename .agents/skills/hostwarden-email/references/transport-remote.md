@@ -57,7 +57,7 @@ must never be added without explicit user approval.
 
 **What to install — the requirement before the package.**
 This host will send unattended mail: cron output,
-unattended-upgrades, hostwarden's own reports. None of those
+unattended-upgrades, Hostwarden's own reports. None of those
 senders retries. So whatever receives the mail has to hold it
 and retry itself, or a relay that is down for a minute loses
 the message with nobody to notice.
@@ -88,7 +88,7 @@ bigger change than the mail is worth
 Pair it with a `mail(1)` — `bsd-mailx` on Debian/Ubuntu,
 `s-nail` on RHEL and SUSE, base on FreeBSD — for the host's
 other senders that call `mail` rather than sendmail, such as
-logwatch or apticron. hostwarden itself never uses it (step 7
+logwatch or apticron. Hostwarden itself never uses it (step 7
 pipes into sendmail), so on a host with no such sender, leave
 it out.
 

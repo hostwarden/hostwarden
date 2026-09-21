@@ -1,4 +1,4 @@
-# Adopting What heinzel Left Behind
+# Adopting What Heinzel Left Behind
 
 Read this when `rules/heinzel-legacy.md` found
 something on a host. Moving files on a live server is
@@ -19,7 +19,7 @@ Adopt into /var/backups/hostwarden/, or leave it?
 Three answers:
 
 1. **Adopt** — move the files, keep the content.
-2. **Leave** — nothing moves; hostwarden keeps
+2. **Leave** — nothing moves; Hostwarden keeps
    reading the old paths (`rules/backups.md`).
 3. **Later** — record a dated deferral (below) so
    the question comes back on request, not on every
@@ -42,18 +42,18 @@ old ones kept, adopt the rest and leave those, or
 raise the window in
 `memory/servers/<hostname>/rules.md`.
 
-## Not while heinzel is still in use
+## Not while Heinzel is still in use
 
-If the activity check shows heinzel entries from the
+If the activity check shows Heinzel entries from the
 last days, or the user says both tools are in use,
-adoption is premature — heinzel recreates its backup
+adoption is premature — Heinzel recreates its backup
 directory on its next run. Report the find, say why
 it waits, and record a deferral.
 
 Point the user at `contrib/heinzel-coexistence/`:
-three rule overrides for their heinzel checkout that
+three rule overrides for their Heinzel checkout that
 make it read both journal tags, treat its memory as a
-lead, and leave hostwarden's files alone.
+lead, and leave Hostwarden's files alone.
 
 ## Move the fixed paths
 
@@ -146,10 +146,10 @@ logger -t hostwarden "Adopted heinzel state: \
 ## On the workstation (local mode)
 
 The local machine may carry scheduled runs from
-heinzel — a crontab line, a systemd timer, a
+Heinzel — a crontab line, a systemd timer, a
 `heinzel-housekeeping.service`, `~/heinzel-cron.log`,
 a lock in `/tmp` — pointing at `bin/heinzel-*`
-scripts that a hostwarden clone does not have
+scripts that a Hostwarden clone does not have
 (the `hostwarden-housekeeping` skill, scheduled). They fail
 silently: nobody gets the report they believe they
 are getting.

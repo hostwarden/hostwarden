@@ -1,7 +1,7 @@
 ---
 name: hostwarden-housekeeping
 argument-hint: "[hostname]"
-description: Run a hostwarden housekeeping (health) inspection on a
+description: Run a Hostwarden housekeeping (health) inspection on a
   server — disk, memory, load, pending updates, firewall, SSL
   certs, failed systemd units, logs, kernel reboot status, and
   service-specific checks. Use when the user asks to "run
@@ -18,7 +18,7 @@ description: Run a hostwarden housekeeping (health) inspection on a
 
 Routine health inspection for a server or the local machine.
 **Never run automatically** — only on explicit user request. The
-whole of the hostwarden first-connection onboarding pipeline still
+whole of the Hostwarden first-connection onboarding pipeline still
 applies before any of this runs.
 
 ## Workflow

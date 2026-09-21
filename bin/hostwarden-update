@@ -1,5 +1,5 @@
 #!/bin/sh
-# hostwarden-update — update, pin, or check hostwarden version.
+# hostwarden-update — update, pin, or check Hostwarden version.
 #
 # Usage:
 #   hostwarden-update               Update: pull main, or move to

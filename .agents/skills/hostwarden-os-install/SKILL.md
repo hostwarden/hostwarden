@@ -85,7 +85,7 @@ goes back on when the work is done.
 
 Code blocks in the references that only run with the guard off
 carry `guard-off` on their fence. Blocks marked `operator` are for
-the user to type at a console, not for hostwarden to run.
+the user to type at a console, not for Hostwarden to run.
 
 ## Which reference
 

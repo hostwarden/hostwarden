@@ -15,7 +15,7 @@ In unprivileged mode, use `~/.hostwarden-backups/` for
 user-owned files. System config files cannot be
 edited — defer those to the sysadmin report.
 
-Backups made before the rename from heinzel sit in
+Backups made before the rename from Heinzel sit in
 `/var/backups/heinzel/` and `~/.heinzel-backups/`.
 Look there too when restoring, but write new backups
 only to the paths above. The retention `find` never
@@ -29,7 +29,7 @@ Retention goes by mtime, and `mv` keeps it. A file
 moved into `$BACKUP_DIR` can therefore be past the
 window the moment it arrives, and the next cleanup
 deletes it — whether it comes from a drop-in
-directory (below), from heinzel's old directory, or
+directory (below), from Heinzel's old directory, or
 from anywhere else.
 
 So before moving backups in, count how many are older

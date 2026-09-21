@@ -1,30 +1,30 @@
 # AGENTS.md
 
-Project instructions for hostwarden. This file carries what has to
+Project instructions for Hostwarden. This file carries what has to
 be in context before anything happens; everything else is one named
 file away.
 
 ## Project
 
-hostwarden — administration of Linux servers, FreeBSD servers, and
+Hostwarden — administration of Linux servers, FreeBSD servers, and
 macOS machines via SSH or locally. Supports any Linux distribution
 (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, and others), FreeBSD,
 and macOS. Manual administration only — no Ansible, Puppet or Chef.
 
 ## Development or Operations
 
-A checkout of hostwarden does one of two jobs, never both. Decide
+A checkout of Hostwarden does one of two jobs, never both. Decide
 which before anything else, from the files, never from the remote:
 
 - **Operations** — `memory/.hostwarden-workspace` exists and `.git`
-  is a directory. Everything below applies. hostwarden's own files
+  is a directory. Everything below applies. Hostwarden's own files
   are read-only here: only `memory/` and other gitignored files
-  change. A request to change hostwarden itself gets a pointer to a
+  change. A request to change Hostwarden itself gets a pointer to a
   development checkout and a pull request, not an edit.
 - **Development** — there is no marker, or `.git` is a file: a
   linked worktree, which never carries `memory/` and so has no
   access lists and no server memory. The session works on
-  hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
+  Hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
   to a remote, no `sudo`, and no local mode either. Session Start
   and the pipeline below do not apply. Server work is handed to an
   operations checkout, never worked around.
@@ -41,7 +41,7 @@ remote machines happens over SSH.
 ### Local mode
 
 When the target is `localhost`, the user's own hostname, or
-otherwise clearly the local machine, hostwarden operates in **local
+otherwise clearly the local machine, Hostwarden operates in **local
 mode**:
 
 - **No SSH.** Commands run directly in the shell.
@@ -94,7 +94,7 @@ before a firewall counts you out: `rules/ssh-connections.md`.
 that runs on every remote connection, and on every local-mode
 session with the remote-only steps skipped. It names each step's
 file: access control, DNS aliases, SSH user, OS detection, server
-memory, activity check, heinzel legacy.
+memory, activity check, Heinzel legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
 `uname -a` and every other one-liner run the pipeline first.
@@ -227,7 +227,7 @@ say so immediately instead of falling back on what you remember.
 ## Session Start
 
 Say one short, friendly line first, before reading anything at all
-— *"Fresh hostwarden install detected — nothing in memory yet.
+— *"Fresh Hostwarden install detected — nothing in memory yet.
 Ready when you are."* on a fresh install, *"Session start —
 loading your preferences and access lists."* otherwise. The words
 are here rather than one file away because a greeting that arrives
@@ -316,7 +316,7 @@ Firewall is common and less critical (`rules/os/macos.md`).
 Workflows the user asks for by name are skills; their descriptions
 are already in context, so invoke them rather than rebuilding what
 they do. Do not read `CHANGELOG.md` unless the user asks — it tracks
-hostwarden's own releases and only costs context here. For repo
+Hostwarden's own releases and only costs context here. For repo
 history, use `git log`.
 
 ## Rule Overrides
@@ -333,8 +333,8 @@ Where those blocks live, what wins, and what is never overridable:
 
 Wrap every `.md` file at 80 characters, memory files included.
 
-Changing hostwarden itself — `VERSION`, `CHANGELOG.md`, the
-workflows, a hook, or porting a change from heinzel — follows
+Changing Hostwarden itself — `VERSION`, `CHANGELOG.md`, the
+workflows, a hook, or porting a change from Heinzel — follows
 `.claude/rules/`. Claude Code loads those files by path when a
 matching file is read; every other tool has to be pointed at them,
 which is what this paragraph does. Do not bump `VERSION`: a bump

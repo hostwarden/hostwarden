@@ -448,7 +448,7 @@ report "$(scan \
 # infrastructure -- security.debian.org, time.apple.com -- and no
 # pattern tells that from a borrowed example, so hostnames at
 # large are a review matter. The target of an ssh or scp command
-# never is: hostwarden only ever logs into a user's machine. Both
+# never is: Hostwarden only ever logs into a user's machine. Both
 # forms count, with a user and without.
 #
 # The command word must be followed by whitespace -- a tab

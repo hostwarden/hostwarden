@@ -18,7 +18,7 @@ hostwarden_mode "$ROOT"
 case "$HOSTWARDEN_MODE" in
 operations)
   echo "hostwarden: operations checkout — memory/ is the workspace."
-  echo "  Server work as usual. hostwarden's own files are read-only"
+  echo "  Server work as usual. Hostwarden's own files are read-only"
   echo "  here: a change to them goes to a development checkout and"
   echo "  a pull request."
   # Started from inside a development session, this one inherits
@@ -47,13 +47,13 @@ operations)
   ;;
 worktree)
   echo "hostwarden: linked worktree — development mode. This session"
-  echo "  changes hostwarden itself and reaches no server: a worktree"
+  echo "  changes Hostwarden itself and reaches no server: a worktree"
   echo "  never carries memory/, so the access lists and the server"
   echo "  memory are not here."
   ;;
 *)
   echo "hostwarden: development checkout — this session changes"
-  echo "  hostwarden itself and reaches no server, this machine"
+  echo "  Hostwarden itself and reaches no server, this machine"
   echo "  included. Changes go through a branch and a pull request."
   ;;
 esac
@@ -102,7 +102,7 @@ elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
 fi
 
 # Where a pull request goes. Compared by URL, never by remote
-# name: in the maintainer's checkout `upstream` is heinzel, in a
+# name: in the maintainer's checkout `upstream` is Heinzel, in a
 # contributor's fork it is this project.
 # Credentials in the URL (a user and token before the host)
 # never reach the transcript: the user part goes for every host.

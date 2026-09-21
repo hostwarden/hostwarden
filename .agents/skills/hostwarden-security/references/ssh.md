@@ -98,7 +98,7 @@ grep -i "^PermitRootLogin" \
 ```
 
 - `yes` or `prohibit-password` → **INFO** (root SSH is normal in
-  hostwarden — this is informational only)
+  Hostwarden — this is informational only)
 - `no` → OK
 
 ### Weak SSH Algorithms

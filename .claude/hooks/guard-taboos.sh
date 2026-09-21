@@ -1,7 +1,7 @@
 #!/bin/sh
 # guard-taboos.sh — PreToolUse hook (matcher: Bash).
 #
-# Mechanically enforces hostwarden's absolute taboos from
+# Mechanically enforces Hostwarden's absolute taboos from
 # AGENTS.md → Critical Safety Rules, below the model layer:
 #
 #   - halt / poweroff / shutdown without -r / init 0 /
@@ -65,7 +65,7 @@
 # body written to a file by cat or tee is data, not code, and is
 # no longer scanned. See the heredoc section below for the exact
 # conditions and for why the consumer, never the body, decides.
-# Writing hostwarden's own changelog no longer trips the guard.
+# Writing Hostwarden's own changelog no longer trips the guard.
 #
 # Known, accepted false positives that REMAIN (the patterns are
 # deliberately coarse — this guard protects production disks, not
@@ -97,7 +97,7 @@
 #     unverified, so there is no -l exemption either. Run the
 #     fingerprint in a call of its own (rules/secrets.md).
 #   - An ssh ControlPath under .ssh/ makes any rm, mv or chmod in
-#     the same command look like a key operation. hostwarden keeps
+#     the same command look like a key operation. Hostwarden keeps
 #     its sockets in ~/.cache/hostwarden for that reason
 #     (rules/ssh-connections.md).
 #   - rsync with -e "ssh -i ~/.ssh/id_..." AFTER its operands
@@ -152,7 +152,7 @@ fi
 # words: a changelog entry describing a shutdown checkpoint, a
 # rule file about fdisk, a commit message. Scanned as a command
 # string, that prose is indistinguishable from an invocation, and
-# the guard blocked hostwarden's own changelog write over the word
+# the guard blocked Hostwarden's own changelog write over the word
 # "shutdown" inside a heredoc.
 #
 # A heredoc body is only safe to skip when the command consuming
@@ -678,7 +678,7 @@ fi
 #
 # This enumerates RUNTIMES, not write syntaxes, on purpose. The
 # set of ways to write a file grows with every language feature
-# and can never be closed; the set of interpreters hostwarden might
+# and can never be closed; the set of interpreters Hostwarden might
 # meet on a server is small and moves slowly. It still is a list,
 # so this rule is a backstop against the everyday mistake, not a
 # sandbox: an interpreter that builds its target string at

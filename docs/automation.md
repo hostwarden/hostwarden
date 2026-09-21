@@ -1,6 +1,6 @@
 # Automation and scripting
 
-Running hostwarden without sitting at the prompt: one-shot
+Running Hostwarden without sitting at the prompt: one-shot
 commands, fewer approval prompts, and scheduled runs.
 
 ## Command line interface

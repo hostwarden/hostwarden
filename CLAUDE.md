@@ -55,4 +55,4 @@ tool reads. This file adds only what exists here and nowhere else.
   Elsewhere the same audit runs one host after another.
 - **Conventions for editing this repository** load from
   `.claude/rules/` when the matching files are read. They are about
-  hostwarden's own source, never about a managed host.
+  Hostwarden's own source, never about a managed host.

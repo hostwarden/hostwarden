@@ -8,7 +8,7 @@ deployment fails after a successful install.
 
 ## SSH Non-Interactive Shell Setup
 
-**This is critical.** All hostwarden work runs via
+**This is critical.** All Hostwarden work runs via
 `ssh user@host "command"` — a non-interactive,
 non-login shell where `.bashrc` is typically not
 sourced.

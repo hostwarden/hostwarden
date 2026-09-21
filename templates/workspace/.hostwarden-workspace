@@ -1,5 +1,5 @@
-This directory is a hostwarden workspace: the state of the
-servers this install operates. Its presence tells hostwarden
+This directory is a Hostwarden workspace: the state of the
+servers this install operates. Its presence tells Hostwarden
 that the checkout around it administers servers rather than
-develops hostwarden itself. Created by bin/hostwarden-init;
+develops Hostwarden itself. Created by bin/hostwarden-init;
 keep it under version control with the rest.

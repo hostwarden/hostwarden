@@ -1,12 +1,12 @@
-# Custom Rules — Running Beside hostwarden
+# Custom Rules — Running Beside Hostwarden
 
 Read once per session. Applies to every host in this
 installation.
 
 ## Add: A second tool administers these hosts
 
-[hostwarden](https://github.com/jpawlowski/hostwarden)
-grew out of heinzel and is in use on the same
+[Hostwarden](https://github.com/jpawlowski/hostwarden)
+grew out of Heinzel and is in use on the same
 machines during a transition. It follows the same
 safety rules, logs to the same journal under the tag
 `hostwarden`, and keeps its own state:
@@ -24,7 +24,7 @@ litter. It is not an anomaly
 ## Add: Server memory may be behind the host
 
 The memory files here describe what *this*
-installation last saw. hostwarden works on the same
+installation last saw. Hostwarden works on the same
 hosts and writes its own memory elsewhere, so a fact
 in `memory/servers/<host>/memory.md` can be out of
 date through no fault of anyone's.
@@ -59,8 +59,8 @@ reason not to retry a hanging call more than once.
 
 ## Add: What the other tool may have moved
 
-hostwarden offers, once per host, to adopt what
-heinzel left there, which moves
+Hostwarden offers, once per host, to adopt what
+Heinzel left there, which moves
 `/var/backups/heinzel/` into
 `/var/backups/hostwarden/`. Nothing is deleted by
 that — `backups.md` in this directory has the rule.

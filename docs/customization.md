@@ -60,7 +60,7 @@ from the start. Full rules: `rules/overrides.md`.
 
 ## Your own skills
 
-A workflow hostwarden does not ship goes into
+A workflow Hostwarden does not ship goes into
 `memory/.claude/skills/<name>/SKILL.md` and travels
 with the workspace. Claude Code offers it as
 `/memory:<name>` once the session has read your

@@ -281,7 +281,7 @@ check deny "perl -e 'open(D,\">\",\"/dev/nvme0n1\"); print D chr(0)'"
 check deny "node -e \"require('fs').writeFileSync('/dev/vda','')\""
 
 # --- SSH connection sharing (rules/ssh-connections.md) ---------
-# hostwarden's control socket must not read as key material, or
+# Hostwarden's control socket must not read as key material, or
 # every remote rm/mv/chmod sent with the standard options is
 # denied (see the accepted false positives in the guard).
 check pass 'ssh -o ControlMaster=auto -o ControlPath=~/.cache/hostwarden/ssh-%C root@h "rm -f /var/tmp/old.log; chmod 644 /etc/motd"'
@@ -330,8 +330,8 @@ check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
 # security skill once skipped inert login shells by a regex of
 # their names; the deny pins why that shape was retired. A block
 # meant to be denied says so after the language on its fence:
-# `operator` (the user runs it, hostwarden never does) or `guard-off`
-# (hostwarden runs it only after the user relaunched with the
+# `operator` (the user runs it, Hostwarden never does) or `guard-off`
+# (Hostwarden runs it only after the user relaunched with the
 # override, so its file must say how). The file name in each
 # block path keeps names unique when find starts awk twice.
 check deny "awk -F: '(\$7 ~ /(nologin|false|sync|shutdown|halt)\$/)' /etc/passwd"
@@ -577,7 +577,7 @@ check pass 'ls -ln /etc/ssh/sshd_config'
 # are the ones that make the exemption safe; if any of them ever
 # flips to pass, the exemption has become a hole.
 #
-# The exact command that exposed this: hostwarden's own changelog
+# The exact command that exposed this: Hostwarden's own changelog
 # write, blocked over the word inside the prose.
 check pass 'cat >> /Users/s/hostwarden/memory/servers/h/changelog.log <<EOF
   Verify: clean shutdown checkpoint + database ready.

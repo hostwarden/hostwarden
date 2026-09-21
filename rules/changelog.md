@@ -8,7 +8,7 @@ Two layers for two audiences:
    colleague's handover notes, not a debug dump.
 2. **Local changelog**
    (`memory/servers/<hostname>/changelog.log`) — the
-   full technical detail for future hostwarden sessions
+   full technical detail for future Hostwarden sessions
    and audits.
 
 The journal headline answers *who, what, why*. The
@@ -36,7 +36,7 @@ If `logger` fails, log to the local changelog only.
 ### Entry format
 
 One sentence, written for a sysadmin who has never
-heard of hostwarden and was not part of the session:
+heard of Hostwarden and was not part of the session:
 
     [<operator> as <unix-user>] <what changed, in
     plain language> — because <why>

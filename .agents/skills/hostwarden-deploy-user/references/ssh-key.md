@@ -24,7 +24,7 @@ This produces `deploy_ed25519` (private) and
 
 ### Install the public key on the server
 
-The taboo guard denies hostwarden any write to
+The taboo guard denies Hostwarden any write to
 `authorized_keys` and any `chmod` or `chown` on
 `.ssh`, appends included. Hand this block to the
 user with the real key path; without a root login,

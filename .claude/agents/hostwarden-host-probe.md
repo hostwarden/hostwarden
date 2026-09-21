@@ -100,9 +100,9 @@ reporting the fleet consistent.
 session has to put in front of the user — one line each, no prose
 around them:
 
-- recent hostwarden or heinzel activity on the host
+- recent Hostwarden or Heinzel activity on the host
   (`rules/activity-check.md`);
-- heinzel artifacts, with path, file count and age
+- Heinzel artifacts, with path, file count and age
   (`rules/heinzel-adoption.md`);
 - pending items in the host's `todo.md`
   (`rules/server-memory.md`);

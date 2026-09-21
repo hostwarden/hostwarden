@@ -28,7 +28,7 @@ calls fans out the same way, and one that cannot walks
 the hosts in turn — same tables either way.
 
 OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` turns
-off every `.claude` fallback, and hostwarden still works
+off every `.claude` fallback, and Hostwarden still works
 with it set. Both of the things it needs — `AGENTS.md`
 and `.agents/skills/` — are paths OpenCode reads
 natively; `CLAUDE.md` is a fallback it only consults
@@ -67,8 +67,8 @@ server memory, and what the session learns is
 deleted with the worktree. Hostwarden therefore
 refuses to reach any machine from a worktree, and a
 session-start hook says so at once. Open the
-hostwarden folder itself, with the worktree option
-off. (Working on hostwarden's own source in a
+Hostwarden folder itself, with the worktree option
+off. (Working on Hostwarden's own source in a
 worktree is fine.)
 
 **Environment variables go into

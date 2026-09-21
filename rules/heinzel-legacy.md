@@ -1,8 +1,8 @@
-# Finding State heinzel Left Behind
+# Finding State Heinzel Left Behind
 
-hostwarden grew out of
-[heinzel](https://github.com/wintermeyer/heinzel).
-A host that heinzel administered carries state under
+Hostwarden grew out of
+[Heinzel](https://github.com/wintermeyer/heinzel).
+A host that Heinzel administered carries state under
 the old name.
 
 This file is the detection half, run **on the first
@@ -26,17 +26,17 @@ skill. Written down here because a
 transition nobody ends becomes permanent by default.
 
 **Not the `MAP` table in that script.** Those rows move
-overrides whose topic changed address in a hostwarden
-release, which has nothing to do with heinzel and
+overrides whose topic changed address in a Hostwarden
+release, which has nothing to do with Heinzel and
 everything to do with how far behind a given installation
 is. One clean checkout says nothing about the next user to
 upgrade. Rows come out at a release boundary that states
 which versions can still upgrade directly, not when this
-machine stops seeing heinzel.
+machine stops seeing Heinzel.
 
 ## What to look for
 
-heinzel's own rules prescribe four things:
+Heinzel's own rules prescribe four things:
 
 - journal entries tagged `heinzel` — history, read
   by `rules/activity-check.md`, never migrated
@@ -53,7 +53,7 @@ timer, a `/etc/cron.d/` file, a crontab line, a
 FreeBSD periodic script, a launchd plist, a log or
 dump directory. Those differ per host and the name
 is no guide — half say "heinzel", half say "backup".
-What identifies them is that a heinzel session
+What identifies them is that a Heinzel session
 created them, and that record is in the server's
 memory and changelog, not on the host.
 
@@ -63,7 +63,7 @@ memory and changelog, not on the host.
 `memory/servers/<hostname>/heinzel-inventory.md`, if
 it exists, holds what memory and changelog say this
 host carries; the `hostwarden-adopt` skill writes it
-when a heinzel installation is taken over. Every
+when a Heinzel installation is taken over. Every
 entry is a lead, not a fact
 (`rules/verify-before-reporting.md`).
 
@@ -129,7 +129,7 @@ reason against what is true now, and stay silent
 unless it changed:
 
 - `heinzel still in use` — the activity check no
-  longer shows heinzel entries.
+  longer shows Heinzel entries.
 - `privileged paths unread` — this session can read
   them, through sudo or as root.
 - any reason — the user asks, or the recorded date is

@@ -36,7 +36,7 @@ command -v git >/dev/null 2>&1 || exit 0
 # Outside a clone every git call below fails and the branch test
 # would report a detached HEAD instead; inside some other
 # repository, git would pull that one. So: the top of a clone, and
-# one that tracks hostwarden.
+# one that tracks Hostwarden.
 if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
     || ! git ls-files --error-unmatch bin/hostwarden-update \
       >/dev/null 2>&1; then

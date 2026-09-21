@@ -35,13 +35,13 @@ the user doesn't get two near-identical pickers
 in a row. Make it explicit in the question text
 that the answer becomes both the default and the
 per-server entry. Question:
-*"Which SSH username should hostwarden use for
-`<hostname>`? (This will also become your hostwarden
+*"Which SSH username should Hostwarden use for
+`<hostname>`? (This will also become your Hostwarden
 default — you can override per server later.)"*
 
 Options:
 
-1. `<current-os-user>` — "you, the user running hostwarden"
+1. `<current-os-user>` — "you, the user running Hostwarden"
 2. `root` — "connect as root directly"
 3. `Other…` — "type a different name"
 
@@ -67,7 +67,7 @@ in a single file write.
 `memory/user.md` does not exist and the user ran
 `claude` / `opencode` with no target in mind.
 Ask only for the default:
-*"Which SSH username should hostwarden use by
+*"Which SSH username should Hostwarden use by
 default?"* with the same three options. Write
 only `Default:` to `memory/user.md`; do not
 invent a per-server entry.
@@ -76,10 +76,10 @@ invent a per-server entry.
 
 `memory/user.md` exists but has no entry for
 `<hostname>`. Ask the per-server question:
-*"Which SSH username should hostwarden use for
+*"Which SSH username should Hostwarden use for
 `<hostname>`?"* with:
 
-1. `<memory-default>` — "your hostwarden default"
+1. `<memory-default>` — "your Hostwarden default"
 2. `root` — "connect as root directly"
 3. `Other…` — "type a different name"
 
@@ -105,7 +105,7 @@ update `memory/user.md`.
 **File:** `memory/user.md` (same file as SSH
 usernames).
 
-hostwarden communicates in the user's preferred
+Hostwarden communicates in the user's preferred
 language. The preference is set under a
 `# Preferences` heading (e.g. `Language: German`).
 Default to English if missing.

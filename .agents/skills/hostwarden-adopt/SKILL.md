@@ -1,21 +1,21 @@
 ---
 name: hostwarden-adopt
-argument-hint: "[path to the old heinzel checkout]"
-description: Take over an existing heinzel installation — copy its
-  memory, access lists and custom rules into this hostwarden clone,
+argument-hint: "[path to the old Heinzel checkout]"
+description: Take over an existing Heinzel installation — copy its
+  memory, access lists and custom rules into this Hostwarden clone,
   rename what is found by name, and build a per-host inventory of the
-  scripts, configs, units and cron jobs heinzel left on the servers.
+  scripts, configs, units and cron jobs Heinzel left on the servers.
   Can run host by host, with the shared state moved first. Use when
-  the user says "übernimm mein altes heinzel", "migrate my heinzel
-  setup", "mein heinzel liegt in <pfad>, mach es dir zu eigen", "nimm
-  erstmal nur server X mit", or points at a heinzel directory and asks
+  the user says "übernimm mein altes Heinzel", "migrate my Heinzel
+  setup", "mein Heinzel liegt in <pfad>, mach es dir zu eigen", "nimm
+  erstmal nur server X mit", or points at a Heinzel directory and asks
   to take it over. Touches no server. Needs an explicit request —
-  a session that merely mentions heinzel is not one.
+  a session that merely mentions Heinzel is not one.
 ---
 
 # hostwarden-adopt
 
-One-time takeover of a heinzel installation. Everything happens in
+One-time takeover of a Heinzel installation. Everything happens in
 this clone and in the old checkout — **no server is contacted, no
 remote file is touched**. What lives on the hosts is written down as
 an inventory that the first connection to each host verifies later
@@ -23,7 +23,7 @@ an inventory that the first connection to each host verifies later
 
 **Only on an explicit request** — the user naming their old checkout,
 or `/hostwarden-adopt <path>` in Claude Code. A session that merely
-mentions heinzel is not a request, and neither is a question about
+mentions Heinzel is not a request, and neither is a question about
 what adoption would do: answer it, don't start.
 
 What makes this safe is not the trigger but the gates: the old
@@ -34,7 +34,7 @@ write into the old tree (step 6) needs its own yes.
 
 ## Why an inventory instead of a migration
 
-heinzel's own rules cover config backups, scratch directories and the
+Heinzel's own rules cover config backups, scratch directories and the
 journal tag. They do not cover what agents improvised on the way —
 the shapes are listed in `rules/heinzel-legacy.md` § "What to look
 for", which is also what the first connection probes for, so the two
@@ -96,7 +96,7 @@ leads, the host confirms them.
    inventory file.
 
    For each host in that set, read `memory.md` and `changelog.log`
-   and collect every path, unit, cron job or script a heinzel session
+   and collect every path, unit, cron job or script a Heinzel session
    created or configured — the shapes are listed in
    `rules/heinzel-legacy.md` § "What to look for",
    `references/inventory.md` has the file format and what does not
@@ -108,13 +108,13 @@ leads, the host confirms them.
    clone kept its own — the leads live in the records that were not
    copied.
 
-6. **Offer the coexistence rules.** Ask whether heinzel stays in use
+6. **Offer the coexistence rules.** Ask whether Heinzel stays in use
    during the transition. If it does, offer to copy the three files
    from `contrib/heinzel-coexistence/` into that checkout's
    `memory/custom-rules/`, the way its README § Install describes —
    never replacing a file, and reporting what has to be merged by
-   hand. Without them heinzel reads only its own journal tag, so
-   hostwarden's work stays invisible to it and its memory drifts.
+   hand. Without them Heinzel reads only its own journal tag, so
+   Hostwarden's work stays invisible to it and its memory drifts.
    This writes into the old tree, so it needs an explicit yes. On a
    no, say the directory is there when they change their mind.
 
@@ -132,32 +132,32 @@ leads, the host confirms them.
    each host verifies its leads and asks before moving anything.
    ```
 
-   Say which of the two states each host is in: hostwarden alone, or
+   Say which of the two states each host is in: Hostwarden alone, or
    both tools in parallel. In the parallel case the first connection
-   reports what heinzel left but does not move it
+   reports what Heinzel left but does not move it
    (`rules/heinzel-legacy.md`).
 
 ## Who owns what
 
-Taking over heinzel is one feature split across two mechanisms,
+Taking over Heinzel is one feature split across two mechanisms,
 because its two halves are triggered by different things:
 
 - **This skill** — the old checkout. The user asks for it by name,
   and again for each further piece: a migration moved host by host
-  is several requests, one per run. It reads their heinzel
+  is several requests, one per run. It reads their Heinzel
   directory, copies memory, access lists and custom rules into
-  this clone, and writes down what heinzel appears to have left on
+  this clone, and writes down what Heinzel appears to have left on
   each host.
 - **`rules/heinzel-legacy.md`** — the host. Step 8 of the
   first-connection pipeline, so it fires without anyone asking:
   on the first connection to a machine, while anything is still
   unresolved, and whenever the activity check turns up `heinzel`
-  entries — which is what catches heinzel touching a host again
+  entries — which is what catches Heinzel touching a host again
   after the question was settled. It detects; it never moves.
 - **`rules/heinzel-adoption.md`** — what to do about a detection.
   Also a reflex. Every path that would *move* something ends in a
   question, because moving files on a live server is a change.
-  The path that moves nothing does not ask: while heinzel is
+  The path that moves nothing does not ask: while Heinzel is
   still in use, adoption is premature, and that one reports and
   records a deferral instead.
 

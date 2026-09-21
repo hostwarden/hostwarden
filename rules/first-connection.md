@@ -35,13 +35,13 @@ moment") — don't skip.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`.
-8. **heinzel legacy check.** Only in an installation
-   that has something to do with heinzel: an
+8. **Heinzel legacy check.** Only in an installation
+   that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,
    a `heinzel legacy:` line or an unresolved
    `heinzel-inventory.md` in this host's memory, or
    `heinzel` entries in the activity check above —
-   that last one catches a host heinzel touched even
+   that last one catches a host Heinzel touched even
    though this installation never ran it. Otherwise
    skip the step and read nothing.
 
@@ -58,7 +58,7 @@ In local mode (`localhost`, the user's own
 hostname), run step 0, then skip steps 1–4 — they
 are remote-only (see `AGENTS.md` → How It Works →
 Local mode). Still run OS detection, server memory,
-activity check, and the heinzel legacy check — on
+activity check, and the Heinzel legacy check — on
 the workstation the latter looks at scheduled runs
 instead of backup directories
 (`rules/heinzel-adoption.md`).

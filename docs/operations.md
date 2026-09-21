@@ -1,4 +1,4 @@
-# Running hostwarden in production
+# Running Hostwarden in production
 
 How a checkout becomes the one that administers your
 servers, where it comes from, and how a team or
@@ -6,16 +6,16 @@ several machines share what it learns.
 
 ## Operations and development
 
-A hostwarden checkout does one of two jobs, and the
+A Hostwarden checkout does one of two jobs, and the
 workspace decides which:
 
 - **Operations** — `memory/` is the workspace
-  (`bin/hostwarden-init`). hostwarden administers
+  (`bin/hostwarden-init`). Hostwarden administers
   servers. Its own files are read-only here, so the
   auto-update keeps working and every change to
-  hostwarden goes through review.
+  Hostwarden goes through review.
 - **Development** — no workspace. The session changes
-  hostwarden itself and reaches no server, not even
+  Hostwarden itself and reaches no server, not even
   the local machine. Every git worktree counts as
   development, whatever its main checkout is.
 
@@ -64,7 +64,7 @@ own.
 - **Straight from GitHub** is the default and needs
   nothing else.
 - **A mirror of your own** is optional. It is worth it
-  when hostwarden has to come from your internal git
+  when Hostwarden has to come from your internal git
   hosting, when an update should reach production only
   once your mirror has taken it (the mirror job is the
   gate), or when you carry local patches. Name it
@@ -98,9 +98,9 @@ into the URL, so the token never lands on a command
 line. Run the job from a repository other than the
 mirror, whose `main` has to stay upstream's. Give the
 token write access to the mirror's contents — on
-GitHub also to its workflows, since hostwarden ships
+GitHub also to its workflows, since Hostwarden ships
 some — and turn Actions off in a GitHub mirror, which
-would otherwise run hostwarden's own.
+would otherwise run Hostwarden's own.
 
 <details>
 <summary>GitHub Actions (also Gitea and Forgejo Actions)</summary>
@@ -157,7 +157,7 @@ own. **Keep that remote private:** the workspace
 holds hostnames, addresses, the blacklist and the
 layout of your network. Create it private; the
 recommended name is `hostwarden-workspace`, and nothing
-checks it. hostwarden itself stays an unmodified clone
+checks it. Hostwarden itself stays an unmodified clone
 that keeps updating.
 
 1. Set the workspace up as the
@@ -168,7 +168,7 @@ that keeps updating.
    git -C memory remote add origin <private-repo-url>
    git -C memory push -u origin main
    ```
-2. On every other machine, clone hostwarden and
+2. On every other machine, clone Hostwarden and
    join:
    ```
    bin/hostwarden-init --clone <private-repo-url>

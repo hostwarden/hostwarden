@@ -16,7 +16,7 @@ macOS, also confirm Postfix is loaded:
 cleanly: "no mail tooling on this workstation — install msmtp
 locally and rerun, or pick remote next time by deleting
 `Email source: local` from `memory.md`." Never auto-install on
-the user's own machine: a workstation is not a host hostwarden
+the user's own machine: a workstation is not a host Hostwarden
 administers, and the consent gates that make a remote install
 safe do not cover it.
 

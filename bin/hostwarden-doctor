@@ -1,13 +1,13 @@
 #!/bin/sh
 # hostwarden-doctor — what this workstation has of the tools
-# hostwarden runs locally, and what to install for the rest.
+# Hostwarden runs locally, and what to install for the rest.
 #
 # Usage:
 #   hostwarden-doctor           Full report
 #   hostwarden-doctor --quiet   Only what is missing; nothing at
 #                               all when nothing is (the
 #                               SessionStart hook)
-#   hostwarden-doctor --dev     What working on hostwarden itself
+#   hostwarden-doctor --dev     What working on Hostwarden itself
 #                               needs instead of what running it
 #                               does (scripts/check.sh uses it)
 #   hostwarden-doctor --help    Show this help
@@ -215,7 +215,7 @@ if [ -n "$FEAT" ]; then
   echo "hostwarden: not available on this workstation:$FEAT"
 fi
 if [ -z "$QUIET$NEED$WANT$FEAT" ]; then
-  echo "Everything hostwarden runs locally is here."
+  echo "Everything Hostwarden runs locally is here."
 fi
 
 # --quiet reports and exits 0: Claude Code passes a SessionStart

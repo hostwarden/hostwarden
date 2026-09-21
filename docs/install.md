@@ -1,4 +1,4 @@
-# Installing hostwarden
+# Installing Hostwarden
 
 The short path is in the
 [README](../README.md#how-to-install). This page has
@@ -55,14 +55,14 @@ for native Windows.
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows.
 - **Local tools.** `bin/hostwarden-doctor` lists
-  what hostwarden needs on your workstation, what is
+  what Hostwarden needs on your workstation, what is
   missing, and the command to install it.
 
 ## Windows
 
 **Use [WSL](https://learn.microsoft.com/windows/wsl/)
 if you can.** It is a full Linux environment, and
-hostwarden runs in it exactly as on Linux, with
+Hostwarden runs in it exactly as on Linux, with
 nothing below to set up.
 
 Running natively through
@@ -73,7 +73,7 @@ something else **without an error**:
 
 - git writes each link as a small text file holding
   the target path. `.claude/skills` then leads
-  nowhere, and hostwarden runs without a single skill
+  nowhere, and Hostwarden runs without a single skill
   — no housekeeping, no security audit.
 - Git Bash's `ln -s`
   [copies the target](https://gitforwindows.org/symbolic-links.html)

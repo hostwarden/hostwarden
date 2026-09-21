@@ -7,7 +7,7 @@ values may ever appear in the conversation, in
 reports, in memory files, in changelogs, or in
 emails.
 
-This rule governs how hostwarden handles secrets.
+This rule governs how Hostwarden handles secrets.
 Detecting *misconfigured* secrets (world-readable
 keys, weak permissions) is the job of the
 `hostwarden-security` skill.
@@ -149,7 +149,7 @@ before falling back to an inline flag.
 ### When a Secret Has Already Leaked
 
 Sometimes the value is already in the journal,
-shell history, or a live process list: hostwarden's
+shell history, or a live process list: Hostwarden's
 own earlier commands, or an operator who ran, say,
 `cypher-shell -p …` in a loop. Then:
 
@@ -165,16 +165,16 @@ own earlier commands, or an operator who ran, say,
   change the user must approve first. Explain the
   leak, recommend rotating, and get an explicit OK
   before touching the credential.
-  **One exception: a credential hostwarden itself
+  **One exception: a credential Hostwarden itself
   created earlier in the same session, which nothing
   consumes yet.** The approval rule exists because
   rotation breaks every consumer of the old value —
-  when hostwarden minted the secret minutes ago and the
-  only copies are the files hostwarden just wrote, that
+  when Hostwarden minted the secret minutes ago and the
+  only copies are the files Hostwarden just wrote, that
   blast radius is zero and the cost of waiting is a
   live exposed credential. Rotate it immediately,
   then tell the user it happened and why. Do not
-  stretch this to any credential hostwarden did not
+  stretch this to any credential Hostwarden did not
   create in this session, and do not stretch it to
   one that already has consumers.
 - **Rotation has side effects; keep them minimal.**
@@ -295,7 +295,7 @@ lines.
 ## Never Into the Repo Tree
 
 Never copy key material or credential files
-anywhere under the hostwarden repo. `memory/` is a
+anywhere under the Hostwarden repo. `memory/` is a
 git repository that a team shares through a remote
 — a committed key is a published key. This
 generalizes the rule in the `hostwarden-os-install`
@@ -321,7 +321,7 @@ directly. Then:
   install -m 600 /dev/null /etc/app/secret.conf
   ```
 
-- Suggest pointing hostwarden at an existing file
+- Suggest pointing Hostwarden at an existing file
   path next time instead of pasting.
 - If the value transited an untrusted channel,
   recommend rotating it.

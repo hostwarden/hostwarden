@@ -4,7 +4,7 @@
 # Sourced, never executed, so it carries no shebang and tells
 # ShellCheck its dialect with the directive above instead.
 #
-# A checkout of hostwarden either DEVELOPS hostwarden or OPERATES
+# A checkout of Hostwarden either DEVELOPS Hostwarden or OPERATES
 # servers with it, never both. The two look identical from
 # outside: same origin, same main, same files. What tells them
 # apart is the workspace — memory/ as a git repository of its
@@ -16,9 +16,9 @@
 # Three answers:
 #
 #   operations   main checkout of a git clone, with a workspace.
-#                Servers may be reached; hostwarden's own files
+#                Servers may be reached; Hostwarden's own files
 #                are read-only.
-#   development  main checkout without a workspace. hostwarden's
+#   development  main checkout without a workspace. Hostwarden's
 #                files may change; no server is reached, not even
 #                this machine.
 #   worktree     a linked git worktree, whatever it holds.
@@ -97,7 +97,7 @@ hostwarden_refusal() {
 never carries memory/, so the access lists and the server memory are \
 missing here"
   else
-    hr_why="this checkout develops hostwarden (memory/ holds no \
+    hr_why="this checkout develops Hostwarden (memory/ holds no \
 workspace)"
   fi
   hostwarden_next_step

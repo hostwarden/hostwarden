@@ -101,7 +101,7 @@ reading a workflow that will not run.
    fixed greeting and signature.
 
 7. **Send** — `references/send-verify.md`. The canonical
-   path builds the message with headers, because hostwarden
+   path builds the message with headers, because Hostwarden
    always injects the anti-auto-reply triple and MIME
    headers when attaching. A remote send runs as the SSH
    user when that is not root, and drops from root via
@@ -161,7 +161,7 @@ absence means "ask next time".
 The two policy lines are deliberately separate: a user may
 be happy to use a mature postfix that's already there
 ("send: always") but want to be asked every time before
-hostwarden installs new packages on a different server
+Hostwarden installs new packages on a different server
 ("install: ask" = line absent). Mirrors the shape of
 `memory/service-policy.md`'s split between `restart-auto`
 and `restart-never`.

@@ -6,7 +6,7 @@ single directory — `memory/` — so backups are one
 under a megabyte. No database, no hidden dotfiles,
 no scattered config. Claude Code's own personal files
 (`.claude/settings.local.json`, `CLAUDE.local.md`) are
-not hostwarden state and not in the backup.
+not Hostwarden state and not in the backup.
 
 ## What lives in `memory/`
 

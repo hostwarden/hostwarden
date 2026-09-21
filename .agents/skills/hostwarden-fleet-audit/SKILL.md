@@ -171,7 +171,7 @@ servers" — that maps to single-host housekeeping.
    contradicts the live config goes in the "Drift detected"
    section for the user to decide on — as does anything a
    probe agent returned under `notices:`, which is where
-   activity findings, heinzel artifacts and pending
+   activity findings, Heinzel artifacts and pending
    `todo.md` items come back from the pipeline it ran.
 
 ## References
