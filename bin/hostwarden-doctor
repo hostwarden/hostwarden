@@ -83,13 +83,13 @@ hint() {
   pkgs=
   # shellcheck disable=SC2086 # one word per tool is the point
   for t in $1; do pkgs="$pkgs $(pkgname "$t")"; done
-  [ -n "$pkgs" ] || { echo "see the README"; return; }
+  [ -n "$pkgs" ] || { echo "see docs/install.md"; return; }
   case "$PM" in
     brew) echo "brew install$pkgs" ;;
     apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$pkgs" ;;
     pacman) echo "sudo pacman -S$pkgs" ;;
     apk) echo "sudo apk add$pkgs" ;;
-    gitbash) echo "Git Bash cannot install$pkgs; WSL can (README → Windows)" ;;
+    gitbash) echo "Git Bash cannot install$pkgs; WSL can (docs/install.md → Windows)" ;;
     *) echo "install:$pkgs" ;;
   esac
 }
@@ -139,7 +139,7 @@ ssh_shares() {
 }
 
 # .claude/skills and every DNS alias are links, and Git Bash copies
-# where it should link unless MSYS says otherwise (README →
+# where it should link unless MSYS says otherwise (docs/install.md →
 # Windows). Probed in the clone: a temporary directory can sit on
 # a filesystem that links when this one does not.
 links_work() {
@@ -169,7 +169,7 @@ for t in ssh git awk sed grep tar mktemp; do
   probe need "$t" "$t" has "$t"
 done
 has ssh && probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
-probe need "symbolic links (README → Windows)" "" links_work
+probe need "symbolic links (docs/install.md → Windows)" "" links_work
 
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"

@@ -107,7 +107,7 @@ if [ -n "$CLONE" ]; then
   # resolution stops working without a word.
   if [ "$(git -C memory config --bool core.symlinks)" = false ]; then
     echo "hostwarden: git made no symlinks in memory/, so DNS aliases"
-    echo "  arrive as text files. See README → Windows, then"
+    echo "  arrive as text files. See docs/install.md → Windows, then"
     echo "  clone again."
   fi
   echo "hostwarden: keep this remote private — the workspace holds"

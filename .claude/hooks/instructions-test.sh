@@ -252,8 +252,8 @@ fi
 # whole point of rewriting one is that it can then be verified.
 #
 # What is not checked: a relative pointer in a file outside
-# `.agents/skills/`. In `rules/overrides.md` and the README that
-# shape appears in a table *describing* the mirror scheme, and no
+# `.agents/skills/`. In `rules/overrides.md` and
+# docs/customization.md that shape appears in a table *describing* the mirror scheme, and no
 # pattern separates an example of a path from a use of one. Those
 # two files document; they do not route.
 REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'
@@ -354,8 +354,8 @@ report "$(scan \
 # Skills and subagents named in prose. Several rules point at
 # one by name rather than by path, which a rename breaks without
 # a trace. A script in bin/ is neither and counts as existing, and
-# so does hostwarden-workspace, the repository name the README
-# recommends for the workspace remote.
+# so does hostwarden-workspace, the repository name
+# docs/operations.md recommends for the workspace remote.
 report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
   | tag '`hostwarden-[a-z-]+`' \

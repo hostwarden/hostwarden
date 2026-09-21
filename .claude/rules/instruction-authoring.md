@@ -3,6 +3,7 @@ paths:
   - "AGENTS.md"
   - "CLAUDE.md"
   - "README.md"
+  - "docs/**"
   - ".claude/rules/**"
   - ".claude/hooks/**"
   - "contrib/**"

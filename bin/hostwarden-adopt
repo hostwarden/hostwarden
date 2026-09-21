@@ -35,7 +35,7 @@ set -ef
 
 # Git Bash copies where ln -s is asked to link, unless told
 # otherwise, and a copied alias drifts from the host it names.
-# Harmless everywhere else. (README → Windows)
+# Harmless everywhere else. (docs/install.md → Windows)
 MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict"
 export MSYS
 
@@ -269,7 +269,7 @@ if [ -z "$LIST" ]; then
   rm -rf "$probe"
   if [ -z "$linked" ]; then
     echo "error: this shell cannot create symbolic links, and DNS" >&2
-    echo "  aliases need them — see README → Windows" >&2
+    echo "  aliases need them — see docs/install.md → Windows" >&2
     exit 1
   fi
 fi

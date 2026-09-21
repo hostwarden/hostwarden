@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The README is back to getting started.** Install,
+  first steps, what hostwarden does and how it keeps you
+  safe fit on one page; everything deeper — native
+  Windows, mirrors and teams, updates, the AI tools,
+  automation, customization — lives under `docs/`, with
+  the optional parts folded away until you open them.
 - **A development session that needs a live server hands
   the question over** to a session in your operations
   checkout, which runs the access lists and the full

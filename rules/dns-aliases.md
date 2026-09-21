@@ -73,7 +73,7 @@ symlink):
    - Confirm it is one: `test -L memory/servers/<alias>`.
      If not, delete the copy, use the canonical
      `memory.md` for this session, and point the user to
-     the README → Windows.
+     docs/install.md → Windows.
    - Add `- DNS alias: <alias>` to canonical
      `memory.md`.
    - Skip OS detection.
