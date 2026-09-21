@@ -102,7 +102,7 @@ Hostwarden reduces this risk with multiple layers:
 - **Distro-specific rule files** — Instead of relying
   on the LLM's memory, Hostwarden loads a verified rule
   file for each platform (Debian, RHEL, SUSE,
-  macOS). These files contain the correct
+  Alpine, FreeBSD, macOS). These files contain the correct
   commands, package managers, firewall tools, and
   common pitfalls for each distro. The LLM reads
   the file and follows it — it doesn't have to
@@ -144,5 +144,8 @@ journalctl -t hostwarden -n 20
 log show \
   --predicate 'senderImagePath CONTAINS "logger"' \
   --info --last 7d | grep hostwarden
+
+# Alpine and FreeBSD (syslog)
+grep hostwarden /var/log/messages
 ```
 

@@ -89,6 +89,7 @@ rules/                 — Upstream rule files (git-tracked)
     debian.md          — Debian & Ubuntu
     rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
     suse.md            — openSUSE & SLES
+    alpine.md          — Alpine Linux (apk, OpenRC, busybox)
     macos.md           — macOS
     freebsd.md         — FreeBSD
   appliance/           — Reference data on top of one family

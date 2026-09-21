@@ -8,6 +8,12 @@ Firewall or Updates section — its commands and expectations win, at
 the same severities: a mechanism the OS file says is not expected is
 not a finding.
 
+On Alpine, the checks without an **Alpine** variant below run
+unchanged; the others would fail on OpenRC or busybox
+(`rules/os/alpine.md` → Notes). Run `rc-status -a` and
+`rc-status --crashed` once, in the first call: failed services
+and time sync read from that output.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -19,6 +25,12 @@ independent of `memory.md` service entries.
 ```bash
 df -h --output=target,pcent,size,used,avail \
   -x tmpfs -x devtmpfs -x overlay
+```
+
+**Alpine:**
+
+```bash
+df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ```
 
 - **WARN** if any filesystem > 85% used
@@ -52,6 +64,8 @@ Report 1m, 5m, 15m load averages and core count.
 uptime -s
 last reboot | head -5
 ```
+
+**Alpine:** `uptime` alone.
 
 Report uptime. If the server rebooted since the last housekeeping
 or last session, flag it:
@@ -267,7 +281,14 @@ docker ps --format '{{.Names}} {{.Ports}}'
 systemctl --failed --no-pager --no-legend
 ```
 
-- **WARN** for each failed unit — list them by name
+**Alpine:** from the `rc-status` output of the first call.
+`rc-status --crashed` exits non-zero when nothing crashed; a
+service in the `sysinit`, `boot` or `default` runlevel shown as
+`stopped` was enabled but is not running. Services of the runlevel
+OpenRC enters to power down are stopped by design.
+
+- **WARN** for each failed unit, crashed service, or enabled
+  service that is stopped — list them by name
 
 ## NTP / Time Sync
 
@@ -276,7 +297,15 @@ timedatectl show \
   --property=NTPSynchronized --value
 ```
 
-- **WARN** if NTP is not synchronized
+**Alpine:** the default, busybox `ntpd`, reports no sync state,
+so the `rc-status` output of the first call shows whether
+`ntpd`, `chronyd` or `openntpd` runs. With chrony,
+`chronyc tracking` reports `Leap status : Normal` when
+synchronised.
+
+- **WARN** if NTP is not synchronized, or on Alpine if no time
+  service runs — except in a container (`openrc --sys` prints
+  `LXC`), whose clock is the host's
 
 ## Log Anomalies
 
@@ -299,6 +328,19 @@ journalctl --since "24 hours ago" -u ssh -u sshd \
   | wc -l
 ```
 
+**Alpine** (syslog, `rules/os/alpine.md` → Logs, which says who
+may read it):
+
+```bash
+dmesg | grep -oE "Out of memory|I/O error" | sort | uniq -c
+grep -h "Failed password" /var/log/auth.log \
+  /var/log/messages 2>/dev/null | wc -l
+```
+
+`dmesg` holds only what the kernel buffer still has, and the log
+files only what rotation kept: report the counts as recent, not
+as 7 days or 24 hours.
+
 - **WARN** if any OOM kills found
 - **WARN** if any disk I/O errors found
 - **INFO** if > 100 failed SSH logins in 24 hours (may indicate
@@ -319,6 +361,20 @@ for cert in /etc/letsencrypt/live/*/cert.pem; do
   days=$(( ($(date -d "$expiry" +%s) \
     - $(date +%s)) / 86400 ))
   echo "$domain: ${days}d remaining"
+done
+```
+
+**Alpine:**
+
+```bash
+for cert in /etc/letsencrypt/live/*/cert.pem; do
+  [ -r "$cert" ] || { echo "$cert: not readable"; continue; }
+  domain=$(basename "$(dirname "$cert")")
+  openssl x509 -checkend 2592000 -noout -in "$cert" \
+    >/dev/null && continue
+  if openssl x509 -checkend 604800 -noout -in "$cert" \
+    >/dev/null; then echo "$domain: expires within 30 days"
+  else echo "$domain: expires within 7 days"; fi
 done
 ```
 
@@ -359,6 +415,15 @@ echo "Running: $running"
 echo "Installed: $installed"
 ```
 
+**Alpine:** a kernel upgrade replaces the running kernel's
+modules, so a missing directory means a newer kernel waits for a
+reboot. Skip in a container, where the kernel is the host's:
+
+```bash
+uname -r
+ls /lib/modules
+```
+
 - **INFO** if running kernel differs from installed (reboot
   recommended)
 
@@ -372,6 +437,9 @@ services because restarting them is risky (notably
 `docker.service`, `dbus.service`, `getty@*`,
 `systemd-logind`). The result: the security fix is
 installed but not active, and nothing complains.
+
+**Alpine:** no needrestart; use the manual fallback
+below, which works with busybox.
 
 **Debian/Ubuntu** (needrestart is in the default
 install since Bookworm):

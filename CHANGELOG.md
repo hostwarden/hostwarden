@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Alpine Linux is a supported family.** Hostwarden
+  now knows apk and its stable branches, OpenRC,
+  busybox, doas and musl on Alpine hosts, and reads its
+  own log entries back from syslog. Housekeeping and the
+  security audit have Alpine variants of every check
+  that assumed systemd or GNU tools. Alpine's stock
+  nftables ruleset drops SSH, so Hostwarden opens every
+  sshd port before starting it. An Alpine Docker image
+  is recognised as a container, not a host to
+  administer.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under
