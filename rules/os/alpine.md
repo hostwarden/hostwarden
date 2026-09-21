@@ -197,10 +197,13 @@ or a crontab line that runs `apk upgrade`, which busybox `crond`
 runs only while its service does:
 
 ```
-ls /etc/periodic/*/
-crontab -l | grep apk
+grep -l "apk.*upgrade" /etc/periodic/*/* 2>/dev/null
+crontab -l | grep "apk.*upgrade"
 rc-service crond status
 ```
+
+A script name says nothing; only a script or crontab line that
+runs `apk upgrade` counts.
 
 - No such job, or `crond` not started → the finding the standing
   expectation in `AGENTS.md` asks for. Present it as a gap Alpine

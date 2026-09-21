@@ -78,5 +78,21 @@ find /etc /usr /var -xdev \
 Limit to these key directories to avoid excessive scan time on
 large filesystems.
 
+**Alpine:** busybox `find` has no `-nouser` or `-nogroup`; with
+`2>/dev/null` the command above prints nothing and reads as
+clean. Compare owners with the local account files instead:
+
+```bash
+find /etc /usr /var -xdev -exec stat -c '%u %g %n' {} + \
+  2>/dev/null \
+  | awk 'FILENAME=="/etc/passwd"{split($0,f,":");u[f[3]];next}
+         FILENAME=="/etc/group"{split($0,f,":");g[f[3]];next}
+         !($1 in u) || !($2 in g)' /etc/passwd /etc/group -
+```
+
+Accounts from a directory service (LDAP, SSSD) are not in
+`/etc/passwd`; where server memory records one, check a hit with
+`getent passwd <uid>` before reporting it.
+
 - Any unowned file found → **INFO** per file
 - None found → OK

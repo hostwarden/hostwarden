@@ -39,12 +39,16 @@ send this probe in place of the one above, before
 falling back to root SSH:
 
 ```
-command -v sudo && sudo -n true; command -v doas && doas -n true
+command -v sudo && sudo -n true && echo sudo=ok
+command -v doas && doas -n true && echo doas=ok
 ```
 
-Record `- Doas: passwordless` or
-`- Doas: requires password (unusable)` next to the
-sudo line. When it works, `doas -n` stands in for
+Judge each tool by its own `=ok` line, never by the
+exit status of the whole call: the last command
+decides that. Record the sudo line as above, and
+`- Doas: passwordless` or
+`- Doas: requires password (unusable)` next to it.
+When doas works and sudo does not, `doas -n` stands in for
 `sudo -n` wherever an instruction names it, for the
 whole session.
 
