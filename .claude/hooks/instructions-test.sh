@@ -324,6 +324,45 @@ else
   ok
 fi
 
+# --- appliance files hold to their contract ---------------------
+# An appliance file is read on top of its family file, the way an
+# override is (rules/os-detection.md -> Appliances). Its
+# `## Replace:` and `## Remove:` headings name sections of that base,
+# and one that names nothing takes nothing out: the family's advice
+# then stands on a host where it is wrong. The activity check and
+# the audit skills read `## Logs` and `## Housekeeping and Audits`
+# by name, and detection reaches only the files its marker table
+# lists. Each of these fails silently on a live host, so each is
+# checked here.
+report "$(
+  for f in "$ROOT"/rules/appliance/*.md; do
+    [ -f "$f" ] || continue
+    rel=${f#"$ROOT"/}
+    base=$(sed -n 's/^Base: *//p' "$f" | head -1 | tr -d '`')
+    case $base in
+      (none) base= ;;
+      (rules/os/*.md)
+        [ -f "$ROOT/$base" ] \
+          || { echo "$rel: Base $base does not exist"; base=; } ;;
+      (*) echo "$rel: no 'Base: rules/os/<family>.md' or 'Base: none' line"
+         base= ;;
+    esac
+    for h in 'Logs' 'Housekeeping and Audits'; do
+      grep -qxF "## $h" "$f" || echo "$rel: no '## $h' section"
+    done
+    grep -qF "\`$rel\`" "$ROOT/rules/os-detection.md" \
+      || echo "$rel: not in the marker table of rules/os-detection.md"
+    sed -nE 's/^## (Replace|Remove): *//p' "$f" \
+      | sed 's/ > .*//' \
+      | while IFS= read -r sec; do
+          if [ -z "$base" ]; then
+            echo "$rel: '$sec' is replaced or removed, but there is no base"
+          elif ! grep -qxF "## $sec" "$ROOT/$base"; then
+            echo "$rel: '$sec' names no section of $base"
+          fi
+        done
+  done)" "an appliance file that fits its base"
+
 # --- every pointer resolves --------------------------------------
 # A dangling instruction pointer fails the way the references/
 # check already guards against: silently. The file that should

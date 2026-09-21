@@ -75,6 +75,12 @@ Note: this shows the last 20 matches, not a strict
 (`messages.0`). Older rotated logs are usually
 compressed; mention the limitation if relevant.
 
+**Appliances:** on a host with an `Appliance:` line
+in memory, the appliance file's `## Logs` section
+says where Hostwarden's entries land and how to read
+them back. It replaces the block above for the base
+family where the two differ.
+
 If the command returns nothing — and it actually ran,
 and journal visibility is not limited (see above) —
 skip silently: no activity to report.

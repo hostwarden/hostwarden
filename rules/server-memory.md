@@ -13,6 +13,8 @@ overrides — see `rules/overrides.md`).
 - IP: 203.0.113.10
 - OS: Debian 12 (Bookworm)
 - Distro family: debian
+- Appliance: Proxmox VE 9.0.3, standalone
+- Shell: bash (root)
 - CPU: 4x Intel Xeon E-2236 @ 3.40GHz
 - RAM: 16 GB
 - Disk: 80 GB (/ ext4, 45% used)
@@ -26,7 +28,10 @@ Hosts without one never had Heinzel state, which is
 the normal case.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
-add `Mode: local` for localhost).
+add `Mode: local` for localhost). `Appliance:` only
+when `rules/os-detection.md` → Appliances found one,
+in the form the appliance file gives; `Shell:` once
+per SSH user, from the same file's step 1.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
