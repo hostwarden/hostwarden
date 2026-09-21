@@ -71,12 +71,19 @@ series of commands, anything that writes, or a host whose
 answer depends on its server memory goes the default way. The
 same holds for a tool on this machine that the mode refuses.
 
-Before writing the command, read `memory/blacklist.md` in the
-operations checkout, where you know it. A host listed there, by
-the name the developer gave or by an address you already know,
-gets no command at all — say it is blacklisted. The full lookup
-(`rules/access-control.md`) needs the operations session; when in
-doubt, hand over.
+Before writing the command, run the blacklist lookup of
+`rules/access-control.md` against `memory/blacklist.md` in the
+operations checkout, all four steps, with two changes:
+
+- The mode refuses `ssh -G`, so for the name it would map, read
+  the `Host` block for that name in `~/.ssh/config` with `grep`
+  and take its `HostName`.
+- Anything the lookup cannot settle hands over instead of
+  falling back to a string match: no operations checkout known,
+  nothing resolves, or an `Include`, a `Match` or a wildcard
+  `Host` in the SSH config that you cannot follow.
+
+A match gets no command at all — say the host is blacklisted.
 
 ## Never
 
