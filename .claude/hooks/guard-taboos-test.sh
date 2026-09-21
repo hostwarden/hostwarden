@@ -737,20 +737,6 @@ else
   echo "FAIL: raw-input fallback did not deny mkfs"
 fi
 
-# --- operator override via inherited environment ---------------
-OUT=$(json_for 'mkfs.ext4 /dev/sda1' \
-  | HOSTWARDEN_GUARD_DISABLE=1 sh "$HOOK")
-if [ -z "$OUT" ]; then
-  PASS=$((PASS + 1))
-else
-  FAIL=$((FAIL + 1))
-  echo "FAIL: HOSTWARDEN_GUARD_DISABLE=1 env did not disable guard"
-fi
-
-# --- settings files: guard-settings.sh -------------------------
-# The env key of a settings file reaches the guard, so writing the
-# variable there is denied through every tool, whether or not the
-# guard is already off, and taking it out again is not.
 expect() {
   # expect <label> <command...> — passes when the command succeeds.
   L=$1; shift
@@ -761,22 +747,39 @@ expect() {
     echo "FAIL: $L"
   fi
 }
+V=HOSTWARDEN_GUARD_DISABLE
+denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
+
+# --- operator override: set at launch, and recorded then ---------
+# The variable switches the guard off only for a session whose start
+# check-session.sh recorded; a value that arrives mid-session finds
+# no record. HOME is a scratch directory, so the tester's own records
+# never decide a fixture.
+GHOME=$(mktemp -d)
+mkdir -p "$GHOME/.cache/hostwarden"
+: > "$GHOME/.cache/hostwarden/guard-off-s-recorded"
+override_out() {
+  printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"mkfs.ext4 /dev/sda1"}}' "$1" \
+    | env HOME="$GHOME" "$V=1" sh "$HOOK"
+}
+expect "the override did not disable the guard for a recorded session" \
+  [ -z "$(override_out s-recorded)" ]
+expect "the override disabled the guard without a record (mid-session)" \
+  denied "$(override_out s-unrecorded)"
+rm -rf "$GHOME"
+
+# --- settings files and records: guard-settings.sh ---------------
+# The variable in a settings file would switch the guard off for the
+# next session, and a forged record for this one; both are denied
+# through every tool, whether or not the guard is already off.
 SGUARD="$CLAUDE_DIR/hooks/guard-settings.sh"
 settings_case() {
   # settings_case <expect> <label> <json> [env assignment...]
-  # HOME points nowhere by default: a variable in the tester's own
-  # ~/.claude/settings.json must not decide a fixture.
   E=$1 L=$2 J=$3; shift 3
-  OUT=$(printf '%s' "$J" \
-    | env -u HOSTWARDEN_GUARD_DISABLE HOME=/nonexistent "$@" \
-      sh "$SGUARD")
-  case "$OUT" in
-    *'"permissionDecision":"deny"'*) GOT=deny ;;
-    *) GOT=pass ;;
-  esac
+  OUT=$(printf '%s' "$J" | env -u "$V" "$@" sh "$SGUARD")
+  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
   expect "guard-settings [$E, got $GOT]: $L" [ "$GOT" = "$E" ]
 }
-V=HOSTWARDEN_GUARD_DISABLE
 settings_case deny 'Write settings.local.json' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"{\"env\":{\"'"$V"'\":\"1\"}}"}}'
 settings_case deny 'Edit user settings.json' \
@@ -786,10 +789,10 @@ settings_case deny 'MultiEdit managed-settings.json' \
 settings_case deny 'Write while the guard is already off' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"'"$V"'"}}' \
   "$V=1"
-settings_case pass 'Edit that removes it again' \
-  '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/settings.local.json","old_string":"\"'"$V"'\": \"1\"","new_string":""}}'
 settings_case deny 'Write to the settings file in upper case' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/SETTINGS.LOCAL.JSON","content":"'"$V"'"}}'
+settings_case pass 'Edit that removes it again' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/settings.local.json","old_string":"\"'"$V"'\": \"1\"","new_string":""}}'
 settings_case pass 'README naming it' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/README.md","old_string":"a","new_string":"'"$V"'"}}'
 settings_case pass 'settings file without it' \
@@ -806,60 +809,12 @@ settings_case pass 'Bash: naming it in the docs' \
   "$(json_for "echo see $V in the docs")"
 settings_case pass 'Bash: reading the settings file' \
   "$(json_for 'jq .env .claude/settings.local.json')"
-# Once the variable is set, a change that never names it can still
-# flip its value, so only taking it out passes.
-SET=$(mktemp -d)
-mkdir -p "$SET/.claude"
-printf '{"env": {"%s": "0"}}\n' "$V" > "$SET/.claude/settings.local.json"
-settings_case deny 'Edit flipping the value of an existing key' \
-  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"0\"","new_string":"\"1\""}}'
-# A removal of some other occurrence beside a flip of the key: the
-# result still names the variable, so it is denied however the
-# edit texts look.
-printf '{"env":{"%s":"0"},"note":"%s"}\n' "$V" "$V" \
-  > "$SET/.claude/settings.json"
-settings_case deny 'Edit flipping the key while removing another mention' \
-  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","old_string":"\"0\"},\"note\":\"'"$V"'\"","new_string":"\"1\"}"}}'
-settings_case deny 'MultiEdit: a removal beside a value flip' \
-  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","edits":[{"old_string":",\"note\":\"'"$V"'\"","new_string":""},{"old_string":"\"0\"","new_string":"\"1\""}]}}'
-rm -f "$SET/.claude/settings.json"
-# The name put together across two edits of a file without it.
-printf '{"env":{"A":"1"}}\n' > "$SET/.claude/settings.json"
-settings_case deny 'MultiEdit: the name assembled across edits' \
-  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.json","edits":[{"old_string":"\"A\"","new_string":"\"HOSTWARDEN_X\""},{"old_string":"X","new_string":"GUARD_DISABLE"}]}}'
-rm -f "$SET/.claude/settings.json"
-settings_case pass 'MultiEdit: every edit a removal' \
-  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"\"'"$V"'\": \"0\"","new_string":""}]}}'
-settings_case pass 'Edit taking the existing key out' \
-  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"'"$V"'\": \"0\"","new_string":""}}'
-settings_case deny 'Bash: sed on settings while the key exists' \
-  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
-  "CLAUDE_PROJECT_DIR=$SET"
-mkdir -p "$SET/etc/claude-code"
-printf '{"env": {"%s": "0"}}\n' "$V" \
-  > "$SET/etc/claude-code/managed-settings.json"
-settings_case deny 'Bash: sed on a managed settings file with the key' \
-  "$(json_for "sed -i 's/0/1/' $SET/etc/claude-code/managed-settings.json")" \
-  "CLAUDE_PROJECT_DIR=$SET/none"
-mkdir -p "$SET/App Support"
-printf '{"env": {"%s": "0"}}\n' "$V" \
-  > "$SET/App Support/managed-settings.json"
-settings_case deny 'Bash: quoted managed path with a space' \
-  "$(json_for "sed -i 's/0/1/' '$SET/App Support/managed-settings.json'")" \
-  "CLAUDE_PROJECT_DIR=$SET/none"
-settings_case deny 'Bash: managed path with an escaped space' \
-  "$(json_for "sed -i 's/0/1/' $(printf '%s' "$SET/App Support" | sed 's/ /\\ /g')/managed-settings.json")" \
-  "CLAUDE_PROJECT_DIR=$SET/none"
-settings_case deny 'Bash: upper-case settings path with the key' \
-  "$(json_for "sed -i 's/0/1/' .claude/SETTINGS.LOCAL.JSON")" \
-  "CLAUDE_PROJECT_DIR=$SET"
-settings_case deny 'Bash: a glob over the settings while the key exists' \
-  "$(json_for "sed -i 's/0/1/' .claude/s*.json")" \
-  "CLAUDE_PROJECT_DIR=$SET"
-settings_case pass 'Bash: sed on settings without the key' \
-  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
-  "CLAUDE_PROJECT_DIR=$SET/none"
-rm -rf "$SET"
+settings_case deny 'Write a guard-off record' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/h/.cache/hostwarden/guard-off-abc","content":""}}'
+settings_case deny 'Bash: touch a guard-off record' \
+  "$(json_for 'cd ~/.cache/hostwarden && touch guard-off-abc')"
+settings_case pass 'Edit a hook that mentions the records' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/hooks/check-session.sh","old_string":"a","new_string":"guard-off-"}}'
 # No jq: judged on the raw text, which may over-block, never under.
 NOJQ=$(mktemp -d)
 for t in sh cat grep printf sed; do
@@ -893,8 +848,10 @@ printf 'gitdir: ../main/.git/worktrees/rel\n' > "$REPO/rel/.git"
 printf 'gitdir: %s/meta/worktrees/sep\n' "$REPO" > "$REPO/sep/.git"
 printf 'gitdir: ../main/.git/modules/sub\n' > "$REPO/sub/.git"
 session_out() {
-  env -u HOSTWARDEN_GUARD_DISABLE ${2:+"$2"} \
-    sh "$REPO/$1/.claude/hooks/check-session.sh"
+  # session_out <dir> [env assignment] [session JSON]
+  printf '%s' "${3:-{\}}" \
+    | env -u "$V" HOME="$REPO/home" ${2:+"$2"} \
+      sh "$REPO/$1/.claude/hooks/check-session.sh"
 }
 contains() { case "$1" in *"$2"*) true ;; *) false ;; esac; }
 expect "check-session.sh spoke in an ordinary checkout" \
@@ -909,8 +866,22 @@ expect "check-session.sh missed a worktree of a separate git dir" \
   contains "$(session_out sep)" "linked git worktree"
 expect "check-session.sh took a submodule for a worktree" \
   [ -z "$(session_out sub)" ]
+# The record: made at startup with the variable set, never at a
+# compaction, and taken away once the variable is gone.
+REC="$REPO/home/.cache/hostwarden/guard-off-s1"
 expect "check-session.sh did not report the guard as off" \
-  contains "$(session_out main "$V=1")" "taboo guard is OFF"
+  contains "$(session_out main "$V=1" '{"session_id":"s1","source":"startup"}')" \
+  "taboo guard is OFF"
+expect "check-session.sh made no record at startup" [ -e "$REC" ]
+rm -f "$REC"
+expect "check-session.sh did not say a mid-session value stays inert" \
+  contains "$(session_out main "$V=1" '{"session_id":"s1","source":"compact"}')" \
+  "guard stays ON"
+expect "check-session.sh made a record at a compaction" [ ! -e "$REC" ]
+session_out main "$V=1" '{"session_id":"s1","source":"startup"}' >/dev/null
+session_out main "" '{"session_id":"s1","source":"clear"}' >/dev/null
+expect "check-session.sh kept a record once the variable was gone" \
+  [ ! -e "$REC" ]
 rm -rf "$REPO"
 
 # --- degraded awk must fail CLOSED -----------------------------

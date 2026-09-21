@@ -9,8 +9,9 @@ tool reads. This file adds only what exists here and nowhere else.
   registered as a `PreToolUse` hook on `Bash` and denies in every
   permission mode, `--dangerously-skip-permissions` included. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
-  are the entire safety layer. `guard-settings.sh` also denies
-  writing the guard's off switch into a settings file.
+  are the entire safety layer. The off switch counts only for a
+  session that started with it; `guard-settings.sh` keeps it out
+  of settings files.
 - **SessionStart hooks have already run.** They have:
   - checked for repo updates;
   - created `~/.cache/hostwarden` with mode 0700, the `mkdir`

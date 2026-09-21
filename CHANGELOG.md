@@ -15,14 +15,16 @@
   memory, and lost whatever it learned with the
   worktree. Hostwarden now refuses to reach any machine
   from one, and a session-start hook says so at once.
-- **The taboo guard cannot be switched off through a
-  settings file.** The `env` key of a Claude Code
-  settings file reaches the guard, mid-session, and an
-  edit that put the disable variable there walked past
-  a guard that only watches shell commands. A new hook
-  denies that write by edit or by shell, and every
-  session that starts with the guard off opens with a
-  note saying so.
+- **The taboo guard can only be switched off before a
+  session starts.** The `env` key of a Claude Code
+  settings file reaches the guard mid-session, so a
+  write there could switch it off without any shell
+  command. The guard now honours the variable only for
+  a session that started with it, which a session-start
+  hook records; a new hook keeps the variable out of
+  settings files for the next session, and every session
+  that starts with the guard off opens with a note
+  saying so.
 
 - **`bin/hostwarden-doctor` says what your workstation is
   missing**, and which feature each missing tool switches

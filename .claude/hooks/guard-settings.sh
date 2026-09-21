@@ -1,55 +1,42 @@
 #!/bin/sh
 # guard-settings.sh — PreToolUse hook (matcher: Bash|Edit|Write|MultiEdit).
 #
-# Keeps the model from switching the taboo guard off through a
-# Claude Code settings file. guard-taboos.sh honours
-# HOSTWARDEN_GUARD_DISABLE from its inherited environment, and the
-# `env` key of any settings.json feeds that environment — reloaded
-# mid-session, without a relaunch. JSON spells the variable without
-# an equals sign, so the guard's own inline-assignment rule never
-# sees it, and the guard does not see Edit or Write at all.
+# The taboo guard honours HOSTWARDEN_GUARD_DISABLE only when the
+# session STARTED with it: check-session.sh (SessionStart) records
+# that in ~/.cache/hostwarden/guard-off-<session_id>, and
+# guard-taboos.sh looks for the record. A value that reaches the
+# environment mid-session — the `env` key of a settings file is
+# reloaded while the session runs — switches nothing off, however it
+# was written. What is left for this hook is small:
 #
-# Denies:
-#   - an Edit, Write or MultiEdit whose target is a settings file
-#     and whose NEW text names the variable. Taking it out again is
-#     an edit whose new text does not, so the clean-up passes.
-#   - a Bash command that names both the variable and a settings
-#     file. That cannot tell a read from a write, so a grep of the
-#     two together is denied too; grep one of them at a time.
-#   - an Edit or MultiEdit of a settings file whose result, replayed
-#     on the current content, still names the variable.
-#   - while a settings file already carries the variable, any Bash
-#     command that could reach one — naming `settings`, `.claude` or
-#     a managed directory, a glob included. It could flip the value
-#     without naming the variable at all.
+#   - keep the variable out of Claude Code settings files, where it
+#     would switch the guard off for the NEXT session: an Edit, Write
+#     or MultiEdit of a settings file (any letter case — macOS and
+#     Windows resolve SETTINGS.JSON to the same file) whose new text
+#     names it, and a Bash command that names it and a settings file.
+#     A Bash command naming both cannot be told from a read, so a
+#     grep of the two together is denied too; grep one at a time.
+#   - keep hands off the records: any write to a guard-off-* file,
+#     and any Bash command that names guard-off- at all (grep for
+#     "guard-off" without the hyphen when reading about it).
 #
-# The operator sets it by hand in an editor, which reaches no hook.
-# README → Claude Code Desktop describes that.
+# The operator sets the variable by hand, which reaches no hook, and
+# starts a new session (README → Claude Code Desktop). The next
+# session's start-up notice says the guard is off, whichever way it
+# got there — that notice, not this hook, is what the operator reads.
 #
-# Deliberately NOT honouring HOSTWARDEN_GUARD_DISABLE, and a hook of
-# its own for that reason: guard-taboos.sh exits at once when the
-# guard is off, and a guard that is off for one session must not let
-# the model make it off for every session after.
-#
-# Boundary, as for the guard: a backstop against the everyday
-# mistake, not a sandbox. A file written elsewhere and copied into
-# place, or a JSON \u escape, defeats any string matcher. The
-# session-start notice from check-session.sh is what tells the
-# operator the guard is off, whichever way it happened.
+# Deliberately NOT honouring HOSTWARDEN_GUARD_DISABLE: a guard that
+# is off for one session must not let the model make it off for the
+# next. A backstop against the everyday mistake, not a sandbox.
 
 INPUT=$(cat)
-
 V=HOSTWARDEN_GUARD_DISABLE
 
-# Nearly every call names neither the variable nor anything that
-# can reach a settings file; one case, no fork. Loose on purpose: a
-# glob such as .claude/settings*.json names no file, so `settings`,
-# `.claude` and Claude Code's managed directories count on their
-# own, in any letter case — the default filesystems of macOS and
-# Windows resolve SETTINGS.JSON to the same file.
-case "$INPUT" in
-  *"$V"*|*[Ss][Ee][Tt][Tt][Ii][Nn][Gg][Ss]*|*.[Cc][Ll][Aa][Uu][Dd][Ee]*) ;;
-  *[Cc][Ll][Aa][Uu][Dd][Ee]-[Cc][Oo][Dd][Ee]*|*[Cc]laude[Cc]ode*) ;;
+# Only the tool's own input counts: the envelope names paths under
+# ~/.claude for every call. One case, no fork, for nearly every call.
+TI=${INPUT#*\"tool_input\"}
+case "$TI" in
+  *"$V"*|*guard-off-*) ;;
   *) exit 0 ;;
 esac
 
@@ -57,124 +44,54 @@ deny() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
   printf '"permissionDecisionReason":"hostwarden guard: '
-  printf 'HOSTWARDEN_GUARD_DISABLE in a Claude Code settings file '
-  printf 'switches the taboo guard off, and only the operator may '
-  printf 'set or change it, by hand (AGENTS.md - Critical Safety '
-  printf 'Rules). Blocked in all permission modes. Explain this to the '
-  printf 'user; do not look for another way to write it. README - '
-  printf 'Claude Code Desktop describes what the operator does."}}\n'
+  printf 'HOSTWARDEN_GUARD_DISABLE and its session records belong to '
+  printf 'the operator, who sets the variable by hand before a session '
+  printf 'starts (AGENTS.md - Critical Safety Rules). Blocked in all '
+  printf 'permission modes. Explain this to the user; do not look for '
+  printf 'another way to write it. README - Claude Code Desktop '
+  printf 'describes what the operator does."}}\n'
   exit 0
 }
 
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
-# What a shell command can reach a settings file through, a glob
-# included.
-REACH_RE='settings|\.claude|claude-?code'
-
-# holds_var <file> — the file already carries the variable. Then a
-# change that does not name it can still flip its value ("0" to
-# "1"), so only its removal may pass.
-holds_var() { [ -f "$1" ] && grep -q "$V" "$1" 2>/dev/null; }
-
-# any_holds_var <command text> — a settings file the command could
-# change already carries the variable. Checked: the project and user
-# files and the managed ones where Claude Code keeps them, because a
-# command can reach those by a path that names only a directory; and
-# every settings path the command names, as written — quoted, with
-# escaped spaces, or with a leading ~. A path this cannot read whole
-# still meets the fixed list, so it can only over-block.
-PROJECT=${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
-any_holds_var() {
-  for f in "$PROJECT/.claude/settings.local.json" \
-           "$PROJECT/.claude/settings.json" \
-           "$HOME/.claude/settings.local.json" \
-           "$HOME/.claude/settings.json" \
-           "/Library/Application Support/ClaudeCode/managed-settings.json" \
-           "/etc/claude-code/managed-settings.json"; do
-    holds_var "$f" && return 0
-  done
-  US=$(printf '\037')
-  {
-    printf '%s\n' "$1" \
-      | grep -oiE "'[^']*($SETTINGS_RE)'|\"[^\"]*($SETTINGS_RE)\"" \
-      | sed "s/^['\"]//; s/['\"]\$//"
-    printf '%s\n' "$1" | sed "s/\\\\ /$US/g" \
-      | grep -oiE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
-      | sed "s/$US/ /g"
-  } | while IFS= read -r f; do
-        case "$f" in \~/*) f="$HOME/${f#\~/}" ;; esac
-        holds_var "$f" && echo hit
-      done | grep -q hit
-}
+RECORD_RE='guard-off-'
 
 # One jq call, three lines: tool, target, and everything the call
 # would write. Without jq, or on input it cannot read, the raw text
-# is judged as a whole, which can only over-block.
+# stands in for all of them, which can only over-block.
 TOOL=""
 if command -v jq >/dev/null 2>&1; then
   PARSED=$(printf '%s' "$INPUT" | jq -r '
     .tool_name // "",
-    .tool_input.file_path // "",
+    (.tool_input.file_path // "" | gsub("\n"; " ")),
     ([.tool_input.command, .tool_input.content,
       .tool_input.new_string,
       (.tool_input.edits // [] | .[].new_string)]
      | map(strings) | join(" ") | gsub("\n"; " "))
-    ' 2>/dev/null) \
-    || PARSED=""
-  TOOL=$(printf '%s\n' "$PARSED" | sed -n 1p)
-  FILE=$(printf '%s\n' "$PARSED" | sed -n 2p)
-  NEW=$(printf '%s\n' "$PARSED" | sed -n 3p)
+    ' 2>/dev/null) || PARSED=""
+  { IFS= read -r TOOL; IFS= read -r FILE; IFS= read -r NEW; } <<EOF
+$PARSED
+EOF
 fi
 
-# result_holds_var — the settings file as this Edit or MultiEdit
-# would leave it still names the variable. The edits are replayed
-# on the current content, in order, the way the tool applies them:
-# the first occurrence, or all with replace_all. Judging the edit
-# texts instead cannot work — an old_string that names the variable
-# may remove some other occurrence while the key flips beside it.
-# Anything jq cannot replay counts as still naming it.
-result_holds_var() {
-  RESULT=$(printf '%s' "$INPUT" | jq -r --rawfile cur "$FILE" '
-    def rep($o; $n; $all):
-      if $o == "" then .
-      elif $all then split($o) | join($n)
-      else split($o) as $p
-        | if ($p | length) < 2 then .
-          else $p[0] + $n + ($p[1:] | join($o)) end
-      end;
-    reduce ((.tool_input.edits // [.tool_input])[]) as $e
-      ($cur; rep($e.old_string // ""; $e.new_string // "";
-                 $e.replace_all // false))' 2>/dev/null) || return 0
-  case "$RESULT" in *"$V"*) return 0 ;; esac
-  return 1
-}
-
 if [ -z "$TOOL" ]; then
-  printf '%s' "$INPUT" | grep -Eiq "$SETTINGS_RE" || exit 0
-  case "$INPUT" in *"$V"*) deny ;; esac
-  any_holds_var "$INPUT" && deny
+  printf '%s' "$TI" | grep -q "$RECORD_RE" && deny
+  case "$TI" in *"$V"*)
+    printf '%s' "$TI" | grep -Eiq "$SETTINGS_RE" && deny ;;
+  esac
   exit 0
 fi
 
 case "$TOOL" in
   Bash)
-    printf '%s' "$NEW" | grep -Eiq "$REACH_RE" || exit 0
+    printf '%s' "$NEW" | grep -q "$RECORD_RE" && deny
     case "$NEW" in *"$V"*)
       printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" && deny ;;
-    esac
-    any_holds_var "$NEW" && deny ;;
+    esac ;;
   *)
-    printf '%s' "${FILE##*/}" | grep -Eiqx "$SETTINGS_RE" || exit 0
-    case "$NEW" in *"$V"*) deny ;; esac
-    # Every Edit and MultiEdit is replayed on the current file: the
-    # result may name the variable although no single new_string
-    # does (one edit writes half the name, the next the rest), or
-    # flip a value without naming it at all. A Write's whole new
-    # content was checked above, and an Edit of a file that does
-    # not exist fails in the tool itself.
-    case "$TOOL" in
-      Write) ;;
-      *) [ -f "$FILE" ] && result_holds_var && deny ;;
+    case "${FILE##*/}" in guard-off-*) deny ;; esac
+    case "$NEW" in *"$V"*)
+      printf '%s' "${FILE##*/}" | grep -Eiqx "$SETTINGS_RE" && deny ;;
     esac ;;
 esac
 exit 0

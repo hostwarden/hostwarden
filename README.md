@@ -610,9 +610,11 @@ note that the guard is off — that note is how you
 know the setting took effect. Remove the line and
 start another session when the work is done; the
 file outlasts the session, and so would a guard that
-is off. Hostwarden cannot do this for you:
-`.claude/hooks/guard-settings.sh` denies writing the
-variable into a settings file, by edit or by shell.
+is off. Set in the middle of a session, it does
+nothing: the guard honours it only for a session that
+started with it. Hostwarden cannot set it for you —
+`.claude/hooks/guard-settings.sh` denies writing it
+into a settings file.
 
 **Permission modes are a menu, not a flag.** Pick
 Ask, Accept edits, Plan, Auto or Bypass in the
@@ -1169,12 +1171,12 @@ mise.dev.toml          — Pinned versions of the tools check.sh
                          guard (run by scripts/check.sh)
     guard-settings.sh  — PreToolUse hook that keeps the
                          guard's off switch out of settings
-                         files
+                         files and its session records
     check-skills.sh    — SessionStart hook that reports a
                          .claude/skills link that is not one
     check-session.sh   — SessionStart hook that reports a
-                         linked worktree or a guard that is
-                         off
+                         linked worktree, and records and
+                         reports a guard that is off
     instructions-test.sh — Dev-only structural checks on the
                          instruction layer (run by scripts/check.sh)
   skills/              — Symlink to .agents/skills/, because

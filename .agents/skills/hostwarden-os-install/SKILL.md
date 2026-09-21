@@ -73,8 +73,8 @@ four have to hold:
    no shell to export it from: the operator adds it to the `env`
    of `.claude/settings.local.json` by hand and starts a new
    session, which then opens with a note that the guard is off
-   (README → Claude Code Desktop). Writing it there yourself is
-   blocked as well.
+   (README → Claude Code Desktop). Set mid-session it has no
+   effect, and writing it there yourself is blocked.
 
 Being blocked by the guard before step 4 is the expected outcome.
 Never rephrase a command to get past it.
