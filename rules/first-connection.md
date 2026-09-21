@@ -14,6 +14,10 @@ moment") — don't skip.
 
 ## Order
 
+0. **Worktree check.** Once per session: refuse
+   to reach any machine from a linked git
+   worktree. See `rules/access-control.md` →
+   Linked Worktrees.
 1. **Blacklist check.** Refuse if listed. See
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
@@ -51,11 +55,11 @@ moment") — don't skip.
 ## Local mode
 
 In local mode (`localhost`, the user's own
-hostname), skip steps 1–4 — they are remote-only
-(see `AGENTS.md` → How It Works → Local mode).
-Still run OS detection, server memory, activity
-check, and the heinzel legacy check — on the
-workstation the latter looks at scheduled runs
+hostname), run step 0, then skip steps 1–4 — they
+are remote-only (see `AGENTS.md` → How It Works →
+Local mode). Still run OS detection, server memory,
+activity check, and the heinzel legacy check — on
+the workstation the latter looks at scheduled runs
 instead of backup directories
 (`rules/heinzel-adoption.md`).
 

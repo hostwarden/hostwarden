@@ -182,6 +182,14 @@ ssh server1.example.com
 EOF'
 edit pass "$DEV" "$DEV/rules/backups.md"
 
+# The taboo guard's off switch does not reach the mode guard.
+out=$(bash_json 'ssh server1.example.com true' \
+  | HOSTWARDEN_GUARD_DISABLE=1 sh "$DEV/.claude/hooks/guard-mode.sh")
+case "$out" in
+*'"permissionDecision":"deny"'*) ok ;;
+*) bad "HOSTWARDEN_GUARD_DISABLE switched the mode guard off" ;;
+esac
+
 # Worktree: development, whatever the main checkout is.
 cmd deny "$WT" 'ssh root@server1.example.com uptime'
 cmd pass "$WT" 'git status'

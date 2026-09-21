@@ -103,3 +103,40 @@ unprivileged mode sysadmin report.
 The user must remove the entry from
 `memory/readonly.md` before hostwarden will modify the
 server.
+
+## Linked Worktrees
+
+**When to check:** before the blacklist check, once
+per session. A `SessionStart` hook says so on its
+own where hooks run; elsewhere, read `.git` in the
+hostwarden directory. A file whose `gitdir:` names a
+directory holding a `commondir` file means a linked
+worktree; a directory, or a submodule's `.git` file,
+does not.
+
+**Why:** `memory/` is gitignored, so a worktree
+carries none of the user's state — no
+`blacklist.md`, no `readonly.md`, no `user.md`, no
+server memory. Both checks above would find no file
+and let everything through, and whatever the session
+writes to server memory is deleted with the
+worktree. The Claude Code desktop app can start
+every session in one.
+
+**On match:** refuse to reach any machine, localhost
+included. Tell the user: "This session runs in a git
+worktree, where the blacklist, the read-only list
+and server memory do not exist. Start a new session
+in the hostwarden checkout itself, with the worktree
+option off." Name that checkout: the parent of the
+common git directory.
+
+**No override:** do not point the session at the
+main checkout's `memory/` and carry on. Every rule
+names `memory/...` relative to where it runs, so one
+missed path reads or writes the empty tree here
+instead — and `memory/` mixes tracked templates with
+the user's state, so it cannot simply be linked in.
+Working on hostwarden's own source is what a
+worktree is for; that reaches no machine and needs
+no check.

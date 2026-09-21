@@ -9,7 +9,9 @@ tool reads. This file adds only what exists here and nowhere else.
   registered as a `PreToolUse` hook on `Bash` and denies in every
   permission mode, `--dangerously-skip-permissions` included. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
-  are the entire safety layer.
+  are the entire safety layer. The off switch counts only for a
+  session that started with it; `guard-settings.sh` keeps it out
+  of settings files.
 - **The mode is announced and enforced.** A SessionStart hook
   names the mode `AGENTS.md` → Development or Operations
   describes, and `.claude/hooks/guard-mode.sh` holds the session to
@@ -22,7 +24,9 @@ tool reads. This file adds only what exists here and nowhere else.
   - created `~/.cache/hostwarden` with mode 0700, the `mkdir`
     under `AGENTS.md` → SSH Options;
   - run `bin/hostwarden-doctor --quiet`, whose output, if any,
-    names the workstation tools that are missing.
+    names the workstation tools that are missing;
+  - reported a linked worktree or a guard that is off, if either
+    applies.
 
   Where hooks do not run, `rules/session-start.md` says what to do
   instead.

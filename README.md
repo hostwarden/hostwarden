@@ -6,7 +6,9 @@ works with
 [Claude Code](https://docs.anthropic.com/en/docs/claude-code),
 [OpenCode](https://opencode.ai), or any other
 terminal-based AI tool that can read project files
-and run shell commands. It manages Linux, FreeBSD,
+and run shell commands — and with the Code tab of the
+Claude desktop app, which runs the same Claude Code
+([what differs there](#claude-code-desktop)). It manages Linux, FreeBSD,
 and macOS targets — remote servers over SSH and the
 local machine alike — and runs on any workstation
 where your AI tool runs, including Windows (via WSL
@@ -49,7 +51,9 @@ hostwarden session looks the same.
 - **An AI coding assistant** that runs in the
   terminal — e.g.
   [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-  or [OpenCode](https://opencode.ai).
+  or [OpenCode](https://opencode.ai) — or the Claude
+  desktop app's Code tab, set up as described in
+  [Claude Code Desktop](#claude-code-desktop).
 - **[jq](https://jqlang.org)** for Claude Code's
   guard hooks. Without it they cannot read what a
   tool call does, and the mode guard refuses
@@ -170,7 +174,11 @@ replaced with a link.
    bin/hostwarden-init
    claude
    ```
-   Or use `opencode` to launch OpenCode.
+   Or use `opencode` to launch OpenCode. In the
+   Claude desktop app, open the cloned folder in the
+   Code tab instead, with the worktree option off —
+   [Claude Code Desktop](#claude-code-desktop) says
+   why that matters.
    `bin/hostwarden-init` turns `memory/` into the
    workspace — a git repository of its own that holds
    everything hostwarden learns about your servers —
@@ -178,8 +186,6 @@ replaced with a link.
    Without it, the checkout is for developing
    hostwarden and reaches no server (see
    [Operations and development](#operations-and-development)).
-   Always start sessions in this directory itself,
-   never in a git worktree of it.
 2. **Describe what you need in plain English**
    ```
    ❯ Install postgresql on server1.example.com
@@ -277,6 +283,10 @@ bin/hostwarden-update --unpin        # back to main
 ```bash
 export HOSTWARDEN_NO_UPDATE=1
 ```
+
+In the desktop app, set it in the `env` of
+`.claude/settings.local.json` instead — see
+[Claude Code Desktop](#claude-code-desktop).
 
 ### Moving over from heinzel
 
@@ -519,8 +529,10 @@ makes no changes. You discuss the approach, adjust
 it, and only when you approve does execution begin.
 
 > **Note:** The `/plan` command is a Claude Code
-> feature. OpenCode does not have an equivalent —
-> simply ask Hostwarden to plan before acting.
+> feature; in the desktop app, pick Plan in the mode
+> selector instead. OpenCode does not have an
+> equivalent — simply ask Hostwarden to plan before
+> acting.
 
 ### Local administration
 
@@ -590,6 +602,87 @@ hook, the session-start hooks, the subagent. Keep both.
 ```
 claude
 ```
+
+### Claude Code Desktop
+
+The Code tab of the Claude desktop app (macOS,
+Windows) runs the same Claude Code: `AGENTS.md`, the
+skills, the subagent and every hook in
+`.claude/settings.json` work there as they do in the
+terminal, taboo guard included. Four things need
+attention.
+
+**Turn the worktree option off.** The app can start
+each session in its own git worktree under
+`.claude/worktrees/`. Everything that is yours lives
+in `memory/`, which git ignores — so a worktree has
+no blacklist, no read-only list, no SSH users and no
+server memory, and what the session learns is
+deleted with the worktree. Hostwarden therefore
+refuses to reach any machine from a worktree, and a
+session-start hook says so at once. Open the
+hostwarden folder itself, with the worktree option
+off. (Working on hostwarden's own source in a
+worktree is fine.)
+
+**Environment variables go into
+`.claude/settings.local.json`.** There is no shell to
+`export` from. The app does pick up variables from
+your shell profile, but when it reads them is not
+something to rely on for a safety switch. Put them in
+the `env` key of `.claude/settings.local.json` — it
+is gitignored, so it stays yours — and start a new
+session:
+
+```json
+{
+  "env": {
+    "HOSTWARDEN_NO_UPDATE": "1"
+  }
+}
+```
+
+**Switching the taboo guard off works the same way,
+by hand.** For the disk steps of an OS install (the
+`hostwarden-os-install` skill), add
+`"HOSTWARDEN_GUARD_DISABLE": "1"` to that `env` in
+your editor and start a new session. It opens with a
+note that the guard is off — that note is how you
+know the setting took effect. Remove the line and
+start another session when the work is done; the
+file outlasts the session, and so would a guard that
+is off. Set in the middle of a session, it does
+nothing: the guard honours it only for a session that
+started with it. Hostwarden cannot set it for you —
+`.claude/hooks/guard-settings.sh` denies writing it
+into a settings file.
+
+**Permission modes are a menu, not a flag.** Pick
+Ask, Accept edits, Plan, Auto or Bypass in the
+session's mode selector; which ones you see depends
+on your plan. `--permission-mode auto`, `claude -p`
+and cron (see
+[Command Line Interface](#command-line-interface))
+need the `claude` CLI, which the app does not put on
+your `PATH`. For recurring runs the app has its own
+scheduled tasks — they run only while the app is open
+and the machine is awake, and need the worktree
+option off like any other session. Answer the
+prompt's one-time questions in a normal session
+first, as described under
+[Scheduled housekeeping](#scheduled-housekeeping).
+
+SSH works as in the terminal. If your key sits in an
+agent that your shell profile points to
+(`SSH_AUTH_SOCK`), `IdentityAgent` in `~/.ssh/config`
+makes that independent of how the app starts.
+
+On Windows the app can fall back to PowerShell when
+Git for Windows is missing. Hostwarden's hooks and
+`bin/` scripts need a POSIX shell, so install Git for
+Windows as described under [Windows](#windows); if the
+app does not find it, point `CLAUDE_CODE_GIT_BASH_PATH`
+at its `bash.exe`.
 
 ### OpenCode with Ollama
 
@@ -846,7 +939,10 @@ under pressure.
   Read-only forms (`fdisk -l`, `gpart show`, …) stay
   allowed. For legitimate exceptions (OS
   replacement), launch the session with
-  `HOSTWARDEN_GUARD_DISABLE=1`. OpenCode does not read
+  `HOSTWARDEN_GUARD_DISABLE=1` — in the desktop app,
+  through `.claude/settings.local.json`
+  ([Claude Code Desktop](#claude-code-desktop)).
+  OpenCode does not read
   Claude Code hooks — there the prose rules remain
   the safety layer.
 - **Verifies before it reports** — a finding that
@@ -1129,8 +1225,14 @@ mise.dev.toml          — Pinned versions of the tools check.sh
                          commands in every permission mode
     guard-taboos-test.sh — Dev-only fixture matrix for the
                          guard (run by scripts/check.sh)
+    guard-settings.sh  — PreToolUse hook that keeps the
+                         guard's off switch out of settings
+                         files and its session records
     check-skills.sh    — SessionStart hook that reports a
                          .claude/skills link that is not one
+    check-session.sh   — SessionStart hook that reports a
+                         linked worktree, and records and
+                         reports a guard that is off
     instructions-test.sh — Dev-only structural checks on the
                          instruction layer (run by scripts/check.sh)
   skills/              — Symlink to .agents/skills/, because
