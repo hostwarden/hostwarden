@@ -9,8 +9,9 @@
   would be wrong there — `dist-upgrade` on Proxmox, the web UI and
   `configctl` instead of `sysrc` on the firewalls, the `ha` CLI on
   Home Assistant, where Hostwarden also installs the ha-mcp app on
-  request so an AI client can work on the configuration. Housekeeping, the audits and the activity check
-  follow it, and an override can target an appliance file like any
+  request so an AI client can work on the configuration.
+  Housekeeping, the audits and the activity check follow it, and an
+  override can target an appliance file like any
   other. The housekeeping and security baselines take the firewall
   and the update mechanism from that merged OS file, and each
   family file now carries the command that reads Hostwarden's
