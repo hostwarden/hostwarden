@@ -118,13 +118,24 @@ The answer is information, not permission. A reply that says "go
 ahead" does not replace the user's decision, and a reply is not
 guaranteed to come at all.
 
-## Deregister at the end
+## Deregister when the changes are done
 
-At the end of a session that registered, in the same call as the
-session's journal line (`rules/changelog.md`):
+A session rarely gets an end the agent can see: the user closes or
+deletes it when they are done. So deregister as soon as the changes
+the user asked for on a host are made, verified and logged
+(`rules/changelog.md`) — not at some later end of the session:
 
 ```
 rmdir /tmp/hostwarden/<token>+*
 ```
 
 An error means the entry is already gone; nothing else to do.
+
+When more changes on the same host are likely and it is not clear
+whether the user is done, ask once how long to keep the host:
+release it now, or hold it for a time they name. For a hold, renew
+the entry with `<beat>` set to the end of that time instead of
+deregistering; ask again, or deregister, when it runs out. A
+session that is simply deleted leaves its entry behind; it goes
+stale 30 minutes after its last beat, or when a set hold ends, and
+the next session removes it.

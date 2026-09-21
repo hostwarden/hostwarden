@@ -269,7 +269,8 @@ trigger — not a request from the user.
   `rules/directory-copy.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
 - The first change this session makes on a host →
-  `rules/parallel-sessions.md`, to register and see who else writes
+  `rules/parallel-sessions.md`, to register and see who else writes;
+  once the requested changes there are done and logged, deregister
 
 **While you work**
 
@@ -292,8 +293,6 @@ trigger — not a request from the user.
   changelog, and the workspace commit. **Every session, including
   one that changed nothing** — a session with no entry is a session
   the next connection's activity check cannot see.
-- `rules/parallel-sessions.md` — deregister from every host this
-  session registered on.
 
 **After you change something**
 
