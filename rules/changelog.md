@@ -127,10 +127,13 @@ Trim entries older than 2 years when writing.
 ## The Workspace
 
 Last, once the changelog is written: commit the workspace
-with the session's journal headline as the message —
-`bin/hostwarden-sync commit "<headline>"`. A session that
-changed nothing in `memory/` commits nothing; the command
-says so by doing nothing.
+with the session's journal headline as the message, naming
+the files this session wrote —
+`bin/hostwarden-sync commit "<headline>" <paths>`. Another
+session may be writing into the same workspace, and a commit
+without paths would take its files too
+(`rules/parallel-sessions.md` → The workspace). A session
+that changed nothing in `memory/` commits nothing.
 
 Then push, if the workspace has a remote:
 `bin/hostwarden-sync push`. The first push of a session

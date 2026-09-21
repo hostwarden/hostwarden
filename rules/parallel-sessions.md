@@ -144,3 +144,52 @@ deregistering; ask again, or deregister, when it runs out. A
 session that is simply deleted leaves its entry behind; it goes
 stale 30 minutes after its last beat, or when a set hold ends, and
 the next session removes it.
+
+## The workspace
+
+Every session on this workstation writes into the same `memory/`
+workspace, its index included. Commit only what this session
+wrote, by name — the files of each host it changed or recorded,
+`changelog.log` included:
+
+```
+bin/hostwarden-sync commit "<headline>" \
+  memory/servers/web1.example.com/memory.md \
+  memory/servers/web1.example.com/changelog.log
+```
+
+Before that, read `git -C memory diff HEAD -- <paths>` for those
+files in one call. A file whose diff holds lines you did not write
+is being changed by another session right now: leave it out and
+say so; never split it and never revert their lines. It still
+needs a decision before you finish on that host: ask the user
+whether to commit it with the other session's lines in it, naming
+both in the message, or to leave it for that session.
+
+### Changes a session left behind
+
+`bin/hostwarden-sync pull` does not update a workspace that holds
+uncommitted changes, and says so at session start. They belong to
+another session at work, or to one that was deleted or crashed
+before it committed. For files under `memory/servers/<hostname>/`,
+read that host's register when this session first reaches it: no
+live entry naming your own `<user>@<workstation>` means they were
+left behind. A file outside any host directory was left behind
+when no other session runs on this machine.
+
+The workspace is the user's own, so those edits are the user's own
+earlier work, and taking them over is allowed — after asking. Name
+the files and show `git -C memory diff --stat`, the host's newest
+`changelog.log` entry and the open items of its `todo.md`, and say
+that a session deleted mid-edit may have left a file half-written.
+The user chooses between committing them as they are and leaving
+them. Discarding them is theirs to do by hand; never offer
+`git checkout` or `git restore` on them.
+
+While the user decides, another session may start on that host.
+So right before committing, read the diff stat and the host's
+register again, in one call; commit only if the diff is the one you
+showed and still no live entry names your own
+`<user>@<workstation>`. Commit them on their own, with the message
+`memory(<hostname>): changes left by an ended session`, then run
+`bin/hostwarden-sync pull` again.

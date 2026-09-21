@@ -16,7 +16,10 @@ If the workspace has a remote, bring it up to date first:
 `bin/hostwarden-sync pull`. Claude Code's session-start hook
 has already run it. When it reports that the workspace could
 not be updated, say so before any server work: its server
-memory may be older than another machine's.
+memory may be older than another machine's. When it did not
+update because of uncommitted changes, those belong to another
+session or to one that ended early:
+`rules/parallel-sessions.md` → The workspace.
 
 Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`, and

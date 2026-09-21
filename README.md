@@ -243,8 +243,10 @@ unmodified clone that keeps updating.
 3. From then on it keeps itself in step. Every
    session starts with `bin/hostwarden-sync pull`
    (Claude Code runs it for you) and ends with a
-   commit of whatever it learned. It asks once per
-   session before pushing. A changelog both machines
+   commit of the files it changed — only those, so
+   parallel sessions on one machine keep out of each
+   other's work. It asks once per session before
+   pushing. A changelog both machines
    added to merges on its own; two different edits
    of the same `memory.md` stop the pull and are left
    for you.
