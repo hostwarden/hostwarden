@@ -99,6 +99,9 @@ rules/                 — Upstream rule files (git-tracked)
     opnsense.md        — OPNsense (on os/freebsd.md)
     pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
+    openwrt.md         — OpenWrt (no base)
+  busybox.md           — Busybox applets and flags on Alpine
+                         and OpenWrt
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

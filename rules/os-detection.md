@@ -90,9 +90,10 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
-     `ID=alpine` inside a Home Assistant app container,
-     have no family: see Appliances below. If no family
+     version from `VERSION_ID` and `PRETTY_NAME`.
+     `ID=haos`, `ID="openwrt"`, and `ID=alpine` inside a
+     Home Assistant app container, have no family: see
+     Appliances below. If no family
      file matches (e.g. Arch, Gentoo), tell the user,
      proceed cautiously with generic commands, and
      apply extra verify-before-running care.
@@ -135,6 +136,7 @@ prints for a missing one depends on the shell.
 | FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
 | FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
+| none    | `ID="openwrt"`     | `rules/appliance/openwrt.md`    |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
