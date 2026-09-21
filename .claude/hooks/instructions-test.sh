@@ -399,25 +399,38 @@ MISNAMED=$(
 )
 report "$MISNAMED" "the name it is dispatched by"
 
-# What opens or closes a fenced block. Inside one, a `#` line is a
-# shell comment rather than a heading, and a long line is a command
-# rather than prose -- the wrap check below reads it too.
-FENCE_RE='^[ \t]*(```|~~~)'
+# fenced(line) -- awk: whether a line opens, sits in or closes a
+# fenced block. Inside one, a `#` line is a shell comment rather
+# than a heading, and a long line is a command rather than prose --
+# the wrap check below reads it too. As in Markdown, only a run of
+# the opener's character at least as long, and nothing after it,
+# closes the block: a four-backtick fence that shows a three-backtick
+# example stays open across it. FM holds the open marker; reset it
+# per file.
+FENCE_AWK='
+function fenced(l,   m) {
+  m = l; sub(/^[ \t]*/, "", m); sub(/[ \t]+$/, "", m)
+  if (FM == "") {
+    if (!match(m, /^(```+|~~~+)/)) return 0
+    FM = substr(m, 1, RLENGTH)
+  } else if (m ~ /^(`+|~+)$/ && index(m, FM) == 1) FM = ""
+  return 1
+}'
 
 # load(path) -- awk, for the two checks below: reads the ATX
 # headings of a Markdown file once into H[path, 1..NH[path]] and
 # returns whether the file could be read. Each target is named by
 # dozens of pointers; reading it once per pointer tripled the
 # runtime of this file.
-LOAD_AWK='
-function load(p,   l, fence, h) {
+LOAD_AWK="$FENCE_AWK"'
+function load(p,   l, h) {
   if (p in NH) return NH[p] >= 0
   NH[p] = -1
   if ((getline l < p) <= 0) return 0
-  NH[p] = 0
+  NH[p] = 0; FM = ""
   do {
-    if (l ~ FENCE) { fence = !fence; continue }
-    if (!fence && l ~ /^#+[ \t]/) {
+    # Seven or more #s are text, not a heading.
+    if (!fenced(l) && l ~ /^#+[ \t]/ && l !~ /^#######/) {
       h = l; sub(/^#+[ \t]+/, "", h); sub(/[ \t]+(#+[ \t]*)?$/, "", h)
       H[p, ++NH[p]] = h }
   } while ((getline l < p) > 0)
@@ -467,7 +480,7 @@ if [ "$NPTR" -lt 10 ]; then
   bad "only $NPTR heading pointers found -- the search broke"
 fi
 report "$(printf '%s\n' "$POINTERS" \
-  | awk -v sep="$SEP" -v root="$ROOT/" -v FENCE="$FENCE_RE" "$LOAD_AWK"'
+  | awk -v sep="$SEP" -v root="$ROOT/" "$LOAD_AWK"'
     function named(h, l) {
       return index(h, l) == 1 && substr(h, length(l) + 1) !~ /^[A-Za-z0-9]/
     }
@@ -500,13 +513,19 @@ report "$(printf '%s\n' "$POINTERS" \
 # Anchored links in the documents GitHub renders: the file has to
 # exist and the anchor has to be a slug GitHub derives from one of
 # its headings -- lower case, punctuation but `-` and `_` dropped,
-# spaces to `-`, a repeat numbered from -1. A dead anchor still
+# spaces to `-`, and a slug already taken gets the first free -N,
+# counted per base the way github-slugger does. A dead anchor still
 # opens the page, at the top, which is why nobody notices.
+#
+# Bytes, not characters, so the punctuation class can keep every
+# letter outside ASCII. The price is tolower(), which then folds
+# ASCII only; the Latin-1 capitals (Ä, Ö, Ü, É …) are folded by
+# hand, and anything beyond them is a matter for review.
 report "$(scan \
   | grep -E '^((README|CONTRIBUTING|SECURITY)\.md|docs/[^/]*\.md): ' \
-  | tag '\]\([^):[:space:]]*#[^)[:space:]]+\)' \
-  | sed -E 's#^([^ ]+): \]\(([^#]*)\#(.*)\)$#\1|\2|\3#' \
-  | LC_ALL=C awk -F'|' -v root="$ROOT/" -v FENCE="$FENCE_RE" "$LOAD_AWK"'
+  | tag '\]\([^):[:space:]]*#[^)[:space:]]+([[:space:]][^)]*)?\)' \
+  | sed -E 's#^([^ ]+): \]\(([^#]*)\#([^)[:space:]]*).*$#\1|\2|\3#' \
+  | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
     {
       f = $1; dir = f; sub(/[^\/]*$/, "", dir)
       p = root ($2 == "" ? f : dir $2)
@@ -515,11 +534,15 @@ report "$(scan \
         SLUGGED[p] = 1
         for (i = 1; i <= NH[p]; i++) {
           s = tolower(H[p, i])
+          for (c = 128; c <= 158; c++)
+            if (c != 151)
+              gsub("\303" sprintf("%c", c), "\303" sprintf("%c", c + 32), s)
           gsub(/\342\200[\223\224]/, "", s)
           gsub(/[^a-z0-9 _\200-\377-]/, "", s)
           gsub(/ /, "-", s)
-          n = SEEN[p, s]++
-          SLUG[p, n ? s "-" n : s] = 1
+          b = s
+          while ((p, s) in SLUG) s = b "-" (++SEEN[p, b])
+          SLUG[p, s] = 1
         }
       }
       if (!((p, $3) in SLUG)) print f ": " $2 "#" $3 }')" \
@@ -654,10 +677,9 @@ report "$(scan \
 # awk count bytes, and dropping the UTF-8 continuation bytes first
 # turns that into a count of characters on all of them.
 report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
-  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" -v FENCE="$FENCE_RE" '
-  FNR == 1 { fence = 0 }
-  $0 ~ FENCE { fence = !fence; next }
-  fence { next }
+  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" "$FENCE_AWK"'
+  FNR == 1 { FM = "" }
+  fenced($0) { next }
   { s = $0
     gsub(/\]\([^)]*\)/, "]", s)
     gsub(/https?:\/\/[^ )>`]*/, "", s)
