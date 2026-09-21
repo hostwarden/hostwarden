@@ -48,11 +48,12 @@ need python3 shellcheck actionlint betterleaks
 
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything.
-PUSHED='' ALL=''
+PUSHED='' ALL='' TIPS=''
 if [ "${1:-}" = "--pre-push" ]; then
   # One line per ref: <local ref> <sha> <remote ref> <sha>.
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
+    TIPS="$TIPS $lsha"
     if git cat-file -e "$rsha^{commit}" 2>/dev/null; then
       PUSHED="$PUSHED $rsha..$lsha"
     else
@@ -120,10 +121,13 @@ step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point
 step "ShellCheck" shellcheck -S warning $(shell_files)
 step "workflows" actionlint
-# The whole history, pre-push too: a secret committed and deleted
-# again is still published, and scanning it all takes a fraction
-# of a second -- less than proving which part the remote lacks.
-step "secrets" betterleaks git --redact --verbose --no-banner .
+# The whole history of what is published: a secret committed and
+# deleted again still goes out with it. That is HEAD's history, or
+# the pushed tips' before a push -- not every ref this clone has,
+# since other people's branches are theirs to answer for, and CI
+# fetches them all.
+step "secrets" betterleaks git --log-opts="${TIPS:-HEAD}" --redact \
+  --verbose --no-banner .
 
 if [ -n "$failed" ]; then
   echo "check: failed:$failed"

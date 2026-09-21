@@ -1130,6 +1130,8 @@ from the start. Full rules: `rules/overrides.md`.
 ```
 VERSION                — Current version number (semver)
 CHANGELOG.md           — Release history
+CONTRIBUTING.md        — Setup, checks, and where changes go
+SECURITY.md            — How to report a vulnerability
 AGENTS.md              — The instruction set, read by every
                          AGENTS-aware tool
 CLAUDE.md              — Imports AGENTS.md, plus the handful of
@@ -1288,7 +1290,9 @@ helper that does the tedious work while you review.
 Bug reports, feature requests, and pull requests are
 very welcome! If you have ideas for better guardrails,
 new distro support, or improvements to the safety
-rules — please open an issue or submit a PR.
+rules — please open an issue or submit a PR. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and
+[SECURITY.md](SECURITY.md).
 
 ## License
 

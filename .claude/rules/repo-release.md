@@ -88,8 +88,19 @@ pushing, and add a new check there, never to the workflow alone:
     sh scripts/check.sh
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
-Renovate. Once per clone, `git config core.hooksPath .githooks`
-turns on the git hooks.
+Renovate. Setup, including the git hooks, is in
+`CONTRIBUTING.md`.
+
+`main` is protected by `.github/rulesets/main.json`. GitHub does
+not read the file. Import it once (Settings → Rules → Rulesets →
+Import); after a change, update that ruleset rather than importing
+again, which would add a second one enforced beside the old:
+
+    gh api -X PUT repos/<owner>/<repo>/rulesets/<id> \
+      --input .github/rulesets/main.json
+
+Its required check is the `check` job in `ci.yml`, and
+`instructions-test.sh` fails when the two names part.
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays

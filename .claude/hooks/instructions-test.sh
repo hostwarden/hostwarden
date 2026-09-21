@@ -95,24 +95,49 @@ report() {
 
 
 
-# --- every registered hook script exists -----------------------
-# A hook whose script is missing fails open: Claude Code carries
-# on, and the only sign is the thing the hook would have done not
-# happening. That is the taboo guard as much as anything else, so
-# a rename that misses settings.json has to fail here.
-NHOOKS=0
-for h in $(sed -n 's#.*\$CLAUDE_PROJECT_DIR/\([^"]*\.sh\).*#\1#p' \
-    "$CLAUDE_DIR/settings.json"); do
+# --- every registered hook starts, and starts the right file -----
+# A hook that cannot start fails open, the taboo guard included.
+# So every command is `sh "$CLAUDE_PROJECT_DIR/<existing file>"`
+# with plain arguments at most -- not bash (exit 127 when it is
+# missing), not a relative path (breaks after a cd, #2), nothing
+# chained -- or the one mkdir, matched whole: a prefix would let
+# `mkdir … && bash …` through.
+NHOOKS=0 GUARD=''
+while IFS= read -r c; do
+  [ -n "$c" ] || continue
   NHOOKS=$((NHOOKS + 1))
+  case $c in
+    'mkdir -p -m 700 \"$HOME/.cache/hostwarden\"') ok; continue ;;
+    'sh \"$CLAUDE_PROJECT_DIR/'*) ;;
+    *) bad "settings.json starts a hook as: $c"; continue ;;
+  esac
+  h=${c#*CLAUDE_PROJECT_DIR/}
+  h=${h%%\\\"*}
+  # After the script, plain arguments only: `; bash …` or `&& …`
+  # would start a second command the checks above never see.
+  case ${c#*"$h"\\\"} in
+    *[!a-z0-9\ -]*)
+      bad "settings.json runs more than $h: $c"
+      continue ;;
+  esac
+  [ "$h" = .claude/hooks/guard-taboos.sh ] && GUARD=1
   if [ -f "$ROOT/$h" ]; then
     ok
   else
     bad "settings.json registers $h, which does not exist"
   fi
-done
+done <<EOF
+$(sed -n 's/^ *"command": *"\(.*\)",\{0,1\} *$/\1/p' "$CLAUDE_DIR/settings.json")
+EOF
 if [ "$NHOOKS" -eq 0 ]; then
   bad "settings.json registers no hook script -- either the" \
       "guard is gone or this check stopped matching"
+fi
+# Sound hooks say nothing about whether the guard is among them.
+if [ -n "$GUARD" ]; then
+  ok
+else
+  bad "settings.json no longer registers the taboo guard"
 fi
 
 # --- skills resolve through .claude/skills ---------------------
@@ -502,6 +527,37 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
       if (index(n, root) == 1) n = substr(n, length(root) + 1)
       print n ":" FNR " (" length(s) ")"
     } }')" "wrapped at 80 characters"
+
+# --- every required check is a CI job ---------------------------
+# The ruleset names the checks a pull request waits for, ci.yml
+# names the jobs that report them. Rename one without the other
+# and every pull request waits for a check that never comes.
+RULESET="$ROOT/.github/rulesets/main.json"
+CONTEXTS=$(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET" 2>/dev/null)
+if [ -z "$CONTEXTS" ]; then
+  bad "main.json requires no check -- the ruleset is gone or this" \
+      "check stopped matching"
+else
+  # One context per line: a job name may hold spaces.
+  while IFS= read -r ctx; do
+    # What GitHub reports is a job's `name:` if it has one, else its
+    # key; and only under jobs: -- `on:` has two-space keys too.
+    if awk '/^jobs:/ { j = 1; next }
+        j && /^[^ ]/ { j = 0 }
+        j && /^  [A-Za-z0-9_-]+:/ { k = $1; sub(/:$/, "", k); ctx[k] = k }
+        j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
+                                gsub(/["\047]/, "", n); ctx[k] = n }
+        END { for (k in ctx) print ctx[k] }' \
+        "$ROOT/.github/workflows/ci.yml" | grep -qxF "$ctx"; then
+      ok
+    else
+      bad "main.json requires check '$ctx', which no job in" \
+        "ci.yml reports"
+    fi
+  done <<EOF
+$CONTEXTS
+EOF
+fi
 
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -7,10 +7,15 @@ root-privileged operation in the whole workflow.
 **5R.1 Resolve transport** — probe in this order on the
 remote host:
 
-- `command -v mail || command -v mailx || command -v s-nail`
-- `command -v sendmail`
+- `command -v sendmail || test -x /usr/sbin/sendmail` — a
+  normal user's `PATH` often lacks `/usr/sbin`, where the MTA
+  puts it
 - `command -v msmtp`
 - `systemctl is-active postfix opensmtpd exim4` (any active)
+
+Those are what step 7 pipes into. `mail`, `mailx` or
+`s-nail` alone does not count: they cannot take the headers
+step 7 writes, so a host with nothing else goes on to 5R.3.
 
 **5R.2 Consent gate A — existing MTA.** If 5R.1 found a
 working MTA, check `memory.md` for `Email send policy:
@@ -80,15 +85,19 @@ bigger change than the mail is worth
    repository nearly everywhere, so it is often the one that
    needs no third-party repo at all.
 
-Pair it with a `mail(1)`: `bsd-mailx` on Debian/Ubuntu,
-`s-nail` on RHEL and SUSE, base on FreeBSD.
+Pair it with a `mail(1)` — `bsd-mailx` on Debian/Ubuntu,
+`s-nail` on RHEL and SUSE, base on FreeBSD — for the host's
+other senders that call `mail` rather than sendmail, such as
+logwatch or apticron. hostwarden itself never uses it (step 7
+pipes into sendmail), so on a host with no such sender, leave
+it out.
 
 Tell the user which one you picked and why that one, in a
 line — "nullmailer, because apt has it and the queue means a
 relay outage does not drop a report".
 
-macOS as a managed target: do **not** install. Use
-`/usr/bin/mail` if a working Postfix is already configured;
+macOS as a managed target: do **not** install. Use the
+`/usr/sbin/sendmail` shim of a working, configured Postfix;
 otherwise refuse cleanly and explain (residential macOS
 rarely sends).
 
