@@ -107,11 +107,20 @@ that teach heinzel the same thing from its side.
 Another hostwarden session that is changing the same
 host shows up in the host's session register instead
 (`rules/parallel-sessions.md`). Read it in the same
-call as the journal, `ls -1 /tmp/hostwarden
-2>/dev/null`: a live entry means a session is changing
-the host right now. Mention it even when this session
-only reads, so the user knows what an audit may catch
-mid-change; registering is still only for writers.
+call as the journal, with the server's own clock,
+since entries carry the server's time:
+
+```
+if [ -e /tmp/hostwarden ]; then ls -1 /tmp/hostwarden
+else echo "no register"; fi; date +%s
+```
+
+`no register` is normal; an error is a failed check,
+like any other here. A live entry means a session is
+changing the host right now. Mention it even when this
+session only reads, so the user knows what an audit
+may catch mid-change; registering is still only for
+writers.
 
 ## What to show
 

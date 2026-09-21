@@ -62,14 +62,19 @@ answer is read:
 D=/tmp/hostwarden
 [ -e "$D" ] || { mkdir "$D" && chmod 777 "$D"; }
 ls -ld "$D"
-if [ -d "$D" ] && [ ! -L "$D" ] \
-   && [ "$(ls -ld "$D" | cut -c1-10)" = drwxrwxrwx ]; then
-  N="$D/<token>+$(date +%s)+alice@ws1+nginx-upgrade"
-  E=$(ls -d "$D"/<token>+* 2>/dev/null)
+if [ ! -L "$D" ] && cd "$D" 2>/dev/null \
+   && [ "$(pwd -P)" = "$(cd /tmp && pwd -P)/hostwarden" ] \
+   && [ "$(ls -ld . | cut -c1-10)" = drwxrwxrwx ]; then
+  N="<token>+$(date +%s)+alice@ws1+nginx-upgrade"
+  E=$(ls -d <token>+* 2>/dev/null)
   if [ -n "$E" ]; then mv "$E" "$N"; else mkdir "$N"; fi && echo registered
 fi
 date +%s; ls -1 "$D"
 ```
+
+The call changes into the directory first and checks the one it is
+in, then works by relative name: a directory swapped for a link
+after the check cannot redirect the write.
 
 **`registered` missing** — the register is not one every session
 can use: `ls -ld` shows a link, a file, a sticky `t` in the tenth
