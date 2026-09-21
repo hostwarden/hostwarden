@@ -17,7 +17,7 @@ MISE_ENV=dev mise install
 
 Any recent version from your package manager works too. Once per
 clone, let git run the checks — a secret scan on every commit,
-the full check before every push:
+and before every push what the pushed commits need:
 
 ```bash
 git config core.hooksPath .githooks
