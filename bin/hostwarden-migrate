@@ -91,4 +91,7 @@ fi
 # update started with the old settings, and this
 # script runs from the new tree. Last, so a failure
 # here cannot stop the moves above.
+# -m reaching only the last directory is what this wants: the
+# sockets need 0700, ~/.cache keeps whatever the umask gives it.
+# shellcheck disable=SC2174
 mkdir -p -m 700 "$HOME/.cache/hostwarden" || true

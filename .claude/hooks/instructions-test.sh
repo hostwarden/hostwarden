@@ -477,5 +477,31 @@ report "$(scan \
   | grep -vE ': ([a-z0-9-]+\.)*(test|invalid|example)$' \
   | grep -vE ': localhost$')" "an RFC 2606 example target"
 
+# --- every .md wraps at 80 -------------------------------------
+# .claude/rules/instruction-authoring.md → Layout: a URL or a
+# command line that cannot be broken may exceed it. So a fenced
+# line is skipped, and a URL or a link target is taken out before
+# the rest of its line is measured -- the prose around a link
+# still wraps.
+#
+# Characters, not bytes: an em dash is three bytes, and the awk
+# on a CI runner is not the awk on a Mac. The C locale makes every
+# awk count bytes, and dropping the UTF-8 continuation bytes first
+# turns that into a count of characters on all of them.
+report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
+  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" '
+  FNR == 1 { fence = 0 }
+  /^[ \t]*(```|~~~)/ { fence = !fence; next }
+  fence { next }
+  { s = $0
+    gsub(/\]\([^)]*\)/, "]", s)
+    gsub(/https?:\/\/[^ )>`]*/, "", s)
+    gsub(/[\200-\277]/, "", s)
+    if (length(s) > 80) {
+      n = FILENAME
+      if (index(n, root) == 1) n = substr(n, length(root) + 1)
+      print n ":" FNR " (" length(s) ")"
+    } }')" "wrapped at 80 characters"
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
