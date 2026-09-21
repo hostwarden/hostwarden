@@ -730,6 +730,62 @@ $CONTEXTS
 EOF
 fi
 
+# --- appliance files hold to their contract ---------------------
+# An appliance file is read on top of its family file the way an
+# override is (rules/os-detection.md -> Appliances). A `Replace:` or
+# `Remove:` that names nothing in the base takes nothing out, and the
+# family's advice then stands where it is wrong; detection reaches
+# only the files its marker table lists. Whether the Base file exists
+# is the pointer check's job above.
+report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
+  "$LOAD_AWK"'
+  function done() {
+    if (rel == "") return
+    if (!based) print rel ": no Base line"
+    if (!ha) print rel ": no ## Housekeeping and Audits section"
+  }
+  function body(p, sec,   l, h, on, t) {
+    if ((p, sec) in BODY) return BODY[p, sec]
+    while ((getline l < p) > 0) {
+      if (l ~ /^## /) { h = l; sub(/^## +/, "", h); on = (h == sec); continue }
+      if (on) t = t "\n" l
+    }
+    close(p); return BODY[p, sec] = t
+  }
+  function text(p,   l, t) {
+    if (p in RAW) return RAW[p]
+    while ((getline l < p) > 0) t = t "\n" l
+    close(p); return RAW[p] = t
+  }
+  FNR == 1 {
+    done(); FM = ""; based = ha = 0; base = ""
+    rel = substr(FILENAME, length(root) + 1)
+    if (!index(text(table), "`" rel "`"))
+      print rel ": not in the marker table of rules/os-detection.md"
+  }
+  fenced($0) { next }
+  /^Base: / {
+    based = 1; b = $2; gsub(/`/, "", b)
+    if (b == "none") next
+    if (b !~ /^rules\/os\/[a-z0-9-]+\.md$/) print rel ": Base " b " is no family file"
+    else base = root b
+    next
+  }
+  $0 == "## Housekeeping and Audits" { ha = 1 }
+  /^## (Replace|Remove): / {
+    sec = $0; sub(/^## [A-Za-z]+: */, "", sec); entry = ""
+    if ((i = index(sec, " > "))) { entry = substr(sec, i + 3); sec = substr(sec, 1, i - 1) }
+    if (base == "") { print rel ": " sec " has no base to take it from"; next }
+    fm = FM; ok = load(base); FM = fm
+    if (!ok) next
+    for (i = 1; i <= NH[base]; i++) if (H[base, i] == sec) break
+    if (i > NH[base]) print rel ": " sec " is no section of " substr(base, length(root) + 1)
+    else if (entry != "" && !index(body(base, sec), entry))
+      print rel ": " entry " is no entry of " sec
+  }
+  END { done() }' "$ROOT"/rules/appliance/*.md)" \
+  "an appliance file that fits its base"
+
 # --- the ignore rules keep personal files out, and only those -----
 # .gitignore ignores all of .claude/ but the shared configuration.
 # Both directions fail silently otherwise: a tracked file the rules

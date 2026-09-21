@@ -2,6 +2,12 @@
 
 Run these on every Linux server.
 
+The commands below are the family defaults. Where the loaded OS file
+covers a check — its Package Manager, Automatic Security Updates,
+Firewall or Updates section — its commands and expectations win, at
+the same severities: a mechanism the OS file says is not expected is
+not a finding.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see

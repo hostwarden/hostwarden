@@ -91,6 +91,13 @@ rules/                 — Upstream rule files (git-tracked)
     suse.md            — openSUSE & SLES
     macos.md           — macOS
     freebsd.md         — FreeBSD
+  appliance/           — Reference data on top of one family
+                         file, or none. Detection reads at
+                         most one
+    proxmox-ve.md      — Proxmox VE (on os/debian.md)
+    opnsense.md        — OPNsense (on os/freebsd.md)
+    pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
+    haos.md            — Home Assistant OS (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

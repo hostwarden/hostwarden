@@ -1,5 +1,9 @@
 # Firewall
 
+The variants below are the family defaults. Where the loaded OS
+file's `## Firewall` section names another firewall, its commands
+and expectations win, at the same severities.
+
 ## Linux
 
 Verify a firewall is installed, active, and the default incoming

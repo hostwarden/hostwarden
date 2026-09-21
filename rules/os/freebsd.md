@@ -152,6 +152,25 @@ Rules for FreeBSD (all versions).
 - Check: `mount` — UFS shows as `ufs`.
 - `fsck` for filesystem checks (not `e2fsck`).
 
+## Logs
+
+Hostwarden's journal entries (`rules/changelog.md`) go to syslog and
+are read back from `/var/log/messages`, both tags
+(`rules/activity-check.md`):
+
+```
+for f in /var/log/messages.0 /var/log/messages; do
+  [ -f "$f" ] && grep -hE "hostwarden|heinzel" "$f"
+done | tail -20
+```
+
+`messages.0` is missing until the first rotation, so it is read only
+where it exists.
+
+This shows the last 20 matches, not a strict 7-day window, and only
+reaches one rotation back (`messages.0`). Older rotated logs are
+usually compressed; mention the limitation if relevant.
+
 ## Directory Conventions
 
 - **Third-party config:** `/usr/local/etc/`

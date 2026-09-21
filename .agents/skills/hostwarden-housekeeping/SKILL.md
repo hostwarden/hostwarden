@@ -69,6 +69,9 @@ Read on demand, only when the relevant section applies:
   WireGuard. Only run the ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
+- On an appliance, its `## Housekeeping and Audits` section,
+  already loaded by the pipeline (`rules/os-detection.md` →
+  Appliances).
 - `references/scheduled.md` — running this inspection from cron
   or a systemd timer with no human at the keyboard, and mailing
   the result. Only when the user asks to schedule it.
@@ -78,12 +81,15 @@ Read on demand, only when the relevant section applies:
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
   macOS are fully covered by the baseline references above.
 - FreeBSD baselines are not yet covered. On a FreeBSD host,
-  do not silently skip: run the closest equivalent checks
-  manually (`pkg audit -F`, `pkg upgrade -n`,
-  `freebsd-update fetch` dry run, `pfctl -s info` for the
-  firewall, `df -h` / `swapinfo` / `uptime` for the basics,
-  `service -e` for enabled services) and state in the report
-  that FreeBSD has no baseline reference yet.
+  do not silently skip: run the closest read-only
+  equivalents — `pkg audit -F`, `pkg upgrade -n`,
+  `freebsd-update fetch` without `install`, the read-only
+  firewall commands of the loaded OS file's `## Firewall`
+  section, `df -h` / `swapinfo` / `uptime` for the basics,
+  `service -e` for enabled services — and state in the report
+  that FreeBSD has no baseline reference yet. On an appliance,
+  its `## Housekeeping and Audits` section replaces the update
+  commands.
 
 ## Custom checks
 

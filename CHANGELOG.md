@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
+  recognised as appliances.** Detection finds them by a marker,
+  records `Appliance:` in server memory, and reads a file under
+  `rules/appliance/` on top of the family file that replaces what
+  would be wrong there — `dist-upgrade` on Proxmox, the web UI and
+  `configctl` instead of `sysrc` on the firewalls, the `ha` CLI on
+  Home Assistant, where Hostwarden also installs the ha-mcp app on
+  request so an AI client can work on the configuration.
+  Housekeeping, the audits and the activity check follow the merged
+  file, and an override can target an appliance file like any other.
+- **Detection is one SSH call.** OS, version, login shell, hardware
+  and appliance markers come back from a single probe that runs in
+  sh, bash, zsh, csh and tcsh alike; later connections send only a
+  short version check. It stops at a console menu
+  instead of answering it, and every later command goes through
+  `sh -s`, so a csh login works too.
+
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you
   safe fit on one page; everything deeper — native

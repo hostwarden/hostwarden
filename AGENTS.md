@@ -309,7 +309,8 @@ Every Linux host should have a firewall and automatic security
 updates — flag either one missing. Native nftables counts as a
 firewall; never add a second firewall manager on top
 (`rules/service-class-check.md`). On macOS a disabled Application
-Firewall is common and less critical (`rules/os/macos.md`).
+Firewall is common and less critical (`rules/os/macos.md`). An
+appliance's file in `rules/appliance/` says what counts instead.
 
 **Skills, and one file not to read**
 
