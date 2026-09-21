@@ -158,19 +158,24 @@ show the test output if it fails.
 | Home Assistant | per install type, below            |
 
 Home Assistant on a normal Linux host is restarted,
-not reloaded, and the restart needs a passing check
-too. Refuse it and show the output when the check
-fails. The check depends on the install type —
-Container, Supervised, then Core, run as the
-unit's `User=`:
+not reloaded, and the same test gates the restart.
+The host's `memory.md` names the install type and
+the values for the placeholders:
 
 ```bash
+# Container
 docker exec <container> python -m homeassistant \
   --script check_config --config /config
+# Supervised
 ha core check
+# Core, as the unit's User=
 sudo -u <service-user> <venv>/bin/hass \
   --script check_config --config <config-dir>
 ```
+
+The Container check is the one the Home Assistant
+docs give:
+https://www.home-assistant.io/common-tasks/container/#configuration-check
 
 If no config test is known for the service, ask
 the user before reloading — auto-proceed requires

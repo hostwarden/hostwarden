@@ -65,8 +65,8 @@ Read on demand, only when the relevant section applies:
   all?" probe, the provider-snapshot question, and the
   `Backup:` acknowledgment line in `memory.md`.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
-  Docker, Ollama, node_exporter, NVIDIA GPU, MariaDB/MySQL,
-  WireGuard. Only run the ones the server's `memory.md` mentions.
+  Docker, Home Assistant, Ollama, node_exporter, NVIDIA GPU,
+  MariaDB/MySQL, WireGuard. Only run the ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
 - On an appliance, its `## Housekeeping and Audits` section,

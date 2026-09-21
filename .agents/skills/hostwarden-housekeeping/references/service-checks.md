@@ -111,11 +111,13 @@ docker ps --format \
 ## Home Assistant
 
 Triggered when `memory.md` mentions Home Assistant. This section
-covers Home Assistant running on a normal Linux host. Home
-Assistant OS, where the whole machine is the appliance, is out of
-scope here.
+covers Home Assistant on a normal Linux host. Home Assistant OS,
+where the whole machine is the appliance, is out of scope here.
 
-Tell the install type apart first:
+`memory.md` records the install type and what the checks need:
+the container name, or for Core the systemd unit, the virtual
+environment, the config directory and the account it runs as.
+Detect only what is missing or no longer matches, and record it:
 
 ```bash
 docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
@@ -130,79 +132,44 @@ command -v ha
 - **Supervised** — a `hassio_supervisor` container runs beside
   the Home Assistant one, and the host has the `ha` CLI.
 - **Core** — no container at all. Home Assistant runs from a
-  Python virtual environment, usually under a systemd unit, with
-  neither a Supervisor nor an `ha` CLI.
+  Python virtual environment under a systemd unit, with neither a
+  Supervisor nor an `ha` CLI. The unit's `ExecStart` holds the
+  path to `hass` and its `-c` argument, `User=` the account;
+  without `-c`, the config directory is `~/.homeassistant` of
+  that account.
 
-These are checks only. Housekeeping reports and changes nothing:
-no update, no restart, no migration. A restart the user asks for
-afterwards needs the config check for its install type to pass
-first (`rules/service-reload.md`).
-
-### Container
-
-Container is an officially supported install type.
+Read the running version:
 
 ```bash
+# Container
 docker exec <container> python -m homeassistant --version
-docker exec <container> python -m homeassistant \
-  --script check_config --config /config
+# Supervised
+ha core info
+# Core, as the unit's User=
+sudo -u <service-user> <venv>/bin/hass --version
 ```
 
-The config check is the one the Home Assistant docs give for
-Container:
-https://www.home-assistant.io/common-tasks/container/#configuration-check
-`--version` is a flag of the same entry point:
+`--version` is a flag of Home Assistant's entry point:
 https://github.com/home-assistant/core/blob/dev/homeassistant/__main__.py
 
-- **CRITICAL** if the Home Assistant container is not "Up"
+Run the config check for the install type from
+`rules/service-reload.md` → Config Test Before Reload, the same
+check that gates a restart the user asks for.
+
+- **CRITICAL** if Home Assistant is not running: its container
+  is not "Up" (on Supervised, `hassio_supervisor` neither), or
+  `systemctl is-active <unit>` fails on Core. Report a stopped
+  container here, not again under Docker.
 - **WARN** if the config check reports errors; quote them
-- Report the running version and the image tag (`stable`, a
-  pinned version, `beta` or `dev`); a newer release is named only
-  through `rules/version-check.md`
-
-### Supervised and Core
-
-Both install types are unsupported since Home Assistant 2025.12:
-https://www.home-assistant.io/blog/2025/05/22/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/
-
-- **INFO**, once per report: the install type, that it is
-  unsupported since 2025.12, and the link above. Migrating to
-  Home Assistant OS or Container is the user's decision; do not
-  repeat the finding under other checks or turn it into a WARN.
-
-On **Supervised**, the Supervisor runs the Home Assistant
-container, and the `ha` CLI answers for it:
-
-```bash
-ha core info
-ha core check
-```
-
-`ha` talks to the Supervisor. If it refuses as the SSH user,
-`rules/privilege-escalation.md` decides how to go on.
-
-- **CRITICAL** if `hassio_supervisor` or the Home Assistant
-  container is not "Up"
-- **WARN** if `ha core check` reports errors; quote them
-- Report the version from `ha core info`
-
-On **Core**, `memory.md` names the systemd unit, the virtual
-environment and the config directory. Where it does not, read
-them from the unit: `ExecStart` holds the path to `hass` and
-its `-c` argument, `User=` the account it runs as. Without `-c`,
-the config directory is `~/.homeassistant` of that account.
-Run both commands as that account:
-
-```bash
-systemctl is-active <unit>
-sudo -u <service-user> <venv>/bin/hass --version
-sudo -u <service-user> <venv>/bin/hass \
-  --script check_config --config <config-dir>
-```
-
-- **CRITICAL** if the unit is not active
-- **WARN** if the config check reports errors; quote them
-- Report the running version
+- Report the running version, and on Container the image tag
+  (`stable`, a pinned version, `beta` or `dev`); a newer release
+  is named only through `rules/version-check.md`
+- **INFO**, once per report, on Supervised and Core: the install
+  type is unsupported since Home Assistant 2025.12,
+  https://www.home-assistant.io/blog/2025/05/22/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/
+  The install method is unsupported, not the version, so this is
+  no EOL finding under `rules/version-check.md`. Migrating to
+  Home Assistant OS or Container is the user's decision.
 
 ## nginx
 
