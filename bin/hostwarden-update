@@ -33,11 +33,16 @@ run_migration() {
   if [ -f bin/hostwarden-migrate ]; then sh bin/hostwarden-migrate; fi
 }
 
-# report <old version> — what the update did, once it is done.
+# report <old version> <old HEAD> — what the update did, once it
+# is done.
 report() {
   NEW=$(current_version)
   if [ "$1" = "$NEW" ]; then
-    echo "hostwarden $NEW — already up to date."
+    if [ "$2" = "$(git rev-parse HEAD)" ]; then
+      echo "hostwarden $NEW — already up to date."
+    else
+      echo "hostwarden $NEW — updated to $(git rev-parse --short HEAD)."
+    fi
     return
   fi
   echo "hostwarden updated: $1 -> $NEW"
@@ -98,8 +103,9 @@ fi
 . .claude/hooks/follow.sh
 FOLLOW=$(hostwarden_follow)
 
-# follow_update <line> — check out the newest release on the line.
-follow_update() {
+# follow_target <line> — sets TAG to the newest release on the
+# line, from origin; exits when there is none to be had.
+follow_target() {
   if ! OUTPUT=$(hostwarden_follow_fetch 2>&1); then
     echo "hostwarden update failed: $OUTPUT"
     exit 1
@@ -111,27 +117,31 @@ follow_update() {
     git tag --sort=-v:refname | head -10
     exit 1
   fi
+}
+
+at_tag() { [ "$(git rev-parse HEAD)" = "$(git rev-parse "$1^{commit}")" ]; }
+
+# follow_update <line> — check out the newest release on the line.
+follow_update() {
+  follow_target "$1"
   OLD_VERSION=$(current_version)
-  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "$TAG^{commit}")" ] \
-      && ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
+  OLD_HEAD=$(git rev-parse HEAD)
+  if ! at_tag "$TAG" && ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
     echo "hostwarden update failed: $OUTPUT"
     echo "Likely cause: local changes (run 'git status')."
     exit 1
   fi
   run_migration
-  report "$OLD_VERSION"
+  report "$OLD_VERSION" "$OLD_HEAD"
 }
 
 case "${1:-}" in
   --check)
     echo "hostwarden $(current_version)"
     if [ -n "$FOLLOW" ]; then
-      hostwarden_follow_fetch
-      TAG=$(hostwarden_follow_tag "$FOLLOW")
       echo "Following $FOLLOW (the newest v$FOLLOW.x release)."
-      if [ -z "$TAG" ]; then
-        echo "No v$FOLLOW.x release on origin yet."
-      elif [ "$(git rev-parse HEAD)" = "$(git rev-parse "$TAG^{commit}")" ]; then
+      follow_target "$FOLLOW"
+      if at_tag "$TAG"; then
         echo "Up to date."
       else
         echo "$TAG is available."
@@ -232,6 +242,7 @@ case "${1:-}" in
     fi
 
     OLD_VERSION=$(current_version)
+    OLD_HEAD=$(git rev-parse HEAD)
     # --ff-only: never create a silent merge commit
     # on a diverged main. Capture the failure so
     # set -e doesn't kill us with a raw git error.
@@ -243,7 +254,7 @@ case "${1:-}" in
       exit 1
     fi
     run_migration
-    report "$OLD_VERSION"
+    report "$OLD_VERSION" "$OLD_HEAD"
     ;;
 
   *)

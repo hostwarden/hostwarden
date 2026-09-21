@@ -1,9 +1,8 @@
 #!/bin/sh
-# SessionStart hook: auto-pull latest hostwarden changes
-# with version awareness, release lines and pinning. Also
-# runs bin/hostwarden-migrate after every pull, which
-# migrates old user state and creates local
-# directories new versions need.
+# SessionStart hook: keep an operations install up to date
+# through bin/hostwarden-update — main, or the release line the
+# checkout follows — and say what changed. A pin, another
+# branch and HOSTWARDEN_NO_UPDATE=1 leave it alone.
 
 if [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
   cd "$CLAUDE_PROJECT_DIR" || exit 0
@@ -15,13 +14,6 @@ fi
 export GIT_TERMINAL_PROMPT=0
 GIT_ASKPASS=${GIT_ASKPASS:-true}
 export GIT_ASKPASS
-
-# Migration is implemented in bin/hostwarden-migrate so
-# both the Claude Code hook and bin/hostwarden-update
-# use the same logic.
-run_migration() {
-  [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
-}
 
 # Opt-out via environment variable. HEINZEL_NO_UPDATE
 # is the name from before the rename and still works.
@@ -54,101 +46,31 @@ if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
   exit 0
 fi
 
-# A checkout that follows a release line moves from tag to tag on
-# it, never onto main. bin/hostwarden-update does that; this hook
-# only keeps quiet when it did not move.
+# A pin or another branch is the user's choice and stays; a
+# release line moves the checkout off whatever it is on.
 # shellcheck source=follow.sh
 . "${0%/*}/follow.sh"
-if [ -n "$(hostwarden_follow)" ]; then
-  BEFORE=$(git rev-parse HEAD)
-  if ! OUTPUT=$(sh bin/hostwarden-update 2>&1); then
-    echo "hostwarden auto-update failed:"
-    printf '%s\n' "$OUTPUT" | sed 's/^/  /'
-  elif [ "$(git rev-parse HEAD)" != "$BEFORE" ]; then
-    printf '%s\n' "$OUTPUT"
+if [ -z "$(hostwarden_follow)" ]; then
+  if ! BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null); then
+    if TAG=$(git describe --tags --exact-match 2>/dev/null); then
+      echo "hostwarden pinned to $TAG — skipping auto-update"
+    else
+      echo "hostwarden on detached HEAD — skipping auto-update"
+    fi
+    exit 0
   fi
-  exit 0
-fi
-
-# Skip if not on the main branch (user pinned to a
-# version tag or is on a custom branch).
-BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
-if [ $? -ne 0 ]; then
-  # Detached HEAD — likely pinned to a tag.
-  TAG=$(git describe --tags --exact-match 2>/dev/null)
-  if [ -n "$TAG" ]; then
-    echo "hostwarden pinned to $TAG — skipping auto-update"
-  else
-    echo "hostwarden on detached HEAD — skipping auto-update"
+  if [ "$BRANCH" != "main" ]; then
+    echo "hostwarden on branch '$BRANCH' — skipping auto-update"
+    exit 0
   fi
-  exit 0
 fi
 
-if [ "$BRANCH" != "main" ]; then
-  echo "hostwarden on branch '$BRANCH' — skipping auto-update"
-  exit 0
-fi
-
-# Remember current version before pulling.
-OLD_VERSION=""
-if [ -f VERSION ]; then
-  OLD_VERSION=$(cat VERSION)
-fi
-
-# Pull latest changes. --ff-only: a diverged local
-# main should fail loudly here, never produce a
-# silent merge commit.
-OUTPUT=$(git pull --ff-only --quiet 2>&1)
-PULL_STATUS=$?
-
-if [ $PULL_STATUS -ne 0 ]; then
-  echo "hostwarden auto-update failed: $OUTPUT"
-  echo "Likely causes: local changes, local commits on a"
-  echo "diverged main, or no network. Run 'git status' to"
-  echo "inspect."
-  exit 0
-fi
-
-# Bring an older state layout up to date. Idempotent
-# and silent when there's nothing to do.
-run_migration
-
-# Read new version after pulling.
-NEW_VERSION=""
-if [ -f VERSION ]; then
-  NEW_VERSION=$(cat VERSION)
-fi
-
-# Report what happened.
-if [ -z "$OUTPUT" ] && [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-  # Nothing changed — stay quiet.
-  exit 0
-fi
-
-if [ "$OLD_VERSION" != "$NEW_VERSION" ] \
-   && [ -n "$OLD_VERSION" ] \
-   && [ -n "$NEW_VERSION" ]; then
-  echo "hostwarden updated: $OLD_VERSION -> $NEW_VERSION"
-
-  # Extract changelog section for the new version.
-  if [ -f CHANGELOG.md ]; then
-    # Print lines between "## $NEW_VERSION" and the
-    # next "## " heading (or end of file). Compare
-    # the whole second field so "## 2.8.0" does not
-    # also match "## 2.8.0-rc1".
-    awk -v ver="$NEW_VERSION" '
-      /^## / { if (insec) exit; insec = ($2 == ver); next }
-      insec && NF { print }
-    ' CHANGELOG.md
-  fi
-
-  # Warn on major version change.
-  OLD_MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
-  NEW_MAJOR=$(echo "$NEW_VERSION" | cut -d. -f1)
-  if [ "$OLD_MAJOR" != "$NEW_MAJOR" ]; then
-    echo ""
-    echo "BREAKING CHANGES — read CHANGELOG.md"
-  fi
-elif [ -n "$OUTPUT" ]; then
-  echo "hostwarden repo updated: $OUTPUT"
+# bin/hostwarden-update does the update — pull or tag, migration,
+# changelog. This hook only keeps quiet when nothing moved.
+BEFORE=$(git rev-parse HEAD)
+if ! OUTPUT=$(sh bin/hostwarden-update 2>&1); then
+  echo "hostwarden auto-update failed:"
+  printf '%s\n' "$OUTPUT" | sed 's/^/  /'
+elif [ "$(git rev-parse HEAD)" != "$BEFORE" ]; then
+  printf '%s\n' "$OUTPUT"
 fi

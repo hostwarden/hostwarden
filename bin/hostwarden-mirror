@@ -72,7 +72,6 @@ if [ -n "${HOSTWARDEN_MIRROR_TOKEN:-}" ]; then
     > "$TMP/askpass"
   chmod 700 "$TMP/askpass"
   ASKPASS=$TMP/askpass
-  export HOSTWARDEN_MIRROR_TOKEN
 fi
 
 # Nothing git says reaches a CI log with a credential in it.

@@ -144,7 +144,7 @@ update --follow 1 >/dev/null && at v1.10.0 && follows 1 && ok \
 update --follow 1.1 >/dev/null && bad "--follow 1.1 found a release"
 at v1.10.0 && follows 1 && ok || bad "a failed --follow changed the checkout"
 for l in x 1.2.3 1. .1 ''; do
-  update --follow "$l" >/dev/null 2>&1 && bad "--follow '$l' was accepted"
+  update --follow "$l" >/dev/null && bad "--follow '$l' was accepted"
 done
 follows 1 && ok || bad "an invalid line changed the setting"
 case "$(update --check)" in
@@ -174,15 +174,12 @@ case "$(hook)" in
 *) bad "the hook did not report the pin" ;;
 esac
 # A line in the user's global config is not this checkout's.
-HOME_SAVED=$HOME
-HOME="$TMP/home"
-mkdir -p "$HOME"
-git config --global hostwarden.follow 1
-case "$(hook)" in
+mkdir -p "$TMP/home"
+out=$(HOME="$TMP/home"; git config --global hostwarden.follow 1; hook)
+case "$out" in
 *"pinned to v1.0.0"*) at v1.0.0 && ok || bad "a global line moved a pin" ;;
 *) bad "the hook followed a line from the global config" ;;
 esac
-HOME=$HOME_SAVED
 
 # A line with no release yet is reported, and nothing moves.
 git -C "$P" config hostwarden.follow 9
@@ -202,11 +199,26 @@ update --unpin >/dev/null && follows '' \
   && ok || bad "--unpin did not clear the line and return to main"
 
 # No line and no pin: main, as before.
-release -
+release 2.2.0
 mirror >/dev/null
-hook >/dev/null
+out=$(hook)
 [ "$(git -C "$P" rev-parse HEAD)" = "$(git -C "$U" rev-parse main)" ] && ok \
   || bad "the hook did not pull main"
+case "$out" in
+*"2.1.0 -> 2.2.0"*"release 2.2.0"*) ok ;;
+*) bad "the hook did not report the pull: $out" ;;
+esac
+[ -z "$(hook)" ] && ok || bad "the hook spoke on main with nothing to do"
+# A diverged main fails loudly and stays as it was.
+echo local > "$P/local.txt"
+git -C "$P" add local.txt
+git -C "$P" commit --quiet -m "local"
+release -
+mirror >/dev/null
+case "$(hook)" in
+*"auto-update failed"*) ok ;;
+*) bad "a diverged main was not reported" ;;
+esac
 
 echo "release: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
