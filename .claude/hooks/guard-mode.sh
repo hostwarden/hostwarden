@@ -4,9 +4,16 @@
 #
 # Holds a session to the mode mode.sh determines:
 #
-#   development, worktree — ssh, scp, sftp, mosh, rsync to a
-#     remote, sudo, sudoedit, doas and pkexec are denied wherever
-#     they stand as a command, find -exec included. Local
+#   development, worktree — ssh, scp, sftp, mosh, sudo, sudoedit,
+#     doas and pkexec are refused. The shim does most of it
+#     (shim.sh): session-mode.sh puts it first on PATH, so the
+#     tools refuse wherever they are started from, rsync's own
+#     ssh included. This hook denies the forms that go past a
+#     PATH lookup: a path to the real binary (/usr/bin/ssh, also
+#     as rsync -e or a core.sshCommand value), command -p, a
+#     changed PATH, rsync to a daemon (rsync:// or host::module,
+#     which never starts ssh), and $GIT_SSH_COMMAND, git's
+#     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: hostwarden's local mode is server
 #     work too.
 #   operations — Edit and Write are denied on any path inside
@@ -25,21 +32,23 @@
 #     set of shell writers cannot be closed; Edit and Write are
 #     how an agent changes a file, and the prose in AGENTS.md
 #     covers the rest.
-#   - Treat a quoted argument as a command. Unlike the taboo
-#     guard, which splits on quotes and so blocks grep 'fdisk',
-#     this one reads quotes as the shell does: grep 'ssh' and a
-#     commit message about sudo pass, because developing an SSH
-#     tool means writing about ssh all day. The quoted forms
-#     that do run something — bash -c, eval, $( ) inside double
-#     quotes — are still read as commands.
+#   - Read quotes, wrappers or rsync operands over ssh. Every such case
+#     reaches the tool through PATH, where the shim waits; a
+#     parser for them never closes. Nor does it look for a bare
+#     tool name, so grep ssh and a commit message about sudo
+#     pass. Quotes are not masked: a commit message that names
+#     /usr/bin/ssh, or changes PATH and mentions ssh at all, is
+#     denied; either is rare.
 #   - Look inside a variable or a script file. A backstop against
-#     the everyday mistake, not a sandbox.
+#     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
+#     or a script that resets PATH still reaches ssh, and only
+#     the prose in AGENTS.md stands against it.
 #
 # It runs on every tool call, so it forks little. In development
-# nothing at all unless the input names a blocked tool, then one jq
-# for the whole input and an awk or two for the command. In
-# operations a Bash call ends before jq; an edit runs one jq, and
-# git only for a path outside memory/.
+# nothing at all unless the input could hold one of the forms
+# above, then one jq for the whole input and one awk for the
+# command. In operations a Bash call ends before jq; an edit runs
+# one jq, and git only for a path outside memory/.
 #
 # Being blocked is EXPECTED behavior. Explain it to the user.
 # Never rephrase, re-quote, or otherwise obfuscate a command to
@@ -52,25 +61,42 @@ hostwarden_mode "$ROOT"
 
 INPUT=$(cat)
 
-deny() {
-  # JSON decision on stdout; blocks in all permission modes.
-  # Reasons must stay plain ASCII without quotes/backslashes.
+# emit <message> — the JSON decision on stdout; blocks in all
+# permission modes. Messages stay plain ASCII without quotes or
+# backslashes.
+emit() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"hostwarden mode guard: %s ' "$1"
-  printf '(AGENTS.md - Development or Operations). Blocked in all '
+  printf '"permissionDecisionReason":"%s Blocked in all ' "$1"
   printf 'permission modes. Explain this to the user; do not '
   printf 'rephrase the command or pick another tool to evade the '
   printf 'guard."}}\n'
   exit 0
 }
+deny() {
+  emit "hostwarden mode guard: $1 (AGENTS.md - Development or Operations)."
+}
 
-# Before anything is parsed: in development, input that names
-# none of the blocked tools anywhere cannot invoke one. That is
-# nearly every call, and it ends here without a single process.
+# Before anything is parsed: in development only a Bash call is
+# read, and only its command, which cwd and the transcript path
+# are not part of. A command without a path to a blocked tool,
+# command -p, a change to PATH or GIT_SSH_COMMAND holds none of the
+# forms this hook denies. That is nearly every call, and it ends
+# here without a single process.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
-  *ssh*|*scp*|*sftp*|*mosh*|*sudo*|*doas*|*pkexec*|*rsync*) ;;
+  *'"tool_name"'*'"Bash"'*) ;;
+  *) exit 0 ;;
+  esac
+  case "${INPUT#*'"command"'}" in
+  */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
+  */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
+  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+  # In JSON a newline or tab before it is \n or \t, a letter too.
+  *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
+  *\\[nt]PATH=*|*\\[nt]path=*) ;;
+  *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
+  *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
   esac
 else
@@ -173,185 +199,122 @@ fork, and send it as a pull request"
 fi
 
 # --- Development: no server is reached ------------------------
+# A blocked tool named without a path is the shim's: it refuses
+# wherever the tool is started from. This denies the ways past a
+# PATH lookup:
+#   - a path to a blocked tool as the first word of a segment (split
+#     on the shell's separators, past a negation and variable
+#     assignments), or anywhere else when it names an executable
+#     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh;
+#   - $GIT_SSH_COMMAND at the start of a segment;
+#   - command -p, which ignores PATH, anywhere in a command that
+#     names a blocked tool, inside sh -c and eval strings too;
+#   - a command that changes PATH (PATH=, zsh path=, unset PATH,
+#     env -i or -, env -u PATH in its spellings) and names a
+#     blocked tool anywhere;
+#   - rsync with an rsync:// or host::module operand, which talks
+#     to the daemon itself and never starts ssh.
 case "$TOOL" in
 Bash|"") ;;
 *) exit 0 ;;
 esac
-# Without jq the command is buried in JSON, and it names a
-# blocked tool (the prefilter above). Refuse rather than guess.
+# Without jq the command is buried in JSON, and it names one of
+# those forms (the prefilter above). Refuse rather than guess.
 [ -n "$JQ" ] || deny "without jq this command cannot be read, and \
-it names a tool that reaches a server - install jq"
+it may start a tool that reaches a server - install jq"
 # jq could not parse the input: scan it raw, which can only
 # over-block.
 [ -n "$CMD" ] || CMD="$INPUT"
 
-# A heredoc body handed to cat or tee is text being written, not
-# commands: documentation about ssh is most of what this project
-# writes. Only that consumer is recognized, the same boundary the
-# taboo guard draws; ssh host bash -s <<EOF keeps its body.
-case "$CMD" in
-*'<<'*)
-  CMD=$(printf '%s\n' "$CMD" | awk '
-    NR == 1 {
-      print
-      # Only when the line does nothing else: cat <<EOF | bash
-      # runs its body.
-      if ($0 ~ /^[ \t]*(cat|tee)([ \t]|$)/ && $0 !~ /[|;&`]|\$\(/ && match($0, /<<-?[ \t]*["\047]?[A-Za-z_][A-Za-z0-9_]*/)) {
-        d = substr($0, RSTART, RLENGTH)
-        sub(/^<<-?[ \t]*["\047]?/, "", d)
-        body = 1
-      }
-      next
-    }
-    body { t = $0; sub(/^\t+/, "", t); if (t == d) body = 0; next }
-    { print }')
-  ;;
-esac
-
-# Quoted text is an argument, and an argument is data: grep
-# 'ssh' and git commit -m "sudo ..." reach nothing. It becomes a
-# placeholder, with two exceptions that run it as a command: the
-# argument of -c (bash -c "ssh host") or eval, and whatever
-# follows $( or a backtick inside double quotes.
-#
-# Then one line per invocation — split on the shell's separators
-# and on command substitution — and the command word of each,
-# past a negation, variable assignments and wrappers that run
-# their argument, path stripped. The first blocked one is
-# printed.
-BLOCKED=$(printf '%s' "$CMD" | awk '
-  # cmdword(i) — the index of the command word from v[i] on, past
-  # a negation, variable assignments, keywords, and wrappers that
-  # run their argument, with their flags and flag values.
-  function cmdword(i,   x) {
-    while (i <= nw && v[i] == "") i++
-    while (i <= nw) {
-      x = v[i]
-      if (x == "!" || x == "$" || x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { i++; continue }
-      # A redirection may come first: 2>/dev/null ssh runs ssh. A
-      # bare operator takes the next word as its target.
-      if (x ~ /^[0-9]*[<>]+$/) { i += 2; continue }
-      if (x ~ /^[0-9]*[<>]/) { i++; continue }
-      if (x ~ /^(env|command|exec|nohup|time|nice|timeout|xargs|stdbuf|caffeinate|if|elif|while|until|then|do|else)$/) {
-        i++
-        while (i <= nw && (v[i] ~ /^-/ || v[i] ~ /^[0-9.]+[smhd]?$/)) {
-          if ((x " " v[i]) in takes) i++
-          i++
-        }
-        continue
-      }
-      break
-    }
-    return i
-  }
-  # remote(i) — whether the rsync arguments from v[i] on reach a
-  # server. rsync is fine between local paths, -e or not: it
-  # reaches one only through a host:path or host::module operand
-  # or an rsync:// URL. The arguments end where a find action does.
-  # An option that takes the next word as its value is skipped with
-  # it: --out-format "%n:%l" names no host.
-  function remote(i) {
-    for (; i <= nw && v[i] !~ /^(\\?;|\+)$/; i++) {
-      if (v[i] in rsyncarg) { i++; continue }
-      if (v[i] ~ /^[^\/:-][^\/:]*::?/ || v[i] ~ /^rsync:\/\//)
-        return 1
-    }
-    return 0
-  }
-  # hit(k) — what the command word v[k] reaches a server with, or
-  # nothing: a blocked tool, or rsync with a remote operand.
-  function hit(k,   c) {
-    if (k > nw) return ""
-    c = v[k]; sub(/^.*\//, "", c)
-    if (c ~ BLOCKED) return c
-    if (c == "rsync" && remote(k + 1)) return "rsync to a remote"
-    return ""
-  }
-  function lastword(t) {
-    sub(/[ \t]+$/, "", t)
-    return match(t, /[^ \t\n;&|(]*$/) ? substr(t, RSTART, RLENGTH) : ""
-  }
-  BEGIN {
-    RS = "\001"; q = sprintf("%c", 39)
-    BLOCKED = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$"
-    # Options of a wrapper that take the next word as their value,
-    # so that word is not mistaken for the wrapped command.
-    # Short and long spellings; --opt=value is one word anyway.
-    split("env -u|env --unset|env -C|env --chdir|timeout -s|timeout --signal|timeout -k|timeout --kill-after|stdbuf -i|stdbuf --input|stdbuf -o|stdbuf --output|stdbuf -e|stdbuf --error|nice -n|nice --adjustment|xargs -I|xargs -n|xargs --max-args|xargs -P|xargs --max-procs|xargs -L|xargs --max-lines|xargs -d|xargs --delimiter|xargs -E|xargs -s|xargs --max-chars|xargs -a|xargs --arg-file", a, "|")
-    for (k in a) takes[a[k]] = 1
-    # rsync options whose value is a separate word.
-    split("-e --rsh --rsync-path -f --filter --exclude --include --exclude-from --include-from --files-from --out-format --log-file --log-file-format --password-file --partial-dir -T --temp-dir --backup-dir --suffix --compare-dest --copy-dest --link-dest --chmod --chown --usermap --groupmap -M --remote-option --timeout --contimeout --port --sockopts --iconv --info --debug --max-size --min-size --bwlimit -B --block-size --modify-window --skip-compress --checksum-choice --compress-choice --only-write-batch --write-batch --read-batch --outbuf", b, " ")
-    for (k in b) rsyncarg[b[k]] = 1
-  }
-  { s = s $0 }
-  END {
-    n = length(s); i = 1; out = ""
-    while (i <= n) {
-      ch = substr(s, i, 1)
-      if (ch == "\\") { out = out substr(s, i, 2); i += 2; continue }
-      if (ch != q && ch != "\"") { out = out ch; i++; continue }
-      j = i + 1; body = ""
-      while (j <= n) {
-        c = substr(s, j, 1)
-        if (ch == "\"" && c == "\\") { body = body substr(s, j, 2); j += 2; continue }
-        if (c == ch) break
-        body = body c; j++
-      }
-      w = lastword(out)
-      # -c alone or ending a cluster of short options (sh -ec), and
-      # env -S, which splits its value into the command it runs.
-      if (w ~ /^-[A-Za-z]*c$/ || w == "eval" || w ~ /^(-S|--split-string=?)$/) {
-        out = out "\n" body "\n"
-      } else {
-        # The placeholder keeps what makes an rsync operand remote:
-        # "host:/path" and "rsync://host/..." reach a server quoted
-        # or not.
-        if (body ~ /^rsync:\/\//) out = out "rsync://Q"
-        else if (body ~ /^[^ \/:-][^ \/:]*::?/) out = out "Q:"
-        else out = out "Q"
-        if (ch == "\"") {
-          k = index(body, "$(")
-          if (!k) k = index(body, "`")
-          if (k) out = out "\n" substr(body, k + 1) "\n"
+# One line: "deny <what>" for a verdict, or "path <p>" for a path
+# elsewhere in the command, which counts once it is a program.
+FOUND=$(printf '%s' "$CMD" | awk '
+  BEGIN { RS = "\001"; T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$" }
+  {
+    s = $0
+    # ${VAR} is a variable, not a brace group.
+    gsub(/\$\{/, "$", s)
+    gsub(/[;&|(){}`]/, "\n", s)
+    n = split(s, seg, "\n")
+    for (l = 1; l <= n; l++) {
+      nw = split(seg[l], v, /[ \t]+/)
+      # env: 1 while the words are options of an env command, 2 when
+      # the next word is the value of -u, -C or -S.
+      env = rsync = daemon = 0
+      pc = ""
+      for (i = 1; i <= nw; i++) {
+        c = v[i]
+        gsub(/^["\047]+|["\047]+$/, "", c)
+        # command -p looks tools up on a default PATH, never the
+        # shim: wherever it stands, sh -c and eval strings included.
+        if (pc == "command" && c ~ /^-[A-Za-z]*p[A-Za-z]*$/ && c !~ /[vV]/) cmdp = 1
+        pc = c
+        if (env == 2) env = 1
+        else if (env && c !~ /^-/ && c !~ /=/) env = 0
+        # env -i, -iv, a lone -, --ignore-environment; env -u PATH,
+        # -uPATH, --unset PATH, --unset=PATH; unset PATH.
+        if (c ~ /^(PATH|path)=/ \
+            || env && (c == "-" || c ~ /^-[A-Za-z]*i[A-Za-z]*$/ || c ~ /^--ignore-env/) \
+            || env && c ~ /^(-u|--unset=)PATH$/ \
+            || c == "PATH" && (v[i - 1] == "unset" || env && v[i - 1] ~ /^(-u|--unset)$/))
+          setpath = 1
+        if (env && c ~ /^(-[uCS]|--unset|--chdir|--split-string)$/) env = 2
+        # rsync reaches a daemon itself, no ssh on the way:
+        # rsync://host/module and host::module.
+        if (c ~ /^rsync:\/\// || c ~ /^[^\/:=-][^\/:=]*::/) daemon = 1
+        if (c ~ /(^|\/)rsync$/) rsync = 1
+        if (c ~ /(^|\/)env$/) env = 1
+        sub(/^.*=/, "", c)
+        b = c
+        sub(/^.*\//, "", b)
+        if (b ~ T) {
+          if (named == "") named = b
+          if (c ~ /\//) paths = paths "path " c "\n"
         }
       }
-      i = j + 1
-    }
-    # The {} of find is an operand, not a brace group: keep the words
-    # after it on the same line.
-    gsub(/\{\}/, "Q", out)
-    # The & of 2>&1 duplicates a descriptor; it separates nothing.
-    gsub(/>&/, ">", out); gsub(/<&/, "<", out)
-    gsub(/[;&|()`{}]/, "\n", out)
-    nl = split(out, line, "\n")
-    for (l = 1; l <= nl; l++) {
-      nw = split(line[l], v, /[ \t]+/)
-      i = cmdword(1)
+      if (rsync && daemon) { print "deny rsync to a daemon"; exit }
+      i = 1
+      while (i <= nw && (v[i] == "" || v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
-      if ((h = hit(i)) != "") { print h; exit }
-      # find runs the word after -exec and its kin as a command,
-      # read like any other: env ssh there is ssh.
-      c = v[i]; sub(/^.*\//, "", c)
-      if (c == "find") {
-        for (j = i + 1; j < nw; j++) {
-          if (v[j] ~ /^-(exec|execdir|ok|okdir)$/ && (h = hit(cmdword(j + 1))) != "") {
-            print h; exit
-          }
-        }
+      w = v[i]
+      # The real ssh that git push is given.
+      if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
+      # Past command and exec to the tool they run.
+      how = ""
+      if (w == "command" || w == "exec") {
+        while (++i <= nw && v[i] ~ /^-/) ;
+        if (i > nw) continue
+        w = v[i]
       }
+      c = w
+      sub(/^.*\//, "", c)
+      if (c !~ T) continue
+      if (w ~ /\//) how = "by its path"
+      if (how != "") { print "deny " c " " how; exit }
     }
+    if (cmdp && named != "") { print "deny " named " through command -p"; exit }
+    if (setpath && named != "") { print "deny " named " with PATH changed"; exit }
+    printf "%s", paths
   }')
 
+BLOCKED=
+case "$FOUND" in
+"deny "*) BLOCKED=${FOUND#deny } ;;
+*)
+  # /etc/ssh is a directory, a path in a sentence names nothing,
+  # and the shim only refuses.
+  while IFS= read -r p; do
+    p=${p#path }
+    case "$p" in *.claude/hooks/shim/*) continue ;; esac
+    if [ -f "$p" ] && [ -x "$p" ]; then
+      BLOCKED="${p##*/} by its path"
+      break
+    fi
+  done <<EOF
+$FOUND
+EOF
+  ;;
+esac
 [ -n "$BLOCKED" ] || exit 0
-
-if [ "$HOSTWARDEN_MODE" = worktree ]; then
-  deny "$BLOCKED reaches a server, and this session runs in a \
-linked git worktree. A worktree never carries memory/, so the \
-access lists and the server memory are missing here. Server work \
-runs only in the main checkout of an operations install"
-fi
-deny "$BLOCKED reaches a server, and this checkout develops \
-hostwarden (memory/ holds no workspace). Server work runs in an \
-operations checkout: a separate clone, set up once with \
-bin/hostwarden-init. For a tool on this machine, run the command \
-yourself outside the agent"
+hostwarden_refusal "$BLOCKED"
+emit "$HOSTWARDEN_REFUSAL"

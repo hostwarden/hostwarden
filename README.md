@@ -1498,8 +1498,12 @@ workspace decides which:
   development, whatever its main checkout is.
 
 In Claude Code a hook announces the mode at session
-start and another enforces it; other tools follow
-the same rule from `AGENTS.md`. To try a change
+start and another enforces it. In development the
+first also puts a shim in front of `ssh`, `scp`,
+`sudo` and the rest on the `PATH` of every command
+the agent runs, so they refuse however they are
+started; `git push` still reaches the real `ssh`.
+Other tools follow the same rule from `AGENTS.md`. To try a change
 against a test server, run it from an operations
 checkout of your branch — a separate clone, never
 the one you administer production from.

@@ -1,7 +1,9 @@
 #!/bin/sh
 # session-mode.sh — SessionStart hook: announce the mode
 # (mode.sh) that guard-mode.sh enforces, so the session starts
-# in it instead of finding out from a denied call.
+# in it instead of finding out from a denied call. In development
+# it also puts the shim (shim.sh) in front of the tools that reach
+# a server.
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 # shellcheck source=mode.sh
@@ -9,6 +11,8 @@ ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 cd "$ROOT" || exit 0
 
 CANON=jpawlowski/hostwarden
+# q <string> — single-quoted for the shell that sources the env file.
+q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
 hostwarden_mode "$ROOT"
 case "$HOSTWARDEN_MODE" in
@@ -17,6 +21,28 @@ operations)
   echo "  Server work as usual. hostwarden's own files are read-only"
   echo "  here: a change to them goes to a development checkout and"
   echo "  a pull request."
+  # Started from inside a development session, this one inherits
+  # its shim and git-ssh.sh, which would refuse the server work
+  # this checkout is for. Every Bash call drops them again.
+  case ":$PATH:${GIT_SSH_COMMAND:-}" in
+  */.claude/hooks/shim:* | *git-ssh.sh*)
+    if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+      {
+        printf '%s\n' 'PATH=$(printf %s "$PATH" | tr : "\n" | grep -v "/\.claude/hooks/shim$" | paste -sd: -); export PATH'
+        case "${GIT_SSH_COMMAND:-}" in
+        *git-ssh.sh*)
+          if [ -n "${HOSTWARDEN_GIT_SSH_COMMAND:-}" ]; then
+            echo "export GIT_SSH_COMMAND=$(q "$HOSTWARDEN_GIT_SSH_COMMAND")"
+          else
+            echo "unset GIT_SSH_COMMAND"
+          fi
+          ;;
+        esac
+        echo "unset HOSTWARDEN_GIT_SSH_COMMAND"
+      } >> "$CLAUDE_ENV_FILE"
+    fi
+    ;;
+  esac
   exit 0
   ;;
 worktree)
@@ -35,6 +61,47 @@ worktree)
   echo "  set up once with bin/hostwarden-init."
   ;;
 esac
+
+# The shim (shim.sh) goes first on the PATH of every later Bash
+# call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE
+# before each one. The file survives resume and compaction, where
+# this hook runs again, so what it writes is written once and
+# would do nothing twice. It lives in the checkout because it is
+# code: versioned and reviewed with the guard, never a stale copy
+# in a cache that another checkout wrote.
+#
+# git push over SSH runs GIT_SSH_COMMAND, and a bare ssh there
+# would find the shim: git-ssh.sh takes its place and runs what
+# the user set, kept in HOSTWARDEN_GIT_SSH_COMMAND. A GIT_SSH on
+# its own, a program of the user's, stays theirs.
+SHIM="$ROOT/.claude/hooks/shim"
+if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+  echo "  Claude Code gave this hook no CLAUDE_ENV_FILE, so the"
+  echo "  shim that refuses ssh and sudo however they are started"
+  echo "  is not in place; only the guard's reading of each"
+  echo "  command stands in for it."
+elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
+  {
+    echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
+    # What git would run: GIT_SSH_COMMAND outranks GIT_SSH. A
+    # GIT_SSH named without a path goes through PATH and would find
+    # the shim, so the wrapper carries it; one given by its path is
+    # the user's own program and stays.
+    U=${GIT_SSH_COMMAND:-${GIT_SSH:-}}
+    case "${GIT_SSH_COMMAND:-}:$U" in
+    :*/*) ;;
+    *)
+      # A session started from inside another inherits its
+      # git-ssh.sh, which kept as the user's own would run itself.
+      case "$U" in
+      "" | *git-ssh.sh*) ;;
+      *) echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$U")" ;;
+      esac
+      echo "export GIT_SSH_COMMAND=$(q "$(q "$ROOT/.claude/hooks/git-ssh.sh")")"
+      ;;
+    esac
+  } >> "$CLAUDE_ENV_FILE"
+fi
 
 # Where a pull request goes. Compared by URL, never by remote
 # name: in the maintainer's checkout `upstream` is heinzel, in a
