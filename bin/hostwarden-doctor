@@ -186,7 +186,7 @@ if [ -n "$NEED" ]; then
         case $t in shellcheck|actionlint|betterleaks) ;;
           *) mise_only= ;; esac
       done
-      [ -z "$mise_only" ] || fix="$fix, or MISE_ENV=dev mise install" ;;
+      [ -z "$mise_only" ] || fix="$fix, or mise trust mise.dev.toml && MISE_ENV=dev mise install" ;;
   esac
   echo "hostwarden: required, missing: ${NEED#, } — $fix"
 fi
