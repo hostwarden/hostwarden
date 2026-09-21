@@ -515,9 +515,15 @@ if [ -z "$CONTEXTS" ]; then
 else
   for ctx in $CONTEXTS
   do
-    # Only under jobs: -- `on:` has two-space keys of its own.
-    if sed -n '/^jobs:/,$p' "$ROOT/.github/workflows/ci.yml" \
-      | grep -q "^  $ctx:"; then
+    # What GitHub reports is a job's `name:` if it has one, else its
+    # key; and only under jobs: -- `on:` has two-space keys too.
+    if awk '/^jobs:/ { j = 1; next }
+        j && /^[^ ]/ { j = 0 }
+        j && /^  [A-Za-z0-9_-]+:/ { k = $1; sub(/:$/, "", k); ctx[k] = k }
+        j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
+                                gsub(/["\047]/, "", n); ctx[k] = n }
+        END { for (k in ctx) print ctx[k] }' \
+        "$ROOT/.github/workflows/ci.yml" | grep -qx "$ctx"; then
       ok
     else
       bad "main.json requires check '$ctx', which no job in" \
