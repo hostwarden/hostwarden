@@ -253,9 +253,9 @@ fi
 #
 # What is not checked: a relative pointer in a file outside
 # `.agents/skills/`. In `rules/overrides.md` and
-# docs/customization.md that shape appears in a table *describing* the mirror scheme, and no
-# pattern separates an example of a path from a use of one. Those
-# two files document; they do not route.
+# docs/customization.md that shape appears in a table *describing*
+# the mirror scheme, and no pattern separates an example of a path
+# from a use of one. Those two files document; they do not route.
 REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'
 BAD_REFS=$(
   scan | tag "$REF_RE" \

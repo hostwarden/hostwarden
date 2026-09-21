@@ -1,7 +1,5 @@
 # Features
 
-What hostwarden does, with prompts to try.
-
 ## Auto OS-detection
 
 The first time you point Hostwarden at any machine, it

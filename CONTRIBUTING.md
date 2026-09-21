@@ -6,6 +6,13 @@ privately, as [SECURITY.md](SECURITY.md) describes.
 
 ## Setup
 
+Work in a development checkout: a clone of hostwarden, or of your
+fork, without `bin/hostwarden-init`
+([docs/operations.md](docs/operations.md#operations-and-development)).
+One git worktree per branch keeps parallel sessions apart;
+[docs/project-structure.md](docs/project-structure.md) says where
+things live.
+
 Clone with symbolic links working; native Windows needs three
 settings first (docs/install.md → Windows). The checks need
 ShellCheck, actionlint, betterleaks and `python3`. `mise.dev.toml`

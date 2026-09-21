@@ -160,8 +160,9 @@ recommended name is `hostwarden-workspace`, and nothing
 checks it. hostwarden itself stays an unmodified clone
 that keeps updating.
 
-1. Set the workspace up as above, then publish it
-   once:
+1. Set the workspace up as the
+   [README](../README.md#steps) describes, then
+   publish it once:
    ```
    bin/hostwarden-sync commit "Start the shared workspace"
    git -C memory remote add origin <private-repo-url>

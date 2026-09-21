@@ -48,30 +48,19 @@ hostwarden session looks the same.
 
 ### Prerequisites
 
-- **An AI coding assistant** that runs in the
-  terminal — e.g.
-  [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-  or [OpenCode](https://opencode.ai) — or the Claude
-  desktop app's Code tab, set up as described in
-  [Claude Code Desktop](docs/ai-tools.md#claude-code-desktop).
-- **[jq](https://jqlang.org)** for Claude Code's
-  guard hooks.
-- **SSH access** to the target server, as a normal
-  user or as root, with a key that does not prompt
-  for a password or passphrase. Not needed for the
-  local machine.
-- **Linux, FreeBSD or macOS** on the target
-  machines.
-- **A checkout that supports symbolic links.**
-  macOS, Linux, FreeBSD and WSL handle them out of
-  the box. Native Windows needs three settings
-  before cloning:
-  [Windows](docs/install.md#windows).
+- An AI coding assistant: Claude Code, OpenCode, or
+  the Claude desktop app's Code tab
+- jq
+- Key-based SSH access to the target, without a
+  password or passphrase prompt
+- Linux, FreeBSD or macOS on the target
+- A checkout with working symbolic links — native
+  Windows needs three settings before cloning
 
-`bin/hostwarden-doctor` lists what your workstation
-is missing and the command to install it. Why each
-prerequisite matters:
+What each one is for, and the Windows settings:
 [docs/install.md](docs/install.md).
+`bin/hostwarden-doctor` lists what your workstation
+is missing and the command to install it.
 
 ### Steps
 
@@ -155,9 +144,8 @@ commands, auto mode and scheduled runs:
   firewall changes, reboots and service restarts
   need your explicit approval.
 - **Hard guardrails (Claude Code)** — a hook blocks
-  the absolute taboos (halt/poweroff,
-  partition-table writers, `mkfs`, SSH keys,
-  `sshd_config`) in every permission mode.
+  the absolute taboos listed in `AGENTS.md` in every
+  permission mode.
 - **Backs up and tests** — config files are copied
   before an edit, and dry-run modes run before the
   real thing.
@@ -262,15 +250,6 @@ new distro support, or improvements to the safety
 rules — please open an issue or submit a PR. See
 [CONTRIBUTING.md](CONTRIBUTING.md) and
 [SECURITY.md](SECURITY.md).
-
-Work in a development checkout: a clone of
-hostwarden, or of your fork, without
-`bin/hostwarden-init`
-([Operations and development](docs/operations.md#operations-and-development)).
-One git worktree per branch keeps parallel sessions
-apart;
-[docs/project-structure.md](docs/project-structure.md)
-says where things live.
 
 ## License
 

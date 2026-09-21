@@ -89,7 +89,7 @@ under pressure.
   Likely-secret files are refused as email
   attachments by default.
 
-## How Hostwarden Fights LLM Hallucinations
+## How hostwarden fights LLM hallucinations
 
 LLMs can "hallucinate" — confidently produce commands
 with wrong flags, incorrect file paths, or syntax that

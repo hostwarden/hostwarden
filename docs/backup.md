@@ -8,7 +8,7 @@ no scattered config. Claude Code's own personal files
 (`.claude/settings.local.json`, `CLAUDE.local.md`) are
 not hostwarden state and not in the backup.
 
-### What lives in `memory/`
+## What lives in `memory/`
 
 - `user.md` — SSH usernames and language
   preference
@@ -22,7 +22,7 @@ not hostwarden state and not in the backup.
 - `network.md`, `housekeeping.md` — cross-server
   facts and custom checks
 
-### Back up
+## Back up
 
 ```bash
 bin/hostwarden-backup
@@ -33,7 +33,7 @@ Writes
 the current directory. Use `--list` for a dry run,
 `-o <path>` to write somewhere specific.
 
-### Restore
+## Restore
 
 ```bash
 bin/hostwarden-backup --restore <file.tar.gz>
@@ -45,7 +45,7 @@ before any files are written: all entries must live
 under `memory/`, and symlink or hardlink entries are
 rejected.
 
-### Team mode note
+## Team mode note
 
 In team mode, most of `memory/` lives on the team's
 remote already. But `memory/user.md`,

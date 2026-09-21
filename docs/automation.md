@@ -3,7 +3,7 @@
 Running hostwarden without sitting at the prompt: one-shot
 commands, fewer approval prompts, and scheduled runs.
 
-## Command Line Interface
+## Command line interface
 
 You can script Hostwarden from the command line without
 entering the interactive UI.
