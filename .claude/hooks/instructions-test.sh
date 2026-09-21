@@ -565,7 +565,11 @@ fi
 # match is shared configuration someone forgot to un-ignore, and a
 # personal file that stops matching is one `git add` from a public
 # repo.
-TRACKED_IGNORED=$(git -C "$ROOT" ls-files -ci --exclude-standard)
+# The repository's own .gitignore files only: --exclude-standard
+# would add .git/info/exclude and the contributor's global excludes,
+# and a personal `.claude/` there must not fail this check.
+TRACKED_IGNORED=$(git -C "$ROOT" ls-files -ci \
+  --exclude-per-directory=.gitignore)
 report "$TRACKED_IGNORED" "a tracked file, yet the ignore rules match it"
 for p in .claude/settings.local.json .claude/worktrees/x \
          .claude/scheduled_tasks.json .claude/agent-memory-local/x \
