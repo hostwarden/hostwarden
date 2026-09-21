@@ -548,14 +548,13 @@ report "$(scan \
       if (!((p, $3) in SLUG)) print f ": " $2 "#" $3 }')" \
   "an anchor GitHub renders"
 
-# Every page under docs/ is listed in its index. The README points
-# there instead of keeping a list of its own, so a page the index
-# leaves out is a page no link reaches.
-UNLISTED=$(for f in "$ROOT"/docs/*.md; do
-  n=${f##*/}
-  [ "$n" = README.md ] && continue
-  grep -qF "]($n" "$ROOT/docs/README.md" || echo "docs/$n"
-done)
+# Every page under docs/, subdirectories included, is listed in its
+# index. The README points there instead of keeping a list of its
+# own, so a page the index leaves out is a page no link reaches.
+UNLISTED=$(cd "$ROOT/docs" && find . -name '*.md' ! -path ./README.md \
+  | sed 's#^\./##' | sort | while read -r n; do
+    grep -qF "]($n" README.md || echo "docs/$n"
+  done)
 report "$UNLISTED" "listed in docs/README.md"
 
 # --- examples name nobody real ----------------------------------
