@@ -447,6 +447,7 @@ for c in "$DEV" "$WT"; do
 done
 # A main checkout whose path holds a quote or a backslash still
 # makes valid JSON: the refusal carries neither.
+# shellcheck disable=SC2034 # read by hostwarden_refusal
 got=$(. "$HOOKS/mode.sh"; HOSTWARDEN_MODE=worktree
   HOSTWARDEN_MAIN='/srv/a"b\c'; hostwarden_refusal ssh
   printf '%s' "$HOSTWARDEN_REFUSAL")
