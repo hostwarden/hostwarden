@@ -62,15 +62,17 @@ hostwarden_git_batch
 
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-mirror.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT INT TERM
+ASKPASS=
 if [ -n "${HOSTWARDEN_MIRROR_TOKEN:-}" ]; then
   # Git asks this for the password and gets the token, which so
-  # stays in the environment.
+  # stays in the environment. Only calls to the mirror get it:
+  # upstream is another server, and never sees the token.
   # shellcheck disable=SC2016 # expanded when git runs it
   printf '#!/bin/sh\nprintf "%%s\\n" "$HOSTWARDEN_MIRROR_TOKEN"\n' \
     > "$TMP/askpass"
   chmod 700 "$TMP/askpass"
-  GIT_ASKPASS=$TMP/askpass
-  export GIT_ASKPASS HOSTWARDEN_MIRROR_TOKEN
+  ASKPASS=$TMP/askpass
+  export HOSTWARDEN_MIRROR_TOKEN
 fi
 
 # Nothing git says reaches a CI log with a credential in it.
@@ -80,6 +82,14 @@ say() { echo "hostwarden-mirror: $*" | redact; }
 # A scratch repository holding upstream's main and tags and
 # nothing else, so a push can carry no other ref.
 G() { git -C "$TMP/repo" "$@"; }
+# M — G for a call that reaches the mirror, with its token.
+M() {
+  if [ -n "$ASKPASS" ]; then
+    env GIT_ASKPASS="$ASKPASS" git -C "$TMP/repo" "$@"
+  else
+    G "$@"
+  fi
+}
 git init --quiet --bare "$TMP/repo"
 if ! OUT=$(G fetch --quiet --no-tags "$UPSTREAM" \
     '+refs/heads/main:refs/upstream/main' \
@@ -92,7 +102,7 @@ fi
 # rules decide what is refused: a main that is not an ancestor, a
 # tag that exists on another commit.
 push() {
-  G push "$@" "$MIRROR" refs/upstream/main:refs/heads/main \
+  M push "$@" "$MIRROR" refs/upstream/main:refs/heads/main \
     'refs/tags/*:refs/tags/*'
 }
 if ! push --dry-run --porcelain >"$TMP/plan" 2>"$TMP/err" \
@@ -108,7 +118,7 @@ refused() {
 }
 
 if [ -n "$(refused refs/heads/main)" ]; then
-  G fetch --quiet --no-tags "$MIRROR" '+refs/heads/main:refs/mirror/main' \
+  M fetch --quiet --no-tags "$MIRROR" '+refs/heads/main:refs/mirror/main' \
     2>/dev/null || true
   say "the mirror's main has commits upstream's does not."
   say "Nothing pushed. Move them to a branch of their own and reset"

@@ -95,6 +95,19 @@ git -C "$M" tag -f v1.0.0 "$(git -C "$U" rev-parse 'v1.0.0')" >/dev/null
 git -C "$M" tag local-1 main
 mirror >/dev/null && same_main && ok || bad "a mirror-only tag stopped the job"
 
+# The token reaches the mirror and nothing else: a git that notes
+# which calls carry the askpass.
+mkdir -p "$TMP/gitlog"
+REALGIT=$(command -v git)
+printf '#!/bin/sh\necho "${GIT_ASKPASS:-none} $*" >> "%s"\nexec "%s" "$@"\n' \
+  "$TMP/git.log" "$REALGIT" > "$TMP/gitlog/git"
+chmod +x "$TMP/gitlog/git"
+HOSTWARDEN_MIRROR_TOKEN=t0ken PATH="$TMP/gitlog:$PATH" mirror >/dev/null
+if grep " fetch .*$U" "$TMP/git.log" | grep -q askpass; then
+  bad "the upstream fetch was offered the mirror's token"
+elif grep " push .*$M" "$TMP/git.log" | grep -q askpass; then ok
+else bad "the push to the mirror did not get the token"; fi
+
 # No credential reaches the log. The @ is added at run time, so
 # the secret scan does not take the fixture for a real one.
 AT=@
