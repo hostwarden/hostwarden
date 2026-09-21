@@ -55,9 +55,8 @@ sudo -n /command/with-contenv ha os info
 ```
 
 Every `ha` command in this file is written bare and runs this way.
-Never read, print or pass the token itself: not with `--api-token`
-(`rules/secrets.md`), not out of
-`/run/s6/container_environment/`. Do not reach for a login shell
+Never read, print or pass the token itself (see Credentials), and do
+not reach for a login shell
 (`zsh -l -c …`) instead: the Advanced app's login profile starts its
 welcome banner and waits for input.
 
@@ -67,7 +66,7 @@ welcome banner and waits for input.
   `ha info` gives an overview.
 - Health: `ha resolution info` lists issues, suggestions, and
   whether the system is unsupported or unhealthy. Read it on every
-  connection, in the same call as the activity check.
+  connection, in the call that checks the versions.
 
 ## What Does Not Apply
 
@@ -77,12 +76,9 @@ welcome banner and waits for input.
   one is needed for good, the user adds it to the app's package
   option. Language runtimes (the `hostwarden-runtimes` skill) do
   not belong here either.
-- **Root SSH fallback.** The official app logs in as root of its
-  container, the Advanced app as the user its options set, often
-  with `sudo`; probe it as usual (`rules/privilege-escalation.md`).
-  Either way the container reaches the host only as far as the
-  Supervisor allows, and there is no root SSH to the host to fall
-  back on.
+- **Root SSH fallback.** Probe `sudo` as usual
+  (`rules/privilege-escalation.md`); there is no root SSH to the
+  host to fall back on.
 - **Firewall.** HAOS has no user-managed firewall. A missing one is
   not a finding. Exposure is decided by the router and by which
   apps publish ports. Core listens on 8123 by default, the
@@ -145,9 +141,8 @@ the work over MCP then happens in that client, outside Hostwarden.
   HACS.
 
 What Hostwarden does for ha-mcp as an app, each step after asking:
-add its repository (`ha store`, a third-party source, see Apps and
-Stores), install and start the app, and check that it runs
-(`ha apps`). Verify each subcommand with `--help` first.
+add its repository and install and start the app (Apps and Stores),
+then check that it runs.
 
 What stays with the user: the built-in integration, HACS and the
 custom component (UI only), exposing entities, and registering the
@@ -179,8 +174,7 @@ configuration; the app prints it in its log. Never read it out of
 
 - `ha backups list`; `ha backups new --name <name>` creates a full
   backup in `/backup`.
-- Never pass `--password`: it puts the password on the command line
-  (`rules/secrets.md`). If the backup must be encrypted, the user
+- An encrypted backup needs a password (see Credentials): the user
   creates it in the UI.
 - Take one before any update that is not already run with
   `--backup`, and before larger configuration changes.
@@ -198,44 +192,40 @@ configuration; the app prints it in its log. Never read it out of
   `ha host logs` (the host journal, persistent). There is no
   `ha os logs`. Never add a follow flag over non-interactive SSH.
 - `logger` inside an app container does not reach the host journal.
-  Log to the local changelog only (`rules/changelog.md`) and record
-  `Journal: none` in server memory.
-- The activity check reads that local changelog,
-  `memory/servers/<hostname>/changelog.log`, instead of a journal.
-  In team mode it carries the teammates' entries too.
+  Log to the local changelog only (`rules/changelog.md`); the
+  activity check reads that changelog instead of a journal.
 
 ## Housekeeping and Audits
 
 - The Linux baseline does not apply (see What Does Not Apply).
-  Housekeeping checks instead, in one call:
-  - `ha available-updates` — pending updates are the finding;
-  - `ha resolution info` — issues and an unsupported or unhealthy
-    system;
-  - `ha backups list` — no backup, or none recent, is a finding;
-  - `ha host info` — disk usage;
-  - `ha time info` — time synchronisation;
-  - `ha mounts info` — whether backup and media mounts are up.
+  Housekeeping reads, in one call:
+  ```
+  sudo -n /command/with-contenv sh -c 'ha available-updates;
+    ha resolution info; ha backups list; ha host info;
+    ha time info; ha mounts info'
+  ```
+  Findings: pending updates, reported issues, no recent backup,
+  disk usage, time not synchronised, a backup or media mount down.
 - A security audit reports instead:
   - the SSH app's options (password login, keys, user);
-  - which apps publish ports — a running ha-mcp app is full
-    configuration access over plain HTTP on the LAN, guarded only
-    by its secret URL path; report it as WARN with that note;
+  - which apps publish ports — a running ha-mcp app is WARN: full
+    configuration access over plain HTTP, guarded only by its
+    secret URL (see Configuring Home Assistant with an AI Client);
   - `ha security info`;
   - app repositories beyond the official ones (`ha store`);
   - the `http:` settings in the configuration (trusted proxies,
     login attempt bans), and credentials written into the
     configuration instead of `secrets.yaml`.
-- Verify each command with `--help` before relying on its output
-  (`AGENTS.md` → Verify Before Running); the top-level commands are
-  listed by `ha --help`.
 
 ## Credentials
 
 - `ha authentication` resets a user's password: a credential
-  rotation, so ask first, and never with the password on the
-  command line (`rules/secrets.md`). The same holds for the
-  credentials of `ha mounts` and of `ha docker` registries: never
-  print them, never pass them as arguments.
+  rotation, so ask first.
+- The Supervisor token, backup passwords, the password of
+  `ha authentication` and the credentials of `ha mounts` and
+  `ha docker` registries fall under `rules/secrets.md`: never read
+  or print them, never pass them as arguments. The token stays in
+  `/run/s6/container_environment/`.
 
 ## Never
 

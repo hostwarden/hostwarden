@@ -10,18 +10,14 @@
   `configctl` instead of `sysrc` on the firewalls, the `ha` CLI on
   Home Assistant, where Hostwarden also installs the ha-mcp app on
   request so an AI client can work on the configuration.
-  Housekeeping, the audits and the activity check follow it, and an
-  override can target an appliance file like any
-  other. The housekeeping and security baselines take the firewall
-  and the update mechanism from that merged OS file, and each
-  family file now carries the command that reads Hostwarden's
-  journal entries back.
-- **Detection is one SSH call.** OS, version, login shell,
-  hardware and appliance markers come back from a single probe that
-  runs in sh, bash, zsh, csh and tcsh alike, on the first
-  connection and every later one. It stops at a console menu
-  instead of answering it, and wraps later commands for a csh
-  login.
+  Housekeeping, the audits and the activity check follow the merged
+  file, and an override can target an appliance file like any other.
+- **Detection is one SSH call.** OS, version, login shell, hardware
+  and appliance markers come back from a single probe that runs in
+  sh, bash, zsh, csh and tcsh alike; later connections check the
+  versions in the activity check's call. It stops at a console menu
+  instead of answering it, and every later command goes through
+  `sh -s`, so a csh login works too.
 
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you

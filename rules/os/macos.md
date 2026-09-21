@@ -147,11 +147,8 @@ Two details that are not optional here:
   shadowed `log` fails with something like
   `(eval):log:1: too many arguments`, which looks nothing like a
   missing-entries result.
-- **Never redirect stderr to `/dev/null`.** With `2>/dev/null` a
-  shadowed or failing `log` produces empty output, and empty output
-  is what the activity check reads as "no activity" — so a broken
-  check reads as a clean host. Keep `2>&1` and treat any line that
-  is not a log entry as a failed check, not silence.
+- **Keep `2>&1`.** A line that is not a log entry is a failed
+  check, not silence (`rules/activity-check.md`).
 
 `senderImagePath CONTAINS "logger"` also works but matches more
 broadly; `process == "logger"` is the narrower predicate.

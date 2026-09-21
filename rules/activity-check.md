@@ -21,13 +21,27 @@ journal of every server it touched. Write only
 `hostwarden`.
 
 Run the read-back from the loaded OS file's `## Logs`
-section. A Linux host without a family file reads
-`journalctl -t hostwarden -t heinzel --since "7 days
-ago" --no-pager` where systemd runs; without systemd,
-tell the user the check could not run.
+section. Where it has none and systemd runs — every
+Linux family — read the journal:
+
+```
+journalctl -t hostwarden -t heinzel --since "7 days ago" \
+  --no-pager -q
+```
+
+As a non-root user outside the `systemd-journal` /
+`adm` groups, `journalctl` silently shows only the
+user's own entries. When connected as non-root, try
+`sudo -n journalctl …` first. If sudo is unavailable,
+run the command without `-q` and watch for the "not
+seeing messages from other users" hint, and tell the
+user the check may be incomplete.
+
+Without a `## Logs` section and without systemd, tell
+the user the check could not run.
 
 If the command returns nothing — and it actually ran,
-and the OS file names no limit on what it can see —
+and nothing limited what it can see —
 skip silently: no activity to report.
 
 An empty result only means "no activity" when the

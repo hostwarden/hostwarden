@@ -70,9 +70,7 @@ entry is a lead, not a fact
 **Then probe the host in one call,** batched into
 the activity check's call where possible
 (`rules/ssh-connections.md` — one call per logical
-step). It needs sh, so on a host whose `Shell:` is
-not sh-like it goes through `sh -s`, as that call
-does (`rules/os-detection.md` step 1):
+step):
 
 ```
 echo "##paths"; ls -d /var/backups/heinzel \

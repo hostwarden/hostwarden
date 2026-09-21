@@ -35,7 +35,8 @@ skill says so where it needs it.
    markers:
    ```
    ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
-     'echo @release; cat /etc/os-release; freebsd-version;' \
+     'echo @release; freebsd-version;' \
+     'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
@@ -49,10 +50,10 @@ skill says so where it needs it.
    without `ssh`.
 
    Keep its shape: single quotes, so the local shell
-   does not expand `$$`; no pipes, redirects, `&&` or
-   `$(…)`, because the account's login shell runs it
-   and that is not always sh — csh and tcsh are common
-   on FreeBSD and the firewalls built on it; and `ps`
+   does not expand `$$`; no redirects, `&&` or `$(…)`,
+   because the account's login shell runs it and that
+   is not always sh — csh and tcsh are common on
+   FreeBSD and the firewalls built on it; and `ps`
    not last, because bash and dash exec the last
    command of `-c` in place and `ps` would then report
    itself. Every OS lacks some of these commands, so
@@ -73,17 +74,15 @@ skill says so where it needs it.
    **The second line is the shell** (compare its
    basename; macOS may print `-zsh` or a path). Record
    it per SSH user in server memory (`Shell: csh
-   (root)`). Unless it is `sh`, `bash`, `dash`, `ash`,
-   `ksh` or `zsh`, every command with sh syntax
-   (`2>/dev/null`, `$(…)`, `VAR=x cmd`, `[ … ]`) goes
-   through the `sh -s` bundle from
-   `rules/ssh-connections.md` → Bundle commands, for
-   the whole session — the activity check and the sudo
-   probe included. That also covers an error in place
-   of the second line (busybox `ps` may reject `-p`),
-   and a shell that rejects the whole line (fish
-   rejects `$$`): record `Shell: unknown`, wrap, and
-   send the probe again through `sh -s`.
+   (root)`). Because the login shell is not always sh,
+   every later call goes through the `sh -s` bundle
+   from `rules/ssh-connections.md` → Bundle commands,
+   whatever the shell; only this probe goes without
+   stdin, so nothing is ever typed into a menu. An
+   error in place of the second line (busybox `ps` may
+   reject `-p`) records `Shell: unknown`. A shell that
+   rejects the whole line (fish rejects `$$`) does too,
+   and then the probe goes again through `sh -s`.
 
 2. **Map the OS to a family** from the lines after
    `@release`, and read `rules/os/<family>.md`:
@@ -157,9 +156,9 @@ memory, in the form the appliance file gives.
 file applied is the OS file.** Wherever an instruction
 names the loaded OS file or `rules/os/<family>.md`, it
 means that. The appliance file's
-`## Housekeeping and Audits` section adds the checks
-housekeeping and both audits run on top of that, and
-where it says a baseline does not apply, it does not.
+`## Housekeeping and Audits` section adds checks for
+housekeeping and both audits on top, and a baseline
+it excludes is skipped.
 
 ## On subsequent connections
 
@@ -168,8 +167,10 @@ first (see `rules/first-connection.md`), including
 the blacklist and read-only checks. Specific to
 known servers: read the memory file, changelog, and
 `todo.md` (if present) before any work, read the
-family file and the appliance file from `Appliance:`,
-and send the probe from step 1 again. It checks the
-OS version, the shell and, for the appliances step 3
-names, the appliance version in one call; update
-memory if any of them changed.
+family file and the appliance file from `Appliance:`.
+Shell and hardware come from memory. Check the
+versions in the activity check's call: the version
+command from the OS file's Version Detection section
+and, for an appliance, its own. Update memory if one
+changed; if the command fails or the OS no longer
+matches memory, run the full probe from step 1.

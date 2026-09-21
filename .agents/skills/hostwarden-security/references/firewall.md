@@ -1,10 +1,8 @@
 # Firewall
 
-Which firewall counts, and what its default incoming policy must
-be, comes from the loaded OS file's `## Firewall` section. The
-variants below are the family defaults. Where the OS file names
-another firewall, check that one with the read-only commands it
-gives, at the same severities.
+The variants below are the family defaults. Where the loaded OS
+file's `## Firewall` section names another firewall, its commands
+and expectations win, at the same severities.
 
 ## Linux
 

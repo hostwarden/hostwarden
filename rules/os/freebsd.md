@@ -160,7 +160,7 @@ are read back from `/var/log/messages`, both tags
 
 ```
 grep -hE "hostwarden|heinzel" /var/log/messages.0 \
-  /var/log/messages 2>/dev/null | tail -20
+  /var/log/messages | tail -20
 ```
 
 This shows the last 20 matches, not a strict 7-day window, and only
