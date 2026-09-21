@@ -206,6 +206,19 @@ replaced with a link.
    it does and why, and waits for your approval.
    Nothing runs without your say-so.
 
+### Parallel sessions
+
+Sessions that change the same host — two windows, or
+teammates on different workstations — see each other.
+Before its first change a session registers on the
+host itself, in `/tmp/hostwarden/` (no root needed),
+with who it is, where it runs and what it is doing.
+Another live entry makes Hostwarden say so and ask
+whether the two get in each other's way; a session on
+the same machine can be messaged directly. Sessions
+that only read — housekeeping, audits — register
+nothing. Details: `rules/parallel-sessions.md`.
+
 ### Team setup and several machines
 
 A team — or one admin on several machines — shares

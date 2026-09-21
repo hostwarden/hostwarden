@@ -33,6 +33,10 @@ tool reads. This file adds only what exists here and nowhere else.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.
+- **Sessions on this machine can be reached.** When a host's session
+  register names your own `user@workstation`
+  (`rules/parallel-sessions.md`), `ListAgents` lists the sessions
+  here and `SendMessage` reaches them.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.

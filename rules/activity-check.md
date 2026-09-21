@@ -104,6 +104,9 @@ session did it.
 
 `contrib/heinzel-coexistence/` holds the custom rules
 that teach heinzel the same thing from its side.
+Another hostwarden session that is changing the same
+host shows up in the host's session register instead
+(`rules/parallel-sessions.md`).
 
 ## What to show
 
