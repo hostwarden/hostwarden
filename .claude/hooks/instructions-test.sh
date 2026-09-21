@@ -358,7 +358,7 @@ report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
   | tag '`hostwarden-[a-z-]+`' \
   | tr -d '`' \
-  | grep -vE ' hostwarden-(migrate|update|backup)$' \
+  | grep -vE ' hostwarden-(migrate|update|backup|doctor)$' \
   | while IFS=' ' read -r f s; do
       [ -d "$ROOT/.agents/skills/$s" ] && continue
       [ -f "$CLAUDE_DIR/agents/$s.md" ] && continue

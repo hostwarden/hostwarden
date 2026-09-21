@@ -16,11 +16,16 @@ tool reads. This file adds only what exists here and nowhere else.
   it: no server from a development checkout or a worktree, no edit
   to shipped files in an operations one. The taboo guard's
   disable variable does not reach it.
-- **SessionStart hooks have already run.** In an operations
-  checkout they check for repo updates and pull the workspace
-  (`rules/session-start.md`), and they create `~/.cache/hostwarden`
-  with mode 0700, so the `mkdir` named under `AGENTS.md` → SSH
-  Options is done. Where hooks do not run, none of it is.
+- **SessionStart hooks have already run.** They have:
+  - in an operations checkout, checked for repo updates and
+    pulled the workspace;
+  - created `~/.cache/hostwarden` with mode 0700, the `mkdir`
+    under `AGENTS.md` → SSH Options;
+  - run `bin/hostwarden-doctor --quiet`, whose output, if any,
+    names the workstation tools that are missing.
+
+  Where hooks do not run, `rules/session-start.md` says what to do
+  instead.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.
