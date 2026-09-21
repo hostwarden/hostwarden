@@ -15,17 +15,28 @@
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 
-# A linked worktree's .git is a file ("gitdir: <main>/.git/
-# worktrees/<name>"), not a directory. No git call needed. A
-# submodule has a .git file too, pointing into .git/modules/, so
-# only a gitdir under .git/worktrees/ counts. The main checkout is
-# named when git wrote an absolute path; a relative one
-# (worktree.useRelativePaths) the rule derives itself.
-MAIN=""
-[ -f "$ROOT/.git" ] &&
-  MAIN=$(sed -n 's|^gitdir: \(.*\)/\.git/worktrees/[^/]*$|\1|p' "$ROOT/.git")
-if [ -n "$MAIN" ]; then
-  case "$MAIN" in /*) ;; *) MAIN="the main checkout" ;; esac
+# A linked worktree's .git is a file ("gitdir: <path>"), and the
+# directory it names holds a `commondir` file pointing at the shared
+# git directory. A submodule has a .git file too, but its git
+# directory has no commondir. Neither the name of the common
+# directory (a separate --git-dir need not be called .git) nor an
+# absolute gitdir (worktree.useRelativePaths) is assumed. No git
+# call needed.
+GITDIR=""
+[ -f "$ROOT/.git" ] && GITDIR=$(sed -n 's|^gitdir: ||p' "$ROOT/.git")
+case "$GITDIR" in
+  "") ;;
+  /*) ;;
+  *) GITDIR="$ROOT/$GITDIR" ;;
+esac
+if [ -n "$GITDIR" ] && [ -f "$GITDIR/commondir" ]; then
+  COMMON=$(sed -n 1p "$GITDIR/commondir")
+  case "$COMMON" in /*) ;; *) COMMON="$GITDIR/$COMMON" ;; esac
+  COMMON=$(cd "$COMMON" 2>/dev/null && pwd)
+  case "$COMMON" in
+    */.git) MAIN="${COMMON%/.git}" ;;
+    *) MAIN="the checkout that shares ${COMMON:-its git directory}" ;;
+  esac
   echo "hostwarden: this session runs in a linked git worktree, not in"
   echo "  $MAIN. Do not reach any machine from it:"
   echo "  rules/access-control.md -> Linked Worktrees."

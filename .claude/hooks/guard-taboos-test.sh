@@ -800,6 +800,22 @@ settings_case pass 'Bash: naming it in the docs' \
   "$(json_for "echo see $V in the docs")"
 settings_case pass 'Bash: reading the settings file' \
   "$(json_for 'jq .env .claude/settings.local.json')"
+# Once the variable is set, a change that never names it can still
+# flip its value, so only taking it out passes.
+SET=$(mktemp -d)
+mkdir -p "$SET/.claude"
+printf '{"env": {"%s": "0"}}\n' "$V" > "$SET/.claude/settings.local.json"
+settings_case deny 'Edit flipping the value of an existing key' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"0\"","new_string":"\"1\""}}'
+settings_case pass 'Edit taking the existing key out' \
+  '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"'"$V"'\": \"0\"","new_string":""}}'
+settings_case deny 'Bash: sed on settings while the key exists' \
+  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
+  "CLAUDE_PROJECT_DIR=$SET"
+settings_case pass 'Bash: sed on settings without the key' \
+  "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
+  "CLAUDE_PROJECT_DIR=$SET/none"
+rm -rf "$SET"
 # No jq: judged on the raw text, which may over-block, never under.
 NOJQ=$(mktemp -d)
 for t in sh cat grep printf sed; do
@@ -811,19 +827,27 @@ settings_case deny 'no jq: Write settings.local.json' \
 rm -rf "$NOJQ"
 
 # --- check-session.sh: worktree and guard-off notices ----------
-# The hook only reads .git, so hand-written ones cover every case:
-# a checkout (a directory), a linked worktree with an absolute and
-# with a relative gitdir, and a submodule, which is not one.
+# The hook only reads .git files and the commondir they lead to, so
+# hand-written ones cover every case: a checkout (a directory), a
+# linked worktree with an absolute and with a relative gitdir, one
+# whose common git directory is not called .git, and a submodule,
+# which is not a worktree.
 CSESSION="$CLAUDE_DIR/hooks/check-session.sh"
 REPO=$(mktemp -d)
-for d in main wt rel sub; do
+for d in main wt rel sep sub; do
   mkdir -p "$REPO/$d/.claude/hooks"
   cp "$CSESSION" "$REPO/$d/.claude/hooks/"
 done
-mkdir "$REPO/main/.git"
+for w in wt rel; do
+  mkdir -p "$REPO/main/.git/worktrees/$w"
+  echo ../.. > "$REPO/main/.git/worktrees/$w/commondir"
+done
+mkdir -p "$REPO/meta/worktrees/sep" "$REPO/main/.git/modules/sub"
+echo ../.. > "$REPO/meta/worktrees/sep/commondir"
 printf 'gitdir: %s/main/.git/worktrees/wt\n' "$REPO" > "$REPO/wt/.git"
 printf 'gitdir: ../main/.git/worktrees/rel\n' > "$REPO/rel/.git"
-printf 'gitdir: ../.git/modules/sub\n' > "$REPO/sub/.git"
+printf 'gitdir: %s/meta/worktrees/sep\n' "$REPO" > "$REPO/sep/.git"
+printf 'gitdir: ../main/.git/modules/sub\n' > "$REPO/sub/.git"
 session_out() {
   env -u HOSTWARDEN_GUARD_DISABLE ${2:+"$2"} \
     sh "$REPO/$1/.claude/hooks/check-session.sh"
@@ -835,7 +859,10 @@ expect "check-session.sh missed a linked worktree or its checkout" \
   contains "$(session_out wt)" "not in
   $REPO/main."
 expect "check-session.sh missed a worktree with a relative gitdir" \
-  contains "$(session_out rel)" "linked git worktree"
+  contains "$(session_out rel)" "not in
+  $REPO/main."
+expect "check-session.sh missed a worktree of a separate git dir" \
+  contains "$(session_out sep)" "linked git worktree"
 expect "check-session.sh took a submodule for a worktree" \
   [ -z "$(session_out sub)" ]
 expect "check-session.sh did not report the guard as off" \

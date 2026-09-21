@@ -109,10 +109,10 @@ server.
 **When to check:** before the blacklist check, once
 per session. A `SessionStart` hook says so on its
 own where hooks run; elsewhere, read `.git` in the
-hostwarden directory. A file whose `gitdir:` line
-points into `.git/worktrees/` means a linked
-worktree; a directory, or a submodule's pointer into
-`.git/modules/`, does not.
+hostwarden directory. A file whose `gitdir:` names a
+directory holding a `commondir` file means a linked
+worktree; a directory, or a submodule's `.git` file,
+does not.
 
 **Why:** `memory/` is gitignored, so a worktree
 carries none of the user's state — no
