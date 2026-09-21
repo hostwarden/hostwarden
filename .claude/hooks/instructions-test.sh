@@ -122,6 +122,13 @@ while IFS= read -r c; do
   esac
   h=${c#*CLAUDE_PROJECT_DIR/}
   h=${h%%\\\"*}
+  # After the script, plain arguments only: `; bash …` or `&& …`
+  # would start a second command the checks above never see.
+  case ${c#*"$h"\\\"} in
+    *[!a-z0-9\ -]*)
+      bad "settings.json runs more than $h: $c"
+      continue ;;
+  esac
   if [ -f "$ROOT/$h" ]; then
     ok
   else

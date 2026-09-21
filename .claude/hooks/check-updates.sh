@@ -38,7 +38,9 @@ if ! command -v git >/dev/null 2>&1; then
     "install git to get updates"
   exit 0
 fi
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
+# The top of a clone, not merely inside one: unpacked into some
+# other repository, git would otherwise pull that one.
+if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ]; then
   echo "hostwarden: this is not a git clone (an archive" \
     "download?), so no update check — clone the repository" \
     "to get updates"
