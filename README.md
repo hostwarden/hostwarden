@@ -132,12 +132,13 @@ from **Git Bash**, so the SessionStart hooks and the
 `cmd.exe` are not supported as the launch shell.
 
 Already cloned without these settings? After steps
-1–3, replace the text file with the link:
+1–3, replace the text file with the link, then check it;
+no output means it is fine:
 
 ```
 rm .claude/skills
 git checkout -- .claude/skills
-test -L .claude/skills && echo ok
+sh .claude/hooks/check-skills.sh
 ```
 
 A DNS alias created before step 3 is a directory

@@ -33,6 +33,12 @@
 # -f: a host name is data, never a glob to expand.
 set -ef
 
+# Git Bash copies where ln -s is asked to link, unless told
+# otherwise, and a copied alias drifts from the host it names.
+# Harmless everywhere else. (README → Windows)
+MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict"
+export MSYS
+
 SELF=$0
 usage() {
   awk '/^# hostwarden-adopt/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"

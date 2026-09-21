@@ -71,13 +71,9 @@ symlink):
    - Create symlink:
      `ln -s <canonical> memory/servers/<alias>`
    - Confirm it is one: `test -L memory/servers/<alias>`.
-     Git Bash on Windows copies instead of linking
-     unless `MSYS=winsymlinks:nativestrict` is set, and
-     a copy drifts from the canonical memory unnoticed.
-     If the test fails, delete the copy you just made,
-     read and write the canonical `memory.md` directly
-     for this session, and point the user to the
-     README → Windows.
+     If not, delete the copy, use the canonical
+     `memory.md` for this session, and point the user to
+     the README → Windows.
    - Add `- DNS alias: <alias>` to canonical
      `memory.md`.
    - Skip OS detection.

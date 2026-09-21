@@ -16,7 +16,8 @@
 # production server without noticing what it is missing.
 #
 # Hence a SessionStart hook with no matcher. The fix it points
-# at is the user's to make: clone again with symlink support.
+# at is the user's to make: turn on symlink support and restore
+# the link (README → Windows).
 set -e
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -47,7 +48,7 @@ fi
 
 echo "hostwarden: .claude/skills does not lead to .agents/skills/,"
 echo "  so Claude Code sees no skill at all — no housekeeping, no"
-echo "  security audit, and no warning but this one. See"
-echo "  Prerequisites in the README."
+echo "  security audit, and no warning but this one. The README"
+echo "  → Windows says how to repair the link in this clone."
 
 exit 0
