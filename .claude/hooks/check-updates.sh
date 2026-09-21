@@ -30,6 +30,21 @@ if [ "$HOSTWARDEN_NO_UPDATE" = "1" ] || [ "${HEINZEL_NO_UPDATE:-}" = "1" ]; then
   exit 0
 fi
 
+# Without git, or outside a clone, every git call below fails
+# and the branch test reports a detached HEAD -- the wrong cause,
+# and one that sends the user looking for a pin they never set.
+if ! command -v git >/dev/null 2>&1; then
+  echo "hostwarden: git is not installed, so no update check —" \
+    "install git to get updates"
+  exit 0
+fi
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "hostwarden: this is not a git clone (an archive" \
+    "download?), so no update check — clone the repository" \
+    "to get updates"
+  exit 0
+fi
+
 # Skip if not on the main branch (user pinned to a
 # version tag or is on a custom branch).
 BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)

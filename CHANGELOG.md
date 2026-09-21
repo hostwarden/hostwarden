@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **The taboo guard no longer depends on bash.** Claude
+  Code started it with `bash`, so on a machine without
+  bash the hook failed to start, which Claude Code does
+  not treat as a block: the guard did not run at all. All
+  hooks now start with `sh`, as the scripts are written
+  for, and the test matrix fails if one is registered
+  otherwise. The update check says when git is missing or
+  the checkout is not a clone, rather than reporting a
+  detached HEAD, and the email skill only counts
+  `sendmail` or `msmtp` as a local transport.
 - **Native Windows: the README lists the three settings
   symlinks need** and how to repair a clone made without
   them. Without them Git Bash copies where it should link,
