@@ -111,8 +111,9 @@ docker ps --format \
 ## Home Assistant
 
 Triggered when `memory.md` mentions Home Assistant. This section
-covers Home Assistant on a normal Linux host. Home Assistant OS,
-where the whole machine is the appliance, is out of scope here.
+covers Home Assistant on a normal Linux host. On Home Assistant OS,
+where `memory.md` records `Appliance: Home Assistant OS`, skip it:
+`rules/appliance/haos.md` → Housekeeping and Audits covers that.
 
 `memory.md` records the install type and what the checks need:
 the container name, or for Core the systemd unit, the virtual
@@ -120,13 +121,18 @@ environment, the config directory and the account it runs as.
 Detect only what is missing or no longer matches, and record it:
 
 ```bash
-docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
+command -v docker && docker ps -a \
+  --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
   | grep -i -E 'home-?assistant|hassio_supervisor'
 command -v ha
+systemctl list-unit-files --type=service --no-legend \
+  | grep -i -E 'home-?assistant|hass'
 ```
 
-An error from `docker` — permission denied on the socket, no
-daemon — is not an empty list: get the access through
+No `docker` on the host, or no Docker daemon running, means no
+containers: go on with the Core unit search. Permission denied on
+the Docker socket is different — the containers are there but
+unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
 never conclude Core from it.
 
@@ -141,9 +147,10 @@ never conclude Core from it.
   host has the `ha` CLI. The grep also lists the Supervisor's
   other containers and add-ons; Home Assistant itself is the one
   named `homeassistant`.
-- **Core** — no Home Assistant container at all. Home Assistant
-  runs from a Python virtual environment under a systemd unit,
-  with neither a Supervisor nor an `ha` CLI. The unit's
+- **Core** — no Home Assistant container, and a unit the search
+  above found (`hassio-*` units belong to Supervised). Home
+  Assistant runs from a Python virtual environment under that
+  unit, with neither a Supervisor nor an `ha` CLI. The unit's
   `ExecStart` holds the path to `hass` and its `-c` argument,
   `User=` the account; without `-c`, the config directory is
   `~/.homeassistant` of that account.

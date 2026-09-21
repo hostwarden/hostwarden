@@ -86,6 +86,11 @@ full instance (`nginx@default`). No wildcards in v1.
 On FreeBSD and macOS, match the `service` /
 `brew services` / `launchctl` service name.
 
+Home Assistant in a container has no unit of its
+own: match its container name — `homeassistant` on
+Supervised, whatever `memory.md` records on
+Container. On Core, match its unit as usual.
+
 ## Prompt Shape When Asking
 
 When Hostwarden has to ask (restart not on
