@@ -261,13 +261,15 @@ cd "$REPO_DIR"
 if [ -z "$LIST" ]; then
   mkdir -p memory/servers
   probe=$(mktemp -d memory/servers/.link-probe.XXXXXX)
-  if ! ln -s "$probe" "$probe/l" 2>/dev/null || [ ! -L "$probe/l" ]; then
-    rm -rf "$probe"
+  ln -s "$probe" "$probe/l" 2>/dev/null || :
+  linked=''
+  [ -L "$probe/l" ] && linked=yes
+  rm -rf "$probe"
+  if [ -z "$linked" ]; then
     echo "error: this shell cannot create symbolic links, and DNS" >&2
     echo "  aliases need them — see README → Windows" >&2
     exit 1
   fi
-  rm -rf "$probe"
 fi
 
 # A host name is one path component. Interpolated
