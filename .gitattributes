@@ -1,7 +1,12 @@
-# Shell scripts must stay LF even when checked out
-# on Windows with core.autocrlf=true. CRLF in a
-# shebang line (#!/bin/sh\r) silently breaks the
-# interpreter.
-*.sh             text eol=lf
-bin/hostwarden-*    text eol=lf
-.claude/hooks/*  text eol=lf
+# Every text file is stored and checked out with LF, on every
+# platform and whatever core.autocrlf says. For the shell scripts
+# this is not a preference: CRLF in a shebang line
+# (#!/bin/sh\r) silently breaks the interpreter, and bin/ and the
+# hooks carry no extension a narrower pattern could catch.
+* text=auto eol=lf
+
+# Git detects binaries on its own; naming them keeps a stray
+# byte from ever tipping one into text handling.
+*.gif binary
+*.png binary
+*.jpg binary

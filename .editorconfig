@@ -1,0 +1,18 @@
+# https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Every .md is wrapped at 80 (AGENTS.md → Writing in this repo).
+# Trailing whitespace stays: the email skill's signature
+# delimiter is "-- " with its space, and trimming it breaks the
+# mail clients that look for it.
+[*.md]
+max_line_length = 80
+trim_trailing_whitespace = false

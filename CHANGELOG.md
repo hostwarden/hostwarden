@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Every text file checks out with LF**, on Windows too
+  and whatever `core.autocrlf` says — the rule files and
+  skills as well as the shell scripts, which were the only
+  files pinned so far. An
+  `.editorconfig` carries the same settings and the
+  80-column wrap into the editor.
 - **The authoring conventions reach the files they
   govern.** Editing anything under `rules/` or
   `.agents/skills/` names
