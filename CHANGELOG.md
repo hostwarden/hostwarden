@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Parallel sessions on one machine keep out of each
+  other's workspace changes.** `bin/hostwarden-sync
+  commit` takes the files a session names and nothing
+  another session changed or staged, and waits out a
+  moment when another session holds the index. A session
+  commits when it is done with a host, not at a session
+  end it rarely sees. `pull` no longer stashes
+  uncommitted changes from under a running session: it
+  fast-forwards past them where git can, and otherwise
+  leaves the workspace alone and says so. Changes a
+  deleted or crashed session left behind are found
+  through the host's session register and committed on
+  their own after you say so.
+
 - **Sessions that change the same host see each
   other.** Before its first change a session registers on
   the managed host itself, in `/tmp/hostwarden/`, without
@@ -67,6 +81,22 @@
   settings files for the next session, and every session
   that starts with the guard off opens with a note
   saying so.
+- **A checkout can follow a release line.**
+  `bin/hostwarden-update --follow 1` takes every 1.x.y
+  release, `--follow 1.2` only 1.2.x fixes; the
+  auto-update then moves to the newest matching
+  `vX.Y.Z` tag instead of pulling `main`. The line is
+  kept in the checkout's own git config, so each
+  machine picks its own. `--pin` still sets one exact
+  version, and `--unpin` returns to `main` from either.
+- **Your own mirror of hostwarden stays current
+  unattended.** `bin/hostwarden-mirror` fast-forwards a
+  mirror's `main` and carries the tags from any CI or
+  cron job, and fails instead of overwriting commits
+  the mirror has of its own. The README explains when
+  production should clone a mirror rather than GitHub,
+  why a GitHub fork is only for pull requests, and has
+  job examples for GitHub Actions and GitLab CI.
 
 - **`bin/hostwarden-doctor` says what your workstation is
   missing**, and which feature each missing tool switches

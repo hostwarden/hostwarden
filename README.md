@@ -219,14 +219,103 @@ the same machine can be messaged directly. Sessions
 that only read — housekeeping, audits — register
 nothing. Details: `rules/parallel-sessions.md`.
 
+### Where production comes from
+
+Production runs a **clone** — of
+`jpawlowski/hostwarden` itself, or of a mirror of your
+own.
+
+- **Straight from GitHub** is the default and needs
+  nothing else.
+- **A mirror of your own** is optional. It is worth it
+  when hostwarden has to come from your internal git
+  hosting, when an update should reach production only
+  once your mirror has taken it (the mirror job is the
+  gate), or when you carry local patches. Name it
+  `hostwarden-mirror`. Its `main` stays an exact copy of
+  upstream's so the job below can keep it current;
+  patches of your own go on a branch of their own, and
+  a checkout on that branch gets no auto-update.
+- **A GitHub fork is not a production copy.** It exists
+  to send pull requests: a fork of a public repository
+  cannot be private, and an owner gets one fork of a
+  repository, which pull requests need.
+
+These names are recommendations. Nothing checks them:
+the workspace alone decides whether a checkout runs
+production (see
+[Operations and development](#operations-and-development)).
+
+### Keeping a mirror current
+
+`bin/hostwarden-mirror` fast-forwards the mirror's
+`main` to upstream's and pushes every tag it lacks. It
+needs git and nothing else, so it runs from any CI or
+cron job — not from an operator's machine: it refuses
+to run in an operations checkout. It never overwrites:
+when the mirror's `main` has commits of its own, or a
+tag of the mirror names another commit, it lists them,
+pushes nothing and fails the job.
+
+The token goes into `HOSTWARDEN_MIRROR_TOKEN`, the user
+into the URL, so the token never lands on a command
+line. Run the job from a repository other than the
+mirror, whose `main` has to stay upstream's. Give the
+token write access to the mirror's contents — on
+GitHub also to its workflows, since hostwarden ships
+some — and turn Actions off in a GitHub mirror, which
+would otherwise run hostwarden's own.
+
+GitHub Actions (Gitea and Forgejo Actions read the same
+file):
+
+```yaml
+name: hostwarden mirror
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - run: git clone --depth 1 https://github.com/jpawlowski/hostwarden.git
+      - run: >-
+          hostwarden/bin/hostwarden-mirror
+          https://x-access-token@github.com/<org>/hostwarden-mirror.git
+        env:
+          HOSTWARDEN_MIRROR_TOKEN: ${{ secrets.HOSTWARDEN_MIRROR_TOKEN }}
+```
+
+GitLab CI, run by a pipeline schedule, with the token
+as a masked CI/CD variable:
+
+```yaml
+hostwarden-mirror:
+  image:
+    name: alpine/git
+    entrypoint: [""]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - git clone --depth 1 https://github.com/jpawlowski/hostwarden.git
+    - hostwarden/bin/hostwarden-mirror
+      "https://oauth2@gitlab.example.com/<group>/hostwarden-mirror.git"
+```
+
+Production then clones the mirror instead of GitHub.
+
 ### Team setup and several machines
 
 A team — or one admin on several machines — shares
 the workspace, `memory/`, through a git remote of its
 own. **Keep that remote private:** the workspace
 holds hostnames, addresses, the blacklist and the
-layout of your network. hostwarden itself stays an
-unmodified clone that keeps updating.
+layout of your network. Create it private; the
+recommended name is `hostwarden-workspace`, and nothing
+checks it. hostwarden itself stays an unmodified clone
+that keeps updating.
 
 1. Set the workspace up as above, then publish it
    once:
@@ -271,8 +360,9 @@ The current version is in the `VERSION` file; changes
 are listed in `CHANGELOG.md`.
 
 **Auto-update (Claude Code):** On every session start
-in an operations checkout, a hook runs `git pull` and
-reports version changes. No action needed.
+in an operations checkout, a hook runs `git pull` —
+or, on a release line, moves to its newest release —
+and reports version changes. No action needed.
 Auto-update is skipped in a development checkout,
 when pinned to a tag (see below), when on a
 non-`main` branch, or when `HOSTWARDEN_NO_UPDATE=1`
@@ -285,12 +375,28 @@ bin/hostwarden-update           # pull latest
 bin/hostwarden-update --check   # check without pulling
 ```
 
+**Follow a release line** instead of `main`:
+
+```bash
+bin/hostwarden-update --follow 1     # every 1.x.y release
+bin/hostwarden-update --follow 1.2   # 1.2.x fixes only
+```
+
+The line is kept in this checkout's own git config
+(`hostwarden.follow`), so each machine chooses its own
+and an update never changes it. The auto-update checks
+out the highest `vX.Y.Z` tag on the line;
+pre-releases do not count.
+
 **Pin to a stable version** (skip auto-updates):
 
 ```bash
 bin/hostwarden-update --pin vX.Y.Z   # pin
 bin/hostwarden-update --unpin        # back to main
 ```
+
+A pin replaces a release line, and `--unpin` clears
+both.
 
 **Opt out of auto-update** without pinning:
 
@@ -1216,6 +1322,8 @@ bin/
   hostwarden-init         — Set up (or join) the workspace
   hostwarden-sync         — Keep the workspace in step with
                             its remote
+  hostwarden-mirror       — Keep a mirror of hostwarden current
+                            (for CI or cron)
   hostwarden-adopt        — Take over a heinzel checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
@@ -1237,6 +1345,11 @@ mise.dev.toml          — Pinned versions of the tools check.sh
   hooks/
     check-updates.sh   — Auto-check for repo updates and
                          auto-migrate on session start
+    follow.sh          — The release line a checkout follows,
+                         shared with bin/hostwarden-update
+    release-test.sh    — Dev-only fixture matrix for mirror,
+                         update and release lines (run by
+                         scripts/check.sh)
     guard-taboos.sh    — PreToolUse hook that blocks taboo
                          commands in every permission mode
     guard-taboos-test.sh — Dev-only fixture matrix for the

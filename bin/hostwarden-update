@@ -2,12 +2,16 @@
 # hostwarden-update — update, pin, or check hostwarden version.
 #
 # Usage:
-#   hostwarden-update            Pull latest from main
-#   hostwarden-update --check    Show current version and
-#                             check for updates
-#   hostwarden-update --pin VER  Pin to a version tag
-#                             (e.g. --pin v0.1.0)
-#   hostwarden-update --unpin    Return to main and pull
+#   hostwarden-update               Update: pull main, or move to
+#                                the newest release on the line
+#                                this checkout follows
+#   hostwarden-update --check       Show current version and
+#                                check for updates
+#   hostwarden-update --follow L    Follow release line L, a major
+#                                (1) or a major.minor (1.2)
+#   hostwarden-update --pin VER     Pin to a version tag
+#                                (e.g. --pin v0.1.0)
+#   hostwarden-update --unpin       Return to main and pull
 set -e
 
 # Find the repo root (this script lives in bin/).
@@ -20,6 +24,32 @@ current_version() {
     cat VERSION
   else
     echo "unknown"
+  fi
+}
+
+# Bring an older state layout up to date. Idempotent and silent
+# when there's nothing to do.
+run_migration() {
+  if [ -f bin/hostwarden-migrate ]; then sh bin/hostwarden-migrate; fi
+}
+
+# report <old version> <old HEAD> — what the update did, once it
+# is done.
+report() {
+  NEW=$(current_version)
+  if [ "$1" = "$NEW" ]; then
+    if [ "$2" = "$(git rev-parse HEAD)" ]; then
+      echo "hostwarden $NEW — already up to date."
+    else
+      echo "hostwarden $NEW — updated to $(git rev-parse --short HEAD)."
+    fi
+    return
+  fi
+  echo "hostwarden updated: $1 -> $NEW"
+  show_changelog_section "$NEW"
+  if [ "${1%%.*}" != "${NEW%%.*}" ]; then
+    echo ""
+    echo "BREAKING CHANGES — read CHANGELOG.md"
   fi
 }
 
@@ -38,12 +68,15 @@ show_changelog_section() {
 
 case "${1:-}" in
   --help|-h)
-    echo "Usage: hostwarden-update [--check|--pin VER|--unpin]"
+    echo "Usage: hostwarden-update [--check|--follow L|--pin VER|--unpin]"
     echo ""
-    echo "  (no args)   Pull latest from main"
-    echo "  --check     Show version and update status"
-    echo "  --pin VER   Pin to a version tag (e.g. v0.1.0)"
-    echo "  --unpin     Return to main and pull latest"
+    echo "  (no args)    Pull latest from main, or move to the newest"
+    echo "               release on the line this checkout follows"
+    echo "  --check      Show version and update status"
+    echo "  --follow L   Follow release line L: 1 for every 1.x.y,"
+    echo "               1.2 for 1.2.x only; the auto-update moves on"
+    echo "  --pin VER    Pin to a version tag (e.g. v0.1.0)"
+    echo "  --unpin      Return to main and pull latest"
     exit 0 ;;
 esac
 
@@ -66,9 +99,59 @@ if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
   exit 1
 fi
 
+# shellcheck source=../.claude/hooks/follow.sh
+. .claude/hooks/follow.sh
+FOLLOW=$(hostwarden_follow)
+
+# follow_target <line> — sets TAG to the newest release on the
+# line, from origin; exits when there is none to be had.
+follow_target() {
+  if ! OUTPUT=$(hostwarden_follow_fetch 2>&1); then
+    echo "hostwarden update failed: $OUTPUT"
+    exit 1
+  fi
+  TAG=$(hostwarden_follow_tag "$1")
+  if [ -z "$TAG" ]; then
+    echo "Error: no release v$1.x on origin."
+    echo "Newest tags:"
+    git tag --sort=-v:refname | head -10
+    exit 1
+  fi
+}
+
+at_tag() { [ "$(git rev-parse HEAD)" = "$(git rev-parse "$1^{commit}")" ]; }
+
+# follow_update <line> [set] — check out the newest release on the
+# line; with set, record the line as soon as the checkout is on it,
+# before anything after that can fail and leave the tag looking
+# like a pin.
+follow_update() {
+  follow_target "$1"
+  OLD_VERSION=$(current_version)
+  OLD_HEAD=$(git rev-parse HEAD)
+  if ! at_tag "$TAG" && ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
+    echo "hostwarden update failed: $OUTPUT"
+    echo "Likely cause: local changes (run 'git status')."
+    exit 1
+  fi
+  [ -z "${2:-}" ] || hostwarden_follow_set "$1"
+  run_migration
+  report "$OLD_VERSION" "$OLD_HEAD"
+}
+
 case "${1:-}" in
   --check)
     echo "hostwarden $(current_version)"
+    if [ -n "$FOLLOW" ]; then
+      echo "Following $FOLLOW (the newest v$FOLLOW.x release)."
+      follow_target "$FOLLOW"
+      if at_tag "$TAG"; then
+        echo "Up to date."
+      else
+        echo "$TAG is available."
+      fi
+      exit 0
+    fi
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
     if [ -z "$BRANCH" ]; then
       TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -96,6 +179,19 @@ case "${1:-}" in
     fi
     ;;
 
+  --follow)
+    LINE="${2:?Usage: hostwarden-update --follow LINE (e.g. 1 or 1.2)}"
+    if ! hostwarden_follow_valid "$LINE"; then
+      echo "Error: '$LINE' is no release line: give a major (1)"
+      echo "or a major.minor (1.2)."
+      exit 1
+    fi
+    follow_update "$LINE" set
+    echo "hostwarden follows $LINE: the auto-update moves to each"
+    echo "new v$LINE.x release. 'hostwarden-update --unpin' returns"
+    echo "to main."
+    ;;
+
   --pin)
     VER="${2:?Usage: hostwarden-update --pin VERSION (e.g. v2.0.0)}"
     # Fresh/shallow clones may not have tags yet.
@@ -109,6 +205,8 @@ case "${1:-}" in
       exit 1
     fi
     git checkout "$VER"
+    # An exact version replaces a line.
+    hostwarden_follow_clear
     echo "hostwarden pinned to $VER ($(current_version))"
     echo "Auto-update is disabled while pinned."
     echo "Run 'hostwarden-update --unpin' to return to main."
@@ -116,17 +214,24 @@ case "${1:-}" in
 
   --unpin)
     git checkout main
+    # Only once off the tag: a failed checkout keeps the line, or
+    # the next session would take the tag for a pin.
+    hostwarden_follow_clear
     git pull --ff-only --quiet
     # Same as the default path: a pinned checkout can be many
     # releases behind, so this is exactly where an override
     # left at an obsolete path needs moving. Without it the
     # update succeeds and the customization is silently dead.
-    [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
+    run_migration
     echo "hostwarden unpinned — now on main ($(current_version))"
     ;;
 
 
   "")
+    if [ -n "$FOLLOW" ]; then
+      follow_update "$FOLLOW"
+      exit 0
+    fi
     # Default: pull latest.
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
     if [ -z "$BRANCH" ]; then
@@ -140,6 +245,7 @@ case "${1:-}" in
     fi
 
     OLD_VERSION=$(current_version)
+    OLD_HEAD=$(git rev-parse HEAD)
     # --ff-only: never create a silent merge commit
     # on a diverged main. Capture the failure so
     # set -e doesn't kill us with a raw git error.
@@ -150,19 +256,8 @@ case "${1:-}" in
       echo "diverged main, or no network. Fix and re-run."
       exit 1
     fi
-    NEW_VERSION=$(current_version)
-
-    # Run the 1.x → 2.0 migration if needed.
-    # Idempotent and silent when there's nothing
-    # to do.
-    [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
-
-    if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-      echo "hostwarden $(current_version) — already up to date."
-    else
-      echo "hostwarden updated: $OLD_VERSION -> $NEW_VERSION"
-      show_changelog_section "$NEW_VERSION"
-    fi
+    run_migration
+    report "$OLD_VERSION" "$OLD_HEAD"
     ;;
 
   *)

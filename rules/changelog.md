@@ -126,11 +126,16 @@ Trim entries older than 2 years when writing.
 
 ## The Workspace
 
-Last, once the changelog is written: commit the workspace
-with the session's journal headline as the message —
-`bin/hostwarden-sync commit "<headline>"`. A session that
-changed nothing in `memory/` commits nothing; the command
-says so by doing nothing.
+As soon as this session is done with a host and this
+changelog is written — for a session that changed it, the
+moment it deregisters (`rules/parallel-sessions.md`); for one
+that only read, once its visit is recorded — commit the files
+it wrote there, not at a session end the agent rarely sees,
+with the journal headline as the message:
+`bin/hostwarden-sync commit "<headline>" <paths>`. Which paths,
+and what to leave out: `rules/parallel-sessions.md` → The
+workspace. A session that changed nothing in `memory/` commits
+nothing.
 
 Then push, if the workspace has a remote:
 `bin/hostwarden-sync push`. The first push of a session

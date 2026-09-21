@@ -144,3 +144,61 @@ deregistering; ask again, or deregister, when it runs out. A
 session that is simply deleted leaves its entry behind; it goes
 stale 30 minutes after its last beat, or when a set hold ends, and
 the next session removes it.
+
+## The workspace
+
+Every session on this workstation writes into the same `memory/`
+workspace, its index included. Commit only what this session
+wrote, by name — the files of each host it changed or recorded,
+`changelog.log` included — when it is done with that host
+(`rules/changelog.md` → The Workspace):
+
+```
+bin/hostwarden-sync commit "<headline>" \
+  memory/servers/web1.example.com/memory.md \
+  memory/servers/web1.example.com/changelog.log
+```
+
+Before that, in one call, read `git -C memory diff HEAD -- <paths>`
+and every one of those files git does not track yet
+(`git -C memory ls-files --others -- <paths>` names them) in
+full: a diff shows nothing for a new file. A file that holds lines
+you did not write
+is being changed by another session right now: leave it out and
+say so; never split it and never revert their lines. It still
+needs a decision before you finish on that host: ask the user
+whether to commit it with the other session's lines in it, naming
+both in the message, or to leave it for that session.
+
+### Changes a session left behind
+
+`bin/hostwarden-sync pull` names uncommitted changes it could not
+move past at session start. They belong to another session at
+work, or to one that was deleted or crashed before it committed.
+A file under `memory/servers/<hostname>/` was left behind when
+both hold:
+
+- the host's register, as the activity check lists it, has no live
+  entry naming your own `<user>@<workstation>`;
+- nothing touched the file for 30 minutes (`find memory/<path>
+  -mmin -30` prints nothing) — a session that only reads never
+  registers, yet records its connection.
+
+A file outside any host directory was left behind when no other
+session runs on this machine.
+
+Ask before taking them over. In one local call gather
+`git -C memory status --short`, `git -C memory diff --stat`, a
+`cksum` of each file (the only record of an untracked file's
+content), the host's newest `changelog.log` entry and the open
+items of its `todo.md`; show them, and say that a
+session deleted mid-edit may have left a file half-written. The
+user chooses between committing them as they are and leaving them.
+Discarding them is theirs to do by hand; never offer
+`git checkout` or `git restore` on them.
+
+Right before committing, repeat both checks, the status and the
+`cksum`s in one call; commit only if nothing changed. Commit them on their own
+with the message
+`memory(<hostname>): changes left by an ended session`, then run
+`bin/hostwarden-sync pull` again.

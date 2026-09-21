@@ -115,14 +115,15 @@ then
 else
   step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
 fi
-# The mode matrix exercises the mode hooks and the scripts that
-# make and keep a workspace, in throwaway checkouts.
+# The mode and release matrices exercise the hooks and the bin/
+# scripts, in throwaway checkouts.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
     | grep -qE '^\.claude/hooks/|^bin/|^templates/workspace/'
 then
-  echo "== mode matrix: nothing it reads is pushed, skipped"
+  echo "== mode and release matrices: nothing they read is pushed, skipped"
 else
   step "mode matrix" sh .claude/hooks/guard-mode-test.sh
+  step "release matrix" sh .claude/hooks/release-test.sh
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
 step "JSON" json_valid

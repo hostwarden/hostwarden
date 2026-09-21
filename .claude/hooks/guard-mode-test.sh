@@ -519,9 +519,9 @@ sync_a pull
 grep -q 'from b' "$OPS/memory/$LOG" && ok \
   || bad "a second machine's push did not arrive"
 
-# Uncommitted edits that clash with what the pull brought: the
-# pull succeeds, the clash is reported, and nothing syncs until
-# it is resolved — above all no commit of conflict markers.
+# Uncommitted edits belong to another session, or to one that
+# ended before committing: pull leaves them and the workspace
+# alone, says so, and stashes nothing.
 MEM=servers/server1.example.com/memory.md
 echo 'Kernel: 6.0' > "$OPS/memory/$MEM"
 sync_a commit "a: base"
@@ -532,15 +532,48 @@ sync_a commit "a: kernel"
 sync_a push
 echo 'Kernel: 5.10' > "$B/memory/$MEM"
 case "$(sync_b pull)" in
-*clash*) ok ;;
-*) bad "a clash with uncommitted edits went unreported" ;;
+*"was not brought up to date"*) ok ;;
+*) bad "pull ran over uncommitted changes" ;;
 esac
-case "$(sync_b commit "b: kernel")" in
-*"unresolved conflict"*) ok ;;
-*) bad "sync committed over an unresolved conflict" ;;
-esac
-git -C "$B/memory" reset --quiet --hard
-git -C "$B/memory" stash drop --quiet
+grep -q 'Kernel: 5.10' "$B/memory/$MEM" \
+  && [ -z "$(git -C "$B/memory" stash list)" ] && ok \
+  || bad "pull touched uncommitted changes or stashed them"
+git -C "$B/memory" checkout --quiet -- "$MEM"
+sync_b pull
+# An uncommitted file the remote did not touch does not stop a
+# fast-forward past it.
+echo 'Kernel: 6.2' > "$OPS/memory/$MEM"
+sync_a commit "a: kernel 6.2" "$MEM"
+sync_a push
+mkdir -p "$B/memory/servers/server3.example.com"
+echo 'OS: Alpine' > "$B/memory/servers/server3.example.com/memory.md"
+out=$(sync_b pull)
+if [ -z "$out" ] && grep -q 'Kernel: 6.2' "$B/memory/$MEM" \
+    && [ -e "$B/memory/servers/server3.example.com/memory.md" ]; then ok
+else bad "pull did not fast-forward past an untouched uncommitted file: $out"; fi
+rm -rf "$B/memory/servers/server3.example.com"
+
+# commit with paths takes only those files — a new one included —
+# and leaves another session's changes where they are.
+N=servers/server2.example.com/memory.md
+mkdir -p "$B/memory/servers/server2.example.com"
+echo 'OS: FreeBSD 14' > "$B/memory/$N"
+echo 'Kernel: another session' > "$B/memory/$MEM"
+sync_b commit "b: server2" "memory/$N"
+git -C "$B/memory" log -1 --name-only --format= | grep -qx "$N" \
+  && [ -n "$(git -C "$B/memory" status --porcelain -- "$MEM")" ] && ok \
+  || bad "commit with a path took more than that path, or missed it"
+git -C "$B/memory" checkout --quiet -- "$MEM"
+# Another session's git holding the index is waited out.
+echo 'OS: FreeBSD 14.1' > "$B/memory/$N"
+: > "$B/memory/.git/index.lock"
+( sleep 1; rm -f "$B/memory/.git/index.lock" ) &
+sync_b commit "b: server2 again" "$N" \
+  && git -C "$B/memory" log -1 --format=%s | grep -qx 'b: server2 again' \
+  && ok || bad "commit gave up on a held index.lock"
+wait
+sync_b push
+sync_a pull
 
 # A real disagreement is aborted, reported and left alone.
 echo 'OS: Debian 13' > "$OPS/memory/servers/server1.example.com/memory.md"
