@@ -811,6 +811,10 @@ mkdir -p "$SET/.claude"
 printf '{"env": {"%s": "0"}}\n' "$V" > "$SET/.claude/settings.local.json"
 settings_case deny 'Edit flipping the value of an existing key' \
   '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"0\"","new_string":"\"1\""}}'
+settings_case deny 'MultiEdit: a removal beside a value flip' \
+  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"'"$V"'","new_string":"x"},{"old_string":"\"0\"","new_string":"\"1\""}]}}'
+settings_case pass 'MultiEdit: every edit a removal' \
+  '{"tool_name":"MultiEdit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","edits":[{"old_string":"\"'"$V"'\": \"0\"","new_string":""}]}}'
 settings_case pass 'Edit taking the existing key out' \
   '{"tool_name":"Edit","tool_input":{"file_path":"'"$SET"'/.claude/settings.local.json","old_string":"\"'"$V"'\": \"0\"","new_string":""}}'
 settings_case deny 'Bash: sed on settings while the key exists' \

@@ -98,12 +98,14 @@ any_holds_var() {
 }
 
 # One jq call, four lines: tool, target, everything the call would
-# write, everything it would replace. Without jq, or on input it
-# cannot read, the raw text is judged as a whole, which can only
-# over-block.
+# write, and whether every single replacement takes out text naming
+# the variable ("all") or not. Judged per edit, never on the edits
+# joined: in a MultiEdit one removal must not carry a flip beside
+# it. Without jq, or on input it cannot read, the raw text is judged
+# as a whole, which can only over-block.
 TOOL=""
 if command -v jq >/dev/null 2>&1; then
-  PARSED=$(printf '%s' "$INPUT" | jq -r '
+  PARSED=$(printf '%s' "$INPUT" | jq -r --arg v "$V" '
     .tool_name // "",
     .tool_input.file_path // "",
     ([.tool_input.command, .tool_input.content,
@@ -112,7 +114,9 @@ if command -v jq >/dev/null 2>&1; then
      | map(strings) | join(" ") | gsub("\n"; " ")),
     ([.tool_input.old_string,
       (.tool_input.edits // [] | .[].old_string)]
-     | map(strings) | join(" ") | gsub("\n"; " "))' 2>/dev/null) \
+     | map(strings)
+     | if length > 0 and all(contains($v)) then "all" else "not" end)
+    ' 2>/dev/null) \
     || PARSED=""
   TOOL=$(printf '%s\n' "$PARSED" | sed -n 1p)
   FILE=$(printf '%s\n' "$PARSED" | sed -n 2p)
@@ -135,13 +139,13 @@ case "$TOOL" in
   *)
     printf '%s' "${FILE##*/}" | grep -Eqx "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
-    # Already set: a Write that leaves it out, or an Edit that
-    # replaces text naming it, takes it out. Anything else may be
-    # the value-only flip.
+    # Already set: a Write that leaves it out, or an Edit whose
+    # every replacement takes out text naming it, removes it.
+    # Anything else may be the value-only flip.
     if holds_var "$FILE"; then
       case "$TOOL" in
         Write) ;;
-        *) case "$OLD" in *"$V"*) ;; *) deny ;; esac ;;
+        *) [ "$OLD" = all ] || deny ;;
       esac
     fi ;;
 esac
