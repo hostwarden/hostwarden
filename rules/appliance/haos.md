@@ -174,13 +174,3 @@ welcome banner and waits for input.
 - `ha backups restore` without an explicit request.
 - Editing files under `/homeassistant/.storage/` by hand: the UI
   owns them.
-
-## Supervised and Core Installs
-
-Home Assistant Supervised and Core on a normal distribution have
-been unsupported since 2025.12
-(<https://www.home-assistant.io/blog/2025/05/22/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/>).
-On such a host the distribution's family file applies to the host,
-and this file to the `ha` CLI. Report the unsupported install once
-as INFO; migrating to HAOS or the Container install is the user's
-decision.
