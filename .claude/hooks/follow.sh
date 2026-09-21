@@ -5,10 +5,11 @@
 # check-updates.sh, from the top of the checkout.
 #
 # The line is `hostwarden.follow` in the checkout's own git
-# config: a major ("1") or a major.minor ("1.2"). Never a shipped
-# file — an update would carry it to every install, and a
-# checkout at a tag could not change it. No line and no pin means
-# the checkout follows main.
+# config: a major ("1") or a major.minor ("1.2"). Only there
+# (--local): a global value would make every clone follow it and
+# outlive an --unpin. Never a shipped file — an update would carry
+# it to every install, and a checkout at a tag could not change
+# it. No line and no pin means the checkout follows main.
 #
 # Expects nothing. Defines:
 #   hostwarden_follow          — prints the line, or nothing
@@ -23,13 +24,13 @@
 #                                nothing
 
 hostwarden_follow() {
-  git config --get hostwarden.follow 2>/dev/null || true
+  git config --local --get hostwarden.follow 2>/dev/null || true
 }
 
-hostwarden_follow_set() { git config hostwarden.follow "$1"; }
+hostwarden_follow_set() { git config --local hostwarden.follow "$1"; }
 
 hostwarden_follow_clear() {
-  git config --unset hostwarden.follow 2>/dev/null || true
+  git config --local --unset hostwarden.follow 2>/dev/null || true
 }
 
 hostwarden_follow_valid() {

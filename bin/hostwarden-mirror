@@ -144,8 +144,9 @@ if grep -q '^=	refs/upstream/main:' "$TMP/plan" && [ "$TAGS" -eq 0 ]; then
 fi
 
 # No force anywhere: should the mirror move in the meantime, the
-# push is refused rather than overwriting it.
-if ! OUT=$(push --quiet 2>&1); then
+# push is refused rather than overwriting it, and --atomic refuses
+# all of it rather than leaving the mirror half updated.
+if ! OUT=$(push --quiet --atomic 2>&1); then
   say "the push to the mirror failed:"
   printf '%s\n' "$OUT" | redact
   exit 1

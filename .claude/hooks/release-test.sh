@@ -173,6 +173,17 @@ case "$(hook)" in
 *"pinned to v1.0.0"*) at v1.0.0 && ok || bad "the hook moved a pin" ;;
 *) bad "the hook did not report the pin" ;;
 esac
+# A line in the user's global config is not this checkout's.
+HOME_SAVED=$HOME
+HOME="$TMP/home"
+mkdir -p "$HOME"
+git config --global hostwarden.follow 1
+case "$(hook)" in
+*"pinned to v1.0.0"*) at v1.0.0 && ok || bad "a global line moved a pin" ;;
+*) bad "the hook followed a line from the global config" ;;
+esac
+HOME=$HOME_SAVED
+
 # A line with no release yet is reported, and nothing moves.
 git -C "$P" config hostwarden.follow 9
 case "$(hook)" in
