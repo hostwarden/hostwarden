@@ -1,0 +1,99 @@
+#!/bin/sh
+# hostwarden-sync — keep the workspace in step with its
+# remote, so a second machine or a teammate sees the same
+# server memory.
+#
+# Usage:
+#   hostwarden-sync pull         Bring in the remote's changes
+#   hostwarden-sync commit MSG   Commit every change in memory/
+#   hostwarden-sync push         Send local commits to the remote
+#   hostwarden-sync --help       Show this help
+#
+# Each verb is silent and does nothing where there is
+# nothing to do: in a development checkout, in a workspace
+# without a remote, with no change to commit. pull rebases
+# local commits onto the remote's and leaves a conflict
+# alone: it is aborted, reported, and the workspace stays
+# as it was. The remote must be private — the workspace
+# holds hostnames, addresses and the network's layout.
+set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+cd "$REPO_DIR"
+# shellcheck source=../.claude/hooks/mode.sh
+. .claude/hooks/mode.sh
+
+usage() {
+  awk '/^# hostwarden-sync/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' \
+    "$SCRIPT_DIR/hostwarden-sync"
+}
+
+hostwarden_mode "$REPO_DIR"
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  pull|push|commit) [ "$HOSTWARDEN_MODE" = operations ] || exit 0 ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+hostwarden_git_batch
+
+W() { git -C memory "$@"; }
+# The files a merge left unresolved, one per line.
+conflicts() { W diff --name-only --diff-filter=U 2>/dev/null; }
+
+# The branch's upstream, or nothing when there is no remote
+# to follow.
+upstream() {
+  W rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' \
+    2>/dev/null || true
+}
+
+# A rebase, merge or conflict the user is in the middle of is
+# theirs to finish. Pulling, committing or pushing across it
+# would at best fail, at worst abort their half-resolved work or
+# commit its conflict markers as server memory.
+GITDIR=$(W rev-parse --git-dir 2>/dev/null) || exit 0
+case "$GITDIR" in /*) ;; *) GITDIR="memory/$GITDIR" ;; esac
+if [ -d "$GITDIR/rebase-merge" ] || [ -d "$GITDIR/rebase-apply" ] \
+    || [ -f "$GITDIR/MERGE_HEAD" ] \
+    || [ -n "$(conflicts)" ]; then
+  echo "hostwarden: the workspace is in the middle of a rebase, a"
+  echo "  merge or an unresolved conflict; finish it with git -C memory"
+  echo "  first. Nothing synced."
+  exit 0
+fi
+
+case "$1" in
+pull)
+  [ -n "$(upstream)" ] || exit 0
+  if ! OUT=$(W pull --quiet --rebase --autostash 2>&1); then
+    W rebase --abort >/dev/null 2>&1 || true
+    echo "hostwarden: the workspace could not be brought up to"
+    echo "  date with its remote, and was left as it was:"
+    printf '%s\n' "$OUT" | sed 's/^/    /'
+    echo "  Resolve it with git -C memory pull before relying on"
+    echo "  server memory another machine may have changed."
+  elif CONFLICTS=$(conflicts) && [ -n "$CONFLICTS" ]; then
+    # The pull itself worked, but putting back uncommitted
+    # edits clashed with it: the stash is kept, and the files
+    # hold conflict markers.
+    echo "hostwarden: the workspace was brought up to date, but your"
+    echo "  uncommitted edits clash with it. These files hold conflict"
+    echo "  markers and must not be read as server memory until they"
+    echo "  are resolved (the edits are also kept in git -C memory stash):"
+    printf '%s\n' "$CONFLICTS" | sed 's/^/    /'
+  fi
+  ;;
+commit)
+  MSG="${2:?Usage: hostwarden-sync commit MESSAGE}"
+  W add -A
+  W diff --cached --quiet && exit 0
+  W commit --quiet -m "$MSG"
+  ;;
+push)
+  [ -n "$(upstream)" ] || exit 0
+  [ -n "$(W log --oneline '@{upstream}..' 2>/dev/null)" ] || exit 0
+  W push --quiet
+  ;;
+esac

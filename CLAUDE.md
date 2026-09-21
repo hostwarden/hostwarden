@@ -12,8 +12,15 @@ tool reads. This file adds only what exists here and nowhere else.
   are the entire safety layer. The off switch counts only for a
   session that started with it; `guard-settings.sh` keeps it out
   of settings files.
+- **The mode is announced and enforced.** A SessionStart hook
+  names the mode `AGENTS.md` → Development or Operations
+  describes, and `.claude/hooks/guard-mode.sh` holds the session to
+  it: no server from a development checkout or a worktree, no edit
+  to shipped files in an operations one. The taboo guard's
+  disable variable does not reach it.
 - **SessionStart hooks have already run.** They have:
-  - checked for repo updates;
+  - in an operations checkout, checked for repo updates and
+    pulled the workspace;
   - created `~/.cache/hostwarden` with mode 0700, the `mkdir`
     under `AGENTS.md` → SSH Options;
   - run `bin/hostwarden-doctor --quiet`, whose output, if any,

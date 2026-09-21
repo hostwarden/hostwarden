@@ -30,6 +30,15 @@ if [ "$HOSTWARDEN_NO_UPDATE" = "1" ] || [ "${HEINZEL_NO_UPDATE:-}" = "1" ]; then
   exit 0
 fi
 
+# Only an operations install follows main. A development
+# checkout moves by its own branches and pull requests, and a
+# pull on its main would only surprise whoever works there
+# (.claude/hooks/mode.sh).
+# shellcheck source=mode.sh
+. "${0%/*}/mode.sh"
+hostwarden_mode "${0%/*}/../.."
+[ "$HOSTWARDEN_MODE" = operations ] || exit 0
+
 # bin/hostwarden-doctor, beside this hook, reports a missing git.
 command -v git >/dev/null 2>&1 || exit 0
 # Outside a clone every git call below fails and the branch test

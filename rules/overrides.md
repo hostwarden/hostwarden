@@ -224,3 +224,21 @@ This asymmetry is not a reason to keep something in
 `rules/` that belongs in a skill. A workflow the user asks
 for by name belongs in a skill; the handful of cases where
 its trigger needs customizing are served by `all.md`.
+
+## A skill of the user's own
+
+A workflow hostwarden does not ship is a skill of the
+user's own, in `memory/.claude/skills/<name>/SKILL.md`.
+Claude Code loads it as `/memory:<name>` once the session
+has read a file in `memory/`, which the session-start
+preflight does; `/add-dir memory` loads it at once.
+OpenCode and Codex look for skills only from the working
+directory up to the repository root and in the user's home,
+so there it has to be linked into the tool's own directory
+in `~` (`~/.config/opencode/skills/`, `~/.agents/skills/`),
+where every project sees it.
+
+A skill of the user's own never replaces a shipped one of
+the same name: the qualified name keeps both. To change
+what a shipped skill does, override it as above — that way
+it keeps receiving updates.

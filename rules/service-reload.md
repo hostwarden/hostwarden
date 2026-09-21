@@ -132,8 +132,9 @@ After a write, confirm in one short line, e.g.
 - Preserve comments, blank lines, and section order.
 - Only edit the specific list the answer affects.
 - If `memory/service-policy.md` is missing, create
-  it from the `.example` template with the one new
-  entry added (and all commented examples intact).
+  it from `templates/memory/service-policy.md.example`
+  with the one new entry added (and all commented
+  examples intact).
 - Deduplicate — never add a service already in the
   list.
 - Never reorder or touch other sections.

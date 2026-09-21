@@ -1,13 +1,10 @@
 #!/bin/sh
-# check-session.sh — SessionStart hook: say what makes this session
-# unlike an ordinary one, before anything reaches a machine. Silent
-# when neither applies.
+# check-session.sh — SessionStart hook: say when the taboo guard is
+# switched off for this session, before anything reaches a machine.
+# Silent otherwise. (A linked worktree is announced by
+# session-mode.sh, with the rest of the mode.)
 #
-# 1. A linked git worktree, which the desktop app can make the
-#    default. rules/access-control.md → Linked Worktrees says why
-#    hostwarden refuses to administer anything from one; this hook
-#    only makes sure the agent knows it is in one.
-# 2. The taboo guard switched off. Only a session that STARTS with
+# The taboo guard switched off. Only a session that STARTS with
 #    HOSTWARDEN_GUARD_DISABLE=1 — from the shell, or a settings file
 #    the operator edited before starting it — gets it: this hook
 #    records that in ~/.cache/hostwarden/guard-off-<session_id>, and
@@ -19,7 +16,6 @@
 #    and may only take a record away. The notice at every start is
 #    also how the operator sees that the setting took effect.
 
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 INPUT=$(cat)
 
 field() {
@@ -27,27 +23,6 @@ field() {
     | sed -n "s/.*\"$1\"[[:blank:]]*:[[:blank:]]*\"\([A-Za-z0-9_-]*\)\".*/\1/p" \
     | head -1
 }
-
-# A linked worktree's .git is a file ("gitdir: <path>"), and the
-# directory it names holds a `commondir` file pointing at the shared
-# git directory. A submodule has a .git file too, but its git
-# directory has no commondir. `cd` resolves absolute, relative and
-# drive-letter paths alike; no git call needed.
-GITDIR=""
-if [ -f "$ROOT/.git" ]; then
-  G=$(sed -n 's|^gitdir: ||p' "$ROOT/.git")
-  GITDIR=$(cd "$ROOT" && cd "$G" 2>/dev/null && pwd)
-fi
-if [ -n "$GITDIR" ] && [ -f "$GITDIR/commondir" ]; then
-  COMMON=$(cd "$GITDIR" && cd "$(sed -n 1p commondir)" 2>/dev/null && pwd)
-  case "$COMMON" in
-    */.git) MAIN="${COMMON%/.git}" ;;
-    *) MAIN="the checkout that shares ${COMMON:-its git directory}" ;;
-  esac
-  echo "hostwarden: this session runs in a linked git worktree, not in"
-  echo "  $MAIN. Do not reach any machine from it:"
-  echo "  rules/access-control.md -> Linked Worktrees."
-fi
 
 CACHE="$HOME/.cache/hostwarden"
 SID=$(field session_id)

@@ -6,7 +6,17 @@ access gate: the blacklist and the read-only list are checked
 again as steps 1 and 2 of `rules/first-connection.md`, on every
 connection, whether or not this ran.
 
+It runs in an operations checkout only. A development checkout —
+`AGENTS.md` → Development or Operations — loads none of this and
+asks nothing.
+
 ## What to load
+
+If the workspace has a remote, bring it up to date first:
+`bin/hostwarden-sync pull`. Claude Code's session-start hook
+has already run it. When it reports that the workspace could
+not be updated, say so before any server work: its server
+memory may be older than another machine's.
 
 Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`, and
@@ -59,8 +69,7 @@ missing *and* the session is about to reach a machine, follow the
 three-option interview in `rules/ssh-user.md` exactly, one question
 at a time.
 
-A session that only works on this repository — reading the
-instruction set, editing it, reviewing a change — reaches no
-machine and needs no SSH user. Do not ask. The file is gitignored,
-so it is missing in every fresh checkout, and a checkout is not a
-reason to interview anybody.
+A session in a development checkout reaches no machine and needs
+no SSH user, so it never gets here. Nor does an operations session
+that only reads or discusses the instruction set: no machine, no
+interview.

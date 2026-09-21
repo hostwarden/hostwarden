@@ -295,9 +295,9 @@ lines.
 ## Never Into the Repo Tree
 
 Never copy key material or credential files
-anywhere under the hostwarden repo. `memory/` (and
-`memory/servers/` in team mode) can be shared via
-git — a committed key is a published key. This
+anywhere under the hostwarden repo. `memory/` is a
+git repository that a team shares through a remote
+— a committed key is a published key. This
 generalizes the rule in the `hostwarden-os-install`
 skill → os-replacement → Certificates: store such
 material outside the repo

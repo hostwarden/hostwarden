@@ -1,50 +1,10 @@
-# All user state lives under memory/.
-# Solo mode by default; team mode is opt-in below.
-
-# Start by ignoring everything in memory/, then
-# explicitly allow the tracked templates and keep
-# markers.
-memory/*
-!memory/MEMORY.md
-!memory/user.md.example
-!memory/opencode.json.example
-!memory/service-policy.md.example
-
-# Server memory directory — keep the folder in git
-# but ignore its contents (solo mode). For team
-# mode, un-ignore the contents by uncommenting the
-# `!memory/servers/**` line below.
-!memory/servers/
-memory/servers/*
-!memory/servers/.gitkeep
-
-# Custom rule overrides — keep the folder in git
-# but ignore its contents (solo mode). For team
-# mode, uncomment all three `!memory/custom-rules`
-# lines below: an override can sit one level down
-# (os/debian.md, a skill's reference), and git will
-# not look inside a directory it has excluded, so
-# the directory has to be un-ignored before the
-# files in it can be.
-!memory/custom-rules/
-memory/custom-rules/*
-!memory/custom-rules/.gitkeep
-
-# ---- Team mode (opt-in) --------------------------
-# Uncomment the lines you want to share via git.
-# memory/user.md and memory/opencode.json are
-# always personal and must NEVER be shared.
-# !memory/blacklist.md
-# !memory/readonly.md
-# !memory/service-policy.md
-# !memory/housekeeping.md
-# !memory/network.md
-# !memory/servers/**
-# memory/servers/localhost/
-# memory/servers/127.0.0.1/
-# !memory/custom-rules/*.md
-# !memory/custom-rules/*/
-# !memory/custom-rules/*/*.md
+# All user state lives under memory/, which is a git
+# repository of its own once bin/hostwarden-init has run: the
+# workspace of an operations install. It is never part of
+# this repository, in solo use or in a team; a team shares it
+# through a remote of its own. The templates it starts from
+# live in templates/memory/.
+memory/
 
 # Project history (auto-maintained by Claude Code).
 HISTORY.md
