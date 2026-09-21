@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The fleet audit covers Alpine hosts.** Each probe
+  that assumed systemd or GNU tools has an Alpine
+  variant: a self-made `apk upgrade` job in place of
+  unattended-upgrades, nftables or awall, busybox
+  `ntpd` or chrony, doas beside sudo, and a kernel
+  waiting for a reboot. Settings Alpine does not have
+  show as `n/a` and never count as drift.
 - **Alpine Linux is a supported family.** Hostwarden
   now knows apk and its stable branches, OpenRC,
   busybox, doas and musl on Alpine hosts, and reads its
