@@ -535,6 +535,27 @@ check deny 'cp extra.conf /etc/sshd_extra'
 check deny "python3 -c \"open('/etc/sshd_extra','a')\""
 check pass 'cat /etc/sshd_extra'
 check pass 'ls -l /etc/sshd_extra'
+# OpenMediaVault renders sshd_config and rebuilds its
+# authorized_keys directory from the ssh Salt state; deploying that
+# state names neither path.
+check deny 'omv-salt deploy run ssh'
+check deny 'omv-salt deploy run nginx ssh samba'
+check deny 'omv-salt deploy run -q ssh'
+check deny "omv-salt deploy run 'ssh'"
+check deny 'ssh root@nas "omv-salt deploy run ssh"'
+check deny 'ssh root@nas omv-salt deploy run --no-color ssh'
+check deny 'omv-salt stage run deploy'
+check deny 'omv-salt stage run --quiet deploy'
+check deny 'ssh root@nas "omv-salt stage run deploy"'
+check pass 'omv-salt deploy run samba'
+check pass 'omv-salt deploy run nginx phpfpm'
+check pass 'omv-salt deploy run sshd_extra_notes'
+check pass 'omv-salt deploy list'
+check pass 'omv-salt deploy list-dirty'
+check pass 'omv-salt stage run prepare'
+check pass 'omv-salt stage list'
+check pass 'ssh root@nas omv-salt deploy run samba'
+check pass 'omv-salt deploy run samba; ssh root@nas uptime'
 check pass 'cat /usr/local/etc/ssh/sshd_config'
 check pass 'grep -r PermitRootLogin /usr/local/etc/ssh/sshd_config.d/'
 check pass 'stat /usr/local/etc/ssh/sshd_config'

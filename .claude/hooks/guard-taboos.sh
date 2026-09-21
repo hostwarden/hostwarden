@@ -21,7 +21,9 @@
 #     one (tee, cp/rsync/scp, dd, sed -i, an editor, curl -o
 #     and other output flags)
 #   - writes to sshd_config(.d/) under any .../etc/ssh, or
-#     to a file an appliance merges into it (/etc/sshd_extra)
+#     to a file an appliance merges into it (/etc/sshd_extra),
+#     and deploying OpenMediaVault's ssh Salt state, which
+#     rewrites sshd_config and the keys without naming them
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
@@ -629,6 +631,22 @@ if hit '(^|[^[:alnum:]_-])ssh-keygen([^[:alnum:]_-]|$)' \
   deny "ssh-keygen pointed at an existing key overwrites it - a \
 fingerprint of a .pub runs in a call of its own, with no private \
 key path in it"
+fi
+# OpenMediaVault renders sshd_config from its own database, and its
+# ssh Salt state also empties and rebuilds the key directory
+# /var/lib/openmediavault/ssh/authorized_keys. Deploying that state
+# writes both without naming either path, so the rules above cannot
+# see it. Two commands deploy it: omv-salt deploy run with ssh among
+# its state names, and omv-salt stage run deploy, which renders every
+# state. --append-dirty deploys whatever the web UI left pending,
+# ssh possibly among it; the guard cannot know that, and
+# rules/appliance/openmediavault.md carries that part.
+if hit '(^|[^[:alnum:]_.-])omv-salt[[:space:]]+deploy[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?["'\'']?ssh(["'\''[:space:]]|$)' \
+  || hit '(^|[^[:alnum:]_.-])omv-salt[[:space:]]+stage[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?["'\'']?deploy(["'\''[:space:]]|$)'
+then
+  deny "deploying the OpenMediaVault ssh state rewrites sshd_config \
+and rebuilds the authorized_keys directory - the user changes SSH \
+settings in the web UI"
 fi
 if hit "$SSHD"; then
   if hit '>>?[[:space:]]*["'\'']?[^[:space:];|&]*'"$SSHD" \

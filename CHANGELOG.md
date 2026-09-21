@@ -8,8 +8,10 @@
   updates are the `dist-upgrade` that `omv-upgrade` runs; the
   firewall is OMV's own rule table rather than `ufw`; and
   Hostwarden never deploys OMV's SSH settings, which rewrite
-  `sshd_config` and the keys. Housekeeping adds pending changes,
-  RAID, SMART and whether notifications reach anyone.
+  `sshd_config` and the keys; the taboo guard blocks
+  `omv-salt deploy run ssh` and `omv-salt stage run deploy`.
+  Housekeeping adds pending changes, RAID, SMART and whether
+  notifications reach anyone.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under

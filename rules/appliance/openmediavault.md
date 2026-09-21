@@ -86,7 +86,9 @@ under `deb/openmediavault/` there).
   `omv-salt stage run deploy`, never saves Services > SSH or a
   user's Public Keys through `omv-rpc`, and never applies pending
   changes while `ssh` is among them. Give the user the menu path
-  and values instead.
+  and values instead. The taboo guard, where it runs, blocks the
+  first two; `omv-salt deploy run --append-dirty` and the `omv-rpc`
+  calls are left to this rule.
 - Settings live in the `conf.service.ssh` id and under
   Services > SSH. SSH is off in a fresh database; root login and
   password login are on
