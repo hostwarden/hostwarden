@@ -14,7 +14,7 @@
 #     changed PATH, rsync to a daemon (rsync:// or host::module,
 #     which never starts ssh), and $GIT_SSH_COMMAND, git's
 #     route to the real ssh (git-ssh.sh), used as a command. Local
-#     administration counts: hostwarden's local mode is server
+#     administration counts: Hostwarden's local mode is server
 #     work too.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
@@ -188,15 +188,15 @@ that does not end, so it cannot be shown to stay inside memory/"
   esac
   REL=${REAL#"$ROOT"/}
   # Ignored means the user's own: local settings, history.
-  # Everything else is what hostwarden ships.
+  # Everything else is what Hostwarden ships.
   if git -C "$ROOT" check-ignore -q --no-index -- "$REL" 2>/dev/null
   then
     exit 0
   fi
-  deny "this checkout operates servers, so the files hostwarden \
+  deny "this checkout operates servers, so the files Hostwarden \
 ships are read-only here - $REL is one of them. Only memory/ \
 and other gitignored files may change. Make the change in a \
-development checkout, a separate clone of hostwarden or of your \
+development checkout, a separate clone of Hostwarden or of your \
 fork, and send it as a pull request"
 fi
 

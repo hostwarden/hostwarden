@@ -1,5 +1,5 @@
 #!/bin/sh
-# hostwarden-adopt — copy user state out of a heinzel
+# hostwarden-adopt — copy user state out of a Heinzel
 # checkout into this one.
 #
 # Usage:
@@ -12,13 +12,13 @@
 #   hostwarden-adopt --help              Show this help
 #
 # Copies memory/ state — access lists, service policy,
-# custom rules, per-server memory — and then runs
+# overrides, per-server memory — and then runs
 # hostwarden-migrate to rename skill overrides. Reads
 # the old checkout, never writes into it.
 #
 # Host by host: --server takes one hostname and may be
 # repeated. The shared state (access lists, service
-# policy, custom rules, network and housekeeping
+# policy, overrides, network and housekeeping
 # notes) comes along on the first run whatever is
 # selected, because a per-server move without it would
 # leave the blacklist and the read-only list behind —
@@ -35,7 +35,7 @@ set -ef
 
 # Git Bash copies where ln -s is asked to link, unless told
 # otherwise, and a copied alias drifts from the host it names.
-# Harmless everywhere else. (README → Windows)
+# Harmless everywhere else. (docs/install.md → Windows)
 MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict"
 export MSYS
 
@@ -231,7 +231,7 @@ if [ -n "$SHARED_ONLY" ] && [ -n "$HOSTS" ]; then
 fi
 
 if [ -z "$OLD" ]; then
-  echo "error: no heinzel checkout given" >&2
+  echo "error: no Heinzel checkout given" >&2
   echo "run 'hostwarden-adopt --help' for usage" >&2
   exit 2
 fi
@@ -247,7 +247,7 @@ if [ "$OLD" = "$REPO_DIR" ]; then
 fi
 
 if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
-  echo "error: $OLD has no memory/ and rules/ — not a heinzel checkout" >&2
+  echo "error: $OLD has no memory/ and rules/ — not a Heinzel checkout" >&2
   exit 1
 fi
 
@@ -269,7 +269,7 @@ if [ -z "$LIST" ]; then
   rm -rf "$probe"
   if [ -z "$linked" ]; then
     echo "error: this shell cannot create symbolic links, and DNS" >&2
-    echo "  aliases need them — see README → Windows" >&2
+    echo "  aliases need them — see docs/install.md → Windows" >&2
     exit 1
   fi
 fi
@@ -665,7 +665,7 @@ fi
 printf "copied from %s:%b\n" "$OLD" "$COPIED"
 
 # One line, once per installation: the fact that this
-# clone came from heinzel. rules/first-connection.md
+# clone came from Heinzel. rules/first-connection.md
 # reads it to decide whether the per-host legacy check
 # has any reason to run at all.
 if ! grep -q '^Adopted from heinzel:' memory/user.md 2>/dev/null; then
@@ -679,5 +679,5 @@ sh bin/hostwarden-migrate
 
 echo "The old checkout was not modified."
 echo "Next: the hostwarden-adopt skill reads the copied"
-echo "changelogs into a per-host inventory of what heinzel"
+echo "changelogs into a per-host inventory of what Heinzel"
 echo "left on the servers."

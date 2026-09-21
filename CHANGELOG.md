@@ -2,12 +2,18 @@
 
 ## Unreleased
 
+- **The README is back to getting started.** Install,
+  first steps, what Hostwarden does and how it keeps you
+  safe fit on one page; everything deeper — native
+  Windows, mirrors and teams, updates, the AI tools,
+  automation, overrides — lives under `docs/`, with
+  the optional parts folded away until you open them.
 - **A development session that needs a live server hands
   the question over** to a session in your operations
   checkout, which runs the access lists and the full
   pipeline and answers back; the refusal and the session
-  start name that checkout. The README shows how to
-  validate a branch from a second, test-only clone.
+  start name that checkout. `docs/operations.md` shows how
+  to validate a branch from a second, test-only clone.
 - **Parallel sessions on one machine keep out of each
   other's workspace changes.** `bin/hostwarden-sync
   commit` takes the files a session names and nothing
@@ -26,7 +32,7 @@
   the managed host itself, in `/tmp/hostwarden/`, without
   root: who, from which workstation, doing what, with a
   heartbeat. Another live entry — a second window or a
-  teammate — makes hostwarden say so and ask whether the
+  teammate — makes Hostwarden say so and ask whether the
   two collide; a session on the same machine can be
   messaged directly. Read-only sessions register nothing,
   and a stale entry can be removed by anyone.
@@ -36,17 +42,17 @@
   and so is `CLAUDE.local.md`. The layout test fails when
   a tracked file matches the ignore rules.
 - **A checkout either operates servers or develops
-  hostwarden.** `bin/hostwarden-init` turns `memory/`
+  Hostwarden.** `bin/hostwarden-init` turns `memory/`
   into the workspace, a git repository of its own, and
   only a checkout with a workspace reaches a server. One
   without it — a fresh clone, a fork, and every git
-  worktree — is for changing hostwarden and refuses
+  worktree — is for changing Hostwarden and refuses
   `ssh`, `scp`, `sudo` and the other tools that reach a
   server, however they are started: in Claude Code a
   shim that fails in their place comes first on the
   `PATH` of every command, rsync's own `ssh` included,
   while `git push` still reaches the real one. In an
-  operations checkout hostwarden's own files are
+  operations checkout Hostwarden's own files are
   read-only, so a local edit cannot stop the
   auto-update. A team shares the workspace through a
   remote of its own (`bin/hostwarden-init --clone`),
@@ -63,10 +69,11 @@
   enforces it with a hook; `AGENTS.md` carries the same
   rule for every other tool. The templates live in
   `templates/memory/`.
-- **Hostwarden runs in the Claude desktop app.** The
-  README has a section for the app's Code tab: open the
-  folder with the worktree option off, set environment
-  variables in `.claude/settings.local.json`, pick the
+- **Hostwarden runs in the Claude desktop app.**
+  `docs/ai-tools.md` has a section for the app's Code
+  tab: open the folder with the worktree option off,
+  set environment variables in
+  `.claude/settings.local.json`, pick the
   permission mode from the menu, and use the app's own
   scheduled tasks where the CLI would use cron.
 - **A git worktree no longer hides the blacklist.**
@@ -94,13 +101,13 @@
   kept in the checkout's own git config, so each
   machine picks its own. `--pin` still sets one exact
   version, and `--unpin` returns to `main` from either.
-- **Your own mirror of hostwarden stays current
+- **Your own mirror of Hostwarden stays current
   unattended.** `bin/hostwarden-mirror` fast-forwards a
   mirror's `main` and carries the tags from any CI or
   cron job, and fails instead of overwriting commits
-  the mirror has of its own. The README explains when
-  production should clone a mirror rather than GitHub,
-  why a GitHub fork is only for pull requests, and has
+  the mirror has of its own. `docs/operations.md`
+  explains when production should clone a mirror
+  rather than GitHub, why a GitHub fork is only for pull requests, and has
   job examples for GitHub Actions and GitLab CI.
 
 - **`bin/hostwarden-doctor` says what your workstation is
@@ -121,13 +128,13 @@
 - **Email only counts `sendmail` or `msmtp` as a
   transport**, on the workstation and on the server. A host
   with only `mail` or `mailx` goes on to the install
-  question, since neither can carry the headers hostwarden
+  question, since neither can carry the headers Hostwarden
   writes.
-- **Native Windows: the README lists the three settings
+- **Native Windows: `docs/install.md` lists the three settings
   symlinks need** and how to repair a clone made without
   them. Without them Git Bash copies where it should link,
   so a DNS alias got its own drifting copy of the server
-  memory; hostwarden and `bin/hostwarden-adopt` now make
+  memory; Hostwarden and `bin/hostwarden-adopt` now make
   sure a link is a link.
 - **For contributors: `sh scripts/check.sh` runs
   everything CI runs**, now including a secret scan of the
@@ -171,11 +178,11 @@
   spell the cross-skill path out in full, and
   `instructions-test.sh` checks every such pointer.
 
-- **An MTA hostwarden installs queues the mail.** The
+- **An MTA Hostwarden installs queues the mail.** The
   default was `msmtp`, which has no queue: it connects
   when called and exits non-zero when the relay does not
   answer. Nothing that sends unattended mail on a server
-  — cron, unattended-upgrades, hostwarden's own reports —
+  — cron, unattended-upgrades, Hostwarden's own reports —
   retries, so a relay down for a minute lost the message
   with nobody to notice. The install now picks a spooling
   agent from what the host's package manager offers
@@ -188,7 +195,7 @@
 - **The email skill loads in stages.** Everything used to
   arrive at once: transport, MIME construction and the
   attachment gates entered context the moment anyone asked
-  to send a mail, before hostwarden knew where it would
+  to send a mail, before Hostwarden knew where it would
   send from or whether there was an attachment. The
   workflow loads first now, and each step reads its own
   part when it gets there. An exchange that stops early —
@@ -199,14 +206,14 @@
   no longer loads the consent gates, the MTA choice and the
   privilege-dropping that only a server has.
 
-  If you customized one of those topics, it has its own
+  If you overrode one of those topics, it has its own
   override key now — `hostwarden-email/transport-local.md`,
   `…/transport-remote.md`,
   `…/compose.md`, `…/send-verify.md` under
   `memory/custom-rules/`. An existing
   `hostwarden-email.md` still applies as a whole; a
   section in it that named one of the moved headings
-  matches nothing, and hostwarden says so and asks rather
+  matches nothing, and Hostwarden says so and asks rather
   than guessing which file you meant
   (`rules/overrides.md`).
 
@@ -230,7 +237,7 @@
   the skill probes one host after another and produces
   the same tables.
 
-- **Taking over heinzel is two mechanisms.** The
+- **Taking over Heinzel is two mechanisms.** The
   `hostwarden-adopt` skill is asked for by name —
   `/hostwarden-adopt`, or the same request in prose — and
   reads the old checkout. `heinzel-legacy` and
@@ -261,7 +268,7 @@
 
 - **The instruction set is `AGENTS.md`.** That is the
   file name Claude Code, OpenCode, Codex and Cursor all
-  read natively, so hostwarden's rules reach a tool
+  read natively, so Hostwarden's rules reach a tool
   without it having to know about Claude Code at all.
   `CLAUDE.md` stays as a thin file that imports it and
   adds the handful of things only Claude Code has — the
@@ -287,36 +294,37 @@
   `rules/firewall-changes.md`, `rules/overrides.md`
   and `rules/session-start.md` now hold procedures
   that used to sit inline — the last of those is the
-  preferences and customizations to load before a
+  preferences and overrides to load before a
   session does anything, which is a moment like any
   other and not the thing that keeps you off a
   blacklisted host.
-- **Custom rules mirror the path of what they
-  override.** `rules/os/debian.md` is customized in
+- **Overrides mirror the path of what they
+  change.** `rules/os/debian.md` is overridden in
   `memory/custom-rules/os/debian.md`, a skill's
   `references/ssh.md` in `<skill>/ssh.md` — one rule,
   and two skills can ship a `report-format.md` without
-  their overrides colliding. hostwarden names the
-  customizations it loaded at session start, and says
+  their overrides colliding. Hostwarden names the
+  overrides it loaded at session start (`Overrides: all,
+  backups`), and says
   when one matches nothing shipped instead of ignoring
   it silently. Where the shipped file has since split —
   your `transport.md` against a shipped
   `transport-local.md` and `transport-remote.md` — it
   names both siblings and asks which one you meant,
-  rather than calling your customization a stale name
+  rather than calling your override a stale name
   or picking the nearer of the two. A skill's *trigger*
-  stays uncustomizable per file and belongs in
+  cannot be overridden per file and belongs in
   `all.md`; `rules/overrides.md` says so rather than
   leaving it to be discovered. When an upgrade moves a
   topic between mechanisms, `bin/hostwarden-migrate`
   moves the matching override with it instead of
   leaving it at a path nothing reads — which matters
-  for a checkout adopted from heinzel, where such files
+  for a checkout adopted from Heinzel, where such files
   already exist.
 - **Repo-development conventions load only when repo
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the
-  heinzel porting trailer, scoped to `VERSION`,
+  Heinzel porting trailer, scoped to `VERSION`,
   `CHANGELOG.md`, `.github/` and the hooks, so a
   sysadmin session never pays for them.
 
@@ -330,7 +338,7 @@
   them reachable. An existing
   `memory/custom-rules/debian.md` and its four
   siblings move to `memory/custom-rules/os/` with the
-  files they override, so a customization does not
+  files they override, so an override does not
   stop applying at the upgrade.
 
 - **Language runtimes and CI/CD deploy users are
@@ -397,8 +405,8 @@
   checkout refreshed with a plain `git pull` keeps the
   old paths until `bin/hostwarden-update` runs once.
 
-- **heinzel is now hostwarden.** The project
-  continues heinzel 2.22.0 as an independent
+- **Heinzel is now Hostwarden.** The project
+  continues Heinzel 2.22.0 as an independent
   project under a new name. Scripts, skills,
   environment variables, the journal tag, the
   backup directory on servers and the SSH socket
@@ -406,23 +414,23 @@
   reads `heinzel` journal entries, and
   `HEINZEL_NO_UPDATE` still works. `hostwarden-migrate`
   renames skill overrides in `memory/custom-rules/`.
-  See "Moving over from heinzel" in the README.
+  See "Moving over from Heinzel" in `docs/operations.md`.
 - **Both tools can work on the same hosts during a
   transition.** `contrib/heinzel-coexistence/` holds
-  three custom rules for a heinzel checkout: heinzel
+  three custom rules for a Heinzel checkout: Heinzel
   then reads both journal tags instead of only its
   own, treats its server memory as a lead rather than
-  a fact, leaves hostwarden's files alone, and stops
+  a fact, leaves Hostwarden's files alone, and stops
   reading an adopted backup directory as data loss.
-  hostwarden warns in the other direction when a
-  heinzel entry is minutes old, and does not adopt a
-  host that heinzel still uses.
-- **A heinzel installation can be taken over
+  Hostwarden warns in the other direction when a
+  Heinzel entry is minutes old, and does not adopt a
+  host that Heinzel still uses.
+- **A Heinzel installation can be taken over
   wholesale.** `bin/hostwarden-adopt <path>` records
   the move once in `memory/user.md`, which is what
-  lets an installation that never ran heinzel skip
+  lets an installation that never ran Heinzel skip
   the per-host legacy check entirely. It copies
-  memory, access lists and custom rules out of an old
+  memory, access lists and overrides out of an old
   checkout; the `hostwarden-adopt` skill around it
   (`/hostwarden-adopt <path>`, or the same request in
   prose) reads its memory files and changelogs into a
@@ -435,13 +443,13 @@
   recording it in server memory, not renaming it: a
   rename breaks whoever calls it and only happens
   under `rules/file-naming-changes.md`.
-- **hostwarden adopts what heinzel left on a
-  host.** The first connection reports heinzel's
+- **Hostwarden adopts what Heinzel left on a
+  host.** The first connection reports Heinzel's
   config backups and scratch directories, and offers
   to move them under the new name — after naming
   which of them the retention cleanup would then
   delete, because `/var/backups/heinzel/` was never
-  cleaned by hostwarden. In local mode it reports
+  cleaned by Hostwarden. In local mode it reports
   scheduled runs that still point at `bin/heinzel-*`
   and would fail silently. The answer is recorded in
   server memory, so the check runs once.
@@ -452,8 +460,8 @@
   archive's older copies. Tracked templates now
   count as empty and keep the checked-out version.
 
-hostwarden starts its own versioning at 1.0.0. The
-releases before the fork were heinzel's, their numbers
+Hostwarden starts its own versioning at 1.0.0. The
+releases before the fork were Heinzel's, their numbers
 do not continue here, and their notes are not repeated
 — they are in git history and at
 [wintermeyer/heinzel](https://github.com/wintermeyer/heinzel).

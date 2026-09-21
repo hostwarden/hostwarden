@@ -5,7 +5,7 @@ port 22 (`ufw limit`: 6 in 30 seconds; iptables
 `recent` or `hashlimit`) and network IPS signatures
 for SSH scans count **TCP connections, not
 commands**, successful logins included. A busy
-hostwarden session can trip them and lock itself out,
+Hostwarden session can trip them and lock itself out,
 and the block looks like a broken host. If that has
 already happened, see `rules/ssh-unreachable.md`.
 
@@ -113,7 +113,7 @@ that host finish, then repeat the call as usual.
   only reuses one. Open it with an `ssh` call first;
   the onboarding already does.
 - **Never close a master you did not start.** Other
-  hostwarden sessions and scripts on the same local
+  Hostwarden sessions and scripts on the same local
   account use the same socket path, and
   `ssh -O exit`/`-O stop` ends their sessions too.
   For experiments, use a complete option set with its
@@ -148,7 +148,7 @@ count toward the same limit. Counted are:
   log in (`nc -z`, `ssh-keyscan`); those two
   fail2ban modes also count every rejected login.
 
-The rules that own these steps keep hostwarden clear of
+The rules that own these steps keep Hostwarden clear of
 them: `rules/ssh-user.md` (user names),
 `rules/privilege-escalation.md` (root probe) and
 `rules/ssh-unreachable.md` (rejected logins, port

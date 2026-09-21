@@ -1,7 +1,7 @@
 # Session Start Preflight
 
 What to load before the session does anything else, and what to
-say about it. This is preference and customization state, not an
+say about it. This is preference and override state, not an
 access gate: the blacklist and the read-only list are checked
 again as steps 1 and 2 of `rules/first-connection.md`, on every
 connection, whether or not this ran.
@@ -58,10 +58,10 @@ this file is itself a read. Do not repeat it here.
 Missing files are normal on a fresh install; "No such file" is not
 an error.
 
-Once the reads are in, name the customizations that are in force,
-in one line — *"Custom rules: all, backups, os/debian."* — or say
+Once the reads are in, name the overrides that are in force,
+in one line — *"Overrides: all, backups, os/debian."* — or say
 nothing when there are none. An override path that names nothing
-shipped is not a customization in force: `rules/overrides.md` says
+shipped is not an override in force: `rules/overrides.md` says
 what to do with it, and it is not "carry on".
 
 ## What not to ask

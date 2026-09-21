@@ -19,10 +19,10 @@ overrides — see `rules/overrides.md`).
 - Last connected: 2026-02-25
 ```
 
-A host that heinzel administered gains a
+A host that Heinzel administered gains a
 `heinzel legacy:` line once that state has been dealt
 with; `rules/heinzel-adoption.md` owns its wording.
-Hosts without one never had heinzel state, which is
+Hosts without one never had Heinzel state, which is
 the normal case.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
@@ -58,7 +58,7 @@ of now, not a history.
 ## Personal versus shared
 
 `memory/` is the workspace, a git repository of its
-own, never part of hostwarden's. Solo use is the
+own, never part of Hostwarden's. Solo use is the
 default: it has no remote. A team gives it a private
 one, and then the split matters.
 

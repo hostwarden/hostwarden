@@ -1,7 +1,7 @@
 ---
 name: hostwarden-security
 argument-hint: "[hostname]"
-description: Run a hostwarden security audit on a server — SSH
+description: Run a Hostwarden security audit on a server — SSH
   hardening (password auth, weak algos, root login), firewall,
   user account hygiene, listening services, kernel hardening
   (ASLR, IP forwarding), file permissions, SUID/SGID audit,
@@ -16,7 +16,7 @@ description: Run a hostwarden security audit on a server — SSH
 
 Security configuration audit for a server or the local machine.
 **Never run automatically** — only on explicit user request. The
-whole of the hostwarden first-connection onboarding pipeline still
+whole of the Hostwarden first-connection onboarding pipeline still
 applies before any of this runs.
 
 ## Workflow

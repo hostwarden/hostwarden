@@ -1,23 +1,23 @@
-# Telling heinzel That hostwarden Exists
+# Telling Heinzel That Hostwarden Exists
 
-Custom rules for a **heinzel** checkout, for the time
+Custom rules for a **Heinzel** checkout, for the time
 when both tools administer the same hosts.
 
-hostwarden knows about heinzel: its activity check
+Hostwarden knows about Heinzel: its activity check
 reads both journal tags, and the first connection to
-a host looks for what heinzel left there. heinzel
-knows nothing about hostwarden — it reads only its
-own tag, so work done by hostwarden is invisible to
+a host looks for what Heinzel left there. Heinzel
+knows nothing about Hostwarden — it reads only its
+own tag, so work done by Hostwarden is invisible to
 it, and its server memory silently drifts away from
 the host.
 
-These three files close that gap from heinzel's side.
-They are heinzel rule overrides, not hostwarden
-files; nothing here is read by hostwarden.
+These three files close that gap from Heinzel's side.
+They are Heinzel rule overrides, not Hostwarden
+files; nothing here is read by Hostwarden.
 
 ## Install
 
-Copy them into the heinzel checkout, without
+Copy them into the Heinzel checkout, without
 clobbering anything that is already there:
 
 ```bash
@@ -33,14 +33,14 @@ done
 
 The loop rather than `cp -n`, which skips an existing
 file without saying which — and a silently skipped
-file is the whole failure: the heinzel checkout keeps
-its old rule and stays unaware of hostwarden. Every
+file is the whole failure: the Heinzel checkout keeps
+its old rule and stays unaware of Hostwarden. Every
 name it prints has to be merged by hand: open that
 file and add the sections from this one. `all.md`
 especially, which an installation may already use for
 its own rules.
 
-heinzel reads `all.md` once per session and
+Heinzel reads `all.md` once per session and
 `<rule>.md` whenever it reads `rules/<rule>.md`. The
 directory is gitignored there, so this stays local
 unless the user shares custom rules deliberately.
@@ -50,14 +50,14 @@ you, following this section.
 
 ## What they change
 
-- `activity-check.md` — heinzel reads both journal
-  tags, so hostwarden's work shows up in its activity
-  summary, and a fresh hostwarden entry warns that a
+- `activity-check.md` — Heinzel reads both journal
+  tags, so Hostwarden's work shows up in its activity
+  summary, and a fresh Hostwarden entry warns that a
   session may be running right now.
-- `backups.md` — heinzel looks in
+- `backups.md` — Heinzel looks in
   `/var/backups/hostwarden/` as well, and does not
   report its own backup directory as lost when
-  hostwarden has adopted it.
+  Hostwarden has adopted it.
 - `all.md` — the general rules of the parallel phase:
   server memory is a hint rather than a fact, the
   other tool's files are not litter to clean up, and
@@ -66,6 +66,6 @@ you, following this section.
 
 ## When to remove them
 
-When the transition is over and heinzel no longer
+When the transition is over and Heinzel no longer
 touches these hosts. Deleting the three files is
 enough; they change nothing else.

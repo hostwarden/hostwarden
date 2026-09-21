@@ -19,7 +19,7 @@ MOVED=""
 
 # move_override <old-path> <new-name-under-custom-rules>
 # An override already at the new path wins: only the user
-# can merge two customizations, so the old file stays and
+# can merge two overrides, so the old file stays and
 # says so.
 move_override() {
   [ -e "$1" ] || return 0
@@ -35,7 +35,7 @@ move_override() {
 # An override's path mirrors the path of what it
 # overrides (rules/overrides.md). Topics that moved
 # between rules/ and a skill therefore answer to a new
-# path, and a customization left at the old one is
+# path, and an override left at the old one is
 # silently never read again — which is the one failure
 # this file exists to prevent. Same rule as above: an
 # override already at the new path wins and the old one
@@ -60,7 +60,7 @@ macos os/macos.md'
 if [ -d memory/custom-rules ]; then
   # memory/custom-rules/heinzel-<skill>.md →
   # hostwarden-<skill>.md: a skill override is found by the
-  # skill's name, which changed with the rename from heinzel.
+  # skill's name, which changed with the rename from Heinzel.
   for f in memory/custom-rules/heinzel-*.md; do
     [ -e "$f" ] || continue
     name=$(basename "$f")

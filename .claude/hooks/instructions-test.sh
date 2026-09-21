@@ -180,7 +180,7 @@ fi
 # --- every override the migration moves has somewhere to land ---
 # bin/hostwarden-migrate carries a table of topics that changed
 # address, and moves a user's override to the new one. A row whose
-# destination does not exist relocates a customization to a path
+# destination does not exist relocates an override to a path
 # nothing reads -- the exact failure the table exists to prevent.
 MIGRATE="$ROOT/bin/hostwarden-migrate"
 if [ -f "$MIGRATE" ]; then
@@ -189,7 +189,7 @@ if [ -f "$MIGRATE" ]; then
   }
 
   # The other direction, and the one that costs a user their
-  # customization rather than misplacing it: a row moves
+  # override rather than misplacing it: a row moves
   # `memory/custom-rules/<old>.md` away, which is right only while
   # nothing ships under that key any more. Ship a rule file named
   # after a row's left column again and the migration relocates a
@@ -252,10 +252,10 @@ fi
 # whole point of rewriting one is that it can then be verified.
 #
 # What is not checked: a relative pointer in a file outside
-# `.agents/skills/`. In `rules/overrides.md` and the README that
-# shape appears in a table *describing* the mirror scheme, and no
-# pattern separates an example of a path from a use of one. Those
-# two files document; they do not route.
+# `.agents/skills/`. In `rules/overrides.md` and
+# docs/overrides.md that shape appears in a table *describing*
+# the mirror scheme, and no pattern separates an example of a path
+# from a use of one. Those two files document; they do not route.
 REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'
 BAD_REFS=$(
   scan | tag "$REF_RE" \
@@ -354,8 +354,8 @@ report "$(scan \
 # Skills and subagents named in prose. Several rules point at
 # one by name rather than by path, which a rename breaks without
 # a trace. A script in bin/ is neither and counts as existing, and
-# so does hostwarden-workspace, the repository name the README
-# recommends for the workspace remote.
+# so does hostwarden-workspace, the repository name
+# docs/operations.md recommends for the workspace remote.
 report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
   | tag '`hostwarden-[a-z-]+`' \
@@ -448,7 +448,7 @@ report "$(scan \
 # infrastructure -- security.debian.org, time.apple.com -- and no
 # pattern tells that from a borrowed example, so hostnames at
 # large are a review matter. The target of an ssh or scp command
-# never is: hostwarden only ever logs into a user's machine. Both
+# never is: Hostwarden only ever logs into a user's machine. Both
 # forms count, with a user and without.
 #
 # The command word must be followed by whitespace -- a tab
@@ -504,6 +504,17 @@ report "$(scan \
   | grep -vE ': ([a-z0-9-]+\.)*example\.(com|net|org)$' \
   | grep -vE ': ([a-z0-9-]+\.)*(test|invalid|example)$' \
   | grep -vE ': localhost$')" "an RFC 2606 example target"
+
+# --- one term for an override -----------------------------------
+# .claude/rules/instruction-authoring.md → For people and for the
+# agent: what a user writes under memory/custom-rules/ is an
+# override. A second word for it reads, to people and agent alike,
+# as a second mechanism. CHANGELOG.md keeps what was released
+# under the old words, contrib/ speaks Heinzel's language, and the
+# two files that state the rule have to name what they retire.
+report "$(scan \
+  | grep -vE '^(CHANGELOG\.md|contrib/[^ ]*|\.claude/rules/instruction-authoring\.md|\.claude/hooks/instructions-test\.sh): ' \
+  | tag_i 'customi[sz]ations?|custom rules?')" "the one term, override"
 
 # --- every .md wraps at 80 -------------------------------------
 # .claude/rules/instruction-authoring.md → Layout: a URL or a

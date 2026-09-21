@@ -1,5 +1,5 @@
 #!/bin/sh
-# hostwarden-update — update, pin, or check hostwarden version.
+# hostwarden-update — update, pin, or check Hostwarden version.
 #
 # Usage:
 #   hostwarden-update               Update: pull main, or move to
@@ -221,7 +221,7 @@ case "${1:-}" in
     # Same as the default path: a pinned checkout can be many
     # releases behind, so this is exactly where an override
     # left at an obsolete path needs moving. Without it the
-    # update succeeds and the customization is silently dead.
+    # update succeeds and the override is silently dead.
     run_migration
     echo "hostwarden unpinned — now on main ($(current_version))"
     ;;

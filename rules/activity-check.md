@@ -1,7 +1,7 @@
 # Activity Check
 
 On **every** connection to a server (remote or
-local), check for recent hostwarden activity in the
+local), check for recent Hostwarden activity in the
 system journal. This keeps the user informed about
 changes made by other team members or previous
 sessions.
@@ -15,8 +15,8 @@ connection, not just the first of the day.
 ## How to check
 
 Read both tags: `hostwarden`, and `heinzel` for entries
-written before the rename. heinzel is the project
-hostwarden grew out of, and its entries stay in the
+written before the rename. Heinzel is the project
+Hostwarden grew out of, and its entries stay in the
 journal of every server it touched. Write only
 `hostwarden`.
 
@@ -87,10 +87,10 @@ did not run, rather than reporting silence. A failed
 check that reads as a clean host is how a concurrent
 session's work goes unnoticed.
 
-## A fresh heinzel entry means a live session
+## A fresh Heinzel entry means a live session
 
 An entry tagged `heinzel` from the last 15 minutes is
-not history — a heinzel session is probably working
+not history — a Heinzel session is probably working
 on this host right now. Both tools administer the
 same machines during a transition, and the journal is
 the only signal they share.
@@ -102,9 +102,9 @@ tool when entries from both tags appear: "Installed
 nginx" reads differently once the user knows which
 session did it.
 
-`contrib/heinzel-coexistence/` holds the custom rules
-that teach heinzel the same thing from its side.
-Another hostwarden session that is changing the same
+`contrib/heinzel-coexistence/` holds the overrides
+that teach Heinzel the same thing from its side.
+Another Hostwarden session that is changing the same
 host shows up in the host's session register instead
 (`rules/parallel-sessions.md`). Read it in the same
 call as the journal, with the server's own clock,
@@ -138,8 +138,8 @@ Recent activity (last 7 days):
 
 The heading is neutral and every line names its
 journal tag. A host can carry entries from before the
-rename and from a heinzel session running right now,
-and labelling either as hostwarden's would credit
+rename and from a Heinzel session running right now,
+and labelling either as Hostwarden's would credit
 this tool with work it did not do.
 
 - Group related entries when possible.

@@ -1,7 +1,7 @@
 # DNS Aliases
 
 The same physical server can have multiple DNS names.
-hostwarden detects this automatically using the `- IP:`
+Hostwarden detects this automatically using the `- IP:`
 field in server memory files.
 
 **Canonical name** = the first hostname used for a
@@ -73,7 +73,7 @@ symlink):
    - Confirm it is one: `test -L memory/servers/<alias>`.
      If not, delete the copy, use the canonical
      `memory.md` for this session, and point the user to
-     the README → Windows.
+     docs/install.md → Windows.
    - Add `- DNS alias: <alias>` to canonical
      `memory.md`.
    - Skip OS detection.

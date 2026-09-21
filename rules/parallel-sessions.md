@@ -1,6 +1,6 @@
 # Parallel Sessions
 
-How hostwarden sessions that change the same host see each other —
+How Hostwarden sessions that change the same host see each other —
 two windows on one workstation, or teammates on different ones.
 Every session that is about to write registers on the host itself,
 so every other session that reaches the host sees it, wherever it
@@ -45,7 +45,7 @@ or directly in local mode.
 The same openness lets any local account on the host rename,
 remove or forge an entry. That is the price of letting one user
 clear another's stale entry, and it is accepted: the register is a
-courtesy between hostwarden sessions, not a lock against the
+courtesy between Hostwarden sessions, not a lock against the
 host's own users. Someone who can log in and forge entries can
 change the host directly too.
 

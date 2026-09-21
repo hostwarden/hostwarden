@@ -1,11 +1,11 @@
 # Custom Rules — Activity Check
 
 Override for `rules/activity-check.md` while
-hostwarden works on the same hosts.
+Hostwarden works on the same hosts.
 
-## Add: Read hostwarden's journal tag too
+## Add: Read Hostwarden's journal tag too
 
-Work done by hostwarden is invisible to a check that
+Work done by Hostwarden is invisible to a check that
 asks for `heinzel` alone, and that is how two
 sessions end up surprising each other. Widen the
 commands in "How to check" — everything else in that
@@ -19,10 +19,10 @@ when the command succeeded":
 - macOS and FreeBSD: grep for
   `-E "heinzel|hostwarden"` instead of `heinzel`.
 
-## Add: A fresh hostwarden entry means a live session
+## Add: A fresh Hostwarden entry means a live session
 
 An entry tagged `hostwarden` from the last 15 minutes
-means a hostwarden session is probably working on
+means a Hostwarden session is probably working on
 this host right now.
 
 Say so before making any change, and let the user

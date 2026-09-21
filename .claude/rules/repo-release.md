@@ -7,16 +7,16 @@ paths:
   - "scripts/**"
   - ".githooks/**"
   - "mise.dev.toml"
-description: Versioning, tagging and porting from heinzel — for
-  work on the hostwarden repository itself, not for sysadmin
+description: Versioning, tagging and porting from Heinzel — for
+  work on the Hostwarden repository itself, not for sysadmin
   sessions.
 ---
 
-# Releasing hostwarden
+# Releasing Hostwarden
 
 ## VERSION
 
-The first hostwarden release is **1.0.0**. heinzel's numbering is
+The first Hostwarden release is **1.0.0**. Heinzel's numbering is
 not continued, and `VERSION` keeps the inherited 2.22.0 until that
 release is cut.
 
@@ -39,7 +39,7 @@ can follow a release line, pin to a tag or opt out
 Keep-a-Changelog style, newest first, under `## Unreleased` until a
 release is cut.
 
-**One entry per change, written for someone who uses hostwarden**
+**One entry per change, written for someone who uses Hostwarden**
 — what it does for them now, not what the diff touched. A bold lead
 clause, then the detail in a sentence or two.
 
@@ -59,15 +59,15 @@ in", no migration notes. A reader of `rules/backups.md` needs to
 know what to do, not what it said last month. That rule governs
 every instruction file, not just the ones near this one.
 
-## Porting from heinzel
+## Porting from Heinzel
 
-hostwarden grew out of
-[heinzel](https://github.com/wintermeyer/heinzel) and branched off
+Hostwarden grew out of
+[Heinzel](https://github.com/wintermeyer/heinzel) and branched off
 at tag `heinzel-2.22.0`. The `upstream` remote points there,
 read-only and without tags.
 
 Improvements come over selectively — cherry-picked or rewritten,
-never merged. Rename what the patch carries to hostwarden, then add
+never merged. Rename what the patch carries to Hostwarden, then add
 a trailer:
 
     Ported-from: wintermeyer/heinzel@<sha>
@@ -78,7 +78,7 @@ to `upstream`.
 
 The `hostwarden-adopt` skill and `rules/heinzel-legacy.md` are a
 different matter entirely: they are a product feature about taking
-over heinzel's state on a user's machines, not a compatibility
+over Heinzel's state on a user's machines, not a compatibility
 layer, and they stay.
 
 ## CI

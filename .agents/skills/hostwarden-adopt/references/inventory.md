@@ -5,7 +5,7 @@ What to collect from `memory/servers/<host>/memory.md` and
 
 ## What counts as a lead
 
-Anything a heinzel session created, configured or scheduled on that
+Anything a Heinzel session created, configured or scheduled on that
 host, whether or not its name says "heinzel". The shapes are listed in
 `rules/heinzel-legacy.md` § "What to look for" — the same list the
 first connection scans for, so that the collect side and the detect
@@ -18,10 +18,10 @@ the host connection resolves it.
 ## What is not a lead
 
 - Packages installed from the distro's repositories. They are
-  managed by the package manager, not by heinzel.
+  managed by the package manager, not by Heinzel.
 - Settings changed inside a file that already existed — `sshd_config`,
   `nginx.conf`, a sysctl value. Those are the host's own files. Note
-  them only if the changelog says heinzel added a drop-in file of its
+  them only if the changelog says Heinzel added a drop-in file of its
   own.
 - Anything the user or a colleague made that a session merely looked
   at. If the changelog does not say a session created it, it is not

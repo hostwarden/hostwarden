@@ -3,16 +3,17 @@ paths:
   - "AGENTS.md"
   - "CLAUDE.md"
   - "README.md"
+  - "docs/**"
   - ".claude/rules/**"
   - ".claude/hooks/**"
   - "contrib/**"
-description: How hostwarden's own instruction text is written —
+description: How Hostwarden's own instruction text is written —
   layout, wrapping, example identifiers, and where a new
   instruction belongs. For work on this repository, never for a
   managed host.
 ---
 
-# Writing hostwarden's instructions
+# Writing Hostwarden's instructions
 
 The product is the instruction set. These conventions apply to
 `AGENTS.md`, everything under `rules/`, every `SKILL.md` and its
@@ -59,6 +60,23 @@ Four mechanisms, one question each:
 A file keyed by a fact rather than a moment — the OS-family files
 — is reference data and lives in `rules/os/`.
 
+## For people and for the agent
+
+`docs/` and the README are written for the person running
+Hostwarden; `rules/` and the skills for the agent. Wherever a page
+for people describes what a rule or skill makes the user write,
+see or decide — overrides, parallel sessions, the Heinzel
+takeover, scheduled runs, the guardrails — both use the same terms
+and the same names for the same parts, and a change to that
+behaviour changes both in the same commit. The page says what to
+do and where; how the agent resolves the unclear cases stays in
+the rule, and the rule never sends the agent to the page.
+
+One term per thing. What a user writes under `memory/custom-rules/`
+is an **override**, never a customization or a custom rule; the
+directory keeps its name. `instructions-test.sh` fails on the
+retired words.
+
 ## Current state only
 
 Instruction files describe how things are, never how they came
@@ -72,6 +90,12 @@ its one exception, `CHANGELOG.md`.
 - One `#` title per file, matching what the file is called. A
   file whose job is to load another has no content to title —
   `CLAUDE.md` opens with its import — and does not get one.
+- **Hostwarden** and **Heinzel** are names and are capitalised in
+  prose, comments and messages. What is spelled as an identifier
+  stays as it is spelled: commands, paths, skill names, the
+  journal tag, `HOSTWARDEN_*`, and the program name a script
+  puts in front of its output (`hostwarden: …`,
+  `hostwarden guard: …`).
 - Sentences, not telegram style. The reader is a model that will
   act on this on a production server.
 - State what to do before why. The reasoning earns its place when
@@ -124,8 +148,8 @@ production disks.
 Two fence markers change that:
 
 - ```` ```bash operator ```` — the user types this at a console;
-  hostwarden never runs it.
-- ```` ```bash guard-off ```` — hostwarden runs it only after the
+  Hostwarden never runs it.
+- ```` ```bash guard-off ```` — Hostwarden runs it only after the
   operator relaunched with `HOSTWARDEN_GUARD_DISABLE=1`, and the
   file must say so.
 

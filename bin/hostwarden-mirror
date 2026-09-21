@@ -1,5 +1,5 @@
 #!/bin/sh
-# hostwarden-mirror — bring your own mirror of hostwarden up to
+# hostwarden-mirror — bring your own mirror of Hostwarden up to
 # date: fast-forward its main to upstream's and carry every tag.
 #
 # Usage:
@@ -55,7 +55,7 @@ hostwarden_mode "$SCRIPT_DIR/.."
 if [ "$HOSTWARDEN_MODE" = operations ]; then
   echo "hostwarden-mirror: this is an operations install. The" >&2
   echo "  mirror is kept current by a CI or cron job of its own," >&2
-  echo "  from a plain clone of hostwarden." >&2
+  echo "  from a plain clone of Hostwarden." >&2
   exit 1
 fi
 hostwarden_git_batch

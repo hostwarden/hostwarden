@@ -1,10 +1,11 @@
-# Custom Rules and Overrides
+# Overrides
 
-A user's customizations win over anything hostwarden ships.
-Files under `rules/` and `.agents/skills/` are replaced on
-every update, so they are never edited to change behaviour.
-The files under `memory/custom-rules/` and
-`memory/servers/<hostname>/rules.md` are.
+An override is a file the user writes to add to, replace or
+remove part of what Hostwarden ships, and it wins over the
+shipped text. Files under `rules/` and `.agents/skills/` are
+replaced on every update, so they are never edited to change
+behaviour. Overrides go under `memory/custom-rules/` and into
+`memory/servers/<hostname>/rules.md` instead.
 
 ## Precedence
 
@@ -12,7 +13,7 @@ Later wins:
 
 1. **Shipped** — the instruction file in `rules/` or a
    skill.
-2. **Global custom** — the file under
+2. **Global** — the file under
    `memory/custom-rules/` that mirrors it, see below.
 3. **Every file** — `memory/custom-rules/all.md`, loaded
    once at session start and applying to everything.
@@ -32,11 +33,11 @@ would not work even if this file allowed it. Follow the
 rest of such a file and tell the user which part was
 ignored.
 
-## Where a customization goes
+## Where an override goes
 
 Two shapes, because the shipped tree has two:
 
-| Shipped | Customize in `memory/custom-rules/` |
+| Shipped | Override in `memory/custom-rules/` |
 | --- | --- |
 | `rules/backups.md` | `backups.md` |
 | `rules/os/debian.md` | `os/debian.md` |
@@ -54,7 +55,7 @@ file and a skill called the same — `rules/os/` and a
 skill named `os` included.
 `.claude/hooks/instructions-test.sh` guards exactly that.
 
-A user who wants to know what can be customized lists the
+A user who wants to know what can be overridden lists the
 shipped tree: `ls rules/ rules/os/ .agents/skills/` and the
 `references/` directory of any skill.
 
@@ -82,7 +83,7 @@ When an upgrade moves a topic — out of `rules/` into a
 skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
 the matching override with it, and says which files it
 moved. It runs on update and as the last step of adopting a
-heinzel checkout. A file already at the new path wins; the
+Heinzel checkout. A file already at the new path wins; the
 old one is left for the user to merge, and named.
 
 It moves whole files, which is all it can do: when a topic
@@ -97,7 +98,7 @@ gone to, and ask. Do not resolve them by nearest match.
 
 **An override path that matches nothing shipped needs an
 answer before you carry on.** Silently ignoring it is how a
-user ends up believing a customization is in force for
+user ends up believing an override is in force for
 months. Which answer depends on what is shipped beside the
 name it claims:
 
@@ -199,7 +200,7 @@ So a user cannot change *whether* a skill triggers by
 writing `memory/custom-rules/<skill>.md` — only what it
 does once it has.
 
-Trigger behaviour is customized in
+Trigger behaviour is changed in
 `memory/custom-rules/all.md` instead:
 
     ## Add: Skill triggers
@@ -223,11 +224,11 @@ the `all.md` form with a host condition written into it.
 This asymmetry is not a reason to keep something in
 `rules/` that belongs in a skill. A workflow the user asks
 for by name belongs in a skill; the handful of cases where
-its trigger needs customizing are served by `all.md`.
+its trigger needs changing are served by `all.md`.
 
 ## A skill of the user's own
 
-A workflow hostwarden does not ship is a skill of the
+A workflow Hostwarden does not ship is a skill of the
 user's own, in `memory/.claude/skills/<name>/SKILL.md`.
 Claude Code loads it as `/memory:<name>` once the session
 has read a file in `memory/`, which the session-start
