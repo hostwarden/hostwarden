@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+- **An MTA hostwarden installs queues the mail.** The
+  default was `msmtp`, which has no queue: it connects
+  when called and exits non-zero when the relay does not
+  answer. Nothing that sends unattended mail on a server
+  — cron, unattended-upgrades, hostwarden's own reports —
+  retries, so a relay down for a minute lost the message
+  with nobody to notice. The install now picks a spooling
+  agent from what the host's package manager offers
+  (`nullmailer`, `dma`, or postfix as a null client), and
+  says which and why. `msmtp` stays the right answer for
+  a container or a host that gets recreated rather than
+  repaired, and is installed when asked for — with what
+  it costs said out loud.
+
+- **The email skill loads in stages.** Everything used to
+  arrive at once: transport, MIME construction and the
+  attachment gates entered context the moment anyone asked
+  to send a mail, before hostwarden knew where it would
+  send from or whether there was an attachment. The
+  workflow loads first now, and each step reads its own
+  part when it gets there. An exchange that stops early —
+  the where-to-send-from question the first mail per host
+  asks — reads the workflow and nothing else. A full send
+  still reads all of it, in three pieces instead of one.
+
+  If you customized one of those topics, it has its own
+  override key now — `hostwarden-email/transport.md`,
+  `…/compose.md`, `…/send-verify.md` under
+  `memory/custom-rules/`. An existing
+  `hostwarden-email.md` still applies as a whole; a
+  section in it that named one of the moved headings
+  matches nothing, and hostwarden says so and asks rather
+  than guessing which file you meant
+  (`rules/overrides.md`).
+
 - **The fleet audit gives each host its own subagent.**
   A dozen hosts used to mean a dozen `sshd -T` dumps in
   one context; now each `hostwarden-host-probe` returns

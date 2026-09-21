@@ -8,8 +8,10 @@ description: Send an email about a managed server — ad-hoc text
   first email per host asks where to send from (local
   workstation vs the server itself). On the remote path,
   prefers the existing MTA (postfix, sendmail, msmtp,
-  mail/mailx) and asks before installing one. Sends as a
-  non-root user via `runuser`/`su -`. Attachments check sender
+  mail/mailx) and asks before installing one. Sends
+  unprivileged — as the SSH user, or dropping from root via
+  `runuser`/`su -` when the session is root. Attachments
+  check sender
   readability, size, and offer a content preview before
   sending. **Never run automatically** — only on explicit user
   request.
@@ -22,16 +24,11 @@ server. The report content is *about* the server; whether the
 mail leaves *from* the server or *from* your workstation is a
 per-host preference that's asked once and remembered.
 
-The full hostwarden first-connection onboarding pipeline still
-applies before any of this runs.
-
 ## Workflow
 
 1. **Onboarding pipeline.** Run `rules/first-connection.md` in
    full. No "quick question" exception — even a one-line email
-   still goes through blacklist/read-only check, DNS alias
-   detection, SSH user lookup, OS detection, server memory
-   load, and activity check.
+   goes through every step of it.
 
 2. **Load overrides**, key `hostwarden-email`, per
    `rules/overrides.md`. Read `memory/servers/<host>/memory.md`
@@ -81,456 +78,34 @@ applies before any of this runs.
    perfectly valid choice the user should be able to lock in
    once.
 
-### 5L. Local-side workflow
+### 5. Transport
 
-**5L.1** Probe the workstation for a local transport:
-`command -v mail || command -v mailx || command -v sendmail
-|| command -v msmtp`. On macOS, also confirm Postfix is
-loaded: `launchctl print system/com.apple.postfix.master`
-exits 0.
+Read `references/transport.md` and follow the branch gate 0
+chose — **5L** for the workstation, **5R** for the server.
+It covers probing for a transport, the two consent gates
+around using or installing an MTA, the install targets per
+OS family, and picking a non-root sender identity.
 
-**5L.2** **No install fallback locally.** If nothing's there,
-refuse cleanly: "no mail tooling on this workstation —
-install msmtp locally and rerun, or pick remote next time by
-deleting `Email source: local` from `memory.md`." Do not
-auto-install on the workstation.
-
-**5L.3** Skip Gate A (5R.2) and Gate B (5R.3) entirely —
-those are remote-only.
-
-**5L.4** Skip the sender-identity step (5R.4). Local sending
-runs as the current shell user.
-
-**5L.5** Continue at the shared step **6 (Compose)**. At step
-**7 (Send)** the command runs locally. At step **8 (Verify)**
-inspect local logs:
-- macOS: `log show --style compact --last 1m --predicate
-  'process == "smtpd" OR process == "smtp"'`
-- Linux workstation: `journalctl --since "1 minute ago" -t
-  postfix` or `tail -50 /var/log/mail.log`
-
-### 5R. Remote-side workflow
-
-**5R.1 Resolve transport** — probe in this order on the
-remote host:
-- `command -v mail || command -v mailx || command -v s-nail`
-- `command -v sendmail`
-- `command -v msmtp`
-- `systemctl is-active postfix opensmtpd exim4` (any active)
-
-**5R.2 Consent gate A — existing MTA.** If 5R.1 found a
-working MTA, check `memory.md` for `Email send policy:
-<always|never>`:
-- `always` → proceed silently.
-- `never` → refuse with the reason; do not send.
-- missing → ask:
-  > "Use the MTA already on `<host>` (`<detected tool>`)?"
-  - **Once** — send this time, ask again next time.
-  - **Always** (recommended) — write `Email send policy:
-    always` into `memory.md`, send.
-  - **Never** — write `Email send policy: never` into
-    `memory.md`, abort.
-
-If 5R.1 found a working MTA, skip 5R.3 entirely.
-
-**5R.3 Consent gate B — install a new MTA.** Only reached
-when 5R.1 found nothing. Check `memory.md` for `MTA install
-policy: <always|never>`:
-- `always` → install silently using the OS-family default
-  below.
-- `never` → refuse; do not install, do not send.
-- missing → ask:
-  > "No MTA found on `<host>`. Install one?"
-  - **Once** — install this time, ask again next time.
-  - **Always** — write `MTA install policy: always` into
-    `memory.md`, install.
-  - **Never** — write `MTA install policy: never` into
-    `memory.md`, abort.
-
-Before any install — whichever answer allowed it — run the
-mandatory service class conflict check from
-`rules/service-class-check.md`. An MTA is a service class:
-the check can find a member the 5R.1 transport probe missed
-(e.g. an installed-but-stopped postfix), and a second MTA
-must never be added without explicit user approval.
-
-Install targets (OS-family defaults):
-- Debian/Ubuntu: `apt-get install -y msmtp-mta bsd-mailx`
-- RHEL/Fedora: `dnf install -y msmtp s-nail`
-- SUSE: `zypper install -y msmtp s-nail`
-- FreeBSD: `pkg install -y msmtp` (`mail(1)` is in base)
-- macOS as a managed target: do **not** install. Use
-  `/usr/bin/mail` if a working Postfix is already
-  configured; otherwise refuse cleanly and explain
-  (residential macOS rarely sends).
-
-Before installing, surface the deliverability caveat: the
-server's IP probably has no PTR/SPF/DKIM, so mail to
-gmail-style providers will likely be filtered. Recommend a
-smarthost relay (msmtp config) if the user has one. If a
-smarthost is configured during install, follow
-`rules/backups.md` (back up `/etc/msmtprc` before edits) and
-store credentials with `0600 root:root`.
-
-**5R.4 Pick the sender identity — least privilege.** Sending
-mail almost never needs root. Choose the UID for the send,
-in this order:
-
-1. Current SSH user is non-root → use that user.
-2. Current SSH user is root (common on hosts that allow only
-   root SSH with no usable sudo, or after privileged earlier
-   work in the session):
-   - First check `memory.md` for an `Email sender:` line —
-     if present, use it without re-probing.
-   - Otherwise read `memory/user.md` for the preferred
-     username.
-   - `id <user>` to verify the account exists on the host.
-   - `su - <user> -c 'command -v <transport>'` to verify the
-     account can invoke the chosen transport. If group perms
-     on `/etc/msmtprc` block it, fall to case 3.
-   - Drop privileges for the send only:
-     `runuser -u <user> -- sh -c '…'` (Linux util-linux) or
-     `su - <user> -c '…'` (portable, FreeBSD).
-3. If no non-root sender is viable, send as root and tag the
-   report **WARN** with the reason. Never invent a user.
-
-The install step (5R.3) still requires root/sudo — that is
-the only root-privileged operation in the workflow.
+The install step (5R.3) is the only root-privileged
+operation in the whole workflow.
 
 ## Shared steps (both 5L and 5R converge here)
 
-6. **Compose.**
-   - Default subject: `[hostwarden/<short-hostname>] <topic>` —
-     even on the local-side path, the subject names the
-     server the report is *about*.
-   - Body: plain text, in this order and nothing else — one
-     line naming what ran and on which host, the report or the
-     user's content verbatim, then the Hostwarden closing (see
-     **Greeting** and **Signature** below). If the user asks to
-     send command output, run the command and embed
-     stdout/stderr inline in a fenced block in place of the
-     report.
-   - **Ceiling: 5 lines of your own text** around that block,
-     per "Talking to Humans" in `AGENTS.md`. No cover sentence,
-     no restatement of the subject, no "as requested", no recap
-     under the report. A report goes in exactly as its skill
-     produced it — nothing added before or after it.
-     Attachments get one line each: name and size, not a
-     description of the contents.
+6. **Compose** — `references/compose.md`. Subject and body
+   shape, the five-line ceiling on your own text, the
+   attachment gates (readability, size, the default refusal
+   on likely-secret files, the content preview), and the
+   fixed greeting and signature.
 
-   **Attachments** (e.g. "email me /var/log/auth.log"):
+7. **Send** — `references/send-verify.md`. The canonical
+   path builds the message with headers, because hostwarden
+   always injects the anti-auto-reply triple and MIME
+   headers when attaching. A remote send runs as the SSH
+   user when that is not root, and drops from root via
+   `runuser`/`su -` when it is.
 
-   a. Per file, `stat` the path on the side that holds it
-      (remote when the path lives on the server; local
-      otherwise). Refuse if it doesn't exist; never invent
-      paths.
-   b. **Readability check.** Confirm the chosen sender UID
-      (5R.4 result on the remote path, current shell user on
-      the local path) can read it: `[ -r path ]` under that
-      UID. If not, do not silently escalate. Show the perms
-      (`ls -l`) and ask:
-      - skip the file (default offered);
-      - copy via root to a temp file `0600 <sender>:<sender>`
-        the sender can read, then clean up after send;
-      - send as root with a **WARN**.
-   c. **Size check.** If the file is over 10 MB, show the
-      size and Gmail's 25 MB cap, then ask: send as-is, gzip
-      first (recommended for text logs), or skip.
-   d. **Sensitive-content nudge.** Log files often contain
-      secrets, IPs, hostnames, internal email addresses.
-      Show the file's `head -5` and ask "ok to attach?"
-      before proceeding. The user can override globally for
-      the session by saying "skip the log preview" — do not
-      persist that override to memory.
-
-      **Likely-secret files are default-refuse.** For
-      `.env`, `id_*`, `*_key`, `*.pem` with private key
-      material, `shadow`, `msmtprc`, `.netrc`, cloud
-      credential files, or anything under
-      `/etc/ssl/private/`: warn explicitly and attach only
-      on an explicit per-file override. Never show their
-      content as a preview — the preview itself would leak.
-      Preview with `ls -l` + `file` instead. See
-      `rules/secrets.md`. The session-wide "skip the log
-      preview" override does NOT apply to these files.
-   e. Multiple attachments: repeat a–d per file. Hard cap of
-      5 attachments per message in v1; refuse the 6th and
-      suggest splitting the mail.
-
-   **Voice.** Hostwarden, not the operator, is the apparent
-   author of every outgoing message. Body text — including
-   any casual sign-off the user asks for above the fixed
-   greeting — must speak in Hostwarden's voice on the
-   operator's behalf. If a closing line precedes the
-   greeting (e.g. "Have a good week,"), attribute it to
-   Hostwarden acting for the operator, like:
-
-   ```
-   Have a good week,
-   Hostwarden (for <Operator name>)
-   ```
-
-   Never write `<Operator> (via hostwarden)`, `<Operator> via
-   hostwarden`, or any phrasing that frames the operator as
-   the author with Hostwarden as a delivery channel. The
-   persona is **"Hostwarden for `<Operator>`"**, not
-   "`<Operator>` via Hostwarden". Same applies to the subject
-   and any inline narration.
-
-   **Greeting.** Before the signature, every outgoing
-   message carries a fixed two-line human close, separated
-   from the body above by one blank line and from the
-   signature below by another blank line:
-
-   ```
-   Viele Grüße
-   Hostwarden
-   ```
-
-   Hostwarden is the author of the closing — not the operator.
-   The operator attribution lives in the signature block
-   below. Keep the greeting fixed across languages; the
-   subject and body may be English, the "Viele Grüße /
-   Hostwarden" close stays the tool's voice. Users who want a
-   different wording can set a `Greeting:` line in
-   `memory/user.md` (global) or
-   `memory/servers/<host>/memory.md` (per-host); if present,
-   it replaces both lines verbatim (multi-line allowed).
-   Per-send instructions ("use 'Mit freundlichen Grüßen'
-   this time") always win over memory.
-
-   **Signature.** Every outgoing message ends with a fixed
-   three-line signature block, separated from the greeting
-   above by one blank line and opened by the RFC 3676
-   delimiter `"-- "` (two hyphens, one space, then newline
-   — most MUAs collapse the sig visually only when the
-   delimiter is exact):
-
-   ```
-   -- 
-   Sent by Hostwarden on behalf of <Operator name>
-   https://github.com/jpawlowski/hostwarden
-   ```
-
-   Keep it to these three lines. No timestamp, no hostname,
-   no extra attribution — the subject already names the
-   host. Plain text only; no HTML.
-
-   **Resolve `<Operator name>`** in this order, stop at the
-   first hit. Never fabricate a name from a short handle
-   like `root` or `admin`:
-
-   1. `Operator name:` line in
-      `memory/servers/<host>/memory.md` (per-host override,
-      rare).
-   2. `Operator name:` line in `memory/user.md` (global,
-      canonical).
-   3. Claude Code auto-memory — the `user_profile.md` file
-      referenced from `MEMORY.md`. Take the human name from
-      its front-matter `name:` field (strip any suffix like
-      ` — user profile`). This is the same auto-memory
-      channel step 3 uses for the default email.
-   4. `git config --global user.name` on the workstation.
-   5. GECOS full name:
-      `getent passwd "$USER" | cut -d: -f5 | cut -d, -f1`
-      on Linux, `id -F` on macOS/BSD.
-   6. `$USER` as a last resort.
-   7. If even `$USER` is empty, ask once via the picker and
-      persist the answer.
-
-   **Persist on first resolution via 3/4/5/6** — write
-   `Operator name: <name>` into `memory/user.md` under the
-   existing `# Preferences` section so the next run skips
-   the probes and the user can edit the canonical value.
-   Do not overwrite an `Operator name:` line that already
-   exists; user edits win.
-
-   **From header.** Hostwarden mail is machine-generated. Set
-   `From: noreply@<sending-host-fqdn>` so recipients see at
-   a glance that the mailbox is not monitored:
-
-   - Remote path: `<sending-host-fqdn>` is the per-server
-     hostname (the directory name under
-     `memory/servers/<host>/`).
-   - Local path: `<sending-host-fqdn>` is the workstation's
-     FQDN (`hostname -f`, fall back to `hostname`).
-
-   The `noreply@…` mailbox does **not** need to exist on the
-   host. Real bounces follow the *envelope* sender (the
-   submitter UID picked in 5R.4, or the current shell user
-   on the local path) — that is always a real account that
-   can receive MAILER-DAEMON notices. The From header is
-   purely visual, for the recipient's MUA.
-
-   A host can pin a different From mailbox by adding a
-   `From:` line to its `memory.md` (rare — only useful when
-   a host needs a non-`noreply@` identity such as
-   `alerts@<host>`).
-
-   **Reply-To header.** Because the From mailbox is unread,
-   every Hostwarden message MUST carry a `Reply-To:` pointing
-   at the human operator, so recipients hitting "Reply"
-   land in a real inbox.
-
-   The operator email is the address of the human
-   *using* Hostwarden — the same person logged into Claude
-   Code right now. It is **never** an account on the
-   managed server: no `root@<host>`, no
-   `<ssh-user>@<host>`, no alias derived from `/etc/aliases`
-   or `~/.forward` on the target. Do not probe
-   `getent passwd`, `id`, or any mail metadata on the
-   managed host to resolve it. Replies must land in the
-   operator's real inbox, not on the server they were
-   asking Hostwarden to work on.
-
-   **Resolve `<operator email>`** in this order, stop at
-   the first hit. Never fabricate an email from a short
-   handle like `root` or `admin`, and never derive it
-   from a managed host:
-
-   1. `Reply-To:` line in
-      `memory/servers/<host>/memory.md` (per-host
-      override, rare — e.g. a different operator fields
-      replies for one specific host; still must be a
-      real off-server inbox).
-   2. `Reply-To:` line in `memory/user.md` (global,
-      canonical).
-   3. Claude Code auto-memory — the "Default email"
-      entry under User in `MEMORY.md`. Load the linked
-      file and use the address. Same channel step 3 of
-      "Resolve recipient" uses.
-   4. `git config --global user.email` on the
-      workstation.
-   5. If still nothing, omit the Reply-To header, tag
-      the report **WARN** with the reason, and tell the
-      user before sending — don't ship a Hostwarden mail
-      with no working reply path silently.
-
-   **Persist on first resolution via 3/4** — write
-   `Reply-To: <addr>` into `memory/user.md` under the
-   `# Preferences` section so the next run skips the
-   probes and the user can edit the canonical value.
-   Do not overwrite an existing `Reply-To:` line.
-
-   **Anti-auto-reply headers.** Every Hostwarden email is an
-   automated status message about a managed server. It
-   should never fan out out-of-office or vacation replies
-   back at the operator. To that end, every outgoing
-   message carries this fixed header triple, regardless of
-   path or attachments:
-
-   ```
-   Auto-Submitted: auto-generated
-   Precedence: bulk
-   X-Auto-Response-Suppress: OOF, AutoReply
-   ```
-
-   - `Auto-Submitted: auto-generated` is the RFC 3834
-     signal. Standards-compliant auto-responders
-     (vacation(1), Sieve `vacation`, recent postfix,
-     well-behaved providers) MUST NOT reply to a message
-     that carries it.
-   - `Precedence: bulk` is the older sendmail convention,
-     still honoured by many legacy responders.
-   - `X-Auto-Response-Suppress: OOF, AutoReply` is the
-     Microsoft Exchange / Outlook-specific knob that
-     suppresses OOF replies and "I'm out of the office"
-     auto-responses when the recipient uses Exchange.
-
-   Together the three cover RFC-compliant systems, legacy
-   Unix responders, and the Exchange-flavoured world.
-   Do not make them per-host configurable; there is no
-   realistic Hostwarden message that should be treated as
-   a normal human email by an auto-responder.
-
-7. **Send.** Because Hostwarden always injects custom headers
-   (the anti-auto-reply triple above, plus MIME headers
-   when attaching), the canonical send path builds the
-   full RFC 822 message and pipes it to a sendmail-style
-   agent that reads headers from stdin (`-t` mode). This
-   is uniform across Postfix, msmtp-mta, exim, opensmtpd,
-   and macOS Postfix — they all expose `/usr/sbin/sendmail`
-   with compatible `-t` semantics.
-
-   The composed message always has this shape (headers,
-   blank line, body + greeting + signature):
-
-   ```
-   From: noreply@<sending-host-fqdn>
-   Reply-To: <operator email>
-   To: <recipient>
-   Subject: <subject>
-   Auto-Submitted: auto-generated
-   Precedence: bulk
-   X-Auto-Response-Suppress: OOF, AutoReply
-   MIME-Version: 1.0
-   Content-Type: text/plain; charset=utf-8
-
-   <body>
-
-   <greeting>
-
-   -- 
-   <signature>
-   ```
-
-   `From:` and `Reply-To:` are resolved per the rules
-   above. If `Reply-To:` could not be resolved (case 5),
-   omit the line entirely after warning the user.
-
-   **No attachments.** Pipe the message to
-   `sendmail -t -oi` (`-oi` prevents a lone `.` on a line
-   from ending input). Prefer the MTA-provided
-   `/usr/sbin/sendmail`; fall back to `msmtp -t` when only
-   msmtp is present.
-
-   **With attachments**, build a MIME multipart message by
-   hand — `text/plain` body plus parts that are
-   `text/plain` for `text/*` MIME types (detected via
-   `file --mime-type`) and base64-encoded
-   `application/octet-stream` otherwise. Hostwarden
-   constructs the headers (including the anti-auto-reply
-   triple) and the boundary itself, then pipes into
-   `sendmail -t -oi` (or `msmtp -t` when only msmtp is
-   present). One code path for every MTA, which is what
-   makes the headers survive: a tool-specific shell-out to
-   `mutt` or `mail -a` drops them.
-
-   **macOS local path.** `/usr/bin/sendmail` on macOS is a
-   Postfix compatibility shim and accepts the same `-t`
-   invocation, so the same composed message pipes through
-   without change. `/usr/bin/mail` is not used for the
-   send itself anymore; we only consulted it during the
-   5L.1 probe to confirm a working local MTA exists.
-
-   Remote path: run under the user chosen in 5R.4, via
-   `runuser -u <user> -- sh -c '…'` or
-   `su - <user> -c '…'`. Local path: under the current
-   shell user.
-
-8. **Verify delivery.** Check the send command's exit code,
-   then probe the appropriate mail log from the last minute:
-   - Linux remote: `journalctl -u postfix --since "1 minute
-     ago" | tail -20` (substitute the active MTA unit), or
-     `tail -50 /var/log/mail.log` (Debian) /
-     `/var/log/maillog` (RHEL/FreeBSD).
-   - macOS local: `log show --style compact --last 1m
-     --predicate 'process == "smtpd" OR process == "smtp"'`.
-   - Linux workstation local: `journalctl --since "1 minute
-     ago" -t postfix` or `/var/log/mail.log`.
-
-   Look for `status=sent` (or msmtp's `delivery
-   successful`). Flag `deferred` / `bounced` as **CRITICAL**
-   and report verbatim instead of claiming success. Never
-   call a send successful on the basis of the command's exit
-   code alone.
-
-   On the remote path, confirm the log line's `from=<…>`
-   matches the chosen sender user (not root, unless 5R.4
-   fell to case 3). This is the *envelope* sender (the
-   Return-Path), which always reflects the submitter UID;
-   the visible `From:` header is `noreply@…` and is
-   independent — do not flag the mismatch as a problem.
+8. **Verify delivery** — `references/send-verify.md`. Exit
+   code, then the mail log from the last minute.
 
 9. **Update `memory.md`** if anything new was learned (source
    chosen, transport discovered or installed, recipient
@@ -563,7 +138,7 @@ absence means "ask next time".
 - Mail: <transport summary>          # remote path only
                                      # e.g. "postfix + bsd-mailx
                                      #       (outbound via the provider MX)"
-                                     # or  "msmtp via smtp.example.com:587"
+                                     # or  "nullmailer via smtp.example.com:587"
 - Alert email: <recipient address>
 - Email source: local | remote       # gate 0 — sender side
 - Email sender: <username>           # remote path only — non-root user
@@ -588,7 +163,10 @@ hostwarden installs new packages on a different server
 `memory/service-policy.md`'s split between `restart-auto`
 and `restart-never`.
 
-## References (read on demand)
+## Rules this skill leans on
+
+The three `references/` files are named by the steps that need
+them. Beyond those:
 
 - `rules/first-connection.md` — the mandatory onboarding
   pipeline.
@@ -599,6 +177,6 @@ and `restart-never`.
 - `rules/service-class-check.md` — mandatory conflict check
   before installing an MTA (gate B).
 - `rules/backups.md` — config backup before any edit (e.g.
-  `/etc/msmtprc`).
+  the smarthost credentials file).
 - `rules/secrets.md` — secrets hygiene; default-refuse
   attachment gate for likely-secret files.
