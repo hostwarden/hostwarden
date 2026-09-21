@@ -1511,9 +1511,8 @@ session in your operations checkout — a message to
 one already running, or one command that starts it —
 and reads the answer. That session runs the access
 lists and the full first-connection pipeline as
-always. For a single read-only command the agent can
-instead write it out for you to run in your own
-terminal. Details: `rules/server-check-handoff.md`.
+always, a one-line question included. Details:
+`rules/server-check-handoff.md`.
 
 **Validating a branch** needs the branch's own
 instructions on a server, and those never go near
