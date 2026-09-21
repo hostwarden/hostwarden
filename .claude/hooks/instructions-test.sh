@@ -141,6 +141,14 @@ if [ "$NHOOKS" -eq 0 ]; then
   bad "settings.json registers no hook script -- either the" \
       "guard is gone or this check stopped matching"
 fi
+# Every hook present and correct says nothing about whether the
+# guard is among them: remove it and the checks above still pass.
+if grep -q '"command": *"sh \\"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-taboos.sh\\""' \
+    "$CLAUDE_DIR/settings.json"; then
+  ok
+else
+  bad "settings.json no longer registers the taboo guard"
+fi
 
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other

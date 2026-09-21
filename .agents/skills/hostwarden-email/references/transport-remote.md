@@ -90,8 +90,8 @@ Tell the user which one you picked and why that one, in a
 line — "nullmailer, because apt has it and the queue means a
 relay outage does not drop a report".
 
-macOS as a managed target: do **not** install. Use
-`/usr/bin/mail` if a working Postfix is already configured;
+macOS as a managed target: do **not** install. Use the
+`/usr/sbin/sendmail` shim of a working, configured Postfix;
 otherwise refuse cleanly and explain (residential macOS
 rarely sends).
 
