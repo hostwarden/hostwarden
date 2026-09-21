@@ -95,6 +95,7 @@ rules/                 — Upstream rule files (git-tracked)
                          file, or none. Detection reads at
                          most one
     proxmox-ve.md      — Proxmox VE (on os/debian.md)
+    openmediavault.md  — OpenMediaVault (on os/debian.md)
     opnsense.md        — OPNsense (on os/freebsd.md)
     pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)

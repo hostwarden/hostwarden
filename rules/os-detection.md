@@ -42,8 +42,9 @@ skill says so where it needs it.
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version'
+     'which omv-confdbadm; ls -d /homeassistant; pveversion;' \
+     'opnsense-version; cat /etc/version;' \
+     'dpkg-query -W openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -109,9 +110,9 @@ skill says so where it needs it.
 
 3. **Check for an appliance** from the lines after
    `@appliance`. See Appliances below. The same lines
-   carry the version of Proxmox VE, OPNsense and
-   pfSense; any other appliance file says how to read
-   its own.
+   carry the version of Proxmox VE, OPNsense, pfSense
+   and OpenMediaVault; any other appliance file says
+   how to read its own.
 
 4. Create a server memory file.
 
@@ -129,12 +130,13 @@ The probe in step 1 reports the markers. `which`
 prints a path for a command that exists; what it
 prints for a missing one depends on the shell.
 
-| Base    | Marker             | Appliance file                  |
-| ------- | ------------------ | ------------------------------- |
-| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
-| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
-| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
-| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
+| Base    | Marker             | Appliance file                      |
+| ------- | ------------------ | ----------------------------------- |
+| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md`     |
+| Debian  | `omv-confdbadm`    | `rules/appliance/openmediavault.md` |
+| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`       |
+| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`        |
+| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`           |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
