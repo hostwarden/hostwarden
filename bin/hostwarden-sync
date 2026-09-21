@@ -36,18 +36,7 @@ case "${1:-}" in
   *) usage >&2; exit 1 ;;
 esac
 
-# Never wait for a prompt: a session start must not hang on
-# a credential or a host key question. An SSH remote gets the
-# options AGENTS.md → SSH Options sets for every connection,
-# keepalives included, so a dead link cannot hold the session.
-export GIT_TERMINAL_PROMPT=0
-# Only the socket directory needs 0700; ~/.cache keeps the umask.
-# shellcheck disable=SC2174
-mkdir -p -m 700 "$HOME/.cache/hostwarden"
-GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=5 \
--o ControlMaster=auto -o ControlPath=~/.cache/hostwarden/ssh-%C \
--o ControlPersist=10m -o ServerAliveInterval=15 -o ServerAliveCountMax=3}
-export GIT_SSH_COMMAND
+hostwarden_git_batch
 
 W() { git -C memory "$@"; }
 

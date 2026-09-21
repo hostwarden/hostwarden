@@ -34,6 +34,8 @@
 # Expects nothing. Defines:
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
 #                             three answers
+#   hostwarden_git_batch    — sets up git to reach the workspace's
+#                             remote without ever prompting
 
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_mode() {
@@ -46,4 +48,20 @@ hostwarden_mode() {
   else
     HOSTWARDEN_MODE=development
   fi
+}
+
+# The workspace's remote is reached by init --clone and by sync,
+# often from a session-start hook. Never wait for a prompt there:
+# not for a credential, not for a host key. An SSH remote gets the
+# options AGENTS.md → SSH Options sets for every connection,
+# keepalives included, so a dead link cannot hold the session.
+hostwarden_git_batch() {
+  GIT_TERMINAL_PROMPT=0
+  # Only the socket directory needs 0700; ~/.cache keeps the umask.
+  # shellcheck disable=SC2174
+  mkdir -p -m 700 "$HOME/.cache/hostwarden"
+  GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=5 \
+-o ControlMaster=auto -o ControlPath=~/.cache/hostwarden/ssh-%C \
+-o ControlPersist=10m -o ServerAliveInterval=15 -o ServerAliveCountMax=3}
+  export GIT_TERMINAL_PROMPT GIT_SSH_COMMAND
 }

@@ -119,6 +119,8 @@ cmd deny "$DEV" 'pkexec whoami'
 cmd deny "$DEV" 'find . -exec ssh server1.example.com true \;'
 cmd deny "$DEV" 'find . -name x -execdir /usr/bin/scp {} server1.example.com: \;'
 cmd pass "$DEV" 'find . -name "*.sh" -exec shellcheck {} +'
+cmd deny "$DEV" 'find . -exec env ssh server1.example.com true \;'
+cmd deny "$DEV" 'find . -ok timeout -s KILL 5 sudo true \;'
 cmd deny "$DEV" 'env --unset FOO ssh server1.example.com true'
 cmd deny "$DEV" 'timeout --signal KILL 5 ssh server1.example.com'
 cmd deny "$DEV" 'stdbuf --output L ssh server1.example.com'
@@ -188,6 +190,13 @@ write pass "$OPS" "$OPS/memory/servers/server2.example.com/memory.md"
 ln -s ../rules/backups.md "$OPS/memory/sneaky.md"
 edit deny "$OPS" "$OPS/memory/sneaky.md"
 rm "$OPS/memory/sneaky.md"
+# ...and so is the end of a chain too long to follow.
+ln -s ../rules/backups.md "$OPS/memory/l0"
+for n in 1 2 3 4 5 6 7 8 9 10 11; do
+  ln -s "l$((n - 1))" "$OPS/memory/l$n"
+done
+edit deny "$OPS" "$OPS/memory/l11"
+rm "$OPS"/memory/l*
 # A DNS alias links to another host's directory in memory/.
 mkdir -p "$OPS/memory/servers/web1.example.com"
 ln -s web1.example.com "$OPS/memory/servers/www.example.com"
@@ -271,6 +280,11 @@ if sh "$H/bin/hostwarden-init" >/dev/null 2>&1; then
   bad "init ran with core.hooksPath pointing elsewhere"
 else ok; fi
 mode_is development "$H"
+# The override the refusal recommends is accepted.
+git -C "$H/memory" config core.hooksPath .git/hooks
+sh "$H/bin/hostwarden-init" >/dev/null 2>&1 && ok \
+  || bad "init refused core.hooksPath set to the workspace's own hooks"
+mode_is operations "$H"
 # Never in a worktree.
 if sh "$WT/bin/hostwarden-init" >/dev/null 2>&1; then
   bad "init ran in a linked worktree"

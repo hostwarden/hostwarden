@@ -54,6 +54,7 @@ if [ -n "$CLONE" ]; then
     echo "  empty one; move the existing state aside first." >&2
     exit 1
   fi
+  hostwarden_git_batch
   git clone --quiet -- "$CLONE" memory
   # DNS aliases are symlinks under memory/servers/. A clone that
   # cannot make links turns each into a text file, and alias
@@ -79,12 +80,21 @@ mkdir -p memory/servers memory/custom-rules
 # of the user's own sits where ours would go. Refuse both,
 # before anything marks this as a workspace, rather than leave
 # one that looks scanned and is not.
-if [ -n "$(git -C memory config core.hooksPath)" ]; then
-  echo "hostwarden-init: core.hooksPath is set for memory/, so git would" >&2
-  echo "  not run the workspace's secret scan. Unset it there" >&2
-  echo "  (git -C memory config --unset core.hooksPath, or set it" >&2
-  echo "  to .git/hooks) and run this again." >&2
-  exit 1
+# A core.hooksPath that leads to the workspace's own hooks
+# directory is fine — that is also how a global setting is
+# overridden for this one repository.
+mkdir -p memory/.git/hooks
+HP=$(git -C memory config core.hooksPath || true)
+if [ -n "$HP" ]; then
+  case "$HP" in /*) ;; *) HP="memory/$HP" ;; esac
+  if [ "$(cd "$HP" 2>/dev/null && pwd -P)" != \
+       "$(cd memory/.git/hooks && pwd -P)" ]; then
+    echo "hostwarden-init: core.hooksPath sends git elsewhere, so it would" >&2
+    echo "  not run the workspace's secret scan. Point it at the" >&2
+    echo "  workspace's own hooks and run this again:" >&2
+    echo "    git -C memory config core.hooksPath .git/hooks" >&2
+    exit 1
+  fi
 fi
 for h in pre-commit pre-push; do
   f=memory/.git/hooks/$h

@@ -131,6 +131,11 @@ cannot be shown to stay inside memory/ - install jq"
     REAL="$(cd "${D:-/}" 2>/dev/null && pwd -P)/$B"
     n=$((n + 1))
   done
+  # Still a link after ten steps: a loop, or a chain long enough
+  # to hide where it ends. Either way it cannot be shown to stay
+  # in memory/.
+  [ -L "$REAL" ] && deny "this edit goes through a chain of links \
+that does not end, so it cannot be shown to stay inside memory/"
   # A .. after a directory that does not exist stays unresolved,
   # and memory/nosuch/../../rules/x would pass for a path under
   # memory/. Inside the checkout, such a path counts as shipped.
@@ -204,12 +209,33 @@ esac
 # their argument, path stripped. The first blocked one is
 # printed.
 BLOCKED=$(printf '%s' "$CMD" | awk '
+  # cmdword(i) — the index of the command word from v[i] on, past
+  # a negation, variable assignments, keywords, and wrappers that
+  # run their argument, with their flags and flag values.
+  function cmdword(i,   x) {
+    while (i <= nw && v[i] == "") i++
+    while (i <= nw) {
+      x = v[i]
+      if (x == "!" || x == "$" || x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { i++; continue }
+      if (x ~ /^(env|command|exec|nohup|time|nice|timeout|xargs|stdbuf|caffeinate|if|elif|while|until|then|do|else)$/) {
+        i++
+        while (i <= nw && (v[i] ~ /^-/ || v[i] ~ /^[0-9.]+[smhd]?$/)) {
+          if ((x " " v[i]) in takes) i++
+          i++
+        }
+        continue
+      }
+      break
+    }
+    return i
+  }
   function lastword(t) {
     sub(/[ \t]+$/, "", t)
     return match(t, /[^ \t\n;&|(]*$/) ? substr(t, RSTART, RLENGTH) : ""
   }
   BEGIN {
     RS = "\001"; q = sprintf("%c", 39)
+    BLOCKED = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$"
     # Options of a wrapper that take the next word as their value,
     # so that word is not mistaken for the wrapped command.
     # Short and long spellings; --opt=value is one word anyway.
@@ -253,33 +279,19 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     nl = split(out, line, "\n")
     for (l = 1; l <= nl; l++) {
       nw = split(line[l], v, /[ \t]+/)
-      i = 1
-      while (i <= nw && v[i] == "") i++
-      while (i <= nw) {
-        x = v[i]
-        if (x == "!" || x == "$" || x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { i++; continue }
-        if (x ~ /^(env|command|exec|nohup|time|nice|timeout|xargs|stdbuf|caffeinate|if|elif|while|until|then|do|else)$/) {
-          i++
-          # flags and numeric arguments of the wrapper itself,
-          # and the value of a flag that takes one
-          while (i <= nw && (v[i] ~ /^-/ || v[i] ~ /^[0-9.]+[smhd]?$/)) {
-            if ((x " " v[i]) in takes) i++
-            i++
-          }
-          continue
-        }
-        break
-      }
+      i = cmdword(1)
       if (i > nw) continue
       c = v[i]
       sub(/^.*\//, "", c)
-      if (c ~ /^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$/) { print c; exit }
-      # find runs the word after -exec and its kin as a command.
+      if (c ~ BLOCKED) { print c; exit }
+      # find runs the word after -exec and its kin as a command,
+      # read like any other: env ssh there is ssh.
       if (c == "find") {
         for (j = i + 1; j < nw; j++) {
           if (v[j] ~ /^-(exec|execdir|ok|okdir)$/) {
-            e = v[j + 1]; sub(/^.*\//, "", e)
-            if (e ~ /^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec|rsync)$/) { print e; exit }
+            k = cmdword(j + 1)
+            e = v[k]; sub(/^.*\//, "", e)
+            if (e ~ BLOCKED || e == "rsync") { print e; exit }
           }
         }
       }
