@@ -109,9 +109,12 @@ do_restore() {
     /^\// { print; exit }
     /(^|\/)\.\.(\/|$)/ { print; exit }
     !/^memory\// { print; exit }
+    # The git internals of the workspace are never archived; restored,
+    # they would replace the hooks that scan every commit.
+    /^memory\/\.git(\/|$)/ { print; exit }
   ')
   if [ -n "$BAD" ]; then
-    echo "error: archive contains entries outside memory/ or with .. — refusing to extract" >&2
+    echo "error: archive contains entries outside memory/, under memory/.git, or with .. — refusing to extract" >&2
     echo "offending entry: $BAD" >&2
     exit 1
   fi

@@ -228,6 +228,10 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     while (i <= nw) {
       x = v[i]
       if (x == "!" || x == "$" || x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { i++; continue }
+      # A redirection may come first: 2>/dev/null ssh runs ssh. A
+      # bare operator takes the next word as its target.
+      if (x ~ /^[0-9]*[<>]+$/) { i += 2; continue }
+      if (x ~ /^[0-9]*[<>]/) { i++; continue }
       if (x ~ /^(env|command|exec|nohup|time|nice|timeout|xargs|stdbuf|caffeinate|if|elif|while|until|then|do|else)$/) {
         i++
         while (i <= nw && (v[i] ~ /^-/ || v[i] ~ /^[0-9.]+[smhd]?$/)) {
@@ -244,10 +248,14 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
   # server. rsync is fine between local paths, -e or not: it
   # reaches one only through a host:path or host::module operand
   # or an rsync:// URL. The arguments end where a find action does.
+  # An option that takes the next word as its value is skipped with
+  # it: --out-format "%n:%l" names no host.
   function remote(i) {
-    for (; i <= nw && v[i] !~ /^(\\?;|\+)$/; i++)
+    for (; i <= nw && v[i] !~ /^(\\?;|\+)$/; i++) {
+      if (v[i] in rsyncarg) { i++; continue }
       if (v[i] ~ /^[^\/:-][^\/:]*::?/ || v[i] ~ /^rsync:\/\//)
         return 1
+    }
     return 0
   }
   # hit(k) — what the command word v[k] reaches a server with, or
@@ -271,6 +279,9 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     # Short and long spellings; --opt=value is one word anyway.
     split("env -u|env --unset|env -C|env --chdir|timeout -s|timeout --signal|timeout -k|timeout --kill-after|stdbuf -i|stdbuf --input|stdbuf -o|stdbuf --output|stdbuf -e|stdbuf --error|nice -n|nice --adjustment|xargs -I|xargs -n|xargs --max-args|xargs -P|xargs --max-procs|xargs -L|xargs --max-lines|xargs -d|xargs --delimiter|xargs -E|xargs -s|xargs --max-chars|xargs -a|xargs --arg-file", a, "|")
     for (k in a) takes[a[k]] = 1
+    # rsync options whose value is a separate word.
+    split("-e --rsh --rsync-path -f --filter --exclude --include --exclude-from --include-from --files-from --out-format --log-file --log-file-format --password-file --partial-dir -T --temp-dir --backup-dir --suffix --compare-dest --copy-dest --link-dest --chmod --chown --usermap --groupmap -M --remote-option --timeout --contimeout --port --sockopts --iconv --info --debug --max-size --min-size --bwlimit -B --block-size --modify-window --skip-compress --checksum-choice --compress-choice --only-write-batch --write-batch --read-batch --outbuf", b, " ")
+    for (k in b) rsyncarg[b[k]] = 1
   }
   { s = s $0 }
   END {
@@ -309,6 +320,8 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     # The {} of find is an operand, not a brace group: keep the words
     # after it on the same line.
     gsub(/\{\}/, "Q", out)
+    # The & of 2>&1 duplicates a descriptor; it separates nothing.
+    gsub(/>&/, ">", out); gsub(/<&/, "<", out)
     gsub(/[;&|()`{}]/, "\n", out)
     nl = split(out, line, "\n")
     for (l = 1; l <= nl; l++) {

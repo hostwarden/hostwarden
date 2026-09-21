@@ -121,6 +121,11 @@ cmd deny "$DEV" 'rsync -a site/ "server1.example.com:/srv/"'
 cmd deny "$DEV" "rsync -a 'rsync://server1.example.com/mod/' here/"
 cmd pass "$DEV" 'rsync -a "my site/" /tmp/copy/'
 cmd pass "$DEV" 'rsync -a -e ssh src/ /tmp/copy/'
+cmd pass "$DEV" "rsync -a --out-format '%n:%l' src/ /tmp/copy/"
+cmd deny "$DEV" "rsync -a --out-format '%n' src/ server1.example.com:/srv/"
+cmd deny "$DEV" '2>/dev/null ssh server1.example.com true'
+cmd deny "$DEV" '> /tmp/out sudo whoami'
+cmd deny "$DEV" 'FOO=1 2>&1 ssh server1.example.com'
 cmd deny "$DEV" 'if false; then :; elif ssh server1.example.com true; then :; fi'
 cmd deny "$DEV" 'env -u FOO ssh server1.example.com'
 cmd deny "$DEV" 'timeout -s KILL 5 ssh server1.example.com'
@@ -465,6 +470,16 @@ R=$(checkout refused)
 mkdir -p "$R/memory"
 echo 'Language: German' > "$R/memory/user.md"
 fails "a restore overwrote user data without --force" sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz"
+mode_is development "$R"
+# An archive that carries the workspace's git internals is refused
+# whole: restored, they would replace the hooks that scan commits.
+mkdir -p "$TMP/evil/memory/.git/hooks"
+printf '#!/bin/sh\nexit 0\n' > "$TMP/evil/memory/.git/hooks/pre-commit"
+echo x > "$TMP/evil/memory/network.md"
+tar czf "$TMP/evil.tgz" -C "$TMP/evil" memory
+R=$(checkout evil)
+fails "a restore accepted memory/.git from an archive" \
+  sh "$R/bin/hostwarden-backup" --restore "$TMP/evil.tgz"
 mode_is development "$R"
 R=$(checkout restored)
 sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null
