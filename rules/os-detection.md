@@ -43,7 +43,7 @@ skill says so where it needs it.
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
      'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version'
+     'cat /etc/version /etc/unraid-version'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -90,12 +90,13 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
-     `ID=alpine` inside a Home Assistant app container,
-     have no family: see Appliances below. If no family
-     file matches (e.g. Arch, Gentoo), tell the user,
-     proceed cautiously with generic commands, and
-     apply extra verify-before-running care.
+     version from `VERSION_ID` and `PRETTY_NAME`. A
+     host that matches a marker with base `none` under
+     Appliances below has no family, whatever its
+     `ID`. If no family file matches (e.g. Arch,
+     Gentoo), tell the user, proceed cautiously
+     with generic commands, and apply extra
+     verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
@@ -109,9 +110,9 @@ skill says so where it needs it.
 
 3. **Check for an appliance** from the lines after
    `@appliance`. See Appliances below. The same lines
-   carry the version of Proxmox VE, OPNsense and
-   pfSense; any other appliance file says how to read
-   its own.
+   carry the version of Proxmox VE, OPNsense,
+   pfSense and Unraid; any other appliance file says
+   how to read its own.
 
 4. Create a server memory file.
 
@@ -135,6 +136,7 @@ prints for a missing one depends on the shell.
 | FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
 | FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
+| none    | `unraid-version`   | `rules/appliance/unraid.md`     |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host

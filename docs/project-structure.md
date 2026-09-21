@@ -99,6 +99,7 @@ rules/                 — Upstream rule files (git-tracked)
     opnsense.md        — OPNsense (on os/freebsd.md)
     pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
+    unraid.md          — Unraid (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Unraid is recognised as an appliance.** Detection finds it by
+  `/etc/unraid-version`; the rules cover the root-only login, an OS
+  in RAM, the web UI owning the configuration, and array operations
+  and updates left to you. Housekeeping reads array, parity, SMART
+  and boot device backup state instead of the Linux baseline.
 - **A firewall or network change undoes itself unless SSH
   still works.** Before applying one, Hostwarden arms a
   revert on the host that fires after five minutes, and
