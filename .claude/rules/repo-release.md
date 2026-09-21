@@ -29,8 +29,10 @@ workflow tag it.
 
 `VERSION` holds a semver string and nothing else. Release notes live
 in `CHANGELOG.md`. The session-start hook compares the version
-before and after `git pull` and tells the user what changed; users
-can pin to a tag or opt out (`bin/hostwarden-update --help`).
+before and after an update and tells the user what changed; users
+can follow a release line, pin to a tag or opt out
+(`bin/hostwarden-update --help`). A release line is found by its
+`vX.Y.Z` tags alone: there are no moving tags such as `v1`.
 
 ## CHANGELOG.md
 

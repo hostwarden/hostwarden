@@ -1,0 +1,153 @@
+#!/bin/sh
+# hostwarden-mirror — bring your own mirror of hostwarden up to
+# date: fast-forward its main to upstream's and carry every tag.
+#
+# Usage:
+#   hostwarden-mirror [--upstream URL] MIRROR-URL
+#   hostwarden-mirror --help
+#
+# For a scheduled CI job or a cron job, never an operator's
+# checkout: it refuses to run in an operations install. It needs
+# git and nothing else — no checkout of the mirror, no hosting
+# service's API. Upstream defaults to
+# https://github.com/jpawlowski/hostwarden.git.
+#
+# It never overwrites. When the mirror's main has commits
+# upstream's does not, or a tag of the mirror names another
+# commit than upstream's tag of that name, it lists them, pushes
+# nothing and exits 1. Tags only the mirror has stay.
+#
+# Credentials: the user goes into MIRROR-URL, the token into the
+# environment variable HOSTWARDEN_MIRROR_TOKEN, so it never
+# appears on a command line:
+#   HOSTWARDEN_MIRROR_TOKEN=... hostwarden-mirror \
+#     https://ci@git.example.com/ops/hostwarden-mirror.git
+# An SSH URL uses the key the job already has.
+set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+UPSTREAM=https://github.com/jpawlowski/hostwarden.git
+
+usage() {
+  awk '/^# hostwarden-mirror/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' \
+    "$SCRIPT_DIR/hostwarden-mirror"
+}
+
+while [ $# -gt 0 ]; do
+  case $1 in
+  -h | --help) usage; exit 0 ;;
+  --upstream) UPSTREAM=${2:?--upstream needs a URL}; shift 2 ;;
+  -*) usage >&2; exit 1 ;;
+  *) break ;;
+  esac
+done
+[ $# -eq 1 ] || { usage >&2; exit 1; }
+MIRROR=$1
+
+if ! command -v git >/dev/null 2>&1; then
+  echo "hostwarden-mirror: git is not installed" >&2
+  exit 1
+fi
+
+# shellcheck source=../.claude/hooks/mode.sh
+. "$SCRIPT_DIR/../.claude/hooks/mode.sh"
+hostwarden_mode "$SCRIPT_DIR/.."
+if [ "$HOSTWARDEN_MODE" = operations ]; then
+  echo "hostwarden-mirror: this is an operations install. The" >&2
+  echo "  mirror is kept current by a CI or cron job of its own," >&2
+  echo "  from a plain clone of hostwarden." >&2
+  exit 1
+fi
+hostwarden_git_batch
+
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-mirror.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT INT TERM
+ASKPASS=
+if [ -n "${HOSTWARDEN_MIRROR_TOKEN:-}" ]; then
+  # Git asks this for the password and gets the token, which so
+  # stays in the environment. Only calls to the mirror get it:
+  # upstream is another server, and never sees the token.
+  # shellcheck disable=SC2016 # expanded when git runs it
+  printf '#!/bin/sh\nprintf "%%s\\n" "$HOSTWARDEN_MIRROR_TOKEN"\n' \
+    > "$TMP/askpass"
+  chmod 700 "$TMP/askpass"
+  ASKPASS=$TMP/askpass
+fi
+
+# Nothing git says reaches a CI log with a credential in it.
+redact() { sed -E 's#(://)[^/@]*@#\1#g' >&2; }
+say() { echo "hostwarden-mirror: $*" | redact; }
+
+# A scratch repository holding upstream's main and tags and
+# nothing else, so a push can carry no other ref.
+G() { git -C "$TMP/repo" "$@"; }
+# M — G for a call that reaches the mirror, with its token.
+M() {
+  if [ -n "$ASKPASS" ]; then
+    env GIT_ASKPASS="$ASKPASS" git -C "$TMP/repo" "$@"
+  else
+    G "$@"
+  fi
+}
+git init --quiet --bare "$TMP/repo"
+if ! OUT=$(G fetch --quiet --no-tags "$UPSTREAM" \
+    '+refs/heads/main:refs/upstream/main' \
+    '+refs/tags/*:refs/tags/*' 2>&1); then
+  say "cannot fetch upstream $UPSTREAM:"
+  printf '%s\n' "$OUT" | redact
+  exit 1
+fi
+# What the push would do to each ref, without doing it. git's own
+# rules decide what is refused: a main that is not an ancestor, a
+# tag that exists on another commit.
+push() {
+  M push "$@" "$MIRROR" refs/upstream/main:refs/heads/main \
+    'refs/tags/*:refs/tags/*'
+}
+if ! push --dry-run --porcelain >"$TMP/plan" 2>"$TMP/err" \
+    && ! grep -q '^To ' "$TMP/plan"; then
+  say "cannot reach the mirror $MIRROR:"
+  redact < "$TMP/err"
+  exit 1
+fi
+# One line per ref: <flag> TAB <from>:<to> TAB <summary>.
+refused() {
+  awk -F '\t' -v to="$1" \
+    '$1 == "!" && $2 ~ ":" to { sub(/.*:/, "", $2); print $2 }' "$TMP/plan"
+}
+
+if [ -n "$(refused refs/heads/main)" ]; then
+  M fetch --quiet --no-tags "$MIRROR" '+refs/heads/main:refs/mirror/main' \
+    2>/dev/null || true
+  say "the mirror's main has commits upstream's does not."
+  say "Nothing pushed. Move them to a branch of their own and reset"
+  say "the mirror's main to upstream's:"
+  G log --oneline refs/upstream/main..refs/mirror/main 2>/dev/null \
+    | sed 's/^/  /' >&2
+  exit 1
+fi
+CLASH=$(refused refs/tags/)
+if [ -n "$CLASH" ]; then
+  say "these tags name other commits in the mirror than upstream."
+  say "Nothing pushed:"
+  printf '%s\n' "$CLASH" | sed 's#^refs/tags/#  #' >&2
+  exit 1
+fi
+
+TAGS=$(awk -F '\t' '$1 == "*" && $2 ~ ":refs/tags/" { n++ } END { print n + 0 }' \
+  "$TMP/plan")
+MAIN=$(G rev-parse --short refs/upstream/main)
+if grep -q '^=	refs/upstream/main:' "$TMP/plan" && [ "$TAGS" -eq 0 ]; then
+  echo "hostwarden-mirror: already current (main $MAIN)"
+  exit 0
+fi
+
+# No force anywhere: should the mirror move in the meantime, the
+# push is refused rather than overwriting it, and --atomic refuses
+# all of it rather than leaving the mirror half updated.
+if ! OUT=$(push --quiet --atomic 2>&1); then
+  say "the push to the mirror failed:"
+  printf '%s\n' "$OUT" | redact
+  exit 1
+fi
+echo "hostwarden-mirror: main at $MAIN, $TAGS new tag(s)"
