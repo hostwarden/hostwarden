@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Sessions that change the same host see each
+  other.** Before its first change a session registers on
+  the managed host itself, in `/tmp/hostwarden/`, without
+  root: who, from which workstation, doing what, with a
+  heartbeat. Another live entry — a second window or a
+  teammate — makes hostwarden say so and ask whether the
+  two collide; a session on the same machine can be
+  messaged directly. Read-only sessions register nothing,
+  and a stale entry can be removed by anyone.
 - **Personal Claude Code files stay out of git**, the
   ones Claude Code adds later included: everything under
   `.claude/` except the shared configuration is ignored,
