@@ -75,15 +75,19 @@ Before writing the command, run the blacklist lookup of
 `rules/access-control.md` against `memory/blacklist.md` in the
 operations checkout, all four steps, with two changes:
 
-- The mode refuses `ssh -G`, so find the name it would map with
-  `grep` instead, in every file the SSH client reads, in its
-  order: `~/.ssh/config`, then `/etc/ssh/ssh_config`, each with
-  the files its `Include` lines name. The first `HostName` in a
-  `Host` block that matches the name wins.
-- Anything the lookup cannot settle hands over instead of
-  falling back to a string match: no operations checkout known,
-  nothing resolves, a config file you cannot read, or a `Match`
-  or a wildcard `Host` that you cannot follow.
+- The mode refuses `ssh -G`, so read with `grep` every file the
+  SSH client reads: `~/.ssh/config`, then `/etc/ssh/ssh_config`,
+  each with the files its `Include` lines name. The name is
+  settled only when every line in them that can change where
+  ssh connects is a `HostName` inside a `Host` block of literal
+  names; the first such block that names the host gives its
+  `HostName`.
+- Anything else hands over instead of falling back to a string
+  match: no operations checkout known, nothing resolves, a config
+  file you cannot read, or any `Match`, wildcard `Host`, `HostName`
+  outside a `Host` block, `CanonicalizeHostname`, `ProxyJump` or
+  `ProxyCommand`. You are not rebuilding `ssh -G`; you are proving
+  the simple case, and only the simple case gets a command.
 
 A match gets no command at all — say the host is blacklisted.
 
