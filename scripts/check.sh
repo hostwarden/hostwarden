@@ -32,8 +32,8 @@ need() {
     command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
   done
   [ -z "$missing" ] && return
-  echo "check: missing:$missing — MISE_ENV=dev mise install," \
-    "or see CONTRIBUTING.md" >&2
+  echo "check: missing:$missing — MISE_ENV=dev mise install" \
+    "(mise.dev.toml pins them)" >&2
   exit 2
 }
 
@@ -45,26 +45,36 @@ fi
 need python3 shellcheck actionlint betterleaks
 
 # --pre-push narrows the two slow steps to what is being pushed:
-# the guard matrix runs only when the push touches what it covers,
-# and the secret scan reads only the commits the remote lacks. The
-# rest costs a second or two and runs as always. CI runs it all.
-RANGES=
+# the guard matrix runs only when the push touches what it reads,
+# and the secret scan reads only the commits the destination lacks.
+# The rest costs a second or two and runs as always. CI runs it all.
+PUSHED=
 if [ "${1:-}" = "--pre-push" ]; then
+  remote=${2:-origin}
   # git gives one line per ref: <local ref> <sha> <remote ref> <sha>
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
     case $rsha in
-      *[!0]*) base=$rsha ;;
-      *) base=$(git merge-base "$lsha" origin/main 2>/dev/null) ;;
+      *[!0]*) r="$rsha..$lsha" ;;
+      # A new ref: every commit no ref of the destination has yet,
+      # not what origin/main lacks -- the destination may be
+      # another remote that has less.
+      *) r="$lsha --not --remotes=$remote" ;;
     esac
-    RANGES="$RANGES ${base:+$base..}$lsha"
+    PUSHED="$PUSHED
+$r"
   done
-  [ -n "$RANGES" ] || exit 0
+  [ -n "$PUSHED" ] || exit 0
 fi
 
-# pushed_files -- every file the pushed commits touch.
-pushed_files() {
-  for r in $RANGES; do git log --name-only --format= "$r"; done
+# each_push <command...> -- run once per pushed ref, with its
+# git log arguments appended.
+each_push() {
+  printf '%s\n' "$PUSHED" | while read -r r; do
+    [ -n "$r" ] || continue
+    # shellcheck disable=SC2086 # the log arguments are several words
+    "$@" $r || exit 1 # leaves the pipeline, which is the result
+  done
 }
 
 failed=
@@ -101,10 +111,13 @@ sh_syntax() {
 
 # The matrix runs the guard and every fenced block under rules/ and
 # .agents/skills/ through it (corpus.sh).
-if [ -n "$RANGES" ] && ! pushed_files | grep -qE \
-    '^(\.claude/hooks/(guard-taboos|corpus)|rules/|\.agents/skills/)'
+# The matrix reads the hooks, settings.json, and the fenced blocks
+# of every .md but CHANGELOG.md (corpus.sh).
+if [ -n "$PUSHED" ] && ! each_push git log --name-only --format= \
+    | grep -v '^CHANGELOG\.md$' \
+    | grep -qE '\.md$|^\.claude/(hooks/|settings\.json$)'
 then
-  echo "== guard matrix: nothing it covers is pushed, skipped"
+  echo "== guard matrix: nothing it reads is pushed, skipped"
 else
   step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
 fi
@@ -118,17 +131,13 @@ step "workflows" actionlint
 # again is still published by the push. All of it, or with
 # --pre-push the commits being pushed.
 secrets() {
-  [ -n "$RANGES" ] || {
+  if [ -z "$PUSHED" ]; then
     betterleaks git --redact --verbose --no-banner .
-    return
-  }
-  rc=0
-  for r in $RANGES; do
-    betterleaks git --log-opts="$r" --redact --verbose --no-banner . \
-      || rc=1
-  done
-  return $rc
+  else
+    each_push leaks
+  fi
 }
+leaks() { betterleaks git --log-opts="$*" --redact --verbose --no-banner .; }
 step "secrets" secrets
 
 if [ -n "$failed" ]; then

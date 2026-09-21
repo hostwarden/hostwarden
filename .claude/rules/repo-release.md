@@ -88,8 +88,8 @@ pushing, and add a new check there, never to the workflow alone:
     sh scripts/check.sh
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
-Renovate. Setup, including the opt-in git hooks, is in
-`CONTRIBUTING.md`.
+Renovate. Once per clone, `git config core.hooksPath .githooks`
+turns on the git hooks.
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays
