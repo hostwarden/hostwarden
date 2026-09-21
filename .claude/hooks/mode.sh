@@ -75,17 +75,18 @@ hostwarden_mode() {
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_refusal() {
   if [ "$HOSTWARDEN_MODE" = worktree ]; then
-    HOSTWARDEN_REFUSAL="$1 reaches a server, and this session runs \
-in a linked git worktree. A worktree never carries memory/, so the \
-access lists and the server memory are missing here. Server work \
-runs only in the main checkout of an operations install"
+    hr_why="this session runs in a linked git worktree. A worktree \
+never carries memory/, so the access lists and the server memory are \
+missing here. Server work runs only in the main checkout of an \
+operations install"
   else
-    HOSTWARDEN_REFUSAL="$1 reaches a server, and this checkout \
-develops hostwarden (memory/ holds no workspace). Server work runs \
-in an operations checkout: a separate clone, set up once with \
-bin/hostwarden-init. For a tool on this machine, run the command \
-yourself outside the agent"
+    hr_why="this checkout develops hostwarden (memory/ holds no \
+workspace). Server work runs in an operations checkout: a separate \
+clone, set up once with bin/hostwarden-init. For a tool on this \
+machine, run the command yourself outside the agent"
   fi
+  HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server, and \
+$hr_why (AGENTS.md - Development or Operations)."
 }
 
 # The workspace's remote is reached by init --clone and by sync,

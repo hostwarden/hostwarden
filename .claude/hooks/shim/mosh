@@ -1,1 +1,3 @@
-../shim.sh
+#!/bin/sh
+# See ../shim.sh: this file stands in for the tool it is named after.
+. "${0%/*}/../shim.sh"

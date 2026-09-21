@@ -45,6 +45,11 @@ esac
 # would do nothing twice. It lives in the checkout because it is
 # code: versioned and reviewed with the guard, never a stale copy
 # in a cache that another checkout wrote.
+#
+# git push over SSH runs GIT_SSH_COMMAND, and a bare ssh there
+# would find the shim: git-ssh.sh takes its place and runs what
+# the user set, kept in HOSTWARDEN_GIT_SSH_COMMAND. GIT_SSH, a
+# program of the user's own, stays theirs.
 SHIM="$ROOT/.claude/hooks/shim"
 # q <string> — single-quoted for the shell that sources the file.
 q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
@@ -53,34 +58,13 @@ if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
   echo "  shim that refuses ssh and sudo however they are started"
   echo "  is not in place; only the guard's reading of each"
   echo "  command stands in for it."
-elif [ ! -L "$SHIM/ssh" ]; then
-  # A checkout without symbolic links holds text files here, which
-  # PATH passes over to the real tool: no shim is better than one
-  # that looks like it works.
-  echo "  This checkout has no symbolic links, so the shim that"
-  echo "  refuses ssh and sudo however they are started is not in"
-  echo "  place (README - Windows)."
 elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
-  # The real ssh, for git: GIT_SSH_COMMAND is what git push over
-  # SSH runs, and a bare ssh there would find the shim. A command
-  # the user set that starts with a bare ssh gets the path in its
-  # place; one naming another program, and GIT_SSH, stay theirs.
-  REAL=
-  set -f
-  IFS=:
-  for d in $PATH; do
-    [ "$d" != "$SHIM" ] && [ -x "$d/ssh" ] && { REAL="$d/ssh"; break; }
-  done
-  unset IFS
-  set +f
-  CUR=${GIT_SSH_COMMAND:-$(git config core.sshCommand 2>/dev/null)}
   {
     echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
-    if [ -n "$REAL" ] && [ -z "${GIT_SSH:-}" ]; then
-      case "$CUR" in
-      "") echo "export GIT_SSH_COMMAND=$(q "$(q "$REAL")")" ;;
-      ssh | "ssh "*) echo "export GIT_SSH_COMMAND=$(q "$(q "$REAL")${CUR#ssh}")" ;;
-      esac
+    if [ -z "${GIT_SSH:-}" ]; then
+      [ -n "${GIT_SSH_COMMAND:-}" ] &&
+        echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$GIT_SSH_COMMAND")"
+      echo "export GIT_SSH_COMMAND=$(q "$(q "$ROOT/.claude/hooks/git-ssh.sh")")"
     fi
   } >> "$CLAUDE_ENV_FILE"
 fi

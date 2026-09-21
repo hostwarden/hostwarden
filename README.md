@@ -81,11 +81,10 @@ hostwarden session looks the same.
   target machines. All supported systems can also be
   managed locally without SSH.
 - **A checkout that supports symbolic links.**
-  Hostwarden uses them in three load-bearing places:
-  `.claude/skills` links to `.agents/skills/`, DNS
-  aliases become symlinks under `memory/servers/`,
-  and in a development checkout `.claude/hooks/shim/`
-  stands in for `ssh` and `sudo` through them. macOS, Linux, FreeBSD and WSL
+  Hostwarden uses them in two load-bearing places:
+  `.claude/skills` links to `.agents/skills/`, and
+  DNS aliases become symlinks under
+  `memory/servers/`. macOS, Linux, FreeBSD and WSL
   handle them out of the box; native Windows needs
   the three settings under [Windows](#windows).
   A session-start hook says so whenever the skills are
@@ -244,8 +243,10 @@ unmodified clone that keeps updating.
 3. From then on it keeps itself in step. Every
    session starts with `bin/hostwarden-sync pull`
    (Claude Code runs it for you) and ends with a
-   commit of whatever it learned. It asks once per
-   session before pushing. A changelog both machines
+   commit of the files it changed — only those, so
+   parallel sessions on one machine keep out of each
+   other's work. It asks once per session before
+   pushing. A changelog both machines
    added to merges on its own; two different edits
    of the same `memory.md` stop the pull and are left
    for you.

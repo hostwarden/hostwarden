@@ -89,11 +89,12 @@ json_valid() {
   return $rc
 }
 
-# Every shell file the repository ships: the bin/ scripts carry
-# no extension, the hooks and this directory do.
+# Every shell file the repository ships: the bin/ scripts and the
+# shim's stand-ins carry no extension, the hooks and this directory
+# do.
 shell_files() {
-  git ls-files 'bin/*' '.claude/hooks/*.sh' 'scripts/*.sh' \
-    '.githooks/*'
+  git ls-files 'bin/*' '.claude/hooks/*.sh' '.claude/hooks/shim/*' \
+    'scripts/*.sh' '.githooks/*'
 }
 
 sh_syntax() {

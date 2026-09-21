@@ -22,7 +22,7 @@ tool reads. This file adds only what exists here and nowhere else.
   `PATH` of every Bash call, subagents' included: `ssh`, `scp`,
   `sudo` and the rest print the refusal on stderr and fail
   however they are started. `git push` reaches the real `ssh`
-  through `GIT_SSH_COMMAND`.
+  through `GIT_SSH_COMMAND`, which is `.claude/hooks/git-ssh.sh`.
 - **SessionStart hooks have already run.** They have:
   - in an operations checkout, checked for repo updates and
     pulled the workspace;

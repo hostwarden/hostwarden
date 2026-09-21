@@ -10,8 +10,8 @@
 #     tools refuse wherever they are started from, rsync's own
 #     ssh included. This hook denies the forms that go past a
 #     PATH lookup: a path to the real binary (/usr/bin/ssh),
-#     command -p, PATH set in front of the command, and the real
-#     ssh that GIT_SSH_COMMAND carries for git push. Local
+#     command -p, a changed PATH, and $GIT_SSH_COMMAND, git's
+#     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: hostwarden's local mode is server
 #     work too.
 #   operations — Edit and Write are denied on any path inside
@@ -35,9 +35,12 @@
 #     parser for them never closes. Nor does it look for a bare
 #     tool name, so grep ssh and a commit message about sudo
 #     pass. Quotes are not masked: a line of a commit message
-#     that starts with /usr/bin/ssh is denied, which is rare.
+#     that starts with /usr/bin/ssh is denied, which is rare, and
+#     so is a command that changes PATH and mentions ssh at all.
 #   - Look inside a variable or a script file. A backstop against
-#     the everyday mistake, not a sandbox.
+#     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
+#     or a script that resets PATH still reaches ssh, and only
+#     the prose in AGENTS.md stands against it.
 #
 # It runs on every tool call, so it forks little. In development
 # nothing at all unless the input could hold one of the forms
@@ -56,28 +59,39 @@ hostwarden_mode "$ROOT"
 
 INPUT=$(cat)
 
-deny() {
-  # JSON decision on stdout; blocks in all permission modes.
-  # Reasons must stay plain ASCII without quotes/backslashes.
+# emit <message> — the JSON decision on stdout; blocks in all
+# permission modes. Messages stay plain ASCII without quotes or
+# backslashes.
+emit() {
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
   printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"hostwarden mode guard: %s ' "$1"
-  printf '(AGENTS.md - Development or Operations). Blocked in all '
+  printf '"permissionDecisionReason":"%s Blocked in all ' "$1"
   printf 'permission modes. Explain this to the user; do not '
   printf 'rephrase the command or pick another tool to evade the '
   printf 'guard."}}\n'
   exit 0
 }
+deny() {
+  emit "hostwarden mode guard: $1 (AGENTS.md - Development or Operations)."
+}
 
-# Before anything is parsed: in development, input without a
-# path to a blocked tool, command -p, a PATH assignment or
-# GIT_SSH_COMMAND holds none of the forms this hook denies. That
-# is nearly every call, and it ends here without a single
-# process.
+# Before anything is parsed: in development only a Bash call is
+# read, and only its command, which cwd and the transcript path
+# are not part of. A command without a path to a blocked tool,
+# command -p, a change to PATH or GIT_SSH_COMMAND holds none of the
+# forms this hook denies. That is nearly every call, and it ends
+# here without a single process.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
-  */ssh*|*/scp*|*/sftp*|*/mosh*|*/sudo*|*/doas*|*/pkexec*) ;;
-  *'command -'*|*PATH=*|*GIT_SSH_COMMAND*) ;;
+  *'"tool_name"'*'"Bash"'*) ;;
+  *) exit 0 ;;
+  esac
+  case "${INPUT#*'"command"'}" in
+  */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
+  */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
+  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*'command -p'*) ;;
+  *[!A-Za-z0-9_]PATH=*|*'unset PATH'*|*'env -i'*|*ignore-environment*) ;;
+  *GIT_SSH_COMMAND*) ;;
   *) exit 0 ;;
   esac
 else
@@ -181,10 +195,12 @@ fi
 
 # --- Development: no server is reached ------------------------
 # A blocked tool named without a path is the shim's: it refuses
-# wherever the tool is started from. What remains are the four
-# ways past a PATH lookup, read from the first word of each
-# segment — split on the shell's separators and on $( — past a
-# negation and variable assignments.
+# wherever the tool is started from. This denies the ways past a
+# PATH lookup: a path to the tool or command -p as the first word
+# of a segment (split on the shell's separators, past a negation
+# and variable assignments), $GIT_SSH_COMMAND there, and a command
+# that changes PATH (PATH=, unset PATH, env -i) and names a
+# blocked tool anywhere.
 case "$TOOL" in
 Bash|"") ;;
 *) exit 0 ;;
@@ -203,26 +219,30 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
     s = $0
     # ${VAR} is a variable, not a brace group.
     gsub(/\$\{/, "$", s)
-    gsub(/\$\(/, "\n", s)
     gsub(/[;&|(){}`]/, "\n", s)
     n = split(s, seg, "\n")
     for (l = 1; l <= n; l++) {
       nw = split(seg[l], v, /[ \t]+/)
-      i = 1
-      while (i <= nw && v[i] == "") i++
-      how = ""
-      while (i <= nw && (v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) {
-        if (v[i] ~ /^PATH=/) how = "with PATH set in front of it"
-        i++
+      for (i = 1; i <= nw; i++) {
+        c = v[i]
+        gsub(/^["\047]+|["\047]+$/, "", c)
+        if (c ~ /^PATH=/ || c == "-i" && v[i - 1] == "env" || c == "--ignore-environment" || c == "PATH" && v[i - 1] == "unset")
+          setpath = 1
+        sub(/^.*\//, "", c)
+        if (c ~ T && named == "") named = c
       }
+      i = 1
+      while (i <= nw && (v[i] == "" || v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
       w = v[i]
       # The real ssh that git push is given.
       if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "ssh through GIT_SSH_COMMAND"; exit }
       # command -p looks the tool up on a default PATH, never the shim.
+      how = ""
       if (w == "command" || w == "exec") {
+        p = w == "command"
         while (++i <= nw && v[i] ~ /^-/)
-          if (w == "command" && v[i] ~ /p/ && v[i] !~ /[vV]/) how = "through command -p"
+          if (p && v[i] ~ /p/ && v[i] !~ /[vV]/) how = "through command -p"
         if (i > nw) continue
         w = v[i]
       }
@@ -232,8 +252,9 @@ BLOCKED=$(printf '%s' "$CMD" | awk '
       if (w ~ /\//) how = "by its path"
       if (how != "") { print c " " how; exit }
     }
+    if (setpath && named != "") print named " with PATH changed"
   }')
 
 [ -n "$BLOCKED" ] || exit 0
 hostwarden_refusal "$BLOCKED"
-deny "$HOSTWARDEN_REFUSAL"
+emit "$HOSTWARDEN_REFUSAL"
