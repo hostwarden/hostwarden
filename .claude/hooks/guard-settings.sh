@@ -67,21 +67,31 @@ SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
 holds_var() { [ -f "$1" ] && grep -q "$V" "$1" 2>/dev/null; }
 
 # any_holds_var <command text> — a settings file the command could
-# change already carries the variable. Every settings path the
-# command names is checked as written (a leading ~ expanded), so a
-# managed-settings.json wherever the platform keeps it counts too;
-# the project and user files are checked as well, because a
-# command can reach those by a path that names only a directory.
+# change already carries the variable. Checked: the project and user
+# files and the managed ones where Claude Code keeps them, because a
+# command can reach those by a path that names only a directory; and
+# every settings path the command names, as written — quoted, with
+# escaped spaces, or with a leading ~. A path this cannot read whole
+# still meets the fixed list, so it can only over-block.
 PROJECT=${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
 any_holds_var() {
   for f in "$PROJECT/.claude/settings.local.json" \
            "$PROJECT/.claude/settings.json" \
            "$HOME/.claude/settings.local.json" \
-           "$HOME/.claude/settings.json"; do
+           "$HOME/.claude/settings.json" \
+           "/Library/Application Support/ClaudeCode/managed-settings.json" \
+           "/etc/claude-code/managed-settings.json"; do
     holds_var "$f" && return 0
   done
-  printf '%s\n' "$1" | grep -oE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
-    | while IFS= read -r f; do
+  US=$(printf '\037')
+  {
+    printf '%s\n' "$1" \
+      | grep -oE "'[^']*($SETTINGS_RE)'|\"[^\"]*($SETTINGS_RE)\"" \
+      | sed "s/^['\"]//; s/['\"]\$//"
+    printf '%s\n' "$1" | sed "s/\\\\ /$US/g" \
+      | grep -oE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
+      | sed "s/$US/ /g"
+  } | while IFS= read -r f; do
         case "$f" in "~/"*) f="$HOME/${f#\~/}" ;; esac
         holds_var "$f" && echo hit
       done | grep -q hit

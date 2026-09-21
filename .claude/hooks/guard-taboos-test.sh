@@ -822,6 +822,15 @@ printf '{"env": {"%s": "0"}}\n' "$V" \
 settings_case deny 'Bash: sed on a managed settings file with the key' \
   "$(json_for "sed -i 's/0/1/' $SET/etc/claude-code/managed-settings.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none"
+mkdir -p "$SET/App Support"
+printf '{"env": {"%s": "0"}}\n' "$V" \
+  > "$SET/App Support/managed-settings.json"
+settings_case deny 'Bash: quoted managed path with a space' \
+  "$(json_for "sed -i 's/0/1/' '$SET/App Support/managed-settings.json'")" \
+  "CLAUDE_PROJECT_DIR=$SET/none"
+settings_case deny 'Bash: managed path with an escaped space' \
+  "$(json_for "sed -i 's/0/1/' $(printf '%s' "$SET/App Support" | sed 's/ /\\ /g')/managed-settings.json")" \
+  "CLAUDE_PROJECT_DIR=$SET/none"
 settings_case pass 'Bash: sed on settings without the key' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none"
