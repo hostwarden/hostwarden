@@ -24,6 +24,19 @@ level down (`os/debian.md`, a skill's reference), and a top-level
 listing shows the directory rather than the file in it — which is
 the thing that has to be named below.
 
+## Workstation tools
+
+Where SessionStart hooks run, `bin/hostwarden-doctor --quiet` has
+already run and said what is missing, or said nothing because
+nothing is. Where they do not, run it yourself, once, in the same
+message as the reads above.
+
+Take its output as the limits of this session: a feature it lists
+as not available is not attempted — say so when the user asks for
+it, and give the install command it printed. Never install a
+missing tool on the workstation yourself; it is the user's machine,
+not a managed host.
+
 ## What to say
 
 The greeting comes before any of this, and `AGENTS.md` → Session

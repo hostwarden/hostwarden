@@ -87,6 +87,15 @@ hostwarden session looks the same.
 - **Workstation:** Hostwarden itself runs wherever
   your AI tool runs — Linux, macOS, FreeBSD, or
   Windows.
+- **Local tools.** hostwarden needs `ssh` (OpenSSH
+  6.8 or newer), `git` and the usual POSIX tools on
+  your workstation, and works better with `jq`.
+  `bin/hostwarden-doctor` lists what is there, what
+  is missing and which feature each missing tool
+  switches off, with the install command for your
+  package manager. It runs quietly at every Claude
+  Code session start and speaks only when something
+  is missing; it never installs anything itself.
 
 ### Windows
 
@@ -1046,6 +1055,8 @@ bin/
   hostwarden-adopt        — Take over a heinzel checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
+  hostwarden-doctor       — Check the workstation for the tools
+                         hostwarden runs locally
 scripts/
   check.sh             — Everything CI checks, runnable locally
 .githooks/             — Opt-in: secret scan on commit, check.sh

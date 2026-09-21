@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`bin/hostwarden-doctor` says what your workstation is
+  missing**, and which feature each missing tool switches
+  off, with the install command for your package manager.
+  It runs quietly at session start, so the agent knows its
+  limits before it hits them, and never installs anything.
 - **The taboo guard no longer depends on bash.** Without
   bash the hook could not start, which Claude Code does not
   treat as a block, so the guard silently did not run. Every

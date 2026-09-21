@@ -11,9 +11,12 @@ tool reads. This file adds only what exists here and nowhere else.
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
   are the entire safety layer.
 - **SessionStart hooks have already run.** They check for repo
-  updates and create `~/.cache/hostwarden` with mode 0700, so the
-  `mkdir` named under `AGENTS.md` → SSH Options is done. Where hooks
-  do not run, it is not.
+  updates, create `~/.cache/hostwarden` with mode 0700, so the
+  `mkdir` named under `AGENTS.md` → SSH Options is done, and run
+  `bin/hostwarden-doctor --quiet`, whose output — if there is any —
+  says which workstation tools are missing. Where hooks do not run,
+  none of this has happened; `rules/session-start.md` says what to
+  do instead.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.
