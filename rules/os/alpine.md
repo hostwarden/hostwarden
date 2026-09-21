@@ -325,8 +325,8 @@ The GNU tools are packages (`coreutils`, `findutils`, `grep`,
 `procps-ng`, `iproute2-ss`). Do not install one just to run a
 check.
 
-The default shell is busybox `ash`: `sh`-compatible, without bash
-arrays or `[[`.
+The default shell is busybox `ash`: `sh`-compatible, with some
+bash extensions such as `[[` but no arrays. Write plain `sh`.
 
 ### musl
 
