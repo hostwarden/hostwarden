@@ -11,11 +11,17 @@ tool reads. This file adds only what exists here and nowhere else.
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
   are the entire safety layer. `guard-settings.sh` also denies
   writing the guard's off switch into a settings file.
-- **SessionStart hooks have already run.** They check for repo
-  updates and create `~/.cache/hostwarden` with mode 0700, so the
-  `mkdir` named under `AGENTS.md` → SSH Options is done. Where hooks
-  do not run, it is not. They also report a linked worktree or a
-  guard that is off.
+- **SessionStart hooks have already run.** They have:
+  - checked for repo updates;
+  - created `~/.cache/hostwarden` with mode 0700, the `mkdir`
+    under `AGENTS.md` → SSH Options;
+  - run `bin/hostwarden-doctor --quiet`, whose output, if any,
+    names the workstation tools that are missing;
+  - reported a linked worktree or a guard that is off, if either
+    applies.
+
+  Where hooks do not run, `rules/session-start.md` says what to do
+  instead.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question — uses it
   here. The ASCII fallback those rules give is for tools without it.

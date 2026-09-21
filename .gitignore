@@ -52,6 +52,9 @@ HISTORY.md
 # macOS noise.
 .DS_Store
 
+# hostwarden-doctor's symlink probe, should it ever be interrupted.
+.link-probe.*
+
 # Claude Code harness runtime artifacts (session/task locks).
 # Not shipped with hostwarden; created by /loop, /schedule, and
 # the scheduler machinery in the Claude Code CLI.
