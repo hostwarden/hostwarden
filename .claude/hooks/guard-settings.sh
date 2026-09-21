@@ -92,7 +92,7 @@ any_holds_var() {
       | grep -oE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
       | sed "s/$US/ /g"
   } | while IFS= read -r f; do
-        case "$f" in "~/"*) f="$HOME/${f#\~/}" ;; esac
+        case "$f" in \~/*) f="$HOME/${f#\~/}" ;; esac
         holds_var "$f" && echo hit
       done | grep -q hit
 }
