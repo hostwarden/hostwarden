@@ -37,9 +37,16 @@ done
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
-MISE_TOOLS=$(sed -n 's/^"aqua:[^/]*\/\([^"]*\)".*/\1/p' \
-  "$ROOT/mise.dev.toml" 2>/dev/null | tr '\n' ' ')
+# The shell alone from here to the probes: anything else could be
+# one of the tools this is about to report missing.
+case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
+ROOT=$(cd "$ROOT" && pwd)
+MISE_TOOLS=''
+if [ -f "$ROOT/mise.dev.toml" ]; then
+  while IFS= read -r l; do
+    case $l in '"aqua:'*/*) t=${l#*/}; MISE_TOOLS="$MISE_TOOLS ${t%%\"*}" ;; esac
+  done < "$ROOT/mise.dev.toml"
+fi
 OS=$(uname -s 2>/dev/null)
 
 case "$OS" in
@@ -63,7 +70,7 @@ pkgname() {
     # absent by that name elsewhere, mktemp is part of coreutils.
     awk:brew) echo awk ;;
     awk:*) echo gawk ;;
-    mktemp:*) echo coreutils ;;
+    mktemp:*|base64:*) echo coreutils ;;
     ssh:apt-get|ssh-keygen:apt-get) echo openssh-client ;;
     ssh:dnf|ssh-keygen:dnf) echo openssh-clients ;;
     ssh:*|ssh-keygen:*) echo openssh ;;
@@ -181,7 +188,10 @@ else
   probe feat "file transfer to and from servers" rsync any rsync scp
   # hostwarden-email: transport-local.md step 5L.1, send-verify.md
   probe feat "email from this workstation" msmtp mail_ok
-  probe feat "email attachments from this workstation" file attach_ok
+  att=''
+  has file || att='file'
+  has base64 || att="$att base64"
+  probe feat "email attachments from this workstation" "$att" attach_ok
   # hostwarden-deploy-user: references/ssh-key.md
   probe feat "SSH keys for a deploy user" ssh-keygen has ssh-keygen
   # rules/ssh-unreachable.md
