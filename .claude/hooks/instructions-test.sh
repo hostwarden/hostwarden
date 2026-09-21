@@ -353,12 +353,14 @@ report "$(scan \
 
 # Skills and subagents named in prose. Several rules point at
 # one by name rather than by path, which a rename breaks without
-# a trace. bin/hostwarden-* are scripts, not either.
+# a trace. bin/hostwarden-* are scripts, not either, and so are
+# the repository names the README recommends for a mirror and a
+# workspace.
 report "$(scan \
   | grep -v '^CHANGELOG\.md: ' \
   | tag '`hostwarden-[a-z-]+`' \
   | tr -d '`' \
-  | grep -vE ' hostwarden-(migrate|update|backup|doctor)$' \
+  | grep -vE ' hostwarden-(migrate|update|backup|doctor|mirror|workspace)$' \
   | while IFS=' ' read -r f s; do
       [ -d "$ROOT/.agents/skills/$s" ] && continue
       [ -f "$CLAUDE_DIR/agents/$s.md" ] && continue

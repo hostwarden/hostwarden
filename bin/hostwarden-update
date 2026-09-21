@@ -2,12 +2,16 @@
 # hostwarden-update — update, pin, or check hostwarden version.
 #
 # Usage:
-#   hostwarden-update            Pull latest from main
-#   hostwarden-update --check    Show current version and
-#                             check for updates
-#   hostwarden-update --pin VER  Pin to a version tag
-#                             (e.g. --pin v0.1.0)
-#   hostwarden-update --unpin    Return to main and pull
+#   hostwarden-update               Update: pull main, or move to
+#                                the newest release on the line
+#                                this checkout follows
+#   hostwarden-update --check       Show current version and
+#                                check for updates
+#   hostwarden-update --follow L    Follow release line L, a major
+#                                (1) or a major.minor (1.2)
+#   hostwarden-update --pin VER     Pin to a version tag
+#                                (e.g. --pin v0.1.0)
+#   hostwarden-update --unpin       Return to main and pull
 set -e
 
 # Find the repo root (this script lives in bin/).
@@ -20,6 +24,16 @@ current_version() {
     cat VERSION
   else
     echo "unknown"
+  fi
+}
+
+# report <old version> — what the update did, once it is done.
+report() {
+  if [ "$1" = "$(current_version)" ]; then
+    echo "hostwarden $(current_version) — already up to date."
+  else
+    echo "hostwarden updated: $1 -> $(current_version)"
+    show_changelog_section "$(current_version)"
   fi
 }
 
@@ -38,12 +52,15 @@ show_changelog_section() {
 
 case "${1:-}" in
   --help|-h)
-    echo "Usage: hostwarden-update [--check|--pin VER|--unpin]"
+    echo "Usage: hostwarden-update [--check|--follow L|--pin VER|--unpin]"
     echo ""
-    echo "  (no args)   Pull latest from main"
-    echo "  --check     Show version and update status"
-    echo "  --pin VER   Pin to a version tag (e.g. v0.1.0)"
-    echo "  --unpin     Return to main and pull latest"
+    echo "  (no args)    Pull latest from main, or move to the newest"
+    echo "               release on the line this checkout follows"
+    echo "  --check      Show version and update status"
+    echo "  --follow L   Follow release line L: 1 for every 1.x.y,"
+    echo "               1.2 for 1.2.x only; the auto-update moves on"
+    echo "  --pin VER    Pin to a version tag (e.g. v0.1.0)"
+    echo "  --unpin      Return to main and pull latest"
     exit 0 ;;
 esac
 
@@ -66,9 +83,51 @@ if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
   exit 1
 fi
 
+# shellcheck source=../.claude/hooks/follow.sh
+. .claude/hooks/follow.sh
+FOLLOW=$(hostwarden_follow)
+
+# follow_update <line> — check out the newest release on the line.
+follow_update() {
+  if ! OUTPUT=$(git fetch --tags --quiet origin 2>&1); then
+    echo "hostwarden update failed: $OUTPUT"
+    exit 1
+  fi
+  TAG=$(hostwarden_follow_tag "$1")
+  if [ -z "$TAG" ]; then
+    echo "Error: no release v$1.x on origin."
+    echo "Newest tags:"
+    git tag --sort=-v:refname | head -10
+    exit 1
+  fi
+  OLD_VERSION=$(current_version)
+  if [ "$(git rev-parse HEAD)" != "$(git rev-parse "$TAG^{commit}")" ] \
+      && ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
+    echo "hostwarden update failed: $OUTPUT"
+    echo "Likely cause: local changes (run 'git status')."
+    exit 1
+  fi
+  [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
+  report "$OLD_VERSION"
+}
+
 case "${1:-}" in
   --check)
     echo "hostwarden $(current_version)"
+    if [ -n "$FOLLOW" ]; then
+      git fetch --tags --quiet origin
+      TAG=$(hostwarden_follow_tag "$FOLLOW")
+      CUR=$(git describe --tags --exact-match 2>/dev/null || true)
+      echo "Following $FOLLOW (the newest v$FOLLOW.x release)."
+      if [ -z "$TAG" ]; then
+        echo "No v$FOLLOW.x release on origin yet."
+      elif [ "$CUR" = "$TAG" ]; then
+        echo "Up to date."
+      else
+        echo "$TAG is available."
+      fi
+      exit 0
+    fi
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
     if [ -z "$BRANCH" ]; then
       TAG=$(git describe --tags --exact-match 2>/dev/null || true)
@@ -96,6 +155,20 @@ case "${1:-}" in
     fi
     ;;
 
+  --follow)
+    LINE="${2:?Usage: hostwarden-update --follow LINE (e.g. 1 or 1.2)}"
+    if ! hostwarden_follow_valid "$LINE"; then
+      echo "Error: '$LINE' is no release line: give a major (1)"
+      echo "or a major.minor (1.2)."
+      exit 1
+    fi
+    follow_update "$LINE"
+    git config hostwarden.follow "$LINE"
+    echo "hostwarden follows $LINE: the auto-update moves to each"
+    echo "new v$LINE.x release. 'hostwarden-update --unpin' returns"
+    echo "to main."
+    ;;
+
   --pin)
     VER="${2:?Usage: hostwarden-update --pin VERSION (e.g. v2.0.0)}"
     # Fresh/shallow clones may not have tags yet.
@@ -109,12 +182,15 @@ case "${1:-}" in
       exit 1
     fi
     git checkout "$VER"
+    # An exact version replaces a line.
+    git config --unset hostwarden.follow || true
     echo "hostwarden pinned to $VER ($(current_version))"
     echo "Auto-update is disabled while pinned."
     echo "Run 'hostwarden-update --unpin' to return to main."
     ;;
 
   --unpin)
+    git config --unset hostwarden.follow || true
     git checkout main
     git pull --ff-only --quiet
     # Same as the default path: a pinned checkout can be many
@@ -127,6 +203,10 @@ case "${1:-}" in
 
 
   "")
+    if [ -n "$FOLLOW" ]; then
+      follow_update "$FOLLOW"
+      exit 0
+    fi
     # Default: pull latest.
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
     if [ -z "$BRANCH" ]; then
@@ -150,19 +230,11 @@ case "${1:-}" in
       echo "diverged main, or no network. Fix and re-run."
       exit 1
     fi
-    NEW_VERSION=$(current_version)
 
-    # Run the 1.x → 2.0 migration if needed.
-    # Idempotent and silent when there's nothing
-    # to do.
+    # Bring an older state layout up to date. Idempotent
+    # and silent when there's nothing to do.
     [ -f bin/hostwarden-migrate ] && sh bin/hostwarden-migrate
-
-    if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-      echo "hostwarden $(current_version) — already up to date."
-    else
-      echo "hostwarden updated: $OLD_VERSION -> $NEW_VERSION"
-      show_changelog_section "$NEW_VERSION"
-    fi
+    report "$OLD_VERSION"
     ;;
 
   *)
