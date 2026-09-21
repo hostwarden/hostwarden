@@ -121,22 +121,32 @@ Detect only what is missing or no longer matches, and record it:
 
 ```bash
 docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
-  2>/dev/null | grep -E 'home-assistant|hassio_supervisor'
+  | grep -i -E 'home-?assistant|hassio_supervisor'
 command -v ha
 ```
 
-- **Container** — a container runs an image from
-  `ghcr.io/home-assistant/home-assistant`, and there is no
-  `hassio_supervisor` container. The container name varies; take
-  it from the output above, never assume `homeassistant`.
-- **Supervised** — a `hassio_supervisor` container runs beside
-  the Home Assistant one, and the host has the `ha` CLI.
-- **Core** — no container at all. Home Assistant runs from a
-  Python virtual environment under a systemd unit, with neither a
-  Supervisor nor an `ha` CLI. The unit's `ExecStart` holds the
-  path to `hass` and its `-c` argument, `User=` the account;
-  without `-c`, the config directory is `~/.homeassistant` of
-  that account.
+An error from `docker` — permission denied on the socket, no
+daemon — is not an empty list: get the access through
+`rules/privilege-escalation.md` or report the check as skipped,
+never conclude Core from it.
+
+- **Container** — a container runs a Home Assistant image,
+  usually `ghcr.io/home-assistant/home-assistant`, and there is
+  no `hassio_supervisor` container. The container name varies;
+  take it from the output above, never assume `homeassistant`.
+  Another image, such as `lscr.io/linuxserver/homeassistant`, is
+  still a Container install; confirm the commands below work in
+  it before relying on them.
+- **Supervised** — a `hassio_supervisor` container runs, and the
+  host has the `ha` CLI. The grep also lists the Supervisor's
+  other containers and add-ons; Home Assistant itself is the one
+  named `homeassistant`.
+- **Core** — no Home Assistant container at all. Home Assistant
+  runs from a Python virtual environment under a systemd unit,
+  with neither a Supervisor nor an `ha` CLI. The unit's
+  `ExecStart` holds the path to `hass` and its `-c` argument,
+  `User=` the account; without `-c`, the config directory is
+  `~/.homeassistant` of that account.
 
 Read the running version:
 
@@ -157,7 +167,8 @@ Run the config check for the install type from
 check that gates a restart the user asks for.
 
 - **CRITICAL** if Home Assistant is not running: its container
-  is not "Up" (on Supervised, `hassio_supervisor` neither), or
+  is not "Up" (on Supervised, `homeassistant` or
+  `hassio_supervisor`), or
   `systemctl is-active <unit>` fails on Core. Report a stopped
   container here, not again under Docker.
 - **WARN** if the config check reports errors; quote them

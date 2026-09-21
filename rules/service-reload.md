@@ -160,7 +160,8 @@ show the test output if it fails.
 Home Assistant on a normal Linux host is restarted,
 not reloaded, and the same test gates the restart.
 The host's `memory.md` names the install type and
-the values for the placeholders:
+the values for the placeholders; where it does not,
+ask the user rather than guess them:
 
 ```bash
 # Container
