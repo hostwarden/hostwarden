@@ -508,8 +508,12 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
 # names the jobs that report them. Rename one without the other
 # and every pull request waits for a check that never comes.
 RULESET="$ROOT/.github/rulesets/main.json"
-if [ -f "$RULESET" ]; then
-  for ctx in $(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET")
+CONTEXTS=$(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET" 2>/dev/null)
+if [ -z "$CONTEXTS" ]; then
+  bad "main.json requires no check -- the ruleset is gone or this" \
+      "check stopped matching"
+else
+  for ctx in $CONTEXTS
   do
     # Only under jobs: -- `on:` has two-space keys of its own.
     if sed -n '/^jobs:/,$p' "$ROOT/.github/workflows/ci.yml" \
