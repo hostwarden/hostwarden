@@ -47,6 +47,11 @@ pkgname() {
     dig:dnf|dig:zypper) echo bind-utils ;;
     dig:pkg|dig:apk) echo bind-tools ;;
     python3:brew|python3:pacman) echo python ;;
+    # A command, not a package: awk is virtual under apt and
+    # absent by that name elsewhere, mktemp is part of coreutils.
+    awk:brew) echo awk ;;
+    awk:*) echo gawk ;;
+    mktemp:*) echo coreutils ;;
     ssh:apt-get|ssh-keygen:apt-get) echo openssh-client ;;
     ssh:dnf|ssh-keygen:dnf) echo openssh-clients ;;
     ssh:*|ssh-keygen:*) echo openssh ;;
@@ -173,7 +178,16 @@ fi
 [ -n "$QUIET" ] || echo
 if [ -n "$NEED" ]; then
   fix=$(hint "$NEED_T")
-  [ -z "$DEV" ] || fix="$fix, or MISE_ENV=dev mise install"
+  # mise.dev.toml pins these three and nothing else, so it is an
+  # alternative only when they are all that is missing.
+  case "$DEV:$NEED_T" in
+    1:*[!\ ]*) mise_only=1
+      for t in $NEED_T; do
+        case $t in shellcheck|actionlint|betterleaks) ;;
+          *) mise_only= ;; esac
+      done
+      [ -z "$mise_only" ] || fix="$fix, or MISE_ENV=dev mise install" ;;
+  esac
   echo "hostwarden: required, missing: ${NEED#, } — $fix"
 fi
 if [ -n "$WANT" ]; then
