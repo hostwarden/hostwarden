@@ -91,7 +91,7 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "${INPUT#*'"command"'}" in
   */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
   */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
-  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*'command -p'*) ;;
+  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
   *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
   *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
   *GIT_SSH_COMMAND*) ;;
@@ -204,7 +204,9 @@ fi
 #     on the shell's separators, past a negation and variable
 #     assignments), or anywhere else when it names an executable
 #     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh;
-#   - command -p, and $GIT_SSH_COMMAND, at the start of a segment;
+#   - $GIT_SSH_COMMAND at the start of a segment;
+#   - command -p, which ignores PATH, anywhere in a command that
+#     names a blocked tool, inside sh -c and eval strings too;
 #   - a command that changes PATH (PATH=, zsh path=, unset PATH,
 #     env -i or -, env -u PATH in its spellings) and names a
 #     blocked tool anywhere;
@@ -237,9 +239,14 @@ FOUND=$(printf '%s' "$CMD" | awk '
       # env: 1 while the words are options of an env command, 2 when
       # the next word is the value of -u, -C or -S.
       env = rsync = daemon = 0
+      pc = ""
       for (i = 1; i <= nw; i++) {
         c = v[i]
         gsub(/^["\047]+|["\047]+$/, "", c)
+        # command -p looks tools up on a default PATH, never the
+        # shim: wherever it stands, sh -c and eval strings included.
+        if (pc == "command" && c ~ /^-[A-Za-z]*p[A-Za-z]*$/ && c !~ /[vV]/) cmdp = 1
+        pc = c
         if (env == 2) env = 1
         else if (env && c !~ /^-/ && c !~ /=/) env = 0
         # env -i, -iv, a lone -, --ignore-environment; env -u PATH,
@@ -270,12 +277,10 @@ FOUND=$(printf '%s' "$CMD" | awk '
       w = v[i]
       # The real ssh that git push is given.
       if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
-      # command -p looks the tool up on a default PATH, never the shim.
+      # Past command and exec to the tool they run.
       how = ""
       if (w == "command" || w == "exec") {
-        p = w == "command"
-        while (++i <= nw && v[i] ~ /^-/)
-          if (p && v[i] ~ /p/ && v[i] !~ /[vV]/) how = "through command -p"
+        while (++i <= nw && v[i] ~ /^-/) ;
         if (i > nw) continue
         w = v[i]
       }
@@ -285,6 +290,7 @@ FOUND=$(printf '%s' "$CMD" | awk '
       if (w ~ /\//) how = "by its path"
       if (how != "") { print "deny " c " " how; exit }
     }
+    if (cmdp && named != "") { print "deny " named " through command -p"; exit }
     if (setpath && named != "") { print "deny " named " with PATH changed"; exit }
     printf "%s", paths
   }')

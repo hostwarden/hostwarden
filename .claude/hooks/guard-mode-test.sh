@@ -114,6 +114,10 @@ cmd deny "$DEV" 'echo $(/usr/bin/ssh server1.example.com hostname)'
 cmd deny "$DEV" 'bash -c "true; /usr/bin/sudo whoami"'
 cmd deny "$DEV" 'command -p ssh server1.example.com'
 cmd deny "$DEV" 'command -p sudo whoami'
+cmd deny "$DEV" 'command  -p ssh server1.example.com'
+cmd deny "$DEV" "sh -c 'command -p ssh server1.example.com'"
+cmd deny "$DEV" 'eval "command -p sudo whoami"'
+cmd pass "$DEV" 'command -v ssh-keygen; grep -p x file'
 cmd deny "$DEV" 'exec /usr/bin/ssh server1.example.com'
 cmd deny "$DEV" 'PATH=/usr/bin:/bin ssh server1.example.com'
 cmd deny "$DEV" 'export PATH=/usr/bin:/bin; ssh server1.example.com'
@@ -406,6 +410,11 @@ E3="$TMP/git-ssh.env"
 session "$DEV" "$E3" GIT_SSH=/opt/bin/myssh
 grep -q GIT_SSH_COMMAND "$E3" && bad "GIT_SSH_COMMAND set over a GIT_SSH of the user" \
   || ok
+# A GIT_SSH without a path goes through PATH, so the wrapper carries it.
+E8="$TMP/git-ssh-bare.env"
+session "$DEV" "$E8" -u GIT_SSH_COMMAND GIT_SSH=ssh
+via "$E8" "server1.example.com git-upload-pack" "a GIT_SSH of ssh hit the shim" \
+  env GIT_SSH=ssh git ls-remote server1.example.com:repo.git
 # A worktree says so; operations gets no shim at all.
 E4="$TMP/wt.env"
 session "$WT" "$E4" -u GIT_SSH_COMMAND
@@ -416,8 +425,24 @@ case "$err" in
 esac
 E5="$TMP/ops.env"
 : > "$E5"
-session "$OPS" "$E5"
+session "$OPS" "$E5" -u GIT_SSH_COMMAND PATH=/usr/bin:/bin
 [ -s "$E5" ] && bad "session-mode wrote to the env file in operations" || ok
+# Started from inside a development session, operations drops the
+# inherited shim and wrapper again, and gives back what the user set.
+E9="$TMP/ops-nested.env"
+: > "$E9"
+session "$OPS" "$E9" PATH="$DEV/.claude/hooks/shim:$TMP/realssh:$PATH" \
+  GIT_SSH_COMMAND="'$DEV/.claude/hooks/git-ssh.sh'" \
+  HOSTWARDEN_GIT_SSH_COMMAND='ssh -i /tmp/k'
+got=$(PATH="$DEV/.claude/hooks/shim:$TMP/realssh:$PATH" \
+  GIT_SSH_COMMAND="'$DEV/.claude/hooks/git-ssh.sh'" \
+  HOSTWARDEN_GIT_SSH_COMMAND='ssh -i /tmp/k' \
+  sh -c '. "$1"; command -v ssh; echo "$GIT_SSH_COMMAND|${HOSTWARDEN_GIT_SSH_COMMAND:-}"' _ "$E9")
+case "$got" in
+*/hooks/shim/ssh*) bad "operations kept the inherited shim: $got" ;;
+*"$TMP/realssh/ssh"*"ssh -i /tmp/k|") ok ;;
+*) bad "operations did not restore the user's ssh: $got" ;;
+esac
 
 # --- bin/hostwarden-init ---------------------------------------
 [ -d "$OPS/memory/.git" ] && ok || bad "init made no repository in memory/"

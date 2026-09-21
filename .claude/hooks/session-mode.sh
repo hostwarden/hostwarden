@@ -11,6 +11,8 @@ ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 cd "$ROOT" || exit 0
 
 CANON=jpawlowski/hostwarden
+# q <string> — single-quoted for the shell that sources the env file.
+q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
 hostwarden_mode "$ROOT"
 case "$HOSTWARDEN_MODE" in
@@ -19,6 +21,28 @@ operations)
   echo "  Server work as usual. hostwarden's own files are read-only"
   echo "  here: a change to them goes to a development checkout and"
   echo "  a pull request."
+  # Started from inside a development session, this one inherits
+  # its shim and git-ssh.sh, which would refuse the server work
+  # this checkout is for. Every Bash call drops them again.
+  case ":$PATH:${GIT_SSH_COMMAND:-}" in
+  */.claude/hooks/shim:* | *git-ssh.sh*)
+    if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+      {
+        printf '%s\n' 'PATH=$(printf %s "$PATH" | tr : "\n" | grep -v "/\.claude/hooks/shim$" | paste -sd: -); export PATH'
+        case "${GIT_SSH_COMMAND:-}" in
+        *git-ssh.sh*)
+          if [ -n "${HOSTWARDEN_GIT_SSH_COMMAND:-}" ]; then
+            echo "export GIT_SSH_COMMAND=$(q "$HOSTWARDEN_GIT_SSH_COMMAND")"
+          else
+            echo "unset GIT_SSH_COMMAND"
+          fi
+          ;;
+        esac
+        echo "unset HOSTWARDEN_GIT_SSH_COMMAND"
+      } >> "$CLAUDE_ENV_FILE"
+    fi
+    ;;
+  esac
   exit 0
   ;;
 worktree)
@@ -51,8 +75,6 @@ esac
 # the user set, kept in HOSTWARDEN_GIT_SSH_COMMAND. A GIT_SSH on
 # its own, a program of the user's, stays theirs.
 SHIM="$ROOT/.claude/hooks/shim"
-# q <string> — single-quoted for the shell that sources the file.
-q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
   echo "  Claude Code gave this hook no CLAUDE_ENV_FILE, so the"
   echo "  shim that refuses ssh and sudo however they are started"
@@ -61,17 +83,23 @@ if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
 elif ! grep -qF "$SHIM" "$CLAUDE_ENV_FILE" 2>/dev/null; then
   {
     echo "case \":\$PATH:\" in *:$(q "$SHIM"):*) ;; *) export PATH=$(q "$SHIM"):\"\$PATH\" ;; esac"
-    # GIT_SSH_COMMAND outranks GIT_SSH, so only a GIT_SSH on its
-    # own is left alone.
-    if [ -n "${GIT_SSH_COMMAND:-}" ] || [ -z "${GIT_SSH:-}" ]; then
+    # What git would run: GIT_SSH_COMMAND outranks GIT_SSH. A
+    # GIT_SSH named without a path goes through PATH and would find
+    # the shim, so the wrapper carries it; one given by its path is
+    # the user's own program and stays.
+    U=${GIT_SSH_COMMAND:-${GIT_SSH:-}}
+    case "${GIT_SSH_COMMAND:-}:$U" in
+    :*/*) ;;
+    *)
       # A session started from inside another inherits its
       # git-ssh.sh, which kept as the user's own would run itself.
-      case "${GIT_SSH_COMMAND:-}" in
+      case "$U" in
       "" | *git-ssh.sh*) ;;
-      *) echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$GIT_SSH_COMMAND")" ;;
+      *) echo "export HOSTWARDEN_GIT_SSH_COMMAND=$(q "$U")" ;;
       esac
       echo "export GIT_SSH_COMMAND=$(q "$(q "$ROOT/.claude/hooks/git-ssh.sh")")"
-    fi
+      ;;
+    esac
   } >> "$CLAUDE_ENV_FILE"
 fi
 
