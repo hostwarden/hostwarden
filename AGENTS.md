@@ -205,10 +205,17 @@ say so immediately instead of falling back on what you remember.
 
 ## Session Start
 
-**Follow `rules/session-start.md`**, before anything else in the
-session. It names the preference and customization files to load,
-the one line to say about them, and the setup question not to
-improvise.
+Say one short, friendly line first, before reading anything at all
+— *"Fresh hostwarden install detected — nothing in memory yet.
+Ready when you are."* on a fresh install, *"Session start —
+loading your preferences and access lists."* otherwise. The words
+are here rather than one file away because a greeting that arrives
+after the reads it announces has missed its moment, and the file
+that would carry it is itself one of the reads.
+
+**Then follow `rules/session-start.md`.** It names the preference
+and customization files to load, how to read them, what to say
+once they are in, and the setup question not to improvise.
 
 Loading it is not what keeps you off a blacklisted host — that is
 step 1 of the pipeline below, and it runs on every connection

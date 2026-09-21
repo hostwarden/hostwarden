@@ -136,7 +136,7 @@
   that works on production servers may have.
 
 - **`AGENTS.md` keeps the trigger, the file keeps the
-  procedure.** It is down from 668 lines to 308, and
+  procedure.** It is down from 668 lines to 315, and
   from 3356 words to about 2000, because a moment and
   the file that covers it is one line — not a
   paragraph that restates what the file already says.
@@ -161,14 +161,20 @@
   their overrides colliding. hostwarden names the
   customizations it loaded at session start, and says
   when one matches nothing shipped instead of ignoring
-  it silently. A skill's *trigger* stays uncustomizable
-  per file and belongs in `all.md`; `rules/overrides.md`
-  says so rather than leaving it to be discovered. When
-  an upgrade moves a topic between mechanisms,
-  `bin/hostwarden-migrate` moves the matching override
-  with it instead of leaving it at a path nothing reads
-  — which matters for a checkout adopted from heinzel,
-  where such files already exist.
+  it silently. Where the shipped file has since split —
+  your `transport.md` against a shipped
+  `transport-local.md` and `transport-remote.md` — it
+  names both siblings and asks which one you meant,
+  rather than calling your customization a stale name
+  or picking the nearer of the two. A skill's *trigger*
+  stays uncustomizable per file and belongs in
+  `all.md`; `rules/overrides.md` says so rather than
+  leaving it to be discovered. When an upgrade moves a
+  topic between mechanisms, `bin/hostwarden-migrate`
+  moves the matching override with it instead of
+  leaving it at a path nothing reads — which matters
+  for a checkout adopted from heinzel, where such files
+  already exist.
 - **Repo-development conventions load only when repo
   files are read.** `.claude/rules/repo-release.md`
   carries versioning, tagging, changelog style and the

@@ -26,15 +26,18 @@ the thing that has to be named below.
 
 ## What to say
 
-One short, friendly line before any reads — *"Fresh hostwarden
-install detected — nothing in memory yet. Ready when you are."* on
-a fresh install, *"Session start — loading your preferences and
-access lists."* otherwise. Missing files are normal on a fresh
-install; "No such file" is not an error.
+The greeting comes before any of this, and `AGENTS.md` → Session
+Start has the words: it has to be said before the first read, and
+this file is itself a read. Do not repeat it here.
 
-Then name the customizations that are in force, in one line —
-*"Custom rules: all, backups, os/debian."* — or say nothing when
-there are none. `rules/overrides.md` covers the rest.
+Missing files are normal on a fresh install; "No such file" is not
+an error.
+
+Once the reads are in, name the customizations that are in force,
+in one line — *"Custom rules: all, backups, os/debian."* — or say
+nothing when there are none. An override path that names nothing
+shipped is not a customization in force: `rules/overrides.md` says
+what to do with it, and it is not "carry on".
 
 ## What not to ask
 
