@@ -14,7 +14,9 @@
 #
 # Checks the machine the AI tool runs on, never a managed host.
 # Prints install commands; never runs them.
-# Exit status: 1 when something required is missing, else 0.
+# Exit status: 1 when something required is missing, else 0 —
+# but --quiet without --dev always exits 0: Claude Code passes a
+# SessionStart hook's output to the session only then.
 
 QUIET='' DEV=''
 for a in "$@"; do
@@ -93,6 +95,15 @@ miss() {
   esac
 }
 
+# mail_ok -- the transport 5L.1 accepts. macOS ships a sendmail
+# that delivers only while its Postfix is loaded.
+mail_ok() {
+  has msmtp && return 0
+  has sendmail || return 1
+  [ "$(uname -s)" = Darwin ] || return 0
+  launchctl print system/com.apple.postfix.master >/dev/null 2>&1
+}
+
 [ -n "$QUIET" ] || echo "Required"
 for t in ssh git awk sed grep tar mktemp; do
   check need "$t" "$t" "$t"
@@ -140,9 +151,19 @@ else
   [ -n "$QUIET" ] || echo "Per feature"
   # rules/ssh-connections.md, rules/directory-copy.md
   check feat "file transfer to and from servers" rsync rsync scp
-  # hostwarden-email: transport-local.md, send-verify.md
-  check feat "email from this workstation" msmtp msmtp sendmail
-  check feat "email attachments from this workstation" file file
+  # hostwarden-email: transport-local.md step 5L.1, send-verify.md
+  if mail_ok; then
+    row "ok       email from this workstation"
+  else
+    row "missing  email from this workstation"
+    miss feat "email from this workstation" msmtp
+  fi
+  if has file && has base64; then
+    row "ok       email attachments from this workstation"
+  else
+    row "missing  email attachments from this workstation"
+    miss feat "email attachments from this workstation" file
+  fi
   # hostwarden-deploy-user: references/ssh-key.md
   check feat "SSH keys for a deploy user" ssh-keygen ssh-keygen
   # rules/ssh-unreachable.md
@@ -165,4 +186,6 @@ if [ -z "$QUIET$NEED$WANT$FEAT" ]; then
   echo "Everything hostwarden runs locally is here."
 fi
 
-[ -z "$NEED" ]
+[ -z "$NEED" ] && exit 0
+[ -n "$QUIET" ] && [ -z "$DEV" ] && exit 0
+exit 1
