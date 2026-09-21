@@ -94,9 +94,12 @@ makes the section yours to maintain: when the shipped one
 gains a step, your copy does not.
 
 Hostwarden names the overrides in force in one line at
-session start. When one matches nothing shipped — a typo,
-or a section that moved in an upgrade — it says so, and
-for a `Replace` or `Remove` it asks before carrying on.
+session start. A file whose path matches nothing shipped
+gets one line saying so — that is how you catch a typo —
+and is otherwise ignored; if the shipped file was split
+in an upgrade, it asks which part you meant. A `Replace`
+or `Remove` whose section matches nothing makes it stop
+and ask; an `Add` becomes a new section.
 
 ## Your own skills
 
