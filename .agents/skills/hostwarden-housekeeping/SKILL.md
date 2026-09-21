@@ -3,15 +3,15 @@ name: hostwarden-housekeeping
 argument-hint: "[hostname]"
 description: Run a Hostwarden housekeeping (health) inspection on a
   server — disk, memory, load, pending updates, firewall, SSL
-  certs, failed systemd units, logs, kernel reboot status, and
-  service-specific checks. Use when the user asks to "run
-  housekeeping", "housekeeping report", "run a health check on
-  <host>", or "do routine inspection". Do NOT auto-invoke for
-  ambiguous requests like "check server <host>" — that's
-  reserved for quick queries. Covers Linux (Debian, Ubuntu, RHEL,
-  CentOS, Fedora, SUSE) and macOS. Also use it for "schedule
-  housekeeping", "run a nightly check", or "email me a weekly
-  report automatically".
+  certs, failed systemd units or OpenRC services, logs, kernel
+  reboot status, and service-specific checks. Use when the user
+  asks to "run housekeeping", "housekeeping report", "run a
+  health check on <host>", or "do routine inspection". Do NOT
+  auto-invoke for ambiguous requests like "check server <host>"
+  — that's reserved for quick queries. Covers Linux (Debian,
+  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine) and macOS. Also
+  use it for "schedule housekeeping", "run a nightly check", or
+  "email me a weekly report automatically".
 ---
 
 # hostwarden-housekeeping
@@ -78,8 +78,8 @@ Read on demand, only when the relevant section applies:
 
 ## Scope and limits
 
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
-  macOS are fully covered by the baseline references above.
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine)
+  and macOS are fully covered by the baseline references above.
 - FreeBSD baselines are not yet covered. On a FreeBSD host,
   do not silently skip: run the closest read-only
   equivalents — `pkg audit -F`, `pkg upgrade -n`,

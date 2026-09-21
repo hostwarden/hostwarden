@@ -16,6 +16,13 @@ unprivileged, omit `-p`:
 ss -tuln
 ```
 
+Alpine has no `ss` unless `iproute2-ss` is installed. Use
+busybox `netstat`, which takes the same letters:
+
+```bash
+netstat -tulnp 2>/dev/null
+```
+
 ## macOS
 
 ```bash

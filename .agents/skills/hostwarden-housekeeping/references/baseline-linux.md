@@ -8,6 +8,11 @@ Firewall or Updates section — its commands and expectations win, at
 the same severities: a mechanism the OS file says is not expected is
 not a finding.
 
+Alpine has no systemd and a busybox userland whose commands take
+fewer flags (`rules/os/alpine.md` → Notes). Where a check below
+would fail there, an **Alpine** variant follows it; a check
+without one runs unchanged.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -19,6 +24,12 @@ independent of `memory.md` service entries.
 ```bash
 df -h --output=target,pcent,size,used,avail \
   -x tmpfs -x devtmpfs -x overlay
+```
+
+**Alpine** (busybox `df` has no `--output` or `-x`):
+
+```bash
+df -h | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ```
 
 - **WARN** if any filesystem > 85% used
@@ -52,6 +63,9 @@ Report 1m, 5m, 15m load averages and core count.
 uptime -s
 last reboot | head -5
 ```
+
+**Alpine:** busybox `uptime` takes no options and busybox `last`
+no filter; `uptime` alone gives the time since boot.
 
 Report uptime. If the server rebooted since the last housekeeping
 or last session, flag it:
@@ -111,6 +125,19 @@ zypper --quiet list-updates 2>/dev/null \
 # Security-only subset.
 zypper list-patches --category security 2>/dev/null
 ```
+
+**Alpine:**
+
+```bash
+apk update -q
+apk list --upgradable
+```
+
+apk has no security-only view. Report the total and say that no
+subset exists; the security fixes a package carries are listed on
+<https://security.alpinelinux.org/>. Check the branch and the
+repositories as `rules/os/alpine.md` → Stable Branch Only and
+Version Detection describe.
 
 - **WARN** if any security updates are pending
 - Report both counts (total pending and security-only)
@@ -203,6 +230,19 @@ systemctl is-active dnf-automatic.timer 2>/dev/null \
 Check if `zypper-patch` or equivalent auto-update timer is
 configured.
 
+**Alpine:** nothing is built in. Look for what the user set up,
+as `rules/os/alpine.md` → Automatic Security Updates describes:
+
+```bash
+ls /etc/periodic/*/ 2>/dev/null
+crontab -l 2>/dev/null | grep apk
+rc-service crond status
+```
+
+- **WARN** if no job runs `apk upgrade`, or `crond` is not
+  started. Say that Alpine ships no mechanism, so this is a gap
+  to discuss, not a broken setup.
+
 - **WARN** if auto-update mechanism is not active
 
 ## Firewall Status
@@ -226,6 +266,19 @@ firewall-cmd --state
 ```bash
 firewall-cmd --state
 ```
+
+**Alpine:** nftables, awall or ufw, whichever the host runs:
+
+```bash
+rc-service nftables status
+rc-service iptables status
+ufw status
+rc-update show boot default
+```
+
+A running `iptables` service with policies in `/etc/awall/` is
+awall. For nftables, judge default deny with the security
+skill's probe, below.
 
 **Native nftables** (Debian installs it, with its unit
 off; check it when neither ufw nor firewalld is active;
@@ -267,7 +320,19 @@ docker ps --format '{{.Names}} {{.Ports}}'
 systemctl --failed --no-pager --no-legend
 ```
 
-- **WARN** for each failed unit — list them by name
+**Alpine** (OpenRC):
+
+```bash
+rc-status --crashed
+rc-status default
+```
+
+`rc-status --crashed` exits non-zero when nothing crashed. In
+`rc-status default`, a service shown as `stopped` was enabled but
+is not running.
+
+- **WARN** for each failed unit, crashed service, or enabled
+  service that is stopped — list them by name
 
 ## NTP / Time Sync
 
@@ -276,7 +341,19 @@ timedatectl show \
   --property=NTPSynchronized --value
 ```
 
-- **WARN** if NTP is not synchronized
+**Alpine:** no `timedatectl`. The default is busybox `ntpd`,
+which reports no sync state; check that a time service runs:
+
+```bash
+rc-status default | grep -E 'ntpd|chronyd|openntpd'
+command -v chronyc && chronyc tracking
+```
+
+`chronyc tracking` reports `Leap status : Normal` when chrony is
+synchronised.
+
+- **WARN** if NTP is not synchronized, or on Alpine if no time
+  service runs
 
 ## Log Anomalies
 
@@ -299,6 +376,20 @@ journalctl --since "24 hours ago" -u ssh -u sshd \
   | wc -l
 ```
 
+**Alpine** (syslog, `rules/os/alpine.md` → Logs; reading the file
+needs root or membership in `wheel` or `adm`):
+
+```bash
+dmesg | grep -c "Out of memory"
+dmesg | grep -c "I/O error"
+grep -h "Failed password" /var/log/auth.log \
+  /var/log/messages 2>/dev/null | wc -l
+```
+
+`dmesg` holds only what the kernel buffer still has, and the log
+files only what rotation kept: report the counts as recent, not
+as 7 days or 24 hours.
+
 - **WARN** if any OOM kills found
 - **WARN** if any disk I/O errors found
 - **INFO** if > 100 failed SSH logins in 24 hours (may indicate
@@ -319,6 +410,20 @@ for cert in /etc/letsencrypt/live/*/cert.pem; do
   days=$(( ($(date -d "$expiry" +%s) \
     - $(date +%s)) / 86400 ))
   echo "$domain: ${days}d remaining"
+done
+```
+
+**Alpine:** busybox `date -d` cannot parse the date `openssl`
+prints. Ask `openssl` instead whether the certificate outlives a
+threshold:
+
+```bash
+for cert in /etc/letsencrypt/live/*/cert.pem; do
+  domain=$(basename "$(dirname "$cert")")
+  openssl x509 -checkend 604800 -noout -in "$cert" \
+    >/dev/null || echo "$domain: expires within 7 days"
+  openssl x509 -checkend 2592000 -noout -in "$cert" \
+    >/dev/null || echo "$domain: expires within 30 days"
 done
 ```
 
@@ -359,6 +464,15 @@ echo "Running: $running"
 echo "Installed: $installed"
 ```
 
+**Alpine:** a kernel upgrade replaces the running kernel's
+modules, so a missing directory means a newer kernel waits for a
+reboot. Skip in a container, where the kernel is the host's:
+
+```bash
+uname -r
+ls /lib/modules
+```
+
 - **INFO** if running kernel differs from installed (reboot
   recommended)
 
@@ -372,6 +486,9 @@ services because restarting them is risky (notably
 `docker.service`, `dbus.service`, `getty@*`,
 `systemd-logind`). The result: the security fix is
 installed but not active, and nothing complains.
+
+**Alpine:** no needrestart; use the manual fallback
+below, which works with busybox.
 
 **Debian/Ubuntu** (needrestart is in the default
 install since Bookworm):

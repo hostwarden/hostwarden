@@ -12,7 +12,7 @@ it just established, and no other — and **at most one**
 appliance file on top of it. A distribution no family
 covers gets no family file; step 2 below says what to
 do instead. Never reach for the nearest file — a Debian
-reference on an Alpine host prescribes the wrong
+reference on an Arch host prescribes the wrong
 package manager and the wrong firewall.
 
 That cap is on detection, not on the session. A
@@ -89,11 +89,12 @@ skill says so where it needs it.
    - **Linux:** the os-release `ID` and `ID_LIKE`
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
-     variants → `suse`); the version from `VERSION_ID`
-     and `PRETTY_NAME`. `ID=haos`, and `ID=alpine`
-     inside a Home Assistant app container, have no
-     family: see Appliances below. If no family file
-     matches (e.g. Alpine, Arch), tell the user,
+     variants → `suse`; `alpine`, or `ID_LIKE`
+     containing `alpine` → `alpine`); the version from
+     `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
+     `ID=alpine` inside a Home Assistant app container,
+     have no family: see Appliances below. If no family
+     file matches (e.g. Arch, Gentoo), tell the user,
      proceed cautiously with generic commands, and
      apply extra verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the

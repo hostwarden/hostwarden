@@ -11,16 +11,24 @@ connections, lose state, or fail to come back up.
 ## Reload vs Restart
 
 - **Reload** (`systemctl reload <svc>`,
-  `nginx -s reload`, `service <name> reload`) tells a
+  `nginx -s reload`, `service <name> reload`,
+  `rc-service <svc> reload`) tells a
   running service to re-read its config without
   dropping active connections or worker state. When
   the service supports it, reload is effectively
   zero-downtime and reversible.
 - **Restart** (`systemctl restart <svc>`,
-  `service <name> restart`) stops and starts the
+  `service <name> restart`,
+  `rc-service <svc> restart`) stops and starts the
   service. Connections drop, in-memory state is lost,
   and the restart can fail halfway (config bug,
   missing dependency, port still bound).
+
+On OpenRC (Alpine), `reload` exists only where the
+service script defines it, and a restart also stops
+and starts every service that depends on this one:
+name them when asking. `rules/os/alpine.md` →
+Service Manager says how to tell.
 
 Prefer reload whenever the service supports it.
 
@@ -183,6 +191,10 @@ The Container check is the one the Home Assistant
 docs give:
 https://www.home-assistant.io/common-tasks/container/#configuration-check
 
+On OpenRC, a script that defines `checkconfig`
+provides the test for its service:
+`rc-service <svc> checkconfig`.
+
 If no config test is known for the service, ask
 the user before reloading — auto-proceed requires
 a test that exists AND passes (see "Default
@@ -200,7 +212,8 @@ even when the service is not in `reload-always-ask`:
   after `sshd -t` passes.
 - **Firewall reloads** (`ufw reload`,
   `firewall-cmd --reload`, `pfctl -f`,
-  `service pf reload`). A rule error can drop SSH.
+  `service pf reload`, `rc-service nftables reload`,
+  `awall activate`). A rule error can drop SSH.
   Always ask. Covered by the "firewall changes"
   rule in `AGENTS.md`.
 - **Reload as part of a config change Hostwarden is

@@ -31,6 +31,22 @@ command -v sudo && sudo -n true
 On subsequent connections, check server memory for
 the sudo flag.
 
+## Doas
+
+Where `sudo` is not installed, probe `doas` the same
+way before falling back to root SSH. It is the
+default on Alpine (`rules/os/alpine.md` → Notes):
+
+```
+command -v doas && doas -n true
+```
+
+Record `- Doas: passwordless` or
+`- Doas: requires password (unusable)` next to the
+sudo line. When it works, `doas -n` stands in for
+`sudo -n` wherever an instruction names it, for the
+whole session.
+
 ## Root SSH Fallback
 
 When sudo is unusable and a privileged action is

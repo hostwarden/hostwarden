@@ -22,7 +22,7 @@ journal of every server it touched. Write only
 
 Run the read-back from the loaded OS file's `## Logs`
 section. Where it has none and systemd runs — every
-Linux family — read the journal:
+Linux family but Alpine — read the journal:
 
 ```
 journalctl -t hostwarden -t heinzel --since "7 days ago" \

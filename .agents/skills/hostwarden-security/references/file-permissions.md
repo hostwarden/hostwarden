@@ -27,7 +27,8 @@ No root needed. Report the total count.
 `umount`, `ping`, `ping6`, `fusermount`, `fusermount3`,
 `pkexec`, `unix_chkpwd`, `crontab`, `ssh-agent`, `at`, `expiry`,
 `wall`, `write`, `dotlockfile`, `mount.nfs`, `mount.cifs`,
-`staprun`.
+`staprun`, and on Alpine `doas` and `bbsuid` (from
+`busybox-suid`).
 
 Any binary not in this list → **INFO** with full path. The user
 can assess whether it belongs.
