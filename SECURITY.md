@@ -37,10 +37,12 @@ identifiers from `.claude/rules/instruction-authoring.md`.
 - Vulnerabilities in the software on a managed host go to that
   software's project. hostwarden finding or missing one in an
   audit is an ordinary bug report.
-- A command you approved that did harm. hostwarden proposes,
-  you approve (README → Risks & Responsibilities). If the rules
-  should have kept it from being proposed, that is an ordinary
-  bug report.
+- A command you approved that did harm, where the rules allow
+  it. hostwarden proposes, you approve (README → Risks &
+  Responsibilities); a rule that should have kept it from being
+  proposed is an ordinary bug report. A command the taboo guard
+  should have blocked is not this case, approved or not: report
+  it privately, as above.
 
 ## Supported versions
 
