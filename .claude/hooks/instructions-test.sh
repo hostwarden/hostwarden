@@ -503,5 +503,36 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
       print n ":" FNR " (" length(s) ")"
     } }')" "wrapped at 80 characters"
 
+# --- every required check is a CI job ---------------------------
+# The ruleset names the checks a pull request waits for, ci.yml
+# names the jobs that report them. Rename one without the other
+# and every pull request waits for a check that never comes.
+RULESET="$ROOT/.github/rulesets/main.json"
+CONTEXTS=$(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET" 2>/dev/null)
+if [ -z "$CONTEXTS" ]; then
+  bad "main.json requires no check -- the ruleset is gone or this" \
+      "check stopped matching"
+else
+  # One context per line: a job name may hold spaces.
+  while IFS= read -r ctx; do
+    # What GitHub reports is a job's `name:` if it has one, else its
+    # key; and only under jobs: -- `on:` has two-space keys too.
+    if awk '/^jobs:/ { j = 1; next }
+        j && /^[^ ]/ { j = 0 }
+        j && /^  [A-Za-z0-9_-]+:/ { k = $1; sub(/:$/, "", k); ctx[k] = k }
+        j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
+                                gsub(/["\047]/, "", n); ctx[k] = n }
+        END { for (k in ctx) print ctx[k] }' \
+        "$ROOT/.github/workflows/ci.yml" | grep -qxF "$ctx"; then
+      ok
+    else
+      bad "main.json requires check '$ctx', which no job in" \
+        "ci.yml reports"
+    fi
+  done <<EOF
+$CONTEXTS
+EOF
+fi
+
 echo "instruction layout tests: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
