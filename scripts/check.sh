@@ -26,25 +26,22 @@ if command -v mise >/dev/null 2>&1; then
   eval "$(MISE_ENV=dev mise env -s bash 2>/dev/null)"
 fi
 
-need() {
-  missing=
-  for t in "$@"; do
-    command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
-  done
-  [ -z "$missing" ] && return
-  echo "check: missing:$missing — mise trust mise.dev.toml, then" \
-    "MISE_ENV=dev mise install for ShellCheck, actionlint and" \
-    "betterleaks; python3 from the package manager" >&2
-  exit 2
-}
-
 case "${1:-}" in
   --pre-commit)
-    need betterleaks
+    # Only betterleaks: a commit must not wait on tools it does not
+    # run.
+    command -v betterleaks >/dev/null 2>&1 || {
+      echo "check: betterleaks is missing — sh bin/hostwarden-doctor" \
+        "--dev says how to install it" >&2
+      exit 2
+    }
     exec betterleaks git --pre-commit --staged --redact --verbose \
       --no-banner . ;;
 esac
-need python3 shellcheck actionlint betterleaks
+
+# Which tools there are, and how to install the rest, is the
+# doctor's to say.
+sh bin/hostwarden-doctor --dev --quiet || exit 2
 
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything.
