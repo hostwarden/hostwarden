@@ -41,7 +41,7 @@ skill says so where it needs it.
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade;' \
+     'which pveversion ha opnsense-version pfSense-upgrade xe;' \
      'ls -d /homeassistant; pveversion; opnsense-version;' \
      'cat /etc/version'
    ```
@@ -110,8 +110,8 @@ skill says so where it needs it.
 3. **Check for an appliance** from the lines after
    `@appliance`. See Appliances below. The same lines
    carry the version of Proxmox VE, OPNsense and
-   pfSense; any other appliance file says how to read
-   its own.
+   pfSense, and `VERSION_ID` that of XCP-ng; any other
+   appliance file says how to read its own.
 
 4. Create a server memory file.
 
@@ -134,9 +134,11 @@ prints for a missing one depends on the shell.
 | Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
 | FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
 | FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
+| RHEL    | `ID=xcp-ng`, `xe`  | `rules/appliance/xcp-ng.md`     |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
 
-`ha` counts only where `/homeassistant` exists too.
+`ha` counts only where `/homeassistant` exists too,
+and `xe` only with `ID=xcp-ng`.
 `ID=haos` means the probe reached the HAOS host
 itself; its file says to stop there.
 

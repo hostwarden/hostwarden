@@ -38,6 +38,15 @@
   sshd port before starting it. An Alpine Docker image
   is recognised as a container, not a host to
   administer.
+- **XCP-ng is recognised as an appliance.** Its dom0 is read as a
+  RHEL host with the changes XCP-ng needs: `yum` from XCP-ng's own
+  repositories only and nothing installed beyond what they carry,
+  updates pool master first with evacuation and reboots left to
+  you, VMs, storage and networks through `xe` or Xen Orchestra,
+  the `iptables` firewall, and the logs in `/var/log`, where the
+  activity check reads `user.log`. Housekeeping and the audits
+  report pending updates, pool and host state, SR usage, HA, dom0
+  disk and memory, and backups.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under
