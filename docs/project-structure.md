@@ -5,7 +5,8 @@ VERSION                — Current version number (semver)
 CHANGELOG.md           — Release history
 CONTRIBUTING.md        — Setup, checks, and where changes go
 SECURITY.md            — How to report a vulnerability
-docs/                  — Documentation beyond the README
+docs/                  — Documentation beyond the README;
+                         docs/README.md indexes it
 AGENTS.md              — The instruction set, read by every
                          AGENTS-aware tool
 CLAUDE.md              — Imports AGENTS.md, plus the handful of

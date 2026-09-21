@@ -213,6 +213,9 @@ not blindly approve.
 
 ## Documentation
 
+All pages, grouped by what you are doing:
+[docs/README.md](docs/README.md).
+
 | Topic | Page |
 | ----- | ---- |
 | Prerequisites in detail, native Windows | [docs/install.md](docs/install.md) |
