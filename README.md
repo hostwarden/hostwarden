@@ -716,8 +716,8 @@ and other one-time questions are answered and stored
 in memory (unattended runs can't answer pickers) —
 and **never use `--dangerously-skip-permissions` in
 cron**. Details, systemd-timer variant, and cron
-pitfalls: the `hostwarden-housekeeping` skill,
-`references/scheduled.md`.
+pitfalls:
+`.agents/skills/hostwarden-housekeeping/references/scheduled.md`.
 
 ## Safety & Guardrails
 

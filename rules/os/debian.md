@@ -161,8 +161,8 @@ third-party PPAs.
   `/etc/nftables.conf`, whose stock version starts
   with `flush ruleset`, so starting, reloading or
   stopping it wipes ufw's rules. A host that runs it
-  needs no ufw on top. Checks: `hostwarden-security` →
-  `references/firewall-nftables-docker.md`.
+  needs no ufw on top. Checks:
+  `.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
 
 ## Automatic Security Updates
 

@@ -50,6 +50,14 @@ if [ -z "$SCAN" ]; then
       "pointer check below would pass over nothing"
 fi
 
+tag() {
+  # tag <extended-regex> -- every match in the corpus, each line
+  # prefixed with the file it came from.
+  printf '%s\n' "$SCAN" \
+    | grep -oE "^[^ ]+:|$1" \
+    | awk '/:$/ { f = $0; next } { print f " " $0 }'
+}
+
 report() {
   # report <findings> <what-they-are>
   if [ -z "$1" ]; then
@@ -174,28 +182,44 @@ if [ -f "$MIGRATE" ]; then
   report "$BAD_MAP" "a path anything ships"
 fi
 
-# --- a references/ pointer resolves inside its own skill --------
-# `references/x.md` is relative to the skill that writes it, so a
-# pointer at another skill's reference silently resolves to
-# nothing. Cross-skill pointers spell the path out from the repo
-# root instead, which is longer and unambiguous.
+# --- a references/ pointer resolves ----------------------------
+# Two shapes, because `references/x.md` means "inside the skill
+# that wrote this". A skill may use it; anywhere else it resolves
+# against nothing, so a cross-skill pointer spells the path out
+# from the repo root -- longer, and unambiguous.
+#
+# Both are checked here, at any depth, wherever they are written:
+# a full path is a pointer no matter which file names it, and the
+# whole point of rewriting one is that it can then be verified.
+#
+# What is not checked: a relative pointer in a file outside
+# `.agents/skills/`. In `rules/overrides.md` and the README that
+# shape appears in a table *describing* the mirror scheme, and no
+# pattern separates an example of a path from a use of one. Those
+# two files document; they do not route.
 NREFS=0
-for d in "$ROOT"/.agents/skills/*/; do
-  [ -d "$d" ] || continue
-  for r in $(grep -rho '`references/[a-z0-9._-]*\.md`' "$d" \
-      2>/dev/null | tr -d '`' | LC_ALL=C sort -u); do
-    NREFS=$((NREFS + 1))
-    if [ -f "$d$r" ]; then
-      ok
-    else
-      bad "$(basename "$d") points at $r, which it does not" \
-          "ship -- a references/ path is relative to its own" \
-          "skill"
-    fi
-  done
-done
-if [ "$NREFS" -eq 0 ]; then
-  bad "no references/ pointers found -- the search broke"
+BAD_REFS=$(
+  tag '`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`' \
+    | tr -d '`' \
+    | while IFS=' ' read -r f r; do
+        fp="${f%:}"
+        case "$r" in
+          (.agents/skills/*)
+            [ -f "$ROOT/$r" ] || echo "$f $r" ;;
+          (*)
+            case "$fp" in
+              (.agents/skills/*)
+                sk=$(printf '%s' "$fp" | cut -d/ -f1-3)
+                [ -f "$ROOT/$sk/$r" ] || echo "$f $r" ;;
+            esac ;;
+        esac
+      done
+)
+NREFS=$(tag '`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`' \
+  | grep -c . || true)
+report "$BAD_REFS" "a reference that resolves"
+if [ "$NREFS" -lt 5 ]; then
+  bad "only $NREFS references/ pointers found -- the search broke"
 fi
 
 # --- override paths are unambiguous -----------------------------
