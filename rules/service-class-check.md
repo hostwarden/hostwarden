@@ -49,7 +49,11 @@ and fight for the same role.
   openntpd, systemd-timesyncd
 - **DNS resolver:** unbound, bind9 (RPM: `bind`),
   dnsmasq, pdns-recursor, knot-resolver,
-  systemd-resolved
+  systemd-resolved, Pi-hole and AdGuard Home.
+  Pi-hole's resolver, `pihole-FTL`, is built on
+  dnsmasq (https://docs.pi-hole.net/ftldns/), so a
+  host with Pi-hole already runs dnsmasq although no
+  `dnsmasq` package is installed.
 - **Firewall manager:** ufw, firewalld, and native
   nftables — the last only when `systemctl is-enabled
   nftables` says `enabled` (the package sits unused on
@@ -172,6 +176,34 @@ output is `active`. A unit that is `inactive`,
 `masked`, or absent is not a conflict — the user
 already disabled it (often when they installed
 chrony or unbound the first time).
+
+### Installer and container members
+
+Pi-hole and AdGuard Home are installed by their own
+scripts or run as containers, so no package database
+lists them. Probe for them on every OS:
+
+```bash
+command -v pihole-FTL AdGuardHome
+ls -d /etc/pihole /opt/AdGuardHome 2>/dev/null
+docker ps -a --format '{{.Image}}' 2>/dev/null \
+  | grep -iE 'pihole/pihole|adguard/adguardhome'
+snap list adguard-home 2>/dev/null
+```
+
+Any hit is an installed DNS resolver. A request to
+install either one is a request for a class member
+too: run Phase 1 before the installer script or the
+`docker run`, even though Phase 2 has no dry-run for
+them.
+
+Pi-hole also claims the **time sync** role while
+`pihole-FTL --config -q ntp.sync.active` says `true`,
+its default: FTL then sets the system clock from
+`pool.ntp.org` and answers NTP on port 123
+(https://github.com/pi-hole/FTL,
+`src/config/config.c`). Count it as a time sync
+member next to chrony or ntpd.
 
 ### Phase 2 — Pending-install dry-run
 

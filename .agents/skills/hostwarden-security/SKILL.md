@@ -83,7 +83,8 @@ Read on demand, only when the relevant section applies:
 - `references/user-accounts.md` — empty passwords, multiple UID
   0, system accounts with login shells.
 - `references/listening-services.md` — audit `ss` / `lsof`
-  output, flag databases on 0.0.0.0.
+  output, flag databases on 0.0.0.0, open DNS resolvers and
+  exposed Pi-hole or AdGuard Home web interfaces.
 - `references/kernel-os.md` — sysctl checks: ASLR, IP forwarding,
   ICMP redirects, SUID core dumps.
 - `references/file-permissions.md` — world-writable system files,
