@@ -11,40 +11,24 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
+    env:
+      # Selects mise.dev.toml, the pinned versions of the tools
+      # scripts/check.sh needs.
+      MISE_ENV: dev
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The secret scan reads the whole history.
+          fetch-depth: 0
 
-      # Full fixture matrix for the taboo guard, including the
-      # check that every hook in settings.json is registered via
-      # $CLAUDE_PROJECT_DIR (issue #2: a relative path fails open
-      # after any cd).
-      - name: Guard test matrix
-        run: sh .claude/hooks/guard-taboos-test.sh
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.12
 
-      # The skills live in .agents/skills/ and reach Claude Code
-      # only through the .claude/skills link. A checkout that
-      # drops it loses every skill silently, so CI asserts the
-      # link is still there and still resolves.
-      - name: Instruction layout
-        run: sh .claude/hooks/instructions-test.sh
-
-      - name: Validate tracked JSON files
-        run: |
-          git ls-files '*.json' | while read -r f; do
-            echo "checking $f"
-            python3 -m json.tool "$f" > /dev/null
-          done
-
-      - name: Shell syntax check
-        run: |
-          for f in bin/* .claude/hooks/*.sh; do
-            echo "checking $f"
-            sh -n "$f"
-          done
-
-      - name: ShellCheck (error severity)
-        run: shellcheck -S error bin/* .claude/hooks/*.sh
+      # Everything CI checks lives in the script, so it runs the
+      # same on a workstation. Add a check there, not here.
+      - name: Check
+        run: sh scripts/check.sh

@@ -1,0 +1,15 @@
+#!/bin/sh
+# pre-commit — keep a secret out of the commit being made.
+#
+# Enabled once per clone:  git config core.hooksPath .githooks
+#
+# Only the staged changes, so it costs a fraction of a second.
+# scripts/check.sh scans the whole history, before every push and
+# in CI; this is the early warning, not the gate.
+if ! command -v betterleaks >/dev/null 2>&1; then
+  echo "pre-commit: betterleaks is not installed, so this commit" \
+    "cannot be checked for secrets. Install it (scripts/check.sh" \
+    "says how) and commit again." >&2
+  exit 1
+fi
+exec betterleaks git --pre-commit --staged --redact --verbose --no-banner .
