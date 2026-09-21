@@ -2,11 +2,11 @@
 
 ## Unreleased
 
-- **Personal Claude Code files stay out of git:**
-  `CLAUDE.local.md`, a subagent's local memory in
-  `.claude/agent-memory-local/`, and the scheduler's
-  `.claude/scheduled_tasks.json` are ignored like
-  `.claude/settings.local.json` already was.
+- **Personal Claude Code files stay out of git**, the
+  ones Claude Code adds later included: everything under
+  `.claude/` except the shared configuration is ignored,
+  and so is `CLAUDE.local.md`. The layout test fails when
+  a tracked file matches the ignore rules.
 - **A checkout either operates servers or develops
   hostwarden.** `bin/hostwarden-init` turns `memory/`
   into the workspace, a git repository of its own, and

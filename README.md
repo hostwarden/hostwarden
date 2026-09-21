@@ -347,7 +347,9 @@ Hostwarden keeps all your personal state under a
 single directory — `memory/` — so backups are one
 `tar` command. The tree is text and typically well
 under a megabyte. No database, no hidden dotfiles,
-no scattered config.
+no scattered config. Claude Code's own personal files
+(`.claude/settings.local.json`, `CLAUDE.local.md`) are
+not hostwarden state and not in the backup.
 
 ### What lives in `memory/`
 

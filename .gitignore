@@ -15,29 +15,27 @@ HISTORY.md
 # hostwarden-doctor's symlink probe, should it ever be interrupted.
 .link-probe.*
 
-# Claude Code harness runtime artifacts (session/task locks and the
-# task list). Not shipped with hostwarden; created by /loop,
-# /schedule, and the scheduler machinery in the Claude Code CLI.
-.claude/*.lock
-.claude/scheduled_tasks.json
-
-# Personal Claude Code instructions and a subagent's local-scope
-# memory. Both stay on this machine; CLAUDE.md, .claude/agents/ and
-# .claude/agent-memory/ are the shared halves.
-CLAUDE.local.md
-.claude/agent-memory-local/
-
-# Worktrees Claude Code creates for parallel sessions. Only this
-# path — the rest of .claude/ is committed agent configuration.
-.claude/worktrees/
-
-# Personal Claude Code permission overrides. ALWAYS personal,
-# never shared — same category as memory/user.md.
+# Claude Code: everything under .claude/ is ignored except the shared
+# configuration named below. Claude Code keeps adding personal files
+# there — settings.local.json, worktrees, locks, scheduled tasks, a
+# subagent's local memory — and a new one must not reach this public
+# repo before anyone notices. The reverse mistake, a new shared file
+# ignored, is loud: `git add` refuses it, and instructions-test.sh
+# fails when a tracked file matches these rules.
 #
-# Claude Code appends an allow rule to this file every time you
-# approve a command, so it fills up with the literal commands you
-# ran, hostnames and all (e.g. an ssh line naming a production
-# server). That is exactly the internal detail that must not
-# reach a public repo. .claude/settings.json is the shared,
-# hostname-free half; this one stays local.
-.claude/settings.local.json
+# settings.local.json above all: Claude Code appends an allow rule
+# to it every time you approve a command, so it fills up with the
+# literal commands you ran, hostnames and all. settings.json is the
+# shared, hostname-free half. `skills` has no trailing slash: it is
+# a symlink, which git stores as a file.
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/hooks/
+!.claude/rules/
+!.claude/skills
+!.claude/agent-memory/
+!.claude/workflows/
+
+# Personal Claude Code instructions; CLAUDE.md is the shared half.
+CLAUDE.local.md
