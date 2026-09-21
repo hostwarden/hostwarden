@@ -138,6 +138,8 @@ prints for a missing one depends on the shell.
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
 
 `ha` counts only where `/homeassistant` exists too.
+`ID=haos` means the probe reached the HAOS host
+itself; its file says to stop there.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way

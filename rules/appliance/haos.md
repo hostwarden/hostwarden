@@ -4,9 +4,13 @@ Base: none
 
 Home Assistant OS (HAOS) is Linux, but no family file applies: no
 package manager, a read-only root filesystem, and everything managed
-through the Supervisor and its `ha` CLI. Where `AGENTS.md` or a
-baseline expects something a Linux server has (firewall, automatic
-updates, `sudo`), this file says what to check instead.
+through the Supervisor. **Hostwarden never works on the HAOS host
+itself.** It works from inside an SSH app's container and changes the
+system only through what Home Assistant offers there: the `ha` CLI,
+which talks to the Supervisor, and the configuration directory
+mounted into the container. Where `AGENTS.md` or a baseline expects
+something a Linux server has (firewall, automatic updates, `sudo`),
+this file says what to check instead.
 
 Sources unless noted: the developer docs,
 <https://developers.home-assistant.io/docs/operating-system>, the
@@ -16,8 +20,7 @@ user docs, <https://www.home-assistant.io/>, and the
 
 ## Where You Land
 
-`ssh root@<host>` almost never reaches the HAOS host. There are
-three ways in:
+Hostwarden connects through one of two SSH apps:
 
 - **Terminal & SSH app** (official, slug `ssh`): a container
   (Alpine) with the `ha` CLI, bash, and root inside the container
@@ -29,13 +32,15 @@ three ways in:
   login is whatever user the app's options set, often a non-root
   one with `sudo`. `docker` works only when the user has turned
   protection mode off.
-- **Host SSH on port 22222**: dropbear on the HAOS host itself,
-  root, keys only. It exists for developers; the docs say it is
-  "not for end users". Never set it up on your own.
 
-Record which of the three it is in server memory
-(`Appliance: Home Assistant OS <version>, via <app name | host port
-22222>`).
+Record which one in server memory
+(`Appliance: Home Assistant OS <version>, via <app name>`).
+
+The HAOS host has its own SSH on port 22222, dropbear as root. It is
+off unless someone imports a key from a USB stick, and the docs call
+it "not for end users". If the detection probe lands there
+(`ID=haos`), stop: tell the user that Hostwarden works through an
+SSH app only, and do nothing on the host. Never set up host SSH.
 
 ## The `ha` CLI
 
@@ -150,11 +155,9 @@ welcome banner and waits for input.
 - `logger` inside an app container does not reach the host journal.
   Log to the local changelog only (`rules/changelog.md`) and record
   `Journal: none` in server memory.
-- The activity check still reads the host journal, because a session
-  on host port 22222 can write there:
-  `ha host logs -t hostwarden -n 20` and `ha host logs -t heinzel
-  -n 20`. With `Journal: none`, an empty result says nothing about
-  this installation's own sessions; the local changelog does.
+- The activity check reads that local changelog,
+  `memory/servers/<hostname>/changelog.log`, instead of a journal.
+  In team mode it carries the teammates' entries too.
 
 ## Housekeeping and Audits
 
