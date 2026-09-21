@@ -26,9 +26,8 @@ which before anything else, from the files, never from the remote:
   access lists and no server memory. The session works on
   hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
   to a remote, no `sudo`, and no local mode either. Session Start
-  and the pipeline below do not apply. A request for server work
-  gets a pointer to an operations checkout, a separate clone set up
-  with `bin/hostwarden-init`, not a workaround.
+  and the pipeline below do not apply. Server work is handed to an
+  operations checkout, never worked around.
 
 A fork is a development checkout like any other; its pull requests
 go to `jpawlowski/hostwarden`.
@@ -273,6 +272,9 @@ trigger — not a request from the user.
   once the requested changes there are done and logged, deregister
 
 **While you work**
+
+- A development session needs a live server's answer →
+  `rules/server-check-handoff.md`
 
 - A secret is anywhere near the command → `rules/secrets.md`
 - Reading what a server returned → `rules/anomaly-detection.md`

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **A development session that needs a live server hands
+  the question over.** The refusal names the next step —
+  in a worktree, the main checkout — and
+  `rules/server-check-handoff.md` sends the question to a
+  session in the operations checkout, which runs the
+  access lists and the full pipeline and answers back.
+  Starting one there takes one command; a single
+  read-only command can instead run in your own
+  terminal. The README shows how to validate a branch
+  from a second operations clone that knows only test
+  servers.
 - **Parallel sessions on one machine keep out of each
   other's workspace changes.** `bin/hostwarden-sync
   commit` takes the files a session names and nothing
@@ -15,7 +26,6 @@
   deleted or crashed session left behind are found
   through the host's session register and committed on
   their own after you say so.
-
 - **Sessions that change the same host see each
   other.** Before its first change a session registers on
   the managed host itself, in `/tmp/hostwarden/`, without

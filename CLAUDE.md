@@ -42,6 +42,14 @@ tool reads. This file adds only what exists here and nowhere else.
   register names your own `user@workstation`
   (`rules/parallel-sessions.md`), `ListAgents` lists the sessions
   here and `SendMessage` reaches them.
+- **A server check leaves development as a message.** For
+  `rules/server-check-handoff.md`, `ListAgents` shows the sessions
+  running in the operations checkout, `SendMessage` hands one the
+  question, and the answer comes back the same way, addressed to
+  this session's name. With none running, the one command is
+  `claude "<question>"`, run in that checkout. Never a task chip:
+  it starts in a new worktree of that checkout, which is a
+  development session and refuses the same way.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.
