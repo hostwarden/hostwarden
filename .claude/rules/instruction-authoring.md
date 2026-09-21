@@ -60,6 +60,17 @@ Four mechanisms, one question each:
 A file keyed by a fact rather than a moment — the OS-family files
 — is reference data and lives in `rules/os/`.
 
+## For people and for the agent
+
+`docs/` and the README are written for the person running
+Hostwarden; `rules/` and the skills for the agent. Where both
+describe the same thing — `docs/overrides.md` and
+`rules/overrides.md` — they use the same terms and the same names
+for the same parts, and a change to what the user writes or sees
+changes both in the same commit. The page for people says what to
+do and where; how the agent resolves the unclear cases stays in
+the rule.
+
 ## Current state only
 
 Instruction files describe how things are, never how they came

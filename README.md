@@ -221,7 +221,7 @@ not blindly approve.
 | Claude Code, the desktop app, OpenCode with Ollama | [docs/ai-tools.md](docs/ai-tools.md) |
 | Command line, auto mode, scheduled runs | [docs/automation.md](docs/automation.md) |
 | Guardrails, hallucinations, logs | [docs/safety.md](docs/safety.md) |
-| Your own rules and skills | [docs/customization.md](docs/customization.md) |
+| Overrides and your own skills | [docs/overrides.md](docs/overrides.md) |
 | What every file in the repository is for | [docs/project-structure.md](docs/project-structure.md) |
 
 ## Why the Name Hostwarden?

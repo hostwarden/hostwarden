@@ -235,7 +235,7 @@ after the reads it announces has missed its moment, and the file
 that would carry it is itself one of the reads.
 
 **Then follow `rules/session-start.md`.** It names the preference
-and customization files to load, how to read them, what to say
+and override files to load, how to read them, what to say
 once they are in, and the setup question not to improvise.
 
 Loading it is not what keeps you off a blacklisted host — that is
@@ -321,7 +321,7 @@ history, use `git log`.
 
 ## Rule Overrides
 
-A user's customizations win over anything shipped, including over a
+A user's overrides win over anything shipped, including over a
 skill. Whenever you read an instruction file, check
 `memory/custom-rules/` and the host's
 `memory/servers/<hostname>/rules.md` for a block that adds to,

@@ -8,6 +8,11 @@
   Windows, mirrors and teams, updates, the AI tools,
   automation, customization — lives under `docs/`, with
   the optional parts folded away until you open them.
+- **Overrides go by one name.** What you write under
+  `memory/custom-rules/` is an override everywhere — in
+  `docs/overrides.md`, in the rule the agent follows, and
+  in the line the session start prints
+  (`Overrides: all, backups`).
 - **A development session that needs a live server hands
   the question over** to a session in your operations
   checkout, which runs the access lists and the full

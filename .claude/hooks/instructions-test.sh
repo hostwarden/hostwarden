@@ -180,7 +180,7 @@ fi
 # --- every override the migration moves has somewhere to land ---
 # bin/hostwarden-migrate carries a table of topics that changed
 # address, and moves a user's override to the new one. A row whose
-# destination does not exist relocates a customization to a path
+# destination does not exist relocates an override to a path
 # nothing reads -- the exact failure the table exists to prevent.
 MIGRATE="$ROOT/bin/hostwarden-migrate"
 if [ -f "$MIGRATE" ]; then
@@ -189,7 +189,7 @@ if [ -f "$MIGRATE" ]; then
   }
 
   # The other direction, and the one that costs a user their
-  # customization rather than misplacing it: a row moves
+  # override rather than misplacing it: a row moves
   # `memory/custom-rules/<old>.md` away, which is right only while
   # nothing ships under that key any more. Ship a rule file named
   # after a row's left column again and the migration relocates a
@@ -253,7 +253,7 @@ fi
 #
 # What is not checked: a relative pointer in a file outside
 # `.agents/skills/`. In `rules/overrides.md` and
-# docs/customization.md that shape appears in a table *describing*
+# docs/overrides.md that shape appears in a table *describing*
 # the mirror scheme, and no pattern separates an example of a path
 # from a use of one. Those two files document; they do not route.
 REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'

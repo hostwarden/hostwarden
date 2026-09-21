@@ -102,7 +102,7 @@ rules/                 — Upstream rule files (git-tracked)
   activity-check.md    — Recent-activity summary on connect
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
-  session-start.md     — Preferences and customizations to
+  session-start.md     — Preferences and overrides to
                          load before the session does
                          anything else
   access-control.md    — Blacklist & read-only server rules
@@ -110,7 +110,7 @@ rules/                 — Upstream rule files (git-tracked)
   verify-before-reporting.md — Verify a finding
                          against the live system before
                          reporting or escalating it
-  overrides.md         — How custom rules layer over what
+  overrides.md         — How overrides layer over what
                          hostwarden ships
   firewall-changes.md  — Exposure review when a service is
                          installed, removed or reconfigured
