@@ -816,6 +816,12 @@ settings_case pass 'Edit taking the existing key out' \
 settings_case deny 'Bash: sed on settings while the key exists' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
   "CLAUDE_PROJECT_DIR=$SET"
+mkdir -p "$SET/etc/claude-code"
+printf '{"env": {"%s": "0"}}\n' "$V" \
+  > "$SET/etc/claude-code/managed-settings.json"
+settings_case deny 'Bash: sed on a managed settings file with the key' \
+  "$(json_for "sed -i 's/0/1/' $SET/etc/claude-code/managed-settings.json")" \
+  "CLAUDE_PROJECT_DIR=$SET/none"
 settings_case pass 'Bash: sed on settings without the key' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none"

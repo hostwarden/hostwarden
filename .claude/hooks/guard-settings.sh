@@ -66,9 +66,12 @@ SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
 # "1"), so only its removal may pass.
 holds_var() { [ -f "$1" ] && grep -q "$V" "$1" 2>/dev/null; }
 
-# The settings files a shell command can reach by a relative or
-# short path; the managed ones need root and are left to the Edit
-# branch, which sees the full path.
+# any_holds_var <command text> — a settings file the command could
+# change already carries the variable. Every settings path the
+# command names is checked as written (a leading ~ expanded), so a
+# managed-settings.json wherever the platform keeps it counts too;
+# the project and user files are checked as well, because a
+# command can reach those by a path that names only a directory.
 PROJECT=${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
 any_holds_var() {
   for f in "$PROJECT/.claude/settings.local.json" \
@@ -77,7 +80,11 @@ any_holds_var() {
            "$HOME/.claude/settings.json"; do
     holds_var "$f" && return 0
   done
-  return 1
+  printf '%s\n' "$1" | grep -oE "[^[:space:]\"'=<>|;&]*($SETTINGS_RE)" \
+    | while IFS= read -r f; do
+        case "$f" in "~/"*) f="$HOME/${f#\~/}" ;; esac
+        holds_var "$f" && echo hit
+      done | grep -q hit
 }
 
 # One jq call, four lines: tool, target, everything the call would
@@ -106,7 +113,7 @@ fi
 if [ -z "$TOOL" ]; then
   printf '%s' "$INPUT" | grep -Eq "$SETTINGS_RE" || exit 0
   case "$INPUT" in *"$V"*) deny ;; esac
-  any_holds_var && deny
+  any_holds_var "$INPUT" && deny
   exit 0
 fi
 
@@ -114,7 +121,7 @@ case "$TOOL" in
   Bash)
     printf '%s' "$NEW" | grep -Eq "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
-    any_holds_var && deny ;;
+    any_holds_var "$NEW" && deny ;;
   *)
     printf '%s' "${FILE##*/}" | grep -Eqx "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac
