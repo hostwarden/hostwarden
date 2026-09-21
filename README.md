@@ -1087,6 +1087,12 @@ bin/
   hostwarden-adopt        — Take over a heinzel checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
+scripts/
+  check.sh             — Everything CI checks, runnable locally
+.githooks/             — Opt-in: secret scan on commit, check.sh
+                         on push
+mise.dev.toml          — Pinned versions of the tools check.sh
+                         needs
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   agents/              — Subagent definitions
@@ -1100,7 +1106,7 @@ bin/
     guard-taboos.sh    — PreToolUse hook that blocks taboo
                          commands in every permission mode
     guard-taboos-test.sh — Dev-only fixture matrix for the
-                         guard (run manually)
+                         guard (run by scripts/check.sh)
     guard-settings.sh  — PreToolUse hook that keeps the
                          guard's off switch out of settings
                          files
@@ -1110,7 +1116,7 @@ bin/
                          linked worktree or a guard that is
                          off
     instructions-test.sh — Dev-only structural checks on the
-                         instruction layer (run manually)
+                         instruction layer (run by scripts/check.sh)
   skills/              — Symlink to .agents/skills/, because
                          Claude Code searches only .claude/
 .agents/               — Cross-tool agent assets

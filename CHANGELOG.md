@@ -24,6 +24,10 @@
   session that starts with the guard off opens with a
   note saying so.
 
+- **For contributors: `sh scripts/check.sh` runs
+  everything CI runs**, now including a secret scan of the
+  whole history, workflow linting and the 80-column wrap.
+  Opt-in git hooks run it before each push.
 - **Every text file checks out with LF**, on Windows too
   and whatever `core.autocrlf` says — the rule files and
   skills as well as the shell scripts, which were the only

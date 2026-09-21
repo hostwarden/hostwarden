@@ -1,0 +1,12 @@
+# The tools scripts/check.sh needs, at the versions CI runs.
+# Loaded only with MISE_ENV=dev, so a checkout used to run
+# hostwarden asks nobody to trust a config file:
+#
+#   MISE_ENV=dev mise install
+#
+# Backends are spelled out so Renovate, which keeps these
+# versions current, can resolve each tool to its releases.
+[tools]
+"aqua:koalaman/shellcheck" = "0.11.0"
+"aqua:rhysd/actionlint" = "1.7.12"
+"aqua:betterleaks/betterleaks" = "1.8.1"

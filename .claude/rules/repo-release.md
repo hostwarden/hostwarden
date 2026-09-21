@@ -4,6 +4,9 @@ paths:
   - "CHANGELOG.md"
   - ".github/**"
   - ".claude/hooks/**"
+  - "scripts/**"
+  - ".githooks/**"
+  - "mise.dev.toml"
 description: Versioning, tagging and porting from heinzel — for
   work on the hostwarden repository itself, not for sysadmin
   sessions.
@@ -78,12 +81,15 @@ layer, and they stay.
 
 ## CI
 
-`.github/workflows/ci.yml` runs the guard matrix, the instruction
-layout test, JSON validation, `sh -n`, and ShellCheck at error
-severity. Run the two test scripts locally before pushing:
+`.github/workflows/ci.yml` runs `scripts/check.sh` and nothing
+else; its `step` lines are the list of checks. Run it before
+pushing, and add a new check there, never to the workflow alone:
 
-    sh .claude/hooks/guard-taboos-test.sh
-    sh .claude/hooks/instructions-test.sh
+    sh scripts/check.sh
+
+Tool versions are pinned in `mise.dev.toml` and kept current by
+Renovate. Once per clone, `git config core.hooksPath .githooks`
+turns on the git hooks.
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays

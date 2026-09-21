@@ -5,14 +5,17 @@ on:
     branches: [main]
     paths: [VERSION]
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   tag:
     runs-on: ubuntu-latest
+    # Pushing the tag is the only write, and this job is the only
+    # one that needs it.
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
