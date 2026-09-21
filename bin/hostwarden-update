@@ -121,7 +121,10 @@ follow_target() {
 
 at_tag() { [ "$(git rev-parse HEAD)" = "$(git rev-parse "$1^{commit}")" ]; }
 
-# follow_update <line> — check out the newest release on the line.
+# follow_update <line> [set] — check out the newest release on the
+# line; with set, record the line as soon as the checkout is on it,
+# before anything after that can fail and leave the tag looking
+# like a pin.
 follow_update() {
   follow_target "$1"
   OLD_VERSION=$(current_version)
@@ -131,6 +134,7 @@ follow_update() {
     echo "Likely cause: local changes (run 'git status')."
     exit 1
   fi
+  [ -z "${2:-}" ] || hostwarden_follow_set "$1"
   run_migration
   report "$OLD_VERSION" "$OLD_HEAD"
 }
@@ -182,8 +186,7 @@ case "${1:-}" in
       echo "or a major.minor (1.2)."
       exit 1
     fi
-    follow_update "$LINE"
-    hostwarden_follow_set "$LINE"
+    follow_update "$LINE" set
     echo "hostwarden follows $LINE: the auto-update moves to each"
     echo "new v$LINE.x release. 'hostwarden-update --unpin' returns"
     echo "to main."

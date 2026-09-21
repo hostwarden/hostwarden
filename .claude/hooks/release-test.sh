@@ -165,6 +165,12 @@ case "$out" in
 esac
 [ -z "$(hook)" ] && ok || bad "the hook spoke with nothing to do"
 update >/dev/null && at v1.2.3 && ok || bad "plain update left the line"
+# The line is recorded once the checkout is on it, even when the
+# migration after it fails.
+printf '#!/bin/sh\nexit 1\n' > "$P/bin/hostwarden-migrate"
+update --follow 1 >/dev/null && bad "a failing migration went unnoticed"
+at v1.10.0 && follows 1 && ok || bad "a failed migration lost the new line"
+rm "$P/bin/hostwarden-migrate"
 
 # A pin replaces the line; unpin returns to main.
 update --pin v1.0.0 >/dev/null && at v1.0.0 && follows '' && ok \
