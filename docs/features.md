@@ -107,8 +107,8 @@ Each guest stands right after the hypervisor its
 `Runs on:` line names, whether it has SSH of its own or is
 reached through that host; a VM in the cloud or on a host
 Hostwarden does not manage stands on its own. In a
-container, the time sync and a kernel waiting for a reboot
-belong to its host and read `n/a`; the host's own column
+container, the time sync, the uptime and a kernel waiting for
+a reboot belong to its host and read `n/a`; the host's own column
 shows them where the host is audited.
 It makes no configuration changes on any host (it only
 writes one audit-trail line to each journal). Use it after

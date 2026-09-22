@@ -85,7 +85,8 @@ host's kernel and clock (`rules/system-containers.md`). So
 the rows that describe those read `n/a (container)`, and
 none of them is a warning here: the active time service and
 `NTPSynchronized` (section 5), and a pending reboot read
-from the kernel (section 6). The timezone and
+from the kernel and the boot time and uptime (section 6), so
+the uptime criteria do not apply there. The timezone and
 `/var/run/reboot-required`, which the container's own
 packages write, stay its own.
 
