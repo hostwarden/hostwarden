@@ -128,8 +128,11 @@ Record which one in server memory.
   `quick`. `pfctl -s rules` prints the loaded rules
   normalised, so a blocking default reads
   `block drop in all`, `block return in all` or
-  `block drop all`, possibly with `log` or
-  `on <interface>` in between, and no later
+  `block drop all`, possibly with `log` in between.
+  One limited by `on <interface>` covers only that
+  interface: it counts as the default only when
+  every interface that takes traffic in (`ifconfig`,
+  `lo0` and `set skip` ones aside) has one. No later
   `pass` — `in` or without a direction, which
   matches both — without address, port, protocol or
   interface undoes it. IPFilter reads the same way
