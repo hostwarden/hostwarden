@@ -286,21 +286,24 @@ applies to both:
 
 Pi-hole v6 only (https://docs.pi-hole.net). If `pihole -v` shows
 v5, grade it per `rules/version-check.md` and skip the rest. Run
-as root, in one call; in a container, run all but the first
-command through `docker exec <container>`:
+as root, in one call; in a container, send all but the first
+command to `docker exec -i <container> sh -s`:
 
 ```bash
 systemctl is-active pihole-FTL 2>/dev/null \
   || rc-service pihole-FTL status 2>/dev/null
 pihole status
 pihole -v
-pihole-FTL sqlite3 -ni /etc/pihole/gravity.db \
+G=$(pihole-FTL --config -q files.gravity)
+pihole-FTL sqlite3 -ni "$G" \
   "SELECT property, value FROM info
    WHERE property IN ('updated', 'gravity_restored');
    SELECT id, status, number FROM adlist WHERE enabled = 1;"
 ```
 
 `pihole status` exits 0 even when FTL is down: read the text.
+`files.gravity` is where Pi-hole keeps the blocklist database,
+read the same way `gravity.sh` reads it.
 `pihole -v` prints `Core version is vX (Latest: vY)`, likewise
 Web and FTL; `Latest` is up to a day old, so confirm it live at
 https://github.com/pi-hole/pi-hole/releases and the FTL and web
@@ -358,20 +361,29 @@ call:
 A=/opt/AdGuardHome; C=$A/AdGuardHome.yaml; D=$A/data
 $A/AdGuardHome -s status
 $A/AdGuardHome --version
-dig +time=2 +tries=1 @127.0.0.1 healthcheck.adguardhome.test
 sed -n -e '/^filtering:/,/^[^ ]/p' -e '/^filters:/,/^[^ ]/p' "$C" \
   | grep -E 'filters_update_interval|- enabled:|^ +id:'
+sed -n '/^dns:/,/^[^ ]/p' "$C" \
+  | grep -A3 -E '^  (bind_hosts|allowed_clients):'
 ls -lt "$D/filters/"
 journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
   | grep 'updating filter' | grep -ci error
 ```
 
 `-s status` applies to the `install.sh` service; for Snap and
-Docker use the state from detection. AdGuard Home answers
-`healthcheck.adguardhome.test` with NOERROR and no records
-(https://github.com/AdguardTeam/AdGuardHome/wiki/Docker); the
-query comes from `127.0.0.1`, which an `allowed_clients` list can
-refuse. Use `nslookup` where `dig` is missing.
+Docker use the state from detection. Then ask DNS itself, on the
+host, at an address from `bind_hosts` — `127.0.0.1` when that is
+`0.0.0.0` — and use `nslookup` where `dig` is missing:
+
+```bash
+dig +time=2 +tries=1 @<bind-host> healthcheck.adguardhome.test
+```
+
+AdGuard Home answers that name with NOERROR and no records
+(https://github.com/AdguardTeam/AdGuardHome/wiki/Docker). When
+`allowed_clients` is set and does not cover the address the query
+comes from, a refusal is the access list working: judge the
+service by its state alone.
 
 Compare `--version` with the latest stable release at
 https://github.com/AdguardTeam/AdGuardHome/releases. Update path:

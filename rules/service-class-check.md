@@ -227,8 +227,11 @@ Any hit is an installed DNS resolver. For Pi-hole,
 `pihole-FTL --config -q ntp.sync.active` decides the
 time sync membership above. When Pi-hole is the
 existing time sync member, option (b) below means
-setting `ntp.sync.active` to `false` — a change to
-confirm like any other — never removing Pi-hole.
+setting `ntp.sync.active`, `ntp.ipv4.active` and
+`ntp.ipv6.active` to `false` — the first stops it
+setting the clock, the other two free port 123 for
+the new daemon — a change to confirm like any
+other, never removing Pi-hole.
 
 ### Phase 2 — Pending-install dry-run
 
