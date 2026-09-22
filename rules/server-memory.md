@@ -69,7 +69,9 @@ owns their wording. Most hosts have neither.
 Adapt fields to OS (add Homebrew for macOS;
 add `Mode: local` for localhost, or
 `Mode: via pve1.example.com (pct exec 105)` for a
-guest in via-host mode, `rules/first-connection.md`);
+guest in via-host mode, with the whole command it is
+reached by, the Incus project included,
+`rules/first-connection.md`);
 an OS file whose Version Detection names fields to
 record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from

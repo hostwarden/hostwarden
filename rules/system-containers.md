@@ -29,6 +29,15 @@ Through the host's manager, as root inside:
 - **Proxmox VM:** `qm guest exec <vmid> -- <cmd>`, after
   `qm guest cmd <vmid> ping` in the same call
 
+An Incus or LXD guest lives in a project, and every command
+except `--all-projects` acts in the default one. So carry the
+project the listing showed into each later command —
+`incus exec <ct> --project <name> -- <cmd>`, and the same for
+`config`, `info` and the snapshot commands — and into the
+`Mode: via …` line of its memory. Two projects may hold a guest
+of the same name: without the project, the pipeline and every
+change after it land on the wrong server.
+
 LXD's client is named `lxc`; the classic LXC tools are `lxc-*`.
 A libvirt VM, or one without the QEMU guest agent, has only its
 console: interactive, the user's tool, not Hostwarden's.
