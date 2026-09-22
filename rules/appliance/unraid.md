@@ -260,8 +260,14 @@ repositories on GitHub where the docs are silent.
   zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
     echo "== $d"
-    smartctl -n standby -H -A /dev/$d | grep -E "result:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|Media and Data|Percentage Used"
+    smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
+  for f in /var/log/plugins/*.plg; do
+    t=/tmp/plugins/${f##*/}
+    [ -f "$t" ] && echo "${f##*/} $(plugin version "$f") $(plugin version "$t")"
+  done
+  ls -l --time-style=+%F /var/lib/docker/unraid-update-status.json
+  cat /var/lib/docker/unraid-update-status.json
   ```
   `var.ini`'s `sbSynced2` is the end of the last parity check in
   epoch seconds, measured against `date +%s`. `disks.ini` lists
@@ -277,6 +283,23 @@ repositories on GitHub where the docs are silent.
   means the count did not run, never that there are none. The
   syslog counts reach back only to the boot (see Logs), not the
   seven days the Linux baseline reads; say which.
+  SMART health is the `result:` line on SATA and NVMe disks and
+  `SMART Health Status:` on SAS; a SAS disk has no ATA attributes
+  and reports its grown defect list instead. A disk that prints
+  neither health line nor `STANDBY` has unknown health, never
+  passing health.
+  The update probes read what the last check left and reach no
+  network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
+  `plugin check`, which the Plugins tab and the scheduled plugin
+  check run, downloads each plugin's newest `.plg` to
+  `/tmp/plugins/`; a plugin whose second version is newer than its
+  first has an update. `/tmp` lives in RAM, so a plugin without a
+  line has not been checked since the boot and its status is
+  unknown. The Docker tab's check writes one entry per image to
+  `unraid-update-status.json`: `status` `false` is an update,
+  `undef` or a missing image is unknown, and the file's date is the
+  last check. Checking again is the Check for Updates button on
+  those tabs, the user's step.
 - Findings:
   - load above the CPU count in server memory, or memory and swap
     nearly exhausted;
@@ -287,11 +310,14 @@ repositories on GitHub where the docs are silent.
     one: the documentation advises checks "on a monthly or quarterly
     basis", scheduled under Settings → Scheduler;
   - SMART health not passing, or reallocated, pending or
-    uncorrectable sectors;
+    uncorrectable sectors or grown defects; unknown health is
+    reported as unknown;
   - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a
-    server on an RC or beta;
+    server on an RC or beta; a plugin or image whose status is
+    unknown, or a last check older than a week, is named as
+    unchecked, never as current;
   - no boot device backup: no Unraid Connect flash backup and no
     recent zip from Main → Boot Device → Boot Device Backup, which
     the user downloads and keeps off the server;

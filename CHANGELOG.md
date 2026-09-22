@@ -64,7 +64,9 @@
   `/etc/unraid-version`; the rules cover the root-only login, an OS
   in RAM, the web UI owning the configuration, and array operations
   and updates left to you. Housekeeping reads array, parity, SMART
-  and boot device backup state instead of the Linux baseline.
+  (SAS disks included) and boot device backup state, and the plugin
+  and container updates Unraid's last check found, instead of the
+  Linux baseline.
 - **An empty activity check on a host that keeps its log in RAM
   says how far back it reached.** On Unraid, and on pfSense and
   OPNsense with `/var` on a RAM disk, the journal lines are gone
@@ -137,7 +139,9 @@
 - **TrueNAS is recognised as an appliance.** Detection finds it
   by `midclt`; Hostwarden changes settings, the network, pools and
   updates through the middleware instead of `/etc`, apt or `zfs`,
-  and housekeeping reads its alerts, pools, scrubs and tasks.
+  and housekeeping reads its alerts, pools, scrubs, failed
+  snapshot and replication tasks, and pending updates from 24.10
+  on.
   TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
