@@ -303,12 +303,18 @@ esac
 
 # Extract the command string, Bash's or Monitor's. Without jq (or
 # on malformed input) fall back to scanning the raw stdin text —
-# that can only over-block, never under-block. A Monitor WebSocket
-# watch has no command, so its raw input is scanned the same way.
+# that can only over-block, never under-block. A Monitor call
+# without a command is a WebSocket watch, which starts no shell:
+# jq marks it w and it passes, where its description would
+# otherwise be scanned as a command. Without jq it cannot be told
+# from a Monitor call jq failed on, so it is scanned raw.
 CMD=""
 if command -v jq >/dev/null 2>&1; then
-  CMD=$(printf '%s' "$INPUT" \
-    | jq -r '.tool_input.command // empty' 2>/dev/null) || CMD=""
+  CMD=$(printf '%s' "$INPUT" | jq -r 'if .tool_name == "Monitor"
+    and (.tool_input.command // "") == "" then "w"
+    else "c" + (.tool_input.command // "") end' 2>/dev/null) || CMD=""
+  [ "$CMD" = w ] && exit 0
+  CMD=${CMD#c}
 fi
 [ -n "$CMD" ] || CMD="$INPUT"
 
@@ -745,6 +751,15 @@ use shutdown -r; -c cancels)"
     deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
 halts or powers off the server even beside -r"
   fi
+  # -c cancels on Linux and takes no time. FreeBSD's shutdown needs
+  # a time, and there -c turns the power off and on again through
+  # the BMC (shutdown(8)). So -c with a time is FreeBSD's power
+  # cycle.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?-[[:alpha:]]*c[[:alpha:]]*[[:space:]]([^;&|]*[[:space:]])?["'\'']?(now|\+[0-9]+|[0-9]+(:[0-9]+)?)["'\'']?([[:space:]]|$)'
+  then
+    deny "shutdown -c with a time power cycles a FreeBSD server \
+(on Linux, shutdown -c alone cancels)"
+  fi
   ;;
 esac
 # Windows reads shutdown in any case and takes its flags with / or
@@ -988,8 +1003,8 @@ writes_to() {
 # A redirect, tee, cp or download onto a disk device does what
 # dd of= does. /dev/null, /dev/stderr and /dev/disk/by-id are
 # unaffected.
-if full && hit ">[[:space:]]*[\"']?$DEV" \
-  || { hit "$DEV" && writes_to "${DEV}[[:alnum:]]*"; }
+if full && { hit ">[[:space:]]*[\"']?$DEV" \
+  || { hit "$DEV" && writes_to "${DEV}[[:alnum:]]*"; }; }
 then
   deny "writing onto a raw disk device overwrites its content \
 and partition table"
@@ -1033,11 +1048,15 @@ fi
 # omv-salt deploy run with ssh among the state names, or through
 # omv-salt stage run deploy, which renders every state. What
 # --append-dirty deploys is invisible here; the appliance file
-# (rules/appliance/openmediavault.md) covers it. The case keeps the
-# grep off every other Bash call.
+# (rules/appliance/openmediavault.md) covers it. Each word may be
+# quoted, "/usr/sbin/omv-salt" too, escaped inside an ssh payload;
+# segments() splits at the quotes, so only the whole line carries
+# the words together. The case keeps the grep off every other Bash
+# call.
 case "$CMD" in
 *omv-salt*)
-  if hit "(^|[^[:alnum:]_.-])omv-salt[[:space:]]+(deploy|stage)[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?[\"']?(ssh|deploy)$END"
+  Q='[\"'\'']*'
+  if hit "(^|[^[:alnum:]_.-])omv-salt${Q}[[:space:]]+${Q}(deploy|stage)${Q}[[:space:]]+${Q}run${Q}[[:space:]]([^;&|]*[[:space:]])?${Q}(ssh|deploy)$END"
   then
     deny "deploying the OpenMediaVault ssh state rewrites \
 sshd_config and rebuilds the authorized_keys directory - the user \
@@ -1057,6 +1076,29 @@ if hit "$SSHD"; then
 never allowed (reading it is fine: cat, grep, sshd -T)"
   fi
 fi
+# Windows' OpenSSH files under ProgramData\ssh are changed by cmd
+# and PowerShell verbs the two rules above do not know: del, erase,
+# rd, move, ren, copy, takeown, attrib, Remove-Item, Set-Content
+# and their aliases, reached over SSH without naming PowerShell.
+# The verb counts in the invocation that names the path after it,
+# or behind a pipe from a listing of it (gci ... | ri). icacls
+# counts only with a flag that changes the ACL, since reading one
+# is an audit. A copy out of the directory is denied too, as cp is
+# above. Windows reads its commands in any case.
+case "$CMD" in
+*[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa]*)
+  WINCLOBBER='del|erase|rd|rmdir|move|ren|rename|copy|xcopy|robocopy|takeown|attrib|cacls|notepad|remove-item|ri|move-item|mi|rename-item|rni|copy-item|cpi|set-content|add-content|clear-content|clc|out-file|new-item|ni|set-acl|tee-object'
+  WINVERB="(^|[^[:alnum:]_.-])($WINCLOBBER)(\\.exe)?"
+  if hit_i "${WINVERB}[[:space:]][^;&|]*${WINSSHDIR}" \
+    || hit_i "${WINSSHDIR}[^;&]*\\|[[:space:]]*($WINCLOBBER)([^[:alnum:]_.-]|\$)" \
+    || hit_i "(^|[^[:alnum:]_.-])icacls(\\.exe)?[[:space:]][^;&|]*${WINSSHDIR}[^;&|]*[[:space:]]/(grant|deny|remove|reset|setowner|inheritance|setintegritylevel|restore|substitute)"
+  then
+    deny "deleting, moving, overwriting or re-permissioning Windows' \
+OpenSSH files under ProgramData\\ssh is never allowed (reading them \
+is fine: type, Get-Content, icacls without a change)"
+  fi
+  ;;
+esac
 # OpenWrt changes /etc/config/dropbear through uci, which never
 # names the file: uci set dropbear.@dropbear[0].Port=2222, then
 # uci commit dropbear. A write verb followed by the config name
@@ -1064,10 +1106,13 @@ fi
 # reads it from a uci batch here-document. uci show, get, changes
 # and export only read.
 # A bare commit names no config and writes every staged one, a
-# dropbear change someone else left in /tmp/.uci included, so it
-# is denied too: as the last word of a uci invocation (a redirect
-# or a comment after it changes nothing), or as a batch line of
-# its own. uci commit <config> stays ordinary work.
+# dropbear change someone else left in /tmp/.uci included. A bare
+# import commits every package its input declares (uci_do_import
+# in uci's cli.c), a backup's package dropbear too. Both are
+# denied: as the last word of a uci invocation (a redirect or a
+# comment after it changes nothing), or as a batch line of their
+# own. uci commit <config> and uci import <config> stay ordinary
+# work.
 # The case is a builtin precheck: most commands never mention uci
 # and skip every grep.
 UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
@@ -1080,11 +1125,10 @@ case "$CMD" in
 the SSH server config, which is never allowed (reading it is fine: \
 uci show dropbear)"
       fi
-      if hit '(^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+commit[[:space:]]*([0-9]*[<>]|#|$)' \
-        || hit '^[[:space:]]*commit[[:space:]]*([0-9]*[<>]|#|$)'
+      if hit '((^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+|^[[:space:]]*)(commit|import)[[:space:]]*([0-9]*[<>]|#|$)'
       then
-        deny "a bare uci commit writes every staged config, dropbear \
-included - name the config: uci commit firewall"
+        deny "a bare uci commit or import writes every config it \
+holds, dropbear included - name the config: uci commit firewall"
       fi
     fi
     ;;

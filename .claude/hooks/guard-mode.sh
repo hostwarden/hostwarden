@@ -42,7 +42,10 @@
 #     covers the rest.
 #   - Read quotes, wrappers or rsync operands over ssh. Every such case
 #     reaches the tool through PATH, where the shim waits; a
-#     parser for them never closes. Nor does it look for a bare
+#     parser for them never closes. The one exception is the
+#     command word, which it follows past a fixed set of launchers
+#     (env, timeout, setsid ...): the shim misses SSH.EXE, and
+#     Monitor may have no shim at all. Nor does it look for a bare
 #     tool name in a Bash command, so grep ssh and a commit
 #     message about sudo pass. Quotes are not masked: a commit
 #     message that names /usr/bin/ssh, or changes PATH and
@@ -223,8 +226,9 @@ fi
 #   - a Windows program from shim.sh as the first word of a
 #     segment in any spelling but the shim's own (SSH.exe);
 #   - a path to a blocked tool as the first word of a segment (split
-#     on the shell's separators, past a negation and variable
-#     assignments), or anywhere else when it names an executable
+#     on the shell's separators, past a negation, variable
+#     assignments, redirections and launchers such as env,
+#     timeout or setsid), or anywhere else when it names an executable
 #     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh.
 #     A path to a Windows program counts wherever it stands,
 #     file or not, since Program Files splits it in two;
@@ -263,14 +267,43 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$"
     # Windows programs, matched on the lowercased name.
     W = "^(ssh|scp|sftp|sudo|runas|wsl|powershell|pwsh|cmd)[.]exe$"
+    # Launchers that run the rest of their line as a command. LA
+    # holds the short options that take the next word as a value,
+    # LL the long ones, LP how many operands come before the
+    # command: the duration of timeout, the priority of chrt, the
+    # mask of taskset. env -S and flock are left out: -S takes the
+    # command itself, and so does flock -c.
+    LA["env"] = "uC"; LL["env"] = "unset|chdir"
+    LA["nice"] = "n"; LL["nice"] = "adjustment"
+    LA["timeout"] = "sk"; LL["timeout"] = "signal|kill-after"
+    LP["timeout"] = 1
+    LA["stdbuf"] = "ioe"; LL["stdbuf"] = "input|output|error"
+    LA["time"] = "fo"; LL["time"] = "format|output"
+    LA["caffeinate"] = "tw"
+    # Only the long options whose value is required may stand apart
+    # from it; --replace, --eof and --max-lines take theirs with =.
+    LA["xargs"] = "adEIJLnPRSs"
+    LL["xargs"] = "arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var"
+    LA["ionice"] = "cnpPu"; LL["ionice"] = "class|classdata|pid|pgid|uid"
+    LA["chrt"] = "TPD"; LP["chrt"] = 1
+    LL["chrt"] = "sched-runtime|sched-period|sched-deadline"
+    LA["taskset"] = ""; LP["taskset"] = 1
+    LA["exec"] = "a"
+    LA["command"] = LA["nohup"] = LA["setsid"] = ""
   }
   {
     s = $0
-    # ${VAR} is a variable, not a brace group.
+    # ${VAR} is a variable, not a brace group, and 2>&1 one
+    # redirection, not two commands.
     gsub(/\$\{/, "$", s)
+    gsub(/>&/, ">", s)
+    gsub(/<&/, "<", s)
     gsub(/[;&|(){}`]/, "\n", s)
     n = split(s, seg, "\n")
     for (l = 1; l <= n; l++) {
+      # A redirection and its target name no program, attached or
+      # not: SSH.EXE>out runs SSH.EXE, 2> log ssh runs ssh.
+      gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg[l])
       nw = split(seg[l], v, /[ \t]+/)
       # env: 1 while the words are options of an env command, 2 when
       # the next word is the value of -u, -C or -S.
@@ -315,21 +348,38 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       i = 1
       # Past a negation, assignments and the keywords a command
       # can follow: while true; do ssh ...
-      while (i <= nw && (v[i] == "" || v[i] ~ /^(!|do|then|else|elif|if|while|until|time)$/ || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+      while (i <= nw && (v[i] == "" || v[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
       w = v[i]
-      # The real ssh that git push is given.
-      if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
-      # Past command and exec to the tool they run.
-      how = ""
-      if (w == "command" || w == "exec") {
-        while (++i <= nw && v[i] ~ /^-/) ;
-        if (i > nw) continue
+      # Past the launchers in LA to the program they start, over
+      # their options, the values those take and their operands:
+      # env LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh. In a
+      # cluster of short options the first that takes a value takes
+      # the rest of the word, or the next word when it is last:
+      # xargs -Is ssh s runs ssh.
+      for (;;) {
+        c = w
+        gsub(/^["\047]+|["\047]+$/, "", c)
+        sub(/^.*\//, "", c)
+        if (!(c in LA)) break
+        p = LP[c]
+        while (++i <= nw) {
+          x = v[i]
+          if (x == "--") { i++; break }
+          if (x ~ /^-/) {
+            if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
+                || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
+          }
+          else if (c == "env" && x ~ /=/) ;
+          else if (p-- < 1) break
+        }
+        if (i > nw) break
         w = v[i]
       }
-      c = w
-      gsub(/^["\047]+|["\047]+$/, "", c)
-      sub(/^.*\//, "", c)
+      if (i > nw) continue
+      # The real ssh that git push is given.
+      if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
+      how = ""
       lc = tolower(c)
       if (lc !~ T && lc !~ W) continue
       if (w ~ /\//) how = "by its path"

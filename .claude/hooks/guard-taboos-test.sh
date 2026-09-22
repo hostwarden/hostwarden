@@ -34,8 +34,11 @@ HOOK=$GUARD_OPS
 
 json_for() {
   # json_for <command> [tool] — a raw command string as PreToolUse
-  # hook input for Bash, or for the tool named.
-  if command -v jq >/dev/null 2>&1; then
+  # hook input for Bash, or for the tool named. The tool JSON takes
+  # the first argument as the whole hook input already.
+  if [ "${2:-}" = JSON ]; then
+    printf '%s' "$1"
+  elif command -v jq >/dev/null 2>&1; then
     printf '%s' "$1" \
       | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
   else
@@ -401,6 +404,38 @@ check deny 'rm /mnt/c/ProgramData/ssh/ssh_host_rsa_key'
 check deny 'rm /mnt/c/programdata/ssh/ssh_host_rsa_key'
 check deny 'pwsh.exe -c "Remove-Item $HOME\.ssh\id_ed25519"'
 check deny 'powershell.exe -c "Set-Content C:\ProgramData\ssh\administrators_authorized_keys x"'
+# Over SSH a Windows server runs cmd and PowerShell verbs without
+# either being named.
+check deny 'ssh host "del C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "ERASE C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "del /f /q C:\ProgramData\ssh\ssh_host_ed25519_key"'
+check deny "ssh host 'del \"C:\\ProgramData\\ssh\\sshd_config\"'"
+check deny 'ssh host "rd /s /q C:\ProgramData\ssh"'
+check deny 'ssh host "move C:\ProgramData\ssh\sshd_config C:\tmp\x"'
+check deny 'ssh host "ren C:\ProgramData\ssh\sshd_config old"'
+check deny 'ssh host "copy /y C:\tmp\x C:\ProgramData\ssh\ssh_host_ed25519_key"'
+check deny 'ssh host "xcopy C:\tmp\x C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "takeown /f C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "attrib +r C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "icacls C:\ProgramData\ssh\ssh_host_ed25519_key /grant Users:F"'
+check deny 'ssh host "icacls C:\ProgramData\ssh\sshd_config /reset"'
+check deny 'ssh host "Remove-Item -Recurse -Force C:\ProgramData\ssh"'
+check deny 'ssh host "ri C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "Move-Item C:\ProgramData\ssh\sshd_config C:\tmp"'
+check deny 'ssh host "Rename-Item C:\ProgramData\ssh\sshd_config old"'
+check deny 'ssh host "Set-Content C:\ProgramData\ssh\sshd_config x"'
+check deny 'ssh host "Clear-Content C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "Copy-Item C:\tmp\x C:\ProgramData\ssh\sshd_config"'
+check deny 'ssh host "gci C:\ProgramData\ssh\ssh_host_* | ri"'
+check deny 'ssh host "Get-ChildItem C:\ProgramData\ssh | Remove-Item -Force"'
+check deny 'del /mnt/c/ProgramData/ssh/sshd_config'
+check pass 'ssh host "type C:\ProgramData\ssh\sshd_config"'
+check pass 'ssh host "Get-Content C:\ProgramData\ssh\sshd_config"'
+check pass 'ssh host "dir C:\ProgramData\ssh"'
+check pass 'ssh host "icacls C:\ProgramData\ssh\ssh_host_ed25519_key"'
+check pass 'ssh host "findstr Port C:\ProgramData\ssh\sshd_config"'
+check pass 'ssh host "Get-Acl C:\ProgramData\ssh\sshd_config | Format-List"'
+check pass 'ssh host "Get-Service sshd; Get-Content C:\ProgramData\ssh\sshd_config"'
 check pass 'shutdown.exe /r /t 0'
 check pass 'shutdown.exe /a'
 check pass 'Shutdown.exe -r -t 0'
@@ -535,6 +570,14 @@ check pass "shutdown -r '-k' now"
 check pass '/sbin/shutdown -r -t 30 now'
 check pass 'shutdown -r now; grep -h reboot /var/log/syslog'
 check pass 'ssh -p 2222 root@h "shutdown -r now"'
+check pass 'shutdown -c "maintenance is off"'
+# FreeBSD's -c takes a time and power cycles the machine.
+check deny 'shutdown -c now'
+check deny 'shutdown -c +5'
+check deny '/sbin/shutdown -c 2359'
+check deny 'shutdown -o -c now'
+check deny 'shutdown -c "now"'
+check deny 'ssh root@bsd "shutdown -c now"'
 check pass 'mkswap /dev/sda2'
 check pass 'rm /tmp/foo'
 check pass 'systemctl restart nginx'
@@ -772,6 +815,15 @@ check deny 'uci add_list dropbear.@dropbear[0].keyfile=/tmp/k'
 check deny 'uci add dropbear dropbear'
 check deny 'uci commit dropbear'
 check deny 'uci import dropbear < /tmp/dropbear.uci'
+# Without a name, import commits every package its input declares.
+check deny 'uci import < /tmp/backup.uci'
+check deny 'uci import</tmp/backup.uci'
+check deny 'uci -q import'
+check deny 'cat /tmp/backup.uci | uci import'
+check deny 'uci import # restore'
+check deny "ssh root@router.example.com 'uci import < /tmp/backup.uci'"
+check pass 'uci import firewall < /tmp/firewall.uci'
+check pass 'uci -m import network < /tmp/network.uci'
 check deny "ssh root@router.example.com 'uci set dropbear.@dropbear[0].RootLogin=1; uci commit dropbear'"
 check deny "uci batch <<'EOF'
 set dropbear.@dropbear[0].Port=2222
@@ -833,6 +885,13 @@ check pass 'omv-salt deploy run samba'
 check pass 'omv-salt deploy run ssh-notes'
 check pass 'omv-salt deploy list-dirty'
 check pass 'omv-salt stage run prepare'
+# segments() splits at quotes, so a quoted word must not hide it.
+check deny '"/usr/sbin/omv-salt" deploy run ssh'
+check deny "'omv-salt' stage run deploy"
+check deny "omv-salt 'deploy' 'run' ssh"
+check deny 'ssh root@nas "\"/usr/sbin/omv-salt\" deploy run ssh"'
+check pass '"/usr/sbin/omv-salt" deploy run samba'
+check pass "'omv-salt' stage run prepare"
 check pass 'omv-salt deploy run samba; ssh root@nas uptime'
 check pass 'cat /usr/local/etc/ssh/sshd_config'
 check pass 'grep -r PermitRootLogin /usr/local/etc/ssh/sshd_config.d/'
@@ -1286,6 +1345,12 @@ check deny "printf 'PermitRootLogin no\\n' >> /etc/ssh/sshd_config" Monitor
 check deny 'while true; do rm -f ~/.ssh/authorized_keys; sleep 60; done' Monitor
 check pass 'tail -f /var/log/syslog | grep --line-buffered -E "error|fail"' Monitor
 check pass 'until gh pr checks 12 | grep -qv pending; do sleep 30; done' Monitor
+# A WebSocket watch has no command and starts no shell, so its
+# description is not scanned as one.
+check pass '{"tool_name":"Monitor","tool_input":{"ws":{"url":"wss://events.example.com/x"},"description":"watch shutdown events"}}' JSON
+check pass '{"tool_name":"Monitor","tool_input":{"ws":{"url":"wss://events.example.com/x"},"description":"mkfs progress","timeout_ms":300000}}' JSON
+# Its description does not rescue a command that is one.
+check deny '{"tool_name":"Monitor","tool_input":{"command":"poweroff","description":"ws"}}' JSON
 settings_case deny 'Monitor: write it into settings.local.json' \
   "$(json_for "printf x $V >> .claude/settings.local.json" Monitor)"
 settings_case deny 'Monitor: touch a guard-off record' \
@@ -1411,8 +1476,11 @@ if [ -n "$LOCAL_SCOPE" ]; then
   check_dev pass 'gh pr create --title "guard: catch parted mklabel" --body x'
   check_dev pass 'grep -n "dd if=" rules/os/debian.md'
   check_dev pass 'mkfs.ext4 -F /tmp/disk.img'
+  check_dev pass 'git commit -m "docs: cp image.raw /dev/sda"'
+  check_dev pass 'rg "cp .* /dev/sda" .'
   if [ ! -d /run/systemd/system ]; then
     check_dev pass 'rg -n shutdown AGENTS.md'
+    check_dev pass 'git commit -m "guard: FreeBSD shutdown -c now power cycles"'
     check_dev pass 'git log --oneline --grep=poweroff'
     check_dev pass 'gh pr create --title "guard: catch poweroff via systemctl" --body x'
   fi
@@ -1439,6 +1507,8 @@ check_dev deny "osascript -e 'do shell script \"newfs_apfs /dev/disk4\" with adm
 check_dev deny 'git commit -m "ssh h mkfs.ext4 /dev/sda1"'
 check_dev deny 'GIT_SSH_COMMAND=x git fetch; dd if=a of=/dev/sda'
 check_dev deny 'rsync -a x h:/y; shutdown -h now'
+check_dev deny 'ssh root@bsd "shutdown -c now"'
+check_dev deny 'sudo cp image.raw /dev/sda'
 # What an ordinary user reaches stays guarded in every scope.
 check_dev deny 'rm -f ~/.ssh/id_ed25519'
 check_dev deny 'chmod 000 ~/.ssh'
