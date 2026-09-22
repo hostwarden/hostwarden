@@ -218,7 +218,10 @@ of the current release branch,
 ## Service Manager
 
 - procd. `service` with no arguments lists every init script,
-  enabled or disabled, running or stopped.
+  enabled or disabled (its `enabled` verb), running or stopped
+  (procd's instance state over `ubus call service list`). Source:
+  procd's `/sbin/service`,
+  <https://github.com/openwrt/openwrt/blob/openwrt-25.12/package/system/procd/files/service>.
 - `service <name> reload|restart|start|stop|status`, or
   `/etc/init.d/<name>` with the same verbs;
   `enable`/`disable`/`enabled` control the start at boot.
@@ -238,9 +241,12 @@ of the current release branch,
   writable part (JFFS2 or UBIFS) on top of it; `/` is the two
   merged. Free flash: `df -h /overlay`. A few hundred kilobytes is
   normal on a small device; watch the trend, not the percentage.
-- **A full overlay is remounted read-only**, and then nothing can
-  be saved, UCI commits included:
-  `grep " overlay ro," /proc/mounts` finds it.
+- **A full overlay leaves `/` read-only**, and then nothing can
+  be saved, UCI commits included. It is the root entry that turns
+  `ro` — mount point `/`, type `overlay` — which
+  `grep -F "/ overlay ro," /proc/mounts` finds; OpenWrt's own
+  `/etc/profile` warns on the same test. Source:
+  <https://github.com/openwrt/openwrt/blob/openwrt-25.12/package/base-files/files/etc/profile>.
 - `/tmp` (and `/var`, which links to it) is RAM. Nothing written
   there survives a reboot, and a large file there takes memory from
   the router.
@@ -272,7 +278,7 @@ of the current release branch,
   `apt`. Housekeeping reads, in one call:
   ```
   cat /etc/openwrt_release; uptime; free; df -Ph /overlay /tmp
-  grep " overlay ro," /proc/mounts; service; uci changes
+  grep -F "/ overlay ro," /proc/mounts; service; uci changes
   logread -l 50; owut check
   ```
   Where `owut` does not exist, list upgradable packages instead
