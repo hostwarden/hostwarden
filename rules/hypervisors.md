@@ -48,9 +48,17 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.
   `list --all` is the light listing; `list --all --autostart` for
-  autostart, and per domain `domuuid`, `domiflist`, and
-  `dumpxml <dom> | grep -E '<hostdev|<filesystem|<address|<source|<target dir'`
-  for what the host passed to it.
+  autostart, and per domain `domuuid`, `domiflist`, and for what
+  the host passed to it the whole `<hostdev>` and `<filesystem>`
+  blocks of its XML, since a disk's `<source>` and a hostdev's
+  guest-side `<address>` look alike out of context:
+
+  ```sh
+  virsh -c qemu:///system dumpxml <dom> | sed -n '/<hostdev/,/<\/hostdev>/p; /<filesystem/,/<\/filesystem>/p'
+  ```
+
+  In a PCI `<hostdev>` the host's device is the `<address>` inside
+  `<source>`; the one after it is where the guest sees it.
 - **Incus / LXD:** the listing from `rules/system-containers.md`
   → Reaching It, with `--format json`: it carries each
   instance's project, its `expanded_config` the

@@ -650,13 +650,15 @@ dismounted from the host belongs to a guest
 (`.agents/skills/hostwarden-housekeeping/references/passthrough.md`):
 
 ```powershell
-try { Get-VMHostAssignableDevice | Format-Table InstanceID, LocationPath } catch { "failed: $_" }
-try { Get-VM | ForEach-Object { $n = $_.Name; Get-VMAssignableDevice -VMName $n | ForEach-Object { "$n $($_.LocationPath)" } } } catch { "failed: $_" }
+try { Get-VMHostAssignableDevice | ForEach-Object { "host $($_.LocationPath) $($_.InstanceID)" } } catch { "failed: $_" }
+try { Get-VM | ForEach-Object { $n = $_.Name; Get-VMAssignableDevice -VMName $n | ForEach-Object { "vm $n $($_.LocationPath)" } } } catch { "failed: $_" }
 ```
 
 The first lists what the host has dismounted, the second what
 each VM holds; a location path in the first and in no VM is that
-file's reserved device. Both fail on a host without the Hyper-V
+file's reserved device. Both print the path as a plain string:
+`Format-Table` would cut a long one to the console's width, and
+the paths are compared whole. Both fail on a host without the Hyper-V
 role, which is an answer, not a finding.
 
 **Time sync:**
