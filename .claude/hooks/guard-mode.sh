@@ -32,10 +32,12 @@
 #     option that reaches past the container into this machine —
 #     --privileged, a host path as a volume or mount, a host
 #     namespace, a device, an added capability, a lifted security
-#     profile, a published port, a host file or a host variable
+#     profile, a namespace of the host or of another container, a
+#     published port, a host file or a host variable
 #     read into it (--env-file, --label-file, -e NAME without a
 #     value) — and so are a build that writes its result here
-#     (--output) or reads a secret or the SSH agent from here, a
+#     (--output) or reads a secret, the SSH agent or a host path
+#     (podman build -v) from here, a
 #     compose file, a kube play and a volume over a host device,
 #     which the guard cannot read.
 #     Every other verb is denied: exec
@@ -365,8 +367,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       o = w
       sub(/=.*/, "", o)
       if (priv(w)) return p "--privileged"
-      if (o ~ /^--(pid|net|network|ipc|userns|uts|cgroupns)$/ && val(k) == "host")
-        return p o " host"
+      if (o ~ /^--(pid|net|network|ipc|userns|uts|cgroupns)$/ && val(k) ~ /^(host$|container:|ns:)/)
+        return p o " " val(k)
       if (o ~ /^--(device|cap-add|volumes-from|rootfs)/) return p o
       if (o ~ /^--publish/ || w ~ /^-[dit]*[pP]/ && w !~ /^--/) return p "publishing a port"
       # A host file or a host variable read into the container,
@@ -427,6 +429,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
             return "engine " n " --output, a result written to this machine"
           else if (u[k] ~ /^--(secret|ssh)(=|$)/)
             return "engine " n " " u[k] ", a secret of this machine"
+          else if (u[k] ~ /^--volume(=|$)/ && hostvol(val(k)) || u[k] ~ /^-v/ && hostvol(u[k] == "-v" ? u[k + 1] : substr(u[k], 3)))
+            return "engine " n " -v, a host path mounted into the build"
       if (w == "" && g == "" || w ~ /^(ps|ls|list|images|inspect|logs|version|info|search|stats|top|port|diff|history|events|df|show|config|help|pull|build)$/)
         return ""
       return "change " n
@@ -443,7 +447,11 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
       if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
       if (b ~ /^(docker|podman)-compose$/) {
-        for (k = i + 1; k <= nw; k++) if (u[k] ~ /^(up|run|create)$/) return "compose " b " " u[k]
+        for (k = i + 1; k <= nw && u[k] ~ /^-/; k++)
+          if (u[k] ~ /^(-f|--file|-p|--project-name|--profile|--env-file|--project-directory|--ansi|--parallel|--progress)$/) k++
+        if (u[k] ~ /^(up|start|restart|run|create)$/) return "compose " b " " u[k]
+        if (k <= nw && u[k] !~ /^(ps|ls|images|logs|version|config|top|port|events|pull|build|help)$/)
+          return "change " b " " u[k]
       } else if (b ~ /^(docker|podman|nerdctl)$/) {
         r = engine(b, i + 1)
         if (r != "") return r
