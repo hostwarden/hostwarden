@@ -132,6 +132,17 @@ code, `out-data` its output. Judge cloud-init by the first
 object's `exitcode`, not by the call's exit status, and use the
 key only when that is 0.
 
+### A VM that reads something other than cloud-init
+
+Fedora CoreOS and Flatcar read an Ignition config through the same
+`--cicustom` option, each through its own key and from its own
+platform image, and take no cloud-init beside it
+(`references/ignition.md` → Proxmox VE). A VM installed from an
+installer ISO takes the ISO as `--ide2 <storage>:iso/<file>` and
+its answer file on a second CD drive
+(`references/answer-files.md`). Everything else above — the
+storage, the bridge, `--onboot`, the guest agent — is unchanged.
+
 ## A container from the baseline template
 
 Where the node has no `Baseline template:` line for the

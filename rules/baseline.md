@@ -125,7 +125,19 @@ A new guest gets this file as cloud-init user-data, rendered from
 it, its global override and the family file, and kept in the
 workspace as `memory/baseline/<family>-<n>.yaml`, or
 `<family>-ct-<n>.yaml` for a container; `<n>` counts up whenever
-the rendered content changes. A host's `# baseline` block is not
+the rendered content changes.
+
+A guest that reads no cloud-init gets the same sections in the
+form its OS or its installer reads, kept beside them and numbered
+the same way, named for the format:
+`<family>-ign-<n>.bu` for Butane, with `<family>` as `fcos` or
+`flatcar`; `<family>-ks-<n>.cfg` for kickstart;
+`<family>-preseed-<n>.cfg` for preseed;
+`<family>-autoinstall-<n>.yaml` for Ubuntu's autoinstall; and
+`<family>-ay-<n>.xml` for AutoYaST. An answer file that hands the
+baseline to cloud-init rather than restating it records which
+cloud-init version it carries, so one line of memory still says
+what a guest was built with. A host's `# baseline` block is not
 part of it: the guest has no memory yet, and the hypervisor's is
 about the hypervisor.
 

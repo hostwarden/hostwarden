@@ -51,7 +51,11 @@ incus launch images:debian/13/cloud web3 --project <project> \
   NIC's name changes later (`needsNewInstanceID()` in Incus's
   `driver_common.go`; `rules/system-containers.md` → Changes).
   Images older than the `cloud-init.*` keys read `user.user-data`
-  instead; Ubuntu 20.04 and older under LXD are such images.
+  instead; Ubuntu 20.04 and older under LXD are such images. Where
+  a guest has to be configured after it exists but before it runs,
+  `incus init`, the configuration, and `incus start` are the
+  documented order — never a key set on an instance that has
+  already started, which cloud-init would not read.
 - Networking: cloud-init asks for DHCP on `eth0` by default. On a
   network Incus manages, pin the address there at `launch`, the
   same way `-d root,size=` sets the disk:
@@ -60,6 +64,59 @@ incus launch images:debian/13/cloud web3 --project <project> \
   `references/libvirt.md` shows, through
   `-c cloud-init.network-config="$(cat <file>)"`.
 - A `proxy` device publishes a port through the host.
+
+## The baseline as a profile
+
+A `-c` at `launch` puts the whole rendered file on one command
+line, once per guest. A profile holds it once for every guest of
+that family and release, and it is where the documentation puts
+it: "you should specify `vendor-data` in a profile and `user-data`
+in the instance configuration".
+
+So the baseline is the profile's `cloud-init.vendor-data`, and what
+belongs to this one guest — its hostname, a static address — stays
+`cloud-init.user-data` at `launch`. cloud-init merges the two;
+where a key would appear in both, it is in the profile only
+(<https://linuxcontainers.org/incus/docs/main/cloud-init/>).
+
+One profile per rendered version, named for it, and never edited
+afterwards:
+
+```bash
+incus profile create hostwarden-baseline-debian-3
+incus profile edit hostwarden-baseline-debian-3 < <file>
+incus launch images:debian/13/cloud web3 \
+  -p default -p hostwarden-baseline-debian-3 \
+  -s <pool> -d root,size=20GiB -c limits.cpu=2 \
+  -c limits.memory=2GiB -c boot.autostart=true \
+  -c cloud-init.user-data="$(cat <file>)"
+```
+
+The YAML given to `incus profile edit` is the profile's own
+document, with the rendered file indented under the key in
+literal style:
+
+```yaml
+config:
+  cloud-init.vendor-data: |
+    #cloud-config
+    # hostwarden-baseline debian-3 (2026-09-22)
+    …
+description: hostwarden baseline debian-3
+devices: {}
+```
+
+Why a new profile each time rather than an edit: "if you edit a
+profile, the changes are automatically applied to all instances
+that use the profile". Instances already running would take the
+device and limit changes at once, and that is a change to servers
+nobody asked about. `incus profile show <name>` lists its
+`used_by`; a profile with anything in that list is read, never
+written. The `default` profile is never touched at all.
+
+An older baseline profile that `used_by` shows as empty can be
+removed with `incus profile delete <name>`: offer it, name the
+profile, and leave the decision to the user.
 
 ## Waiting for the first boot
 

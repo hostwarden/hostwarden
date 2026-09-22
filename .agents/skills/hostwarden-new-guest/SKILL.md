@@ -2,11 +2,13 @@
 name: hostwarden-new-guest
 argument-hint: "[hypervisor] [guest name]"
 description: Create a new virtual machine or system container on a
-  hypervisor Hostwarden manages — Proxmox VE, libvirt, Incus or
-  LXD — from the distribution's official cloud image or container
-  template, with the Hostwarden server baseline applied at first
-  boot, then registered like every other guest. Also builds and
-  rebuilds the baseline template for containers on Proxmox VE.
+  hypervisor Hostwarden manages — Proxmox VE, libvirt, Incus, LXD
+  or classic LXC — from the distribution's official cloud image,
+  container template or installer, with the Hostwarden server
+  baseline applied at first boot in whatever form that guest reads
+  (cloud-init, Ignition, kickstart, preseed, autoinstall,
+  AutoYaST), then registered like every other guest. Also builds
+  and rebuilds the baseline template for containers on Proxmox VE.
   Use when the user asks to "create a VM on pve1", "set up a new
   container", "spin up a Debian guest", "make me a new server on
   <host>", "build the container template", "neuen LXC anlegen",
@@ -34,6 +36,7 @@ stays on, and a step it asks about is asked of the user.
    - `Proxmox VE (qm, pct)` → `references/proxmox.md`
    - `libvirt` → `references/libvirt.md`
    - `Incus`, `LXD` → `references/incus.md`
+   - `LXC` → `references/lxc.md`
    - Anything marked `read-only`, or an appliance whose file says
      its web UI owns the guests (Unraid, ZimaOS, TrueNAS, XCP-ng
      through Xen Orchestra): the user creates it; see Hosts that
@@ -108,11 +111,34 @@ version. Creating a guest is a change on the host
 Render it as `references/user-data.md` says before the guest is
 created. The reference names what each platform reads it from.
 
-This is the guest's first-boot configuration (`AGENTS.md` →
-Critical Safety Rules), and this skill writes it as cloud-init
-data. Ignition, an installer's answer file (kickstart, preseed,
-autoinstall, AutoYaST), a plain LXC template and an image changed
-before its first start have no path here yet: say so and stop.
+This is the guest's first-boot configuration, the one place
+`AGENTS.md` → Critical Safety Rules lets Hostwarden set sshd's
+login options and keys. It is the only place: the boundary is the
+guest, not the format. A guest that has already started is a
+server, and every rule for a server applies to it.
+
+Which form the configuration takes follows from the image, not
+from the hypervisor. Most guests take cloud-init; the rest take
+the format their OS or their installer reads:
+
+| The guest starts from                   | Reference                 |
+| --------------------------------------- | ------------------------- |
+| a cloud image with cloud-init           | `references/user-data.md` |
+| Fedora CoreOS or Flatcar                | `references/ignition.md`  |
+| a distribution's installer              | `references/answer-files.md` |
+| the LXC download template               | `references/lxc.md`       |
+| an image that can take neither          | `references/image-prep.md` |
+
+Every one of them ends at the same place: the rendered baseline,
+one version, recorded in the guest's memory. Ignition renders its
+own file; the others carry the cloud-init one, embedded or seeded.
+
+One command shape stays blocked whatever the rule allows: copying
+sshd's configuration or keys into a mounted image or an unstarted
+container's root filesystem. Where a path needs that — an image
+with no cloud-init and no way to get it — say so and stop
+(`references/image-prep.md` → Where this path ends). Never reach
+the same effect with another tool or another spelling.
 
 ## After creation
 
@@ -191,11 +217,15 @@ Give the user the steps as one list: the image with its checksum
 (`references/images.md`) as the VM's disk, name, resources,
 network, and the rendered user-data — on XCP-ng to paste, on the
 others as a seed ISO attached as a second CD drive
-(`references/seed-iso.md`). Where the UI can neither import a
-disk image nor attach a second ISO, only its installer is left,
-and that sets a password the user types: say so, and go on only
-if the user wants that. Once the guest answers on SSH, go on at
-After creation step 3.
+(`references/seed-iso.md`). Where the UI cannot
+import a disk image, the distribution's installer takes its answer
+file from a second ISO instead
+(`references/answer-files.md` → A host whose UI owns the guests),
+and the guest still comes up on the baseline. Only a UI that can
+attach no second ISO at all leaves the installer's own questions
+and a password the user types: say so, and go on only if the user
+wants that. Once the guest answers on SSH, go on at After creation
+step 3.
 
 ## References
 
@@ -208,6 +238,12 @@ After creation step 3.
   and containers from the baseline template.
 - `references/proxmox-template.md` — building that template.
 - `references/libvirt.md` — libvirt with `virt-install`.
-- `references/incus.md` — Incus and LXD.
-- `references/seed-iso.md` — the user-data as an ISO, for a UI
-  without a field for it.
+- `references/incus.md` — Incus and LXD, and the baseline as a
+  profile.
+- `references/lxc.md` — classic LXC with `lxc-create`.
+- `references/ignition.md` — Fedora CoreOS and Flatcar: the
+  baseline as Butane, transpiled to Ignition.
+- `references/answer-files.md` — kickstart, preseed, autoinstall
+  and AutoYaST, for a guest that has to be installed.
+- `references/image-prep.md` — changing a disk image before the
+  guest's first boot.
