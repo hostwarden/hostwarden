@@ -144,10 +144,11 @@ skill says so where it needs it.
    `nproc` is missing (OpenWrt). Record
    `Arch: <architecture>, <maker>` — `Arch: x86_64,
    AMD`, `Arch: aarch64, Apple M2`. The architecture
-   is the third line of the probe (`uname -m`), the
-   maker the one the CPU model names; where no line
-   names a maker (many ARM boards), `Arch:` holds the
-   architecture alone. An image, an installer or a
+   is the `uname -m` line under `@virt`, which the
+   marker places whatever the shell printed before;
+   the maker is the one the CPU model names. Where no
+   line names a maker (many ARM boards), `Arch:` holds
+   the architecture alone. An image, an installer or a
    binary download picks its build by this line.
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS. Whether the hardware is the host's
@@ -360,11 +361,14 @@ On WSL record `wsl (container)`, whatever the lines
 say; `Platform:` carries what that means.
 
 Record it in server memory with the type the
-detector named:
+detector named. Where a case matched but named no
+type — a `hypervisor` count above 0 whose DMI lines
+are in no row — the kind alone is the type:
 
 ```
 - Virtualization: none (bare metal)
 - Virtualization: kvm (VM)
+- Virtualization: unknown (VM)
 - Virtualization: lxc (container)
 - Virtualization: unknown
 ```

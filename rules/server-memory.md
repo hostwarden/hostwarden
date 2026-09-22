@@ -66,7 +66,7 @@ line, and one that Terraform or OpenTofu provisioned
 a `Provisioned by:` line; `rules/config-management.md`
 owns their wording. Most hosts have neither.
 
-Adapt fields to OS (add Arch, Homebrew for macOS;
+Adapt fields to OS (add Homebrew for macOS;
 add `Mode: local` for localhost); an OS file whose
 Version Detection names fields to record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
@@ -76,8 +76,8 @@ alias check in `rules/dns-aliases.md` compares. A
 field a probe could not read is written `unknown`, never
 filled from an example.
 
-`Virtualization:` comes from `rules/os-detection.md`
-→ Virtualization.
+`Virtualization:` and `Arch:` come from
+`rules/os-detection.md` → Virtualization and step 2.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
