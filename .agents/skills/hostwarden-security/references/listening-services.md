@@ -34,12 +34,17 @@ the report.
 
 ## macOS
 
+Without root, `lsof` sees only the current user's processes; call
+the list partial when the fallback ran:
+
 ```bash
-lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null
+sudo -n lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null \
+  || { echo "partial: current user only"
+       lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null; }
 ```
 
-On macOS, `lsof` works for the current user's processes without
-root. With `sudo`, it shows all.
+Name the Sharing switch behind a port, not only the port
+(`rules/os/macos.md` → Sharing).
 
 ## Evaluation
 

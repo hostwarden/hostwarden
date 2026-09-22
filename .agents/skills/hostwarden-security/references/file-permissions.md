@@ -1,4 +1,4 @@
-# File Permissions — Linux and FreeBSD
+# File Permissions — Linux, FreeBSD and macOS
 
 ## World-Writable System Files
 
@@ -170,3 +170,69 @@ The daily run is off when `daily_status_security_enable` or
 → **INFO**; unset means the default, `YES`. The Update
 Notification probe of the housekeeping baseline reads both files
 the same way.
+
+## macOS
+
+The system volume is sealed and SIP protects it
+(`references/macos-security.md`), but `/etc` (really
+`/private/etc`), part of `/Library` and the Homebrew prefix live
+on the writable data volume. The searches above run there instead
+of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
+apply:
+
+```bash
+for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
+         /Library/StartupItems /Applications /usr/local /opt/homebrew; do
+  [ -d "$d" ] && find "$d" -xdev -type f \
+    \( -perm -0002 -o -nouser -o -nogroup -o -perm +6000 \) -ls \
+    2>/dev/null
+done
+```
+
+Rate each hit as its section above does.
+
+**launchd jobs.** A job in `/Library/LaunchDaemons` runs as root;
+a plist anyone but root can change is a way to root. No root
+needed to read:
+
+```bash
+ls -lde /Library/LaunchDaemons /Library/LaunchAgents
+ls -le /Library/LaunchDaemons /Library/LaunchAgents
+```
+
+`-e` prints the access control list under a file; an ACL can
+grant write where the mode shows none.
+
+- A plist or one of the two directories not owned by root,
+  writable by group or others, or with an ACL entry that allows
+  write to anyone but root → **WARN** per file, with its owner,
+  mode and ACL.
+
+The files a root job runs matter as much as its plist, wherever
+they live, and so does every directory above them: whoever can
+write one can swap the file. That is the `Program`, and every
+absolute path among the `ProgramArguments`, which includes the
+script an interpreter such as `/bin/sh` is handed. Resolve each
+through symlinks first, so the directories checked are the real
+ones:
+
+```bash
+PB=/usr/libexec/PlistBuddy
+for p in /Library/LaunchDaemons/*.plist; do
+  echo "--$p"
+  { $PB -c 'Print :Program' "$p"
+    $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
+    | sed -n 's|^ *\(/[^ ]*\)$|\1|p' | sort -u \
+    | while read -r x; do
+        [ -e "$x" ] || continue
+        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) || continue
+        ls -leL "$d/$(basename "$x")"
+        while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+      done
+done
+```
+
+- A file it runs or a directory above it that is not owned by root,
+  writable by group or others, or with an ACL entry that allows
+  write to anyone but root → **WARN**, with the plist that starts
+  it.

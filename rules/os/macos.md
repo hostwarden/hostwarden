@@ -188,6 +188,21 @@ say so.
 - Homebrew configs:
   `$(brew --prefix)/etc/` (e.g. nginx config)
 
+## Sharing
+
+Most listening services on a Mac come from a switch under
+System Settings → General → Sharing, and that switch is what
+the user turns off. Match by the process `lsof` names, not the
+port alone:
+
+| Port | Sharing setting |
+|------|-----------------|
+| 22 | Remote Login |
+| 5900 | Screen Sharing, or Remote Management |
+| 3283 | Remote Management |
+| 445 | File Sharing |
+| 5000, 7000 | AirPlay Receiver (`ControlCenter`) |
+
 ## Notes
 
 - **Remote Login (SSH)** must be enabled for remote
@@ -210,6 +225,14 @@ say so.
 - `mise` works unchanged on macOS — same as Linux.
 
 ## Common Pitfalls
+
+- **Privacy protection (TCC) blocks SSH sessions.** Without
+  "Allow full disk access for remote users" under Remote Login,
+  reads of `~/Library/Mail`, Time Machine settings and other
+  protected paths fail with `Operation not permitted`, even as
+  root: a refused read (`rules/verify-before-reporting.md` →
+  Prove absence). Turning the setting on is the user's decision
+  in System Settings.
 
 - **No `systemctl`** — use `launchctl` or
   `brew services` instead.

@@ -1,4 +1,4 @@
-# Intrusion Prevention — Linux and FreeBSD
+# Intrusion Prevention — Linux, FreeBSD and macOS
 
 ## fail2ban Status
 
@@ -39,3 +39,8 @@ is off by default.
 
 - blocklistd runs but sshd does not report to it → **INFO**
   "blocklistd gets no reports from sshd"
+
+## macOS
+
+macOS ships no fail2ban equivalent: report the check as not
+applicable in one line, never as a missing tool.

@@ -48,7 +48,11 @@ stale path in your head is not evidence of loss.
 
 "Not where I expected" is not "gone". Confirm the
 thing is absent everywhere it could be, and check
-whether it ever existed where you think it did:
+whether it ever existed where you think it did. A
+read the system refused — permission denied, an
+SELinux or AppArmor denial, macOS privacy protection
+— proves nothing either way: report the check as not
+run, never the thing as absent. Look at:
 
 - current mounts: `findmnt <path>`, `df`,
   `/proc/mounts`
