@@ -270,6 +270,8 @@ repositories on GitHub where the docs are silent.
     elif ! cmp -s "$f" "$t"; then echo "$p $(plugin version "$f") $(plugin version "$t")"
     fi
   done
+  date -r "$(ls -t /tmp/plugins/*.plg | head -1)" +%F
+  docker ps -a --format '{{.Image}}' | sort -u
   j=/var/lib/docker/unraid-update-status.json
   date -r "$j" +%F && grep -E '^    "|"status"' "$j"
   ```
@@ -299,10 +301,13 @@ repositories on GitHub where the docs are silent.
   when that copy differs, where a second version newer than the
   first is an update, or is missing: `/tmp` lives in RAM, so the
   plugin has not been checked since the boot, or names no
-  `pluginURL` a check could reach. The Docker tab's check writes one
-  entry per image to `unraid-update-status.json`, dated by its last
-  run: `status` `false` is an update, `undef` or a missing image
-  unchecked.
+  `pluginURL` a check could reach. The date after the loop is the
+  newest check; a check overwrites the copy. The Docker tab's check
+  writes one entry per image to `unraid-update-status.json`, dated
+  by its last run, keyed by the image with its tag (`:latest` when
+  the container names none): `status` `false` is an update, `undef`
+  unchecked, and an image `docker ps` lists without an entry was
+  never checked.
 - Findings:
   - load above the CPU count in server memory, or memory and swap
     nearly exhausted;

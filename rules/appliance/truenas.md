@@ -134,8 +134,9 @@ silent.
   `status.new_version` is `null` when the system is current, and
   `code` is `ERROR` with a reason when the check failed. 24.10 and
   25.04 have `midclt call update.check_available` instead: `status`
-  is `AVAILABLE`, `UNAVAILABLE`, or `REBOOT_REQUIRED` once an update
-  is applied and awaits the reboot (`truenas/middleware`,
+  is `AVAILABLE`, `UNAVAILABLE`, `REBOOT_REQUIRED` once an update is
+  applied and awaits the reboot, or `HA_UNAVAILABLE` when HA is
+  down and nothing was checked (`truenas/middleware`,
   `plugins/update.py`).
 - Since 25.10 the user chooses an update profile (a risk tolerance)
   instead of a train. Keep it on a profile meant for production.
