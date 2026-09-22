@@ -31,6 +31,8 @@ Rules for macOS (Apple Silicon and Intel).
 - Product name: `sw_vers -productName` (e.g. `macOS`)
 - Architecture: `uname -m` (`arm64` or `x86_64`)
 - There is no `/etc/os-release` on macOS.
+- Record `Full disk access:` in server memory too, from Privacy
+  Protection (TCC) below.
 
 ## Firewall
 
@@ -133,6 +135,39 @@ Rules for macOS (Apple Silicon and Intel).
   - Controls which apps can run based on code signing.
   - Do not disable without user request.
 
+## Privacy Protection (TCC)
+
+An SSH session reaches protected data only when "Allow full
+disk access for remote users" is on under Remote Login; without
+it, reads fail with `Operation not permitted`, even as root.
+Find out once, on the first connection and whenever such a
+refusal turns up, and record it in server memory as
+`Full disk access: on`, `off` or `unknown`.
+
+Open protected directories without printing what is in them;
+only a refusal reaches the output:
+
+```bash
+for d in "$HOME/Library/Mail" "$HOME/Library/Safari"; do
+  ls "$d" > /dev/null
+done
+sudo -n true 2>/dev/null \
+  && sudo -n ls "/Library/Application Support/com.apple.TCC" > /dev/null
+```
+
+- `Operation not permitted` on any of them → `off`.
+- The root line ran without an error → `on`.
+- Otherwise, a user directory opened without an error → `on`;
+  only `No such file or directory` → `unknown`.
+
+With `off`, a workflow lists its checks on protected paths
+(Time Machine settings, Mail, Safari, other apps' data under
+`~/Library`) under Skipped from the start, names the setting
+once in its report, and does not try them. A refused read is
+never an absence (`rules/verify-before-reporting.md` → Prove
+absence). Turning the setting on is the user's decision in
+System Settings, never Hostwarden's.
+
 ## Logs
 
 Hostwarden's journal entries (`rules/changelog.md`) are read back
@@ -226,13 +261,9 @@ port alone:
 
 ## Common Pitfalls
 
-- **Privacy protection (TCC) blocks SSH sessions.** Without
-  "Allow full disk access for remote users" under Remote Login,
-  reads of `~/Library/Mail`, Time Machine settings and other
-  protected paths fail with `Operation not permitted`, even as
-  root: a refused read (`rules/verify-before-reporting.md` →
-  Prove absence). Turning the setting on is the user's decision
-  in System Settings.
+- **Privacy protection blocks SSH sessions.** `Operation not
+  permitted`, even as root, is a refused read, not a missing
+  file: Privacy Protection (TCC) above.
 
 - **No `systemctl`** — use `launchctl` or
   `brew services` instead.
