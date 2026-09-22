@@ -46,17 +46,15 @@
 #   - Look inside a variable or a script file. A backstop against
 #     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
 #     or a script that resets PATH still reaches ssh, and only
-#     the prose in AGENTS.md stands against it. The same holds
-#     for a bare tool inside sh -c or a script run by Monitor:
-#     the shim stops it where it reaches Monitor, and otherwise
-#     only the prose does.
+#     the prose in AGENTS.md stands against it. So does a bare
+#     tool inside sh -c or a script that Monitor runs, wherever
+#     the shim is not on its PATH.
 #
 # It runs on every tool call, so it forks little. In development
 # nothing at all unless the input could hold one of the forms
 # above, then one jq for the whole input and one awk for the
-# command; every Monitor call gets both. In operations a Bash or
-# Monitor call ends before jq; an edit runs one jq, and git only
-# for a path outside memory/.
+# command. In operations a Bash or Monitor call ends before jq;
+# an edit runs one jq, and git only for a path outside memory/.
 #
 # Being blocked is EXPECTED behavior. Explain it to the user.
 # Never rephrase, re-quote, or otherwise obfuscate a command to
@@ -93,24 +91,23 @@ deny() {
 # tool, command -p, a change to PATH or GIT_SSH_COMMAND holds none
 # of the forms this hook denies. That is nearly every call, and it
 # ends here without a single process. A Monitor call is rare and
-# can deny a bare tool name, so it always goes on to jq; so does a
-# Bash call whose text merely says "Monitor", which only costs a
-# fork.
+# always goes on.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
-  *'"tool_name"'*'"Monitor"'*) PREFILTER= ;;
-  *'"tool_name"'*'"Bash"'*) PREFILTER=1 ;;
-  *) exit 0 ;;
-  esac
-  [ -z "$PREFILTER" ] || case "${INPUT#*'"command"'}" in
-  */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
-  */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
-  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
-  # In JSON a newline or tab before it is \n or \t, a letter too.
-  *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
-  *\\[nt]PATH=*|*\\[nt]path=*) ;;
-  *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
-  *GIT_SSH_COMMAND*) ;;
+  *'"tool_name"'*'"Monitor"'*) ;;
+  *'"tool_name"'*'"Bash"'*)
+    case "${INPUT#*'"command"'}" in
+    */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
+    */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
+    */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+    # In JSON a newline or tab before it is \n or \t, a letter too.
+    *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
+    *\\[nt]PATH=*|*\\[nt]path=*) ;;
+    *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
+    *GIT_SSH_COMMAND*) ;;
+    *) exit 0 ;;
+    esac
+    ;;
   *) exit 0 ;;
   esac
 else
@@ -231,14 +228,12 @@ fi
 #     to the daemon itself and never starts ssh;
 #   - for Monitor, a blocked tool as the first word of a segment
 #     even without a path, since the shim may not be on its PATH.
-MON=
 case "$TOOL" in
 Bash|"") ;;
 Monitor)
-  MON=1
   # A WebSocket watch has no command and starts no shell. Without
   # jq CMD is never read, so that call is refused below instead.
-  [ -n "$CMD" ] || [ -z "$JQ" ] || exit 0
+  [ -z "$CMD" ] && [ -n "$JQ" ] && exit 0
   ;;
 *) exit 0 ;;
 esac
@@ -252,7 +247,7 @@ it may start a tool that reaches a server - install jq"
 
 # One line: "deny <what>" for a verdict, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
-FOUND=$(printf '%s' "$CMD" | awk -v mon="$MON" '
+FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN { RS = "\001"; T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$" }
   {
     s = $0
@@ -319,7 +314,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v mon="$MON" '
       if (w ~ /\//) how = "by its path"
       # A word that only ends in a quote is the tail of a quoted
       # string split at a | inside it: grep -E "error|ssh".
-      else if (mon && (w !~ /["\047]$/ || w ~ /^["\047]/)) how = "through Monitor"
+      else if (tool == "Monitor" && (w !~ /["\047]$/ || w ~ /^["\047]/)) how = "through Monitor"
       if (how != "") { print "deny " c " " how; exit }
     }
     if (cmdp && named != "") { print "deny " named " through command -p"; exit }

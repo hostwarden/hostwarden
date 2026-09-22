@@ -2,9 +2,6 @@
 # guard-taboos.sh — PreToolUse hook (matcher: Bash|Monitor).
 # Monitor runs a shell command too, handed over in the same
 # tool_input.command field, so both are read the same way here.
-# Every other tool that runs a command is denied outright in
-# settings.json (PowerShell); instructions-test.sh fails when a
-# known one is neither.
 #
 # Mechanically enforces Hostwarden's absolute taboos from
 # AGENTS.md → Critical Safety Rules, below the model layer:

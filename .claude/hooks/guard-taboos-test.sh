@@ -26,8 +26,9 @@ print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
 }
 
 verdict() {
-  # verdict <expect> <command> — one fixture, one line of output.
-  OUT=$(json_for "$2" \
+  # verdict <expect> <command> [tool] — one fixture, one line of
+  # output.
+  OUT=$(json_for "$2" "$3" \
     | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
@@ -38,7 +39,7 @@ verdict() {
   if [ "$GOT" = "$1" ]; then
     echo ok
   else
-    echo "FAIL [$1, got $GOT]: $2"
+    echo "FAIL [$1, got $GOT]${3:+ $3}: $2"
   fi
 }
 
@@ -47,7 +48,7 @@ verdict() {
 # each of the hundreds of children would queue the whole matrix
 # again.
 if [ "$1" = "--verdict" ]; then
-  verdict "$2" "$3"
+  verdict "$2" "$4" "$3"
   exit 0
 fi
 
@@ -65,7 +66,8 @@ check() {
   # another, so running them one after the other spent ~55 s to
   # learn what ~13 s answers. A check that slow is a check people
   # stop running before they commit.
-  printf '%s\0%s\0' "$1" "$2" >> "$QUEUE"
+  # check <expect> <command> [tool] — Bash unless a tool is named.
+  printf '%s\0%s\0%s\0' "$1" "${3:-Bash}" "$2" >> "$QUEUE"
   NCHECKS=$((NCHECKS + 1))
 }
 
@@ -934,19 +936,13 @@ rm -rf "$NOJQ"
 # Its command arrives in tool_input.command like Bash's, and the
 # matcher in settings.json hands it to both guards. A taboo sent
 # through Monitor is a taboo; an ordinary watch passes.
-monitor_case() {
-  # monitor_case <expect> <command>
-  OUT=$(json_for "$2" Monitor | env -u "$V" sh "$HOOK")
-  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
-  expect "Monitor [$1, got $GOT]: $2" [ "$GOT" = "$1" ]
-}
-monitor_case deny 'poweroff'
-monitor_case deny 'sgdisk --zap-all /dev/sda'
-monitor_case deny 'ssh root@h "shutdown -h now"'
-monitor_case deny "printf 'PermitRootLogin no\\n' >> /etc/ssh/sshd_config"
-monitor_case deny 'while true; do rm -f ~/.ssh/authorized_keys; sleep 60; done'
-monitor_case pass 'tail -f /var/log/syslog | grep --line-buffered -E "error|fail"'
-monitor_case pass 'until gh pr checks 12 | grep -qv pending; do sleep 30; done'
+check deny 'poweroff' Monitor
+check deny 'sgdisk --zap-all /dev/sda' Monitor
+check deny 'ssh root@h "shutdown -h now"' Monitor
+check deny "printf 'PermitRootLogin no\\n' >> /etc/ssh/sshd_config" Monitor
+check deny 'while true; do rm -f ~/.ssh/authorized_keys; sleep 60; done' Monitor
+check pass 'tail -f /var/log/syslog | grep --line-buffered -E "error|fail"' Monitor
+check pass 'until gh pr checks 12 | grep -qv pending; do sleep 30; done' Monitor
 settings_case deny 'Monitor: write it into settings.local.json' \
   "$(json_for "printf x $V >> .claude/settings.local.json" Monitor)"
 settings_case deny 'Monitor: touch a guard-off record' \
@@ -1055,7 +1051,7 @@ fi
 # Failures are sorted rather than printed as they land, so two
 # runs of the same broken tree read the same.
 if [ "$NCHECKS" -gt 0 ]; then
-  RESULT=$(xargs -0 -n2 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  RESULT=$(xargs -0 -n3 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
   XSTATUS=$?
   NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
   NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)

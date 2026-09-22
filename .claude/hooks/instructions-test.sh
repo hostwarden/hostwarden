@@ -147,26 +147,28 @@ fi
 # is either in the matcher of every guard that reads commands, or
 # denied outright by its bare name in permissions.deny. A new such
 # tool in Claude Code belongs on this list.
+# One jq prints "<tool> <guard>" for every gap.
 if command -v jq >/dev/null 2>&1; then
-  for t in Bash Monitor PowerShell; do
-    if jq -e --arg t "$t" '.permissions.deny // [] | index($t)' \
-      "$CLAUDE_DIR/settings.json" >/dev/null; then
-      ok
-      continue
-    fi
-    for g in guard-taboos.sh guard-settings.sh guard-mode.sh; do
-      if jq -e --arg t "$t" --arg g "$g" '
-        [.hooks.PreToolUse[]? | select(any(.hooks[]?;
-           .command | endswith("/.claude/hooks/" + $g + "\""))) |
-         .matcher | split("[|,]"; null)[] | gsub("^ +| +$"; "")]
-        | index($t)' "$CLAUDE_DIR/settings.json" >/dev/null; then
-        ok
-      else
-        bad "settings.json lets $t run commands past $g: add it" \
-            "to that hook's matcher, or deny \"$t\" outright"
-      fi
-    done
-  done
+  GAPS=$(jq -r '
+    . as $s
+    | ("Bash", "Monitor", "PowerShell") as $t
+    | select($s.permissions.deny // [] | any(. == $t) | not)
+    | ("guard-taboos.sh", "guard-settings.sh", "guard-mode.sh") as $g
+    | select([$s.hooks.PreToolUse[]?
+        | select(any(.hooks[]?;
+            .command | endswith("/.claude/hooks/" + $g + "\"")))
+        | .matcher | split("[|,]"; null)[] | gsub("^ +| +$"; "")]
+      | any(. == $t) | not)
+    | "\($t) \($g)"' "$CLAUDE_DIR/settings.json") \
+    || bad "jq could not read settings.json"
+  while read -r t g; do
+    [ -n "$t" ] || continue
+    bad "settings.json lets $t run commands past $g: add it" \
+        "to that hook's matcher, or deny \"$t\" outright"
+  done <<EOF
+$GAPS
+EOF
+  ok
 else
   bad "jq is missing, so the guard matchers cannot be checked"
 fi

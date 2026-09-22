@@ -87,8 +87,9 @@ rm "$ARC/memory/.hostwarden-workspace"
 fails "init made a workspace outside a git clone" sh "$ARC/bin/hostwarden-init"
 
 # --- guard-mode.sh ---------------------------------------------
+# bash_json <command> [tool] — for Bash, or the tool named.
 bash_json() {
-  printf '%s' "$1" | jq -Rs '{tool_name:"Bash",tool_input:{command:.}}'
+  printf '%s' "$1" | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
 }
 edit_json() {
   jq -n --arg p "$1" \
@@ -199,10 +200,7 @@ edit pass "$DEV" "$DEV/rules/backups.md"
 # documented for Bash only, so is a bare tool at the start of a
 # segment. A watch that reaches no server passes, and so does a
 # WebSocket watch, which starts no shell.
-monitor_json() {
-  printf '%s' "$1" | jq -Rs '{tool_name:"Monitor",tool_input:{command:.,description:"watch",timeout_ms:300000}}'
-}
-mon() { verdict "$1" "$2" "$(monitor_json "$3")"; }
+mon() { verdict "$1" "$2" "$(bash_json "$3" Monitor)"; }
 mon deny "$DEV" '/usr/bin/ssh server1.example.com tail -f /var/log/syslog'
 mon deny "$DEV" 'PATH=/usr/bin:/bin ssh server1.example.com uptime'
 mon deny "$DEV" 'command -p ssh server1.example.com'
@@ -282,8 +280,8 @@ nojq() {
 nojq deny "$DEV" "$(bash_json '/usr/bin/ssh server1.example.com true')"
 nojq pass "$DEV" "$(bash_json 'ssh server1.example.com true')"
 nojq pass "$DEV" "$(bash_json 'git status')"
-nojq deny "$DEV" "$(monitor_json 'tail -f /tmp/build.log')"
-nojq pass "$OPS" "$(monitor_json 'ssh server1.example.com true')"
+nojq deny "$DEV" "$(bash_json 'tail -f /tmp/build.log' Monitor)"
+nojq pass "$OPS" "$(bash_json 'ssh server1.example.com true' Monitor)"
 nojq pass "$DEV" "$(edit_json "$DEV/rules/backups.md")"
 nojq deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
 nojq pass "$OPS" "$(edit_json "$OPS/memory/servers/server1.example.com/memory.md")"
