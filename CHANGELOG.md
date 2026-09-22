@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Unraid is recognised as an appliance.** Detection finds it by
+  `/etc/unraid-version`; the rules cover the root-only login, an OS
+  in RAM, the web UI owning the configuration, and array operations
+  and updates left to you. Housekeeping reads array, parity, SMART
+  and boot device backup state instead of the Linux baseline.
 - **The fleet audit covers Alpine hosts.** Each probe
   that assumed systemd or GNU tools has an Alpine
   variant: a self-made `apk upgrade` job in place of
