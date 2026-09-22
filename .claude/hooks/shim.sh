@@ -1,8 +1,10 @@
 # shellcheck shell=sh
 # shim.sh — stands in for every tool that reaches a server, in a
 # development session. .claude/hooks/shim/ holds one small script
-# per tool — ssh, scp, sftp, mosh, sudo, sudoedit, doas, pkexec —
-# that sources this file, and session-mode.sh puts that directory
+# per tool — ssh, scp, sftp, mosh, sudo, sudoedit, doas, pkexec,
+# and ansible, ansible-playbook, ansible-pull, ansible-console,
+# terraform and tofu, which open their own connections to servers
+# or a cloud — that sources this file, and session-mode.sh puts that directory
 # first on the PATH of every Bash call through $CLAUDE_ENV_FILE.
 # Subagents inherit it. Scripts rather than links, so a checkout
 # without symbolic links gets a working shim too.

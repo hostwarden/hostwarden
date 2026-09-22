@@ -5,7 +5,10 @@
 # Holds a session to the mode mode.sh determines:
 #
 #   development, worktree — ssh, scp, sftp, mosh, sudo, sudoedit,
-#     doas and pkexec are refused. The shim does most of it
+#     doas and pkexec are refused, and so are the configuration
+#     tools that reach servers or a cloud on their own: ansible,
+#     ansible-playbook, ansible-pull, ansible-console, terraform
+#     and tofu. The shim does most of it
 #     (shim.sh): session-mode.sh puts it first on PATH, so the
 #     tools refuse wherever they are started from, rsync's own
 #     ssh included. This hook denies the forms that go past a
@@ -140,6 +143,7 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
     */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
     */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
     */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+    */ansible*|*/terraform[!A-Za-z0-9_.-]*|*/tofu[!A-Za-z0-9_.-]*) ;;
     # A Windows program, by path or by a spelling the shim misses.
     *.[Ee][Xx][Ee][!A-Za-z0-9_]*) ;;
     # In JSON a newline or tab before it is \n or \t, a letter too.
@@ -308,7 +312,7 @@ it may start a tool that reaches a server - install jq"
 FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN {
     RS = "\001"
-    T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$"
+    T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec|ansible|ansible-playbook|ansible-pull|ansible-console|terraform|tofu)$"
     # Windows programs, matched on the lowercased name.
     W = "^(ssh|scp|sftp|sudo|runas|wsl|powershell|pwsh|cmd)[.]exe$"
     # Launchers that run the rest of their line as a command. LA

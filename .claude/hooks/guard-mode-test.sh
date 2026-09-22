@@ -118,6 +118,19 @@ write() { verdict "$1" "$2" "$(write_json "$3")"; }
 cmd deny "$DEV" '/usr/bin/ssh server1.example.com'
 cmd deny "$DEV" 'cd /tmp && /usr/bin/scp a.txt server1.example.com:/tmp/'
 cmd deny "$DEV" '! /usr/local/bin/mosh server1.example.com'
+# The configuration tools open their own connections: ansible and
+# its kin reach every host of an inventory, terraform and tofu a
+# cloud. A path past the shim is denied like ssh's; reading their
+# code, or a directory named after one, is not.
+cmd deny "$DEV" '/opt/homebrew/bin/ansible all -m ping'
+cmd deny "$DEV" '/home/alice/.local/bin/ansible-playbook -i inventory site.yml'
+cmd deny "$DEV" '/usr/bin/ansible-pull -U https://git.example.com/site.git'
+cmd deny "$DEV" '/usr/local/bin/terraform plan'
+cmd deny "$DEV" 'FOO=1 /usr/bin/tofu apply'
+cmd pass "$DEV" 'grep -rn become roles/ansible/tasks/'
+cmd pass "$DEV" 'cat ~/infra/terraform/main.tf'
+cmd pass "$DEV" 'ansible-lint site.yml'
+cmd pass "$DEV" 'ansible-vault view --help'
 cmd deny "$DEV" 'FOO=1 /usr/bin/sudo whoami'
 cmd deny "$DEV" 'echo $(/usr/bin/ssh server1.example.com hostname)'
 cmd deny "$DEV" 'bash -c "true; /usr/bin/sudo whoami"'
@@ -249,6 +262,10 @@ mon deny "$DEV" 'rsync -av server1.example.com::mod here/'
 mon deny "$DEV" 'ssh.exe server1.example.com tail -f /var/log/syslog'
 mon deny "$DEV" 'wsl.exe -u root -e tail -f /var/log/auth.log'
 mon deny "$DEV" 'PowerShell.exe -Command Get-Content -Wait C:\log.txt'
+mon deny "$DEV" 'ansible all -m command -a uptime'
+mon deny "$DEV" 'while true; do ansible-playbook --check site.yml; sleep 60; done'
+mon deny "$DEV" 'tofu plan -detailed-exitcode'
+mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered ansible-playbook'
 mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered "ssh.exe|wsl.exe"'
 mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered -E "error|ssh"'
 mon pass "$DEV" 'until gh pr checks 12 | grep -qv pending; do sleep 30; done'
@@ -619,7 +636,7 @@ for f in "$HOOKS"/shim/*; do
   *) grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" ;;
   esac && ok || bad "shim/$t names a tool the guard does not"
 done
-[ "$n" -eq 17 ] && ok || bad "shim/ holds $n tools, the guard names 17"
+[ "$n" -eq 23 ] && ok || bad "shim/ holds $n tools, the guard names 23"
 # session <checkout> <env file> [VAR=value...] — session-mode.sh
 # as Claude Code runs it at session start.
 session() {
@@ -651,6 +668,12 @@ refused "$DEV" "$ENVF" 'doas true'
 refused "$DEV" "$ENVF" 'scp a.txt server1.example.com:/tmp/'
 refused "$DEV" "$ENVF" 'sftp server1.example.com'
 refused "$DEV" "$ENVF" 'mosh server1.example.com'
+refused "$DEV" "$ENVF" 'ansible all -m ping'
+refused "$DEV" "$ENVF" 'ansible-playbook -i inventory site.yml'
+refused "$DEV" "$ENVF" 'ansible-pull -U https://git.example.com/site.git'
+refused "$DEV" "$ENVF" 'ansible-console all'
+refused "$DEV" "$ENVF" 'bash -c "terraform plan"'
+refused "$DEV" "$ENVF" 'tofu apply'
 refused "$DEV" "$ENVF" 'ssh.exe server1.example.com'
 refused "$DEV" "$ENVF" 'wsl.exe -u root -e id'
 refused "$DEV" "$ENVF" 'powershell.exe -Command Get-Service'

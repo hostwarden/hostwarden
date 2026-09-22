@@ -24,9 +24,9 @@ workspace decides which:
 In Claude Code a hook announces the mode at session
 start and another enforces it. In development the
 first also puts a shim in front of `ssh`, `scp`,
-`sudo` and the rest on the `PATH` of every command
-the agent runs, so they refuse however they are
-started; `git push` still reaches the real `ssh`.
+`sudo`, `ansible`, `terraform` and the rest on the
+`PATH` of every command the agent runs, so they
+refuse however they are started; `git push` still reaches the real `ssh`.
 Under WSL the shim also covers the Windows programs
 that reach a server or administer the machine:
 `ssh.exe`, `wsl.exe`, `powershell.exe` and the rest.
