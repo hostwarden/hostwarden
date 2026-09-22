@@ -43,7 +43,7 @@ skill says so where it needs it.
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
      'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version; dpkg-query -W openmediavault'
+     'cat /etc/version; dpkg -l openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -132,14 +132,15 @@ prints for a missing one depends on the shell.
 | Base    | Marker                     | Appliance file                      |
 | ------- | -------------------------- | ----------------------------------- |
 | Debian  | `pveversion`               | `rules/appliance/proxmox-ve.md`     |
-| Debian  | `openmediavault <version>` | `rules/appliance/openmediavault.md` |
+| Debian  | `ii  openmediavault`       | `rules/appliance/openmediavault.md` |
 | FreeBSD | `opnsense-version`         | `rules/appliance/opnsense.md`       |
 | FreeBSD | `pfSense-upgrade`          | `rules/appliance/pfsense.md`        |
 | none    | `ID=haos`, `ha`            | `rules/appliance/haos.md`           |
 
-`openmediavault <version>` is the line `dpkg-query`
-prints for the installed package; its "no packages
-found" error names the package too and is no match.
+`ii  openmediavault` is the line `dpkg -l` prints for
+the installed package, with its version. `rc` (removed,
+config files left) and the "no packages found" error
+name the package too and are no match.
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host

@@ -15,10 +15,12 @@ under `deb/openmediavault/` there).
 
 ## Add: Version Detection
 
-- `dpkg-query -W openmediavault` prints the package name and the
-  OMV version (e.g. `8.5.9-1`); on another Debian host it reports
-  no matching package. It is the detection marker because it lives
-  in `/usr/bin`: the OMV tools are in `/usr/sbin`, which is not on
+- `dpkg -l openmediavault` prints the package's status, name and
+  OMV version (e.g. `ii  openmediavault  8.5.9-1`). Only status
+  `ii` is an installed OMV: `rc` is a removed one whose config
+  files stayed, and another Debian host reports no matching
+  package. It is the detection marker because `dpkg` lives in
+  `/usr/bin`: the OMV tools are in `/usr/sbin`, which is not on
   the `PATH` Debian's sshd gives a non-root login. There is no
   `omv-version` command.
 - `/etc/openmediavault/config.xml` is the configuration database.
@@ -127,9 +129,11 @@ under `deb/openmediavault/` there).
   remove:
   ```
   apt-get update
-  apt-get -s dist-upgrade
+  apt-get -s --auto-remove dist-upgrade
   apt-mark showhold
   ```
+  `--auto-remove` is there because `omv-upgrade` passes it: the
+  preview then lists the packages the real run removes.
   If it wants to remove `openmediavault`, **stop**. Name every
   hold to the user: `omv-upgrade` overrides them.
 - After the user agrees, run `omv-upgrade`, or the user applies
@@ -334,13 +338,14 @@ under `deb/openmediavault/` there).
   (`conf.service.smartmontools.device`). A disk without monitoring
   is a finding; so is a failed health check or a growing
   reallocated or pending sector count.
-- **Pending updates:** `apt-get -s dist-upgrade`, and
+- **Pending updates:** `apt-get -s --auto-remove dist-upgrade`,
+  and
   `conf.system.apt.updates` for unattended upgrades.
 - **Notifications:** check whether mail is set up without printing
   the SMTP password:
   ```
   omv-confdbadm read conf.system.notification.email | \
-    jq 'del(.authentication.password)'
+    jq 'walk(if type == "object" then del(.password) else . end)'
   omv-confdbadm read conf.system.notification.notification
   ```
   Mail goes out through postfix in satellite mode
