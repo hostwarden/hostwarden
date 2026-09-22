@@ -157,7 +157,10 @@ if command -v jq >/dev/null 2>&1; then
     | select([$s.hooks.PreToolUse[]?
         | select(any(.hooks[]?;
             .command | endswith("/.claude/hooks/" + $g + "\"")))
-        | .matcher | split("[|,]"; null)[] | gsub("^ +| +$"; "")]
+        | .matcher // "*"
+        # No matcher, "" or "*" matches every tool.
+        | if . == "*" or . == "" then $t
+          else split("[|,]"; null)[] | gsub("^ +| +$"; "") end]
       | any(. == $t) | not)
     | "\($t) \($g)"' "$CLAUDE_DIR/settings.json") \
     || bad "jq could not read settings.json"
@@ -168,7 +171,7 @@ if command -v jq >/dev/null 2>&1; then
   done <<EOF
 $GAPS
 EOF
-  ok
+  [ -n "$GAPS" ] || ok
 else
   bad "jq is missing, so the guard matchers cannot be checked"
 fi

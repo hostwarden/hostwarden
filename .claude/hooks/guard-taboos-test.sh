@@ -39,7 +39,10 @@ verdict() {
   if [ "$GOT" = "$1" ]; then
     echo ok
   else
-    echo "FAIL [$1, got $GOT]${3:+ $3}: $2"
+    case "${3:-Bash}" in
+    Bash) echo "FAIL [$1, got $GOT]: $2" ;;
+    *) echo "FAIL [$1, got $GOT] $3: $2" ;;
+    esac
   fi
 }
 
