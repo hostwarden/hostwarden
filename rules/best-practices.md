@@ -152,6 +152,16 @@ minimal privileges.
 → Create a service user.
 Cross-reference: the `hostwarden-deploy-user` skill
 
+**Changing a CasaOS app with `docker`**
+CasaOS keeps each App Store app as a compose project
+and applies its own compose file again on update, so
+a change made beside its web UI is lost or shown
+wrongly.
+→ Change the app in the CasaOS web UI.
+Cross-reference:
+`.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+→ CasaOS
+
 ### Permissions & Security
 
 **chmod 777 / chmod -R 777**

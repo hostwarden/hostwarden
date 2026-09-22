@@ -111,6 +111,72 @@ docker ps --format \
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
+## CasaOS
+
+Triggered when `memory.md` mentions CasaOS. CasaOS is IceWhale's web
+UI and app store, installed by a script on top of Debian, Ubuntu or
+Raspberry Pi OS; other systems are community-supported or untested
+(https://github.com/IceWhaleTech/CasaOS, `README.md`). The
+distribution underneath keeps its family file, its package manager,
+its firewall and its updater. What CasaOS adds is below. As root:
+
+```bash
+casaos -v
+systemctl is-active casaos casaos-gateway casaos-message-bus \
+  casaos-user-service casaos-local-storage casaos-app-management
+grep -E '^port *=' /etc/casaos/gateway.ini
+grep -E '^(AppsPath|appstore) *=' /etc/casaos/app-management.conf
+docker ps -a --format \
+  '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project.working_dir"}}'
+```
+
+`casaos -v` is the version command the README gives; the six units
+are the ones the installer starts (https://get.casaos.io).
+
+- **WARN** for each unit that is not active: without the gateway
+  the web UI is down, without app management the apps cannot be
+  changed from it.
+- **WARN**: the web UI answers plain HTTP on every address, on the
+  gateway's `port`, 80 by default in the installer. The gateway
+  listens with an empty host and no TLS
+  (https://github.com/IceWhaleTech/CasaOS-Gateway, `main.go`), and
+  the CasaOS units set no `User=`, so they run as root (`CasaOS`,
+  `build/sysroot/usr/lib/systemd/system/casaos.service`).
+  **CRITICAL** if the user says a port forward reaches it from the
+  internet.
+- **WARN** for the version: take the newest release and its date
+  from https://github.com/IceWhaleTech/CasaOS/releases in a live
+  lookup (`rules/version-check.md`) and name both. CVE-2025-34171
+  lets anyone who reaches the UI read files and debug data without
+  logging in, in every version up to 0.4.15
+  (https://www.vulncheck.com/advisories/casaos-unauthenticated-file-and-debug-data-exposure);
+  a version it covers is the finding while no fixed release
+  exists. IceWhale's documentation offers a migration from CasaOS
+  to ZimaOS
+  (https://www.zimaspace.com/docs/zimaos/casaos-to-zimaos-migration);
+  moving is the user's decision.
+- **INFO** for each `appstore` source outside `IceWhaleTech`: a
+  third-party store whose apps run with whatever the compose file
+  grants them.
+- Report the apps: each App Store app is a compose project in its
+  own directory under `AppsPath`, `/var/lib/casaos/apps` by default
+  (https://github.com/IceWhaleTech/CasaOS-AppManagement,
+  `build/sysroot/etc/casaos/app-management.conf.sample`); the last
+  `docker ps` column shows it. A container that is not "Up" goes
+  under Docker, not again here.
+
+Hand any change to an app to the user as steps in the CasaOS web
+UI, never as `docker` or compose commands: the app service lists
+the compose projects Docker reports, and an update from the UI
+merges its settings into the store's compose file and applies it
+again, recreating the containers (`CasaOS-AppManagement`,
+`service/compose_service.go`, `List`; `service/compose_app.go`,
+`Update` and `Apply`). A change made beside the UI is lost at the
+next update or shown wrongly. Updating CasaOS itself is the UI's
+Settings → Update, or the README's script from
+`https://get.casaos.io/update` piped into a root shell: ask first,
+and name the script.
+
 ## Home Assistant
 
 Triggered when `memory.md` mentions Home Assistant. This section
