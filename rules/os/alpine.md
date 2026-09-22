@@ -291,6 +291,7 @@ entry is lost. When no `rc-status` line shows a syslog daemon as
 - Scripts run by the `local` service: `/etc/local.d/*.start` and
   `*.stop`
 - Periodic jobs: `/etc/periodic/{15min,hourly,daily,weekly,monthly}/`
+- Crontabs: `/etc/crontabs/<user>` — busybox `crond`'s
 - Web roots: `/var/www/`
 - nginx: `/etc/nginx/http.d/*.conf` — no `sites-available/`
 - Logs: `/var/log/`

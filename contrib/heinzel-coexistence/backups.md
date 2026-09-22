@@ -26,19 +26,20 @@ Heinzel left behind. If the user accepted,
 removed.
 
 So a missing `/var/backups/heinzel/` may have a
-harmless explanation. Hostwarden logs the move, to
-the journal or, without one, to syslog's file:
+harmless explanation. Hostwarden logs the move:
 
 ```
 journalctl -t hostwarden --no-pager | grep 'Adopted heinzel state'
 ```
 
+Without a journal, grep syslog's file for the same text.
+
 A line naming `/var/backups/heinzel` means adopted:
-report it so, with the file count of the new path. No
-such line means the adoption is not shown — Hostwarden
+report it so, with the file count of the new path.
+Without that line the adoption is not shown: Hostwarden
 fills `/var/backups/hostwarden/` with its own backups
-anyway — so report the directory as missing, with what
-the new path holds, and let the user decide. A false
+too. Report the directory as missing, with what the new
+path holds, and let the user decide. A false
 "your backups are gone" costs the user an hour of fear,
 and a false "adopted" costs the backups
 (`rules/verify-before-reporting.md`).

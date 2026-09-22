@@ -381,9 +381,9 @@ uptime -s
 # needrestart: the restart mode that wins — the last one set, in
 # needrestart's order: needrestart.conf, then conf.d/*.conf sorted.
 if command -v needrestart >/dev/null 2>&1; then
-  M=$(cd /etc/needrestart 2>/dev/null && grep -hs \
-    '^[[:space:]]*\$nrconf{restart}' needrestart.conf conf.d/*.conf \
-    | tail -n 1)
+  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+    /etc/needrestart/needrestart.conf \
+    /etc/needrestart/conf.d/*.conf | tail -n 1)
   echo "${M:-needrestart=default}"
 else
   echo "needrestart=absent"

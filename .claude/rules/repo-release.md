@@ -7,7 +7,6 @@ paths:
   - "scripts/**"
   - ".githooks/**"
   - "mise.dev.toml"
-  - "bin/**"
 description: Versioning, tagging and porting from Heinzel — for
   work on the Hostwarden repository itself, not for sysadmin
   sessions.

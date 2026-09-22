@@ -79,12 +79,11 @@ attachments.
      --predicate 'process == "smtpd" OR process == "smtp"'`.
    - Linux workstation local: `journalctl --since "1 minute
      ago" -t postfix` or `/var/log/mail.log`.
-   - nullmailer and dma queue first and send a moment later:
-     `journalctl -u nullmailer` over the last minute, or for
-     dma, whose tag carries the queue id (`dma[<id>]`), that
-     minute of `journalctl` through `grep 'dma\['`, or the
-     mail log. Read once more after 30 seconds when nothing is
-     there yet.
+   - nullmailer: `journalctl -u nullmailer --since "1 minute
+     ago"`; dma, which tags its lines `dma[<queue-id>]`:
+     `journalctl --since "1 minute ago" | grep 'dma\['`; or
+     the mail log. Both send from a queue a moment later, so
+     read once more after 30 seconds when nothing is there.
 
    Look for `status=sent` (msmtp and dma: `delivery
    successful`; nullmailer: `Sent file.`). Flag `deferred` /

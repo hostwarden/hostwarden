@@ -47,11 +47,10 @@ raise the window in
 If the user says both tools are in use, adoption is
 premature — Heinzel recreates its backup directory on
 its next run. Report the find, say why it waits, and
-record a deferral. Heinzel entries from the last days
-in the activity check are a question, not that answer:
-a host is often moved over right after its last
-Heinzel session, so ask whether Heinzel still runs
-before deferring.
+record a deferral. Recent Heinzel entries in the
+activity check do not settle it: hosts often move over
+right after their last Heinzel session, so ask whether
+Heinzel still runs before deferring.
 
 Point the user at `contrib/heinzel-coexistence/`:
 three rule overrides for their Heinzel checkout that

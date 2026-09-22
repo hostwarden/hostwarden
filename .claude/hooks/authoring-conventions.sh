@@ -1,6 +1,7 @@
 #!/bin/sh
-# authoring-conventions.sh — name the authoring rules when an
-# instruction file is edited.
+# authoring-conventions.sh — name the authoring rules and the
+# changelog policy when an instruction file or a bin/ script is
+# edited. Neither loads by path from a read of those files.
 #
 # Registered as a PostToolUse hook on Edit|Write. Emits
 # hookSpecificOutput.additionalContext, which that event honors.
@@ -67,7 +68,7 @@ case "$FILE" in
 esac
 
 case "$REL" in
-  rules/*.md|.agents/skills/*) ;;
+  rules/*.md|.agents/skills/*|bin/*) ;;
   *) exit 0 ;;
 esac
 
@@ -87,7 +88,7 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "You are editing Hostwarden's instruction set, which is the product. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Every change also gets one entry under `## Unreleased` in `CHANGELOG.md`, written as `.claude/rules/repo-release.md` says. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
+    "additionalContext": "You are changing Hostwarden itself: its instruction set is the product, and `bin/` ships with it. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Every change also gets one entry under `## Unreleased` in `CHANGELOG.md`, written as `.claude/rules/repo-release.md` says. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
   }
 }
 JSON
