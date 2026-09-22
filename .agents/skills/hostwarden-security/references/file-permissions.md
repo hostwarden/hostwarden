@@ -178,8 +178,8 @@ The system volume is sealed and SIP protects it
 `/private/etc`), part of `/Library` and the Homebrew prefix live
 on the writable data volume. The searches above run there instead
 of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
-apply. `HB` is the Homebrew prefix, found as `rules/os/macos.md` →
-Package Manager says, and empty without Homebrew:
+apply. Set `HB` first, in the same call, with the lines in
+`rules/os/macos.md` → Package Manager:
 
 ```bash
 [ "$HB" = /usr/local ] && HB=

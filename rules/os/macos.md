@@ -16,14 +16,14 @@ Rules for macOS (Apple Silicon and Intel).
   - Intel (x86_64): `/usr/local/`
 - A non-interactive SSH shell often has no Homebrew
   on its `PATH`. Locate it in both prefixes before
-  calling it absent, as the SSH user, and take the
-  prefix from `"$BREW" --prefix`:
+  calling it absent, as the SSH user; `HB` is then
+  the prefix, empty without Homebrew:
   ```
   BREW=$(command -v brew)
   for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
     [ -z "$BREW" ] && [ -x "$b" ] && BREW=$b
   done
-  [ -n "$BREW" ] && "$BREW" --prefix
+  HB=; [ -n "$BREW" ] && HB=$("$BREW" --prefix)
   ```
 - Update Homebrew itself: `brew update`
 - Upgrade all packages: `brew upgrade`
