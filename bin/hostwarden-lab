@@ -129,6 +129,29 @@ engine() {
 docker), or podman."
     return 1
   fi
+  # Only the engine on this machine: DOCKER_HOST, a Docker context
+  # or a podman connection can name another one, a server, and
+  # the mode guard sees only this script's command line. podman
+  # machine is a local VM reached over ssh to this machine.
+  case "$e" in
+    docker)
+      ep=${DOCKER_HOST:-$("$e" context inspect \
+        --format '{{.Endpoints.docker.Host}}' 2>/dev/null)} ;;
+    podman)
+      ep=${CONTAINER_HOST:-$("$e" system connection list \
+        --format '{{if .Default}}{{.URI}}{{end}}' 2>/dev/null)}
+      [ -z "${CONTAINER_CONNECTION:-}" ] || ep="connection $CONTAINER_CONNECTION" ;;
+    *) ep= ;;
+  esac
+  case "$ep" in
+    "" | unix://* | npipe://* | tcp://localhost[:/]* | tcp://127.0.0.1[:/]* \
+      | ssh://*@localhost[:/]* | ssh://*@127.0.0.1[:/]*) ;;
+    *)
+      WHY="$e is set to reach $ep, which is not this machine's engine. \
+A lab runs on the local engine only: unset DOCKER_HOST or \
+CONTAINER_HOST, or switch to a local context or connection."
+      return 1 ;;
+  esac
   if ! "$e" info >/dev/null 2>&1; then
     WHY="$e is installed but its engine is not running. Start it \
 yourself — OrbStack: orb start; Docker Desktop: open it; podman: \
