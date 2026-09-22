@@ -107,6 +107,8 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
      Availability).
   6. `xe host-enable uuid=<uuid>` once the host is back, then the
      next host.
+  7. After the last host, re-enable HA if it was on (High
+     Availability).
 - **Rebooting and evacuating are the user's decision**, every
   time: ask, and say how many VMs will move or stop. A host that
   cannot be evacuated (local storage, no room elsewhere) stops its
@@ -263,7 +265,9 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   Check: `iptables-restore --test < /etc/sysconfig/iptables`
   (<https://man7.org/linux/man-pages/man8/iptables-restore.8.html>);
   apply: `systemctl restart iptables`; revert: the backed-up file
-  restored, then `systemctl restart iptables`.
+  restored, then `systemctl restart iptables`. An IPv6 rule goes
+  the same way with `ip6tables-restore --test`,
+  `/etc/sysconfig/ip6tables` and the `ip6tables` service.
 
 ## SSH
 
@@ -345,13 +349,15 @@ Source: <https://docs.xcp-ng.org/management/backup/>.
 ## Housekeeping and Audits
 
 - **Pending updates:** `yum check-update -q`; they are the finding.
+  It exits 100 when updates are pending and 0 when none are; only
+  another code is a failed check.
   Xen Orchestra reads the same list through the `updater.py`
   plugin (`plugin=updater.py fn=check_update`,
   <https://github.com/xcp-ng/xcp-ng-xapi-plugins>).
 - **Pool, hosts and HA,** in one call:
   ```
   xe pool-list params=name-label,master,ha-enabled,ha-host-failures-to-tolerate,ha-plan-exists-for
-  xe host-list params=name-label,enabled,host-metrics-live,memory-total,memory-free
+  xe host-list params=uuid,name-label,enabled,host-metrics-live,memory-total,memory-free
   xe task-list params=uuid,name-label,status,progress
   ```
   A host with `enabled=false` left behind by maintenance, or
