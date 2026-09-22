@@ -31,7 +31,8 @@ says, and the guest's entry in `guests.md` names it (`prod/web3`).
 
 In one call: `incus storage info <pool>` for free space,
 `incus network list --project <project>` for the networks,
-`incus profile list` for the baseline profiles already there, and
+`incus profile list --project <project>` for the baseline
+profiles already there, and
 the host's `free -m` and `nproc`. The instances' limits are in the
 inventory listing.
 
@@ -86,8 +87,8 @@ afterwards. It is created in the same call as the launch above,
 which gains `-p default -p hostwarden-baseline-<family>-<n>`:
 
 ```bash
-incus profile create hostwarden-baseline-debian-3
-incus profile edit hostwarden-baseline-debian-3 < <file>
+incus profile create hostwarden-baseline-debian-3 --project <project>
+incus profile edit hostwarden-baseline-debian-3 --project <project> < <file>
 ```
 
 The YAML given to `incus profile edit` is the profile's own
@@ -108,12 +109,18 @@ Why a new profile each time rather than an edit: "if you edit a
 profile, the changes are automatically applied to all instances
 that use the profile". Instances already running would take the
 device and limit changes at once, and that is a change to servers
-nobody asked about. `incus profile show <name>` lists its
-`used_by`; a profile with anything in that list is read, never
-written. The `default` profile is never touched at all.
+nobody asked about. `incus profile show <name> --project <project>`
+lists its `used_by`; a profile with anything in that list is read,
+never written. The `default` profile is never touched at all.
+
+A profile belongs to a project, like the guest: every `profile`
+command here carries the guest's `--project`, as
+`rules/system-containers.md` → Reaching It says for every command,
+or the launch in that project does not find it.
 
 An older baseline profile that `used_by` shows as empty can be
-removed with `incus profile delete <name>`: offer it, name the
+removed with `incus profile delete <name> --project <project>`:
+offer it, name the
 profile, and leave the decision to the user.
 
 ## Waiting for the first boot

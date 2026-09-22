@@ -68,10 +68,20 @@ the seed in (`references/user-data.md` → The seed) in its
 manager-owned form, since LXC owns the container's network,
 hostname and `/etc/hosts`.
 
-Those two, the configuration below, the start and the wait go in
-one call, after the seed has been copied to the host:
+The seed is the first of them. Render it with the editing tool on
+the workstation, as `references/user-data.md` → Rendering it says,
+and copy it with `scp` and the options of `AGENTS.md` → SSH Options
+straight to its place in the stopped container's root filesystem,
+`/var/lib/lxc/<name>/rootfs/etc/cloud/cloud.cfg.d/90-hostwarden.cfg`.
+The cloud variant ships that directory. Nothing is started before
+the copy has succeeded.
+
+The other write, the configuration below, the start and the wait
+then go in one call, with a check first that the seed is where the
+guest will read it:
 
 ```bash
+test -s /var/lib/lxc/web4/rootfs/etc/cloud/cloud.cfg.d/90-hostwarden.cfg || exit 1
 rm /var/lib/lxc/web4/rootfs/etc/cloud/cloud-init.disabled
 lxc-start -n web4
 timeout 570 lxc-attach -n web4 -- cloud-init status --wait --long
