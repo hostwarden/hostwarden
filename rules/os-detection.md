@@ -451,13 +451,6 @@ the brackets — `Virtualization: none (bare metal,
 user)`, `kvm (VM, Hetzner, user)` — and is never
 probed again.
 
-`none (bare metal)` is the one case that carries a
-second machine: the board's management controller,
-which answers while the host is down and is the way
-back in when a change cuts SSH. Settle it once per
-host with `rules/management-controller.md`, which
-records a `Management:` line either way.
-
 ## Hypervisors
 
 Whether the host runs virtual machines or system
@@ -604,9 +597,6 @@ lines from step 1, and for a missing `Arch:` the
 `model name` and `hw.model` lines of `@hardware` that
 name the maker; on Windows the second call carries
 its `@hardware` part, which holds both. Virtualization
-and step 2 above settle them. A host that memory
-records as bare metal and that has no `Management:`
-line is settled by `rules/management-controller.md`,
-in a call of its own since it needs root. If a
-command fails or the OS no longer matches memory, run
-the full probe from step 1.
+and step 2 above settle them. If a command fails or
+the OS no longer matches memory, run the full probe
+from step 1.

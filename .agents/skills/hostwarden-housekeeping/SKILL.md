@@ -41,7 +41,9 @@ applies before any of this runs.
    a host whose OS file is not `sh`, in the form that file's
    `## Housekeeping and Audits` section gives. So do the USB
    inventory from `references/usb-devices.md` and the guest
-   check from `references/guests.md`.
+   check from `references/guests.md`. On a bare-metal host the
+   BMC event log from `references/bmc-event-log.md` runs too, on
+   the same terms.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report — where the OS file uses the
@@ -89,10 +91,10 @@ Read on demand, only when the relevant section applies:
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.
-- `rules/management-controller.md` → The event log — the BMC's
-  System Event Log, which carries power supply, fan, memory and
-  thermal failures the OS never sees. Only on a host whose
-  `memory.md` has a `Management:` line naming a BMC.
+- `references/bmc-event-log.md` — the BMC's System Event Log,
+  which carries power supply, fan, memory and thermal failures
+  the OS never sees. Only on a bare-metal host, and only where
+  the `Management:` line names a BMC.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
   GPU, MariaDB/MySQL, WireGuard, UPS (NUT, apcupsd), Pi-hole,

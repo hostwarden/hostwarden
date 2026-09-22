@@ -12,8 +12,9 @@ on its own unless a working login cancels it.
 The loaded OS or appliance file names three commands for
 its tool: a **check** that changes nothing, the **apply**,
 and the **revert**. Where it names no revert, do not apply
-over SSH: the user applies the change with console access
-ready. A tool that arms its own timed revert when it
+over SSH: the user applies the change with the way back in
+that `rules/management-controller.md` → The rescue path
+names, already open. A tool that arms its own timed revert when it
 applies names an **apply and arm** and a **confirm**
 instead; they stand in for steps 4, 5 and 7 below.
 
@@ -120,7 +121,9 @@ tests in the `- Access:` line (`rules/server-memory.md`).
 8. **Login fails:** change nothing more. Wait for the
    revert, then try a fresh login again. If the host still
    does not answer, follow `rules/ssh-unreachable.md` and
-   tell the user it needs the console.
+   tell the user which console it needs, by name and
+   address (`rules/management-controller.md` → The rescue
+   path).
 
 Log the change and its outcome, including a revert that
 fired (`rules/changelog.md`).

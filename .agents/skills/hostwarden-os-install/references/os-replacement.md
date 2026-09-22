@@ -162,10 +162,8 @@ Choose installation method based on access:
 
 - **Console/IPMI/KVM:** boot from ISO, run
   installer. Most reliable. Which console this host
-  has is the `Management:` line in its memory, with
-  the address in `memory/network.md`
-  (`rules/management-controller.md` → The rescue
-  path) — read it instead of asking.
+  has: `rules/management-controller.md` → The rescue
+  path.
 - **Cloud provider:** use provider's reinstall
   feature or deploy a new image.
 - **VM (UTM/QEMU/VMware):** boot from ISO, or use
@@ -243,8 +241,10 @@ After the new OS is installed and accessible:
 ## Doing this without a console
 
 When nobody can reach the machine and it has no out-of-band
-console, the installation methods above are not available. Two
-references carry those paths:
+console — which `rules/management-controller.md` → The rescue
+path settles, rather than the user being asked again — the
+installation methods above are not available. Two references
+carry those paths:
 
 - `references/os-replacement-ssh-only.md` — a same-family
   target: getting a rescue environment running over SSH and

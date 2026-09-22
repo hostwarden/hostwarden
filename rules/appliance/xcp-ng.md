@@ -233,9 +233,7 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   the pool's connection to the host. The docs: do it "from a
   console that won't be cut". There is no revert Hostwarden can
   arm for it (`rules/ssh-safety-net.md`): the user makes the
-  change with the way back in that the `Management:` line
-  records already open, named by address
-  (`rules/management-controller.md` → The rescue path).
+  change with console access (IPMI, physical) ready.
 
 ## High Availability
 

@@ -123,8 +123,9 @@ rules/                 — Upstream rule files (git-tracked)
   tls-pinning.md       — Pinning a self-signed appliance
                          certificate for API calls
   management-controller.md — A bare-metal host's BMC or
-                         Intel AMT: detect, record, read its
-                         event log, judge its exposure
+                         Intel AMT: detect it, record it, and
+                         name the way back in when a change
+                         cuts SSH
   platform/            — Reference data on top of whichever
                          family was detected. Detection reads
                          at most one
