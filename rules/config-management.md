@@ -36,7 +36,7 @@ u="$u|cfengine|cf-(agent|execd|serverd)|rudder|##cm-units unread"
 echo "##cm-units"
 { if [ -d /run/systemd/system ]; then systemctl list-unit-files --no-legend
   elif command -v rc-update >/dev/null 2>&1; then rc-update show
-  elif command -v sysrc >/dev/null 2>&1; then sysrc -a
+  elif command -v sysrc >/dev/null 2>&1; then sysrc -N -a
   elif command -v launchctl >/dev/null 2>&1; then launchctl list
   else false; fi 2>/dev/null || echo "##cm-units unread"; } \
   | grep -Ei "$u" || true
@@ -60,6 +60,15 @@ Manager) and this runs on every connection; OpenRC is read through
 dependency cache on the way. Each of the two lists what is enabled,
 which is what manages a host; an agent installed and left off shows
 in its directory above.
+
+`-N` prints the variable names without their values, and is not
+optional. `sysrc -a` prints `name=value`, and a filter that reads
+the whole line matches on the value too, so an unrelated
+`<something>_flags` whose value merely mentions one of these tools
+would be printed in full — with whatever token it carries
+(`rules/secrets.md`). A name is all the probe needs: whether the
+variable says `YES` or `NO` is not what makes it a lead, and the
+directory above is the evidence either way.
 
 `##cm-units unread` says the service list was not read, which is
 not the same as one that held nothing. It stands for both ways that
