@@ -114,13 +114,6 @@ third party says so; check it on the live host before relying on it.
 - **Automatic security updates.** There is no `unattended-upgrades`.
   OS updates are offered in the web UI (see Updates). Pending
   updates are the finding.
-- **systemd and the journal do apply.** The docs use `systemctl`
-  and `journalctl -u` on ZimaOS
-  (<https://www.zimaspace.com/docs/developer/nfs-on-zimaos>,
-  <https://www.zimaspace.com/docs/zimaos/app-store/enable-ai>).
-  Read unit names from the host with
-  `systemctl list-units --type=service --no-legend`; do not assume
-  them. `rules/service-reload.md` decides when to ask.
 
 ## Configuration
 
@@ -153,7 +146,7 @@ third party says so; check it on the live host before relying on it.
   (<https://www.zimaspace.com/docs/zimaos/remote-access>). Never
   print them.
 
-## App Store
+## Apps and Containers
 
 - Apps come from the App Store in the web UI. The documentation
   lists community stores that the user can import beside the
@@ -165,24 +158,19 @@ third party says so; check it on the live host before relying on it.
 - Settings → Apps sets the App data location, `/DATA/AppData/<app>`
   by default, and shows each app's disk use
   (<https://www.zimaspace.com/docs/zimaos/docker-app-paths>).
-
-## Apps and Containers
-
 - **Every App Store app is a Docker Compose project that the web UI
   owns.** Its compose file sits in the apps directory, one
   directory per app: `/var/lib/casaos/apps/<name>` on ZimaOS 1.5.0
   (`IceWhaleTech/ZimaOS` issue #328), the `AppsPath` default of
   `CasaOS-AppManagement`
-  (`build/sysroot/etc/casaos/app-management.conf.sample`). Read the
-  actual directory from the containers' compose labels rather than
-  assume it (see Housekeeping and Audits).
+  (`build/sysroot/etc/casaos/app-management.conf.sample`). The
+  housekeeping `docker ps` line reads the directory in use.
 - The Docker engine is part of the OS. Where images and container
   data live is read with `docker info --format '{{.DockerRootDir}}'`;
   Settings → Data Migration moves Docker images and app data to
   another storage space
   (<https://www.zimaspace.com/docs/zimaos/data-migration>).
-- Read, as root, with the `docker ps` line in Housekeeping and
-  Audits, and `docker inspect` for one container;
+- Read, as root: `docker inspect` for one container,
   `docker stats --no-stream` only when resource use is the
   question.
 - **Do not create, change or remove an app's container with
@@ -200,8 +188,7 @@ third party says so; check it on the live host before relying on it.
   UI.
 - **VMs** run in ZVM, ZimaOS's VM service on libvirt
   (<https://www.zimaspace.com/docs/zimaos/zvm-next-virtual-machines-community-preview>).
-  Where `virsh` exists, `virsh list --all` reads them; create,
-  change and remove VMs in the web UI.
+  Create, change and remove VMs in the web UI.
 
 ## Storage
 
@@ -236,13 +223,11 @@ third party says so; check it on the live host before relying on it.
   starts the update from the same button
   (<https://www.zimaspace.com/docs/zimaos/offline-install>). The
   update writes the other slot and takes effect at the next boot.
-  Never run `rauc install` or mark a slot by hand.
 - Pending updates: compare `VERSION_ID` with the newest tag without
   a `-beta` suffix at
   <https://github.com/IceWhaleTech/ZimaOS/releases>, from a live
   lookup (`rules/version-check.md`). The release notes are on the
   same page.
-- Apps update from the App Store or the app's page, after asking.
 - When a slot does not boot, the user picks the other one in the
   GRUB menu at the console
   (<https://www.zimaspace.com/docs/zimaos/system-recovery>).
@@ -250,19 +235,21 @@ third party says so; check it on the live host before relying on it.
 ## Reboots
 
 - Name what stops: every app, every VM, every share, remote access.
-- Reboot through the web UI or with `systemctl reboot`. Never
-  `poweroff`, `halt` or `shutdown` without `-r` (`AGENTS.md`
-  taboo), and never set the web UI's scheduled shutdown.
+- Reboot through the web UI or with `systemctl reboot`, and never
+  set the web UI's scheduled shutdown.
 
 ## Logs
 
-- ZimaOS logs to the journal (see What Does Not Apply). The
-  journal read-back of `rules/activity-check.md` applies unchanged,
-  and its oldest-entry line bounds it; a journal kept only in RAM
-  shows there as an oldest entry from the last boot.
-- `logger -t hostwarden` writes the journal line
-  (`rules/changelog.md`). The docs do not say whether ZimaOS ships
-  `logger`; where it fails, `rules/changelog.md` says what to do.
+- **systemd and the journal apply.** The docs use `systemctl` and
+  `journalctl -u` on ZimaOS
+  (<https://www.zimaspace.com/docs/developer/nfs-on-zimaos>,
+  <https://www.zimaspace.com/docs/zimaos/app-store/enable-ai>).
+  Read unit names from the host with
+  `systemctl list-units --type=service --no-legend`; do not assume
+  them.
+- The journal read-back of `rules/activity-check.md` and the
+  `logger -t hostwarden` line of `rules/changelog.md` apply
+  unchanged.
 
 ## Housekeeping and Audits
 
@@ -273,30 +260,29 @@ third party says so; check it on the live host before relying on it.
   What Does Not Apply and Updates). Housekeeping adds, as root, in
   one call:
   ```
-  grep -E '^(VERSION_ID|PRETTY_NAME)=' /etc/os-release
   rauc status
   for p in / /etc /var /var/log /var/lib/casaos /DATA; do
     findmnt -n -o TARGET,SOURCE,FSTYPE -T "$p"
   done
-  df -h -x tmpfs -x devtmpfs -x squashfs -x overlay
   cat /proc/mdstat
-  command -v smartctl zpool virsh
+  command -v smartctl || echo "smartctl missing"
+  command -v zpool && zpool status -x
+  command -v virsh && virsh list --all
   docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.project.working_dir"}}'
   ```
-  `command -v` shows which of the next checks can run: SMART with
-  the probe in
-  `.agents/skills/hostwarden-housekeeping/references/smart.md`,
-  `zpool status -x` for a hand-built pool, `virsh list --all` for
-  the VMs. A missing `smartctl` is named, never read as healthy
-  disks. The last column of the `docker ps` line is the apps
-  directory in use.
+  Where `smartctl` exists, SMART runs with the probe in
+  `.agents/skills/hostwarden-housekeeping/references/smart.md`; a
+  missing `smartctl` is named, never read as healthy disks. The
+  last column of the `docker ps` line is the apps directory in
+  use.
 - Findings:
   - a pending OS update, or a host on a beta;
   - a slot that `rauc status` reports as bad;
   - an md array degraded, resyncing or with a failed member, and
     the SMART findings of `smart.md`;
-  - the system drive or `/DATA` above 90 % full: the docs warn
-    that a full system drive makes updates fail
+  - the system drive or `/DATA` past the baseline's Disk Usage
+    limits: the docs warn that a full system drive makes updates
+    fail
     (<https://www.zimaspace.com/docs/zimaos/docker-app-paths>);
     an App data location left on the system drive is worth one
     line;
@@ -327,4 +313,3 @@ third party says so; check it on the live host before relying on it.
   which removes every web UI user.
 - Running `zimaos-fix.sh` from the ZimaOS repository: it rewrites
   files in the `/etc` overlay and grows the `/DATA` file system.
-- Changing root's password without an explicit request.

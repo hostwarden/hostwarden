@@ -140,8 +140,9 @@ skill says so where it needs it.
 
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`
-   from the os-release lines after `@release`. See
-   Appliances below. Where the probe already prints
+   from the os-release lines after `@release`, with or
+   without quotes around the value. See Appliances
+   below. Where the probe already prints
    what the appliance file's Version Detection reads,
    the version comes from the probe; otherwise run
    that command.
@@ -224,10 +225,6 @@ itself; its file says to stop there.
 `version="…"` is the content of `/etc/unraid-version`
 on a line of its own; an error that names the file is
 no match.
-`ID=zimaos` is the os-release line of ZimaOS, with or
-without quotes. CasaOS, ZimaOS's ancestor, installs on
-top of a distribution and leaves its `ID` alone: no
-match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
