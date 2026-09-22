@@ -128,7 +128,8 @@ No config file means the setup wizard is running: it listens on
 first. `http.address` is the web interface, `dns.bind_hosts`
 defaults to `0.0.0.0`, and `allowed_clients` is the only list
 that restricts who is answered — unless it is empty or holds a
-network that covers everything, such as `0.0.0.0/0` or `::/0`. `users` with no `name`
+network that covers everything, such as `0.0.0.0/0` or
+`::/0`. `users` with no `name`
 line means no login. The `sed` ranges keep the `users` password
 hashes and `tls.private_key` out of the output. Source:
 https://github.com/AdguardTeam/AdGuardHome, `internal/home/` and
