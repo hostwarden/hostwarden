@@ -74,10 +74,9 @@ date +%s; ls -1 "$D"
 
 The call changes into the directory first and checks the one it is
 in, then works by relative name: a directory swapped for a link
-after the check cannot redirect the write. It creates the register
-with its final mode in the one `mkdir`, under `umask 0`, rather
-than with `mkdir -m` or a `chmod` afterwards, either of which can
-set the mode through a path someone swapped in the meantime.
+after the check cannot redirect the write. The one `mkdir` under
+`umask 0` sets the final mode; a later `chmod`, or `mkdir -m`,
+could set it through a path swapped in between.
 
 **`registered` missing** — the register is not one every session
 can use: `ls -ld` shows a link, a file, a sticky `t` in the tenth

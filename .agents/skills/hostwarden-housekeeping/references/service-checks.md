@@ -101,10 +101,11 @@ Triggered when `memory.md` mentions Docker.
 
 ```bash
 docker ps --format \
-  "table {{.Names}}\t{{.Status}}\t{{.Ports}}" \
-  2>/dev/null
+  "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
 ```
 
+- **CRITICAL** if the daemon does not answer — that says nothing
+  about the containers, never that there are none
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
@@ -130,13 +131,13 @@ systemctl list-unit-files --type=service --no-legend \
 ```
 
 No `docker` on the host means no containers: go on with the Core
-unit search. A Docker daemon that does not answer says nothing
-about the containers: where `memory.md` records Container or
-Supervised, keep that install type and report Home Assistant as
-not running (below), naming the daemon as the cause; with nothing
-recorded, go on with the Core search and say that Docker could
-not be asked. Permission denied on the Docker socket is different
-— the containers are there but unseen, so get the access through
+unit search. A Docker daemon that does not answer is the Docker
+section's finding, not an empty list. Where `memory.md` records
+Container or Supervised, keep that type and report Home Assistant
+as not running (below), naming the daemon. With nothing recorded,
+go on with the Core search and say Docker could not be asked.
+Permission denied on the Docker socket is different — the
+containers are there but unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
 never conclude Core from it.
 
