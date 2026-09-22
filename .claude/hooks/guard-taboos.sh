@@ -48,6 +48,14 @@
 #     as the target of Edit, Write, MultiEdit or NotebookEdit,
 #     which reach this machine's files without any shell
 #
+# ASKED, not denied -- the user confirms the exact command in a
+# permission prompt (see "Guest stop and delete" at the end for
+# the membership criterion and the modes that deny instead):
+#
+#   - stopping or deleting a system container or VM (pct/qm
+#     stop, shutdown or destroy, incus/lxc stop or delete, virsh
+#     destroy, shutdown or undefine, lxc-stop, lxc-destroy)
+#
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That
 # is documentation, not code. Every other heredoc — above all
@@ -135,7 +143,9 @@
 # commit -F, gh --body-file) or the pattern stops spelling the
 # word. The deny message says so: an agent left to guess learns
 # that routing around the guard is normal, and that habit is the
-# danger on a production host.
+# danger on a production host. The same holds for an asked
+# command: put it to the user as it stands, never in another
+# spelling that skips the prompt.
 #
 # Two scopes, chosen by the mode mode.sh determines:
 #
@@ -185,26 +195,27 @@ if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
   fi
 fi
 
-deny() {
-  # JSON decision on stdout; blocks in all permission modes.
-  # Reasons must stay plain ASCII without quotes/backslashes.
+decide() {
+  # decide <deny|ask> <reason> -- the JSON decision on stdout, then
+  # done. Reasons must stay plain ASCII without quotes/backslashes.
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
-  printf '(AGENTS.md - Critical Safety Rules). %s' "${GUARD_SCOPE_NOTE:-}"
-  printf 'Blocked in all '
-  printf 'permission modes. Explain this to the user, and never '
-  printf 'reach the same effect another way - not by rephrasing, '
-  printf 're-quoting or switching tools. A command that only '
-  printf 'carries the word as text and runs none of it is not '
-  printf 'evading anything when the text moves into a file that '
-  printf 'is passed instead (git commit -F, gh --body-file), or '
-  printf 'when a search pattern stops spelling the word '
-  printf '(power[o]ff). Installing or '
-  printf 'replacing an OS is the one flow that legitimately '
-  printf 'needs these commands: read the hostwarden-os-install '
-  printf 'skill, which states what has to hold first."}}\n'
+  printf '"permissionDecision":"%s",' "$1"
+  printf '"permissionDecisionReason":"hostwarden guard: %s"}}\n' "$2"
   exit 0
+}
+
+deny() {
+  # A taboo: blocks in all permission modes.
+  decide deny "$1 (AGENTS.md - Critical Safety Rules). \
+${GUARD_SCOPE_NOTE:-}Blocked in all permission modes. Explain this to \
+the user, and never reach the same effect another way - not by \
+rephrasing, re-quoting or switching tools. A command that only \
+carries the word as text and runs none of it is not evading anything \
+when the text moves into a file that is passed instead (git commit \
+-F, gh --body-file), or when a search pattern stops spelling the \
+word (power[o]ff). Installing or replacing an OS is the one flow that \
+legitimately needs these commands: read the hostwarden-os-install \
+skill, which states what has to hold first."
 }
 
 # --- Edit, Write, MultiEdit, NotebookEdit: the target path ------
@@ -680,7 +691,7 @@ fi
 # Windows rules need no scope: WIN below gates them, and a
 # Windows user reaches wsl --unregister or Stop-Computer without
 # admin, so they apply in both.
-REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|incus|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
+REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|lxc-[[:alpha:]]+|incus|pct|qm|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
 SCOPE=full
 case $0 in */*) HOOKDIR=${0%/*} ;; *) HOOKDIR=. ;; esac
 if [ -f "$HOOKDIR/mode.sh" ]; then
@@ -713,6 +724,12 @@ full() { [ "$SCOPE" = full ]; }
 # power off without root.
 power() { full || [ -d /run/systemd/system ]; }
 
+# The global options a guest manager (pct, qm, virsh, incus, lxc)
+# takes between its name and its verb: -c URI, --project NAME, or
+# any single dash word. The power-off rules and the guest rule
+# below both need them.
+GOPTS='([[:space:]]+(-c|--connect|--project)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
+
 # --- Power off ------------------------------------------------
 if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
   deny "halt/poweroff never runs without explicit user request"
@@ -731,6 +748,17 @@ fi
 # skips their greps, as the Windows rules do with WIN below.
 case "$CMD$CMDJ$CMDQ" in
 *shutdown*)
+  # pct, qm and virsh take shutdown as a verb for one guest, which
+  # the guest rule at the end asks about. The host rules here judge
+  # the segments with that verb renamed, and the full set is
+  # restored after them.
+  SEGS_ALL=$SEGS
+  case $SEGS in
+  *pct*|*qm*|*virsh*)
+    SEGS=$(printf '%s\n' "$SEGS" | sed -E \
+      "s/((^|[^[:alnum:]_.-])(pct|qm|virsh)${GOPTS}[[:space:]]+)shutdown/\1guest-off/g")
+    ;;
+  esac
   # Windows' shutdown is judged below, so the Linux rule exempts
   # it rather than lending it its -r: shutdown.exe, or shutdown
   # whose every flag takes Windows' slash, as a Windows server
@@ -768,6 +796,7 @@ halts or powers off the server even beside -r"
     deny "shutdown -c with a time power cycles a FreeBSD server \
 (on Linux, shutdown -c alone cancels)"
   fi
+  SEGS=$SEGS_ALL
   ;;
 esac
 # Windows reads shutdown in any case and takes its flags with / or
@@ -1370,6 +1399,72 @@ read - read it with cat, grep or sshd -T instead"
 line can overwrite the device, which destroys everything the \
 partition table points at"
   fi
+fi
+
+# --- Guest stop and delete: ask, never silently allow ----------
+# Stopping a container or VM powers that server off and deleting
+# it destroys it (rules/system-containers.md), but managing guests
+# on a host Hostwarden administers is legitimate work. So this is
+# the hook's second tier: the user confirms the exact command in a
+# prompt. Membership is narrow on purpose -- an effect earns ask
+# instead of deny only when it is routine admin work AND no
+# user-tunable policy already covers it (service restarts have
+# memory/service-policy.md, so they stay with the model). It is
+# decided last, so a taboo anywhere in the same command still
+# denies.
+#
+# The prompt must reach a human. Claude Code documents ask as
+# forcing one in auto mode; for bypassPermissions and dontAsk it
+# documents nothing, so those deny, and so does a mode this hook
+# cannot read. Measured upstream in Heinzel with Claude Code
+# 2.1.267: in claude -p an ask is refused whatever the mode, so an
+# unattended run stops rather than hanging, and a session started
+# with --permission-mode auto reports default here. The operator
+# override is HOSTWARDEN_GUARD_DISABLE, as for a taboo.
+#
+# Only the manager's own verb counts: a service stopped or a file
+# deleted inside a guest through exec stays allowed, and so do
+# snapshot, image, network and storage verbs, which carry a noun
+# before theirs. The case prefilter spares every command without a
+# manager's name the greps.
+GUEST=
+case "$CMD$CMDJ$CMDQ" in
+*pct*|*qm*|*virsh*|*incus*|*lxc*)
+  if full && hit "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|lxc-destroy)([^[:alnum:]_-]|\$)"
+  then
+    GUEST=1
+  fi
+  ;;
+esac
+case "$CMD$CMDJ$CMDQ" in
+*lxc-stop*)
+  if full && hit_without '(^|[^[:alnum:]_.-])lxc-stop([^[:alnum:]_.-]|$)' \
+    '(^|[[:space:]])(-r|--reboot)([[:space:]]|$)'
+  then
+    GUEST=1
+  fi
+  ;;
+esac
+if [ -n "$GUEST" ]; then
+  # No jq means no mode, hence deny.
+  MODE=
+  if command -v jq >/dev/null 2>&1; then
+    MODE=$(printf '%s' "$INPUT" \
+      | jq -r '.permission_mode // empty' 2>/dev/null) || MODE=
+  fi
+  case $MODE in
+  default|acceptEdits|plan|auto)
+    decide ask "stopping or deleting a system container or VM powers \
+off or destroys that server (rules/system-containers.md). Check the \
+guest ID and the host before approving."
+    ;;
+  *)
+    decide deny "stopping or deleting a system container or VM needs \
+a confirmation prompt, and this session shows none, or a permission \
+mode this hook does not know. Not a taboo: run it in a session that \
+asks, or let the user run it. Do not rephrase the command."
+    ;;
+  esac
 fi
 
 # No taboo matched: no decision, normal permission flow applies.
