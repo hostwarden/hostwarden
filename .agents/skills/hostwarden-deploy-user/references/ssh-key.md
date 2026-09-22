@@ -40,6 +40,9 @@ ssh root@hostname 'sh -c "
 "' < /path/to/deploy_ed25519.pub
 ```
 
+On macOS, change the paths and the group in this block and the
+verification below as the skill says.
+
 Then verify: both paths belong to `deploy`, with
 modes `drwx------` and `-rw-------`, and the last
 line matches the public key.

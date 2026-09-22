@@ -22,6 +22,8 @@ locations:
 - `/opt/<app>` — standalone services
 - `/home/deploy/<app>` — when no system path fits
 - `/usr/local/www/<app>` — web applications on FreeBSD
+- on macOS, `/Users/deploy/<app>`, or under the Homebrew prefix
+  (`$(brew --prefix)/var/www/<app>`) for a Homebrew web server
 
 Do not grant ownership of directories outside the
 deployment target.
@@ -74,6 +76,21 @@ If the application can reload without sudo (e.g.
 via a signal file or socket), prefer that approach
 and skip sudoers entirely.
 
+On macOS the drop-in path is the same, and the command is
+launchd's; `brew services` never runs under sudo
+(`rules/os/macos.md` → Package Manager). The domain depends on
+who started the job: a LaunchDaemon in `/Library/LaunchDaemons`
+is `system/<label>` (`sudo launchctl list`), a service started
+with `brew services` belongs to the admin who started it,
+`gui/<uid>/<label>` with that admin's numeric UID:
+
+```
+deploy ALL=(root) NOPASSWD: /bin/launchctl kickstart -k system/<label>
+deploy ALL=(root) NOPASSWD: /bin/launchctl kickstart -k gui/<uid>/<label>
+```
+
+Keep only the line that fits.
+
 ## Login Shell Override for Deployment
 
 The deploy user is created with
@@ -93,6 +110,8 @@ usermod -s /bin/sh deploy
 ```
 
 On FreeBSD: `pw usermod deploy -s /bin/sh`.
+
+On macOS: `dscl . -create /Users/deploy UserShell /bin/sh`.
 
 As the key line:
 
@@ -115,6 +134,9 @@ usermod -s /bin/bash deploy
 On FreeBSD, bash is a package: check `command -v bash` first,
 and install it only if the user agrees (`rules/version-check.md`);
 then `pw usermod deploy -s /usr/local/bin/bash`.
+
+On macOS, prefer `/bin/sh` or `/bin/zsh`: `/bin/bash` is 3.2
+and lacks what bash 4 added.
 
 Discuss the trade-off with the user: a full shell
 without a forced command is more flexible but
