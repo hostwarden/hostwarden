@@ -1267,7 +1267,11 @@ them"
         }
         if (!n) print "command"
         if (rest ~ ENVIRON["K"]) print "PATH"
-        if (rest ~ /generate_ssh_key=/ && rest ~ /(^|[[:space:]])force=([Yy]es|[Tt]rue|1|[Oo]n)([[:space:]]|$)/)
+        # Ansible reads booleans in any case and from JSON too, so
+        # force counts unless it is plainly false.
+        lr = tolower(rest)
+        if (lr ~ /generate_ssh_key/ && lr ~ /(^|[^a-z_])force([^a-z_]|$)/ \
+            && lr !~ /(^|[^a-z_])force[[:space:]]*[=:][[:space:]]*(no|n|false|0|off)([^a-z0-9]|$)/)
           print "KEYGEN"
       }')
     AWRITE='' APATH=''
@@ -1301,7 +1305,11 @@ and cat, or with -m stat"
 esac
 case "$CMD$CMDJ$CMDQ" in
 *terraform*|*tofu*)
-  if full && hit '(^|[^[:alnum:]_.-])(terraform|tofu)[[:space:]]([^;&|]*[[:space:]])?(apply|destroy)([^[:alnum:]_-]|$)'
+  # The verb is the first word after the global options, whose value
+  # may be quoted (-chdir="my infra"): terraform output apply only
+  # reads an output named apply.
+  TFOPT='-[^[:space:]"'\'']*("[^"]*"|'\''[^'\'']*'\'')?[^[:space:]]*'
+  if full && hit "(^|[^[:alnum:]_.-])(terraform|tofu)([[:space:]]+$TFOPT)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|\$)"
   then
     deny "terraform and tofu apply and destroy can replace or \
 delete the server itself - the user runs them \

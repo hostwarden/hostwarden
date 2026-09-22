@@ -912,6 +912,13 @@ check deny 'ansible web1.example.com -m include_role -a name=disks'
 check deny 'ansible web1.example.com -m ansible.builtin.include_tasks -a file=wipe.yml'
 check deny 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=yes"'
 check deny 'ansible web1.example.com -m ansible.builtin.user -a "name=alice force=true generate_ssh_key=true"'
+check deny 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=TRUE"'
+check deny "ansible web1.example.com -m user -a '{\"name\": \"alice\", \"generate_ssh_key\": true, \"force\": \"YES\"}'"
+check deny 'ansible web1.example.com -m user -a "name=alice generate_ssh_key=1 force=y"'
+check pass 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=no"'
+check pass 'terraform output apply'
+check pass 'tofu -chdir=infra output destroy'
+check pass 'terraform state show aws_instance.apply'
 check pass 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes"'
 check pass 'ansible web1.example.com -b -m user -a "name=alice state=present force=yes"'
 # Login options name a key without writing it, and the --*-args
