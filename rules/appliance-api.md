@@ -84,8 +84,26 @@ appliance file says so by name.
   conversation**: the filter in `rules/secrets.md` → API
   Credentials on the Workstation, with the appliance's own secret
   fields added to its pattern, then a projection to what the
-  question needs. `jq -s` reads the stream as one array in which
-  each response is followed by its marker.
+  question needs. **Read the stream line by line, not as one
+  document**: an error page is HTML, and a single `jq -s` over the
+  whole stream then aborts on it and loses the markers that say
+  which request failed.
+
+  ```
+  jq -Rn '[inputs | . as $l | try fromjson catch {"raw": $l[0:200]}]'
+  ```
+
+  Each response and each marker is one line, so what survives is an
+  array in which every response is followed by its marker, and a
+  body that is not JSON is carried as `raw` instead of killing the
+  run.
+- **A task is only done when every marker it expected came back.**
+  `jq` accepts an empty stream, so an SSH login that fails, a
+  connection that drops or a shell that never starts would
+  otherwise end in a clean-looking empty result. Count the markers
+  against the requests sent, run the local pipeline under
+  `set -o pipefail` so the transport's exit status is not swallowed
+  by `jq`, and report a missing marker as a check that did not run.
 - A read that fails is a check that did not run, never a clean
   result: report every marker whose `code` says so, by name. An
   unknown field or a `404` is a fact to report; never guess another
