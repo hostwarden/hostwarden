@@ -24,5 +24,9 @@ report its changes. Then rate:
   the next reboot
 - a running VM whose entry says `no agent`: **INFO**
 
+What the host passed to a guest belongs to that guest's entry,
+and what it means for the host to its `Passthrough:` line
+(`references/passthrough.md`).
+
 A guest's own health is its own housekeeping run, never part of
 this one.

@@ -41,7 +41,8 @@ applies before any of this runs.
    a host whose OS file is not `sh`, in the form that file's
    `## Housekeeping and Audits` section gives. So do the USB
    inventory from `references/usb-devices.md`, the guest check
-   from `references/guests.md`, and
+   from `references/guests.md`, on a host with guests the
+   passthrough inventory from `references/passthrough.md`, and
    `references/bmc-event-log.md`, which settles the `Management:`
    line on every host and reads the event log where there is a
    BMC. An override of `rules/baseline.md` changes what the checks
@@ -92,6 +93,9 @@ Read on demand, only when the relevant section applies:
   hypervisor, and on one its guest inventory: stopped guests
   without a reason, retired ones past their date, guests that do
   not start with the host.
+- `references/passthrough.md` — what a host handed to a guest, a
+  PCI or USB device or a directory, the `Passthrough:` line, and
+  a bind mount whose share is not mounted.
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.

@@ -228,14 +228,23 @@ Source for everything below unless noted: the admin guide,
   for f in /etc/pve/qemu-server/*.conf /etc/pve/lxc/*.conf; do
     echo "@conf $f"
     sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
-      /^onboot:/p; /^agent:/p' "$f"
+      /^onboot:/p; /^agent:/p; /^hostpci[0-9]*:/p;
+      /^usb[0-9]*:/p; /^dev[0-9]*:/p; /^mp[0-9]*:/p;
+      /^lxc\.mount\.entry:/p;
+      /^lxc\.cgroup2\.devices\.allow:/p' "$f"
   done
   cat /etc/pve/ha/resources.cfg
   ```
 
   A VM's MAC is the value after its model (`virtio=`, `e1000=`)
   in `netN:`, a container's the `hwaddr=` value; the UUID is
-  `uuid=` in `smbios1:`. `resources.cfg` names the HA-managed
+  `uuid=` in `smbios1:`. The `hostpci`, `usb`, `dev`, `mp` and
+  `lxc.` lines are what the host passed to that guest
+  (`.agents/skills/hostwarden-housekeeping/references/passthrough.md`):
+  a VM's `hostpci0:` names its device by `<vendor>:<device>` or
+  PCI address, `usb0:` by `vendor:product` or a bus port, a
+  container's `dev0:` is a device node and `mp0:` a directory.
+  `resources.cfg` names the HA-managed
   guests (`vm: 101`, `ct: 102`); their entry says `HA` instead of
   autostart, since HA ignores `onboot`. The light listing is
   `qm list; pct list`.
@@ -312,15 +321,9 @@ Source for everything below unless noted: the admin guide,
 - Check quorum (`pvecm status`) and a pending reboot (see
   Updates).
 - A missing backup job for running guests is a finding.
-- USB passthrough for the USB inventory
-  (`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`),
-  in the same call as its probe. A VM's line reads
-  `host=<vendor>:<product>` or a bus port:
-
-  ```sh
-  grep -H '^usb[0-9]*:' /etc/pve/qemu-server/*.conf
-  grep -HE '^dev[0-9]*:|lxc.mount.entry.*(ttyUSB|ttyACM|serial)' /etc/pve/lxc/*.conf
-  ```
+- The passthrough lines the inventory above collects are read by
+  `.agents/skills/hostwarden-housekeeping/references/passthrough.md`,
+  which also holds the host's own side.
 - A `Baseline template:` line (Guests): its archive missing from
   `pveam list local` is **WARN**, containers cannot be created
   from it; one due for a rebuild is **INFO**.
