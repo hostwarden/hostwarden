@@ -67,8 +67,8 @@ if command -v nmcli >/dev/null 2>&1; then
 fi
 if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
   if [ "$S" = - ]; then echo "netplan=unknown(needs-root)"
-  else $S grep -hE \
-    '^[[:space:]]*(renderer|dhcp4|dhcp6|accept-ra):' \
+  else $S grep -HE \
+    '^[[:space:]]*([a-z0-9_.-]+:|renderer|dhcp4|dhcp6|accept-ra):' \
     /etc/netplan/*.yaml
   fi
 fi

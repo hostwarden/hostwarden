@@ -23,15 +23,14 @@ servers some agents bring are the security audit's
 ```bash
 a='tailscaled|headscale|netbird|zerotier-one|nebula|dnclient'
 a="$a|newt|cloudflared|wireguard-go|netclient|openvpn|charon"
-ps ax -o args= | grep -E "^([^ ]*/)?($a)(-systemd)?( |\$)" \
-  | sed 's/ .*//' | sort -u
-if command -v ip >/dev/null 2>&1; then
-  ip -br link show type wireguard
-  ip -br addr | grep -E '^(tailscale|zt|nebula|tun)'
-else
-  ifconfig -g wg 2>/dev/null
-  ifconfig -l
-fi
+{ ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
+  | grep -oE "(^|[/[:space:]])($a)(-systemd)?([[:space:]]|\$)" \
+  | tr -d ' /' | sort -u
+ip -br link show type wireguard 2>/dev/null \
+  || ip link show 2>/dev/null \
+  || { ifconfig -g wg 2>/dev/null; ifconfig -l; }
+ip -br addr 2>/dev/null | grep -E '^(tailscale|zt|nebula|tun)' \
+  || ip addr show 2>/dev/null | grep -E ': (tailscale|zt|nebula|tun)'
 ls -d /Applications/Tailscale.app /Applications/WireGuard.app \
   2>/dev/null
 if command -v tailscale >/dev/null 2>&1; then
@@ -50,7 +49,9 @@ if command -v netbird >/dev/null 2>&1; then
 fi
 ```
 
-The `sed` keeps the program and drops its arguments, which can
+The match takes the program name wherever the process list puts
+it — BusyBox `ps` and `ip` take neither the BSD options nor
+`-br` (`rules/busybox.md`) — and keeps no argument, which can
 hold a token (`rules/secrets.md`). Kernel WireGuard has no
 process; `ip -br link show type wireguard` lists it whatever its
 name (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`),
