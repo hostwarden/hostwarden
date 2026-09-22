@@ -528,12 +528,14 @@ never replaces it.
   - The light listing is `vm.query`, `virt.global.config`,
     `virt.instance.query` and `container.query`, with `"select"`
     narrowed to `id` and the state field.
-  - A guest is gone once `vm.get_instance <id>`,
-    `virt.instance.get_instance <id>` or
-    `container.get_instance <id>` answers that it does not exist
-    (`service/crud_service.py`), all of them in one call with
+  - A guest is gone once its manager's query filtered to its ID,
+    `midclt call vm.query '[["id", "=", <id>]]' '{"select": ["id"]}'`
+    and the same for `virt.instance` and `container`, answers `[]`
+    with `rc` 0, all of them in one call with
     `virt.global.config`; for `virt.instance`, only while that
-    says `INITIALIZED`.
+    says `INITIALIZED`. Not `…get_instance`: its "does not exist"
+    is an error, which goes to stderr with `rc` 1 like every other
+    failure.
 - **Guest tools:** none. No release up to 26 has a read-only
   method for a VM's guest agent. A `virt.instance` lists its
   global addresses in `aliases`; a `container` from 26 on lists

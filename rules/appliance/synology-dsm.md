@@ -328,7 +328,10 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
   API read: api-read (<group>), ~/hostwarden-keys/<nas>/dsm-ro.pass
   API write: none
   API path: ssh
+  API port: 5443
   ```
+  `API port:` only where the HTTPS port under Control Panel →
+  Login Portal is not 5001.
 - Enforced 2-factor authentication that covers the account stops
   the login with error 403 ("2-step verification code required"),
   and auto block counts its failed logins (Access and Privileges).
@@ -336,22 +339,22 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
 ### Reading
 
 Over SSH as the session's user, curl on the NAS against its own
-HTTPS port, 5001 unless Control Panel → Login Portal says
-otherwise. The password, the session ID and the token reach curl
-on stdin, through `read` and the builtin `printf`, never in
-`argv`; the login's answer is printed only when it failed, and
-then carries neither:
+HTTPS port, 5001 unless memory records `API port:`. The
+password, the session ID and the token reach curl on stdin,
+through `read` and the builtin `printf`, never in `argv`; the
+login's answer is printed only when it failed, and then carries
+neither:
 
 ```
 ssh … <user>@<nas> 'u=https://127.0.0.1:5001/webapi/entry.cgi
   IFS= read -r p
   r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \
     --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&format=sid&enable_syno_token=yes" \
-    "$u")
+    "$u"); c=$?
   s=$(printf %s "$r" | sed -n "s/.*\"sid\" *: *\"\([^\"]*\)\".*/\1/p")
   t=$(printf %s "$r" | sed -n "s/.*\"synotoken\" *: *\"\([^\"]*\)\".*/\1/p")
-  [ -n "$s" ] || { printf %s "$r" | tr -d "\n"; echo; echo "{\"@\": \"login\"}"; exit 0; }
-  echo "{\"@\": \"login\"}"
+  [ -n "$s" ] || { printf %s "$r" | tr -d "\n"; echo; echo "{\"@\": \"login\", \"rc\": $c}"; exit 0; }
+  echo "{\"@\": \"login\", \"rc\": $c}"
   for a in Host Guest; do
     o=$(printf "api=SYNO.Virtualization.API.%s&version=1&method=list&_sid=%s&SynoToken=%s" \
       "$a" "$s" "$t" | curl -sSk --data @- "$u"); c=$?
@@ -370,17 +373,22 @@ ssh … <user>@<nas> 'u=https://127.0.0.1:5001/webapi/entry.cgi
   line, and its marker carries curl's exit status. A response
   whose `success` is not `true`, or an `rc` other than 0, is a
   check that did not run, reported with its code; a login answer
-  before the `login` marker is the login failing, with the codes
-  400 to 404 the VMM guide lists for `SYNO.API.Auth`.
+  before the `login` marker is the login failing: with `rc` 0,
+  the codes 400 to 404 the VMM guide lists for `SYNO.API.Auth`,
+  otherwise no connection, never a reason to ask for a new
+  password.
 - The workstation's filter is the one in `rules/secrets.md` → API
   Credentials on the Workstation, unchanged.
 
 ### Guests
 
-- **Inventory** (`rules/hypervisors.md`): record
-  `Hypervisor: Synology VMM (Web API, read-only)` where
-  `/var/packages/Virtualization` exists and the listing shows a
-  guest. Per entry of `data.guests`: `guest_id`, `guest_name`,
+- **Inventory** (`rules/hypervisors.md`): `ls -d
+  /var/packages/Virtualization` decides whether VMM is installed.
+  Where it is and memory has no `API read:` line, say in one line
+  that its guests are not inventoried until the user sets up Read
+  access, and record nothing. Otherwise record
+  `Hypervisor: Synology VMM (Web API, read-only)` once the listing
+  shows a guest. Per entry of `data.guests`: `guest_id`, `guest_name`,
   `status`, and `autorun`: `2` is autostart, `1` starts the VM in
   the state it was in when the host went down, `0` is none. MACs
   are `vnics[].mac`. The light listing is the same call with
