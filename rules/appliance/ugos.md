@@ -458,6 +458,12 @@ host, not as documented behaviour.
     download policies are reported the same way: automatic security
     updates are not established;
   - a container app the App Center shows as needing repair;
+  - an app with an update available in the App Center, and
+    automatic app updates off (article 116). UGREEN documents no
+    command for either, so both come from the App Center page the
+    user reads, as the firmware update state does (see Updates);
+    without that answer, app updates are named as unchecked, never
+    as current;
   - no configuration backup: no `.ugb` download and no cloud
     backup of the configuration (article 110). Data backups are
     `references/backup-presence.md`'s.
