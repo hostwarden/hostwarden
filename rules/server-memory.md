@@ -2,8 +2,10 @@
 
 Each server: `memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
-and optionally `rules.md` (per-server rule
-overrides — see `rules/overrides.md`).
+optionally `rules.md` (per-server rule
+overrides — see `rules/overrides.md`), and on a
+hypervisor `guests.md`, its guest inventory
+(`rules/hypervisors.md`).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
@@ -99,8 +101,10 @@ filled from an example. A container engine is recorded as
 `- Container runtime: podman (rootless: alice)`, the form
 `rules/service-class-check.md` gives.
 
-`Virtualization:` and `Arch:` come from
-`rules/os-detection.md` → Virtualization and step 2.
+`Virtualization:`, `Arch:` and `Hypervisor:` come
+from `rules/os-detection.md`; `Guest identity:`,
+`Runs on:` and, on a guest registered through its
+host, `SSH: untested`, from `rules/hypervisors.md`.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

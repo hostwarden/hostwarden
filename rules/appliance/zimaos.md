@@ -197,6 +197,10 @@ third party says so; check it on the live host before relying on it.
 - **VMs** run in ZVM, ZimaOS's VM service on libvirt
   (<https://www.zimaspace.com/docs/zimaos/zvm-next-virtual-machines-community-preview>).
   Create, change and remove VMs in the web UI.
+- **Inventory** (`rules/hypervisors.md`): record
+  `Hypervisor: ZimaOS ZVM (virsh, read-only)` where `virsh`
+  exists. The listing is `virsh list --all`, the rest as
+  `rules/hypervisors.md` gives it for libvirt, reads only.
 
 ## Storage
 

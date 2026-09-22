@@ -224,6 +224,7 @@ whoami
 '@hardware'
 try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop; $cs.Manufacturer; $cs.Model; $cs.SystemType; (Get-CimInstance Win32_Processor -ErrorAction Stop).Name; $cs.NumberOfLogicalProcessors; [math]::Round($cs.TotalPhysicalMemory / 1GB) } catch { "failed: $_" }
 try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | Format-Table DeviceID, Size, FreeSpace } catch { "failed: $_" }
+(Get-Service vmms -ErrorAction SilentlyContinue).Name
 ```
 
 `@hardware` runs on the first connection only;
@@ -252,6 +253,13 @@ says when it runs again.
   hardware vendor's name and model is bare metal;
   anything else is unknown. `HypervisorPresent`
   settles nothing: it is also true on a Hyper-V host.
+- A `vmms` line is the Hyper-V management service: the
+  host is a Hyper-V candidate (`rules/os-detection.md` →
+  Hypervisors). Its guests: `Get-VM` (`Name`, `State`,
+  `VMId`, `AutomaticStartAction`) and
+  `Get-VMNetworkAdapter -VMName *` (`VMName`,
+  `MacAddress`, and `IPAddresses`, which the integration
+  services fill).
 
 Record, besides the usual fields: `OS: <Caption> (build
 <build>)`, `Installation: Server Core` or `Desktop Experience`,

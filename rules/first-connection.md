@@ -39,7 +39,9 @@ moment") — don't skip.
    the first. See `rules/activity-check.md`. The
    configuration-management probes go into the same
    call, as `rules/config-management.md` → Detect
-   says.
+   says; so do a hypervisor's guest listing and a
+   guest's link keys when `rules/os-detection.md` →
+   Hypervisors says so.
 8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,

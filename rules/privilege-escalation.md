@@ -54,6 +54,12 @@ the firewall, services and system files are still
 reported as skipped, and the run still ends in a
 sysadmin report. Never add a user to the group.
 
+The same holds for `libvirt`, `incus-admin` and
+`lxd`, whose members manage the host's guests: record
+the group the same way, and use it only for the guest
+work `rules/hypervisors.md` and
+`rules/system-containers.md` describe.
+
 ## Stand-ins for sudo
 
 The loaded OS file may have a `## Privileges` section

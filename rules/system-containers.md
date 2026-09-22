@@ -9,8 +9,9 @@ Podman) are `rules/containers.md`.
 ## Reaching It
 
 **SSH first, always.** Via-host mode
-(`rules/first-connection.md` → Via-host mode) is the fallback,
-for two cases only:
+(`rules/first-connection.md` → Via-host mode) is the fallback
+for the first two cases below, and the third is one read-only
+first contact:
 
 - **SSH gives no answer:** only as `rules/ssh-unreachable.md` →
   A guest on a known host allows, for this session. Server memory
@@ -21,6 +22,9 @@ for two cases only:
   reaches Windows over OpenSSH only (`rules/os/windows.md`), and
   the pipeline's `sh -c` finds no shell there. Install OpenSSH,
   or leave the guest to its console.
+- **Registering a guest from its host's inventory:** read-only,
+  once per guest, as `rules/hypervisors.md` → Registering Guests
+  describes.
 
 Through the host's manager, as root inside:
 
@@ -58,6 +62,9 @@ of the same name: without the project, the pipeline and every
 change after it land on the wrong server.
 
 LXD's client is named `lxc`; the classic LXC tools are `lxc-*`.
+On an appliance, only the tools its file names: on Proxmox VE
+`pct` and `qm`, never `lxc-attach` or `virsh`, although its
+guests are LXC and QEMU underneath.
 A libvirt VM, or one without the QEMU guest agent, has only its
 console: interactive, the user's tool, not Hostwarden's.
 
