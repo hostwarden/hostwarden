@@ -658,7 +658,7 @@ UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
 case "$CMD" in
   *dropbear*)
     if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)' \
-      && hit "(^|[[:space:]'\"])$UCIW[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
+      && hit "(^|[[:space:]'\"])${UCIW}[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
     then
       deny "changing the dropbear configuration through uci modifies \
 the SSH server config, which is never allowed (reading it is fine: \
