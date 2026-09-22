@@ -21,13 +21,17 @@ controller's own UI by the user.
 ## Probe
 
 ```
-ipmitool lan print
+ipmitool lan print | grep -E '^(IP Address|Subnet Mask|Cipher Suite Priv Max)'
 ipmitool user list
 ipmitool channel getaccess 1
 ```
 
-Where detection ran in this same session, its `lan print` output
-is reused rather than fetched again. `channel getaccess
+**`lan print` is filtered on the host**, as in
+`rules/management-controller.md` → Detection and for the same
+reason: its full output carries `SNMP Community String` in the
+clear, and a secret never reaches the conversation or a report
+(`rules/secrets.md`). Where detection ran in this same session,
+its filtered output is reused rather than fetched again. `channel getaccess
 <channel>` reads every user on that channel; 1 is the usual LAN
 channel, and `ipmitool channel info <n>` says what a channel is
 where 1 turns out to be something else. It is the read-only
@@ -86,18 +90,25 @@ Severities as in `references/report-format.md`. An address is
   ```
   curl -s -o /dev/null -m 5 -w '%{http_code}\n' \
     http://<host>:16992/
-  curl -s -o /dev/null -m 5 --connect-timeout 5 \
-    telnet://<host>:16994; echo "exit $?"
+  curl -s -o /dev/null --connect-timeout 5 -m 5 \
+    -w 'connect=%{time_connect}\n' telnet://<host>:16994
   ```
 
   **Both plaintext ports, because either can be on without the
   other.** 16992 is HTTP and answers `401` unauthenticated, so a
   status code means it is there. 16994 is the redirection
-  protocol and speaks no HTTP, so it gets a plain TCP connect:
-  `telnet://` makes curl open the socket and nothing more, and
-  exit `7` is a refused or unreachable port while `0` is one that
-  answered. Nothing ever authenticates — AMT credentials are out
-  of scope (`rules/secrets.md`).
+  protocol and speaks no HTTP, so it gets a plain TCP connect
+  through curl's `telnet://` scheme.
+
+  **Read `connect=`, never curl's exit code**, which cannot tell
+  the two failures apart: a port that accepts and then stays
+  silent — which is what AMT redirection does — exits `28` when
+  `-m` runs out, and so does a filtered port that never completed
+  a handshake at all. `time_connect` separates them, because it
+  is set only once the TCP handshake is done: above zero means
+  something is listening whatever the exit code, and `0.000000`
+  means nothing answered. Nothing ever authenticates — AMT
+  credentials are out of scope (`rules/secrets.md`).
 
   Either port answering from the workstation is **WARN**, and
   **CRITICAL** where the host's address is public as

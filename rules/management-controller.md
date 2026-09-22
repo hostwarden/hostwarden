@@ -56,8 +56,16 @@ cat /sys/class/dmi/id/sys_vendor
 ls -d /dev/ipmi0 /dev/ipmi/0 /dev/ipmidev/0 /dev/mei0
 lsmod | grep -E '^(ipmi|mei)'
 ipmitool mc info
-ipmitool lan print
+ipmitool lan print | grep -E '^(IP Address|Subnet Mask'\
+'|MAC Address|Default Gateway IP|802\.1q VLAN ID)'
 ```
+
+**`lan print` is filtered on the host, never read whole.** Its
+full output carries `SNMP Community String` in the clear, and a
+secret never reaches the conversation, a report or memory
+(`rules/secrets.md`). The filter is an allow-list of the fields
+that are actually read rather than a `grep -v` of that one field:
+a deny-list would keep whatever the next firmware adds.
 
 On FreeBSD, `kldstat -m ipmi` takes the place of `lsmod`, there
 is no `/sys/class/dmi`, and `dmidecode` is a port that is often
@@ -102,9 +110,10 @@ IMM2 on older ones, Fujitsu is iRMC, Supermicro's has no name
 beyond BMC. An unknown maker is recorded as `BMC`.
 
 **`ipmitool lan print` is the BMC's own network**, and it is not
-the host's: `IP Address Source` (`Static Address`, `DHCP
-Address`, `BIOS or system software`), `IP Address`, `Subnet
-Mask`, `Default Gateway IP`, `MAC Address` and `802.1q VLAN ID`.
+the host's. The fields the filter keeps are `IP Address Source`
+(`Static Address`, `DHCP Address`, `BIOS or system software`),
+`IP Address`, `Subnet Mask`, `Default Gateway IP`, `MAC Address`
+and `802.1q VLAN ID`.
 An address of `0.0.0.0` or a source that never got one means the
 BMC has no network — it is then reachable from this host and from
 a crash cart, and from nowhere else.
