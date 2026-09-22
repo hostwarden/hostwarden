@@ -45,7 +45,9 @@ repositories on GitHub where the docs are silent.
   users, who "don't have access to the WebGUI, SSH, or Telnet"
   (<https://docs.unraid.net/unraid-os/system-administration/secure-your-server/user-management/>).
   Every session runs as root, so the least-privilege care
-  `AGENTS.md` asks of commands is the only limit.
+  `AGENTS.md` asks of commands is the only limit. The one access
+  Unraid itself keeps read-only is an API key with the `VIEWER`
+  role, from 7.2 on (see Unraid API).
 - SSH is off by default. It is switched on, and its port set, under
   Settings → Management Access; the values are stored in
   `/boot/config/ident.cfg` (`USE_SSH`, `PORTSSH`), and
@@ -110,11 +112,212 @@ repositories on GitHub where the docs are silent.
   is `/boot/config/hostwarden-backups/`.
 - **Secrets on the boot device** (`rules/secrets.md`):
   `config/shadow`, `config/passwd`, `config/smbpasswd`, the
-  WireGuard keys under `config/wireguard/`, and Docker templates,
-  which can carry application credentials. Never edit them by hand
-  — the Users page owns the passwords — and never copy them into the
-  backup directory: Unraid Connect's flash backup uploads it
+  WireGuard keys under `config/wireguard/`, the API keys under
+  `config/plugins/dynamix.my.servers/keys/` (see Unraid API), and
+  Docker templates, which can carry application credentials. Never
+  edit them by hand — the Users page owns the passwords, the API
+  Keys page the keys — and never copy them into the backup
+  directory: Unraid Connect's flash backup uploads it
   (<https://docs.unraid.net/unraid-connect/automated-flash-backup/>).
+
+## Unraid API
+
+From 7.2 on, Unraid has a GraphQL API built in; before, it came
+with the Unraid Connect plugin (<https://docs.unraid.net/API/>). It
+reads what the web UI shows — array, disks, parity, containers, VMs,
+notifications — and changes some of it. Hostwarden uses two access
+levels, set up separately, and the user decides whether the second
+exists at all:
+
+- **Read**: every API read, always, also where write access exists.
+- **Write**: only for a change the user asked for and approved in
+  this session.
+
+**Root is the only SSH login, so an API key with the `VIEWER` role
+is the only read-only access Unraid itself enforces.** Over SSH the
+session is root whatever key it hands the API; the key limits the
+API's calls and nothing else. Only a call from the workstation
+(`API path: workstation`) reads without a root session behind it.
+Say so plainly when the user asks what read-only access buys them.
+
+Role, permission, path and field names below come from the source,
+<https://github.com/unraid/api>, at `v4.25.3`, the API that 7.2.0
+ships (<https://docs.unraid.net/unraid-os/release-notes/7.2.0/>).
+Paths in parentheses are files in that repository.
+
+### When it applies
+
+- From `/etc/unraid-version` 7.2 on. Below 7.2, reads and changes
+  stay on SSH and the web UI as the rest of this file describes,
+  whether the Connect plugin is installed or not.
+- The installed API version is `info.versions.core.api` in the
+  first read. Its schema is `api/generated-schema.graphql` at the
+  tag `v<version>`: look a field or mutation up there before relying
+  on it (`AGENTS.md` → Verify Before Running). The server answers
+  introspection only while the GraphQL sandbox is on, which it is
+  not by default (`api/src/unraid-api/graph/introspection-plugin.ts`,
+  `api/src/unraid-api/config/api-config.module.ts`); turning it on
+  is the user's step, not Hostwarden's.
+
+### Setting up access
+
+The user creates keys in the web UI under Settings → Management
+Access → API Keys
+(<https://docs.unraid.net/API/how-to-use-the-api/>), with roles, or
+single permissions of the form `RESOURCE:ACTION`
+(<https://docs.unraid.net/API/programmatic-api-key-management/>).
+A key has no expiry; it is valid until deleted. Each key goes into
+a file the user creates and fills as `rules/secrets.md` → API
+Credentials on the Workstation describes; Hostwarden names the file
+and its one line.
+
+- **Read access: a key `api-read` with the role `VIEWER`**,
+  which reads every resource except the API keys
+  (`api/src/unraid-api/auth/casbin/policy.ts`). Not `GUEST`, which
+  reads only its own profile, and not `CONNECT`, which adds remote
+  access changes. File `unraid-ro.header`, one line:
+  `x-api-key: <key>`.
+- **Write access: a key `api-write`** with only the
+  permissions for what Hostwarden is meant to change, never the
+  role `ADMIN`: `DOCKER:UPDATE_ANY` starts and stops containers,
+  `VMS:UPDATE_ANY` VMs, `NOTIFICATIONS:UPDATE_ANY` archives
+  notifications (the `@UsePermissions` lines of the resolvers under
+  `api/src/unraid-api/graph/resolvers/`). File `unraid-rw.header`,
+  one line: `x-api-key: <key>`. Without it, every change stays what
+  it is today: the user's steps in the web UI.
+- As root on the server, `unraid-api apikey` creates and deletes
+  keys too. That is the user's decision and the user's command,
+  never Hostwarden's own step: `--create` prints the new key, and
+  `--name <name>` without `--create` prints an existing key's value
+  (`api/src/unraid-api/cli/apikey/api-key.command.ts`). Hostwarden
+  never runs `unraid-api apikey` in any form. Where the user prefers
+  the command, this writes the key straight into its file, after
+  the `install -m 600` line from `rules/secrets.md`:
+
+  ```bash operator
+  ssh root@<hostname> 'unraid-api apikey --create --name api-read --roles VIEWER --json' \
+    | jq -r '"x-api-key: " + .key' > ~/hostwarden-keys/<hostname>/unraid-ro.header
+  ```
+
+- The server keeps each key as a JSON file under
+  `/boot/config/plugins/dynamix.my.servers/keys/`, the value
+  included (`api/src/store/modules/paths.ts`, `auth-keys`); see
+  Configuration for what that means.
+- The first read confirms the key (see Reading); `API key
+  validation failed` is reported as such and not retried in a loop.
+  Never prove that the read key cannot write by trying a write: the
+  role the user chose is the proof, and the user reads it back on
+  the API Keys page.
+- Record in server memory:
+  ```
+  API read: api-read (VIEWER), ~/hostwarden-keys/<hostname>/unraid-ro.header
+  API write: api-write (DOCKER:UPDATE_ANY), ~/hostwarden-keys/<hostname>/unraid-rw.header
+  API path: ssh
+  ```
+  with the permissions the user actually granted, and
+  `API write: none` when the user wants read access only.
+
+### How a call reaches the API
+
+- **Over SSH, the default.** curl runs on the server against the
+  API's own socket, `/var/run/unraid-api.sock`
+  (`api/src/environment.ts`, `PORT`), so the call needs no web UI
+  port and no certificate. The workstation feeds the key file on
+  stdin, so the key never lands on the server's disk. Because stdin
+  carries it, this call cannot use the `sh -s` bundle
+  (`rules/ssh-connections.md` → Bundle commands).
+- **From the workstation**, for reads without a root session:
+  `API path: workstation`. curl runs locally against
+  `https://<hostname>/graphql`
+  (<https://docs.unraid.net/API/how-to-use-the-api/>), on the HTTPS
+  port set under Settings → Management Access, with the certificate
+  pinned as `rules/tls-pinning.md` describes. With Use SSL/TLS set
+  to No, the key would cross the network in clear: stop, and ask the
+  user to turn HTTPS on or use the SSH path. The API throttles
+  requests, one more reason for one call per task.
+
+### Reading
+
+- **One call per task.** Stdin carries the key file's line first,
+  then one request body per line from a file in the scratch
+  directory; the server answers each after a JSON marker, so the
+  stream stays parseable. One query per area, never one for all: a
+  field that fails — `docker` with Docker off, `vms` with the VM
+  Manager off — empties its whole query.
+
+  ```
+  { cat ~/hostwarden-keys/<hostname>/unraid-ro.header; cat <scratch>/unraid-read.jsonl; } \
+    | ssh … root@<hostname> 'IFS= read -r h; n=0
+      while IFS= read -r q; do
+        n=$((n+1)); echo "{\"@\": $n}"
+        printf "%s\n" "$h" | curl -sS --unix-socket /var/run/unraid-api.sock \
+          -H @- -H "Content-Type: application/json" --data "$q" http://localhost/graphql
+        echo
+      done' \
+    | jq -s …
+  ```
+
+  `printf` is a shell builtin, so the key reaches curl without
+  showing in a process list; the query in `--data` is no secret.
+  From the workstation, the same loop runs locally with curl's
+  `--unix-socket` replaced by the URL and the pin. The housekeeping
+  requests, `unraid-read.jsonl`:
+
+  ```
+  {"query": "{ info { versions { core { unraid api } } } }"}
+  {"query": "{ array { state parityCheckStatus { status date errors running } parities { name status color numErrors } disks { name status color numErrors fsSize fsUsed } caches { name status color numErrors fsSize fsUsed } } }"}
+  {"query": "{ notifications { overview { unread { info warning alert total } } } }"}
+  {"query": "{ docker { containers { names image state status autoStart isUpdateAvailable } } }"}
+  {"query": "{ vms { domains { name state } } }"}
+  ```
+
+- **The workstation filters before anything reaches the
+  conversation**: the filter in `rules/secrets.md` → API
+  Credentials on the Workstation, with `^key$|keyfile|guid` added to
+  its pattern. A key's value is the field `key`, a LUKS key file
+  `luksKeyfile`, the license identifiers `flashGuid` and `regGuid`;
+  `csrfToken`, `apikey` and `clientSecret` are caught already. A
+  query names its fields, so the answer carries nothing else, but
+  the filter runs anyway.
+- An error comes back in `errors` with a message. `Cannot query
+  field` means the installed API does not have that field (see When
+  it applies): report it, never guess another name.
+- Two queries stay out. The top-level `disks` reads SMART through a
+  library for every disk, and whether that wakes a spun-down disk is
+  not established; SMART stays on SSH. `logFile` reads files the SSH
+  reads cover already.
+
+### Writing
+
+- **Only with write access, only after asking**, and only for what
+  the user asked for. Show the mutation and its variables, and name
+  what stops with it: the service a container runs, a VM's users.
+- **Record the state first.** These mutations change run state, not
+  stored configuration: read the object with the read key and keep
+  the answer as `rules/backups.md` → State behind an API describes.
+- **The request goes from a file**, on stdin after the write key's
+  line, the same way reads do; select only `id` in the answer. The
+  API has no dry run: look the mutation and its input up in the
+  schema for the installed version first (see When it applies).
+- **What the API can change and this file leaves to the user** stays
+  the user's: the array and parity checks (`array`, `parityCheck`),
+  plugins (`addPlugin`, `removePlugin`), settings
+  (`updateSettings`), and the Connect and remote access mutations.
+  The write key does not get those permissions (see Storage and
+  Plugins).
+- Read the object back with the read key and compare.
+
+### What stays on SSH
+
+The API does not replace these, and Housekeeping and Audits keeps
+reading them over SSH: `/etc/unraid-version`, `uptime`, `free` and
+`df`, the syslog counts, SMART detail, `zpool` health, the boot
+device's file system, the plugin update loop over `/tmp/plugins/`
+(the API's `plugins` query lists API plugins, not `.plg` update
+state), the time of the last Docker update check
+(`isUpdateAvailable` comes from the same
+`unraid-update-status.json`, without its time), and everything the
+security audit reads from files.
 
 ## Plugins and Community Applications
 
@@ -316,6 +519,23 @@ repositories on GitHub where the docs are silent.
   `:latest` when it names no tag. `status` `false` is an update,
   `undef` unchecked, and an image `docker ps` lists without an
   entry was never checked.
+- **With `API read:` in server memory**, on 7.2 or later, the
+  housekeeping requests in Unraid API → Reading run as a second
+  call, and the call above leaves out what they replace: the
+  `var.ini` grep, the `disks.ini` `awk`, and the notification count.
+  They map as `array.state` for `mdState`, each disk's `status`,
+  `color` and `numErrors` for the `disks.ini` line, with `DISK_NP`
+  dropped as there, `parityCheckStatus` `date` and `errors` for
+  `sbSynced2` and `sbSyncErrs`, and `unread` for the count, split
+  into alerts, warnings and info. `fsUsed` against `fsSize` gives
+  each array disk's and pool's fill. `docker` and `vms` add the
+  state `docker ps` and `virsh list` show, and `isUpdateAvailable`
+  `true` is a pending container update, still timed by the `date
+  -r` of `unraid-update-status.json`. Everything else stays in the
+  call above (see Unraid API → What stays on SSH). When the API
+  call fails or a query comes back with `errors`, say so, and run
+  the lines it replaces over SSH instead: a failed read is never a
+  clean result.
 - Findings:
   - load (against the CPU count in server memory), memory or swap
     past the baseline thresholds;
@@ -346,6 +566,22 @@ repositories on GitHub where the docs are silent.
   installed plugins and their authors, containers running
   privileged or with host networking, and shares exported
   publicly.
+- From 7.2 on, the audit lists the API keys by name, roles,
+  permissions and creation time, never their values. A `VIEWER`
+  key cannot read the keys, so this read runs over SSH and prints
+  only those lines of the key files, which the API writes with
+  two-space indentation, one field per line
+  (`api/src/unraid-api/auth/api-key.service.ts`, `saveApiKey`):
+  ```
+  grep -E '^  "(name|createdAt)":|"resource":|^ +"[A-Z_]+",?$' /boot/config/plugins/dynamix.my.servers/keys/*.json
+  grep '"sandbox"' /boot/config/plugins/dynamix.my.servers/configs/api.json
+  ```
+  A file that prints no `name` line is in a layout the pattern does
+  not know: count it and say so, never read it another way. An
+  `ADMIN` key the user cannot account for, and a key Hostwarden
+  recorded with more than the permissions in server memory, are
+  findings; `"sandbox": true`, which serves the GraphQL sandbox page
+  and answers introspection, is meant for development and is INFO.
 - Fleet audit: compare Unraid servers only with each other, on the
   version and release type, SSH state and port (`USE_SSH`, `PORTSSH`
   in `/boot/config/ident.cfg`), and the age of the last parity
