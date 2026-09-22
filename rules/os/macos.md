@@ -76,6 +76,11 @@ Rules for macOS (Apple Silicon and Intel).
     /Library/Preferences/com.apple.SoftwareUpdate \
     CriticalUpdateInstall
   ```
+- On a Mac an MDM profile manages,
+  `/Library/Managed Preferences/com.apple.SoftwareUpdate`
+  holds the values in force; read it the same way. A
+  value set there is changed through the MDM, never
+  with `defaults write`.
 - `CriticalUpdateInstall` should be `1` (enabled).
   If it's `0` or missing, recommend enabling it:
   ```
