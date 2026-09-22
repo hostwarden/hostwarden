@@ -81,9 +81,10 @@ Syslog lines in the BSD format
 read-backs that print them also print `date`: take
 the server's current year, or the year before where
 that would put the entry in the future. An old entry
-can then read as recent, which only shortens the
-reach and costs a changelog read; a recent one never
-reads as old.
+can then read as recent, which for the bound only
+shortens the reach and costs a changelog read; a
+recent one never reads as old. For a `heinzel` entry
+it matters more, see below.
 
 ## A fresh Heinzel entry means a live session
 
@@ -92,6 +93,16 @@ not history — a Heinzel session is probably working
 on this host right now. Both tools administer the
 same machines during a transition, and the journal is
 the only signal they share.
+
+Where the timestamp has no year, a year-old entry
+from a retained file such as Unraid's
+`syslog-previous` can look this fresh. Before
+calling it live, find the file that holds it
+(`grep -l heinzel` over the files the read-back
+opened) and check with `ls -l` that the file changed
+in the last 15 minutes. A file that did not holds
+history, not a live session. An entry from a
+`logread` buffer needs no such check.
 
 Say so before making any change, and let the user
 decide whether to go ahead, wait, or do it in the
