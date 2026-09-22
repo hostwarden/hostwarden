@@ -38,7 +38,7 @@ skill says so where it needs it.
      'echo @release; freebsd-version;' \
      'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
-     'grep -c "^processor" /proc/cpuinfo; free -h;' \
+     'nproc; grep -c "^processor" /proc/cpuinfo; free -h;' \
      'grep -m1 "model name" /proc/cpuinfo;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
@@ -107,8 +107,11 @@ skill says so where it needs it.
      line.
 
    Hardware comes from the lines after `@hardware`:
-   the `processor` count, the CPU model and `free` on
-   Linux, `sysctl` elsewhere.
+   the CPU count, the CPU model and `free` on Linux,
+   `sysctl` elsewhere. The CPU count is `nproc`'s, the
+   first number, which honours a container's CPU limit;
+   the `processor` count after it stands in only where
+   `nproc` is missing (OpenWrt).
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS.
 
