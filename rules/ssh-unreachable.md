@@ -19,13 +19,11 @@ For too many keys the fix is on the client:
 host in `~/.ssh/config`; check with
 `ssh -G <host> | grep -i identit`.
 
-A refused login never reaches OS detection, so no
-appliance file is loaded. When the host's server
-memory has an `Appliance:` line, read that file's
-section on access in `rules/appliance/` for the
-likely cause — a firmware update that dropped root's
-keys, a login the appliance does not allow — and name
-it to the user.
+A refused login ends before OS detection, which
+loads the appliance file. When server memory has an
+`Appliance:` line, read that file's section on access
+in `rules/appliance/` for the likely cause, such as
+root's keys lost in a firmware update, and name it.
 
 ## Do not retry in a loop
 

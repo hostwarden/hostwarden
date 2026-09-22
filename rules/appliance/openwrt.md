@@ -134,6 +134,8 @@ of the current release branch,
   is lost at the next sysupgrade unless it is reinstalled or built
   into the image. Check free space before installing, and do not
   install a tool just to run a check (`rules/busybox.md`).
+- Language runtimes (the `hostwarden-runtimes` skill) do not belong
+  on a router.
 
 ## Updates
 

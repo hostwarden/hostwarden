@@ -316,8 +316,8 @@ repositories on GitHub where the docs are silent.
   `undef` unchecked, and an image `docker ps` lists without an
   entry was never checked.
 - Findings:
-  - load, measured against the CPU count in server memory, memory
-    and swap past the baseline thresholds;
+  - load (against the CPU count in server memory), memory or swap
+    past the baseline thresholds;
   - OOM kills, I/O errors, or failed SSH passwords in the syslog;
   - the array not `STARTED`, a disabled, invalid or missing disk, a
     disk whose `color` is not green, `numErrors` above 0;

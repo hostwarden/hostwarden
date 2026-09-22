@@ -96,13 +96,13 @@ name: drop option 2 and ask for the account under
 the SSH call then passes quoted with `-l`
 (`rules/os/windows.md` → Notes).
 
-When the host's server memory already has an
-`Appliance:` line, or the user has named the
-appliance, read that file's section on access in
-`rules/appliance/` before asking: where it names the
-only login, as on Unraid, offer that one account and
-`Other…`. This step runs before OS detection, so the
-appliance file is not loaded yet.
+This step runs before OS detection loads an
+appliance file. When server memory has an
+`Appliance:` line, or the user named the appliance,
+read that file's section on access in
+`rules/appliance/` before asking; where it names the
+only login, as on Unraid, offer that account and
+`Other…`.
 
 **On subsequent connections:** look up the server in
 `memory/user.md`. Do not ask again.

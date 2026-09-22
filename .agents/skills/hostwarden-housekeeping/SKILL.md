@@ -97,8 +97,9 @@ Read on demand, only when the relevant section applies:
   above. On an appliance, its `## Housekeeping and Audits`
   section replaces the update checks.
 - An appliance file with `Base: none` replaces the baseline
-  probes, not its thresholds: disk use, load and memory are
-  judged by `references/baseline-linux.md` unless the appliance
+  probes but not the baseline thresholds: disk use, memory and
+  load are judged by Disk Usage, Memory and Swap, and System
+  Load in `references/baseline-linux.md`, unless the appliance
   file gives a number of its own.
 - A reference written for `sh` — the baselines, the version
   check, `references/service-checks.md` — runs only where the
