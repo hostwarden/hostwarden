@@ -49,50 +49,62 @@ print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
 }
 
 verdict() {
-  # verdict <expect> <command> [tool] [hook] — one fixture, one
-  # line of output.
-  OUT=$(json_for "$2" "$3" \
-    | env -u HOSTWARDEN_GUARD_DISABLE sh "${4:-$HOOK}")
-  if printf '%s' "$OUT" \
-    | grep -q '"permissionDecision":"deny"'; then
-    GOT=deny
+  # verdict <expect> <command> <tool> <hook> <input> — one fixture,
+  # one line of output. Runs no process but the guard itself:
+  # every fork and exec here is paid once per fixture, and on a
+  # workstation with an EDR agent each one is also inspected.
+  # HOSTWARDEN_GUARD_DISABLE is unset by the caller, once.
+  OUT=$(printf '%s' "$5" | sh "$4")
+  case $OUT in
+  *'"permissionDecision":"deny"'*) GOT=deny ;;
+  *) GOT=pass ;;
+  esac
+  if [ "$GOT" = "$1" ]; then
     # A deny Claude Code cannot parse is no deny at all: a reason
-    # with a backslash in it once broke the JSON unnoticed.
-    if command -v jq >/dev/null 2>&1 && ! printf '%s' "$OUT" \
-      | jq -e '.hookSpecificOutput.permissionDecision == "deny"' \
-        >/dev/null 2>&1; then
-      GOT="deny as invalid JSON"
+    # with a backslash in it once broke the JSON unnoticed. The
+    # drain validates every deny it gets back in one jq run.
+    if [ "$GOT" = deny ]; then
+      printf 'deny:%s\n' "$OUT"
+    else
+      echo ok
     fi
   else
-    GOT=pass
-  fi
-  if [ "$GOT" = "$1" ]; then
-    echo ok
-  else
-    case "${3:-Bash}" in
-    Bash) echo "FAIL [$1, got $GOT]${4:+ in development}: $2" ;;
-    *) echo "FAIL [$1, got $GOT] $3${4:+ in development}: $2" ;;
+    case $3 in
+    Bash) echo "FAIL [$1, got $GOT]${6:+ in development}: $2" ;;
+    *) echo "FAIL [$1, got $GOT] $3${6:+ in development}: $2" ;;
     esac
   fi
 }
 
-# Child of the parallel drain at the bottom. Everything it needs
-# is defined above; it must exit before the fixtures below, or
-# each of the hundreds of children would queue the whole matrix
-# again.
+# Child of the parallel drain at the bottom, judging a batch of
+# fixtures. Everything it needs is defined above; it must exit
+# before the fixtures below, or each child would queue the whole
+# matrix again.
+# Each fixture is four arguments: expectation, tool, command, and
+# the hook input the drain built from them (a dash without jq).
 # An expectation with a dev- prefix is judged by the copy in the
 # development tree (check_dev below).
 if [ "$1" = "--verdict" ]; then
-  case "$2" in
-  dev-*) verdict "${2#dev-}" "$4" "$3" "$GUARD_DEV" ;;
-  *) verdict "$2" "$4" "$3" ;;
-  esac
+  shift
+  unset HOSTWARDEN_GUARD_DISABLE
+  while [ $# -ge 4 ]; do
+    IN=$4
+    [ "$IN" != - ] || IN=$(json_for "$3" "$2")
+    case $1 in
+    dev-*) verdict "${1#dev-}" "$3" "$2" "$GUARD_DEV" "$IN" dev ;;
+    *) verdict "$1" "$3" "$2" "$HOOK" "$IN" ;;
+    esac
+    shift 4
+  done
+  # A batch cut short mid-fixture would misread every fixture after
+  # the cut; it fails the run instead.
+  [ $# -eq 0 ] || echo "FAIL: a batch ended mid-fixture ($# arguments left)"
   exit 0
 fi
 
 SELF="$CLAUDE_DIR/hooks/$(basename "$0")"
 QUEUE=$(mktemp)
-trap 'rm -rf "$QUEUE" "$GUARD_TREES"' EXIT INT TERM
+trap 'rm -rf "$QUEUE" "$QUEUE.in" "$GUARD_TREES"' EXIT INT TERM
 NCHECKS=0
 # One core is the floor, not the default: a machine that will not
 # say how many it has still runs the matrix, just no faster.
@@ -1553,12 +1565,51 @@ rm -rf "$NOMODE"
 # Failures are sorted rather than printed as they land, so two
 # runs of the same broken tree read the same.
 if [ "$NCHECKS" -gt 0 ]; then
-  RESULT=$(xargs -0 -n3 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  # One jq run builds every fixture's hook input, so no child
+  # starts one: four fields per fixture from here on.
+  # Without jq the fourth is a dash and the child falls back to
+  # json_for. Not an empty field: BSD xargs drops those.
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rsj '([0] | implode) as $nul | split($nul)[:-1] | _nwise(3)
+      | (.[0], .[1], .[2],
+         if .[1] == "JSON" then .[2]
+         else {tool_name: .[1], tool_input: {command: .[2]}} | tojson
+         end) + $nul' < "$QUEUE" > "$QUEUE.in"
+  else
+    xargs -0 -n3 printf '%s\0%s\0%s\0-\0' < "$QUEUE" > "$QUEUE.in"
+  fi
+  # Batches, not one child per fixture: each child is a shell that
+  # parses this file. A few batches per core keep every core busy
+  # to the end. A batch that xargs cuts at the argument size limit
+  # fails in the child, which counts what is left over. (BSD xargs -x
+  # would say so itself, but with -0 it hands over one argument per
+  # call.)
+  PER=$(( (NCHECKS + JOBS * 4 - 1) / (JOBS * 4) ))
+  RESULT=$(xargs -0 -n $((PER * 4)) -P "$JOBS" sh "$SELF" --verdict \
+    < "$QUEUE.in")
   XSTATUS=$?
   NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
-  NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)
+  NOK=$(printf '%s\n' "$RESULT" | grep -cE '^(ok$|deny:)' || true)
+  # Every deny that came back, validated in one jq run; only when
+  # that fails, one per deny, to name the ones that broke.
+  DENIES=$(printf '%s\n' "$RESULT" | sed -n 's/^deny://p')
+  if [ -n "$DENIES" ] && command -v jq >/dev/null 2>&1 \
+    && ! printf '%s\n' "$DENIES" | jq -es \
+      'all(.[]; .hookSpecificOutput.permissionDecision == "deny")' \
+      >/dev/null 2>&1; then
+    printf '%s\n' "$DENIES" | while IFS= read -r d; do
+      printf '%s' "$d" | jq -e \
+        '.hookSpecificOutput.permissionDecision == "deny"' \
+        >/dev/null 2>&1 \
+        || echo "FAIL [deny, got deny as invalid JSON]: $d"
+    done > "$QUEUE.in"
+    NBAD=$(grep -c . "$QUEUE.in" || true)
+    cat "$QUEUE.in"
+    NOK=$((NOK - NBAD))
+    FAIL=$((FAIL + NBAD))
+  fi
   PASS=$((PASS + NOK))
-  BADS=$(printf '%s\n' "$RESULT" | grep -v '^ok$' | grep . \
+  BADS=$(printf '%s\n' "$RESULT" | grep -vE '^(ok$|deny:)' | grep . \
     | LC_ALL=C sort || true)
   if [ -n "$BADS" ]; then
     printf '%s\n' "$BADS"
