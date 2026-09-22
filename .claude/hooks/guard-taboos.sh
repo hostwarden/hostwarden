@@ -1188,7 +1188,8 @@ fi
 #     initialize modules, and shutdown, in any collection
 #     (community.general.parted is parted);
 #   - authorized_key and openssh_keypair, which write keys without
-#     naming a key file;
+#     naming a key file, and generate_ssh_key with force (the user
+#     module), which replaces the user's key;
 #   - script, which runs a local file this hook cannot read, and
 #     include_role, include_tasks, import_role and import_tasks,
 #     which run tasks from files as a playbook does;
@@ -1233,11 +1234,16 @@ them"
     fi
     # Per invocation, every module word without its collection
     # (command without one, unknown for a value that is not a
-    # name), and PATH when a key or sshd_config is named. Quotes
-    # are dropped first: in ssh host 'ansible web -m parted' the
-    # quote is what stands before ansible.
-    AMODS=$(printf '%s\n' "${CMDQ:-${CMDJ:-$CMD}}" | tr -d "\"'" \
-      | tr ';&|`()' '\n' | K="$KEY|$SSHD" awk '
+    # name), PATH when a key or sshd_config is named, and KEYGEN
+    # for generate_ssh_key with force, which replaces the user's
+    # key (the user module). The values of the --*-args options go
+    # to ssh, sftp and scp, never to a module, and are cut while
+    # their quotes still show where they end. Then the quotes go:
+    # in ssh host 'ansible web -m parted' the quote is what stands
+    # before ansible.
+    AMODS=$(printf '%s\n' "${CMDQ:-${CMDJ:-$CMD}}" \
+      | sed -E "s/--(ssh-common|ssh-extra|sftp-extra|scp-extra)-args(=|[[:space:]]+)(\"[^\"]*\"|'[^']*'|[^[:space:]]*)//g" \
+      | tr -d "\"'" | tr ';&|`()' '\n' | K="$KEY|$SSHD" awk '
       {
         for (i = 1; i <= NF; i++) {
           t = $i; sub(/.*\//, "", t)
@@ -1261,6 +1267,8 @@ them"
         }
         if (!n) print "command"
         if (rest ~ ENVIRON["K"]) print "PATH"
+        if (rest ~ /generate_ssh_key=/ && rest ~ /(^|[[:space:]])force=([Yy]es|[Tt]rue|1|[Oo]n)([[:space:]]|$)/)
+          print "KEYGEN"
       }')
     AWRITE='' APATH=''
     for am in $AMODS; do
@@ -1272,7 +1280,7 @@ guard cannot read - applying Ansible code is left to the user" ;;
       parted|filesystem|shutdown|win_partition|win_format|win_initialize_disk|win_shutdown)
         deny "this Ansible module writes a partition table, makes a \
 filesystem or powers the host off" ;;
-      authorized_key|openssh_keypair)
+      authorized_key|openssh_keypair|KEYGEN)
         deny "this Ansible module writes SSH keys or authorized_keys, \
 which is never allowed" ;;
       script)

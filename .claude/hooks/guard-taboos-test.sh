@@ -910,7 +910,15 @@ check deny 'ansible web1.example.com -m script -a "./setup.sh -m 700"'
 check deny 'ansible web1.example.com -b -m parted -a "device=/dev/sdb" --ssh-extra-args "-m hmac-sha2-512"'
 check deny 'ansible web1.example.com -m include_role -a name=disks'
 check deny 'ansible web1.example.com -m ansible.builtin.include_tasks -a file=wipe.yml'
-# Login options name a key without writing it.
+check deny 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=yes"'
+check deny 'ansible web1.example.com -m ansible.builtin.user -a "name=alice force=true generate_ssh_key=true"'
+check pass 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes"'
+check pass 'ansible web1.example.com -b -m user -a "name=alice state=present force=yes"'
+# Login options name a key without writing it, and the --*-args
+# values go to ssh, never to a module.
+check pass 'ansible web1.example.com -m apt -a "name=nginx" --ssh-common-args "-F ~/.ssh/config"'
+check pass 'ansible web1.example.com --ssh-extra-args="-i ~/.ssh/jump" -m apt -a name=nginx'
+check deny 'ansible web1.example.com --ssh-common-args "-F x" -m copy -a "src=k dest=/root/.ssh/authorized_keys"'
 check pass 'ansible web1.example.com --private-key ~/.ssh/deploy -b -m apt -a "name=nginx state=present"'
 check pass 'ansible web1.example.com -e ansible_ssh_private_key_file=~/.ssh/hw -m service -a "name=nginx state=reloaded"'
 check pass 'ansible web1.example.com -m apt -a name=nginx; cat /etc/ssh/sshd_config'
