@@ -102,8 +102,10 @@ wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
 - The third is `systemd` when systemd runs, and `init` when
   WSL's own init does.
 
-Record them next to the platform:
-`Platform: WSL 2 (<version>, nat, systemd)`.
+Record them next to the platform, each as detected:
+`Platform: WSL <1|2> (<version>, <networking mode>, <PID 1>)`.
+A value a probe could not read is written `unknown`, never a
+default such as `nat` or `systemd`.
 
 ## Add: Package Manager
 
