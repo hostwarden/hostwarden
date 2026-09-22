@@ -208,26 +208,31 @@ grant write where the mode shows none.
   write to anyone but root → **WARN** per file, with its owner,
   mode and ACL.
 
-The program a root job starts matters as much as its plist,
-wherever it lives, and so does every directory above it: whoever
-can write one can swap the program. Read each daemon's `Program`,
-or the first `ProgramArguments` entry, and list the file and its
-directories:
+The files a root job runs matter as much as its plist, wherever
+they live, and so does every directory above them: whoever can
+write one can swap the file. That is the `Program`, and every
+absolute path among the `ProgramArguments`, which includes the
+script an interpreter such as `/bin/sh` is handed. Resolve each
+through symlinks first, so the directories checked are the real
+ones:
 
 ```bash
 PB=/usr/libexec/PlistBuddy
 for p in /Library/LaunchDaemons/*.plist; do
-  x=$($PB -c 'Print :Program' "$p" 2>/dev/null \
-    || $PB -c 'Print :ProgramArguments:0' "$p" 2>/dev/null)
-  [ -n "$x" ] || continue
   echo "--$p"
-  ls -leL "$x" 2>&1
-  d=$x
-  while d=$(dirname "$d") && [ "$d" != / ]; do ls -lde "$d"; done
+  { $PB -c 'Print :Program' "$p"
+    $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
+    | sed -n 's|^ *\(/[^ ]*\)$|\1|p' | sort -u \
+    | while read -r x; do
+        [ -e "$x" ] || continue
+        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) || continue
+        ls -leL "$d/$(basename "$x")"
+        while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+      done
 done
 ```
 
-- A program or a directory above it that is not owned by root,
+- A file it runs or a directory above it that is not owned by root,
   writable by group or others, or with an ACL entry that allows
   write to anyone but root → **WARN**, with the plist that starts
   it.
