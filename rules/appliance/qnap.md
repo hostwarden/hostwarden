@@ -50,11 +50,16 @@ is QNAP's own.
 - The version lives in the `[System]` section of
   `/etc/config/uLinux.conf`, read with QNAP's `getcfg`:
   ```
-  c=/etc/config/uLinux.conf
-  echo "$(/sbin/getcfg System Version -f $c).$(/sbin/getcfg System Number -f $c) build $(/sbin/getcfg System 'Build Number' -f $c)"
+  /sbin/getcfg System Version -f /etc/config/uLinux.conf
+  /sbin/getcfg System Number -f /etc/config/uLinux.conf
+  /sbin/getcfg System "Build Number" -f /etc/config/uLinux.conf
   grep -c zfs /proc/filesystems
   ```
-  `Version`, `Number` and `Build Number` together give the form of
+  The lines carry no `$(…)` or variable, so the first call of a
+  later connection can run them in the step-1 shape
+  (`rules/os-detection.md` → On subsequent connections).
+  `Version`, `Number` and `Build Number`, joined as
+  `<Version>.<Number> build <Build Number>`, give the form of
   QNAP's release names, e.g. `5.2.10.3577 build 20260731`
   (<https://www.qnap.com/en-us/release-notes/qts/5.2.10.3577/20260731>).
   QNAP's installer script reads `System Version` with `getcfg`
@@ -70,8 +75,8 @@ is QNAP's own.
   system, ask the user to read the name on the web UI's login page
   rather than guess.
 - Record in server memory: `Appliance: QTS <version>` or
-  `Appliance: QuTS hero <version>`, with the version as the command
-  above prints it.
+  `Appliance: QuTS hero <version>`, with the version joined as
+  above.
 - **Lifecycle.** QTS 5.2 and QuTS hero h5.2 are long-term support
   releases until 2029-08; QTS 5.0 and 5.1, h5.0 and h5.1 have
   reached their end of life (the lifecycle table above). Read the
