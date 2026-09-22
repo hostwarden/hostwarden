@@ -65,14 +65,10 @@ Check that critical security updates install automatically — see
 
 ## Homebrew Packages
 
-A non-interactive SSH shell often has no Homebrew on its `PATH`,
-so look in both prefixes before calling it absent:
+Set `$BREW` as `rules/os/macos.md` → Package Manager locates it,
+then:
 
 ```bash
-BREW=$(command -v brew)
-for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-  [ -z "$BREW" ] && [ -x "$b" ] && BREW=$b
-done
 [ -n "$BREW" ] && { "$BREW" outdated; "$BREW" services list; }
 ```
 
@@ -140,12 +136,19 @@ launchctl list | awk "$F"
 ## Kernel Panics
 
 ```bash
-find /Library/Logs/DiagnosticReports -name '*panic*' -mtime -7 \
-  2>/dev/null
+D=/Library/Logs/DiagnosticReports
+if P=$(sudo -n find "$D" -name '*panic*' -mtime -7 2>/dev/null) ||
+   P=$(find "$D" -name '*panic*' -mtime -7 2>/dev/null); then
+  printf '%s\n' "$P"
+else
+  echo "unknown(unreadable)"
+fi
 ```
 
 - **WARN** for each panic report from the last seven days, with
   its date
+- `unknown(unreadable)`: neither root nor this user could read
+  the reports. List the check under "Skipped".
 
 ## Time Machine Local Snapshots
 

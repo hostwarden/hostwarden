@@ -178,12 +178,15 @@ The system volume is sealed and SIP protects it
 `/private/etc`), part of `/Library` and the Homebrew prefix live
 on the writable data volume. The searches above run there instead
 of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
-apply:
+apply. Set `HB` first, in the same call, with the lines in
+`rules/os/macos.md` → Package Manager:
 
 ```bash
+[ "$HB" = /usr/local ] && HB=
 for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
-         /Library/StartupItems /Applications /usr/local /opt/homebrew; do
-  [ -d "$d" ] && find "$d" -xdev -type f \
+         /Library/StartupItems /Applications /usr/local ${HB:+"$HB"}; do
+  [ -d "$d" ] || continue
+  find "$d" -xdev -type f \
     \( -perm -0002 -o -nouser -o -nogroup -o -perm +6000 \) -ls \
     2>/dev/null
 done
@@ -212,9 +215,10 @@ The files a root job runs matter as much as its plist, wherever
 they live, and so does every directory above them: whoever can
 write one can swap the file. That is the `Program`, and every
 absolute path among the `ProgramArguments`, which includes the
-script an interpreter such as `/bin/sh` is handed. Resolve each
-through symlinks first, so the directories checked are the real
-ones:
+script an interpreter such as `/bin/sh` is handed. Where one is a
+symlink, the link, every link it leads through and the file it
+ends at all count, each with the real directories above it:
+whoever can write any of them can point the job elsewhere.
 
 ```bash
 PB=/usr/libexec/PlistBuddy
@@ -222,12 +226,29 @@ for p in /Library/LaunchDaemons/*.plist; do
   echo "--$p"
   { $PB -c 'Print :Program' "$p"
     $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
-    | sed -n 's|^ *\(/[^ ]*\)$|\1|p' | sort -u \
-    | while read -r x; do
-        [ -e "$x" ] || continue
-        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) || continue
-        ls -leL "$d/$(basename "$x")"
-        while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+    | sed -n 's|^ *\(/.*\)$|\1|p' | sort -u \
+    | while IFS= read -r x; do
+        if [ ! -e "$x" ] && [ ! -L "$x" ]; then
+          ls -dL "$x" 2>&1 | grep -q 'No such file' || echo "skipped: $x"
+          continue
+        fi
+        n=0
+        while :; do
+          p=$(dirname "$x")
+          while [ "$p" != / ] && ls -d "$p" 2>&1 | grep -q 'No such file'
+          do p=$(dirname "$p"); done
+          d=$(cd -P "$p" 2>/dev/null && pwd -P) \
+            || { echo "skipped: $x"; break; }
+          f=
+          if [ "$p" = "$(dirname "$x")" ]; then
+            f=${d%/}/$(basename "$x"); ls -lde "$f"
+          fi
+          while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+          [ -n "$f" ] && [ -L "$f" ] && [ "$n" -lt 16 ] || break
+          l=$(readlink "$f")
+          case $l in /*) x=$l ;; *) x=${f%/*}/$l ;; esac
+          n=$((n + 1))
+        done
       done
 done
 ```
@@ -236,3 +257,10 @@ done
   writable by group or others, or with an ACL entry that allows
   write to anyone but root → **WARN**, with the plist that starts
   it.
+- A `skipped:` line is a path this user cannot reach — below a
+  directory it may not enter, or one privacy protection (TCC)
+  guards. List it under "Skipped" with its plist. A path that
+  does not exist is an argument, not a file, and prints nothing;
+  a symlink whose target is missing is still walked, up to the
+  nearest directory that exists, since whoever can write there
+  can create the target.

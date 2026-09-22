@@ -50,7 +50,11 @@ Name the Sharing switch behind a port, not only the port
 
 On a firewall appliance, sockets on all interfaces are normal: the
 firewall decides what is reachable, and `references/firewall.md`
-reports that instead.
+reports that instead. The database and cache ports below are the
+exception: where an interface allows by default, as pfSense's LAN
+does (`rules/appliance/pfsense.md` → Replace: Firewall), one of
+them on all interfaces stays a **WARN** unless that interface's
+rules block its port.
 
 Present results as a table of listening addresses, ports, and
 process names (when available).

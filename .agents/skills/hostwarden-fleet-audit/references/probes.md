@@ -204,6 +204,7 @@ else
     -e '^maxauthtries ' \
     -e '^logingracetime ' \
     -e '^usepam ' \
+    -e '^authenticationmethods ' \
     -e '^port '
 fi
 ```
@@ -221,7 +222,9 @@ be missing there: a missing line is `n/a (Alpine)`, not `no`.
 Highlight as drift:
 
 - Any host with `passwordauthentication yes` while others
-  have `no`.
+  have `no`. An `authenticationmethods` that requires
+  `publickey` in every one of its lists means the host
+  accepts no password alone, whatever the other lines say.
 - Any host with `permitrootlogin yes` while others use
   `prohibit-password` or `forced-commands-only`.
 - Mismatched `port` values across the fleet.
@@ -365,12 +368,14 @@ fi
 ```
 
 Tool in use is `appfw`, `pf`, both or `none`; pf counts only
-when its status is enabled. Default policy is `deny` with
-block-all on, and `per-app` otherwise.
+when its status is enabled. Default policy is `none` while
+the global state is disabled, whatever block-all says; with
+it enabled, `deny` with block-all on and `per-app` otherwise.
 
 **FreeBSD** — run the status probe from `rules/os/freebsd.md` →
-Firewall with `$SUDO` in front of `pfctl` (`unknown(needs-root)`
-when it is `-`), then read the rules of whichever runs:
+Firewall with `$SUDO` in front of `pfctl` and `ipf`
+(`unknown(needs-root)` when it is `-`), then read the rules of
+whichever runs:
 
 ```bash
 if [ "$SUDO" = "-" ]; then
@@ -439,25 +444,26 @@ Highlight as drift:
 - Different MTAs in use without a documented reason in
   the per-host `memory.md`.
 
-**macOS** ships Postfix, run by launchd on demand. `launchctl
-print` output is not a stable interface; take only the
-`state =` line.
+**macOS** ships Postfix, which launchd starts on demand, so
+compare whether its job is loaded, not whether it runs; only the
+exit status of `launchctl print` counts, its output is not a
+stable interface. An empty relay host means direct delivery.
 
 ```bash
 ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
 postconf -h relayhost 2>/dev/null | sed "s/^/relayhost=/"
 if [ "$SUDO" = "-" ]; then
-  echo "active=unknown(needs-root)"
+  echo "loaded=unknown(needs-root)"
+elif $SUDO launchctl print system/com.apple.postfix.master >/dev/null 2>&1; then
+  echo "loaded=yes"
 else
-  $SUDO launchctl print system/com.apple.postfix.master 2>&1 \
-    | grep -m1 -e 'state =' -e 'Could not find'
+  echo "loaded=no"
 fi
 hostname -f
 ```
 
-Installed MTA is `postfix` on every Mac; a relay host is what
-tells one that sends mail from one that cannot. Never propose
-installing an MTA on a Mac
+Installed MTA is `postfix` on every Mac; `loaded` is the active
+unit. Never propose installing an MTA on a Mac
 (`.agents/skills/hostwarden-email/references/transport-remote.md`).
 
 **FreeBSD** — the MTA is named in `/etc/mail/mailer.conf`

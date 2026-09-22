@@ -140,9 +140,11 @@ itself at the URL `memory.md` records, `http://127.0.0.1:8123/`
 when it records none:
 
 ```bash
-curl -sk -m 5 <url>manifest.json | grep -c '"name": *"Home Assistant"'
+url='<url>'
+curl -sk -m 5 "${url%/}/manifest.json" | grep -c '"name": *"Home Assistant"'
 ```
 
+`${url%/}` leaves one slash before `manifest.json` either way.
 `1` means Home Assistant answers and runs: live restore keeps
 containers up while the daemon is down
 (https://docs.docker.com/engine/daemon/live-restore/); its

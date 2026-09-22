@@ -64,7 +64,7 @@ Record which one in server memory.
   (`ipfilter_enable="YES"`) count as well.
 - Config: `/etc/pf.conf`
 - Which one runs, and whether it survives a reboot
-  (the `pfctl` line needs root):
+  (the `pfctl` and `ipf` lines need root):
   ```
   pfctl -s info 2>/dev/null | head -1
   sysctl -n net.inet.ip.fw.enable 2>/dev/null
