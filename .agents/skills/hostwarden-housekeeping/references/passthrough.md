@@ -72,12 +72,13 @@ device the host lists but no VM holds is the finding below.
 Which guest got it comes from the guest inventory, which reads
 the lines anyway (`rules/hypervisors.md` → Inventory, and on an
 appliance its own file's Inventory entry): the `hostpci`, `usb`,
-`dev`, `mp` and `lxc.` lines of a Proxmox guest configuration,
+`virtiofs`, `dev`, `mp` and `lxc.` lines of a Proxmox guest
+configuration,
 the `lxc.mount.entry` and device lines of a plain LXC
 container's `config`, `expanded_devices` under Incus and LXD,
-`<hostdev>` and `<filesystem>` in a libvirt domain's XML, and for
-Hyper-V `rules/os/windows.md` → Housekeeping. No call of this
-file's own.
+`<hostdev>`, `<filesystem>` and a `hostdev` `<interface>` in a
+libvirt domain's XML, and for Hyper-V `rules/os/windows.md` →
+Housekeeping. No call of this file's own.
 
 A container takes a device node, not a PCI function; the same
 lines carry both.
@@ -98,7 +99,7 @@ the guest started, and the guest then writes into an empty
 directory on the root filesystem. One call covers every source:
 
 ```sh
-findmnt -ln -o TARGET,SOURCE,FSTYPE
+findmnt -ln -o TARGET,SOURCE,FSTYPE,UUID
 ```
 
 `-l` is what prints a flat list rather than a tree, whose line
@@ -114,15 +115,20 @@ went to, named as `guests.md` names it
 (`rules/hypervisors.md` → guests.md):
 
 ```
-- Passthrough: 10de:2204 → VM 101 (exclusive); /dev/dri → CT 108 (shared); /srv/media → CT 108 (bind on nas.example.com:/media, nfs4)
+- Passthrough: 10de:2204 → VM 101 (exclusive); /dev/dri → CT 108 (shared); /srv/media → CT 108 (bind on /srv: nas.example.com:/media, nfs4)
 ```
 
 `exclusive` is a VM's device, `shared` a container's, `bind` a
-directory. A bind records the filesystem its source sat on when
-the check last saw it healthy — `SOURCE` and `FSTYPE` of the
-mount `findmnt` matched — because that is what the next run
+directory. A bind records the mount its source sat on when the
+check last saw it healthy — `TARGET`, `SOURCE` and `FSTYPE` of
+the mount `findmnt` matched — because that is what the next run
 compares against: without it, a source that has fallen back to
-the root filesystem looks like any other local directory.
+the root filesystem looks like any other local directory. A
+local disk records its `UUID` instead of `SOURCE`
+(`bind on /data: UUID=3f2a…, ext4`), since its `SOURCE` is a
+kernel device name that can change at boot; where only `df`
+answers, which prints no `UUID`, `SOURCE` stands. A mount is the
+recorded one when its target and its identity both match.
 
 The guest's entry in `guests.md` carries the device too; its own
 memory names the device alone, since `Runs on:` already names the
@@ -135,17 +141,27 @@ inventory also has — a recorded device that is gone, a device
 memory does not list yet — count here against the `Passthrough:`
 line (`references/usb-devices.md` → Findings). On top:
 
-- **WARN:** a bind source on a different filesystem than the one
-  its `Passthrough:` entry records — above all on the root
-  filesystem where the entry records a network share. The share is
-  not mounted and the guest is writing into the host's system
-  disk.
+- **WARN:** a bind source now on the root filesystem where its
+  entry records another, or on any other filesystem while the
+  recorded one is not mounted. The guest may be writing into the
+  host's system disk. Memory above says when a mount is the
+  recorded one.
+- **INFO:** a bind source on another mounted filesystem, not the
+  root one, while the recorded one is still mounted: the data
+  moved. Update the entry.
 - **INFO:** a reserved device no guest claims. `vfio-pci` also
   serves the host's own userspace drivers (DPDK, SPDK), so ask
   once whether a host workload uses it and record the answer in
   `Passthrough:` (`01:00.0 (host: DPDK)`); a device nobody claims
   after that is a **WARN**.
 - **WARN:** a guest configured for a device the host no longer
-  has.
+  has. The host's side lists only what a stub holds, and a stopped
+  VM's device may be back on its own driver, so check the full
+  device list before reporting it. Resolve a Proxmox `mapping=` to
+  this node's `path=` first, then look the address up:
+  `ls -d /sys/bus/pci/devices/0000:01:00.*` on Linux, `pciconf -l`
+  without the `grep` on FreeBSD, `xe pci-list` from XCP-ng's
+  inventory; a USB device in the `==` lines of
+  `references/usb-devices.md`.
 - **INFO:** an `also` line — a device sharing its IOMMU group with
   a passed-through one while a host driver still holds it.

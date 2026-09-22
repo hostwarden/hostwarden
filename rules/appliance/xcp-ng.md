@@ -182,9 +182,9 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   appears as a VM with `is-control-domain=true`; never act on it.
 - **Devices passed through:** `xe pci-list params=all` names each
   PCI device with every field this version has, dom0's access
-  among them, and
-  `xe vm-param-get uuid=<uuid> param-name=other-config
-  param-key=pci` the ones a VM holds. Read them with
+  among them, and the `pci` key of each VM's `other-config` the
+  ones it holds; both come from the Inventory call below. Read
+  them with
   `.agents/skills/hostwarden-housekeeping/references/passthrough.md`;
   a dom0 that no longer reaches a device is that file's reserved
   device.
@@ -199,11 +199,16 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   default (`ha-reboot-vm-on-internal-shutdown`).
 - **Inventory** (`rules/hypervisors.md`): record
   `Hypervisor: XCP-ng (xe)`. The full inventory is one call:
-  `xe vm-list is-control-domain=false
-  params=uuid,name-label,power-state,resident-on,is-a-template,other-config`
-  and `xe vif-list params=vm-uuid,MAC`. This host's VMs are those
-  `resident-on` its UUID, and, on a standalone host or a pool's
-  master, every halted VM too: a halted VM resides nowhere. A template with
+
+  ```sh
+  xe vm-list is-control-domain=false params=uuid,name-label,power-state,resident-on,is-a-template,other-config
+  xe vif-list params=vm-uuid,MAC
+  xe pci-list params=all
+  ```
+
+  This host's VMs are those `resident-on` its UUID, and, on a
+  standalone host or a pool's master, every halted VM too: a
+  halted VM resides nowhere. A template with
   `default_template: true` in `other-config` ships with XCP-ng
   and is left out; `auto_poweron: true` there is autostart. The
   light listing is `xe vm-list is-control-domain=false
