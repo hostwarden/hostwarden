@@ -639,9 +639,11 @@ Judge only the rules of the profile in use (Firewall above). A
 rule opens its ports only to its program and service where it
 names one (`Any` means every program or service): a listener
 on that port is exposed, to the remote addresses the rule
-names, when the listener's executable path is the rule's
-program, its bracket holds the rule's service, or the rule names
-neither. A rule whose local addresses (`to`) are not `Any`
+names, when every scope the rule names matches: the listener's
+executable path is the rule's program where the rule names one,
+and its bracket holds the rule's service where the rule names
+one. A rule that names both reaches only that service inside
+that program. A rule whose local addresses (`to`) are not `Any`
 reaches only a listener bound to one of them or to a wildcard
 address; a listener bound to another address is not exposed by
 it. A listener whose path is empty cannot be matched to a
