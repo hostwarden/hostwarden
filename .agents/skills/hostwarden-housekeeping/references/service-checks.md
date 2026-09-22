@@ -386,6 +386,7 @@ works, report the line as not checked, never as no `MONITOR`:
 d=<dir>
 m() { [ -r "$d/upsmon.conf" ] && awk "$1" "$d/upsmon.conf" \
   || sudo -n awk "$1" "$d/upsmon.conf"; }
+u=
 for u in $( (upsc -l; m '$1 == "MONITOR" { print $2 }') 2>/dev/null | sort -u); do
   echo "== $u"
   if v=$(upsc "$u" 2>&1); then
@@ -395,6 +396,7 @@ for u in $( (upsc -l; m '$1 == "MONITOR" { print $2 }') 2>/dev/null | sort -u); 
   fi
   upsc -c "$u"
 done
+[ -n "$u" ] || echo "upsc: no UPS listed"
 m '$1 == "MONITOR" { print $2, $3, $6 }'
 pgrep -x upsmon
 ```
@@ -420,6 +422,11 @@ battery.
 - **WARN** if it holds `RB`, if `ups.test.result` reports a
   failure, or if `upsmon` is not running: then nothing shuts
   this host down when the battery runs low.
+- **WARN** on `upsc: no UPS listed`: NUT is here and names no UPS to
+  watch, so the state is not readable, never no UPS. Where
+  `upsmon.conf` could not be read, the `MONITOR` line is not
+  checked instead, as above; where `apcaccess` answers, apcupsd
+  watches the UPS and an unused NUT is no finding.
 - Report model, status, charge, runtime and load, and the
   clients. Compare the clients with `memory/network.md`; a
   machine recorded as powered by this UPS that is not among them
