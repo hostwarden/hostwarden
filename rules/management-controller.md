@@ -14,36 +14,34 @@ where a check below would be easier with one.
 
 ## When it applies
 
-Every host gets a `Management:` line, because every host can
-have its SSH cut. What fills it differs: on bare metal the probe
-below, and on a virtual machine or a container the machine
-underneath, since a guest has no controller of its own. Detection
-and the two audit checks are bare metal only, on a host whose
-`Virtualization:` line records it with or without the `(user)`
-marker (`rules/os-detection.md` → Virtualization).
+Every host gets a `Management:` line, because every host can have
+its SSH cut. Detection below and the two audit checks are bare
+metal only (`rules/os-detection.md` → Virtualization); on a
+virtual machine or a container the line is filled by The rescue
+path instead, since a guest has no controller of its own.
 
 The line is settled at first need, never in the onboarding
 pipeline: the probe needs root, and
 `rules/privilege-escalation.md` escalates only for a privileged
-action that is actually wanted. Three moments need it — the
-rescue path, the housekeeping event log and the security audit —
-and each is already privileged.
+action that is actually wanted. Each moment that needs it is
+already privileged, and each names itself.
+
+**Settle it before it is needed, not during.** A housekeeping run
+and a security audit both settle the line on every host they
+touch, guests included, even where the checks that follow are
+bare metal only — that is one clause in each and it costs a
+question the user answers at leisure. Leaving it to The rescue
+path means asking while a change is about to cut SSH or after it
+already has, which is the one moment this file exists to avoid.
 
 A host whose memory has a `Management:` line is settled; read it
 and go on. The one exception is `unknown (no root)`, which is
 probed again by the first session that has root.
 
-Where the appliance file loaded for this host names its own way
-to the controller, that way wins **for what it actually covers**,
-and no further. On an XCP-ng dom0 that is the sensor read:
-`rules/appliance/xcp-ng.md` → Housekeeping and Audits runs
-`get_all_sensors` through a XAPI plugin, so hardware health comes
-from there and not from `ipmitool`. It reads no controller
-identity, no firmware revision and no LAN address, and it writes
-no memory — so Detection below still runs on such a host, and the
-`Management:` line and the address still come from it. An
-appliance file that covers those too would displace them; none
-does today.
+On an XCP-ng dom0, hardware health comes from the XAPI plugin
+`rules/appliance/xcp-ng.md` → Housekeeping and Audits names, not
+from `ipmitool`. That covers sensors only: Detection below still
+runs there, and the `Management:` line still comes from it.
 
 ## Detection
 
@@ -56,16 +54,9 @@ cat /sys/class/dmi/id/sys_vendor
 ls -d /dev/ipmi0 /dev/ipmi/0 /dev/ipmidev/0 /dev/mei0
 lsmod | grep -E '^(ipmi|mei)'
 ipmitool mc info
-ipmitool lan print | grep -E '^(IP Address|Subnet Mask'\
-'|MAC Address|Default Gateway IP|802\.1q VLAN ID)'
+ipmitool lan print | grep -E \
+  '^(IP Address|Subnet Mask|802\.1q VLAN ID|Cipher Suite Priv Max)'
 ```
-
-**`lan print` is filtered on the host, never read whole.** Its
-full output carries `SNMP Community String` in the clear, and a
-secret never reaches the conversation, a report or memory
-(`rules/secrets.md`). The filter is an allow-list of the fields
-that are actually read rather than a `grep -v` of that one field:
-a deny-list would keep whatever the next firmware adds.
 
 On FreeBSD, `kldstat -m ipmi` takes the place of `lsmod`, there
 is no `/sys/class/dmi`, and `dmidecode` is a port that is often
@@ -110,10 +101,19 @@ IMM2 on older ones, Fujitsu is iRMC, Supermicro's has no name
 beyond BMC. An unknown maker is recorded as `BMC`.
 
 **`ipmitool lan print` is the BMC's own network**, and it is not
-the host's. The fields the filter keeps are `IP Address Source`
-(`Static Address`, `DHCP Address`, `BIOS or system software`),
-`IP Address`, `Subnet Mask`, `Default Gateway IP`, `MAC Address`
-and `802.1q VLAN ID`.
+the host's. The filter keeps `IP Address Source` (`Static
+Address`, `DHCP Address`, `BIOS or system software`), `IP
+Address`, `Subnet Mask`, `802.1q VLAN ID` and `Cipher Suite Priv
+Max` — the last for the security audit, which runs this same
+filter rather than one of its own, so that either caller's output
+serves the other.
+
+**It is filtered on the host, never read whole.** The full output
+carries `SNMP Community String` in the clear, and a secret never
+reaches the conversation, a report or memory
+(`rules/secrets.md`). The filter is an allow-list of the fields
+actually read rather than a `grep -v` of that one field: a
+deny-list would keep whatever the next firmware adds.
 An address of `0.0.0.0` or a source that never got one means the
 BMC has no network — it is then reachable from this host and from
 a crash cart, and from nowhere else.
@@ -123,9 +123,12 @@ loaded `mei_me` are the Management Engine interface, which most
 Intel machines have; AMT is the vPro feature on top of it and may
 be unprovisioned. So the node alone says the interface exists,
 never that AMT is on. `amt-info` from the `amtterm` package says
-which, where it is installed; otherwise ask the user and record
-what they say. AMT answers on TCP 16992 and 16994 in the clear,
-and on 16993 and 16995 with TLS.
+which, where it is installed; otherwise ask the user.
+
+AMT has no `lan print`, so its address is never read from the
+host: it either shares the host's address or has a static one of
+its own. Ask for it in the same exchange — the user is already
+being asked — and record it as What to record says.
 
 ## Provider console
 
@@ -163,7 +166,7 @@ this host can reach it:
 ```
 - Management: iDRAC (BMC), reachable from the host
 - Management: BMC, not reachable from the host (driver not loaded)
-- Management: Intel AMT, reachable from the host
+- Management: Intel AMT
 - Management: node1.example.com console (Proxmox VE guest)
 - Management: provider console (user)
 - Management: unknown (no root)
@@ -189,9 +192,15 @@ address and the VLAN it sits on and nothing judged:
 ```
 ## Management controllers
 
-- web1.example.com — iDRAC, 198.51.100.50, VLAN 40
-- db1.example.com — BMC, 192.0.2.50
+- web1.example.com — iDRAC, 198.51.100.50/24, VLAN 40
+- db1.example.com — BMC, 192.0.2.50/24
+- app1.example.com — Intel AMT, 198.51.100.60/24 (user)
 ```
+
+The address carries its prefix length, from `Subnet Mask`, so
+that the security audit can compare it with the host's own `IP:`
+without asking the BMC again. An AMT row is marked `(user)`,
+since nothing on the host reads that address.
 
 A host whose memory directory goes away, or whose `Management:`
 line is probed again, has its row here removed or rewritten in

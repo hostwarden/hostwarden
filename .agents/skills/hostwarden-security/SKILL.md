@@ -108,11 +108,10 @@ Read on demand, only when the relevant section applies:
 - `references/intrusion-prevention.md` — fail2ban, and
   blocklistd or sshguard on FreeBSD.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
-- `references/management-controller.md` — the BMC's own network,
-  IPMI over LAN, cipher suite 0, factory and anonymous accounts,
-  Intel AMT. On every bare-metal host: where `memory.md` has no
-  `Management:` line yet, this is one of the moments that settles
-  it.
+- `references/management-controller.md` — the `Management:` line
+  on every host, and on a bare-metal one the controller's own
+  network, IPMI over LAN, cipher suite 0, factory and anonymous
+  accounts, Intel AMT.
 - The `## Housekeeping and Audits` sections of the host's
   family, appliance, platform and role files, already loaded
   by the pipeline (`rules/os-detection.md` → Layers).

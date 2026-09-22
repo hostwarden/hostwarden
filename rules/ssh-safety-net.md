@@ -12,9 +12,9 @@ on its own unless a working login cancels it.
 The loaded OS or appliance file names three commands for
 its tool: a **check** that changes nothing, the **apply**,
 and the **revert**. Where it names no revert, do not apply
-over SSH: the user applies the change with the way back in
-that `rules/management-controller.md` → The rescue path
-names, already open. A tool that arms its own timed revert when it
+over SSH: the user applies the change with the console
+`rules/management-controller.md` → The rescue path names
+already open. A tool that arms its own timed revert when it
 applies names an **apply and arm** and a **confirm**
 instead; they stand in for steps 4, 5 and 7 below.
 
@@ -105,7 +105,8 @@ tests in the `- Access:` line (`rules/server-memory.md`).
    exists. Where the loaded OS file names its own way to
    arm the revert and to cancel it (Windows: a scheduled
    task), use that. With none of these, stop here and hand
-   the change to the user.
+   the change to the user with the console
+   `rules/management-controller.md` → The rescue path names.
 5. **Apply.**
 6. **Test with a fresh login** (`rules/ssh-connections.md`
    → Fresh-login options) that also prints what the change

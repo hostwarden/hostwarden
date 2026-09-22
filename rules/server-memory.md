@@ -74,6 +74,14 @@ with; `rules/heinzel-adoption.md` owns its wording.
 Hosts without one never had Heinzel state, which is
 the normal case.
 
+Every host gains a `Management:` line saying how it
+is reached when SSH is gone —
+`Management: iDRAC (BMC), reachable from the host`.
+`rules/management-controller.md` owns its wording and
+settles it at first need, not on the first
+connection above; a controller's address lives in
+`memory/network.md`.
+
 A host that a configuration management tool manages,
 wholly or in some areas, gains a `Config management:`
 line, and one that Terraform or OpenTofu provisioned
@@ -105,11 +113,6 @@ filled from an example. A container engine is recorded as
 from `rules/os-detection.md`; `Guest identity:`,
 `Runs on:` and, on a guest registered through its
 host, `SSH: untested`, from `rules/hypervisors.md`.
-`Management:` comes from
-`rules/management-controller.md` and says how the
-machine is reached when SSH is gone; every host has
-one, and a controller's address lives in
-`memory/network.md`, not here.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
