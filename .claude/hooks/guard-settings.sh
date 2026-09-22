@@ -66,7 +66,7 @@ RECORD_RE='guard-off-'
 
 # A settings file this session loads that already carries the
 # variable. Two files, test and grep, no parsing of paths.
-PROJECT=${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}
+PROJECT=${CLAUDE_PROJECT_DIR:-${0%/*}/../..}
 any_holds_var() {
   grep -qs "$V" "$PROJECT/.claude/settings.local.json" \
     "$PROJECT/.claude/settings.json" "$HOME/.claude/settings.json"
