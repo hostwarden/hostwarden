@@ -7,6 +7,11 @@
   in RAM, the web UI owning the configuration, and array operations
   and updates left to you. Housekeeping reads array, parity, SMART
   and boot device backup state instead of the Linux baseline.
+- **An empty activity check on a host that keeps its log in RAM
+  says how far back it reached.** On Unraid, and on pfSense and
+  OPNsense with `/var` on a RAM disk, the journal lines are gone
+  after a reboot: Hostwarden names the time since boot and reads
+  your local changelog for the time before.
 - **The fleet audit covers Alpine hosts.** Each probe
   that assumed systemd or GNU tools has an Alpine
   variant: a self-made `apk upgrade` job in place of

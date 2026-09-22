@@ -208,8 +208,9 @@ documentation, <https://docs.opnsense.org/>, and the
   the current log, `opnsense-log -n <area>` its path
   (`/var/log/<area>/latest.log`). Never use `-f` over
   non-interactive SSH: it does not exit.
-- `/var` may be a RAM disk (an option in System > Settings): logs
-  from before a reboot may be gone. Not a finding on its own
+- `/var` may be a RAM disk (an option in System > Settings): then
+  `df /var/log` names `tmpfs` or an `md` device, and the log does
+  not survive a reboot. Not a finding on its own
   (`rules/verify-before-reporting.md`).
 - No `journalctl`. `logger -t hostwarden` lands in the `system`
   area, but only at level notice or higher: keep `logger`'s
@@ -218,6 +219,7 @@ documentation, <https://docs.opnsense.org/>, and the
   ```
   grep -hE "hostwarden|heinzel" /var/log/system/system_*.log \
     | tail -20
+  df /var/log; uptime
   ```
   The daily files sort by date, so the last matches are the newest.
 
