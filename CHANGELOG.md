@@ -55,6 +55,10 @@
   hooks never see what it runs. `docs/install.md` →
   Windows has the setup, including the desktop app's WSL
   sessions.
+- **A checkout that cannot hold symbolic links is caught.**
+  `bin/hostwarden-doctor` and `bin/hostwarden-adopt` test for
+  links before relying on them, and `docs/install.md` →
+  Symbolic links says how to repair a clone.
 - **The fleet audit covers Alpine hosts.** Each probe
   that assumed systemd or GNU tools has an Alpine
   variant: a self-made `apk upgrade` job in place of
