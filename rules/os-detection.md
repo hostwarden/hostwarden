@@ -49,6 +49,7 @@ skill says so where it needs it.
      'midclt; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version; dpkg -l openmediavault;' \
+     'cat /etc.defaults/VERSION;' \
      'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    `ssh` joins the quoted pieces with spaces into one
@@ -210,6 +211,7 @@ the row.
 | FreeBSD | `midclt`             | `rules/appliance/truenas-core.md`   |
 | RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
 | none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
+| none    | `os_name="DSM"`      | `rules/appliance/synology-dsm.md`   |
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
 | none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
@@ -225,6 +227,11 @@ itself; its file says to stop there.
 `version="…"` is the content of `/etc/unraid-version`
 on a line of its own; an error that names the file is
 no match.
+`os_name="DSM"` is a line of `/etc.defaults/VERSION`
+from DSM 7.2 on; an error that names the file is no
+match. The file with another `os_name`, or none, as on
+DSM 7.1 and earlier: show the user its lines and ask
+what the host is.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way

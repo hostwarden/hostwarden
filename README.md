@@ -189,6 +189,7 @@ that changes the base file where it would be wrong:
 | TrueNAS CORE      | FreeBSD | `rules/appliance/truenas-core.md`   |
 | XCP-ng            | RHEL    | `rules/appliance/xcp-ng.md`         |
 | Home Assistant OS | —       | `rules/appliance/haos.md`           |
+| Synology DSM      | —       | `rules/appliance/synology-dsm.md`   |
 | Unraid            | —       | `rules/appliance/unraid.md`         |
 | OpenWrt           | —       | `rules/appliance/openwrt.md`        |
 | ZimaOS            | —       | `rules/appliance/zimaos.md`         |
