@@ -144,10 +144,7 @@ url='<url>'
 curl -sk -m 5 "${url%/}/manifest.json" | grep -c '"name": *"Home Assistant"'
 ```
 
-`${url%/}` drops one trailing slash, so a URL recorded with or
-without it, and one with a path such as `/homeassistant`, gets
-exactly one before `manifest.json`.
-
+`${url%/}` leaves one slash before `manifest.json` either way.
 `1` means Home Assistant answers and runs: live restore keeps
 containers up while the daemon is down
 (https://docs.docker.com/engine/daemon/live-restore/); its
