@@ -275,6 +275,15 @@ mon deny "$DEV" 'echo server1.example.com | xargs --max-procs 4 --delimiter , ss
 mon deny "$DEV" 'stdbuf --output L ssh server1.example.com tail -f /var/log/syslog'
 mon deny "$DEV" 'ionice --class 3 ssh server1.example.com uptime'
 mon deny "$DEV" 'echo server1.example.com | xargs --replace ssh {} uptime'
+mon deny "$DEV" 'time ! ssh server1.example.com true'
+mon deny "$DEV" 'time -p ! ssh server1.example.com true'
+mon deny "$DEV" 'flock /tmp/lock ssh server1.example.com true'
+mon deny "$DEV" 'flock -w 5 /tmp/lock ssh server1.example.com true'
+mon deny "$DEV" "flock -c 'ssh server1.example.com true' /tmp/lock"
+mon deny "$DEV" "flock /tmp/lock -c 'ssh server1.example.com true'"
+mon deny "$DEV" "flock --command 'ssh server1.example.com true' /tmp/lock"
+mon pass "$DEV" 'flock /tmp/lock tail -f /tmp/build.log'
+mon pass "$DEV" 'time ! grep -q error /tmp/build.log'
 mon deny "$DEV" 'env -iu LANG ssh server1.example.com uptime'
 mon deny "$DEV" 'chrt 10 ssh server1.example.com uptime'
 mon deny "$DEV" 'taskset 0x3 ssh server1.example.com uptime'

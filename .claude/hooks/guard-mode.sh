@@ -271,8 +271,10 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     # holds the short options that take the next word as a value,
     # LL the long ones, LP how many operands come before the
     # command: the duration of timeout, the priority of chrt, the
-    # mask of taskset. env -S and flock are left out: -S takes the
-    # command itself, and so does flock -c.
+    # mask of taskset, the lock file of flock. env -S is left out:
+    # it takes the command itself, which the parse below then
+    # reads as the next word. flock -c does the same and is read
+    # the same way, wherever it stands.
     LA["env"] = "uC"; LL["env"] = "unset|chdir"
     LA["nice"] = "n"; LL["nice"] = "adjustment"
     LA["timeout"] = "sk"; LL["timeout"] = "signal|kill-after"
@@ -288,6 +290,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["chrt"] = "TPD"; LP["chrt"] = 1
     LL["chrt"] = "sched-runtime|sched-period|sched-deadline"
     LA["taskset"] = ""; LP["taskset"] = 1
+    LA["flock"] = "wE"; LL["flock"] = "wait|timeout|conflict-exit-code"
+    LP["flock"] = 1
     LA["exec"] = "a"
     LA["command"] = LA["nohup"] = LA["setsid"] = ""
   }
@@ -356,7 +360,9 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       # env LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh. In a
       # cluster of short options the first that takes a value takes
       # the rest of the word, or the next word when it is last:
-      # xargs -Is ssh s runs ssh.
+      # xargs -Is ssh s runs ssh. flock -c hands over the command
+      # as its value; time takes a whole pipeline, negated too:
+      # time ! ssh.
       for (;;) {
         c = w
         gsub(/^["\047]+|["\047]+$/, "", c)
@@ -366,11 +372,12 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         while (++i <= nw) {
           x = v[i]
           if (x == "--") { i++; break }
+          if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
           if (x ~ /^-/) {
             if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
                 || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
           }
-          else if (c == "env" && x ~ /=/) ;
+          else if (c == "env" && x ~ /=/ || c == "time" && x == "!") ;
           else if (p-- < 1) break
         }
         if (i > nw) break

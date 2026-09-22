@@ -745,8 +745,10 @@ use shutdown -r; -c cancels)"
   # Only a dash flag counts, so Windows' slash form is left to the
   # rules below. The shell drops quotes, backslashes and the $ of
   # $'...' before the program sees '-h', $'--poweroff', \-P or
-  # --h"a"lt, so any of them may sit anywhere in the flag.
-  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\$]*(-["'\''`\\$[:alnum:]]*[hHPp]["'\''`\\$[:alnum:]]*|-["'\''`\\$]*-["'\''`\\$]*(h["'\''`\\$]*a|p)["'\''`\\$[:alpha:]]*)(["'\''`\\$[:space:]]|$)'
+  # --h"a"lt, so any of them may sit anywhere in the flag. Brace
+  # expansion builds a flag too: -{r,h} is -r -h, so { } and ,
+  # count among them.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\${},]*(-["'\''`\\${},[:alnum:]]*[hHPp]["'\''`\\${},[:alnum:]]*|-["'\''`\\${},]*-["'\''`\\${},]*(h["'\''`\\${},]*a|p)["'\''`\\${},[:alpha:]]*)(["'\''`\\${},[:space:]]|$)'
   then
     deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
 halts or powers off the server even beside -r"

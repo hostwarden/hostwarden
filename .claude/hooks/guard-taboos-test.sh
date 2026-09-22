@@ -571,6 +571,12 @@ check pass '/sbin/shutdown -r -t 30 now'
 check pass 'shutdown -r now; grep -h reboot /var/log/syslog'
 check pass 'ssh -p 2222 root@h "shutdown -r now"'
 check pass 'shutdown -c "maintenance is off"'
+check pass 'shutdown -r now {a,b}'
+# Brace expansion builds the flag: -{r,h} is -r -h.
+check deny 'shutdown -r -{h,h} now'
+check deny 'shutdown -r -{r,h} now'
+check deny 'shutdown -r --{halt,x} now'
+check deny 'shutdown -r {-h,-r} now'
 # FreeBSD's -c takes a time and power cycles the machine.
 check deny 'shutdown -c now'
 check deny 'shutdown -c +5'
