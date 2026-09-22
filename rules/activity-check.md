@@ -162,8 +162,9 @@ run. Without systemd it does not run at all, and the leads in
 
 Report the line as activity. A last run inside the last 15 minutes
 may still be going on: treat it like a live Heinzel entry above
-before making a change. Runs on a host whose memory has no
-`Config management:` line send you to `rules/config-management.md`.
+before making a change. Runs on a host whose memory records no tool
+for them, or only a `none` line dated before them, send you to
+`rules/config-management.md`.
 
 ## What to show
 

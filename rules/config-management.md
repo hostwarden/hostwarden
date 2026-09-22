@@ -22,7 +22,7 @@ Run the probe below, batched into the activity check's call
 - on the first connection to a host;
 - when the activity check shows Ansible runs (`rules/activity-check.md`
   → Ansible runs) and the host's memory has no `Config management:`
-  line;
+  line, or a `none` line dated before those runs;
 - while a `Config management: unknown` line is there and this session
   can read what the last one could not;
 - when the user says a tool manages the host.
@@ -94,9 +94,9 @@ Nothing found and nothing left unread: say nothing, record nothing.
 ## Ask once, record
 
 On a hit for a host whose memory has no `Config management:` line,
-report the leads — directories with their dates, units, the files
-that carry a marker — and ask one question: does this tool manage
-the host?
+or only a `none` or `unknown` one that the hit outdates, report the
+leads — directories with their dates, units, the files that carry a
+marker — and ask one question: does this tool manage the host?
 
 - **Yes, the whole host.**
 - **Yes, some areas** — ask which: a service, a directory, a role
@@ -146,9 +146,10 @@ them only when the user says so:
     change.
   - **By hand anyway**, only on the user's explicit request, after
     saying when the tool will undo it: at its next run for Ansible,
-    within the agent's run interval for Puppet (30 minutes by
-    default), Chef and Salt. Record it in the host's memory until
-    it is in the code, and name it in the changelog entry:
+    within the agent's run interval for Puppet and Chef (30 minutes
+    by default), at the next state run the Salt master starts.
+    Record it in the host's memory until it is in the code, and
+    name it in the changelog entry:
 
     ```markdown
     - Not yet in ansible: /etc/nginx/nginx.conf worker_connections 4096 (2026-09-22)
@@ -164,9 +165,10 @@ them only when the user says so:
 
 ## Why only detection for the others
 
-Puppet, OpenVox, Chef and Salt minions pull their configuration on
-their own schedule, so a change made in their code reaches every
-host without the per-host pipeline (`rules/first-connection.md`)
-ever running. Terraform and OpenTofu provision infrastructure
-through cloud APIs rather than administer a host, and their state
-holds secrets in plain text (`rules/secrets.md`).
+Puppet, OpenVox and Chef agents pull their configuration on their own
+schedule, and a Salt master pushes it to every minion at once, so a
+change made in their code reaches every host without the per-host
+pipeline (`rules/first-connection.md`) ever running. Terraform and
+OpenTofu provision infrastructure through cloud APIs rather than
+administer a host, and their state holds secrets in plain text
+(`rules/secrets.md`).
