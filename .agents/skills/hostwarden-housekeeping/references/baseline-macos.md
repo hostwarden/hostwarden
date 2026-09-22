@@ -11,8 +11,12 @@ Time Machine via `tmutil`.
 ## Disk Usage
 
 ```bash
-df -h /
+df -h /System/Volumes/Data 2>/dev/null || df -h /
 ```
+
+The Data volume holds everything that grows; `/` is the sealed
+system volume beside it in the same APFS container. Before
+macOS 10.15 there is no Data volume, and `/` is the disk.
 
 - **WARN** if > 85% used
 - **CRITICAL** if > 95% used
@@ -39,13 +43,18 @@ sysctl -n hw.ncpu
 
 - **WARN** if 15-minute load average > core count
 
-## Pending Software Updates
+## Pending Software Updates and Restart
 
 ```bash
 softwareupdate -l 2>&1
 ```
 
+It asks Apple's servers and can take a minute, so run it last.
+A cached list (`--no-scan`) can be days old and miss what came
+out since.
+
 - **WARN** if updates are available
+- **WARN** for each entry marked `Action: restart`
 
 ## Critical Auto-Updates
 
@@ -56,14 +65,31 @@ Check that critical security updates install automatically — see
 
 ## Homebrew Packages
 
-Only check if `brew` is available on the system.
+A non-interactive SSH shell often has no Homebrew on its `PATH`,
+so look in both prefixes before calling it absent:
 
 ```bash
-command -v brew &>/dev/null && brew outdated
+BREW=$(command -v brew)
+for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+  [ -z "$BREW" ] && [ -x "$b" ] && BREW=$b
+done
+[ -n "$BREW" ] && { "$BREW" outdated; "$BREW" services list; }
 ```
 
 - **WARN** if any outdated packages are found — report the count
   and list them
+- **WARN** for each service whose status is `error`
+- **WARN** for each process still running from a Homebrew
+  version that has since been removed
+  (`rules/os/macos.md` → Service Manager). After an upgrade the
+  formula is no longer outdated, but the process keeps its old
+  path:
+
+```bash
+ps -axo pid=,comm= | grep /Cellar/ | while read -r pid path; do
+  [ -e "$path" ] || echo "stale: $pid $path"
+done
+```
 
 ## Application Firewall
 
@@ -90,3 +116,44 @@ sntp -t 1 time.apple.com 2>&1
 ```
 
 - **WARN** if time offset > 5 seconds
+
+## Failed launchd Jobs
+
+Column 2 of `launchctl list` is a job's last exit status. Skip
+jobs with a PID in column 1, which launchd has restarted and are
+running, and `com.apple.` jobs, which exit non-zero routinely:
+
+```bash
+F='NR == 1 || $1 ~ /^[0-9]/ || $2 == 0 || $3 ~ /^com\.apple\./ {next} {print}'
+echo "--system"
+if L=$(sudo -n launchctl list 2>/dev/null); then
+  printf '%s\n' "$L" | awk "$F"
+else
+  echo "unknown(needs-root)"
+fi
+echo "--user"
+launchctl list | awk "$F"
+```
+
+- **WARN** for each job with a non-zero status, by label
+
+## Kernel Panics
+
+```bash
+find /Library/Logs/DiagnosticReports -name '*panic*' -mtime -7 \
+  2>/dev/null
+```
+
+- **WARN** for each panic report from the last seven days, with
+  its date
+
+## Time Machine Local Snapshots
+
+```bash
+tmutil listlocalsnapshots / 2>&1
+```
+
+Local snapshots are space macOS frees on demand, not a backup
+(`references/backup-presence.md`).
+
+- **INFO** with the count
