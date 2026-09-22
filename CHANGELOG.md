@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- **A blocked command says what is still allowed.** The
+  guard's refusal forbids reaching the same effect any
+  other way, and names the route for a command that only
+  carries a taboo word as text: the text goes in a file
+  (`git commit -F`), or a search pattern stops spelling
+  the word.
+- **The agent's edit tools cannot touch SSH keys or the
+  SSH server's configuration.** The taboo guard judged
+  shell commands only, so in local mode an edit could
+  still overwrite `~/.ssh/authorized_keys` or a key. Edits
+  and writes are now checked by the file they target, in
+  every mode: keys and key stores, `sshd_config`,
+  dropbear's configuration and `C:\ProgramData\ssh`. A
+  document that only mentions those files stays editable.
+- **Developing Hostwarden no longer trips the taboo
+  guard on text.** In a development checkout or a
+  worktree a commit message, a pull request title or a
+  search that names `mkfs`, `fdisk` or `shutdown` goes
+  through, since nothing there can reach a disk without
+  root. A command that names `ssh`, `sudo`, a container,
+  VM or cloud tool is still judged in full, and SSH keys,
+  `sshd_config`, `diskutil` and the Windows taboos stay
+  guarded everywhere.
 - **The Windows taboos hold on Windows Server too.** Over
   SSH, the taboo guard blocks what it blocks under WSL,
   plus `bcdedit` edits (`/enum` and `/v` still read),

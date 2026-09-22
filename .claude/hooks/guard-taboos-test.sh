@@ -8,9 +8,29 @@ CLAUDE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # The skills live here. .claude/skills is a link to it, but
 # the real path is the one thing every tool agrees on.
 SKILLS_DIR="$CLAUDE_DIR/../.agents/skills"
-HOOK="$CLAUDE_DIR/hooks/guard-taboos.sh"
 PASS=0
 FAIL=0
+
+# The guard picks its scope from the checkout it sits in (the
+# header of guard-taboos.sh), and this matrix runs in a development
+# checkout or a worktree. So it judges copies: one in a tree that
+# is an operations checkout by mode.sh's own test, for the full
+# scope, and one in a plain directory, for the local one. A
+# --verdict child inherits both through the environment.
+if [ -z "${GUARD_OPS:-}" ]; then
+  GUARD_TREES=$(mktemp -d)
+  for t in ops dev; do
+    mkdir -p "$GUARD_TREES/$t/.claude/hooks"
+    cp "$CLAUDE_DIR/hooks/guard-taboos.sh" "$CLAUDE_DIR/hooks/mode.sh" \
+      "$GUARD_TREES/$t/.claude/hooks/"
+  done
+  mkdir -p "$GUARD_TREES/ops/.git" "$GUARD_TREES/ops/memory"
+  : > "$GUARD_TREES/ops/memory/.hostwarden-workspace"
+  GUARD_OPS="$GUARD_TREES/ops/.claude/hooks/guard-taboos.sh"
+  GUARD_DEV="$GUARD_TREES/dev/.claude/hooks/guard-taboos.sh"
+  export GUARD_OPS GUARD_DEV
+fi
+HOOK=$GUARD_OPS
 
 json_for() {
   # json_for <command> [tool] — a raw command string as PreToolUse
@@ -26,10 +46,10 @@ print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
 }
 
 verdict() {
-  # verdict <expect> <command> [tool] — one fixture, one line of
-  # output.
+  # verdict <expect> <command> [tool] [hook] — one fixture, one
+  # line of output.
   OUT=$(json_for "$2" "$3" \
-    | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
+    | env -u HOSTWARDEN_GUARD_DISABLE sh "${4:-$HOOK}")
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
     GOT=deny
@@ -40,8 +60,8 @@ verdict() {
     echo ok
   else
     case "${3:-Bash}" in
-    Bash) echo "FAIL [$1, got $GOT]: $2" ;;
-    *) echo "FAIL [$1, got $GOT] $3: $2" ;;
+    Bash) echo "FAIL [$1, got $GOT]${4:+ in development}: $2" ;;
+    *) echo "FAIL [$1, got $GOT] $3${4:+ in development}: $2" ;;
     esac
   fi
 }
@@ -50,14 +70,19 @@ verdict() {
 # is defined above; it must exit before the fixtures below, or
 # each of the hundreds of children would queue the whole matrix
 # again.
+# An expectation with a dev- prefix is judged by the copy in the
+# development tree (check_dev below).
 if [ "$1" = "--verdict" ]; then
-  verdict "$2" "$4" "$3"
+  case "$2" in
+  dev-*) verdict "${2#dev-}" "$4" "$3" "$GUARD_DEV" ;;
+  *) verdict "$2" "$4" "$3" ;;
+  esac
   exit 0
 fi
 
 SELF="$CLAUDE_DIR/hooks/$(basename "$0")"
 QUEUE=$(mktemp)
-trap 'rm -f "$QUEUE"' EXIT INT TERM
+trap 'rm -rf "$QUEUE" "$GUARD_TREES"' EXIT INT TERM
 NCHECKS=0
 # One core is the floor, not the default: a machine that will not
 # say how many it has still runs the matrix, just no faster.
@@ -1000,13 +1025,20 @@ rm -rf "$GHOME"
 # next session, and a forged record for this one; both are denied
 # through every tool, whether or not the guard is already off.
 SGUARD="$CLAUDE_DIR/hooks/guard-settings.sh"
-settings_case() {
-  # settings_case <expect> <label> <json> [env assignment...]
-  E=$1 L=$2 J=$3; shift 3
-  OUT=$(printf '%s' "$J" | env -u "$V" "$@" sh "$SGUARD")
+hook_case() {
+  # hook_case <hook> <name> <expect> <label> <json> [env assignment...]
+  H=$1 N=$2 E=$3 L=$4 J=$5; shift 5
+  OUT=$(printf '%s' "$J" | env -u "$V" "$@" sh "$H")
   if denied "$OUT"; then GOT=deny; else GOT=pass; fi
-  expect "guard-settings [$E, got $GOT]: $L" [ "$GOT" = "$E" ]
+  expect "$N [$E, got $GOT]: $L" [ "$GOT" = "$E" ]
 }
+settings_case() { hook_case "$SGUARD" guard-settings "$@"; }
+# A PATH without jq, for the fallbacks below: judged on the raw
+# text, which may over-block, never under.
+NOJQ=$(mktemp -d)
+for t in sh cat grep printf sed tr head; do
+  P=$(command -v "$t" 2>/dev/null) && ln -s "$P" "$NOJQ/$t"
+done
 settings_case deny 'Write settings.local.json' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"{\"env\":{\"'"$V"'\":\"1\"}}"}}'
 settings_case deny 'Edit user settings.json' \
@@ -1074,14 +1106,126 @@ done
 rm -rf "$SET"
 settings_case pass 'Edit a hook that mentions the records' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/hooks/check-session.sh","old_string":"a","new_string":"guard-off-"}}'
-# No jq: judged on the raw text, which may over-block, never under.
-NOJQ=$(mktemp -d)
-for t in sh cat grep printf sed; do
-  P=$(command -v "$t" 2>/dev/null) && ln -s "$P" "$NOJQ/$t"
-done
 settings_case deny 'no jq: Write settings.local.json' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"'"$V"'"}}' \
   "PATH=$NOJQ"
+
+# --- the deny message: effect versus text ----------------------
+# A deny forbids reaching the effect another way and names the
+# route for a command that only carries the word as text. Without
+# the second half an agent guesses, and learns to route around.
+OUT=$(json_for 'mkfs.ext4 /dev/sda1' | env -u "$V" sh "$HOOK")
+for w in 'never reach the same effect' 'git commit -F' \
+  'gh --body-file' 'power[o]ff'; do
+  case "$OUT" in
+  *"$w"*) PASS=$((PASS + 1)) ;;
+  *) FAIL=$((FAIL + 1)); echo "FAIL: the deny message lost: $w" ;;
+  esac
+done
+expect "the deny message is not valid JSON" \
+  sh -c 'printf "%s" "$1" | jq -e .hookSpecificOutput >/dev/null' _ "$OUT"
+
+# --- Edit, Write, MultiEdit, NotebookEdit: the target path ------
+# Judged by the file they write, in every mode: an SSH key,
+# authorized_keys or sshd_config is denied, and their content is
+# never scanned. The file-tool branch runs before the scope is read,
+# so one case in the development tree stands for the mode.
+file_case() { hook_case "$HOOK" "file tool" "$@"; }
+fjson() {
+  # fjson <tool> <path> [content] [cwd]
+  jq -n --arg t "$1" --arg p "$2" --arg c "${3:-x}" --arg w "${4:-/r}" \
+    'if $t == "NotebookEdit"
+     then {cwd:$w,tool_name:$t,tool_input:{notebook_path:$p,new_source:$c}}
+     else {cwd:$w,tool_name:$t,tool_input:{file_path:$p,content:$c}} end'
+}
+file_case deny 'Write authorized_keys' \
+  "$(fjson Write /home/alice/.ssh/authorized_keys)"
+hook_case "$GUARD_DEV" "file tool in development" deny 'Write authorized_keys' \
+  "$(fjson Write /home/alice/.ssh/authorized_keys)"
+file_case deny 'Write authorized_keys2' \
+  "$(fjson Write /root/.ssh/authorized_keys2)"
+file_case deny 'Edit a private key' \
+  "$(fjson Edit /Users/alice/.ssh/id_ed25519)"
+file_case deny 'Write a public key' \
+  "$(fjson Write /home/alice/.ssh/id_ed25519.pub)"
+file_case deny 'Edit sshd_config' "$(fjson Edit /etc/ssh/sshd_config)"
+file_case deny 'MultiEdit a Homebrew sshd_config' \
+  "$(fjson MultiEdit /opt/homebrew/etc/ssh/sshd_config)"
+file_case deny 'Write an sshd drop-in' \
+  "$(fjson Write /etc/ssh/sshd_config.d/50-local.conf)"
+file_case deny 'Write a host key under /usr/local' \
+  "$(fjson Write /usr/local/etc/ssh/ssh_host_ed25519_key)"
+file_case deny 'Write into an appliance key store' \
+  "$(fjson Write /conf/sshd/ssh_host_rsa_key)"
+file_case deny 'Write the file pfSense merges into sshd_config' \
+  "$(fjson Write /etc/sshd_extra)"
+file_case deny 'Write sshd_config in an offline image' \
+  "$(fjson Write /mnt/etc/ssh/sshd_config)"
+file_case deny 'NotebookEdit onto authorized_keys' \
+  "$(fjson NotebookEdit /home/alice/.ssh/authorized_keys)"
+file_case deny 'relative path resolved against cwd' \
+  "$(fjson Write .ssh/authorized_keys x /home/alice)"
+file_case deny 'Write a dropbear host key' \
+  "$(fjson Write /etc/dropbear/dropbear_ed25519_host_key)"
+file_case deny "Write OpenWrt's dropbear config" \
+  "$(fjson Write /etc/config/dropbear)"
+file_case deny "Edit OpenRC's dropbear config" \
+  "$(fjson Edit /etc/conf.d/dropbear)"
+file_case deny "Write a key in OpenMediaVault's authorized_keys directory" \
+  "$(fjson Write /var/lib/openmediavault/ssh/authorized_keys/alice)"
+file_case deny "Write Windows' sshd_config through /mnt/c" \
+  "$(fjson Write /mnt/c/ProgramData/ssh/sshd_config)"
+file_case deny "Write administrators_authorized_keys with backslashes" \
+  "$(fjson Write 'C:\ProgramData\ssh\administrators_authorized_keys')"
+file_case deny 'a private key behind Windows separators' \
+  "$(fjson Write 'C:\Users\alice\.ssh\id_ed25519')"
+file_case pass 'a note about dropbear' \
+  "$(fjson Write /r/docs/dropbear.md)"
+# macOS file systems ignore case by default, so the match does too.
+file_case deny 'authorized_keys in upper case' \
+  "$(fjson Write /Users/alice/.SSH/AUTHORIZED_KEYS)"
+file_case deny 'a private key in mixed case' \
+  "$(fjson Write /Users/alice/.ssh/Id_Ed25519)"
+file_case deny 'sshd_config under a mixed-case /etc/SSH' \
+  "$(fjson Edit /etc/SSH/sshd_config)"
+file_case pass 'a document named after the key file' \
+  "$(fjson Edit /r/rules/authorized_keys.md)"
+file_case pass 'an example sshd_config' \
+  "$(fjson Edit /r/docs/sshd_config.example)"
+file_case pass 'ssh client config' "$(fjson Write /home/alice/.ssh/config)"
+file_case pass 'known_hosts' "$(fjson Write /home/alice/.ssh/known_hosts)"
+file_case pass 'content that names taboos is text' \
+  "$(fjson Edit /r/rules/os/debian.md 'mkfs.ext4 /dev/sda1; rm ~/.ssh/id_ed25519; shutdown -h now')"
+file_case pass 'content with the off switch is text (guard-settings has settings)' \
+  "$(fjson Write /r/docs/x.md 'HOSTWARDEN_GUARD_DISABLE=1')"
+# Links: the file system decides, not the spelling.
+FL=$(mktemp -d)
+FL=$(cd "$FL" && pwd -P)
+mkdir -p "$FL/.ssh"
+: > "$FL/.ssh/authorized_keys"
+ln -s .ssh/authorized_keys "$FL/notes.md"
+ln -s .ssh "$FL/keys"
+file_case deny 'a link that points at authorized_keys' \
+  "$(fjson Write "$FL/notes.md")"
+file_case deny 'a key reached through a linked directory' \
+  "$(fjson Write "$FL/keys/id_ed25519")"
+# A .. after a directory that does not exist yet: a tool that
+# normalises the path by text lands on the key.
+file_case deny 'a key behind a missing directory and ..' \
+  "$(fjson Write "$FL/.ssh/nosuch/../id_ed25519")"
+file_case deny 'a linked key directory behind a missing directory and ..' \
+  "$(fjson Write "$FL/keys/nosuch/../id_ed25519")"
+file_case pass 'a .. that leaves the key directory' \
+  "$(fjson Write "$FL/.ssh/../notes.txt")"
+ln -s loop-b "$FL/loop-a"
+ln -s loop-a "$FL/loop-b"
+file_case deny 'a chain of links that does not end' \
+  "$(fjson Write "$FL/loop-a")"
+rm -rf "$FL"
+file_case deny 'no jq: Write authorized_keys' \
+  "$(fjson Write /home/alice/.ssh/authorized_keys)" "PATH=$NOJQ"
+file_case pass 'no jq: Write an ordinary file' \
+  "$(fjson Write /r/docs/x.md 'hello')" "PATH=$NOJQ"
 rm -rf "$NOJQ"
 
 # --- Monitor runs a shell command too -----------------------------
@@ -1198,6 +1342,73 @@ if grep -q '! *hit ' "$HOOK"; then
 else
   PASS=$((PASS + 1))
 fi
+
+# --- development: the local scope ------------------------------
+# The same guard in a development tree. Text that names a taboo
+# is the work there and passes; anything that reaches a server,
+# root or a container is judged in full, and what an ordinary
+# user reaches stays guarded. The local scope depends on who runs
+# the matrix: as root or in the disk group every fixture is full,
+# and on a machine running systemd the power-off rules stay on, so
+# the fixtures that assume otherwise are queued only where they
+# hold.
+check_dev() { check "dev-$1" "$2"; }
+LOCAL_SCOPE=1
+case "$(id 2>/dev/null)" in uid=0\(*|*\(disk\)*) LOCAL_SCOPE= ;; esac
+if [ -n "$LOCAL_SCOPE" ]; then
+  check_dev pass 'grep -rn fdisk rules/'
+  check_dev pass 'rg -n mkfs AGENTS.md'
+  check_dev pass 'git commit -m "docs: explain why mkfs is blocked"'
+  check_dev pass 'git commit -m "fix: guard misses sfdisk --delete"'
+  check_dev pass 'git log --oneline --grep=wipefs'
+  check_dev pass 'gh pr create --title "guard: catch parted mklabel" --body x'
+  check_dev pass 'grep -n "dd if=" rules/os/debian.md'
+  check_dev pass 'mkfs.ext4 -F /tmp/disk.img'
+  if [ ! -d /run/systemd/system ]; then
+    check_dev pass 'rg -n shutdown AGENTS.md'
+    check_dev pass 'git log --oneline --grep=poweroff'
+    check_dev pass 'gh pr create --title "guard: catch poweroff via systemctl" --body x'
+  fi
+fi
+if [ -d /run/systemd/system ]; then
+  check_dev deny 'systemctl poweroff'
+  check_dev deny 'poweroff'
+fi
+# Reaching past this user's own files brings the full scope back.
+check_dev deny 'ssh h "mkfs.ext4 /dev/sda1"'
+check_dev deny 'sudo fdisk /dev/sda'
+check_dev deny 'doas dd if=img of=/dev/sda'
+check_dev deny 'docker exec lab fdisk /dev/sdb'
+check_dev deny 'podman run --rm img wipefs -a /dev/sdb'
+check_dev deny 'orb -m lab parted /dev/vdb mklabel gpt'
+check_dev deny 'wsl.exe -u root mkfs.ext4 /dev/sdb'
+check_dev deny 'powershell.exe -c "wsl -u root wipefs -a /dev/sdb"'
+check_dev deny 'cmd.exe /c "wsl -u root fdisk /dev/sdb"'
+# The Windows rules apply in every scope: a Windows user reaches
+# them without admin.
+check_dev deny 'wsl.exe --unregister Ubuntu'
+check_dev deny 'Stop-Computer -Force'
+check_dev deny "osascript -e 'do shell script \"newfs_apfs /dev/disk4\" with administrator privileges'"
+check_dev deny 'git commit -m "ssh h mkfs.ext4 /dev/sda1"'
+check_dev deny 'GIT_SSH_COMMAND=x git fetch; dd if=a of=/dev/sda'
+check_dev deny 'rsync -a x h:/y; shutdown -h now'
+# What an ordinary user reaches stays guarded in every scope.
+check_dev deny 'rm -f ~/.ssh/id_ed25519'
+check_dev deny 'chmod 000 ~/.ssh'
+check_dev deny 'echo x > ~/.ssh/authorized_keys'
+check_dev deny "sed -i '' 's/^#Port/Port/' /opt/homebrew/etc/ssh/sshd_config"
+check_dev deny 'diskutil eraseDisk APFS X disk4'
+check_dev deny 'python3 -c "import os; os.remove(\"/home/alice/.ssh/id_ed25519\")"'
+check_dev deny 'HOSTWARDEN_GUARD_DISABLE=1 true'
+# Without mode.sh beside it the guard cannot tell its mode, and a
+# guard that cannot tell stays full.
+NOMODE=$(mktemp -d)
+cp "$GUARD_DEV" "$NOMODE/"
+OUT=$(json_for 'mkfs.ext4 /dev/sda1' \
+  | env -u HOSTWARDEN_GUARD_DISABLE sh "$NOMODE/guard-taboos.sh")
+expect "the guard went local without mode.sh to tell its mode" \
+  denied "$OUT"
+rm -rf "$NOMODE"
 
 # --- drain the queued fixtures ---------------------------------
 # Failures are sorted rather than printed as they land, so two
