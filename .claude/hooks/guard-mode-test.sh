@@ -697,6 +697,15 @@ case "$got" in
 *"connection sharing"*) bad "the doctor read the shim as missing: $got" ;;
 *) ok ;;
 esac
+# Nor the shim as the ssh a push needs: with no other ssh on PATH,
+# ssh is missing.
+mkdir -p "$TMP/nossh"
+got=$(PATH="$DEV/.claude/hooks/shim:$TMP/nossh" /bin/sh \
+  "$REPO/bin/hostwarden-doctor" --dev --quiet 2>&1)
+case "$got" in
+"hostwarden: required, missing: ssh,"*) ok ;;
+*) bad "the doctor took the shim for ssh: $got" ;;
+esac
 # git push goes through git-ssh.sh to the real binary: the shim
 # off PATH, then what the user set, else core.sshCommand, else
 # plain ssh. A stand-in ahead on PATH records its arguments.

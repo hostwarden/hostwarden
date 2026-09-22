@@ -156,6 +156,21 @@ probe() {
 
 any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
 
+# An ssh on PATH that is not the shim (.claude/hooks/shim.sh): the
+# one git-ssh.sh hands a push to, with the same walk. Only looked
+# for, never run.
+real_ssh() {
+  set -f
+  IFS=:
+  for d in $PATH; do
+    case "$d" in */.claude/hooks/shim) continue ;; esac
+    [ -x "${d:-.}/ssh" ] && { unset IFS; set +f; return 0; }
+  done
+  unset IFS
+  set +f
+  return 1
+}
+
 # Every call shares one connection (AGENTS.md → SSH Options).
 # -G parses the options and connects to nothing; -F /dev/null
 # leaves the user's config, and any Match exec in it, out.
@@ -252,13 +267,14 @@ ssh_conf_key() {
 }
 
 [ -n "$QUIET" ] || echo "Required"
-for t in ssh git awk sed grep tar mktemp; do
+probe need ssh ssh real_ssh
+for t in git awk sed grep tar mktemp; do
   probe need "$t" "$t" has "$t"
 done
 # Sharing is how a session reaches servers, which a development
 # checkout never does. There the ssh on PATH is often the shim
 # (.claude/hooks/shim.sh), which refuses even -G.
-[ -n "$DEV" ] || ! has ssh \
+[ -n "$DEV" ] || ! real_ssh \
   || probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
 probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 
