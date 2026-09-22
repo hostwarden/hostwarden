@@ -3,7 +3,7 @@
 The short path is in the
 [README](../README.md#how-to-install). This page has
 the details behind each prerequisite and the setup
-for native Windows.
+for Windows.
 
 ## Prerequisites
 
@@ -44,74 +44,75 @@ for native Windows.
   `.claude/skills` links to `.agents/skills/`, and
   DNS aliases become symlinks under
   `memory/servers/`. macOS, Linux, FreeBSD and WSL
-  handle them out of the box; native Windows needs
-  the three settings under [Windows](#windows).
+  handle them out of the box; a clone without them is
+  repaired as described under
+  [Symbolic links](#symbolic-links).
   A session-start hook says so whenever the skills are
   out of reach, because a session without them is
   otherwise silent about it;
   `sh .claude/hooks/instructions-test.sh` reports the
   state at any time.
-- **Workstation:** Hostwarden itself runs wherever
-  your AI tool runs — Linux, macOS, FreeBSD, or
-  Windows.
+- **Workstation:** Linux, macOS or FreeBSD, and on
+  Windows a WSL 2 distribution — see
+  [Windows](#windows).
 - **Local tools.** `bin/hostwarden-doctor` lists
   what Hostwarden needs on your workstation, what is
   missing, and the command to install it.
 
 ## Windows
 
-**Use [WSL](https://learn.microsoft.com/windows/wsl/)
-if you can.** It is a full Linux environment, and
-Hostwarden runs in it exactly as on Linux, with
-nothing below to set up.
+Hostwarden runs in a
+[WSL 2](https://learn.microsoft.com/windows/wsl/install)
+distribution, never on Windows itself. Inside WSL it
+runs exactly as on Linux, with nothing extra to set
+up.
 
-Running natively through
-[Git for Windows](https://gitforwindows.org/) works,
-but Windows does not create symbolic links for an
-ordinary user, and both git and Git Bash fall back to
-something else **without an error**:
-
-- git writes each link as a small text file holding
-  the target path. `.claude/skills` then leads
-  nowhere, and Hostwarden runs without a single skill
-  — no housekeeping, no security audit.
-- Git Bash's `ln -s`
-  [copies the target](https://gitforwindows.org/symbolic-links.html)
-  instead of linking to it. A DNS alias then gets its own copy of
-  the server memory, and the two drift apart.
-
-So, once, **before cloning**:
-
-1. Turn on Developer Mode (Windows 11: Settings →
-   System → For developers). It lets an ordinary user create
-   symbolic links; without it, only an elevated shell
-   can.
-2. Tell git to create real links:
+1. Install WSL 2 with Ubuntu, Microsoft's default and
+   the distribution this page assumes. It needs
+   Windows 10 version 2004 or later, or Windows 11.
+   In a PowerShell run as administrator:
    ```
-   git config --global core.symlinks true
+   wsl --install
    ```
-3. Tell Git Bash to link rather than copy, and to fail
-   loudly when it cannot — add this to `~/.bashrc`, then
-   open a new Git Bash (one already open has not read it):
+   Then restart Windows. Where WSL is already
+   installed, this prints its help instead; install
+   the distribution with `wsl --install -d Ubuntu`
+   (`wsl --list --online` shows the names).
+2. Open Ubuntu, create the Linux user it asks for,
+   and install git and jq:
    ```
-   export MSYS=winsymlinks:nativestrict
+   sudo apt-get update
+   sudo apt-get install git jq
    ```
+   `bin/hostwarden-doctor` names the rest once the
+   clone is there.
+3. Clone into the distribution's own filesystem —
+   under `~`, not under `/mnt/c` — as the
+   [README](../README.md#steps) describes.
+4. Start Claude Code or OpenCode inside the
+   distribution. In the Claude desktop app, pick the
+   distribution in the Code tab's environment picker
+   ([Claude Code Desktop in WSL](https://code.claude.com/docs/en/desktop-wsl)).
 
-Then clone as the
-[README](../README.md#steps) describes, and start
-Claude Code or OpenCode from **Git Bash**, so the
-SessionStart hooks and the `bin/hostwarden-*`
-scripts can run. PowerShell and
-`cmd.exe` are not supported as the launch shell.
+Git Bash, PowerShell and `cmd.exe` are not supported
+as the shell Hostwarden itself runs in. The guard
+hooks are POSIX shell scripts, neither Windows' own
+OpenSSH nor Git Bash's ssh can share a connection
+(`ControlMaster`), and Claude Code's PowerShell tool
+would bypass every guard. `.claude/settings.json`
+therefore denies the PowerShell tool, and
+`bin/hostwarden-doctor` reports a native Windows shell
+as a required item missing.
 
-<details>
-<summary>Already cloned without these settings?</summary>
+## Symbolic links
 
-After steps 1–3, replace the text file with the
-link, then check it; no output means it is fine.
-The clone may have recorded
-`core.symlinks=false` for itself, which outranks the
-global setting, so set it here too:
+When git cannot create a link, it writes a small text
+file holding the target path instead, **without an
+error**. `.claude/skills` then leads nowhere, and
+Hostwarden runs without a single skill. To repair a
+clone, allow links for it — it may have recorded
+`core.symlinks=false` for itself — and check the
+result; no output means it is fine:
 
 ```
 git config core.symlinks true
@@ -123,10 +124,8 @@ sh .claude/hooks/check-skills.sh
 An archive download (ZIP) cannot be repaired this way,
 because it is no git clone: clone the repository instead.
 
-A DNS alias created before step 3 is a directory
-where `ls -l memory/servers/` should show a link. Its
-memory has diverged from the canonical host's and has
-to be merged back by hand before the directory is
-replaced with a link.
-
-</details>
+A DNS alias that became a directory rather than a link
+(`ls -l memory/servers/` shows which) has its own copy
+of the server memory. It has diverged from the canonical
+host's and has to be merged back by hand before the
+directory is replaced with a link.

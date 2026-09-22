@@ -6,8 +6,8 @@ by task.
 ## Getting started
 
 - [Installing Hostwarden](install.md) — what each
-  prerequisite is for, and the settings native
-  Windows needs before cloning.
+  prerequisite is for, and the WSL setup Windows
+  needs.
 - [Supported AI tools](ai-tools.md) — Claude Code in
   the terminal and in the desktop app, OpenCode with
   Ollama, and what the others miss.

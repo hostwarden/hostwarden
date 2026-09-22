@@ -10,9 +10,8 @@ and run shell commands — and with the Code tab of the
 Claude desktop app, which runs the same Claude Code
 ([what differs there](docs/ai-tools.md#claude-code-desktop)). It manages Linux, FreeBSD,
 and macOS targets — remote servers over SSH and the
-local machine alike — and runs on any workstation
-where your AI tool runs, including Windows (via WSL
-or natively).
+local machine alike — and runs on Linux, macOS and
+FreeBSD workstations, and on Windows inside WSL 2.
 
 Describe what you need in plain English, and Hostwarden
 figures out the right commands for your OS, proposes
@@ -54,10 +53,10 @@ Hostwarden session looks the same.
 - Key-based SSH access to the target, without a
   password or passphrase prompt
 - Linux, FreeBSD or macOS on the target
-- A checkout with working symbolic links — native
-  Windows needs three settings before cloning
+- A checkout with working symbolic links
+- On Windows: WSL 2
 
-What each one is for, and the Windows settings:
+What each one is for, and the Windows setup:
 [docs/install.md](docs/install.md).
 `bin/hostwarden-doctor` lists what your workstation
 is missing and the command to install it.

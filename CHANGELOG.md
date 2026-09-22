@@ -48,6 +48,18 @@
   OPNsense with `/var` on a RAM disk, the journal lines are gone
   after a reboot: Hostwarden names the time since boot and reads
   your local changelog for the time before.
+- **On Windows, Hostwarden runs in WSL 2 only.** Git Bash,
+  PowerShell and `cmd.exe` are not supported:
+  `bin/hostwarden-doctor` says so at session start and names
+  `wsl --install`, and Claude Code's PowerShell tool is
+  denied, because the guard hooks never see what it runs.
+  `docs/install.md` → Windows walks through the setup with
+  Ubuntu, Microsoft's default distribution, including the
+  desktop app's WSL sessions.
+- **A checkout that cannot hold symbolic links is caught.**
+  `bin/hostwarden-doctor` and `bin/hostwarden-adopt` test for
+  links before relying on them, and `docs/install.md` →
+  Symbolic links says how to repair a clone.
 - **The fleet audit covers Alpine hosts.** Each probe
   that assumed systemd or GNU tools has an Alpine
   variant: a self-made `apk upgrade` job in place of
@@ -256,12 +268,6 @@
   with only `mail` or `mailx` goes on to the install
   question, since neither can carry the headers Hostwarden
   writes.
-- **Native Windows: `docs/install.md` lists the three settings
-  symlinks need** and how to repair a clone made without
-  them. Without them Git Bash copies where it should link,
-  so a DNS alias got its own drifting copy of the server
-  memory; Hostwarden and `bin/hostwarden-adopt` now make
-  sure a link is a link.
 - **For contributors: `sh scripts/check.sh` runs
   everything CI runs**, now including a secret scan of the
   whole history, workflow linting and the 80-column wrap.

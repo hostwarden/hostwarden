@@ -33,12 +33,6 @@
 # -f: a host name is data, never a glob to expand.
 set -ef
 
-# Git Bash copies where ln -s is asked to link, unless told
-# otherwise, and a copied alias drifts from the host it names.
-# Harmless everywhere else. (docs/install.md → Windows)
-MSYS="${MSYS:+$MSYS }winsymlinks:nativestrict"
-export MSYS
-
 SELF=$0
 usage() {
   awk '/^# hostwarden-adopt/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
@@ -253,23 +247,23 @@ fi
 
 cd "$REPO_DIR"
 
-# With nativestrict, an ln -s that cannot link fails, and set -e
-# would stop the run with some hosts copied and others not. Find
-# out before the first copy instead. A dry run creates nothing.
+# An ln -s that cannot link fails, and set -e would stop the run
+# with some hosts copied and others not. Find out before the first
+# copy instead. A dry run creates nothing.
 # In the destination itself: a temporary directory can sit on a
 # filesystem that links when this one does not.
 if [ -z "$LIST" ]; then
   mkdir -p memory/servers
   probe=$(mktemp -d memory/servers/.link-probe.XXXXXX)
-  # A target that exists: nativestrict may refuse a dangling one,
-  # and "$probe" is relative, so it would dangle from inside.
+  # ".", not "$probe": that path is relative and would dangle
+  # from inside.
   ln -s . "$probe/l" 2>/dev/null || :
   linked=''
   [ -L "$probe/l" ] && linked=yes
   rm -rf "$probe"
   if [ -z "$linked" ]; then
-    echo "error: this shell cannot create symbolic links, and DNS" >&2
-    echo "  aliases need them — see docs/install.md → Windows" >&2
+    echo "error: this filesystem cannot hold symbolic links, and DNS" >&2
+    echo "  aliases need them — see docs/install.md → Symbolic links" >&2
     exit 1
   fi
 fi
