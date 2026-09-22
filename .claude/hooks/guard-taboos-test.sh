@@ -13,14 +13,15 @@ PASS=0
 FAIL=0
 
 json_for() {
-  # Wrap a raw command string as PreToolUse hook input.
+  # json_for <command> [tool] — a raw command string as PreToolUse
+  # hook input for Bash, or for the tool named.
   if command -v jq >/dev/null 2>&1; then
     printf '%s' "$1" \
-      | jq -Rs '{tool_name:"Bash",tool_input:{command:.}}'
+      | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
   else
     printf '%s' "$1" | python3 -c 'import json,sys; \
-print(json.dumps({"tool_name":"Bash","tool_input":\
-{"command":sys.stdin.read()}}))'
+print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
+{"command":sys.stdin.read()}}))' "${2:-Bash}"
   fi
 }
 
@@ -928,6 +929,30 @@ settings_case deny 'no jq: Write settings.local.json' \
   '{"tool_name":"Write","tool_input":{"file_path":"/r/.claude/settings.local.json","content":"'"$V"'"}}' \
   "PATH=$NOJQ"
 rm -rf "$NOJQ"
+
+# --- Monitor runs a shell command too -----------------------------
+# Its command arrives in tool_input.command like Bash's, and the
+# matcher in settings.json hands it to both guards. A taboo sent
+# through Monitor is a taboo; an ordinary watch passes.
+monitor_case() {
+  # monitor_case <expect> <command>
+  OUT=$(json_for "$2" Monitor | env -u "$V" sh "$HOOK")
+  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
+  expect "Monitor [$1, got $GOT]: $2" [ "$GOT" = "$1" ]
+}
+monitor_case deny 'poweroff'
+monitor_case deny 'sgdisk --zap-all /dev/sda'
+monitor_case deny 'ssh root@h "shutdown -h now"'
+monitor_case deny "printf 'PermitRootLogin no\\n' >> /etc/ssh/sshd_config"
+monitor_case deny 'while true; do rm -f ~/.ssh/authorized_keys; sleep 60; done'
+monitor_case pass 'tail -f /var/log/syslog | grep --line-buffered -E "error|fail"'
+monitor_case pass 'until gh pr checks 12 | grep -qv pending; do sleep 30; done'
+settings_case deny 'Monitor: write it into settings.local.json' \
+  "$(json_for "printf x $V >> .claude/settings.local.json" Monitor)"
+settings_case deny 'Monitor: touch a guard-off record' \
+  "$(json_for 'touch ~/.cache/hostwarden/guard-off-abc' Monitor)"
+settings_case pass 'Monitor: tail a log' \
+  "$(json_for 'tail -f /var/log/syslog' Monitor)"
 
 # --- check-session.sh: worktree and guard-off notices ----------
 # The hook only reads .git files and the commondir they lead to, so

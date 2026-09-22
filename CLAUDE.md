@@ -6,8 +6,10 @@
 tool reads. This file adds only what exists here and nowhere else.
 
 - **The taboo guard runs.** `.claude/hooks/guard-taboos.sh` is
-  registered as a `PreToolUse` hook on `Bash` and denies in every
-  permission mode, `--dangerously-skip-permissions` included. It
+  registered as a `PreToolUse` hook on `Bash` and `Monitor`, which
+  both run shell commands, and denies in every permission mode,
+  `--dangerously-skip-permissions` included. The `PowerShell`
+  tool, whose commands it cannot read, is denied outright. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
   are the entire safety layer. The off switch counts only for a
   session that started with it; `guard-settings.sh` keeps it out
@@ -21,7 +23,9 @@ tool reads. This file adds only what exists here and nowhere else.
   SessionStart hook puts `.claude/hooks/shim/` first on the
   `PATH` of every Bash call, subagents' included: `ssh`, `scp`,
   `sudo` and the rest print the refusal on stderr and fail
-  however they are started. `git push` reaches the real `ssh`
+  however they are started. A `Monitor` command gets no such
+  promise from Claude Code, so there `guard-mode.sh` itself
+  refuses them by name as well. `git push` reaches the real `ssh`
   through `GIT_SSH_COMMAND`, which is `.claude/hooks/git-ssh.sh`.
 - **SessionStart hooks have already run.** They have:
   - in an operations checkout, checked for repo updates and

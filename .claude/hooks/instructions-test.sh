@@ -140,6 +140,37 @@ else
   bad "settings.json no longer registers the taboo guard"
 fi
 
+# --- every tool that runs a command is guarded or denied ----------
+# A hook matches by tool name. Monitor runs shell commands just as
+# Bash does, and a matcher that names only Bash let a taboo through
+# it with no guard in the way. So each tool known to run a command
+# is either in the matcher of every guard that reads commands, or
+# denied outright by its bare name in permissions.deny. A new such
+# tool in Claude Code belongs on this list.
+if command -v jq >/dev/null 2>&1; then
+  for t in Bash Monitor PowerShell; do
+    if jq -e --arg t "$t" '.permissions.deny // [] | index($t)' \
+      "$CLAUDE_DIR/settings.json" >/dev/null; then
+      ok
+      continue
+    fi
+    for g in guard-taboos.sh guard-settings.sh guard-mode.sh; do
+      if jq -e --arg t "$t" --arg g "$g" '
+        [.hooks.PreToolUse[]? | select(any(.hooks[]?;
+           .command | endswith("/.claude/hooks/" + $g + "\""))) |
+         .matcher | split("[|,]"; null)[] | gsub("^ +| +$"; "")]
+        | index($t)' "$CLAUDE_DIR/settings.json" >/dev/null; then
+        ok
+      else
+        bad "settings.json lets $t run commands past $g: add it" \
+            "to that hook's matcher, or deny \"$t\" outright"
+      fi
+    done
+  done
+else
+  bad "jq is missing, so the guard matchers cannot be checked"
+fi
+
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other
 # AGENTS-style tools read directly. Claude Code does NOT search

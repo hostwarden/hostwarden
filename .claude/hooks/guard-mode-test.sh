@@ -194,6 +194,31 @@ sudo systemctl reload nginx
 EOF'
 edit pass "$DEV" "$DEV/rules/backups.md"
 
+# Monitor runs a shell command too. Everything denied for Bash is
+# denied for it, and since the env file that carries the shim is
+# documented for Bash only, so is a bare tool at the start of a
+# segment. A watch that reaches no server passes, and so does a
+# WebSocket watch, which starts no shell.
+monitor_json() {
+  printf '%s' "$1" | jq -Rs '{tool_name:"Monitor",tool_input:{command:.,description:"watch",timeout_ms:300000}}'
+}
+mon() { verdict "$1" "$2" "$(monitor_json "$3")"; }
+mon deny "$DEV" '/usr/bin/ssh server1.example.com tail -f /var/log/syslog'
+mon deny "$DEV" 'PATH=/usr/bin:/bin ssh server1.example.com uptime'
+mon deny "$DEV" 'command -p ssh server1.example.com'
+mon deny "$DEV" 'ssh root@server1.example.com tail -f /var/log/syslog'
+mon deny "$DEV" 'sudo tail -f /var/log/auth.log | grep --line-buffered sshd'
+mon deny "$DEV" 'while true; do "ssh" server1.example.com uptime; sleep 30; done'
+mon deny "$DEV" 'rsync -av server1.example.com::mod here/'
+mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered -E "error|ssh"'
+mon pass "$DEV" 'until gh pr checks 12 | grep -qv pending; do sleep 30; done'
+verdict pass "$DEV" \
+  '{"tool_name":"Monitor","tool_input":{"ws":{"url":"wss://events.example.com/x"},"description":"ws","timeout_ms":300000}}'
+mon deny "$WT" 'ssh root@server1.example.com uptime'
+mon pass "$OPS" 'ssh root@server1.example.com tail -f /var/log/syslog'
+# Text that says Monitor does not turn a Bash call into one.
+cmd pass "$DEV" 'echo "Monitor" ssh'
+
 # The taboo guard's off switch does not reach the mode guard.
 out=$(bash_json '/usr/bin/ssh server1.example.com true' \
   | HOSTWARDEN_GUARD_DISABLE=1 sh "$DEV/.claude/hooks/guard-mode.sh")
@@ -257,6 +282,8 @@ nojq() {
 nojq deny "$DEV" "$(bash_json '/usr/bin/ssh server1.example.com true')"
 nojq pass "$DEV" "$(bash_json 'ssh server1.example.com true')"
 nojq pass "$DEV" "$(bash_json 'git status')"
+nojq deny "$DEV" "$(monitor_json 'tail -f /tmp/build.log')"
+nojq pass "$OPS" "$(monitor_json 'ssh server1.example.com true')"
 nojq pass "$DEV" "$(edit_json "$DEV/rules/backups.md")"
 nojq deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
 nojq pass "$OPS" "$(edit_json "$OPS/memory/servers/server1.example.com/memory.md")"
