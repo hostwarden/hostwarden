@@ -283,6 +283,19 @@ mon deny "$DEV" "flock -c 'ssh server1.example.com true' /tmp/lock"
 mon deny "$DEV" "flock /tmp/lock -c 'ssh server1.example.com true'"
 mon deny "$DEV" "flock --command 'ssh server1.example.com true' /tmp/lock"
 mon pass "$DEV" 'flock /tmp/lock tail -f /tmp/build.log'
+mon deny "$DEV" "env -S'ssh server1.example.com true'"
+mon deny "$DEV" "env --split-string='ssh server1.example.com true'"
+mon deny "$DEV" "env -iS'ssh server1.example.com true'"
+mon deny "$DEV" 'builtin exec ssh server1.example.com true'
+mon deny "$DEV" 'builtin command ssh server1.example.com true'
+mon deny "$DEV" 'busybox ssh server1.example.com true'
+mon deny "$DEV" 'unbuffer ssh server1.example.com tail -f /var/log/syslog'
+mon deny "$DEV" 'chronic ssh server1.example.com true'
+mon deny "$DEV" 'ssh-agent -t 60 ssh server1.example.com true'
+mon deny "$DEV" 'watch -n 5 ssh server1.example.com uptime'
+mon pass "$DEV" 'watch -n 5 gh pr checks 12'
+mon pass "$DEV" "env -S'tail -f /tmp/build.log'"
+cmd deny "$DEV" "env -S'SSH.EXE server1.example.com'"
 mon pass "$DEV" 'time ! grep -q error /tmp/build.log'
 mon deny "$DEV" 'env -iu LANG ssh server1.example.com uptime'
 mon deny "$DEV" 'chrt 10 ssh server1.example.com uptime'

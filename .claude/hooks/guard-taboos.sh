@@ -747,8 +747,9 @@ use shutdown -r; -c cancels)"
   # $'...' before the program sees '-h', $'--poweroff', \-P or
   # --h"a"lt, so any of them may sit anywhere in the flag. Brace
   # expansion builds a flag too: -{r,h} is -r -h, so { } and ,
-  # count among them.
-  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\${},]*(-["'\''`\\${},[:alnum:]]*[hHPp]["'\''`\\${},[:alnum:]]*|-["'\''`\\${},]*-["'\''`\\${},]*(h["'\''`\\${},]*a|p)["'\''`\\${},[:alpha:]]*)(["'\''`\\${},[:space:]]|$)'
+  # count among them. A sequence, -{h..h} or -{a..z}, can name any
+  # letter in its range, so a dash before one counts on its own.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\${},]*(-["'\''`\\${},[:alnum:]]*\{[[:alnum:]]\.\.[[:alnum:]][^[:space:];&|]*|-["'\''`\\${},[:alnum:]]*[hHPp]["'\''`\\${},[:alnum:]]*|-["'\''`\\${},]*-["'\''`\\${},]*(h["'\''`\\${},]*a|p)["'\''`\\${},[:alpha:]]*)(["'\''`\\${},[:space:]]|$)'
   then
     deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
 halts or powers off the server even beside -r"

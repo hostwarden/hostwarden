@@ -273,8 +273,10 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     # command: the duration of timeout, the priority of chrt, the
     # mask of taskset, the lock file of flock. env -S is left out:
     # it takes the command itself, which the parse below then
-    # reads as the next word. flock -c does the same and is read
-    # the same way, wherever it stands.
+    # reads as the next word, or as the rest of the word when it
+    # is attached (-S"ssh h", --split-string=...). flock -c does
+    # the same and is read the same way, wherever it stands.
+    # builtin runs exec or command, which follow as launchers.
     LA["env"] = "uC"; LL["env"] = "unset|chdir"
     LA["nice"] = "n"; LL["nice"] = "adjustment"
     LA["timeout"] = "sk"; LL["timeout"] = "signal|kill-after"
@@ -293,7 +295,10 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["flock"] = "wE"; LL["flock"] = "wait|timeout|conflict-exit-code"
     LP["flock"] = 1
     LA["exec"] = "a"
-    LA["command"] = LA["nohup"] = LA["setsid"] = ""
+    LA["command"] = LA["nohup"] = LA["setsid"] = LA["builtin"] = ""
+    LA["busybox"] = LA["unbuffer"] = LA["chronic"] = ""
+    LA["ssh-agent"] = "aEOPt"
+    LA["watch"] = "nq"; LL["watch"] = "interval|equexit"
   }
   {
     s = $0
@@ -373,6 +378,11 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
           x = v[i]
           if (x == "--") { i++; break }
           if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
+          if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {
+            sub(/^(-[^-uCS]*S|--split-string=)/, "", x)
+            v[i] = x
+            break
+          }
           if (x ~ /^-/) {
             if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
                 || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
