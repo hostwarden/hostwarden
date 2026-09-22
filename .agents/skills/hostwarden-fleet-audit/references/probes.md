@@ -34,6 +34,13 @@ runlevels from it rather than calling OpenRC again. It also
 answers whether a syslog daemon runs, which decides whether the
 audit-trail line was written (`rules/os/alpine.md` → Logs).
 
+On macOS, every probe below has a **macOS** variant that
+replaces it. The privilege prefix below applies unchanged, but
+the root account is disabled on a Mac and sudo usually asks for
+a password, so `$SUDO` is often `-`: expect
+`unknown(needs-root)` cells rather than a partial row. A key
+only the other families have is `n/a (macOS)`.
+
 **Privilege handling.** The sshd and firewall probes need
 root. Work out the prefix once, at the top of the bundle —
 never an interactive prompt, BatchMode allows none; `doas` is
@@ -129,6 +136,22 @@ shows only the caller's: run it as `$SUDO crontab -l`. When
 alone: a warning, worded as a gap Alpine ships no mechanism
 for — never raised from an `unknown(needs-root)` cell.
 
+**macOS** has no unattended-upgrades. Software Update's
+settings are the policy, read and judged as `rules/os/macos.md`
+→ Automatic Security Updates says, the managed file included:
+
+```bash
+echo "--local"
+defaults read /Library/Preferences/com.apple.SoftwareUpdate 2>&1
+echo "--managed"
+defaults read "/Library/Managed Preferences/com.apple.SoftwareUpdate" 2>&1
+```
+
+The rows are `AutomaticCheckEnabled`, `AutomaticDownload`,
+`CriticalUpdateInstall`, `ConfigDataInstall` and
+`AutomaticallyInstallMacOSUpdates`, each marked `managed` where
+the profile sets it. Hosts whose keys differ are drift.
+
 ## 2. sshd effective config
 
 `sshd -T` needs root (it reads host keys). Run it with the
@@ -170,6 +193,24 @@ Highlight as drift:
 - Any host with `permitrootlogin yes` while others use
   `prohibit-password` or `forced-commands-only`.
 - Mismatched `port` values across the fleet.
+
+**macOS** runs the probe unchanged
+(`.agents/skills/hostwarden-security/references/ssh.md` →
+SSH Password Authentication — macOS), plus one row: who Remote
+Login admits, which it keeps outside `sshd_config`:
+
+```bash
+if dscl . -read /Groups/com.apple.access_ssh RecordName >/dev/null 2>&1; then
+  echo "access_ssh=restricted"
+  dscl . -read /Groups/com.apple.access_ssh \
+    | grep -E '^(GroupMembership|NestedGroups):'
+else
+  echo "access_ssh=all users"
+fi
+```
+
+`all users`, or the members and nested groups (Administrators
+is a nested group). Hosts that differ are drift.
 
 ## 3. Firewall posture
 
@@ -269,6 +310,25 @@ Highlight as drift:
 - Any host with legacy iptables rules while the others
   have none.
 
+**macOS** — the Application Firewall
+(`rules/os/macos.md` → Firewall), and pf where it has rules:
+
+```bash
+FW=/usr/libexec/ApplicationFirewall/socketfilterfw
+$FW --getglobalstate
+$FW --getblockall
+$FW --getstealthmode
+if [ "$SUDO" = "-" ]; then
+  echo "pf=unknown(needs-root)"
+else
+  $SUDO pfctl -s info 2>/dev/null | grep -m1 '^Status'
+fi
+```
+
+Tool in use is `appfw`, `pf`, both or `none`; pf counts only
+when its status is enabled. Default policy is `deny` with
+block-all on, and `per-app` otherwise.
+
 ## 4. MTA
 
 ```bash
@@ -318,6 +378,27 @@ Highlight as drift:
 - One host with no MTA while others have one.
 - Different MTAs in use without a documented reason in
   the per-host `memory.md`.
+
+**macOS** ships Postfix, run by launchd on demand. `launchctl
+print` output is not a stable interface; take only the
+`state =` line.
+
+```bash
+ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
+postconf -h relayhost 2>/dev/null | sed "s/^/relayhost=/"
+if [ "$SUDO" = "-" ]; then
+  echo "active=unknown(needs-root)"
+else
+  $SUDO launchctl print system/com.apple.postfix.master 2>&1 \
+    | grep -m1 -e 'state =' -e 'Could not find'
+fi
+hostname -f
+```
+
+Installed MTA is `postfix` on every Mac; a relay host is what
+tells one that sends mail from one that cannot. Never propose
+installing an MTA on a Mac
+(`.agents/skills/hostwarden-email/references/transport-remote.md`).
 
 ## 5. Time sync
 
@@ -371,6 +452,24 @@ Row keys on an Alpine host:
 Judge on the host alone: no time service started is a warning,
 except in LXC (`openrc --sys` prints `LXC`), whose clock is the
 hypervisor's.
+
+**macOS** has no `timedatectl`. `systemsetup` needs an admin:
+
+```bash
+if [ "$SUDO" = "-" ]; then
+  echo "ntp=unknown(needs-root)"
+else
+  $SUDO systemsetup -getusingnetworktime
+  $SUDO systemsetup -getnetworktimeserver
+fi
+readlink /etc/localtime
+```
+
+Rows: network time on or off in place of `NTPSynchronized`,
+the time server, and the zone name after `zoneinfo/` in the
+link target. The clock offset is housekeeping's
+(`.agents/skills/hostwarden-housekeeping/references/baseline-macos.md`
+→ Time Sync).
 
 ## 6. Auto-reboot behaviour (cross-check with UA)
 
@@ -431,3 +530,13 @@ uptime
 The row keys and the criteria above apply, with the uptime read
 from the `up …` part of the line. The needrestart row is
 `n/a (Alpine)`: there is no needrestart and no apt hook.
+
+**macOS** — the boot time only:
+
+```bash
+sysctl -n kern.boottime
+```
+
+A pending restart is housekeeping's, since only `softwareupdate
+--list` knows and it asks Apple's servers; that row and
+needrestart are `n/a (macOS)`.
