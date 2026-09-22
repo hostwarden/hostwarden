@@ -13,12 +13,14 @@
   wizard published only on port 3000 is caught.
   The session register on a host is created with its final
   permissions in one step.
-- **OpenMediaVault housekeeping reads SAS disks' SMART health.**
-  It takes `SMART Health Status:` as well as the SATA and NVMe
-  result line, counts a SAS disk's grown defect list with the
-  sector counts, judges NVMe media errors and wear, reads every
-  disk in one call without waking a spun-down one, and reports a
-  disk with no health line as unknown, never as passing.
+- **OpenMediaVault and Unraid read SMART the same way.** One
+  housekeeping reference holds the probe, the reading and the
+  findings for both: the health line of SATA, NVMe and SAS disks,
+  sector counts, a SAS disk's grown defect list, NVMe media errors
+  and wear. A spun-down disk is left asleep, and a disk with no
+  health line is reported as unknown, never as passing.
+- **Unraid counts a disk in SLEEP mode as asleep.** Housekeeping
+  reported it as unknown, because only STANDBY was recognised.
 - **Pending upgrades on Alpine 3.23 and later are listed
   again.** The Alpine rule now uses `apk list --upgradeable`,
   which apk 2 and apk 3 both accept; apk 3 rejects the
