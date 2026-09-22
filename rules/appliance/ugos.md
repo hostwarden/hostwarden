@@ -432,8 +432,9 @@ host, not as documented behaviour.
   and the probe in
   `.agents/skills/hostwarden-housekeeping/references/smart.md`,
   over `smartctl --scan` (smartmontools is in UGREEN's manifest).
-  `/proc/mdstat`, `findmnt` and `lvs` read the kernel's own tables
-  and need no root; `mdadm --detail`, `btrfs device stats`, SMART
+  `/proc/mdstat` and `findmnt` read the kernel's own tables and
+  need no root; `lvs`, which needs LVM's lock and the physical
+  volumes' metadata, `mdadm --detail`, `btrfs device stats`, SMART
   and the container lines do, and without it they are reported as
   skipped (`references/unprivileged.md`). The Docker checks
   of
