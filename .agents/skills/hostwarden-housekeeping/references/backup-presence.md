@@ -50,7 +50,7 @@ systemctl list-timers --all 2>/dev/null \
   | grep -iE 'backup|borg|restic|rsnapshot|dump|rclone'
 grep -riE 'backup|restic|borg|pg_dump|mysqldump|rclone|rsync' \
   /etc/cron.d /etc/cron.daily /etc/cron.weekly \
-  /etc/crontab 2>/dev/null
+  /etc/crontab /etc/periodic 2>/dev/null
 crontab -l 2>/dev/null \
   | grep -iE 'backup|restic|borg|dump|rsync'
 

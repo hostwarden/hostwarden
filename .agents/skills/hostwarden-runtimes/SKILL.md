@@ -128,6 +128,24 @@ ssh <options> user@host "ruby --version"
 Only the runtimes this request installed. Asking a host for
 a runtime nobody put there reports a failure that is not one.
 
+## Removing a Runtime
+
+Remove it **as the SSH user**, with `mise unuse --global`: it
+takes the version out of the global config and uninstalls it
+once no other config asks for it. `mise uninstall` alone leaves
+the global config naming a version that is gone
+(https://mise.jdx.dev/cli/unuse.html,
+https://mise.jdx.dev/cli/uninstall.html):
+
+```
+mise unuse --global ruby@<version>
+mise ls ruby
+```
+
+`mise ls` still listing the version names the config that keeps
+it; report that rather than removing it from there. Then update
+the memory line below.
+
 ## Server Memory Convention
 
 When mise and languages are installed, add a single

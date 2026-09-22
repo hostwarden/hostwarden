@@ -195,7 +195,7 @@ Triggered when `memory.md` mentions nginx.
 
 ```bash
 nginx -t 2>&1
-systemctl is-active nginx
+systemctl is-active nginx 2>/dev/null || rc-service nginx status
 ```
 
 - **WARN** if config test fails
@@ -372,10 +372,10 @@ journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
 
 `-s status` applies to the `install.sh` service; for Snap and
 Docker use the state from detection. Then ask DNS itself, on the
-host, at an address from `bind_hosts` — `127.0.0.1` when that is
-`0.0.0.0` — and on `port`, or for a container the host port
-`docker ps` shows published for it; use `nslookup` where `dig`
-is missing:
+host, at an address from `bind_hosts` and on `port`, or for a
+container at the host address and port `docker ps` shows its
+port 53 published on — `127.0.0.1` wherever the address is
+`0.0.0.0`; use `nslookup` where `dig` is missing:
 
 ```bash
 dig +time=2 +tries=1 -p <port> @<bind-host> \

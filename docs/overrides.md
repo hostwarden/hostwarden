@@ -27,13 +27,17 @@ Two things no override changes: the Critical Safety
 Rules in `AGENTS.md`, and whether a skill starts at all.
 A skill is picked by its description before any of your
 files are read, so trigger wording goes into
-`memory/custom-rules/all.md`, which is in context from
-the start:
+`memory/custom-rules/all.md`, which is read at session
+start:
 
 ```markdown
 ## Add: Skill triggers
 "check <host>" means run housekeeping, not a quick query.
 ```
+
+That governs every request after the read. The first
+request of a session can pick a skill before it, so
+`all.md` is a preference, not a hard gate.
 
 ## Where an override goes
 

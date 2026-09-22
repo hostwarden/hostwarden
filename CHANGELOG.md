@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Checks that misread a healthy host now read it right.**
+  Housekeeping finds an Alpine backup under `/etc/periodic`,
+  asks OpenRC about nginx on Alpine, queries AdGuard Home in
+  Docker at the address it is published on, and says when
+  an Ubuntu host has no Pro client instead of failing. The
+  security audit reads a Snap AdGuard Home's own config
+  and checks Alpine's cron and periodic permissions. The
+  fleet audit reports the needrestart mode that actually
+  wins, and every probe returns the same row keys. A
+  deploy-user audit checks the recorded deploy directory,
+  a mail through nullmailer or dma is confirmed from its
+  log, and the runtimes skill can remove a runtime. A
+  Heinzel host moved over right after its last Heinzel
+  session is asked about rather than deferred, a Heinzel
+  cron job still running from the old checkout is named as
+  such, and the coexistence override no longer calls an
+  unexplained missing backup directory adopted.
+
 - **The Windows taboos hold on Windows Server too.** Over
   SSH, the taboo guard blocks what it blocks under WSL,
   plus `bcdedit` edits (`/enum` and `/v` still read),

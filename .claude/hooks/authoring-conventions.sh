@@ -87,7 +87,7 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "You are editing Hostwarden's instruction set, which is the product. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
+    "additionalContext": "You are editing Hostwarden's instruction set, which is the product. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Every change also gets one entry under `## Unreleased` in `CHANGELOG.md`, written as `.claude/rules/repo-release.md` says. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
   }
 }
 JSON

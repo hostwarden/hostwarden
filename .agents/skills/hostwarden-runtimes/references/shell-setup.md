@@ -75,8 +75,12 @@ EOF
 **Verify it works:**
 
 ```
-ssh <options> user@host "mise --version; node --version"
+ssh <options> user@host "mise --version && <runtime> --version"
 ```
+
+`&&`, and only the runtime this request installed: with `;`, a
+system `node` that answers hides a `mise` the PATH does not
+reach.
 
 If neither file is sourced, fall back to:
 

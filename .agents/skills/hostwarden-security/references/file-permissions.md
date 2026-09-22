@@ -63,6 +63,15 @@ stat -c '%a %U %G %n' \
   /etc/cron.monthly 2>/dev/null
 ```
 
+On Alpine, the paths are busybox `crond`'s crontabs and the
+periodic directories it runs (`rules/os/alpine.md` → Directory
+Conventions), with the same criteria:
+
+```bash
+stat -c '%a %U %G %n' /etc/crontabs /etc/crontabs/* \
+  /etc/periodic /etc/periodic/* 2>/dev/null
+```
+
 - Any of these world-writable (xx7 or xx6 with group=other) →
   **CRITICAL**
 - World-readable but not writable → **INFO**

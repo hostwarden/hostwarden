@@ -81,9 +81,10 @@ Bash calls as it does anywhere else.
 
 Four things, in this order, and nothing else.
 
-**The row**, in the keyed form your prompt gives. One `key: value`
-per line, every key the prompt names, and `unknown(needs-root)`
-rather than a guess where a probe could not read what it needed.
+**The row**, one `key: value` per line: every row key
+`references/probes.md` lists for the categories you ran, spelled
+as there, and `unknown(needs-root)` rather than a guess where a
+probe could not read what it needed.
 
 **One status:**
 
