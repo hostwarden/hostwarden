@@ -103,12 +103,13 @@ Triggered when `memory.md` mentions Docker.
 docker ps --format \
   "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
 ls -d /etc/casaos
+grep -E '^ID=' /etc/os-release
 ```
 
-`/etc/casaos` existing on a host whose memory names no
-`Appliance:` means CasaOS manages containers here: add `CasaOS` to
-`memory.md` and run the CasaOS section below. ZimaOS, which grew out
-of CasaOS, is an appliance with its own file and never counts.
+`/etc/casaos` existing means CasaOS manages containers here: add
+`CasaOS` to `memory.md` and run the CasaOS section below. Not on
+ZimaOS, which grew out of CasaOS: an os-release `ID` of `zimaos`,
+quoted or not, or an `Appliance:` line in memory never counts.
 
 - **CRITICAL** if the daemon does not answer — that says nothing
   about the containers, never that there are none. Permission
@@ -149,7 +150,8 @@ The six units are the ones the installer starts
   `build/sysroot/usr/lib/systemd/system/casaos.service`).
   **CRITICAL** if the user says a port forward reaches it from the
   internet.
-- **WARN** for a version up to 0.4.15: CVE-2025-34171 lets anyone
+- **CRITICAL** for a version up to 0.4.15, as `rules/version-check.md`
+  rates a known vulnerability: CVE-2025-34171 lets anyone
   who reaches the UI read files and debug data without logging in
   (https://www.vulncheck.com/advisories/casaos-unauthenticated-file-and-debug-data-exposure).
   Name the newest release from
