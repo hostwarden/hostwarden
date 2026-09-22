@@ -24,6 +24,9 @@ and fight for the same role.
   that would start a second service in the class.
 - Creating a systemd or rc unit that would start a
   class member.
+- Running a vendor installer script or a
+  `docker run` that starts a class member. Phase 2
+  has no dry-run for these; Phase 1 still applies.
 
 **Do not trigger on:**
 
@@ -46,7 +49,11 @@ and fight for the same role.
   via Debian's alternatives system and play the
   same role as the full servers above.
 - **Time sync:** chrony, ntp (provides ntpd),
-  openntpd, systemd-timesyncd
+  openntpd, systemd-timesyncd, and Pi-hole while its
+  `ntp.sync.active` is `true`, the default: FTL then
+  sets the system clock from `pool.ntp.org` and
+  answers NTP on port 123 (https://github.com/pi-hole/FTL,
+  `src/config/config.c`)
 - **DNS resolver:** unbound, bind9 (RPM: `bind`),
   dnsmasq, pdns-recursor, knot-resolver,
   systemd-resolved, Pi-hole and AdGuard Home.
@@ -186,24 +193,14 @@ lists them. Probe for them on every OS:
 ```bash
 command -v pihole-FTL AdGuardHome
 ls -d /etc/pihole /opt/AdGuardHome 2>/dev/null
-docker ps -a --format '{{.Image}}' 2>/dev/null \
-  | grep -iE 'pihole/pihole|adguard/adguardhome'
 snap list adguard-home 2>/dev/null
+docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
+  2>/dev/null | grep -iE 'pihole/pihole|adguard/adguardhome'
 ```
 
-Any hit is an installed DNS resolver. A request to
-install either one is a request for a class member
-too: run Phase 1 before the installer script or the
-`docker run`, even though Phase 2 has no dry-run for
-them.
-
-Pi-hole also claims the **time sync** role while
-`pihole-FTL --config -q ntp.sync.active` says `true`,
-its default: FTL then sets the system clock from
-`pool.ntp.org` and answers NTP on port 123
-(https://github.com/pi-hole/FTL,
-`src/config/config.c`). Count it as a time sync
-member next to chrony or ntpd.
+Any hit is an installed DNS resolver. For Pi-hole,
+`pihole-FTL --config -q ntp.sync.active` decides the
+time sync membership above.
 
 ### Phase 2 — Pending-install dry-run
 

@@ -30,6 +30,11 @@ root. With `sudo`, it shows all.
 Present results as a table of listening addresses, ports, and
 process names (when available).
 
+An address is **public** unless it is in `10.0.0.0/8`,
+`172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `127.0.0.0/8`,
+`169.254.0.0/16`, `fc00::/7`, `fe80::/10` or `::1`. A listener on
+`0.0.0.0` or `[::]` listens on every address the host has.
+
 Flag as **WARN** if any of these well-known database or cache
 ports listen on `0.0.0.0` or `::` (all interfaces) instead of
 `127.0.0.1` or `::1`:
@@ -54,20 +59,19 @@ than loopback — Pi-hole, AdGuard Home, unbound, dnsmasq, BIND —
 and from the housekeeping skill's Pi-hole and AdGuard Home checks.
 A resolver that answers any address on the internet is an open
 resolver: it is used to amplify denial-of-service traffic, and
-its operator gets the abuse reports. The probe is for Linux; on
-macOS use `lsof` from above and `ifconfig`.
+its operator gets the abuse reports.
+
+Take the port 53 rows from the listener table above — from
+housekeeping, run that probe first — and the host's addresses
+(`ifconfig` on macOS):
 
 ```bash
-ss -tulnp 'sport = :53'
 ip -br addr
 ```
 
-An address is **public** unless it is in `10.0.0.0/8`,
-`172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `127.0.0.0/8`,
-`169.254.0.0/16`, `fc00::/7`, `fe80::/10` or `::1`. A listener on
-`0.0.0.0` or `[::]` counts as listening on every address the host
-has. Behind NAT, what a router forwards is not visible from the
-host: say so rather than calling the resolver unexposed.
+Judge each address as in Evaluation above. Behind NAT, what a
+router forwards is not visible from the host: say so rather than
+calling the resolver unexposed.
 
 Then read who the resolver answers, from its own configuration.
 
