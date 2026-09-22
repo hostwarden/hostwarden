@@ -62,6 +62,12 @@ Write `memory/user.md` with the chosen name as
 **both** `Default:` and the `- <hostname>:` entry,
 in a single file write.
 
+When Host-specific options below change the
+options for `<hostname>`, its answer must not become
+the default: ask Case B's default question first,
+then the per-server question with those options, and
+write both in a single file write.
+
 ### Case B — fresh install, no server specified yet
 
 `memory/user.md` does not exist and the user ran
@@ -88,23 +94,6 @@ options 1 and 2 into a single `root` entry and
 keep `Other…` as option 2. Save the choice as a
 per-server override in `memory/user.md`.
 
-When the user has said the host runs Windows, there
-is no `root` to offer, and the built-in
-administrator may be renamed or carry a localized
-name: drop option 2 and ask for the account under
-`Other…` — a domain account as `domain\user`, which
-the SSH call then passes quoted with `-l`
-(`rules/os/windows.md` → Notes).
-
-This step runs before OS detection loads an
-appliance file. When server memory has an
-`Appliance:` line, or the user named the appliance,
-read that file's section on access in
-`rules/appliance/` before asking; where it names the
-only login, as on Unraid, offer that account and
-`Other…`. In Case A, save it only as the per-server
-entry and ask for the default as in Case B.
-
 **On subsequent connections:** look up the server in
 `memory/user.md`. Do not ask again.
 
@@ -116,6 +105,27 @@ name or root on your own; ask. A wrong name is an
 When the user explicitly specifies a username on the
 command line, skip the interview, use that name, and
 update `memory/user.md`.
+
+### Host-specific options
+
+These apply to every per-server question, in Case A
+and Case C alike.
+
+When the user has said the host runs Windows, there
+is no `root` to offer, and the built-in
+administrator may be renamed or carry a localized
+name: drop option 2 and ask for the account under
+`Other…` — a domain account as `domain\user`, which
+the SSH call then passes quoted with `-l`
+(`rules/os/windows.md` → Notes).
+
+The per-server question comes before OS detection
+loads an appliance file. When server memory has an
+`Appliance:` line, or the user named the appliance,
+read that file's section on access in
+`rules/appliance/` before asking; where it names the
+only login, as on Unraid, offer that account and
+`Other…`.
 
 ## User Language
 
