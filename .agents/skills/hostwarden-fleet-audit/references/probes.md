@@ -372,8 +372,9 @@ when its status is enabled. Default policy is `deny` with
 block-all on, and `per-app` otherwise.
 
 **FreeBSD** — run the status probe from `rules/os/freebsd.md` →
-Firewall with `$SUDO` in front of `pfctl` (`unknown(needs-root)`
-when it is `-`), then read the rules of whichever runs:
+Firewall with `$SUDO` in front of `pfctl` and `ipf`
+(`unknown(needs-root)` when it is `-`), then read the rules of
+whichever runs:
 
 ```bash
 if [ "$SUDO" = "-" ]; then
