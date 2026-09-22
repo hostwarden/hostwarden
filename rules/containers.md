@@ -45,8 +45,10 @@ for rt in docker podman nerdctl; do
 done
 systemctl is-active docker podman.socket containerd 2>/dev/null
 ps -C conmon,rootlesskit -o user= 2>/dev/null | sort -u
-ls -d /home/*/.local/share/containers \
-  /home/*/.local/share/docker 2>/dev/null
+getent passwd | awk -F: '$3 >= 1000 {print $6}' | while read -r h; do
+  ls -d "$h/.local/share/containers" "$h/.local/share/docker" \
+    2>/dev/null
+done
 ```
 
 On Alpine, `rc-service docker status` replaces the `systemctl` line,
@@ -60,8 +62,9 @@ and busybox `ps` has no `-C`: `ps -o user,comm | grep -E
   there is rootful Podman. `ps` prints a numeric UID for a name
   longer than eight characters: `getent passwd <uid>` gives the
   name that `sudo -u` needs.
-- The `ls` line also finds the accounts whose containers have all
-  stopped.
+- The `ls` loop also finds the accounts whose containers have all
+  stopped. It reads each account's home from `passwd`, because a
+  home outside `/home` is as good a place for a store.
 
 Query one rootless owner as root:
 
@@ -69,6 +72,9 @@ Query one rootless owner as root:
 uid=$(id -u alice)
 sudo -u alice env XDG_RUNTIME_DIR=/run/user/$uid podman ps -a
 ```
+
+A root session on a system without `sudo` uses `runuser -u alice --`
+in its place, or `su alice -c` where `runuser` is missing too.
 
 Rootless Docker answers on `unix:///run/user/<uid>/docker.sock`:
 pass that as `DOCKER_HOST` the same way

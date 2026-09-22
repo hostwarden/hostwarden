@@ -31,9 +31,10 @@ Docker's daemon, in the same call:
 docker info --format '{{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
 grep -oE '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)" *: *[^,}]*' \
   /etc/docker/daemon.json 2>/dev/null
-grep -h -- '-H' /etc/conf.d/docker /etc/default/docker 2>/dev/null
+grep -hoE -- '-H +[^ "'"'"']+' /etc/conf.d/docker /etc/default/docker \
+  2>/dev/null
 ps -eo args | grep -E '[d]ockerd|[s]ystem service'
-ss -tln 2>/dev/null || netstat -tln
+ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || netstat -tln
 getent group docker
 g=$(getent group docker | cut -d: -f3)
 [ -n "$g" ] && getent passwd | awk -F: -v g="$g" '$4 == g {print $1}'
@@ -42,7 +43,11 @@ g=$(getent group docker | cut -d: -f3)
 `ps -eo args` works with busybox too; the `grep` finds `dockerd` and
 a `podman system service`, whose API listens on TCP wherever its
 arguments name `tcp://`, on any port. The listeners are read for
-those ports, not only 2375 and 2376. Where neither `ss` nor
+those ports, not only 2375 and 2376. A listener counts as the
+engine's only where the process column names it, or where the
+engine's own arguments or configuration name that address; another
+service on 2375 is that service's finding, not the engine's. Where
+neither `ss` nor
 `netstat` exists, name the listener check as not run.
 
 ## Engine
