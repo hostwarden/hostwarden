@@ -27,9 +27,11 @@ system rather than trust it.
 
 ## Version Detection
 
-- **This file covers DSM 7.** When `majorversion` is 8 or later, or
-  6 or earlier, stop: tell the user that Hostwarden has no rules for
-  this release, and change nothing on the host.
+- **This file covers DSM 7.2 and later 7.x releases**, the ones
+  whose `/etc.defaults/VERSION` carries `os_name="DSM"`. On DSM 7.0
+  or 7.1, both past their end of life, on 6 or earlier and on 8 or
+  later, stop: tell the user that Hostwarden has no rules for this
+  release, and change nothing on the host.
 - `/etc.defaults/VERSION` holds `key="value"` lines, among them
   `majorversion`, `minorversion`, `productversion` (e.g. `7.2.2`),
   `buildnumber`, `smallfixnumber` and `os_name="DSM"`, the last
@@ -50,8 +52,10 @@ system rather than trust it.
 - **Support comes from the Life Cycle Policy, never from memory.**
   Each minor version (7.1, 7.2, 7.3, …) has its own end of
   maintenance and, for a long-term support version, an end of
-  extended life; releases past both get no security fixes. A host
-  on such a release is a critical finding.
+  extended life. A release past its last date, the end of extended
+  life for a long-term support version and the end of maintenance
+  for any other, gets no security fixes; a host on such a release
+  is a critical finding.
 - A model stops receiving new DSM versions of its own: the release
   notes list the models a release skips and the models for which it
   is the last one, and the product support status page gives each
@@ -239,8 +243,7 @@ system rather than trust it.
   listed on the package's page
   (<https://www.synology.com/en-global/dsm/packages/ContainerManager>).
   On the host, `/var/packages/ContainerManager` exists where it is
-  installed; on DSM 7.0 and 7.1 the older package is
-  `/var/packages/Docker`.
+  installed.
 - The engine's `docker` is linked into `/usr/local/bin`, where DSM
   links a package's binaries
   (<https://help.synology.com/developer-guide/resource_acquisition/usrlocal_linker.html>);

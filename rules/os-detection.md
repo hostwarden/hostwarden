@@ -225,10 +225,11 @@ itself; its file says to stop there.
 `version="…"` is the content of `/etc/unraid-version`
 on a line of its own; an error that names the file is
 no match.
-`os_name="DSM"` is a line of `/etc.defaults/VERSION`;
-an error that names the file is no match. The file
-with another `os_name`, or none: show the user its
-lines and ask what the host is.
+`os_name="DSM"` is a line of `/etc.defaults/VERSION`
+from DSM 7.2 on; an error that names the file is no
+match. The file with another `os_name`, or none, as on
+DSM 7.1 and earlier: show the user its lines and ask
+what the host is.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
