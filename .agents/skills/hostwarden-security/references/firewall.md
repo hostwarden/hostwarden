@@ -67,6 +67,13 @@ lines and list the rules as skipped.
   default incoming policy is not deny"
 - Otherwise OK; list the ports passed in for review
 
+**On a firewall appliance** (OPNsense, pfSense) the vendor owns the
+ruleset and its default deny; skip the default check above. Read
+`pfctl -s rules` once and report every rule that passes traffic in
+on a WAN interface from any source, **WARN** when one reaches SSH
+or the web UI. The appliance file names where those rules live in
+its web UI.
+
 ## macOS
 
 Check Application Firewall status:

@@ -194,14 +194,21 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   a verdict, as the base file describes, is fine.
 - `admin` has UID 0 by design: pfSense keeps it as root's twin and
   sets root's password from it (`/etc/rc.initial.password`). A
-  second UID 0 account named `admin` is expected, not a finding.
+  second UID 0 account named `admin` is expected, not a finding,
+  and so is its shell, the console menu `/etc/rc.initial`, in the
+  system-account check.
 
 ## Replace: sshd
 
 - sshd is the base system's `/usr/sbin/sshd`, its configuration
   generated into `/etc/ssh/sshd_config` (Access and Shell).
-  Password and root login are settings in the web UI; report them
-  as such.
+- "SSHd Key Only" under System > Advanced > Admin Access decides
+  password logins: "Password or Public Key", the default, accepts
+  them; "Public Key Only" sets `PasswordAuthentication`,
+  `ChallengeResponseAuthentication` and `UsePAM` to `no`;
+  "Require Both" adds `AuthenticationMethods publickey,password`.
+  `PermitRootLogin yes` is pfSense's normal state. Report a finding
+  as the option to change.
 
 ## Replace: Mail and Time
 
@@ -263,3 +270,51 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   reload.
 - Report settings pfSense generates as web UI changes, not file
   edits.
+
+**Housekeeping** runs the FreeBSD baseline with these changes:
+
+- Firewall Status: `pfctl -si | head -1` (root) reads
+  `Status: Enabled`; ipfw is not used. The `_enable` check does
+  not apply.
+- Time Sync: judge by `ntpq -pn` alone; `ntpd_enable` is not where
+  the vendor enables ntpd.
+- Failed Services: `service -e` says nothing here — `rc.conf` is
+  unused and PHP starts the services. Ask each service the host's
+  memory lists as running, as Replace: Service Manager shows, all
+  in one SSH call; a stopped one is WARN. SSH is off by default, so
+  a stopped `sshd` counts only where memory lists it.
+- Certificate expiry: also the web UI's `/var/etc/cert.crt`.
+- Backups: AutoConfigBackup keeps copies off the box once enabled:
+  ```
+  sed -n '/<acb>/,/<\/acb>/p' /cf/conf/config.xml \
+    | grep -c '<enable>yes</enable>'
+  ```
+  `0` is INFO. Print nothing else from `config.xml`: it holds
+  password hashes and keys (`rules/secrets.md`).
+
+**A security audit** runs the FreeBSD sections with these changes:
+
+- SSH: judged as usual while sshd runs — an audit that came in
+  over SSH shows it does; locally or on the console, ask
+  `pfSsh.php playback svc status sshd` first, and with SSH off
+  report only that. The default "Password or Public Key" is the
+  WARN, reported as the option in Replace: sshd.
+- Firewall: the appliance case in the security skill's
+  `references/firewall.md`; the WAN rules are under Firewall >
+  Rules > WAN.
+- Kernel: pfSense sets `kern.randompid` itself but leaves
+  `drop_redirect` at FreeBSD's default: INFO here, with the
+  tunable to set under System > Advanced > System Tunables.
+- SUID/SGID: base files are expected when
+  `/usr/local/share/pfSense/base.mtree` lists them with that mode;
+  files `pkg which` attributes to a package (it takes the whole
+  list at once) are expected too.
+- Intrusion prevention: `sshguard` (Access and Shell) runs only
+  while local logging is on; its settings are Login Protection
+  under System > Advanced > Admin Access.
+
+**Fleet audit:** compare CE only with CE. The unattended-upgrades
+rows are replaced by `pfSense-upgrade -d -c`'s result; the WAN
+rules are the firewall rows to compare. The time daemon comes from
+`pfSsh.php playback svc status ntpd`; the MTA rows are
+`n/a (pfSense)`.
