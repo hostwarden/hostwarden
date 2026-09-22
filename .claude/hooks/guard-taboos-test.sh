@@ -107,6 +107,47 @@ check deny 'init 0'
 check deny 'shutdown now'
 check deny 'shutdown -h now'
 check deny 'ssh root@h "shutdown -h now"'
+# -r beside a halt or power-off flag: the last action flag wins on
+# systemd and sysvinit, so these halt or power off.
+check deny 'shutdown -r -h now'
+check deny 'shutdown -r -P now'
+check deny 'shutdown -r -H now'
+check deny 'shutdown -r -p now'
+check deny 'shutdown -h -r now'
+check deny 'shutdown -r --halt now'
+check deny 'shutdown -r --poweroff now'
+check deny 'shutdown -r --pow now'
+check deny 'shutdown -r --p now'
+check deny 'shutdown -r --hal now'
+check deny "shutdown -r '-h' now"
+check deny 'shutdown -r "--poweroff" now'
+check deny 'shutdown -r \-P now'
+check deny "shutdown -r -'H' now"
+check deny "shutdown -r \$'-h' now"
+check deny "shutdown -r \$'--poweroff' now"
+check deny 'shutdown -r --h"a"lt now'
+check deny 'shutdown -r -\
+h now'
+check deny 'shut\
+down -h now'
+check deny 'mkfs.ext4 \
+/dev/sda1'
+check deny "shut''down -r -h now"
+check deny 'shut\down -r -h now'
+check deny 'shut"d"own -h now'
+check deny "mk''fs.ext4 /dev/sda1"
+check deny "shut\$''down -r -h now"
+check deny "shut\$'d'own -r -h now"
+check deny 'shut$""down -r -h now'
+check pass 'echo $HOME$PATH'
+check deny 'ssh root@h "fd\isk /dev/sda"'
+check pass "echo it's fine"
+check pass 'git log --format="%h %s" -5'
+check deny "shutdown -r --'p'oweroff now"
+check deny 'ssh root@h "shutdown -r '\''-h'\'' now"'
+check deny 'shutdown -r -kh now'
+check deny 'shutdown -c -h now'
+check deny 'ssh root@h "shutdown -r -h now"'
 check deny 'ssh -o BatchMode=yes root@h '\''mkfs.ext4 /dev/sda3'\'''
 check deny 'mkfs.ext4 /dev/sda1'
 check deny 'newfs /dev/ada0p3'
@@ -488,6 +529,12 @@ check pass 'efibootmgr -b 0003 -B'
 check pass 'shutdown -r now'
 check pass 'ssh root@h "shutdown -r now"'
 check pass 'shutdown -c'
+check pass 'shutdown -r -k now'
+check pass 'shutdown -r --no-wall now'
+check pass "shutdown -r '-k' now"
+check pass '/sbin/shutdown -r -t 30 now'
+check pass 'shutdown -r now; grep -h reboot /var/log/syslog'
+check pass 'ssh -p 2222 root@h "shutdown -r now"'
 check pass 'mkswap /dev/sda2'
 check pass 'rm /tmp/foo'
 check pass 'systemctl restart nginx'

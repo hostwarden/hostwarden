@@ -445,8 +445,39 @@ esac
 # CMD is final by now, so the split is computed once. The rules
 # below ask dozens of questions of it, and re-forking tr for each
 # of them costs more than the whole rest of the hook.
+#
+# The shell drops a backslash-newline before it reads a word, so
+# shutdown -r -\<newline>h runs shutdown -r -h. A command that
+# holds one is scanned a second time with those lines joined,
+# added beside the original rather than instead of it.
+CMDJ=
+case "$CMD" in
+*'\
+'*)
+  CMDJ=$(printf '%s\n' "$CMD" \
+    | sed -e ':a' -e '/\\$/{' -e 'N' -e 's/\\\n//' -e 'ba' -e '}')
+  ;;
+esac
+# The same goes for quotes and backslashes inside a word:
+# shut''down, shut$'d'own and mk\fs run shutdown and mkfs. A
+# command with one between two word characters is scanned once
+# more with every quote, backslash and quoting $ removed, again
+# beside the original. A name built from escapes ($'\x64') or
+# variables is out of reach: this is a backstop, not a shell.
+CMDQ=
+case "$CMD$CMDJ" in
+*[[:alnum:]_][\"\'\\\`\$][[:alnum:]_\"\'\\\`\$]*)
+  CMDQ=$(printf '%s\n' "${CMDJ:-$CMD}" \
+    | sed -e 's/\$["'\'']//g' -e 's/["'\''`\\]//g')
+  ;;
+esac
 SEGS=$(printf '%s\n' "$CMD"
-       printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n')
+       printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n'
+       for more in "$CMDJ" "$CMDQ"; do
+         [ -n "$more" ] || continue
+         printf '\n%s\n' "$more"
+         printf '%s' "$more" | tr ';&|"'"'"'\n' '\n'
+       done)
 
 segments() {
   printf '%s\n' "$SEGS"
@@ -685,18 +716,37 @@ if power && hit 'sysrq-trigger'; then
   deny "sysrq-trigger powers off or resets the server without \
 shutting anything down cleanly"
 fi
-# Windows' shutdown is judged below, so the Linux rule exempts it
-# rather than lending it its -r: shutdown.exe, or shutdown whose
-# every flag takes Windows' slash, as a Windows server reached
-# over SSH runs it. One dash flag keeps it Linux's, quoted or
-# escaped too: the shell and PowerShell drop " ' and ` before
-# the program sees its flag.
-if power && hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
-  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
-then
-  deny "shutdown without -r powers off the server (reboots \
+# Both Linux rules need the word itself, so a command without it
+# skips their greps, as the Windows rules do with WIN below.
+case "$CMD$CMDJ$CMDQ" in
+*shutdown*)
+  # Windows' shutdown is judged below, so the Linux rule exempts
+  # it rather than lending it its -r: shutdown.exe, or shutdown
+  # whose every flag takes Windows' slash, as a Windows server
+  # reached over SSH runs it. One dash flag keeps it Linux's,
+  # quoted or escaped too: the shell and PowerShell drop " ' and `
+  # before the program sees its flag.
+  if power && hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
+    '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
+  then
+    deny "shutdown without -r powers off the server (reboots \
 use shutdown -r; -c cancels)"
-fi
+  fi
+  # systemd and sysvinit let the last action flag win, so
+  # shutdown -r -h now powers off; FreeBSD and macOS refuse the
+  # pair. Order does not matter here: a flag that halts one
+  # implementation is not waved through because another reboots.
+  # Only a dash flag counts, so Windows' slash form is left to the
+  # rules below. The shell drops quotes, backslashes and the $ of
+  # $'...' before the program sees '-h', $'--poweroff', \-P or
+  # --h"a"lt, so any of them may sit anywhere in the flag.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\$]*(-["'\''`\\$[:alnum:]]*[hHPp]["'\''`\\$[:alnum:]]*|-["'\''`\\$]*-["'\''`\\$]*(h["'\''`\\$]*a|p)["'\''`\\$[:alpha:]]*)(["'\''`\\$[:space:]]|$)'
+  then
+    deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
+halts or powers off the server even beside -r"
+  fi
+  ;;
+esac
 # Windows reads shutdown in any case and takes its flags with / or
 # -, the dash only where shutdown.exe cannot be Linux's. /s and
 # /sg shut down, /p powers off at once and /h hibernates, even
