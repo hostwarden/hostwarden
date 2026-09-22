@@ -40,12 +40,22 @@ unattended run cannot:
   `Alert email:` / `Email source:` lines in
   `memory/servers/<host>/memory.md`;
 - the backup-presence question from housekeeping;
+- how the host is reached when SSH is gone, where
+  nothing on it answers that
+  (`rules/management-controller.md` → Provider
+  console) — persisted as the `Management:` line;
 - which machines a UPS powers, when the host has one
   (`references/usb-devices.md`);
 - any first-connection onboarding for a new host.
 
 Once memory holds the answers, unattended runs have
 nothing left to ask.
+
+A schedule made before one of these questions existed
+never answered it, so an unattended run treats an
+unanswered question as unanswerable: it records what
+it can, names the gap in the report, and carries on
+rather than idling until the job times out.
 
 ## Safety
 

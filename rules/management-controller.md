@@ -34,9 +34,19 @@ question the user answers at leisure. Leaving it to The rescue
 path means asking while a change is about to cut SSH or after it
 already has, which is the one moment this file exists to avoid.
 
+**A run with nobody at the keyboard never asks.** A scheduled
+housekeeping run (`references/scheduled.md` in the
+`hostwarden-housekeeping` skill) records what the probe alone
+gives it and, where that is nothing, `unknown (not asked)`. It
+does not wait: an unanswered question idles until the job times
+out, and then the report and the mail do not arrive either. The
+line is named in the report as unsettled, and the next
+interactive session asks.
+
 A host whose memory has a `Management:` line is settled; read it
-and go on. The one exception is `unknown (no root)`, which is
-probed again by the first session that has root.
+and go on. Two values are not settled and are taken up again:
+`unknown (no root)` by the first session that has root, and
+`unknown (not asked)` by the first that has a human to ask.
 
 On an XCP-ng dom0, hardware health comes from the XAPI plugin
 `rules/appliance/xcp-ng.md` → Housekeeping and Audits names, not
@@ -170,6 +180,7 @@ this host can reach it:
 - Management: node1.example.com console (Proxmox VE guest)
 - Management: provider console (user)
 - Management: unknown (no root)
+- Management: unknown (not asked)
 ```
 
 `reachable from the host` is what the two audit checks depend
