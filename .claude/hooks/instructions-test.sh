@@ -440,7 +440,8 @@ report "$MISNAMED" "the name it is dispatched by"
 # returns whether the file could be read. Each target is named by
 # dozens of pointers; reading it once per pointer tripled the
 # runtime of this file. A heading inside an HTML comment renders as
-# nothing, so a section parked in one has no anchor either.
+# nothing, so a section parked in one has no anchor either. Four
+# spaces or a tab before the <!-- make it code, not a comment.
 LOAD_AWK="$FENCE_AWK"'
 function load(p,   l, h, c) {
   if (p in NH) return NH[p] >= 0
@@ -448,7 +449,7 @@ function load(p,   l, h, c) {
   if ((getline l < p) <= 0) return 0
   NH[p] = 0; FM = ""; c = 0
   do {
-    if (!c && FM == "" && l ~ /^[ \t]*<!--/) c = 1
+    if (!c && FM == "" && l ~ /^(   |  | )?<!--/) c = 1
     if (c) { if (l ~ /-->/) c = 0; continue }
     # Seven or more #s are text, not a heading.
     if (!fenced(l) && l ~ /^#+[ \t]/ && l !~ /^#######/) {
