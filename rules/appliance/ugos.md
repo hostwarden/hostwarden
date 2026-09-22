@@ -86,6 +86,11 @@ host, not as documented behaviour.
   on a stock system the session is usually unprivileged, and
   everything below that needs root (storage, containers, most of
   Housekeeping and Audits) goes into the sysadmin report.
+  UGREEN documents only an administrator login followed by
+  `sudo -i`, so the root SSH fallback of that file is not probed
+  here: a refused `root@` login would count towards UGOS's
+  automatic IP blocking. Record `Root SSH: unavailable` without the
+  probe, unless the user says root SSH is set up.
   Passwordless sudo for the SSH user is the user's decision
   and the user's step: UGREEN documents no such setting, and
   whether a sudoers drop-in survives a firmware update is not
