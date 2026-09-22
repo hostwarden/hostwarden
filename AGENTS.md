@@ -100,7 +100,7 @@ before a firewall counts you out: `rules/ssh-connections.md`.
 that runs on every remote connection, and on every local-mode
 session with the remote-only steps skipped. It names each step's
 file: access control, DNS aliases, SSH user, OS detection, server
-memory, activity check, Heinzel legacy.
+memory, activity check, guests and hosts, Heinzel legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
 `uname -a` and every other one-liner run the pipeline first.

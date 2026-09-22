@@ -29,6 +29,25 @@ knows it's Debian 12 with nginx and PostgreSQL,
 checks the local changelog, and picks up right where
 it left off.
 
+## Hypervisors and their guests
+
+On a hypervisor — Proxmox VE, XCP-ng, or libvirt, Incus,
+LXD, LXC, bhyve, Hyper-V or VirtualBox on an ordinary
+system — Hostwarden lists every guest without being
+asked, stopped ones and templates included, in
+`memory/servers/<host>/guests.md`. It reads them through
+the hypervisor, never by logging in to the guests, and
+asks the guest tools for hostname, OS and addresses where
+they run. For each stopped guest it asks you once why it
+is off: on purpose, retired, not in service yet, or a
+template. The question comes back only when that guest
+starts and stops again.
+
+Each guest with memory of its own records the host it
+runs on, as `Runs on: pve1.example.com (VM 101)`. The
+link comes from the MAC addresses and the VM's UUID,
+which both sides see, never from a name.
+
 ## Session to-do list
 
 When a multi-step task gets interrupted — connection

@@ -2,8 +2,10 @@
 
 Each server: `memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
-and optionally `rules.md` (per-server rule
-overrides — see `rules/overrides.md`).
+optionally `rules.md` (per-server rule
+overrides — see `rules/overrides.md`), and on a
+hypervisor `guests.md`, its guest inventory
+(`rules/hypervisors.md`).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
@@ -101,6 +103,9 @@ filled from an example. A container engine is recorded as
 
 `Virtualization:` and `Arch:` come from
 `rules/os-detection.md` → Virtualization and step 2.
+`Hypervisor:` on a host that runs guests, and
+`Guest identity:` and `Runs on:` on a guest, come from
+`rules/hypervisors.md`.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

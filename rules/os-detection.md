@@ -58,6 +58,8 @@ skill says so where it needs it.
      'cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name;' \
      'sysctl kern.vm_guest security.jail.jailed;' \
      'sysctl kern.hv_vmm_present hw.model;' \
+     'echo @hypervisor; which virsh incus lxd lxc-ls vm VBoxManage;' \
+     'ls -d /run/libvirt /var/snap/lxd/common/lxd /var/lib/lxc /dev/vmm;' \
      'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    `ssh` joins the quoted pieces with spaces into one
@@ -155,7 +157,9 @@ skill says so where it needs it.
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS. Whether the hardware is the host's
    own comes from the lines after `@virt`; see
-   Virtualization below.
+   Virtualization below. Whether it runs guests of
+   its own comes from the lines after `@hypervisor`;
+   see `rules/hypervisors.md` → Detect.
 
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`

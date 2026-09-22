@@ -39,8 +39,11 @@ applies before any of this runs.
    → CasaOS. The backup-presence check from `references/backup-presence.md`
    runs on every host, independent of `memory.md` entries — on
    a host whose OS file is not `sh`, in the form that file's
-   `## Housekeeping and Audits` section gives. So does the USB
-   inventory from `references/usb-devices.md`.
+   `## Housekeeping and Audits` section gives. So do the USB
+   inventory from `references/usb-devices.md` and the guest
+   check from `rules/hypervisors.md` → Housekeeping: the full
+   inventory on a host with a `Hypervisor:` line, the
+   hypervisor markers on every other.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report — where the OS file uses the
