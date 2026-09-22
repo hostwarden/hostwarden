@@ -84,7 +84,7 @@ read-only does not block access.
 - Local memory and changelog updates, including
   creating `todo.md` (a purely local file — only
   the remote host is read-only)
-- `logger -t hostwarden` entries on the server
+- The journal line on the server (`rules/changelog.md`)
 
 **Blocked in read-only mode:**
 - Package install, update, or remove
@@ -103,6 +103,14 @@ unprivileged mode sysadmin report.
 The user must remove the entry from
 `memory/readonly.md` before Hostwarden will modify the
 server.
+
+**Read-only by OS file:** an OS file that says every
+host of its family is read-only puts the host in this
+mode once detection has read it, whatever
+`memory/readonly.md` says. Announce it with the OS
+file as the reason. Only an override that wins over
+that statement lifts it (`rules/overrides.md` →
+Precedence).
 
 ## Linked Worktrees
 

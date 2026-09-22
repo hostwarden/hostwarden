@@ -57,7 +57,8 @@ Hosts without one never had Heinzel state, which is
 the normal case.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
-add `Mode: local` for localhost). `Appliance:`,
+add `Mode: local` for localhost); an OS file whose
+Version Detection names fields to record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
 `rules/os-detection.md`; `SSH port:` is the `port` line
 of `ssh -G <user>@<hostname>`, which the alias check in

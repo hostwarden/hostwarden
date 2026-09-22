@@ -111,7 +111,8 @@ session did it.
 that teach Heinzel the same thing from its side.
 Another Hostwarden session that is changing the same
 host shows up in the host's session register instead
-(`rules/parallel-sessions.md`). Read it in the same
+(`rules/parallel-sessions.md`). Unless the OS file's
+`## Logs` section says otherwise, read it in the same
 call as the journal, with the server's own clock,
 since entries carry the server's time:
 

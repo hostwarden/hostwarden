@@ -19,7 +19,9 @@ and how to undo it*.
 
 Log to the system journal:
 `logger -t hostwarden "message"`. Do not add timestamps
-(the system logger handles them).
+(the system logger handles them). Where the loaded OS
+file's `## Logs` section names another writer, use that
+one.
 
 Every session gets at least one entry — sessions
 that change nothing log a single `read-only:`

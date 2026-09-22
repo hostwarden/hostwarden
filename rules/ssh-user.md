@@ -88,6 +88,14 @@ options 1 and 2 into a single `root` entry and
 keep `Other…` as option 2. Save the choice as a
 per-server override in `memory/user.md`.
 
+When the user has said the host runs Windows, there
+is no `root` to offer, and the built-in
+administrator may be renamed or carry a localized
+name: drop option 2 and ask for the account under
+`Other…` — a domain account as `domain\user`, which
+the SSH call then passes quoted with `-l`
+(`rules/os/windows.md` → Notes).
+
 **On subsequent connections:** look up the server in
 `memory/user.md`. Do not ask again.
 

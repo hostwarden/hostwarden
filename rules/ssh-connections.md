@@ -22,6 +22,9 @@ One call per logical step, not one per command:
     cmd2
     EOS
 
+Where the loaded OS file names its own bundle — Windows,
+`rules/os/windows.md` → Reaching PowerShell — use that.
+
 - Send several files in one `scp`/`rsync`.
 - Do not poll a host every few seconds. Run a long
   job on the host (`nohup`, `systemd-run`, `daemon`)

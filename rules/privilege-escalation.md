@@ -7,6 +7,11 @@ sudo is unusable, go straight to unprivileged mode
 from Stand-ins for sudo below, where the OS file names
 one.
 
+Where the loaded OS file has a `## Privileges`
+section, read it first: it adds to the probes below or
+replaces them, as it says. Unprivileged mode applies
+either way.
+
 ## Sudo
 
 When connecting as a non-root user and a privileged
