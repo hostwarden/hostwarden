@@ -183,7 +183,8 @@ apply:
 ```bash
 for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
          /Library/StartupItems /Applications /usr/local /opt/homebrew; do
-  [ -d "$d" ] && find "$d" -xdev -type f \
+  [ -d "$d" ] || continue
+  find "$d" -xdev -type f \
     \( -perm -0002 -o -nouser -o -nogroup -o -perm +6000 \) -ls \
     2>/dev/null
 done
