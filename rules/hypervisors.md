@@ -248,11 +248,12 @@ The cluster lives in `memory/clusters/<name>/`, and each member's
 `memory.md` names it: `- Cluster: prod`. Look for it before
 naming anything: a `cluster.md` is this cluster, whatever its
 directory is called, when more than half of the members its
-`Members:` lists are members of this cluster now, or exactly half
-and its title carries this cluster's name, as when a cluster of
-two loses one. A session that arrives through another member then
-finds the same one, and a member moved on to another cluster does
-not carry the old cluster's directory with it. A match by more
+`Members:` lists are members of this cluster now, or when its
+title carries this cluster's name and at least one of them still
+is, as when a cluster of three loses two. A session that arrives
+through another member then finds the same one, and a member
+moved on to another cluster does not carry the old cluster's
+directory with it. A match by more
 than half whose name differs was renamed: its title takes the new
 name. Only when none matches is a directory named.
 `<name>` then comes from the cluster's own name as the appliance
