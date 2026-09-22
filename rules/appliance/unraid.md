@@ -233,11 +233,18 @@ repositories on GitHub where the docs are silent.
   for f in /boot/logs/syslog-previous /var/log/syslog.1 /var/log/syslog; do
     [ -e "$f" ] && grep -hE "hostwarden|heinzel" "$f"
   done | tail -20
-  uptime
+  for f in /var/log/syslog.1 /var/log/syslog; do
+    [ -e "$f" ] && { head -1 "$f"; break; }
+  done
+  date
   ```
+  The second loop and `date` bound the result
+  (`rules/activity-check.md` → How far back it reached).
   `/var/log/syslog` and `syslog.1` reach back at most to the boot,
-  less once rotation has dropped older files; `syslog-previous`
-  reaches one boot further when the mirror is on.
+  less once rotation has dropped older files. `syslog-previous`
+  adds matches from the boot before when the mirror is on, but not
+  to the bound: rotation may have dropped the time between it and
+  `syslog.1`.
 - Tools → Diagnostics collects an anonymised bundle for support.
 
 ## Housekeeping and Audits

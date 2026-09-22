@@ -138,6 +138,8 @@ from the unified log, both tags (`rules/activity-check.md`):
 /usr/bin/log show --last 7d \
   --predicate 'process == "logger"' --info 2>&1 \
   | grep -E "hostwarden|heinzel"
+stat -f '%SB %N' -t '%F %T' \
+  /private/var/db/diagnostics/Persist/*.tracev3 | sort | head -1
 ```
 
 Two details that are not optional here:
@@ -152,6 +154,20 @@ Two details that are not optional here:
 
 `senderImagePath CONTAINS "logger"` also works but matches more
 broadly; `process == "logger"` is the narrower predicate.
+
+The `stat` line stands in for the oldest entry
+(`rules/activity-check.md` → How far back it reached). `logger`
+writes at the default level, which logd keeps in the `Persist`
+store: about 525 MB of `.tracev3` files, deleted oldest file first,
+so a busy Mac can hold less than a week. The birth time of the
+oldest file is when its first entry was written.
+`log show | head -1` is no substitute: the `Special` store keeps
+some faults and errors past the oldest `Persist` file, and its
+first line would overstate the reach
+(<https://eclecticlight.co/2025/09/29/inside-the-unified-log-3-log-storage-and-attrition/>).
+`/private/var/db/diagnostics` is readable by the `admin` group
+only; as any other user the glob fails, and the reach is unknown:
+say so.
 
 ## Directory Conventions
 

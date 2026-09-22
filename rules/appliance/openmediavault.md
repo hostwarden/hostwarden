@@ -324,18 +324,12 @@ under `deb/openmediavault/` there).
 ## Logs
 
 - OMV logs to the journal: the UI's log viewer runs `journalctl`,
-  and `rsyslog` runs beside it. The activity check reads back, with
-  `df` and `uptime` in the same call:
-  ```
-  journalctl -t hostwarden -t heinzel --since "7 days ago" \
-    --no-pager -q
-  df /var/log
-  uptime
-  ```
+  and `rsyslog` runs beside it. The activity check's journal
+  read-back from `rules/activity-check.md` applies unchanged.
 - With the `openmediavault-flashmemory` plugin from omv-extras,
   `/var/log` sits on a zram device (`df /var/log` names
-  `/dev/zram<n>` or an overlay on one). Treat that log as one that
-  does not survive a reboot.
+  `/dev/zram<n>` or an overlay on one), and the journal there does
+  not survive a reboot.
 
 ## Housekeeping and Audits
 
