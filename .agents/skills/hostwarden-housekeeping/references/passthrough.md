@@ -78,7 +78,11 @@ the `lxc.mount.entry` and device lines of a plain LXC
 container's `config`, `expanded_devices` under Incus and LXD,
 `<hostdev>`, `<filesystem>` and a `hostdev` `<interface>` in a
 libvirt domain's XML, and for Hyper-V `rules/os/windows.md` →
-Housekeeping. No call of this file's own.
+Housekeeping. No call of this file's own. On a cluster member,
+whose inventory lists every member's guests
+(`rules/hypervisors.md` → Clusters and Pools), only the guests on
+this member count: a device another member passed through is that
+member's, never this host's.
 
 A container takes a device node, not a PCI function; the same
 lines carry both.

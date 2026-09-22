@@ -370,6 +370,8 @@ the backup.
   opt-in for auto-reload and auto-restart
 - `servers/<hostname>/` — per-server memory,
   changelog, todo, and per-server rule overrides
+- `clusters/<name>/` — a hypervisor cluster or pool:
+  its members, HA state and guest inventory
 - `custom-rules/` — your global rule overrides
 - `opencode.json` — your OpenCode config
 - `network.md`, `housekeeping.md` — cross-server

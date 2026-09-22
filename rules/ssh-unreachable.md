@@ -134,7 +134,12 @@ first, then use via-host mode for this session
 (`rules/system-containers.md` → Reaching It). The
 host and the guest's ID come from its `Runs on:`
 line (`rules/hypervisors.md`); where it has none, or
-`Runs on: unknown`, ask for them too. A host marked
+`Runs on: unknown`, ask for them too. A line that
+names a cluster names only the member the guest was
+last seen on, and after a failover that member may
+be the reason for the silence: take the light
+listing on any member that answers first, and go
+through the member it shows. A host marked
 `not managed` is no way in: tell the user. Never use
 it to get around a rejected login or a block
 Hostwarden caused.

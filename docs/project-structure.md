@@ -217,4 +217,8 @@ memory/                — The workspace: all your user
     changelog.log      — Local change history
     todo.md            — Session task list
     rules.md           — Per-server rule overrides
+    guests.md          — A hypervisor's guest inventory
+  clusters/<name>/
+    cluster.md         — Members, quorum, HA, pool master
+    guests.md          — The cluster's guest inventory
 ```

@@ -71,8 +71,13 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
   instance's project, its `expanded_config` the
   `volatile.<nic>.hwaddr` and `boot.autostart`, and its
   `expanded_devices` what the host passed to it — a profile's
-  included in each. Record the project with the name (`prod/web`); every
-  later command carries it.
+  included in each. Record the project with the name
+  (`prod/web`); every later command carries it. A member of a
+  cluster (`server_clustered: true` in `incus info`, `lxc info`
+  on LXD) lists every member's instances, each with its
+  `location`; the members and their `status` come from
+  `incus cluster list --format json` (LXD: `lxc cluster list`).
+  `exec` and `info` reach an instance from any member.
 - **LXC:** `lxc-ls -f` shows state and autostart; this the MACs
   and what the host passed to each, where `cgroup` without the `2`
   is the older cgroup v1 form of the same device line:
@@ -228,6 +233,87 @@ A jail's entry is named, not numbered:
 `→ probably …` is a name or IP match the guest has not confirmed
 yet (Linking below).
 
+## Clusters and Pools
+
+A Proxmox VE cluster, an XCP-ng pool of more than one host and an
+Incus or LXD cluster show every member's guests from any member.
+Their guests are inventoried once, for the whole cluster, from
+whichever member the session is on: an inventory per member
+would list every guest on every member, and a migration would
+look like one guest gone and another new. The appliance file,
+and for Incus and LXD the Inventory list above, says how a member
+recognises its cluster and where its tools see one node only.
+
+The cluster lives in `memory/clusters/<name>/`, and each member's
+`memory.md` names it: `- Cluster: prod`. Look for it before
+naming anything: a `cluster.md` is this cluster, whatever its
+directory is called, when more than half of the members its
+`Members:` lists are members of this cluster now. A session that
+arrives through another member then finds the same one, and a
+member moved on to another cluster does not carry the old
+cluster's directory with it. A match whose name differs was
+renamed: its title takes the new name. Where only half or fewer
+are, but its title carries this cluster's name and at least one
+of them still is a member, it is either this cluster after losing
+members or another cluster of the same name that a member moved
+to: ask the user once which, and record the answer in
+`cluster.md` so it is not asked again. Only when none matches is a
+directory named.
+`<name>` then comes from the cluster's own name as the appliance
+file reads it, lowercased, with every character other than
+`a`–`z`, `0`–`9` and `-` turned into `-`: a pool may be called
+`Lab/../DC 2`, and neither `/` nor `..` belongs in a path. The
+name as given stays the title of `cluster.md`. A cluster without
+one takes the first label of the member the session is on,
+`inc1-cluster`. Where the directory exists already, the member's
+label is added, `prod-pve4`, then a number, `prod-pve4-2`, until
+the path is free: never write into a directory that holds another
+cluster. A member's label goes through the same reduction as the
+name before it becomes part of a path.
+
+`cluster.md` holds what belongs to the cluster rather than a
+member, and an appliance file may add lines of its own:
+
+```markdown
+# Cluster prod (Proxmox VE)
+
+- Members: pve1 → pve1.example.com, pve2 → pve2.example.com,
+  pve3 (no memory)
+- HA: on, 4 guests
+```
+
+A member is listed by the name the cluster gives it, and `→` the
+memory directory it has; `Runs on:` and the moves below name that
+directory, or the member's own name where it has none. Every full
+inventory rewrites `Members:` from the member list the appliance
+file names, and a member's first connection adds its `→`.
+
+`guests.md` beside it has the format of a host's, with
+`- Checked: <date>` under `Inventoried:`, and each entry names its
+member after the state: `- 101 web1 (VM): running on pve2, HA.`
+A halted VM in a pool resides on no host and names none. A host
+that joins a cluster moves its entries into the cluster's file
+and removes its own; one that leaves gets its own back from its
+next inventory and drops out of `Members:`.
+
+**Once per cluster.** Inventory → When applies to the cluster,
+not the member: the first connection is the first to any member,
+and `Inventoried:` gates the light listing for all of them. In
+housekeeping, the full inventory, its guest ratings and the checks
+an appliance file marks once per cluster run in one call when
+`Checked:` is not today, and set it; when it is today, every other
+member's run skips all three. Each guest is then rated once,
+however many members are checked.
+
+**Moves.** A guest the listing shows on another member than its
+entry did moved, by live migration or by HA restarting it after
+its member failed. A move changes only the member and needs no
+full inventory: update the entry and, for a linked guest, its
+`Runs on:`, and a `Mode: via …` line is rewritten for it
+(`rules/server-memory.md`), without asking. Report one line:
+`web1 moved pve1 → pve2`. A member that failed is found by the
+cluster's own checks, not here.
+
 ## Stopped Guests
 
 A stopped guest the hypervisor marks as a template needs no
@@ -367,10 +453,19 @@ finding.
 ```
 
 Look for them with one `grep -i` over
-`memory/servers/*/guests.md`. A match links both, a jail's as its
-bullet above says: `Runs on:` here, `→ <this directory>` in that
-entry. No match: once the user's request is answered, ask once
-which host it is, offering the hypervisors in memory, "one
+`memory/servers/*/guests.md` and `memory/clusters/*/guests.md`. A
+match links both, a jail's as its bullet above says: `Runs on:`
+here, `→ <this directory>` in that entry. A match in a cluster's
+file names the cluster and the member, which stays true through a
+migration or a failover and is rewritten by the next listing that
+shows a move:
+
+```
+- Runs on: cluster prod (VM 101), last on pve2.example.com
+```
+
+No match: once the user's request is answered, ask once which
+host it is, offering the hypervisors and clusters in memory, "one
 Hostwarden does not manage" (with its name, if they want) and
 "don't know", and record the answer as `Runs on: <host> (user)`,
 with the guest's ID where the user gives one
@@ -382,6 +477,8 @@ the host is the one the session goes through, and the ID the one
 it enters. A guest Hostwarden just created: the host it was
 created on; `Runs on:` and `Guest identity:` come from the
 creation, with no lookup and no question (`hostwarden-new-guest`).
+Where that host is a cluster member, either one is written in the
+cluster form.
 
 **On the host,** for the guests without a `→`, one `grep` over
 the `Guest identity:` lines of `memory/servers/*/memory.md`. A
@@ -411,11 +508,12 @@ none:
   entry; a guest with memory of its own then gets
   `Runs on: unknown (left <host> <date>)` and loses its
   `Mode: via …` line, and if it turns up on another host, the keys
-  link it there. A guest the cluster listing shows on another node
-  moved: `Runs on:` names that node, and a `Mode: via …` line is
-  rewritten for it (`rules/server-memory.md`).
-  Until the check settles it, the entry only gains
+  link it there. On a cluster, the check covers every member and
+  runs only on a member with quorum; where its tools see one node,
+  the appliance file names the check. Until the check settles it,
+  the entry only gains
   `not listed <date>`.
+- **Moved guest:** Clusters and Pools → Moves.
 - **State changed:** update the entry.
 
 Update `Inventoried:` after every listing, full or light: it is

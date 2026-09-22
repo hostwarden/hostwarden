@@ -35,8 +35,13 @@ Source for everything below unless noted: the XCP-ng documentation,
   This host is the pool master (the docs also say coordinator)
   when its UUID is the pool's `master`; a pool of one host is
   standalone.
-- Record in server memory: `Appliance: XCP-ng <version>`, the pool
-  name, and `master`, `member` or `standalone`.
+- Record in server memory: `Appliance: XCP-ng <version>`, and
+  `standalone` or, for a pool of more than one host, the
+  `Cluster:` line of `rules/hypervisors.md` → Clusters and Pools,
+  named by the pool's `name-label`. A fresh host is in its own
+  unnamed pool, so an empty `name-label` is normal. The pool's
+  `cluster.md` adds `- Master: <member>` (Housekeeping and
+  Audits).
 - Take support dates from the releases page
   (<https://docs.xcp-ng.org/releases/>), never from memory. A host
   on a release past its end of support is a finding: releases
@@ -198,23 +203,34 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 - With HA on, a VM shut down from inside the guest is restarted by
   default (`ha-reboot-vm-on-internal-shutdown`).
 - **Inventory** (`rules/hypervisors.md`): record
-  `Hypervisor: XCP-ng (xe)`. The full inventory is one call:
+  `Hypervisor: XCP-ng (xe)`. The full inventory is one call, the
+  pool's in a pool (`rules/hypervisors.md` → Clusters and
+  Pools):
 
   ```sh
-  xe vm-list is-control-domain=false params=uuid,name-label,power-state,resident-on,is-a-template,other-config
+  xe vm-list is-control-domain=false \
+    params=uuid,name-label,power-state,resident-on,is-a-template,other-config,ha-restart-priority,os-version,networks
   xe vif-list params=vm-uuid,MAC
+  xe host-list params=uuid,name-label,hostname
+  xe pool-list params=ha-enabled
   xe pci-list params=all
   ```
 
-  This host's VMs are those `resident-on` its UUID, and, on a
-  standalone host or a pool's master, every halted VM too: a
-  halted VM resides nowhere. A template with
+  The host list names each VM's `resident-on` host. A halted VM
+  shows `<not in database>` there: it resides on no host. A
+  template with
   `default_template: true` in `other-config` ships with XCP-ng
-  and is left out; `auto_poweron: true` there is autostart. The
+  and is left out; `auto_poweron: true` there is autostart. A
+  `ha-restart-priority` of `restart` or `best-effort` makes the
+  entry `HA` instead of autostart only while the pool's
+  `ha-enabled` is `true`: with HA off, the priority protects
+  nothing, and the entry records autostart as for any VM. The
   light listing is `xe vm-list is-control-domain=false
-  params=uuid,power-state,resident-on`.
-- **Guest tools:** the VM parameters `os-version` and
-  `networks`, which the guest tools fill.
+  params=uuid,power-state,resident-on` with
+  `xe host-list params=uuid,name-label` in the same call.
+- **Guest tools:** `os-version` and `networks` in the inventory,
+  which the guest tools fill; `<not in database>` means no
+  agent.
 
 ## Storage Repositories
 
@@ -386,7 +402,9 @@ Source: <https://docs.xcp-ng.org/management/backup/>.
   Xen Orchestra reads the same list through the `updater.py`
   plugin (`plugin=updater.py fn=check_update`,
   <https://github.com/xcp-ng/xcp-ng-xapi-plugins>).
-- **Pool, hosts and HA,** in one call:
+- **Pool, hosts and HA,** once per pool
+  (`rules/hypervisors.md` → Clusters and Pools → Once per
+  cluster):
   ```
   xe pool-list params=name-label,master,ha-enabled,ha-host-failures-to-tolerate,ha-plan-exists-for
   xe host-list params=uuid,name-label,enabled,host-metrics-live,memory-total,memory-free
@@ -397,7 +415,9 @@ Source: <https://docs.xcp-ng.org/management/backup/>.
   Availability. A member on a newer version than its master is a
   critical one: compare
   `xe host-param-get uuid=<uuid> param-name=software-version
-  param-key=product_version` across the hosts.
+  param-key=product_version` across the hosts. Record the master
+  as the cluster's `Master:` line and the HA state as its `HA:`
+  line.
 - **SR usage:** from `xe sr-list` and `xe pbd-list` (Storage
   Repositories), with the filesystem thresholds of the housekeeping
   baseline applied to `physical-utilisation` over `physical-size`.
