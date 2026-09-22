@@ -9,6 +9,12 @@ severities. On an appliance, its `## Housekeeping and Audits`
 section replaces Release Support, Pending Updates and Update
 Notification below.
 
+**Jails.** A jail — `Virtualization:` in memory names a
+container — runs on its host's kernel and clock
+(`rules/system-containers.md`). There, skip Time Sync and report
+it and the kernel lines of Kernel and Userland: Running vs
+Installed `n/a (container)`.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -80,7 +86,8 @@ freebsd-version -kru
 ```
 
 The order of the three lines is in `rules/os/freebsd.md` →
-Version Detection.
+Version Detection, and so is why a jail runs `freebsd-version -u`
+alone.
 
 - **INFO** if the installed kernel differs from the running one:
   a base update was installed and the reboot is still due

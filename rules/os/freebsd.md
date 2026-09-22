@@ -51,7 +51,10 @@ Record which one in server memory.
   (e.g. `N.N-RELEASE`)
 - `freebsd-version -k` — installed kernel version,
   `-r` the running one, `-u` the userland;
-  `-kru` prints all three in that order
+  `-kru` prints all three in that order. A jail usually has no
+  `/boot/kernel`, and there `-k` ends the command with `unable
+  to locate kernel` before any line is printed: run
+  `freebsd-version -u` alone in a jail
 - `uname -r` — kernel release string
 - `uname -m` — architecture (e.g. `amd64`,
   `aarch64`)
