@@ -74,8 +74,7 @@ welcome banner and waits for input.
   partitions are read-only. `apk add` in an app container is lost
   when the container is recreated. Do not install tools there. If
   one is needed for good, the user adds it to the app's package
-  option. Language runtimes (the `hostwarden-runtimes` skill) do
-  not belong here either.
+  option.
 - **Root SSH fallback.** Probe `sudo` as usual
   (`rules/privilege-escalation.md`); there is no root SSH to the
   host to fall back on.

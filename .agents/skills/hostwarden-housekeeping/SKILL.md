@@ -96,6 +96,10 @@ Read on demand, only when the relevant section applies:
   FreeBSD and macOS are covered by the baseline references
   above. On an appliance, its `## Housekeeping and Audits`
   section replaces the update checks.
+- An appliance file with `Base: none` replaces the baseline
+  probes, not its thresholds: disk use, load and memory are
+  judged by `references/baseline-linux.md` unless the appliance
+  file gives a number of its own.
 - A reference written for `sh` — the baselines, the version
   check, `references/service-checks.md` — runs only where the
   loaded OS file uses the `sh -s` bundle

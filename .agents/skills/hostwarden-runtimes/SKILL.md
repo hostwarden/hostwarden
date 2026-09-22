@@ -26,6 +26,13 @@ is that a second version manager on the same host is a second
 source of truth. Either is fine when the user asks for it by
 name — never by default, and never silently.
 
+**Appliances get no runtime.** When the host's server memory
+has an `Appliance:` line and that file in `rules/appliance/`
+rules out installing packages on the host, do not install mise
+or a runtime there, whatever the request. Say so, and name what
+the appliance file offers instead: an app, a container or a
+plugin. Reporting what is already there still applies.
+
 ## When to Use mise
 
 Use mise for **language runtimes** — Node.js, Ruby,

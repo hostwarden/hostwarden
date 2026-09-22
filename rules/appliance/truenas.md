@@ -104,9 +104,8 @@ silent.
   make `/usr` writable and restore apt. Whatever apt installs is
   lost at the next update, which replaces the root filesystem. Do
   not run either, and do not suggest them to the user.
-- Software that TrueNAS does not ship, language runtimes included
-  (the `hostwarden-runtimes` skill), runs as an app (see Apps), not
-  on the host.
+- Software that TrueNAS does not ship runs as an app (see Apps),
+  not on the host.
 
 ## Remove: Stable Branch Only
 

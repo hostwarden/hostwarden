@@ -66,10 +66,9 @@ repositories on GitHub where the docs are silent.
 ## What Does Not Apply
 
 - **Packages.** There is no package manager to use. Software
-  installed by hand into the RAM root is gone after a reboot, and
-  the runtimes skill does not belong here either. Tools come as a
-  plugin (see Plugins and Community Applications) or run in a
-  container.
+  installed by hand into the RAM root is gone after a reboot.
+  Tools come as a plugin (see Plugins and Community Applications)
+  or run in a container.
 - **Firewall.** Unraid ships no managed firewall, and a missing one
   is not a finding. Rules written with `iptables` or `nft` by hand
   are lost at the next boot, and Docker manages its own chains on
@@ -317,8 +316,8 @@ repositories on GitHub where the docs are silent.
   `undef` unchecked, and an image `docker ps` lists without an
   entry was never checked.
 - Findings:
-  - load above the CPU count in server memory, or memory and swap
-    nearly exhausted;
+  - load, measured against the CPU count in server memory, memory
+    and swap past the baseline thresholds;
   - OOM kills, I/O errors, or failed SSH passwords in the syslog;
   - the array not `STARTED`, a disabled, invalid or missing disk, a
     disk whose `color` is not green, `numErrors` above 0;
@@ -327,8 +326,8 @@ repositories on GitHub where the docs are silent.
     basis", scheduled under Settings → Scheduler;
   - the SMART findings in
     `.agents/skills/hostwarden-housekeeping/references/smart.md`;
-  - an array disk or pool above 90 % full, and the boot device
-    nearly full;
+  - an array disk, pool or the boot device past the baseline disk
+    thresholds;
   - a pending OS, plugin or container update (see Updates), and a
     server on an RC or beta; a plugin or image not checked, or
     checked more than a week ago, is named as unchecked, never as
