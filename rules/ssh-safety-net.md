@@ -3,7 +3,9 @@
 A change to the firewall — its rules, or starting and
 enabling it — or to the network configuration (addresses,
 routes, bridges, bonds) decides whether packets still reach
-sshd. A wrong one ends the session that could undo it. So
+sshd, and a change to the shell sshd starts for a login
+decides whether a login still gets one. A wrong one ends the
+session that could undo it. So
 the undo is armed on the host before the change, and runs
 on its own unless a working login cancels it.
 
@@ -53,15 +55,18 @@ instead; they stand in for steps 4, 5 and 7 below.
    FreeBSD starts `at` jobs from `atrun`, which
    `/etc/cron.d/at` runs every five minutes, so the revert
    lands five to ten minutes later; check that the file
-   exists. With neither systemd nor a working `at`, stop
-   here and hand the change to the user.
+   exists. Where the loaded OS file names its own way to
+   arm the revert and to cancel it (Windows: a scheduled
+   task), use that. With none of these, stop here and hand
+   the change to the user.
 5. **Apply.**
 6. **Test with a fresh login** (`rules/ssh-connections.md`
    → Fresh-login options) that also prints what the change
    was meant to do — the rule set, the address, the route.
 7. **Login works:** cancel the revert —
-   `systemctl stop hostwarden-revert.timer`, or
-   `atrm <job>` — and confirm it is gone. A revert left
+   `systemctl stop hostwarden-revert.timer`,
+   `atrm <job>`, or the OS file's cancel — and confirm it
+   is gone. A revert left
    armed undoes, minutes later, a change the user kept.
    In the same call, persist only the tested change, never
    the whole live state, and where starting a firewall and

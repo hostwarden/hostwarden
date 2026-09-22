@@ -105,6 +105,15 @@ cleaned, or another session found it stale — is simply made again
 by the same call; that is also how a session makes itself known
 again after the host comes back.
 
+## Hosts without a register
+
+Where the loaded OS file says a host has no register, the
+activity check's journal read (`rules/activity-check.md`) stands
+in for it: repeat it right before the first change. A Hostwarden
+entry from another operator in the last 30 minutes is a live
+session — name it and ask, as for a live entry above. One read
+covers every change the session then makes on that host.
+
 ## Talk to the other session
 
 Reading the register is every session's own job; nobody announces

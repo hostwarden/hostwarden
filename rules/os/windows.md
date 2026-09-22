@@ -5,8 +5,9 @@ Rules for Windows Server reached through its OpenSSH server.
 **Every Windows host is in read-only mode**
 (`rules/access-control.md` → Read-Only Servers), whatever
 `memory/readonly.md` says: announce it with this file as the
-reason. Hostwarden reads and reports here; its journal line
-(Logs below) is the only thing it writes.
+reason. Hostwarden reads and reports here. It writes its
+journal line (Logs below) and, each only after the user's yes,
+the two changes in Setting Up PowerShell 7 — nothing else.
 
 Only a server is a target; `rules/os-detection.md` → Windows
 stops at a client. Local mode never reaches Windows: on a
@@ -61,12 +62,144 @@ where `DefaultShell` is PowerShell with the call operator,
 `'& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile …'`.
 Where it does not, Windows PowerShell 5.1 (`powershell`, same
 flags) runs the detection probe and nothing after it: tell the
-user that Hostwarden needs PowerShell 7 on this host, installed
-from Microsoft's MSI to the fixed path above, and stop. Name the
-release through `rules/version-check.md`, and whether it still
-ships an MSI from the install page that procedure cites; a
-release without one installs an MSIX package, whose path
-changes with every version.
+user that Hostwarden needs PowerShell 7 on this host, and offer
+the installation in Setting Up PowerShell 7 below. Without it,
+stop.
+
+## Setting Up PowerShell 7
+
+Two changes, each asked for on its own, in this order. Both
+need an administrator (`Admin: yes`). Windows has no session
+register; `rules/parallel-sessions.md` → Hosts without a
+register says what stands in for it.
+
+### Install PowerShell 7
+
+The install runs through Windows PowerShell 5.1, in the bundle
+shape with `powershell` in place of `pwsh`. Ask first — *"Install
+PowerShell <version> from Microsoft's MSI on <host>?"* — and
+name what it adds: `pwsh.exe` under
+`C:\Program Files\PowerShell\7\`, on the system `PATH`, updated
+through Microsoft Update.
+
+1. **Pick the release** through `rules/version-check.md`: the
+   newest stable one whose GitHub release still ships
+   `PowerShell-<version>-win-<arch>.msi`, `<arch>` being `x64`,
+   or `arm64` where `$env:PROCESSOR_ARCHITECTURE` prints
+   `ARM64`. From
+   7.7 on there is no MSI, and the MSIX package that replaces it
+   changes its path with every version; the fixed path is the
+   reason for the MSI. Read the file's SHA-256 from the
+   release's "SHA256 Hashes of the release artifacts" section
+   on the workstation, never from the host.
+2. **Download, check, install and verify** in one call:
+
+   ```powershell
+   $v = '<version>'; $a = '<arch>'; $sha = '<sha256>'; $f = Join-Path $env:TEMP "PowerShell-$v-win-$a.msi"; $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+   try { Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/PowerShell/PowerShell/releases/download/v$v/PowerShell-$v-win-$a.msi" -OutFile $f -ErrorAction Stop; if ((Get-FileHash $f).Hash -ne $sha) { throw 'hash mismatch, not installed' }; $c = (Start-Process msiexec.exe -ArgumentList '/package', "`"$f`"", '/quiet', 'ADD_PATH=1' -Wait -PassThru).ExitCode; "msiexec: $c"; if ($c -in 0, 3010) { "pwsh: $(& 'C:\Program Files\PowerShell\7\pwsh.exe' -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()')" } } catch { "failed: $_" } finally { Remove-Item $f -ErrorAction SilentlyContinue }
+   ```
+
+   Hiding the progress bar keeps Windows PowerShell 5.1 from
+   slowing a large download to a crawl. The `SecurityProtocol`
+   line adds TLS 1.2 to what the session offers, which GitHub
+   needs and older Windows PowerShell does not always offer by
+   default
+   ([Microsoft's form](https://learn.microsoft.com/powershell/gallery/powershellget/install-powershellget)).
+   It only adds a protocol; never weaken certificate checks to
+   get a download through.
+
+   `msiexec: 0` is success; `3010` is success that waits for a
+   restart — report it, and never restart
+   ([MsiExec error codes](https://learn.microsoft.com/windows/win32/msi/error-codes)).
+   Any other code, or a `failed:` line: report it and stop. The
+   `pwsh:` line must print the version just installed.
+3. **Record**: the journal line, the local changelog with the
+   version, the hash and the exit code, and memory as Version
+   Detection → Record lists.
+
+### Set the default shell
+
+Optional, and only after PowerShell 7 works. Hostwarden never
+needs it; it makes an interactive login land in PowerShell 7
+instead of `cmd.exe`. Ask separately, and say what it changes
+for everyone: every SSH login and every command other tools
+send over SSH to this host will run in PowerShell 7, so a
+script that expects `cmd.exe` syntax breaks. The value goes to
+the fixed MSI path only, never to an MSIX path.
+
+A wrong default shell ends every SSH login, so the change runs
+through `rules/ssh-safety-net.md`. Its commands here:
+
+- **Back up** (its step 2), the key and the current value:
+
+  ```powershell
+  $d = 'C:\ProgramData\hostwarden\backups'; New-Item -ItemType Directory -Force $d | Out-Null; $b = "$d\OpenSSH-$(Get-Date -Format yyyyMMdd-HHmmss).reg"
+  "previous: $((Get-ItemProperty 'HKLM:\SOFTWARE\OpenSSH' -ErrorAction SilentlyContinue).DefaultShell)"
+  reg export 'HKLM\SOFTWARE\OpenSSH' $b /y; if ($LASTEXITCODE -eq 0) { "backup: $b" } else { 'failed: reg export' }
+  Get-ChildItem $d -File | Where-Object LastWriteTime -lt (Get-Date).AddDays(-30) | Remove-Item
+  ```
+
+  An empty `previous:` means no value was set, and `cmd.exe`
+  was the default. Stop unless `backup:` printed: without the
+  `HKLM:\SOFTWARE\OpenSSH` key there is nothing to back up, and
+  the change could not be set either.
+- **Check** (step 3): `Test-Path 'C:\Program Files\PowerShell\7\pwsh.exe'`
+  prints `True`.
+- **Revert**: set the previous value again, or remove
+  `DefaultShell` where there was none.
+- **Arm** (step 4): Windows has neither `systemd-run` nor `at`;
+  a scheduled task run as SYSTEM five minutes from now stands
+  in for them. `$prev` is the `previous:` value. First read
+  whether a revert task is already there:
+
+  ```powershell
+  Get-ScheduledTask -TaskName 'hostwarden-revert' -ErrorAction SilentlyContinue | Get-ScheduledTaskInfo | Format-List LastRunTime, NextRunTime
+  ```
+
+  A task whose `NextRunTime` lies ahead belongs to a session
+  that is changing the default shell right now: stop, name it,
+  and ask — the journal shows nothing of that session until it
+  is done. A task that already ran is left from a revert that
+  fired: report when, and remove it with the cancel block before
+  arming.
+
+  ```powershell
+  $prev = '<previous>'; $cmd = if ($prev) { "Set-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value '$prev'" } else { "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell" }
+  try { $sys = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-18').Translate([System.Security.Principal.NTAccount]).Value; Register-ScheduledTask -TaskName 'hostwarden-revert' -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -Command `"$cmd`"") -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5)) -Principal (New-ScheduledTaskPrincipal -UserId $sys -LogonType ServiceAccount -RunLevel Highest) -ErrorAction Stop | Out-Null; "armed: $((Get-ScheduledTask -TaskName 'hostwarden-revert' -ErrorAction Stop).State)" } catch { "failed: $_" }
+  ```
+
+- **Apply** (step 5), as Microsoft's example does:
+
+  ```powershell
+  try { New-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value 'C:\Program Files\PowerShell\7\pwsh.exe' -PropertyType String -Force -ErrorAction Stop | Out-Null; 'set' } catch { "failed: $_" }
+  ```
+
+- **Test** (step 6): the fresh login runs
+  `'$PSVersionTable.PSVersion.ToString()'` with no stdin; the
+  version printed is the proof. Microsoft does not say whether a
+  running `sshd` picks the value up at once. A login that works
+  but still lands in `cmd.exe` has not tested the new value:
+  leave the revert armed and let it fire, then report it. A
+  restart of `sshd` needs the user's yes
+  (`rules/service-reload.md`), and then the whole change runs
+  again with `; Restart-Service sshd` appended to `$cmd`, so the
+  revert brings the old shell back as well.
+- **Cancel** (step 7):
+
+  ```powershell
+  try { Unregister-ScheduledTask -TaskName 'hostwarden-revert' -Confirm:$false -ErrorAction Stop } catch { "failed: $_" }; if (Get-ScheduledTask -TaskName 'hostwarden-revert' -ErrorAction SilentlyContinue) { 'failed: still armed' } else { 'cancelled' }
+  ```
+
+- **Console** (step 8): if the host still does not answer
+  after the revert, the user runs the revert command at the
+  console; the backup path goes with it. A revert that fired
+  leaves its task registered: once a fresh login works again,
+  remove it with the cancel block.
+
+**Record**: the journal line; the local changelog with the
+backup path, a `Rollback:` line naming the previous value, and a
+revert that fired; and memory as Version Detection → Record
+lists.
 
 ## Version Detection
 
@@ -102,7 +235,8 @@ Record, besides the usual fields: `OS: <Caption> (build
 <build>)`, `Installation: Server Core` or `Desktop Experience`,
 `PowerShell: <version>`, `Shell: cmd (<user>)` or the program
 `DefaultShell` names, and the `Admin:` line from Privileges
-below.
+below. After Setting Up PowerShell 7 changed the default shell,
+also `DefaultShell: <path> (was <previous or unset>)`.
 
 ## Privileges
 
@@ -339,8 +473,9 @@ The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
 `Event Log Reader`.
 
-The session register (`rules/parallel-sessions.md`) is not
-read: in read-only mode no session registers.
+Windows has no session register: the activity check reads
+none, and `rules/parallel-sessions.md` → Hosts without a
+register says what stands in for it before a change.
 
 System errors of the last day, the Windows counterpart of the
 journal's priority filter:
@@ -365,6 +500,17 @@ It works like the read-back: an empty result prints
   per-product files under `C:\ProgramData\` or
   `C:\Windows\Logs\`.
 - User profiles: `C:\Users\`.
+- Hostwarden's backups (`rules/backups.md`):
+  `C:\ProgramData\hostwarden\backups\`. A registry key is backed
+  up with `reg export`, a file with `Copy-Item`, and backups
+  older than 30 days are removed, all in one call:
+
+  ```powershell
+  $d = 'C:\ProgramData\hostwarden\backups'; $t = Get-Date -Format yyyyMMdd-HHmmss; New-Item -ItemType Directory -Force $d | Out-Null
+  reg export '<key>' "$d\<name>-$t.reg" /y; if ($LASTEXITCODE -eq 0) { 'backup ok' } else { 'failed: reg export' }
+  try { Copy-Item '<file>' "$d\<name>.$t" -ErrorAction Stop; 'backup ok' } catch { "failed: $_" }
+  Get-ChildItem $d -File | Where-Object LastWriteTime -lt (Get-Date).AddDays(-30) | Remove-Item
+  ```
 
 ## Notes
 
