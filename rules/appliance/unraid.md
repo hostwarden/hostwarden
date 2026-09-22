@@ -18,6 +18,12 @@ repositories on GitHub where the docs are silent.
 
 ## Version Detection
 
+- **This file covers Unraid up to 7.x**, the releases built on
+  Slackware. Unraid 8 is announced on a Fedora base (uCore) and is
+  not covered
+  (<https://unraid.net/blog/unraid-8-announced>). When the version
+  is 8 or later, stop: tell the user that Hostwarden has no rules
+  for this release yet, and change nothing on the host.
 - `/etc/unraid-version` holds one line, `version="<version>"`
   (`unraid/api`, `get-unraid-version-sync.ts`). Step 1 of
   `rules/os-detection.md` prints it; later connections read it with
