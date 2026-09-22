@@ -514,7 +514,9 @@ journalctl -k -b --grep=microcode --no-pager -q | tail -3
 ```
 
 **Alpine:** `dmesg | grep -i microcode | tail -3` for the
-second command.
+second command. The same form serves a `journalctl` without
+`--grep`, which systemd gained in 237: on RHEL and CentOS 7
+the option errors out instead of filtering.
 
 Read the log lines by name rather than by the word microcode,
 which every x86 kernel prints at least once: `Updated early
@@ -525,9 +527,12 @@ from: 0x…` (or `updated early to revision 0x…` before kernel
 driver ran.
 
 - **WARN** if the maker's package is not installed, with the
-  revision from `/proc/cpuinfo` beside it: the firmware may be
-  loading microcode at boot, but no errata fix published from
-  now on has a way onto this host.
+  revision from `/proc/cpuinfo` beside it: the operating
+  system has no way to deliver a CPU errata fix to this host.
+  Say that much and no more — the BIOS, UEFI or BMC may carry
+  its own microcode updates, and whether this machine gets
+  them is a question for its vendor, not something the probe
+  answers.
 - **INFO** the loaded revision, and whether a line names an
   early or late update. A kernel that names none has not said
   the package is unloaded — before 6.7 it prints nothing when
