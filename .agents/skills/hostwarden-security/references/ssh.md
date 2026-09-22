@@ -162,14 +162,16 @@ Skip this check on macOS.
 
 Some VPN and tunnel agents let people in without sshd, where none
 of the checks above look. Find them in the same batch, no root
-needed. The `sed` keeps only the program, never its arguments,
-and `ps w` is the fallback where BusyBox takes no BSD options
-(`rules/busybox.md`):
+needed. `ps w` is the fallback where BusyBox takes no BSD
+options (`rules/busybox.md`), and because its columns differ per
+implementation, the match takes the program name wherever it
+stands and keeps no argument, which could hold a token
+(`rules/secrets.md`):
 
 ```bash
-{ ps ax -o args= 2>/dev/null || ps w; } \
-  | grep -E '^([^ ]*/)?(tailscaled|netbird|newt|nebula|cloudflared)( |$)' \
-  | sed 's/ .*//' | sort -u
+{ ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
+  | grep -oE '(^|[/[:space:]])(tailscaled|netbird|newt|nebula|cloudflared)([[:space:]]|$)' \
+  | tr -d ' /' | sort -u
 ```
 
 No output → OK, nothing more to check. Otherwise read
