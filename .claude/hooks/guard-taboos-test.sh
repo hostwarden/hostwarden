@@ -1581,14 +1581,14 @@ if [ "$NCHECKS" -gt 0 ]; then
   else
     xargs -0 -n 300 printf '%s\0%s\0%s\0-\0' < "$QUEUE" > "$QUEUE.in"
   fi
-  # Batches, not one child per fixture: each child is a shell that
-  # parses this file. A few batches per core keep every core busy
-  # to the end. A batch that xargs cuts at the argument size limit
-  # fails in the child, which counts what is left over. (BSD xargs -x
-  # would say so itself, but with -0 it hands over one argument per
-  # call.)
-  PER=$(( (NCHECKS + JOBS * 4 - 1) / (JOBS * 4) ))
-  RESULT=$(xargs -0 -n $((PER * 4)) -P "$JOBS" sh "$SELF" --verdict \
+  # Batches of 25, not one child per fixture: each child is a shell
+  # that parses this file. 25 keeps a batch far below GNU xargs'
+  # 128 KiB command buffer (under 30 KB today, the longest fenced
+  # blocks included) and still gives every core several batches. A
+  # batch that xargs cuts at that limit anyway fails in the child,
+  # which counts what is left over. (BSD xargs -x would say so
+  # itself, but with -0 it hands over one argument per call.)
+  RESULT=$(xargs -0 -n 100 -P "$JOBS" sh "$SELF" --verdict \
     < "$QUEUE.in")
   XSTATUS=$?
   # Every deny that came back is valid JSON Claude Code reads as a
