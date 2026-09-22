@@ -698,11 +698,23 @@ domain controller these checks do not apply.
 
 ```powershell
 try { Get-SmbServerConfiguration -ErrorAction Stop | Format-List EnableSMB1Protocol } catch { "failed: $_" }
+try { $k = 'HKLM:\SYSTEM\CurrentControlSet\Services\mrxsmb10'; if (Test-Path $k) { "client driver start: $((Get-ItemProperty $k -ErrorAction Stop).Start)" } else { 'client driver: not installed' }; "workstation depends on: $((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation' -ErrorAction Stop).DependOnService -join ',')" } catch { "failed: $_" }
 ```
 
-- `True`: **WARN** — SMBv1 is not installed by default on
-  Server 2019 and later, and Microsoft advises against it
+The first line is the server side, which accepts SMBv1
+connections; the rest is the client side, which opens them.
+Server and client are separate components, and one can be off
+while the other is on.
+
+- `EnableSMB1Protocol` `True`: **WARN** — SMBv1 is not
+  installed by default on Server 2019 and later, and Microsoft
+  advises against it
   ([SMB protocols](https://learn.microsoft.com/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3)).
+- The client driver `mrxsmb10` installed with a start value
+  other than `4` (disabled), or `MRxSmb10` among the
+  workstation service's dependencies: **WARN**, for the same
+  reason — this host can still connect to others over SMBv1.
+- Report SMBv1 as off only when both sides are.
 
 **Remote Desktop:**
 
