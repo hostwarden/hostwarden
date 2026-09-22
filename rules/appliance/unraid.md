@@ -194,7 +194,8 @@ repositories on GitHub where the docs are silent.
   (`rules/version-check.md`); the release notes are at
   <https://docs.unraid.net/category/release-notes/>. Containers and
   plugins update from the Apps, Docker and Plugins tabs, after
-  asking.
+  asking; Check for Updates on those tabs refreshes what
+  housekeeping reads, and is the user's step.
 - Downgrading is a manual step on the boot device and the user's to
   take.
 
@@ -263,11 +264,14 @@ repositories on GitHub where the docs are silent.
     smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
   for f in /var/log/plugins/*.plg; do
-    t=/tmp/plugins/${f##*/}
-    [ -f "$t" ] && echo "${f##*/} $(plugin version "$f") $(plugin version "$t")"
+    p=${f##*/} t=/tmp/plugins/${f##*/}
+    case $p in unRAIDServer*) continue ;; esac
+    if [ ! -f "$t" ]; then echo "$p unchecked"
+    elif ! cmp -s "$f" "$t"; then echo "$p $(plugin version "$f") $(plugin version "$t")"
+    fi
   done
-  ls -l --time-style=+%F /var/lib/docker/unraid-update-status.json
-  cat /var/lib/docker/unraid-update-status.json
+  j=/var/lib/docker/unraid-update-status.json
+  date -r "$j" +%F && grep -E '^    "|"status"' "$j"
   ```
   `var.ini`'s `sbSynced2` is the end of the last parity check in
   epoch seconds, measured against `date +%s`. `disks.ini` lists
@@ -286,20 +290,19 @@ repositories on GitHub where the docs are silent.
   SMART health is the `result:` line on SATA and NVMe disks and
   `SMART Health Status:` on SAS; a SAS disk has no ATA attributes
   and reports its grown defect list instead. A disk that prints
-  neither health line nor `STANDBY` has unknown health, never
-  passing health.
+  neither health line nor `STANDBY` has unknown health.
   The update probes read what the last check left and reach no
   network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
   `plugin check`, which the Plugins tab and the scheduled plugin
   check run, downloads each plugin's newest `.plg` to
-  `/tmp/plugins/`; a plugin whose second version is newer than its
-  first has an update. `/tmp` lives in RAM, so a plugin without a
-  line has not been checked since the boot and its status is
-  unknown. The Docker tab's check writes one entry per image to
-  `unraid-update-status.json`: `status` `false` is an update,
-  `undef` or a missing image is unknown, and the file's date is the
-  last check. Checking again is the Check for Updates button on
-  those tabs, the user's step.
+  `/tmp/plugins/`. The loop skips the OS and prints a plugin only
+  when that copy differs, where a second version newer than the
+  first is an update, or is missing: `/tmp` lives in RAM, so the
+  plugin has not been checked since the boot, or names no
+  `pluginURL` a check could reach. The Docker tab's check writes one
+  entry per image to `unraid-update-status.json`, dated by its last
+  run: `status` `false` is an update, `undef` or a missing image
+  unchecked.
 - Findings:
   - load above the CPU count in server memory, or memory and swap
     nearly exhausted;
@@ -311,13 +314,13 @@ repositories on GitHub where the docs are silent.
     basis", scheduled under Settings → Scheduler;
   - SMART health not passing, or reallocated, pending or
     uncorrectable sectors or grown defects; unknown health is
-    reported as unknown;
+    reported as unknown, never as passing;
   - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a
-    server on an RC or beta; a plugin or image whose status is
-    unknown, or a last check older than a week, is named as
-    unchecked, never as current;
+    server on an RC or beta; a plugin or image not checked, or
+    checked more than a week ago, is named as unchecked, never as
+    current;
   - no boot device backup: no Unraid Connect flash backup and no
     recent zip from Main → Boot Device → Boot Device Backup, which
     the user downloads and keeps off the server;

@@ -296,9 +296,8 @@ silent.
 ## Housekeeping and Audits
 
 - Read, in one call; `select` keeps the JSON to the fields the
-  findings need. Before 25.10, `update.check_available` takes the
-  place of `update.status`, and on 24.10 `system.reboot.info` is
-  left out (see Updates):
+  findings need. Before 25.10 the update and reboot calls differ
+  (see Updates):
   ```
   midclt call alert.list
   midclt call update.status
