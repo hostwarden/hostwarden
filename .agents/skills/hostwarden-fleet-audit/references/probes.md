@@ -85,8 +85,8 @@ is rendered and why it is excluded from drift detection.
 host's kernel and clock (`rules/system-containers.md`). So
 the rows that describe those read `n/a (container)`, and
 none of them is a warning here: the active time service and
-`NTPSynchronized` (section 5), and a pending reboot read
-from the kernel and the boot time and uptime (section 6), so
+`NTPSynchronized` (section 6), and a pending reboot read
+from the kernel and the boot time and uptime (section 7), so
 the uptime criteria do not apply there. The timezone and
 `/var/run/reboot-required`, which the container's own
 packages write, stay its own.
@@ -673,13 +673,11 @@ Highlight as drift / warning:
 `uptime` takes no options. A kernel upgrade removes the running
 kernel's modules, so a missing directory for `uname -r` is a
 kernel waiting for a reboot (`rules/os/alpine.md` → Common
-Pitfalls). In a container the check does not apply (Containers
-above):
+Pitfalls). Where `Virtualization:` names a container, none of
+this runs (Containers above). Everywhere else:
 
 ```bash
-if [ "$(openrc --sys 2>/dev/null)" = "LXC" ]; then
-  echo "pending=n/a (container)"
-elif [ -d "/lib/modules/$(uname -r)" ]; then
+if [ -d "/lib/modules/$(uname -r)" ]; then
   echo "pending=no"
 else
   echo "pending=yes"
