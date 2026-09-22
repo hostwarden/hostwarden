@@ -352,6 +352,219 @@ try { $null = Get-WinEvent -LogName System -MaxEvents 1 -ErrorAction Stop; $s = 
 It works like the read-back: an empty result prints
 `errors: 0`, and a denied read prints `failed:`.
 
+## Housekeeping and Audits
+
+On Windows this section is the whole of housekeeping and the
+security audit (`rules/os-detection.md` → Layers): the skills'
+baseline references are written for `sh` and do not run here.
+Every block is PowerShell for the bundle in Reaching PowerShell,
+prints its result or a `failed:` line, and a `failed:` line is
+a check that did not run, never a clean one. Nothing here
+changes the host.
+
+The fleet audit's probes are written for `sh`: it skips a
+Windows host with a "Windows not yet supported" note.
+
+### Housekeeping
+
+Run two calls. The first holds every check below except the
+slow ones. The second, after the first is read, holds the
+pending-update search (Automatic Security Updates), the winget
+listing (Package Manager) and the second load reading. Uptime
+comes from `LastBootUpTime` in this session's Version Detection
+call.
+
+**Backup presence.** The generic probe in
+`.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
+is written for `sh`; ask Windows Server Backup instead. It needs
+an administrator. `wbadmin: not installed` means the feature is
+missing — an answer, not a failure:
+
+```powershell
+if (Get-Command wbadmin -ErrorAction SilentlyContinue) { wbadmin get versions; if ($LASTEXITCODE -ne 0) { "failed: wbadmin exit $LASTEXITCODE" } } else { 'wbadmin: not installed' }
+try { Get-Service -ErrorAction Stop | Where-Object { $_.Name -match 'backup|veeam|acronis|commvault|arcserve|bacula|restic|urbackup|cobian' -or $_.DisplayName -match 'backup' } | Format-Table Name, DisplayName, Status } catch { "failed: $_" }
+try { Get-ScheduledTask -ErrorAction Stop | Where-Object { $_.TaskName -match 'backup' } | Format-Table TaskPath, TaskName, State } catch { "failed: $_" }
+```
+
+The second and third lines look for another backup product: a
+service or a scheduled task that names one. Any match is a
+mechanism to name and ask about, not an absence. Only when all
+three find nothing is there no mechanism. Rate the result, and
+ask the question it may lead to, as that
+file's Step 0 and Severity sections say.
+
+**Disk, memory and load:**
+
+```powershell
+try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | ForEach-Object { '{0} {1:N0}% used of {2:N0} GB' -f $_.DeviceID, (100 - 100 * $_.FreeSpace / $_.Size), ($_.Size / 1GB) } } catch { "failed: $_" }
+try { $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop; '{0:N1} GB free of {1:N1} GB' -f ($os.FreePhysicalMemory / 1MB), ($os.TotalVisibleMemorySize / 1MB) } catch { "failed: $_" }
+try { "load: $((Get-CimInstance Win32_Processor -ErrorAction Stop | Measure-Object LoadPercentage -Average).Average)" } catch { "failed: $_" }
+```
+
+`LoadPercentage` is a moment's reading, not an average over
+minutes; the second call reads it again with the `load:` line.
+
+- A disk over 85% used: **WARN**; over 95%: **CRITICAL**.
+- Free memory under 10% of total: **WARN**.
+- Both load readings above 90%: **WARN**.
+
+**Updates, reboot, firewall, services, Defender.** The blocks
+of Automatic Security Updates, Pending Reboot, Firewall,
+Service Manager and Defender above, rated as those sections
+say. Pending updates are a **WARN**, with the count and the
+titles; the search does not tell security updates apart.
+winget's outdated packages are **INFO** with the count, and
+winget failing over SSH is **INFO**, never a finding.
+
+**System log.** The System-log block under Logs above, and
+for each source over the threshold below, its newest error in
+the same call, with the source name from the counts:
+
+```powershell
+try { Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = '<source>'; Level = 1, 2 } -MaxEvents 1 -ErrorAction Stop | Format-List TimeCreated, Id, Message } catch { "failed: $_" }
+```
+
+- A source with more than 10 errors in the day: **WARN**, with
+  the newest message of that source.
+- Otherwise **INFO** with the counts.
+
+**Time sync:**
+
+```powershell
+w32tm /query /source; if ($LASTEXITCODE -ne 0) { "failed: w32tm exit $LASTEXITCODE" }
+```
+
+The source is a server name or address (`,0x…` may follow), `VM
+IC Time Synchronization Provider` on a Hyper-V guest, or a local
+clock. The local clocks — `Local CMOS Clock` and `Free-running
+System Clock`, or their translation — mean the clock is not
+synchronized: **WARN**. `w32tm` prints localized text, so judge
+the value, not a label.
+
+### Security Audit
+
+**SSH.** `sshd -T` prints the effective configuration, as on
+Linux. Run it and every probe of `C:\ProgramData\ssh\` in SSH
+calls of their own, outside the PowerShell bundle (Notes
+below):
+
+```
+ssh … <host> 'sshd -T'
+```
+
+Rate its output with
+`.agents/skills/hostwarden-security/references/ssh.md`.
+Then the key file for administrators:
+
+```
+ssh … <host> 'icacls C:\ProgramData\ssh\administrators_authorized_keys'
+```
+
+`icacls` prints account names, and they are localized. Resolve
+the two that belong there in the PowerShell bundle, which names
+no file:
+
+```powershell
+'S-1-5-32-544', 'S-1-5-18' | ForEach-Object { try { (New-Object System.Security.Principal.SecurityIdentifier $_).Translate([System.Security.Principal.NTAccount]).Value } catch { "failed: $_" } }
+```
+
+- Any other principal with write access — `(F)`, `(M)` or
+  `(W)`: **CRITICAL** — whoever can write the file can log in as
+  an administrator.
+- Any other principal with read access only: **WARN** — sshd
+  expects the file restricted to those two and may ignore it,
+  so administrators' key logins can fail.
+- The file missing while an administrator logs in with a key:
+  report where the key came from as unknown, **INFO**.
+
+**Firewall.** The Firewall block above, rated as it says, and
+the enabled inbound allow rules of the policy in effect, Group
+Policy included — name, profile, protocol, local port and remote
+addresses:
+
+```powershell
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | program {5} | service {6}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), $app, $svc } } catch { "failed: $_" }
+```
+
+Judge only the rules of the profile in use (Firewall above). A
+rule opens its ports only to its program and service where it
+names one (`Any` means every program or service): a listener
+on that port is exposed, to the remote addresses the rule
+names, when the listener's executable path is the rule's
+program, its bracket holds the rule's service, or the rule names
+neither. A listener whose path is empty cannot be matched to a
+program-scoped rule: report it as unknown, not as covered. A
+rule with a local port of `Any` opens every port to the program
+or service it names: name the rule.
+
+**Listening services**, TCP and UDP:
+
+```powershell
+try { $p = @{}; Get-Process -ErrorAction Stop | ForEach-Object { $p[$_.Id] = "$($_.ProcessName) $($_.Path)" }; $s = @{}; Get-CimInstance Win32_Service -Filter 'ProcessId > 0' -ErrorAction Stop | ForEach-Object { $s[[int]$_.ProcessId] = @($s[[int]$_.ProcessId]) + $_.Name }; 'processes and services read' } catch { "failed: $_" }
+try { $l = @(Get-NetTCPConnection -State Listen -ErrorAction Stop); "tcp: $($l.Count)"; $l | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2} [{3}]' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess], ((@($s[[int]$_.OwningProcess]) | Where-Object { $_ }) -join ',') } } catch { "failed: $_" }
+try { $u = @(Get-NetUDPEndpoint -ErrorAction Stop); "udp: $($u.Count)"; $u | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2} [{3}]' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess], ((@($s[[int]$_.OwningProcess]) | Where-Object { $_ }) -join ',') } } catch { "failed: $_" }
+```
+
+Each listener names its process, the executable's path, and in
+brackets the services that process hosts — `svchost` carries
+several. A path can be empty for a process this account may
+not open.
+
+Rate it as
+`.agents/skills/hostwarden-security/references/listening-services.md`
+→ Evaluation says; `0.0.0.0` and `::` are the wildcard
+addresses there too.
+
+**Local accounts:**
+
+```powershell
+try { Get-LocalUser -ErrorAction Stop | Format-List Name, Enabled, PasswordRequired, PasswordLastSet, LastLogon, SID } catch { "failed: $_" }
+```
+
+- An enabled account with `PasswordRequired` `False`:
+  **WARN** — it may have an empty password; the flag alone does
+  not say it has one.
+- The guest account (SID ending in `-501`) enabled: **WARN**.
+- The built-in administrator (SID ending in `-500`) enabled
+  and in use is common; report it as **INFO**, and name its
+  last logon.
+- An enabled account that has not logged on in 90 days, or
+  never: **INFO**.
+
+The members of Administrators come from Local Administrators
+above; name every one that `memory.md` does not explain. On a
+domain controller these checks do not apply.
+
+**SMBv1:**
+
+```powershell
+try { Get-SmbServerConfiguration -ErrorAction Stop | Format-List EnableSMB1Protocol } catch { "failed: $_" }
+```
+
+- `True`: **WARN** — SMBv1 is not installed by default on
+  Server 2019 and later, and Microsoft advises against it
+  ([SMB protocols](https://learn.microsoft.com/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3)).
+
+**Remote Desktop:**
+
+```powershell
+try { Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -ErrorAction Stop | Format-List fDenyTSConnections } catch { "failed: $_" }
+try { $k = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services'; if (Test-Path $k) { Get-ItemProperty $k -ErrorAction Stop | Format-List fDenyTSConnections, UserAuthentication } else { 'no policy key' } } catch { "failed: $_" }
+try { Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -ErrorAction Stop | Format-List UserAuthentication, PortNumber } catch { "failed: $_" }
+```
+
+Each setting takes the policy value where the policy key sets
+it, and the local value otherwise.
+
+- `fDenyTSConnections` `0` means Remote Desktop is on.
+- Remote Desktop on with an effective `UserAuthentication` of
+  `0` — no Network Level Authentication: **WARN**.
+- Remote Desktop reachable through the firewall from any
+  address: **WARN**; name the rule.
+
+**Defender and BitLocker.** The blocks above, rated as those
+sections say.
+
 ## Directory Conventions
 
 - Programs: `C:\Program Files\`, 32-bit ones in
