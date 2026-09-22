@@ -19,6 +19,12 @@ For too many keys the fix is on the client:
 host in `~/.ssh/config`; check with
 `ssh -G <host> | grep -i identit`.
 
+A refused login ends before OS detection, which
+loads the appliance file. When server memory has an
+`Appliance:` line, read that file's section on access
+in `rules/appliance/` and name the causes it lists as
+ones for the user to check, never as what happened.
+
 ## Do not retry in a loop
 
 This applies when SSH does not answer at all.

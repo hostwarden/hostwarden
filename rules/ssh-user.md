@@ -96,6 +96,15 @@ name: drop option 2 and ask for the account under
 the SSH call then passes quoted with `-l`
 (`rules/os/windows.md` → Notes).
 
+This step runs before OS detection loads an
+appliance file. When server memory has an
+`Appliance:` line, or the user named the appliance,
+read that file's section on access in
+`rules/appliance/` before asking; where it names the
+only login, as on Unraid, offer that account and
+`Other…`. In Case A, save it only as the per-server
+entry and ask for the default as in Case B.
+
 **On subsequent connections:** look up the server in
 `memory/user.md`. Do not ask again.
 
