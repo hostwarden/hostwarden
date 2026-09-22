@@ -181,14 +181,22 @@ of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
 apply:
 
 ```bash
+HB=$(brew --prefix 2>/dev/null || /opt/homebrew/bin/brew --prefix 2>/dev/null)
+[ "$HB" = /usr/local ] && HB=
 for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
-         /Library/StartupItems /Applications /usr/local /opt/homebrew; do
+         /Library/StartupItems /Applications /usr/local ${HB:+"$HB"}; do
   [ -d "$d" ] || continue
   find "$d" -xdev -type f \
     \( -perm -0002 -o -nouser -o -nogroup -o -perm +6000 \) -ls \
     2>/dev/null
 done
 ```
+
+`brew --prefix` names the Homebrew prefix wherever it was
+installed; the second try covers an SSH session whose `PATH` lacks
+it. Run it as the SSH user, never under `sudo`
+(`rules/os/macos.md` → Package Manager). `/usr/local` is searched
+either way.
 
 Rate each hit as its section above does.
 
