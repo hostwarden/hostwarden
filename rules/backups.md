@@ -68,6 +68,8 @@ Affected paths include (but are not limited to):
 - `/etc/profile.d/`
 - `/etc/config/` (OpenWrt: every file there is a UCI
   config)
+- `/data/on_boot.d/` (UniFi OS: every file there runs
+  at boot)
 
 When editing a file in one of those directories, write
 the backup to `$BACKUP_DIR` only. Never leave

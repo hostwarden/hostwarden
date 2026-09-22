@@ -46,10 +46,11 @@ skill says so where it needs it.
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade' \
-     'midclt; ls -d /homeassistant; pveversion;' \
+     'midclt ubnt-device-info; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version; dpkg -l openmediavault;' \
      'cat /etc.defaults/VERSION;' \
+     'ubnt-device-info firmware; ubnt-device-info model;' \
      'echo @virt; uname -m; systemd-detect-virt; openrc --sys;' \
      'ls -d /.dockerenv /run/.containerenv;' \
      'grep -c -w hypervisor /proc/cpuinfo;' \
@@ -228,6 +229,7 @@ the row.
 | RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
 | none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
 | none    | `os_name="DSM"`      | `rules/appliance/synology-dsm.md`   |
+| none    | `ubnt-device-info`   | `rules/appliance/unifi-os.md`       |
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
 | none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
