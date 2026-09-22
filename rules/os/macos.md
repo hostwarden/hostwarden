@@ -14,7 +14,17 @@ Rules for macOS (Apple Silicon and Intel).
 - Homebrew prefix differs by architecture:
   - Apple Silicon (arm64): `/opt/homebrew/`
   - Intel (x86_64): `/usr/local/`
-  - Detect at runtime: `brew --prefix`
+- A non-interactive SSH shell often has no Homebrew
+  on its `PATH`. Locate it in both prefixes before
+  calling it absent, as the SSH user, and take the
+  prefix from `"$BREW" --prefix`:
+  ```
+  BREW=$(command -v brew)
+  for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [ -z "$BREW" ] && [ -x "$b" ] && BREW=$b
+  done
+  [ -n "$BREW" ] && "$BREW" --prefix
+  ```
 - Update Homebrew itself: `brew update`
 - Upgrade all packages: `brew upgrade`
 - Dry-run before upgrading: `brew upgrade --dry-run`

@@ -178,10 +178,10 @@ The system volume is sealed and SIP protects it
 `/private/etc`), part of `/Library` and the Homebrew prefix live
 on the writable data volume. The searches above run there instead
 of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
-apply:
+apply. `HB` is the Homebrew prefix, found as `rules/os/macos.md` →
+Package Manager says, and empty without Homebrew:
 
 ```bash
-HB=$(brew --prefix 2>/dev/null || /opt/homebrew/bin/brew --prefix 2>/dev/null)
 [ "$HB" = /usr/local ] && HB=
 for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
          /Library/StartupItems /Applications /usr/local ${HB:+"$HB"}; do
@@ -191,12 +191,6 @@ for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
     2>/dev/null
 done
 ```
-
-`brew --prefix` names the Homebrew prefix wherever it was
-installed; the second try covers an SSH session whose `PATH` lacks
-it. Run it as the SSH user, never under `sudo`
-(`rules/os/macos.md` → Package Manager). `/usr/local` is searched
-either way.
 
 Rate each hit as its section above does.
 

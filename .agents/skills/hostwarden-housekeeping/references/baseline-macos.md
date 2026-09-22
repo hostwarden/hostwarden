@@ -65,14 +65,10 @@ Check that critical security updates install automatically — see
 
 ## Homebrew Packages
 
-A non-interactive SSH shell often has no Homebrew on its `PATH`,
-so look in both prefixes before calling it absent:
+Set `$BREW` as `rules/os/macos.md` → Package Manager locates it,
+then:
 
 ```bash
-BREW=$(command -v brew)
-for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-  [ -z "$BREW" ] && [ -x "$b" ] && BREW=$b
-done
 [ -n "$BREW" ] && { "$BREW" outdated; "$BREW" services list; }
 ```
 
