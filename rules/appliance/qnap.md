@@ -564,9 +564,10 @@ is QNAP's own.
   - myQNAPcloud device access control set to Public: WARN.
 - The generic account check of
   `.agents/skills/hostwarden-security/references/user-accounts.md`
-  rates every UID 0 account beside `root` as critical: `admin` is
-  QNAP's own superuser, cannot be deleted, and is not that finding.
-  Whether it is enabled is (see below).
+  rates every UID 0 account beside `root` as critical, and warns
+  about a system account below UID 1000 with a login shell:
+  `admin` is QNAP's own superuser, cannot be deleted, and is
+  neither finding. Whether it is enabled is (see below).
 - A security audit also reports: SSH and Telnet state and port,
   the accounts allowed to use SSH, whether `admin` is enabled,
   Console Management on, IP Access Protection off for SSH, unsigned
