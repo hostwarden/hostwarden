@@ -688,7 +688,7 @@ domain controller these checks do not apply.
 
 ```powershell
 try { Get-SmbServerConfiguration -ErrorAction Stop | Format-List EnableSMB1Protocol } catch { "failed: $_" }
-try { $k = 'HKLM:\SYSTEM\CurrentControlSet\Services\mrxsmb10'; if (Test-Path $k) { "client driver start: $((Get-ItemProperty $k -ErrorAction Stop).Start)" } else { 'client driver: not installed' }; "workstation depends on: $((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation' -ErrorAction Stop).DependOnService -join ',')" } catch { "failed: $_" }
+try { $k = 'HKLM:\SYSTEM\CurrentControlSet\Services\mrxsmb10'; if (Test-Path $k) { "client driver start: $((Get-ItemProperty $k -ErrorAction Stop).Start)" } else { 'client driver: not installed' }; $d = Get-CimInstance Win32_SystemDriver -Filter "Name='mrxsmb10'" -ErrorAction SilentlyContinue; "client driver state: $(if ($d) { $d.State } else { 'not loaded' })"; "workstation depends on: $((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation' -ErrorAction Stop).DependOnService -join ',')" } catch { "failed: $_" }
 ```
 
 The first line is the server side, which accepts SMBv1
@@ -702,7 +702,12 @@ connections; the rest is the client side, which opens them.
   other than `4` (disabled), or `MRxSmb10` among the
   workstation service's dependencies: **WARN**, for the same
   reason — this host can still connect to others over SMBv1.
-- Report SMBv1 as off only when both sides are.
+- A client driver state of `Running` while its start value is
+  already `4`: **WARN** "SMBv1 client disabled, restart
+  pending" — the driver stays loaded until the restart
+  Microsoft's procedure asks for, and the client still works.
+- Report SMBv1 as off only when both sides are, and the client
+  driver is not running.
 
 **Remote Desktop:**
 
