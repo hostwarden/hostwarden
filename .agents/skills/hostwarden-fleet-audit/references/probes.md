@@ -464,8 +464,10 @@ hostname -f
 ```
 
 Installed MTA is `postfix` on every Mac, and the loaded job is
-the active unit; a relay host is what tells one that sends
-mail from one that cannot. Never propose
+the active unit: a Mac whose job is not loaded sends no mail.
+The relay host is routing policy, not a verdict — empty means
+Postfix delivers straight to each recipient's domain — and
+hosts that differ in it are drift. Never propose
 installing an MTA on a Mac
 (`.agents/skills/hostwarden-email/references/transport-remote.md`).
 
