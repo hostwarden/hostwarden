@@ -16,6 +16,10 @@ At the end of the report, add a section:
 
 List each skipped check with a brief reason.
 
+Containers (`rules/containers.md` → Privileges): without the access
+they need, report them as "skipped: needs root", never as no
+containers.
+
 Backup presence: most probes survive without root —
 `command -v`, `systemctl list-timers`, and `/etc/cron.d` is
 usually world-readable. The root crontab (`crontab -l` as

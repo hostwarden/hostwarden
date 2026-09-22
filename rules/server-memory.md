@@ -74,7 +74,9 @@ Version Detection names fields to record adds those. `Appliance:`,
 the `port` line of `ssh -G <user>@<hostname>`, which the
 alias check in `rules/dns-aliases.md` compares. A
 field a probe could not read is written `unknown`, never
-filled from an example.
+filled from an example. A container engine is recorded as
+`- Container runtime: podman (rootless: alice)`, the form
+`rules/service-class-check.md` gives.
 
 `Virtualization:` and `Arch:` come from
 `rules/os-detection.md` → Virtualization and step 2.

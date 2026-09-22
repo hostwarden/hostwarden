@@ -92,8 +92,9 @@ full instance (`nginx@default`). No wildcards in v1.
 On FreeBSD and macOS, match the `service` /
 `brew services` / `launchctl` service name.
 
-Home Assistant in a container has no unit of its
-own: match its container name — `homeassistant` on
+A container outside a systemd unit matches by its
+container name (`rules/containers.md`). So does
+Home Assistant in a container: `homeassistant` on
 Supervised, whatever `memory.md` records on
 Container. On Core, match its unit as usual.
 

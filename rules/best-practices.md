@@ -146,19 +146,20 @@ crashes instead.
 → Check logs, fix the underlying issue, configure
 systemd `Restart=on-failure`.
 
+**Changing a UI-managed container app with docker/podman**
+A UI, app store or compose file recreates the
+container from its own definition, so the change is
+lost. CasaOS, an appliance's app store and a compose
+project all work this way.
+→ Change it where it is defined.
+Cross-reference: `rules/containers.md` → Changes, and
+the host's appliance file or service check
+
 **Application server running as root**
 Services should run as a dedicated user with
 minimal privileges.
 → Create a service user.
 Cross-reference: the `hostwarden-deploy-user` skill
-
-**Changing a CasaOS app with `docker`**
-CasaOS applies its own compose file again on update,
-so a `docker` change is lost.
-→ Change the app in the CasaOS web UI.
-Cross-reference:
-`.agents/skills/hostwarden-housekeeping/references/service-checks.md`
-→ CasaOS
 
 ### Permissions & Security
 

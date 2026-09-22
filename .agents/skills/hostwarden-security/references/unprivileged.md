@@ -15,7 +15,9 @@ Many checks in this audit work without root:
 - **Needs root:** `sshd -T`, empty password accounts
   (`/etc/shadow`), listening services with process names on Linux
   (`ss -tulnp`), cron directory permissions (some dirs may be
-  unreadable).
+  unreadable), and the container audit — except with `docker`
+  group membership, or for the session user's own rootless
+  containers.
 
 On FreeBSD, root is needed for `sshd -T`, `/etc/master.passwd`,
 the pf and ipfw rules, and `/var/log/setuid.today`.
