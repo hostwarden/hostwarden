@@ -315,8 +315,9 @@ does not name applies as written.
 
 The `## Housekeeping and Audits` section of the
 appliance, platform and role file applies to
-housekeeping and both audits: it adds checks, skips
-those it excludes and rates some differently.
+housekeeping and both audits: it adds checks, changes
+the command of those it names, skips those it
+excludes and rates some differently.
 
 ## On subsequent connections
 

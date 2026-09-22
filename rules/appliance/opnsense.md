@@ -195,9 +195,13 @@ documentation, <https://docs.opnsense.org/>, and the
 ## Replace: sshd
 
 - sshd is `/usr/local/sbin/sshd`, its generated configuration
-  `/usr/local/etc/ssh/sshd_config` (Access and Shell). Password
-  and root login are settings under System > Settings >
-  Administration; report them as such.
+  `/usr/local/etc/ssh/sshd_config` (Access and Shell).
+- Its options are under System > Settings > Administration:
+  "Permit password login" sets both `PasswordAuthentication` and
+  `ChallengeResponseAuthentication`, "Permit root user login" sets
+  `PermitRootLogin`, and `AllowGroups wheel` and
+  `X11Forwarding no` are always written. Report a finding as the
+  option to change.
 
 ## Replace: Mail and Time
 
@@ -261,3 +265,45 @@ documentation, <https://docs.opnsense.org/>, and the
   reload.
 - Report settings OPNsense generates as web UI changes, not file
   edits.
+
+**Housekeeping** runs the FreeBSD baseline with these changes:
+
+- Firewall Status: `pfctl -si | head -1` (root) reads
+  `Status: Enabled`; ipfw is not used. The `_enable` check does
+  not apply.
+- Time Sync: judge by `ntpq -pn` alone; `ntpd_enable` is not where
+  the vendor enables ntpd.
+- Failed Services: `pluginctl -S` (JSON, a `status` per service)
+  replaces the `service -e` loop, which misses the services
+  OPNsense starts itself; one not running is WARN.
+- Certificate expiry: also the web UI's
+  `/usr/local/etc/lighttpd_webgui/cert.pem`.
+- Backups: a copy off the box needs a backup plugin
+  (`pkg info -g 'os-*backup*'`); none installed is INFO.
+
+**A security audit** runs the FreeBSD sections with these changes:
+
+- SSH: judged as usual while sshd runs — an audit that came in
+  over SSH shows it does; locally or on the console, check the
+  `openssh` entry of `pluginctl -S` first, and with SSH off report
+  only that. Report findings as the options in Replace: sshd.
+- Firewall: the appliance case in the security skill's
+  `references/firewall.md`; the WAN rules are under Firewall >
+  Rules > WAN. From the same `pfctl -s rules` output, no
+  `sshlockout` rule means OPNsense's own login lockout (on by
+  default) was disabled under Firewall > Settings > Advanced:
+  INFO.
+- Kernel: OPNsense sets `drop_redirect`, `kern.randompid` and
+  `see_other_uids`/`gids` itself (System > Settings > Tunables):
+  one the kernel table flags was changed on this box. The two
+  `security.bsd.unprivileged_*` keys keep FreeBSD's default: not a
+  finding here.
+- SUID/SGID: files `pkg which` attributes to a package (`opnsense`
+  itself or a port; it takes the whole list at once) are expected.
+  The base system comes as sets, not packages; judge those against
+  the FreeBSD list.
+
+**Fleet audit:** the unattended-upgrades rows are replaced by the
+"Automatic firmware update" cron job and the pending updates; the
+WAN rules are the firewall rows to compare. The time daemon comes
+from `pluginctl -S`; the MTA rows are `n/a (OPNsense)`.

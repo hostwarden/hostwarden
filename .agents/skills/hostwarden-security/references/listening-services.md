@@ -43,6 +43,10 @@ root. With `sudo`, it shows all.
 
 ## Evaluation
 
+On a firewall appliance, sockets on all interfaces are normal: the
+firewall decides what is reachable, and `references/firewall.md`
+reports that instead.
+
 Present results as a table of listening addresses, ports, and
 process names (when available).
 

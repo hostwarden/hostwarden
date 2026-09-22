@@ -25,8 +25,8 @@ sysctl -n net.inet.ip.forwarding
 ```
 
 - `1` → **WARN** unless the server's `memory.md` mentions
-  WireGuard, VPN, or router functionality. In that case → OK
-  with note.
+  WireGuard, VPN, or router functionality, or the host is a
+  firewall appliance. In that case → OK with note.
 - `0` → OK
 
 ## ICMP Redirect Acceptance — Linux only
