@@ -86,19 +86,23 @@ Severities as in `references/report-format.md`. An address is
   ```
   curl -s -o /dev/null -m 5 -w '%{http_code}\n' \
     http://<host>:16992/
-  curl -s -o /dev/null -m 5 -w '%{http_code}\n' -k \
-    https://<host>:16993/
+  curl -s -o /dev/null -m 5 --connect-timeout 5 \
+    telnet://<host>:16994; echo "exit $?"
   ```
 
-  A status code — AMT answers `401` unauthenticated — means the
-  port answers; a timeout or a refused connection means it does
-  not. `-k` skips certificate checking because this asks whether
-  anything is there, not whether its certificate is good, and
-  nothing ever authenticates: AMT credentials are out of scope
-  (`rules/secrets.md`).
+  **Both plaintext ports, because either can be on without the
+  other.** 16992 is HTTP and answers `401` unauthenticated, so a
+  status code means it is there. 16994 is the redirection
+  protocol and speaks no HTTP, so it gets a plain TCP connect:
+  `telnet://` makes curl open the socket and nothing more, and
+  exit `7` is a refused or unreachable port while `0` is one that
+  answered. Nothing ever authenticates — AMT credentials are out
+  of scope (`rules/secrets.md`).
 
-  An answer on 16992 from the workstation is **WARN**, and
+  Either port answering from the workstation is **WARN**, and
   **CRITICAL** where the host's address is public as
-  `references/listening-services.md` defines it. Where the
+  `references/listening-services.md` defines it. The TLS ports
+  16993 and 16995 are not a finding and are not probed; they are
+  what the plaintext pair should be replaced by. Where the
   workstation cannot reach the host directly — NAT, a jump host —
   the check is **named as not checked**, never as passing.

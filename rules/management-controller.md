@@ -206,12 +206,16 @@ first:
 - **Bare metal** — run Detection above. It gives the controller,
   and `lan print` gives the address for `memory/network.md`.
 - **A virtual machine or a container** — the console belongs to
-  the machine underneath. `Virtualization:` names the kind of
-  hypervisor, never which machine it is: `kvm` is not a host, and
-  nothing in memory maps a guest to its node. So name the node
-  only where it is already recorded — a `Reached as:` or a
-  network note that says which node this guest runs on — and
-  otherwise ask.
+  the machine underneath, and only an explicit guest-to-node fact
+  names it. `Virtualization:` gives the kind of hypervisor, never
+  which machine it is: `kvm` is not a host. `Reached as:` is no
+  use either — `rules/server-memory.md` defines it as the SSH
+  destination of that same instance, so taking it for the node
+  names the guest as its own rescue console, which is no route at
+  all once SSH is gone. What counts is a line that says which
+  node or provider runs this guest: a `## Management
+  controllers` row for it, or a note in `memory/network.md`.
+  Where there is none, ask.
 - **Nothing settled it** — a bare-metal host with no address, a
   guest whose node nothing names, a `Virtualization: unknown`
   machine. Ask the Provider console question above, adding the

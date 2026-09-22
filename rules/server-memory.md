@@ -65,7 +65,6 @@ directory, and where it is empty, ask which.
 - RAM: 16 GB
 - Disk: 80 GB (/ ext4, 45% used)
 - Virtualization: none (bare metal)
-- Management: iDRAC (BMC), reachable from the host
 - Last connected: 2026-02-25
 ```
 
