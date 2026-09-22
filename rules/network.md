@@ -157,9 +157,12 @@ IPv6).
   `expires` counter reaches zero, or already has. The fix is
   `accept_ra` 2 on the uplink, or a static IPv6 default route.
 - Two managers claim the same interface.
-- `/etc/resolv.conf` is a static file while systemd-resolved or
-  NetworkManager is active: the manager's DNS settings are
-  silently ignored.
+- `/etc/resolv.conf` is a static file while the manager that is
+  active also owns DNS: its settings are then silently ignored.
+  It is not a finding where the manager hands DNS over by design
+  — NetworkManager with `dns=none`, or systemd-resolved reached
+  through `nss-resolve` in `nsswitch.conf` rather than through
+  the file.
 - Only nameservers of a family the host cannot reach, such as
   IPv6 resolvers on a host with broken IPv6.
 - An A or AAAA record points at an address the host does not

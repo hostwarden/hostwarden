@@ -68,7 +68,7 @@ fi
 if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
   if [ "$S" = - ]; then echo "netplan=unknown(needs-root)"
   else $S grep -HE \
-    '^[[:space:]]*([a-z0-9_.-]+:|renderer|dhcp4|dhcp6|accept-ra):' \
+    '^[[:space:]]*([a-z0-9_.@-]+:[[:space:]]*$|(renderer|dhcp4|dhcp6|accept-ra):)' \
     /etc/netplan/*.yaml
   fi
 fi
@@ -138,19 +138,19 @@ pz=$(grep -c '^PROXY_ENABLED=\"yes\"' \
   /etc/sysconfig/proxy 2>/dev/null)
 px=$((pe + pa + pd + ${pz:-0}))
 echo "proxy-env=$pe proxy-apt=$pa proxy-dnf=$pd proxy-suse=${pz:-0}"
-# Active lines only; drop user:password@ and :port.
+# Active lines only, credentials dropped, port kept.
 [ -n "$T" ] || T=$(grep -rhE '^[[:space:]]*[^#[:space:]]' \
   /etc/apt/sources.list /etc/apt/sources.list.d/ \
   /etc/yum.repos.d/ /etc/zypp/repos.d/ /etc/apk/repositories \
   2>/dev/null \
   | grep -oE 'https?://[^/ "]+' | sed 's|//[^@/]*@|//|' \
-  | sed -E 's|(//[^:/]+):[0-9]+$|\1|' | sort -u | head -3)
+  | sort -u | head -3)
 [ -n "$T" ] || echo "egress=no-target"
 gw=; command -v wget >/dev/null 2>&1 \
   && ! wget --help 2>&1 | grep -q BusyBox && gw=1
 d4=; d6=
 for t in $T; do
-  h=${t#*://}
+  h=${t#*://}; h=${h%%:*}   # the port stays in $t, not in $h
   v4=$(getent ahostsv4 "$h" | head -1)
   v6=$(getent ahostsv6 "$h" | grep -v '^::ffff:' | head -1)
   echo "resolve $h: v4=${v4%% *} v6=${v6%% *}"
