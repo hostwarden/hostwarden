@@ -154,8 +154,9 @@ works by hand as usual. Inside it, it tells you the
 tool would undo a hand change, and offers to make it in
 your Ansible playbooks instead; a hand change happens
 only when you insist, and stays noted in the host's
-memory until it is carried into the code. Ansible runs by anyone show
-up in the recent-activity summary on connect.
+memory until it is carried into the code. Ansible runs
+by anyone show up in the recent-activity summary on
+connect.
 
 Hosts built with Terraform or OpenTofu are noted when you
 say so; Hostwarden then leaves what that code owns, such
