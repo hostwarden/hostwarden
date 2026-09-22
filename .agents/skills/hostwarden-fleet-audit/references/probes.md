@@ -121,10 +121,13 @@ not others, or different ESM services enabled.
   or `none`
 - `crond` — `started` or `stopped`
 
-`crontab -l` shows the SSH user's crontab only, so as a normal
-user a root crontab line stays invisible. The verdict is the OS
-file's, judged on this host alone: a warning, worded as a gap
-Alpine ships no mechanism for.
+A root crontab line is what usually runs it, and `crontab -l`
+shows only the caller's: run it as `$SUDO crontab -l`. When
+`$SUDO` is `-` and no `/etc/periodic` script runs
+`apk upgrade`, `apk upgrade job` is `unknown(needs-root)`, not
+`none`. The verdict is the OS file's, judged on this host
+alone: a warning, worded as a gap Alpine ships no mechanism
+for — never raised from an `unknown(needs-root)` cell.
 
 ## 2. sshd effective config
 
