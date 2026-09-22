@@ -437,6 +437,21 @@ check_mode deny default \
   "scp a.conf root@h:$FB_LXC b.conf root@h:/etc/ssh/sshd_config.d/b.conf"
 check_mode deny default \
   "virt-customize -d web1 --copy-in 10-hostwarden.conf:/etc/ssh/sshd_config.d"
+# The image branch holds for one invocation alone: a second command
+# or a redirect beside it spells the host's /etc/ssh the same way.
+check_mode deny default \
+  "guestmount -a $FB_IMG -i /mnt/x && cp a.conf /etc/ssh/sshd_config.d/b.conf"
+check_mode deny default \
+  "virt-customize -a $FB_IMG --copy-in x:/etc/ssh/sshd_config.d > /etc/ssh/sshd_config"
+check_mode deny default \
+  "virt-customize -a $FB_IMG --copy-in x:/etc/ssh/sshd_config.d; rm /etc/ssh/sshd_config"
+# virt-edit and virt-copy-in write with no verb on the line.
+check_mode ask default "virt-edit -a $FB_IMG /etc/ssh/sshd_config -e s/a/b/"
+check_mode ask default "virt-copy-in -a $FB_IMG 10.conf /etc/ssh/sshd_config.d"
+check_mode deny default "virt-edit -d web1 /etc/ssh/sshd_config -e s/a/b/"
+# A key further down a guest root than /etc/ssh is not covered.
+check_mode deny default "rm /var/lib/lxc/web4/rootfs/root/.ssh/authorized_keys"
+check_mode deny default "rm /var/lib/lxc/web4/rootfs/../../../../etc/ssh/ssh_host_ed25519_key"
 # Reading stays reading, and the seed the guest actually reads is
 # not sshd's config at all.
 check pass "cat /var/lib/lxc/web4/rootfs/etc/ssh/sshd_config"

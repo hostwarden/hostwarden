@@ -605,10 +605,17 @@ EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 #     directory: /var/lib/lxc/<name>/rootfs, /var/lib/machines/
 #     <name>, an Incus or LXD container in its storage pool. A
 #     path under one of those is not the running system's /etc.
-#   - a disk image a libguestfs tool opened with -a or --add.
-#     libguestfs refuses a disk another process has open, so that
-#     is a file rather than a server. A -d or --domain names a
-#     libvirt guest that may be running and does not count.
+#     The root must sit right in front of the guarded path, so
+#     rootfs/../../etc/ssh is the host's and stays denied. For
+#     keys that means host keys at rootfs/etc/ssh; a user's
+#     authorized_keys further down stays denied.
+#   - a disk image a libguestfs tool opened with -a or --add, as
+#     the only command on the line. libguestfs refuses a disk
+#     another process has open, so that is a file rather than a
+#     server. A -d or --domain names a libvirt guest that may be
+#     running and does not count, and neither does a line with a
+#     second command or a redirect beside the tool: those spell
+#     the host's /etc/ssh exactly as the image's is spelled.
 #
 # /mnt and /media are deliberately absent: a bind mount of the
 # live system is spelled exactly the same way, and what the guard
@@ -621,6 +628,9 @@ EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 GUESTROOT='(/var/lib/lxc/[^/[:space:]]+/rootfs|/var/lib/machines/[^/[:space:]]+|/var/lib/(incus|lxd)/storage-pools/[^/[:space:]]+/containers/[^/[:space:]]+/rootfs)'
 IMAGETOOL='(virt-customize|virt-copy-in|virt-edit|virt-sysprep|guestfish|guestmount)'
 
+FB_NL='
+'
+
 first_boot_only() {
   # first_boot_only <path pattern> -- true when the command works
   # on an image through libguestfs, or when EVERY occurrence of
@@ -628,6 +638,15 @@ first_boot_only() {
   # beside a qualified one is enough to fail: a command that
   # touches both is a command that touches the host.
   if hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)"; then
+    # One invocation and nothing beside it. A second command or a
+    # redirect names paths the image tool never sees, spelled the
+    # same as the ones it does.
+    case $CMD in
+    *';'* | *'&'* | *'|'* | *'>'* | *'`'* | *'$('*) return 1 ;;
+    esac
+    case $CMD in
+    *"$FB_NL"*) return 1 ;;
+    esac
     # A domain may be running, whatever else the line carries.
     hit '(^|[[:space:]])(-d|--domain)([[:space:]]|=)' && return 1
     # Every invocation must name an image with -a, scoped to the
@@ -1191,6 +1210,7 @@ if hit "$SSHD"; then
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
     || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
          && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)"; } \
+    || hit '(^|[^[:alnum:]_.-])(virt-edit|virt-copy-in)([^[:alnum:]_.-]|$)' \
     || writes_to "$SSHD"
   then
     if first_boot_only "$SSHD"; then
