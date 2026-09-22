@@ -148,6 +148,14 @@ Layers).
    are columns, settings are rows. Cells that differ across
    columns get visual emphasis.
 
+   Only a probe whose status is `ok` or `partial` returns a
+   row, and only such a host gets a column. A `skipped:`
+   result joins the skipped lists from steps 2 and 3. A
+   `blocked:` result carries no row, which is not a malformed
+   one: put its decision to the user, then probe that host
+   here as step 3 describes, or list it as skipped with the
+   reason if they decline.
+
 5. **Surface drift, then warnings.** After the tables, emit a
    short "Drift detected" section that lists each disagreement
    and the recommended fix (link to the relevant rule or skill).
