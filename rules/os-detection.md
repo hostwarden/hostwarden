@@ -41,10 +41,9 @@ skill says so where it needs it.
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade' \
-     'omv-confdbadm; ls -d /homeassistant; pveversion;' \
-     'opnsense-version; cat /etc/version;' \
-     'dpkg-query -W openmediavault'
+     'which pveversion ha opnsense-version pfSense-upgrade;' \
+     'ls -d /homeassistant; pveversion; opnsense-version;' \
+     'cat /etc/version; dpkg-query -W openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -130,13 +129,17 @@ The probe in step 1 reports the markers. `which`
 prints a path for a command that exists; what it
 prints for a missing one depends on the shell.
 
-| Base    | Marker             | Appliance file                      |
-| ------- | ------------------ | ----------------------------------- |
-| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md`     |
-| Debian  | `omv-confdbadm`    | `rules/appliance/openmediavault.md` |
-| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`       |
-| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`        |
-| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`           |
+| Base    | Marker                     | Appliance file                      |
+| ------- | -------------------------- | ----------------------------------- |
+| Debian  | `pveversion`               | `rules/appliance/proxmox-ve.md`     |
+| Debian  | `openmediavault <version>` | `rules/appliance/openmediavault.md` |
+| FreeBSD | `opnsense-version`         | `rules/appliance/opnsense.md`       |
+| FreeBSD | `pfSense-upgrade`          | `rules/appliance/pfsense.md`        |
+| none    | `ID=haos`, `ha`            | `rules/appliance/haos.md`           |
+
+`openmediavault <version>` is the line `dpkg-query`
+prints for the installed package; its "no packages
+found" error names the package too and is no match.
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host

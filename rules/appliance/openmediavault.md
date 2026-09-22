@@ -16,9 +16,12 @@ under `deb/openmediavault/` there).
 ## Add: Version Detection
 
 - `dpkg-query -W openmediavault` prints the package name and the
-  OMV version (e.g. `8.5.9-1`). There is no `omv-version` command.
-- `omv-confdbadm` exists on every OMV host;
-  `/etc/openmediavault/config.xml` is the configuration database.
+  OMV version (e.g. `8.5.9-1`); on another Debian host it reports
+  no matching package. It is the detection marker because it lives
+  in `/usr/bin`: the OMV tools are in `/usr/sbin`, which is not on
+  the `PATH` Debian's sshd gives a non-root login. There is no
+  `omv-version` command.
+- `/etc/openmediavault/config.xml` is the configuration database.
 - Release names come from `/usr/share/openmediavault/productinfo.xml`
   (`<versionname>`): OMV 8 "Synchrony" is based on Debian 13, OMV 7
   "Sandworm" on Debian 12.
@@ -66,8 +69,10 @@ under `deb/openmediavault/` there).
   never through edits to generated files. `omv-env list`,
   `omv-env get <VAR>`, `omv-env set -- <VAR> <value>` manage them in
   `/etc/default/openmediavault`; the advanced-settings page lists
-  the variables. Apply one with `omv-salt stage run prepare`, then
-  deploy only the states it affects. A custom Salt state belongs
+  the variables. Apply one with `monit restart omv-engined` and
+  `omv-salt stage run prepare`, then deploy only the states it
+  affects. Never set an `OMV_SSHD_*` variable: it lands in
+  `sshd_config` (see Access and SSH). A custom Salt state belongs
   in `/srv/salt/omv/deploy/` (same page).
 - `rules/backups.md` still applies, `config.xml` included. A copy of
   a generated file restores nothing: the next deploy overwrites the
