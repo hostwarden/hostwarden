@@ -123,11 +123,8 @@ agent that your shell profile points to
 (`SSH_AUTH_SOCK`), `IdentityAgent` in `~/.ssh/config`
 makes that independent of how the app starts.
 
-On Windows, run the session in a WSL 2 distribution:
-pick it in the environment picker and open the clone
-inside it, as described under
-[Windows](install.md#windows). A session on Windows
-itself is not supported.
+On Windows, run the session in WSL 2, as described
+under [Windows](install.md#windows).
 
 ## OpenCode with Ollama
 

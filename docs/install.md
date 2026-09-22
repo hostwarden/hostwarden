@@ -68,9 +68,8 @@ runs exactly as on Linux, with nothing extra to set
 up.
 
 1. Install WSL 2 and a distribution such as Ubuntu,
-   then `git`, `jq` and `ssh` inside it;
-   `bin/hostwarden-doctor` names whatever else is
-   missing.
+   and `git` inside it. `bin/hostwarden-doctor`
+   names the rest once the clone is there.
 2. Clone into the distribution's own filesystem —
    under `~`, not under `/mnt/c` — as the
    [README](../README.md#steps) describes.
@@ -79,14 +78,15 @@ up.
    distribution in the Code tab's environment picker
    ([Claude Code Desktop in WSL](https://code.claude.com/docs/en/desktop-wsl)).
 
-Git Bash, PowerShell and `cmd.exe` are not supported.
-The guard hooks are POSIX shell scripts, neither
-Windows' own OpenSSH nor Git Bash's ssh can share a
-connection (`ControlMaster`), and Claude Code's
-PowerShell tool would bypass every guard. `.claude/settings.json`
+Git Bash, PowerShell and `cmd.exe` are not supported
+as the shell Hostwarden itself runs in. The guard
+hooks are POSIX shell scripts, neither Windows' own
+OpenSSH nor Git Bash's ssh can share a connection
+(`ControlMaster`), and Claude Code's PowerShell tool
+would bypass every guard. `.claude/settings.json`
 therefore denies the PowerShell tool, and
-`bin/hostwarden-doctor` reports a native Windows shell as
-a required item missing.
+`bin/hostwarden-doctor` reports a native Windows shell
+as a required item missing.
 
 ## Symbolic links
 

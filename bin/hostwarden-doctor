@@ -49,9 +49,8 @@ if [ -f "$ROOT/mise.dev.toml" ]; then
 fi
 OS=$(uname -s 2>/dev/null)
 
-# Git Bash, MSYS2 and Cygwin: the guards, connection sharing and
-# links all fail here, so nothing below is worth reporting
-# (docs/install.md → Windows).
+# The guards and connection sharing need a POSIX workstation, so
+# nothing below is worth probing here.
 case "$OS" in
   MINGW*|MSYS*|CYGWIN*)
     echo "hostwarden: required, missing: a Unix workstation —" \
