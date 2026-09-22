@@ -344,7 +344,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["ssh-agent"] = "aEOPt"
     LA["watch"] = "nq"; LL["watch"] = "interval|equexit"
     # A shell with -c runs the next word, its command string, as a
-    # command; without -c that word is a script, which is not read.
+    # command; without -c the shell itself is the program.
     LA["sh"] = LA["bash"] = LA["dash"] = LA["ksh"] = LA["zsh"] = "oO"
   }
   function base(w) { sub(/^.*\//, "", w); return w }
@@ -359,7 +359,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   # xargs -Is ssh s runs ssh. flock -c hands over the command as
   # its value; time takes a whole pipeline, negated too: time !
   # ssh. env -S puts the command it carries in its own place.
-  function cmdpos(a, n,   i, k, c, p, x) {
+  function cmdpos(a, n,   i, k, c, p, x, s, sh, cf) {
     i = 1
     while (i <= n && (a[i] == "" || a[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
     while (i <= n) {
@@ -368,8 +368,14 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       if (!(base(c) in LA)) break
       c = base(c)
       p = LP[c]
+      # A shell is a launcher only once -c stood in its options:
+      # bash -s -- docker rm reads its script from stdin, and the
+      # words after it are arguments to that script.
+      s = i; sh = c ~ /^(sh|bash|dash|ksh|zsh)$/; cf = 0
       while (++i <= n) {
         x = a[i]
+        if (sh && !cf && (x == "--" || x !~ /^-/)) return s
+        if (sh && x ~ /^-[A-Za-z]*c/) cf = 1
         if (x == "--") { i++; break }
         if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
         if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {

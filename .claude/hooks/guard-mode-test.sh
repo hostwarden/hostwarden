@@ -330,6 +330,8 @@ cmd pass "$DEV" 'grep -rn "docker run" docs/'
 cmd pass "$DEV" 'rg "docker exec" docs/'
 cmd pass "$DEV" 'git commit -m "fix docker rm handling"'
 cmd deny "$DEV" 'bash -lc "docker rm -f other-project"'
+cmd pass "$DEV" 'bash -s -- docker rm < script.sh'
+cmd pass "$DEV" 'sh ./lab.sh docker rm'
 cmd deny "$DEV" 'timeout 60 docker exec other-project true'
 cmd deny "$DEV" 'timeout -s KILL 5 docker exec other-project true'
 cmd deny "$DEV" 'xargs -I x docker rm x < ids.txt'
@@ -500,6 +502,7 @@ mon deny "$DEV" 'orb -m hwlab-x-debian journalctl -f'
 mon pass "$DEV" 'docker logs -f hwlab-x-debian'
 # A shell with -c is a launcher: its command string is read.
 mon deny "$DEV" "sh -c 'ssh server1.example.com uptime'"
+mon pass "$DEV" 'bash -s -- ssh server1.example.com < probe'
 
 # The taboo guard's off switch does not reach the mode guard.
 out=$(bash_json '/usr/bin/ssh server1.example.com true' \
