@@ -85,8 +85,8 @@ through Microsoft Update.
 1. **Pick the release** through `rules/version-check.md`: the
    newest stable one whose GitHub release still ships
    `PowerShell-<version>-win-<arch>.msi`, `<arch>` being `x64`,
-   or `arm64` where `$env:PROCESSOR_ARCHITECTURE` prints
-   `ARM64`. From
+   or `arm64` where memory's `Arch:` line (Version Detection
+   below) holds `aarch64`. From
    7.7 on there is no MSI, and the MSIX package that replaces it
    changes its path with every version; the fixed path is the
    reason for the MSI. Read the file's SHA-256 from the
@@ -222,11 +222,13 @@ $PSVersionTable.PSVersion.ToString()
 whoami
 (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 '@hardware'
-try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop; (Get-CimInstance Win32_Processor -ErrorAction Stop).Name; $cs.NumberOfLogicalProcessors; [math]::Round($cs.TotalPhysicalMemory / 1GB) } catch { "failed: $_" }
+try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop; $cs.Manufacturer; $cs.Model; $cs.SystemType; (Get-CimInstance Win32_Processor -ErrorAction Stop).Name; $cs.NumberOfLogicalProcessors; [math]::Round($cs.TotalPhysicalMemory / 1GB) } catch { "failed: $_" }
 try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | Format-Table DeviceID, Size, FreeSpace } catch { "failed: $_" }
 ```
 
-`@hardware` runs on the first connection only.
+`@hardware` runs on the first connection only;
+`rules/os-detection.md` → On subsequent connections
+says when it runs again.
 
 - `Caption` is the product name and can be localized; record
   it as it is. `Version` is `10.0.<build>`: Server 2016 is
@@ -235,6 +237,21 @@ try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop 
 - `ProductType` decides as `rules/os-detection.md` → Windows
   says.
 - `InstallationType` is `Server Core` on Server Core.
+- `SystemType` (`x64-based PC`, `ARM64-based PC`,
+  `X86-based PC`) is the first part of `Arch:`
+  (`rules/os-detection.md`, step 2), recorded as the
+  architecture the other families print: `x86_64`, `aarch64`,
+  `i686`. It describes the machine, while
+  `$env:PROCESSOR_ARCHITECTURE` describes the process that
+  reads it and prints `x86` from a 32-bit PowerShell on 64-bit
+  Windows.
+- `Manufacturer` and `Model` are read against the DMI
+  table in `rules/os-detection.md` → Virtualization.
+  Windows has no `hypervisor` count, so `Amazon EC2`
+  is a VM unless the model ends in `.metal`. A
+  hardware vendor's name and model is bare metal;
+  anything else is unknown. `HypervisorPresent`
+  settles nothing: it is also true on a Hyper-V host.
 
 Record, besides the usual fields: `OS: <Caption> (build
 <build>)`, `Installation: Server Core` or `Desktop Experience`,

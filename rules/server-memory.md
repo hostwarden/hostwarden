@@ -47,8 +47,10 @@ directory, and where it is empty, ask which.
 - Role: server (inferred)
 - Shell: bash (root)
 - CPU: 4x Intel Xeon E-2236 @ 3.40GHz
+- Arch: x86_64, Intel
 - RAM: 16 GB
 - Disk: 80 GB (/ ext4, 45% used)
+- Virtualization: none (bare metal)
 - Last connected: 2026-02-25
 ```
 
@@ -64,7 +66,7 @@ line, and one that Terraform or OpenTofu provisioned
 a `Provisioned by:` line; `rules/config-management.md`
 owns their wording. Most hosts have neither.
 
-Adapt fields to OS (add Arch, Homebrew for macOS;
+Adapt fields to OS (add Homebrew for macOS;
 add `Mode: local` for localhost); an OS file whose
 Version Detection names fields to record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
@@ -73,6 +75,9 @@ the `port` line of `ssh -G <user>@<hostname>`, which the
 alias check in `rules/dns-aliases.md` compares. A
 field a probe could not read is written `unknown`, never
 filled from an example.
+
+`Virtualization:` and `Arch:` come from
+`rules/os-detection.md` → Virtualization and step 2.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

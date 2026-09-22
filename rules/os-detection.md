@@ -50,6 +50,12 @@ skill says so where it needs it.
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version; dpkg -l openmediavault;' \
      'cat /etc.defaults/VERSION;' \
+     'echo @virt; uname -m; systemd-detect-virt; openrc --sys;' \
+     'ls -d /.dockerenv /run/.containerenv;' \
+     'grep -c -w hypervisor /proc/cpuinfo;' \
+     'cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name;' \
+     'sysctl kern.vm_guest security.jail.jailed;' \
+     'sysctl kern.hv_vmm_present hw.model;' \
      'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    `ssh` joins the quoted pieces with spaces into one
@@ -135,9 +141,19 @@ skill says so where it needs it.
    `sysctl` elsewhere. The CPU count is `nproc`'s, the
    first number, which honours a container's CPU limit;
    the `processor` count after it stands in only where
-   `nproc` is missing (OpenWrt).
+   `nproc` is missing (OpenWrt). Record
+   `Arch: <architecture>, <maker>` — `Arch: x86_64,
+   AMD`, `Arch: aarch64, Apple M2`. The architecture
+   is the `uname -m` line under `@virt`, which the
+   marker places whatever the shell printed before;
+   the maker is the one the CPU model names. Where no
+   line names a maker (many ARM boards), `Arch:` holds
+   the architecture alone. An image, an installer or a
+   binary download picks its build by this line.
    Add `zpool status` to the next call on a FreeBSD
-   host with ZFS.
+   host with ZFS. Whether the hardware is the host's
+   own comes from the lines after `@virt`; see
+   Virtualization below.
 
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`
@@ -287,6 +303,95 @@ so a `Replace:` or `Remove:` names a section every
 family file has. Record `Platform: …` in server memory,
 in the form the platform file gives.
 
+## Virtualization
+
+Whether the host runs on its own hardware, in a
+virtual machine or in a container. It is recorded so
+that memory shows where each machine runs and so that
+what only physical hardware has is looked for where
+it exists. It changes no rule by itself; a rule that
+depends on it says so.
+
+Read the lines after `@virt` in this order; the first
+case that matches decides:
+
+1. **Container.** `systemd-detect-virt` prints a
+   container type (`lxc`, `lxc-libvirt`,
+   `systemd-nspawn`, `docker`, `podman`, `openvz`,
+   …), `openrc --sys` prints `LXC`, `DOCKER` or
+   `PODMAN`, `ls` lists `/.dockerenv` or
+   `/run/.containerenv`, or `security.jail.jailed` is
+   `1` (a FreeBSD jail). Checked first because in a
+   container the DMI lines and the `hypervisor` count
+   describe the machine underneath.
+2. **Virtual machine.** `systemd-detect-virt` prints a
+   VM type (`kvm`, `qemu`, `vmware`, `microsoft`,
+   `oracle`, `xen`, `amazon`, `google`, `bhyve`,
+   `parallels`, `apple`, …); `kern.vm_guest` is
+   anything but `none` (FreeBSD); `kern.hv_vmm_present`
+   is `1` or `hw.model` starts with `VirtualMac`
+   (macOS). Where `systemd-detect-virt` is missing, a
+   `hypervisor` count above 0 is a VM too, and so are
+   DMI lines from the table below.
+3. **Bare metal.** Only on an answer that says so:
+   `systemd-detect-virt` prints `none`,
+   `kern.vm_guest` is `none`, or `kern.hv_vmm_present`
+   is `0`. Where `systemd-detect-virt` is missing, an
+   x86 host (`uname -m` under `@virt` is `x86_64`,
+   `amd64` or `i686`) whose `hypervisor` count is 0
+   and whose DMI lines name a hardware vendor. A
+   hypervisor's own shell counts here: a Proxmox VE
+   host prints `none`, and so does the Xen dom0 of an
+   XCP-ng host although its CPU flags carry
+   `hypervisor`.
+4. **Unknown.** Anything else. ARM has no
+   `hypervisor` flag and often no DMI, so an ARM host
+   without `systemd-detect-virt` (OpenWrt, Alpine on a
+   Raspberry Pi) usually lands here.
+
+DMI vendor (`sys_vendor`) and product
+(`product_name`) that name a hypervisor, with the
+type to record:
+
+| Vendor                  | Product           | Type        |
+| ----------------------- | ----------------- | ----------- |
+| `QEMU`                  | any               | `kvm`       |
+| `VMware, Inc.`          | any               | `vmware`    |
+| `innotek GmbH`          | any               | `oracle`    |
+| `Xen`                   | any               | `xen`       |
+| `BHYVE`                 | any               | `bhyve`     |
+| `Parallels …`           | any               | `parallels` |
+| `Microsoft Corporation` | `Virtual Machine` | `microsoft` |
+| `Amazon EC2`            | not `*.metal`     | `amazon`    |
+| `Google`                | any               | `google`    |
+
+A cloud vendor also sells bare-metal machines under
+its own name, so `Amazon EC2` and `Google` count only
+with a `hypervisor` count above 0 where there is one.
+On Windows the same strings come from `Manufacturer`
+and `Model` in the `@hardware` part of
+`rules/os/windows.md` → Version Detection.
+
+On WSL record `wsl (container)`, whatever the lines
+say; `Platform:` carries what that means.
+
+Record it in server memory with the type the
+detector named. Where a case matched but named no
+type — a `hypervisor` count above 0 whose DMI lines
+are in no row — the kind alone is the type:
+
+```
+- Virtualization: none (bare metal)
+- Virtualization: kvm (VM)
+- Virtualization: unknown (VM)
+- Virtualization: lxc (container)
+- Virtualization: unknown
+```
+
+What the user says replaces it with `(user)` after
+the kind — `Virtualization: none (bare metal, user)`
+— and is never probed again.
+
 ## Roles
 
 The role is what the machine is for, and it decides
@@ -371,5 +476,12 @@ joined with the activity read-back, and its
 version changed, and settle the platform (step 4)
 when the `@platform` lines and `Platform:` disagree,
 and the role (step 5) when memory has no `Role:`
-line; if a command fails or the OS no longer matches
-memory, run the full probe from step 1.
+line. When memory has no `Virtualization:` line or no
+`Arch:` line, the first call also carries the `@virt`
+lines from step 1, and for a missing `Arch:` the
+`model name` and `hw.model` lines of `@hardware` that
+name the maker; on Windows the second call carries
+its `@hardware` part, which holds both. Virtualization
+and step 2 above settle them. If a command fails or
+the OS no longer matches memory, run the full probe
+from step 1.
