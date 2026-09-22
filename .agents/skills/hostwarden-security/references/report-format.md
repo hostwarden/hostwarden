@@ -11,6 +11,7 @@ OS: Debian 12 (Bookworm)
 ### Issues
 
 WARN      SSH allows password authentication
+WARN      Tailscale SSH admits root by accept
 INFO      macOS Application Firewall disabled
 
 ### Checks
@@ -19,6 +20,7 @@ SSH password auth   WARN — PasswordAuthentication yes
 SSH weak algos      OK — no weak algorithms found
 SSH root login      INFO — PermitRootLogin yes
 Firewall            OK — ufw active, default deny
+VPN SSH             WARN — Tailscale SSH admits root by accept
 Empty passwords     OK — no accounts with empty password
 UID 0 accounts      OK — only root
 Listening services  OK — no databases on 0.0.0.0

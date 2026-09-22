@@ -15,18 +15,19 @@ sysctl -n kernel.randomize_va_space
 ## IP Forwarding
 
 ```bash
-sysctl -n net.ipv4.ip_forward
+sysctl -n net.ipv4.ip_forward net.ipv6.conf.all.forwarding
 ```
 
 On macOS:
 
 ```bash
-sysctl -n net.inet.ip.forwarding
+sysctl -n net.inet.ip.forwarding net.inet6.ip6.forwarding
 ```
 
-- `1` → **WARN** unless the server's `memory.md` mentions
-  WireGuard, VPN, or router functionality, or the host is a
-  firewall appliance. In that case → OK with note.
+- `1` in either family → **WARN** unless the server's
+  `memory.md` mentions WireGuard, VPN, or router functionality,
+  or the host is a firewall appliance. In that case → OK with
+  note.
 - `0` → OK
 
 ## ICMP Redirect Acceptance — Linux only

@@ -156,3 +156,18 @@ Fallback: parse from config files.
 - `no` → OK
 
 Skip this check on macOS.
+
+## SSH servers past sshd
+
+Some VPN and tunnel agents let people in without sshd, where none
+of the checks above look. Find them in the same batch, no root
+needed; the `sed` keeps only the program, never its arguments:
+
+```bash
+ps ax -o args= \
+  | grep -E '^([^ ]*/)?(tailscaled|netbird|newt|nebula|cloudflared)( |$)' \
+  | sed 's/ .*//' | sort -u
+```
+
+No output → OK, nothing more to check. Otherwise read
+`references/vpn-ssh.md` for the agents found.
