@@ -300,15 +300,32 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-
 
 ## Networking
 
-Find out which tool owns the network before touching it:
+Find out which tool owns the network before touching it,
+on Ubuntu as on Debian — the apply and revert commands
+follow from the answer:
 
-- **Ubuntu** configures the network with **netplan**: YAML
-  files in `/etc/netplan/`, rendered for
-  systemd-networkd on servers. There is no
-  `/etc/network/interfaces`; editing one does nothing.
+```bash
+ls /etc/netplan/ 2>/dev/null
+grep -v '^[[:space:]]*#' /etc/network/interfaces 2>/dev/null
+ls /etc/network/interfaces.d/ 2>/dev/null
+systemctl is-active systemd-networkd NetworkManager networking
+```
+
+- **Ubuntu** installs **netplan**: YAML files in
+  `/etc/netplan/`, rendered for systemd-networkd on
+  servers. A host upgraded from an old release, or set up
+  by hand, can still run ifupdown or NetworkManager
+  profiles instead; then netplan is not the tool, and
+  `netplan apply` changes nothing on the path you mean.
 - **Debian** servers use ifupdown and
   `/etc/network/interfaces` unless netplan or
-  NetworkManager is installed — check which is there.
+  NetworkManager is installed.
+
+The procedure below is for netplan. For ifupdown or
+NetworkManager, the change goes through
+`rules/ssh-safety-net.md` only with a revert the user and
+you have agreed on; otherwise it is the user's, with
+console access ready.
 
 ### Changing netplan safely
 
