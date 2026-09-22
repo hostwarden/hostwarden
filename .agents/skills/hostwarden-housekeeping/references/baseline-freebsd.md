@@ -142,7 +142,7 @@ decision.
 sh -c "grep -hE 'freebsd-update|pkg (upgrade|audit|version)' \
   /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/* \
   /var/cron/tabs/* 2>/dev/null" | grep -v '^[[:space:]]*#' \
-  | grep -oE 'freebsd-update( +[-a-zA-Z/.][^[:space:];|&<>]*)*|pkg (upgrade|audit|version)( -[a-zA-Z]+)?' \
+  | grep -oE 'freebsd-update[^;|&<>]*|pkg (upgrade|audit|version)( -[a-zA-Z]+)?' \
   | sort | uniq -c
 grep -hE '^(daily_status_security|security_status_pkgaudit)_enable=' \
   /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null
@@ -169,9 +169,9 @@ cron job that runs `freebsd-update cron` (or `fetch`).
   `0`): the periodic reports go unread on the host. The probe
   counts the alias rather than printing it, since a piped alias
   can carry a token.
-- **INFO** if a cron job applies updates unattended, `install`
-  anywhere among a `freebsd-update` job's words included: report
-  it, it is the user's choice
+- **INFO** if a cron job applies updates unattended (a
+  `freebsd-update` job that runs `install`, or `pkg upgrade`):
+  report it, it is the user's choice
 
 ## Firewall Status
 
