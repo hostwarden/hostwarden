@@ -220,16 +220,17 @@ holds one line, `x-api-key: <key>`.
   query.
 
   ```
+  nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
   { cat ~/hostwarden-keys/<hostname>/unraid-ro.header; cat <scratch>/unraid-read.jsonl; } \
-    | ssh … root@<hostname> 'IFS= read -r h; n=0
+    | ssh … root@<hostname> "nonce=$nonce;" 'IFS= read -r h; i=0
       while IFS= read -r q; do
-        n=$((n+1))
+        i=$((i+1))
         printf "%s\n" "$h" | curl -sS --unix-socket /var/run/unraid-api.sock \
           -H @- -H "Content-Type: application/json" --data "$q" \
-          -w "\n{\"@\": \"$n\", \"code\": \"%{http_code}\"}\n" \
+          -w "\n{\"@\": \"$i\", \"code\": \"%{http_code}\", \"n\": \"$nonce\"}\n" \
           http://localhost/graphql
       done' \
-    | jq -Rn …
+    | jq -Rn --arg n "$nonce" …
   ```
 
   `printf` is a shell builtin, so the key reaches curl without

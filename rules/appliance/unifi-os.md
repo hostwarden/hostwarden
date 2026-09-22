@@ -202,15 +202,16 @@ included
   per-site block, marker included, for each:
 
   ```
-  ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT
+  nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+  ssh … root@<console> "nonce=$nonce;" 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT
     curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
-      -w "\n{\"@\": \"login\", \"code\": \"%{http_code}\"}\n" \
+      -w "\n{\"@\": \"login\", \"code\": \"%{http_code}\", \"n\": \"$nonce\"}\n" \
       --data @- https://127.0.0.1/api/auth/login
     b=https://127.0.0.1/proxy/network/api/s/<site>
     curl -sSk -b "$j" \
-      -w "\n{\"@\": \"%{url_effective}\", \"code\": \"%{http_code}\"}\n" \
+      -w "\n{\"@\": \"%{url_effective}\", \"code\": \"%{http_code}\", \"n\": \"$nonce\"}\n" \
       "$b/stat/health" "$b/stat/device"' \
-    < ~/hostwarden-keys/<console>/unifi-ro.json | jq -Rn …
+    < ~/hostwarden-keys/<console>/unifi-ro.json | jq -Rn --arg n "$nonce" …
   ```
 
   `want` is `login` followed by each URL as written. The markers,
