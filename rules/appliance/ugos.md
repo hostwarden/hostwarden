@@ -430,7 +430,10 @@ host, not as documented behaviour.
   and the probe in
   `.agents/skills/hostwarden-housekeeping/references/smart.md`,
   over `smartctl --scan` (smartmontools is in UGREEN's manifest).
-  `/proc/mdstat` needs no root; the rest does. The Docker checks
+  `/proc/mdstat`, `findmnt` and `lvs` read the kernel's own tables
+  and need no root; `mdadm --detail`, `btrfs device stats`, SMART
+  and the container lines do, and without it they are reported as
+  skipped (`references/unprivileged.md`). The Docker checks
   of
   `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
   → Docker read the `docker ps` line.
