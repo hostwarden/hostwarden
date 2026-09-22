@@ -234,8 +234,9 @@ repositories on GitHub where the docs are silent.
   done | tail -20
   uptime
   ```
-  `/var/log/syslog` reaches back to the boot, `syslog-previous` one
-  boot further when the mirror is on.
+  `/var/log/syslog` and `syslog.1` reach back at most to the boot,
+  less once rotation has dropped older files; `syslog-previous`
+  reaches one boot further when the mirror is on.
 - Tools → Diagnostics collects an anonymised bundle for support.
 
 ## Housekeeping and Audits
