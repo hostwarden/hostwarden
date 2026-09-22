@@ -1,4 +1,4 @@
-# File Permissions — Linux and FreeBSD
+# File Permissions — Linux, FreeBSD and macOS
 
 ## World-Writable System Files
 
@@ -170,3 +170,64 @@ The daily run is off when `daily_status_security_enable` or
 → **INFO**; unset means the default, `YES`. The Update
 Notification probe of the housekeeping baseline reads both files
 the same way.
+
+## macOS
+
+The system volume is sealed and SIP protects it
+(`references/macos-security.md`), but `/etc` (really
+`/private/etc`), part of `/Library` and the Homebrew prefix live
+on the writable data volume. The searches above run there instead
+of their Linux paths; the /tmp, `/dev/shm` and cron checks do not
+apply:
+
+```bash
+for d in /private/etc /Library/Preferences /Library/PrivilegedHelperTools \
+         /Library/StartupItems /Applications /usr/local /opt/homebrew; do
+  [ -d "$d" ] && find "$d" -xdev -type f \
+    \( -perm -0002 -o -nouser -o -nogroup -o -perm +6000 \) -ls \
+    2>/dev/null
+done
+```
+
+Rate each hit as its section above does.
+
+**launchd jobs.** A job in `/Library/LaunchDaemons` runs as root;
+a plist anyone but root can change is a way to root. No root
+needed to read:
+
+```bash
+ls -lde /Library/LaunchDaemons /Library/LaunchAgents
+ls -le /Library/LaunchDaemons /Library/LaunchAgents
+```
+
+`-e` prints the access control list under a file; an ACL can
+grant write where the mode shows none.
+
+- A plist or one of the two directories not owned by root,
+  writable by group or others, or with an ACL entry that allows
+  write to anyone but root → **WARN** per file, with its owner,
+  mode and ACL.
+
+The program a root job starts matters as much as its plist,
+wherever it lives, and so does every directory above it: whoever
+can write one can swap the program. Read each daemon's `Program`,
+or the first `ProgramArguments` entry, and list the file and its
+directories:
+
+```bash
+PB=/usr/libexec/PlistBuddy
+for p in /Library/LaunchDaemons/*.plist; do
+  x=$($PB -c 'Print :Program' "$p" 2>/dev/null \
+    || $PB -c 'Print :ProgramArguments:0' "$p" 2>/dev/null)
+  [ -n "$x" ] || continue
+  echo "--$p"
+  ls -leL "$x" 2>&1
+  d=$x
+  while d=$(dirname "$d") && [ "$d" != / ]; do ls -lde "$d"; done
+done
+```
+
+- A program or a directory above it that is not owned by root,
+  writable by group or others, or with an ACL entry that allows
+  write to anyone but root → **WARN**, with the plist that starts
+  it.

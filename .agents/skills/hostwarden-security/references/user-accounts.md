@@ -1,4 +1,4 @@
-# User Account Hygiene — Linux and FreeBSD
+# User Account Hygiene — Linux, FreeBSD and macOS
 
 ## Empty Password Accounts
 
@@ -100,3 +100,34 @@ as it stands, except that names starting with `+` or `-` are NIS
 entries, not accounts: ignore them. Expected there besides
 `root`: `toor` (empty shell field) and `uucp`
 (`/usr/local/libexec/uucp/uucico`).
+
+## macOS
+
+Accounts live in the local directory service, not in
+`/etc/passwd`, which lists only a handful of system accounts. Read
+them with `dscl`; no root needed:
+
+```bash
+dscl . -list /Users UniqueID | awk '$2 == 0 || $2 >= 500'
+dscl . -read /Groups/admin GroupMembership
+dscl . -read /Users/root AuthenticationAuthority 2>&1
+defaults read /Library/Preferences/com.apple.loginwindow 2>&1
+```
+
+From the `loginwindow` domain, `autoLoginUser` and
+`GuestEnabled` count.
+
+- **UID 0:** any account but `root` → **CRITICAL**, as above.
+- **People:** accounts from UID 500 up. Report them with the
+  members of `admin`; an admin nobody recognises → **WARN**.
+- **root:** disabled on a Mac by default. A `ShadowHash` entry
+  in its `AuthenticationAuthority` without a `DisabledUser` entry
+  means root has a password and can log in → **WARN**.
+- **Automatic login** set to a user → **WARN**: whoever opens the
+  lid is that user. FileVault turns it off, so with FileVault on
+  (`references/macos-security.md`) a leftover value is **INFO**.
+- **Guest account** enabled (`1`) → **INFO**.
+- **Empty passwords:** not checked (`rules/secrets.md`); say so
+  under Skipped.
+- The system-account shell check above does not apply: macOS
+  system accounts start with `_` and ship with `/usr/bin/false`.

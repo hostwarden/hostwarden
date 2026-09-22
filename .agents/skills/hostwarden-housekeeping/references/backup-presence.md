@@ -92,9 +92,9 @@ ls /Applications 2>/dev/null \
   | grep -iE 'arq|carbon copy|backblaze'
 ```
 
-`tmutil` errors can mean missing Full Disk Access
-for the terminal, not a missing backup — treat
-errors as "unknown", not "absent", and say so.
+A `tmutil` error can be privacy protection refusing
+the read (`rules/os/macos.md` → Common Pitfalls):
+"unknown", not "absent", and say so.
 
 ## FreeBSD Probes
 
