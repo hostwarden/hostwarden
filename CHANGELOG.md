@@ -9,6 +9,32 @@
   `ntpd` or chrony, doas beside sudo, and a kernel
   waiting for a reboot. Settings Alpine does not have
   show as `n/a` and never count as drift.
+- **A firewall or network change undoes itself unless SSH
+  still works.** Before applying one, Hostwarden arms a
+  revert on the host that fires after five minutes, and
+  cancels it only once a new login succeeds — for ufw,
+  nftables, firewalld, pf and netplan alike. Where the
+  host has no way to schedule it, the change is yours to
+  make with console access ready.
+- **Ubuntu servers are covered in their own right.** The
+  Debian family file now knows what Ubuntu does
+  differently: an inactive ufw is how Ubuntu ships and
+  gets "enable it", not "install one"; Ubuntu Pro and ESM
+  coverage, Livepatch and snap refreshes are read and
+  reported; netplan changes go through `netplan try` or a
+  scheduled rollback; cloud-init's hold on network,
+  hostname and SSH settings is recognised; deb822 sources
+  and release upgrades are handled. Housekeeping reports
+  security fixes waiting on Pro and an LTS past standard
+  support without ESM, and the fleet audit compares Pro,
+  ESM and needrestart settings across Ubuntu hosts.
+- **apt runs never stop to ask, and never restart
+  services on their own.** Installs and upgrades on
+  Debian and Ubuntu run non-interactively, keep locally
+  changed config files, and leave the services that need
+  a restart to you — including on Ubuntu 24.04 and later,
+  where needrestart would otherwise restart them straight
+  away.
 - **Alpine Linux is a supported family.** Hostwarden
   now knows apk and its stable branches, OpenRC,
   busybox, doas and musl on Alpine hosts, and reads its

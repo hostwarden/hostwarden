@@ -39,6 +39,18 @@ Enterprise Server (SLES).
   service covers port 22 only: add every other port
   sshd listens on with `--add-port=<port>/tcp`
   (`AGENTS.md` → Critical Safety Rules).
+- Changes over SSH go through `rules/ssh-safety-net.md`.
+  Make them without `--permanent` first, so that
+  `firewall-cmd --reload` is the revert: it replaces the
+  runtime configuration with the permanent one. Once a
+  fresh login works, `firewall-cmd --runtime-to-permanent`
+  keeps them; `firewall-cmd --check-config` checks the
+  permanent configuration. A change made with
+  `--permanent` (the zone target, a service added before
+  starting firewalld) reverts by restoring the backed-up
+  `/etc/firewalld/`, then `firewall-cmd --reload`.
+  Starting firewalld reverts with
+  `systemctl stop firewalld`.
 - Verify the default zone drops unsolicited traffic:
   `firewall-cmd --get-default-zone` (should be `public`).
   Then `firewall-cmd --info-zone=public` — the target
