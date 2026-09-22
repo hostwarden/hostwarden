@@ -10,6 +10,9 @@ Local changelogs are stored in
 Session to-do lists are stored in
 `memory/servers/<hostname>/todo.md` (only present
 while multi-step work is unfinished).
+A hypervisor cluster or pool, its members and its
+guest inventory, is stored in
+`memory/clusters/<name>/`.
 Cross-server network facts (topology, VPN
 connectivity, reachability) are stored in
 `memory/network.md`.

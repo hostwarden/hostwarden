@@ -121,6 +121,17 @@ field for it.
 Replacing the OS of a machine that already exists is the
 OS-install workflow, not this one.
 
+A Proxmox VE cluster, an XCP-ng pool and an Incus or LXD
+cluster are inventoried as one, from whichever member
+Hostwarden reaches first, in
+`memory/clusters/<name>/`: its members, its HA state and
+pool master, and every guest with the member it runs on.
+Each guest is listed and rated once, not once per member.
+A guest in a cluster records
+`Runs on: cluster prod (VM 101), last on pve2.example.com`;
+after a live migration or an HA failover the next listing
+moves it without asking you.
+
 ## Session to-do list
 
 When a multi-step task gets interrupted — connection

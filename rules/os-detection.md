@@ -520,7 +520,8 @@ step 7) then carries, as `rules/hypervisors.md`
 describes:
 
 - on a host with a `Hypervisor:` line, the guest
-  listing (Inventory);
+  listing (Inventory), on a cluster member once for
+  the whole cluster (Clusters and Pools);
 - on a VM or container (Virtualization above) without
   a `Runs on:` line, the keys that link it to its host
   (Linking Guest and Host).

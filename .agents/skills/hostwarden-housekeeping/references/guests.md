@@ -13,7 +13,8 @@ says, and a new hypervisor gets its full inventory
 
 ## On a host with one
 
-Run the full inventory (`rules/hypervisors.md` → Inventory) and
+A cluster member follows On a cluster member below instead. Run
+the full inventory (`rules/hypervisors.md` → Inventory) and
 report its changes. Then rate:
 
 - a stopped guest without a reason in `guests.md`: **WARN**
@@ -30,3 +31,12 @@ and what it means for the host to its `Passthrough:` line
 
 A guest's own health is its own housekeeping run, never part of
 this one.
+
+## On a cluster member
+
+The inventory and these ratings cover the whole cluster, once a
+day, gated by `Checked:` (`rules/hypervisors.md` → Clusters and
+Pools → Once per cluster). A run that finds it today reports one
+line, *"Guests: cluster prod, already checked today."*, and rates
+nothing; otherwise the report names the cluster and each guest's
+member.

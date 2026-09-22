@@ -5,7 +5,10 @@ Each server: `memory/servers/<hostname>/` with
 optionally `rules.md` (per-server rule
 overrides — see `rules/overrides.md`), and on a
 hypervisor `guests.md`, its guest inventory
-(`rules/hypervisors.md`).
+(`rules/hypervisors.md`). A hypervisor cluster or
+pool keeps its members, state and guest inventory in
+`memory/clusters/<name>/` instead (`rules/hypervisors.md`
+→ Clusters and Pools).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
@@ -116,12 +119,13 @@ filled from an example. A container engine is recorded as
 `rules/service-class-check.md` gives.
 
 `Virtualization:`, `Arch:` and `Hypervisor:` come
-from `rules/os-detection.md`; `Guest identity:`,
-`Runs on:` and, on a guest registered through its
-host, `SSH: untested`, from `rules/hypervisors.md`.
-`Baseline:` comes from `rules/baseline.md` → Rendered
-Versions, and on a Proxmox VE node `Baseline template:`
-from `rules/appliance/proxmox-ve.md` → Guests.
+from `rules/os-detection.md`; `Cluster:`,
+`Guest identity:`, `Runs on:` and, on a guest
+registered through its host, `SSH: untested`, from
+`rules/hypervisors.md`. `Baseline:` comes from
+`rules/baseline.md` → Rendered Versions, and on a
+Proxmox VE node `Baseline template:` from
+`rules/appliance/proxmox-ve.md` → Guests.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
@@ -183,6 +187,7 @@ directory has to be added there by hand.
 
 **Shared in team mode:** everything else —
 `memory/servers/*/` with each host's `rules.md`,
+`memory/clusters/*/`,
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 

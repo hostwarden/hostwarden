@@ -22,7 +22,12 @@ Source for everything below unless noted: the admin guide,
   `Quorate:`, `Expected votes:` and a member list; `pvecm nodes`
   lists the nodes.
 - Record in server memory: `Appliance: Proxmox VE <version>`, and
-  the cluster name and node count, or `standalone`.
+  the cluster name and node count, or `standalone`. A cluster
+  member also gets the `Cluster:` line of `rules/hypervisors.md`
+  → Clusters and Pools; the name is the `Name:` under
+  `Cluster information`. On a standalone node `pvecm status`
+  fails with `does not exist - is this node part of a cluster?`,
+  which is the answer, not an error.
 - PVE 9 is based on Debian 13 (Trixie), PVE 8 on Debian 12
   (Bookworm). Take end-of-life dates from the support table in the
   FAQ (<https://pve.proxmox.com/wiki/FAQ>), never from memory. A
@@ -218,34 +223,42 @@ Source for everything below unless noted: the admin guide,
 - Guests with `onboot: 1` start when the node boots. HA-managed
   guests ignore `onboot` and start order.
 - **Inventory** (`rules/hypervisors.md`): record
-  `Hypervisor: Proxmox VE (qm, pct)`. The full inventory is one
-  call: `pvesh get /cluster/resources --type vm --output-format
-  json`, filtered to this node's `node` (it carries `status` and
-  `template`), and the head of every guest config on this node up
-  to its first snapshot section:
+  `Hypervisor: Proxmox VE (qm, pct)`. `/etc/pve/nodes/<node>/`
+  holds every node's guest configs, so the full inventory is one
+  call, the cluster's on a cluster (`rules/hypervisors.md` →
+  Clusters and Pools):
+  `pvesh get /cluster/resources --type vm --output-format json`
+  for each guest's `node` and `status`, and the head of every
+  guest config up to its first snapshot section, its node in the
+  path, and `pvesh get /cluster/status --output-format json` for
+  the members (`type: node`, with `name` and `online`; a
+  standalone node answers with itself alone):
 
   ```bash
-  for f in /etc/pve/qemu-server/*.conf /etc/pve/lxc/*.conf; do
+  for f in /etc/pve/nodes/*/qemu-server/*.conf \
+      /etc/pve/nodes/*/lxc/*.conf; do
     echo "@conf $f"
-    sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
-      /^onboot:/p; /^agent:/p; /^hostpci[0-9]*:/p;
-      /^usb[0-9]*:/p; /^dev[0-9]*:/p; /^mp[0-9]*:/p;
-      /^virtiofs[0-9]*:/p;
-      /^lxc\.mount\.entry:/p;
+    sed -n '/^\[/q; /^name:/p; /^hostname:/p; /^template:/p;
+      /^net[0-9]*:/p; /^smbios1:/p; /^onboot:/p; /^agent:/p;
+      /^hostpci[0-9]*:/p; /^usb[0-9]*:/p; /^dev[0-9]*:/p;
+      /^mp[0-9]*:/p; /^virtiofs[0-9]*:/p; /^lxc\.mount\.entry:/p;
       /^lxc\.cgroup2\.devices\.allow:/p' "$f"
   done
   cat /etc/pve/ha/resources.cfg
-  if grep -qsE 'mapping=|^virtiofs[0-9]*:' /etc/pve/qemu-server/*.conf; then
+  if grep -qsE 'mapping=|^virtiofs[0-9]*:' \
+      /etc/pve/nodes/*/qemu-server/*.conf; then
     pvesh get /cluster/mapping/pci --output-format json
     pvesh get /cluster/mapping/usb --output-format json
     pvesh get /cluster/mapping/dir --output-format json
   fi
   ```
 
-  A VM's MAC is the value after its model (`virtio=`, `e1000=`)
-  in `netN:`, a container's the `hwaddr=` value; the UUID is
-  `uuid=` in `smbios1:`. The `hostpci`, `usb`, `virtiofs`, `dev`,
-  `mp` and `lxc.` lines are what the host passed to that guest
+  The name is `name:` for a VM and `hostname:` for a container,
+  `template: 1` marks a template. A VM's MAC is the value after
+  its model (`virtio=`, `e1000=`) in `netN:`, a container's the
+  `hwaddr=` value; the UUID is `uuid=` in `smbios1:`. The
+  `hostpci`, `usb`, `virtiofs`, `dev`, `mp` and `lxc.` lines are
+  what the host passed to that guest
   (`.agents/skills/hostwarden-housekeeping/references/passthrough.md`):
   a VM's `hostpci0:` names its device by PCI address
   (`01:00.0`; `01:00` is every function of it), `usb0:` by
@@ -259,8 +272,22 @@ Source for everything below unless noted: the admin guide,
   path under `/dev/`), not when it is a storage volume
   (`local-lvm:vm-101-disk-1`). `resources.cfg` names the
   HA-managed guests (`vm: 101`, `ct: 102`); their entry says `HA`
-  instead of autostart, since HA ignores `onboot`. The light
-  listing is `qm list; pct list`.
+  instead of autostart, since HA ignores `onboot`. A `status` of
+  `unknown` means the guest's node is not reporting: record that,
+  never `stopped`; the listing then lacks `name` and `template`
+  too, which is why they come from the config. The light listing
+  is the `pvesh` call alone.
+- **One node only:** `qm` and `pct` act only on this node's
+  guests. Registering and guest tools cover this node's guests;
+  the others wait for a session on their node, which registers
+  them from the cluster's `guests.md` even when no listing runs
+  that day. A gone guest (`rules/hypervisors.md` → Changes
+  Between Connections) is gone when the inventory's `@conf` paths
+  show no config for its ID on any node, and only while
+  `pvecm status` shows `Quorate: Yes`; never because `qm config`
+  or `pct config` fails. The API
+  path `/nodes/<node>/qemu/<vmid>/agent/…` would reach another
+  node over the cluster's own SSH: never use it.
 - **Guest tools:** only for a VM whose `agent:` line enables it,
   `qm guest cmd <vmid> get-host-name`, `get-osinfo` and
   `network-get-interfaces`.
@@ -333,6 +360,14 @@ Source for everything below unless noted: the admin guide,
 
 - Check quorum (`pvecm status`) and a pending reboot (see
   Updates).
+- **HA, once per cluster** (`rules/hypervisors.md` → Clusters and
+  Pools): `ha-manager status`, one line per entry. A finding:
+  `quorum No quorum …`; a `master` or `lrm` line reading
+  `old timestamp - dead?` or `detected time drift!`; no `master`
+  line while `resources.cfg` names guests; a `service` in
+  `error`, `fence` or `recovery`. An `lrm` in `maintenance mode`
+  keeps its node empty (Quorum, HA and Reboots). Record the
+  result as the cluster's `HA:` line.
 - A missing backup job for running guests is a finding.
 - The passthrough lines the inventory above collects are read by
   `.agents/skills/hostwarden-housekeeping/references/passthrough.md`,
