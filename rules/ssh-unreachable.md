@@ -37,6 +37,8 @@ block alive.
 
 ## Target or path?
 
+When Hostwarden runs in WSL, read From WSL below first.
+
 Signs that something **on the way** blocks, not the
 host: the address answers ping but the SSH port
 times out (no `Connection refused`); `Connection
@@ -54,6 +56,34 @@ chase routing, NAT or MTU. A check from inside the
 target's network sees a clean path and proves
 nothing about the client's. Firewall and IPS
 changes: `AGENTS.md` → Critical Safety Rules.
+
+## From WSL
+
+When Hostwarden itself runs in WSL
+(`microsoft-standard` in the local
+`/proc/sys/kernel/osrelease`, as `bin/hostwarden-doctor`
+checks), the path starts at Windows.
+Read the networking mode locally once:
+
+    wslinfo --networking-mode
+
+Where an older WSL has no `wslinfo`, assume `nat`. In
+`nat`, the default, WSL has its own virtual
+network behind Windows, and a VPN on Windows often
+does not carry it. Signs: every host behind the VPN
+fails while public ones answer, or a name that
+resolves on Windows does not resolve here. They point
+to WSL's path as the likely cause; they do not show
+that each host is up. Tell the user so, in those
+words. The fix is theirs, on Windows. On Windows 11
+22H2 and later it is `networkingMode=mirrored` under
+`[wsl2]` in `%UserProfile%\.wslconfig`, which takes
+effect after they restart WSL. Windows 10 has no
+mirrored mode: say so, and leave the VPN's own
+settings to the user. Hostwarden
+changes neither the file nor WSL, and runs no
+connection test from Windows in its place: it counts
+against the host like one from here.
 
 ## Dual-stack
 
