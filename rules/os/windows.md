@@ -749,6 +749,14 @@ sections say.
   (`ssh_host_*_key` without `.pub`) is a secret
   (`rules/secrets.md`): look at it only with `dir` or
   `icacls`, and take its fingerprint from its `.pub` file.
+  Where the default shell is a POSIX layer
+  (`rules/os-detection.md`), `type` is that shell's builtin
+  and `dir` may be missing: read with `cat` and list with
+  `ls -l` instead, on the layer's path —
+  `/c/ProgramData/ssh/…` under Git Bash and MSYS2,
+  `/cygdrive/c/ProgramData/ssh/…` under Cygwin. `icacls` is a
+  Windows program and works the same, with the Windows path in
+  single quotes.
 - **Windows Server 2025** has the OpenSSH server installed by
   default; earlier versions add it as a capability. Membership
   in the local group `OpenSSH Users` can be what lets an
