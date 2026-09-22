@@ -290,13 +290,11 @@ system rather than trust it.
 - A Container Manager update touches every container: the release
   notes of 24.0.2-1606 ask for all of them to be restarted after
   it. Ask before it as before a restart.
-- Virtual machines are Virtual Machine Manager's, below.
 
 ## Virtual Machine Manager
 
 Virtual Machine Manager (VMM, package `Virtualization`) runs
-virtual machines on QEMU and libvirt; containers are Container
-Manager's
+virtual machines on QEMU and libvirt
 (<https://www.synology.com/en-global/dsm/packages/Virtualization>,
 release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
 `/var/packages/Virtualization` exists where it is installed.
@@ -317,17 +315,14 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
 ### Read access
 
 - **A DSM user `api-read`**, created by the user under Control
-  Panel → User & Group, with a password and no application it
-  does not need. Synology documents no role that limits the API
-  to reading, and does not say which accounts may call it: the
-  guide's example logs in as `admin`. So the user creates it
-  outside `administrators` first. When `list` answers error 105
-  ("The login session does not have permission"), the user
-  decides whether to add it to `administrators`, where it could
-  change anything DSM does while Hostwarden still calls only
-  `list`, or to leave VMM uninventoried.
-- There is no write access: `API write: none`, and every change
-  goes to the user as VMM steps.
+  Panel → User & Group outside `administrators`, with a password
+  and no application it does not need: Synology documents no role
+  that limits the API to reading, and no list of the accounts that
+  may call it. When `list` answers error 105 ("The login session
+  does not have permission"), the user decides whether to add it
+  to `administrators`, where it could change anything DSM does
+  while Hostwarden still calls only `list`, or to leave VMM
+  uninventoried.
 - File `dsm-ro.pass`, one line: the password. Server memory:
   ```
   API read: api-read (<group>), ~/hostwarden-keys/<nas>/dsm-ro.pass
@@ -336,23 +331,23 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
   ```
 - Enforced 2-factor authentication that covers the account stops
   the login with error 403 ("2-step verification code required"),
-  and auto block counts every failed login
-  (Access and Privileges): report the code and never retry.
+  and auto block counts its failed logins (Access and Privileges).
 
 ### Reading
 
 Over SSH as the session's user, curl on the NAS against its own
 HTTPS port, 5001 unless Control Panel → Login Portal says
-otherwise. Stdin carries the password, which the shell reads into
-a variable and curl URL-encodes from its own stdin, so it never
-reaches `argv`:
+otherwise. The password, the session ID and the token reach curl
+on stdin, through `read` and the builtin `printf`, never in
+`argv`; the login's answer is printed only when it failed, and
+then carries neither:
 
 ```
-ssh … <user>@<nas> 'umask 077; u=https://127.0.0.1:5001/webapi/entry.cgi
+ssh … <user>@<nas> 'u=https://127.0.0.1:5001/webapi/entry.cgi
   IFS= read -r p
   r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \
     --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&format=sid&enable_syno_token=yes" \
-    "$u"); p=
+    "$u")
   s=$(printf %s "$r" | sed -n "s/.*\"sid\" *: *\"\([^\"]*\)\".*/\1/p")
   t=$(printf %s "$r" | sed -n "s/.*\"synotoken\" *: *\"\([^\"]*\)\".*/\1/p")
   [ -n "$s" ] || { printf %s "$r" | tr -d "\n"; echo; echo "{\"@\": \"login\"}"; exit 0; }
@@ -367,36 +362,29 @@ ssh … <user>@<nas> 'umask 077; u=https://127.0.0.1:5001/webapi/entry.cgi
   < ~/hostwarden-keys/<nas>/dsm-ro.pass | jq …
 ```
 
-- The session ID and the token go to curl through `printf`, a
-  shell builtin, on stdin: they never reach `argv` either, and the
-  login's answer, which carries them, is printed only when it
-  failed and carries neither.
 - **Unlike `rules/appliance-api.md` → Reading, the HTTP code does
   not decide**: DSM answers 200 with `"success": false` and an
   `error.code` when a call fails (Login guide, Common Error
-  Codes). The guides' answers also span several lines, which the
-  line-by-line filter would drop, so each answer is put on one
+  Codes), and the guides' answers span several lines, which the
+  line-by-line filter would drop. So each answer is put on one
   line, and its marker carries curl's exit status. A response
-  whose `success` is not `true`, an `rc` other than 0 or a missing
-  marker is a check that did not run, reported with its code; a
-  login answer printed before the `login` marker is the login
-  failing, with the codes 400 to 404 the VMM guide lists for
-  `SYNO.API.Auth`.
+  whose `success` is not `true`, or an `rc` other than 0, is a
+  check that did not run, reported with its code; a login answer
+  before the `login` marker is the login failing, with the codes
+  400 to 404 the VMM guide lists for `SYNO.API.Auth`.
 - The workstation's filter is the one in `rules/secrets.md` → API
-  Credentials on the Workstation, unchanged: nothing the two
-  calls return is secret, and `description` is text the user
-  wrote, read as `rules/anomaly-detection.md` says.
+  Credentials on the Workstation, unchanged.
 
 ### Guests
 
 - **Inventory** (`rules/hypervisors.md`): record
   `Hypervisor: Synology VMM (Web API, read-only)` where
   `/var/packages/Virtualization` exists and the listing shows a
-  guest. The full inventory and the light listing are the same
-  call. Per entry of `data.guests`: `guest_id`, `guest_name`,
+  guest. Per entry of `data.guests`: `guest_id`, `guest_name`,
   `status`, and `autorun`: `2` is autostart, `1` starts the VM in
   the state it was in when the host went down, `0` is none. MACs
-  are `vnics[].mac`.
+  are `vnics[].mac`. The light listing is the same call with
+  `Host` left out of the loop.
   - `guest_id` is VMM's own ID. The guide does not say that it
     is the UUID the guest reads, so it is recorded as the ID, and
     a VM links by MAC alone.
@@ -409,12 +397,10 @@ ssh … <user>@<nas> 'umask 077; u=https://127.0.0.1:5001/webapi/entry.cgi
     a guest missing from a successful `list` keeps
     `not listed <date>` until the user confirms in VMM that it is
     gone.
-- **Guest tools:** Synology Guest Tool and `qemu-guest-agent`
-  let VMM show a guest's addresses
+- **Guest tools:** none. Synology Guest Tool and
+  `qemu-guest-agent` let VMM show a guest's addresses
   (<https://kb.synology.com/en-global/DSM/tutorial/How_to_install_Synology_Guest_Agent_for_VMM_on_your_virtual_machine>),
-  but the documented API has no field for them. Every running VM
-  is recorded as `agent not readable`, never `no agent`, and
-  housekeeping does not rate it.
+  but the documented API has no field for them.
 - **Registering:** none. VMM runs no command inside a guest; its
   Connect opens the web console, or a Virtual DSM's login page
   (<https://kb.synology.com/en-global/DSM/help/Virtualization/virtual_machine?version=7>).
