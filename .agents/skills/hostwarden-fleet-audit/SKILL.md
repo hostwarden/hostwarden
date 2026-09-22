@@ -59,7 +59,8 @@ Layers).
 
 1. **Discover hosts.** List directories under
    `memory/servers/` whose name resolves to a real host,
-   or whose `memory.md` has a `Reached as:` line, which
+   whose `memory.md` has a `Mode: via …` line (reached
+   through that host, step 2), or a `Reached as:` line, which
    is then the destination, for the user lookup too, with `-p` and the
    `SSH port:` line where there is one (skip placeholders like
    `server1.example.com` and `192.168.64.20` unless the

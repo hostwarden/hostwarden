@@ -66,7 +66,8 @@ among them: `rules/appliance/proxmox-ve.md` → Guests.
 
 ## Snapshots
 
-With access to the host, a snapshot is the better safety net
+With access to the host, and the host not on the read-only list
+(`rules/access-control.md`), a snapshot is the better safety net
 before a risky change to a guest, to its config or inside it (an
 upgrade, a larger config rework): it covers the whole guest and
 rolls back in one command.
