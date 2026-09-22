@@ -463,16 +463,20 @@ headline goes to the local changelog only.
 **Read back** (`rules/activity-check.md`):
 
 ```powershell
-try { $null = Get-WinEvent -LogName Application -MaxEvents 1 -ErrorAction Stop; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
+try { $o = Get-WinEvent -LogName Application -MaxEvents 1 -Oldest -ErrorAction Stop; "oldest: $($o.TimeCreated.ToString('s'))"; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
 ```
 
 The `entries:` line is the proof the check ran; `failed:`, or
-no line at all, means it did not. `Get-WinEvent` reports an
+no line at all, means it did not. The `oldest:` line is how far
+back the log reaches (`rules/activity-check.md` → How far back
+it reached): the Application log is capped by size, and a busy
+server or a cleared log can hold less than the seven days.
+`Get-WinEvent` reports an
 error, not an empty result, when its filter matches nothing,
 and the same error when access is denied
 ([PowerShell#18965](https://github.com/PowerShell/PowerShell/issues/18965)).
-So the first statement proves the log can be read, with one
-event and an error that stops the line; after that, the
+So the first statement proves the log can be read, with its
+oldest event and an error that stops the line; after that, the
 filtered query's error can only mean no match, and is silenced.
 The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
