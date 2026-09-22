@@ -233,8 +233,12 @@ for p in /Library/LaunchDaemons/*.plist; do
     $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
     | sed -n 's|^ *\(/.*\)$|\1|p' | sort -u \
     | while IFS= read -r x; do
-        [ -e "$x" ] || continue
-        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) || continue
+        if [ ! -e "$x" ]; then
+          ls -dL "$x" 2>&1 | grep -q 'No such file' || echo "skipped: $x"
+          continue
+        fi
+        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) \
+          || { echo "skipped: $x"; continue; }
         ls -leL "$d/$(basename "$x")"
         while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
       done
@@ -245,3 +249,8 @@ done
   writable by group or others, or with an ACL entry that allows
   write to anyone but root → **WARN**, with the plist that starts
   it.
+- A `skipped:` line is a path this user cannot reach — below a
+  directory it may not enter, or one privacy protection (TCC)
+  guards. List it under "Skipped" with its plist: unchecked is
+  not clean. A path that does not exist is an argument, not a
+  file, and prints nothing.
