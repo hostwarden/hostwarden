@@ -99,7 +99,7 @@ the guest started, and the guest then writes into an empty
 directory on the root filesystem. One call covers every source:
 
 ```sh
-findmnt -ln -o TARGET,SOURCE,FSTYPE
+findmnt -ln -o TARGET,SOURCE,FSTYPE,UUID
 ```
 
 `-l` is what prints a flat list rather than a tree, whose line
@@ -123,7 +123,10 @@ directory. A bind records the filesystem its source sat on when
 the check last saw it healthy — `SOURCE` and `FSTYPE` of the
 mount `findmnt` matched — because that is what the next run
 compares against: without it, a source that has fallen back to
-the root filesystem looks like any other local directory.
+the root filesystem looks like any other local directory. A
+local disk records its `UUID` instead of `SOURCE`
+(`bind on UUID=3f2a…, ext4`): its `SOURCE` is a kernel device
+name, which can change at boot.
 
 The guest's entry in `guests.md` carries the device too; its own
 memory names the device alone, since `Runs on:` already names the
@@ -139,9 +142,8 @@ line (`references/usb-devices.md` → Findings). On top:
 - **WARN:** a bind source now on the root filesystem where its
   entry records another, or on any other filesystem while the
   recorded one is not mounted. The guest may be writing into the
-  host's system disk. A local disk's `SOURCE` is a kernel device
-  name, which can change at boot: the same `FSTYPE` on the same
-  mount point is the same filesystem.
+  host's system disk. A local disk is compared by its `UUID`
+  (Memory above).
 - **INFO:** a bind source on another mounted filesystem, not the
   root one, while the recorded one is still mounted: the data
   moved. Update the entry.
