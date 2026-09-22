@@ -153,7 +153,7 @@ connector are not part of Hostwarden.
 
 ### Accounts
 
-The user creates both admins in UniFi OS under Settings > Admins &
+The user creates each admin in UniFi OS under Settings > Admins &
 Users > Create New Admin, with **Restrict to local access only** on
 (no UI account, no cloud login, no MFA prompt for a script) and
 every application other than Network set to None, OS settings
@@ -165,10 +165,11 @@ included
   may not be offered a key at all, so this admin logs in with its
   password. File `unifi-ro.json`, one line:
   `{"username": "api-read", "password": "<password>"}`.
-- **Write: an admin `api-write`** with Network set to **Full
-  Management**, or to a custom role that covers only what Hostwarden
-  is meant to change. Signed in as that admin, the user creates an
-  API key on UniFi Network's Integrations page (its place in the
+- **Write, only where the user asked for write access: an admin
+  `api-write`** with Network set to **Full Management**, or to a
+  custom role that covers only what Hostwarden is meant to change.
+  Signed in as that admin, the user creates an API key on UniFi
+  Network's Integrations page (its place in the
   menu moves between releases; it is named Integrations or API
   Keys). File `unifi-rw.header`, one line: `X-API-KEY: <key>`. The
   key is shown once; a lost key is deleted and a new one created.
@@ -193,10 +194,16 @@ included
     curl -fsSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
       --data @- https://127.0.0.1/api/auth/login || exit 1
     b=https://127.0.0.1/proxy/network/api/s/default
-    echo "{\"@\": \"health\"}"; curl -fsSk -b "$j" "$b/stat/health"
-    echo "{\"@\": \"device\"}"; curl -fsSk -b "$j" "$b/stat/device"' \
+    curl -sSk -b "$j" -w "\n{\"@\": \"health\", \"code\": %{http_code}}\n" \
+      "$b/stat/health"
+    curl -sSk -b "$j" -w "\n{\"@\": \"device\", \"code\": %{http_code}}\n" \
+      "$b/stat/device"' \
     < ~/hostwarden-keys/<console>/unifi-ro.json | jq …
   ```
+
+  Only the login reads stdin, so each endpoint may have its own
+  `curl -b "$j"`. A key-authenticated read is one `curl -H @-` with
+  every URL after it (`rules/appliance-api.md` → Reading).
 
 - Secret fields: add `^x_` to the filter's pattern — the classic
   API keeps its secrets in `x_` fields (`x_passphrase`,
@@ -212,8 +219,9 @@ included
   site's `name`; the first is `default`). Ubiquiti documents none of
   them; they come from the clients that use them (aiounifi,
   go-unifi) and change between releases.
-- The key, where key reads are allowed, reads with `-H @-` in place
-  of the login and cookie, and reaches both the classic API and the
+- The key, where key reads are allowed, replaces the login and the
+  cookie with one `curl -H @-` carrying every URL of the batch and a
+  `%{url_effective}` marker, and reaches both the classic API and the
   documented Integration API under `/proxy/network/integration/v1/`
   (`info`, `sites`, and per site `devices`, `clients`, `networks`,
   `wifi/broadcasts`, `firewall/zones`, `firewall/policies`, `wans`,

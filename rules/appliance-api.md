@@ -13,6 +13,10 @@ appliance file says so by name.
 - **Write** is optional, the user decides whether it exists at all,
   and it serves only a change the user asked for and approved in
   this session.
+- **The write account exists only where the user asked for write
+  access.** Read access is set up on its own; with `API write:
+  none` no privileged account and no long-lived key are created at
+  all.
 - Each is its own account on the appliance, with the narrowest role
   the appliance offers for it, and its own credential file on the
   workstation (`rules/secrets.md` → API Credentials on the
@@ -56,19 +60,36 @@ appliance file says so by name.
 
 - **One call per task.** Everything a task reads — the housekeeping
   reads, the audit reads — goes into a single call, with one login
-  where the appliance needs one. Each response is preceded by a
-  JSON marker, `echo "{\"@\": \"<name>\"}"`, so the stream stays
-  parseable, and a cookie jar lives in a `mktemp` file under
-  `umask 077` that the same call removes on exit.
+  where the appliance needs one, and a cookie jar in a `mktemp` file
+  under `umask 077` that the same call removes on exit.
+- **Every response carries its own marker and status**, written by
+  curl itself so a failed request cannot pass as a missing one:
+
+  ```
+  -w '\n{"@": "<name>", "code": %{http_code}}\n'
+  ```
+
+  Leave `-f` off when the marker is what reports the failure: `-f`
+  drops the body an error explains, and the exit status of one
+  request in a batch does not reach the caller. A marker whose
+  `code` is not 2xx is a check that did not run.
+- **A credential on stdin serves exactly one curl process.** With
+  `-H @-` the first request consumes it and every later one would go
+  out unauthenticated, so a batch that authenticates by credential
+  is **one** curl invocation with several URLs after it; the header
+  and `-w` apply to each, and `%{url_effective}` in the marker names
+  which response is which. A batch behind a session cookie may use
+  one curl per endpoint: only the login reads stdin.
 - **The workstation filters before anything reaches the
   conversation**: the filter in `rules/secrets.md` → API
   Credentials on the Workstation, with the appliance's own secret
   fields added to its pattern, then a projection to what the
   question needs. `jq -s` reads the stream as one array in which
-  each marker precedes its response.
+  each response is followed by its marker.
 - A read that fails is a check that did not run, never a clean
-  result. An unknown field or a `404` is a fact to report; never
-  guess another endpoint or field in its place.
+  result: report every marker whose `code` says so, by name. An
+  unknown field or a `404` is a fact to report; never guess another
+  endpoint or field in its place.
 
 ## Writing
 
