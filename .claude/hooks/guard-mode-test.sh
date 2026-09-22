@@ -180,6 +180,8 @@ cmd deny "$DEV" 'SSH.EXE server1.example.com'
 cmd deny "$DEV" 'Wsl.exe -u root -e id'
 cmd deny "$DEV" 'true; PowerShell.exe -Command Get-Service'
 cmd deny "$DEV" 'CMD.EXE /c ver'
+cmd deny "$DEV" '"SSH.EXE" server1.example.com'
+cmd deny "$DEV" '"WSL.EXE" -u root -e id'
 cmd deny "$DEV" 'command -p wsl.exe -u root'
 cmd deny "$DEV" 'PATH=/mnt/c/Windows/System32 wsl.exe -u root'
 printf '#!/bin/sh\n' > "$TMP/bin/ssh.exe"

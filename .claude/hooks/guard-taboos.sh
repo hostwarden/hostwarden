@@ -359,11 +359,15 @@ DEV='(/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])|[Pp][Hh][Y
 # Windows' OpenSSH keeps both in C:\ProgramData\ssh, reached from
 # WSL as /mnt/c/ProgramData/ssh. NTFS ignores case, and a Windows
 # path may use backslashes, hence WINSSH.
-WINSSH='[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa][/\\]+[Ss][Ss][Hh][/\\]+'
-HOSTKEY="((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}ssh_host_)"
-KEYDIR='(\.ssh|/conf/sshd|/etc/dropbear)'
+# Every name below it is matched in any case too, and the
+# directory itself counts as a key store: it holds the host keys
+# and administrators_authorized_keys.
+WINSSHDIR='[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa][/\\]+[Ss][Ss][Hh]'
+WINSSH="${WINSSHDIR}[/\\\\]+"
+HOSTKEY="((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}[Ss][Ss][Hh]_[Hh][Oo][Ss][Tt]_)"
+KEYDIR="(\\.ssh|/conf/sshd|/etc/dropbear|$WINSSHDIR)"
 KEY="($HOSTKEY|authorized_keys|$KEYDIR"'(/|[^[:alnum:]_.-]|$))'
-KEYFILE="($HOSTKEY"'[[:alnum:]_-]*key|\.ssh[/\\]+id_[[:alnum:]_-]+|authorized_keys)'
+KEYFILE="($HOSTKEY"'[[:alnum:]_-]*[Kk][Ee][Yy]|\.ssh[/\\]+id_[[:alnum:]_-]+|authorized_keys|'"$WINSSH"'[[:alnum:]_]*[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Ee][Dd]_[Kk][Ee][Yy][Ss])'
 KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 
 # sshd's config: sshd_config, its drop-in directory, a file an
@@ -375,7 +379,7 @@ KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 # under ProgramData\ssh. The .d suffix is optional, so a plain
 # hit on SSHD also finds the bare file. Then the editors that
 # rewrite a file in place.
-SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}sshd_config)"
+SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}[Ss][Ss][Hh][Dd]_[Cc][Oo][Nn][Ff][Ii][Gg])"
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
 # A general-purpose language runtime. See the interpreter section
@@ -388,7 +392,8 @@ INTERP='(^|[^[:alnum:]_.-])(python[0-9.]*|perl|ruby|node|nodejs|deno|bun|php[0-9
 # cmd is a common word.
 WININTERP='(^|[^[:alnum:]_.-])((powershell|pwsh)(\.exe)?|cmd\.exe)([^[:alnum:]_.-]|$)'
 # wsl.exe and its older twin wslconfig.exe, as a command word.
-WSL='(^|[^[:alnum:]_.-])wsl(config)?(\.exe)?[[:space:]]'
+# A quote may close right after it: "wsl.exe" --shutdown.
+WSL='(^|[^[:alnum:]_.-])wsl(config)?(\.exe)?["'"'"']?[[:space:]]'
 
 # The Windows rules below can only match a command that names
 # wsl, a .exe, PowerShell, or one of the words they look for.
@@ -617,7 +622,7 @@ if [ -n "$WIN" ] \
   deny "mbr2gpt without /validate converts the partition table"
 fi
 if [ -n "$WIN" ] \
-  && hit_i '(^|[^[:alnum:]_.-])format(\.com)?[[:space:]]+[a-z]:'; then
+  && hit_i '(^|[^[:alnum:]_.-])format(\.com)?["'"'"']?[[:space:]]+["'"'"']?[a-z]:'; then
   deny "format erases the volume on that drive letter"
 fi
 # wsl --unregister (wslconfig /u) deletes a distribution together
