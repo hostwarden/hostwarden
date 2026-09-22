@@ -628,11 +628,11 @@ no file:
 
 **Firewall.** The Firewall block above, rated as it says, and
 the enabled inbound allow rules of the policy in effect, Group
-Policy included — name, profile, protocol, local port and remote
+Policy included — name, profile, protocol, local port, remote and local
 addresses:
 
 ```powershell
-try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | program {5} | service {6}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), $app, $svc } } catch { "failed: $_" }
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
 ```
 
 Judge only the rules of the profile in use (Firewall above). A
@@ -641,7 +641,10 @@ names one (`Any` means every program or service): a listener
 on that port is exposed, to the remote addresses the rule
 names, when the listener's executable path is the rule's
 program, its bracket holds the rule's service, or the rule names
-neither. A listener whose path is empty cannot be matched to a
+neither. A rule whose local addresses (`to`) are not `Any`
+reaches only a listener bound to one of them or to a wildcard
+address; a listener bound to another address is not exposed by
+it. A listener whose path is empty cannot be matched to a
 program-scoped rule: report it as unknown, not as covered. A
 rule with a local port of `Any` opens every port to the program
 or service it names: name the rule.
