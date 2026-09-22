@@ -185,13 +185,23 @@ of the current release branch,
   Configuration: UCI), never with `nft` directly: the next reload
   replaces the whole ruleset. Own nftables snippets go into
   `/etc/nftables.d/*.nft`, which fw4 includes.
-- Order: stage the change with `uci`, run `fw4 check`, and only
-  when it passes `uci commit firewall`, then
-  `service firewall reload`. `fw4 check` renders the ruleset,
-  staged changes included, and tests it with nftables without
-  loading it; a failed check means `uci revert firewall`, so the
-  broken ruleset never reaches flash. There is no timed rollback;
-  the check is the only safety net before the change is live.
+- Apply a firewall change, and a change to `/etc/config/network`,
+  through `rules/ssh-safety-net.md`. Its three commands here:
+  - **check:** stage the change with `uci`, then `fw4 check`, which
+    renders the ruleset, staged changes included, and tests it with
+    nftables without loading it. A failed check means
+    `uci revert firewall`, so the broken ruleset never reaches
+    flash. For the network there is no check beyond `uci changes`.
+  - **apply:** `uci commit firewall; service firewall reload`
+    (`uci commit network; service network reload` for the
+    network).
+  - **revert:** copy the backup of the config file back over it and
+    run the same reload.
+
+  OpenWrt has no systemd and ships no `at`. The `at` package from
+  the feed arms the revert (ask first: it takes flash, see Package
+  Manager); without it, the change is the user's, with console
+  access ready.
 - **Keep every SSH port open from where the user connects.** Read
   every dropbear instance's `Port` and `Interface`
   (`uci show dropbear`) and what actually listens

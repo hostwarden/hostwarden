@@ -89,18 +89,22 @@ the target before relying on them.
 ```bash
 apt-get update -qq 2>/dev/null
 
+inst=$(apt-get --just-print upgrade 2>/dev/null | grep "^Inst")
+
 # Total pending upgrades.
-apt-get --just-print upgrade 2>/dev/null \
-  | grep -c "^Inst"
+printf '%s\n' "$inst" | grep -c .
 
 # Security-only subset: filter the Inst lines for
 # security origins (Debian-Security on older
 # releases, <codename>-security on newer ones,
-# <codename>-security on Ubuntu).
-apt-get --just-print upgrade 2>/dev/null \
-  | grep "^Inst" \
-  | grep -ciE "debian-security|[a-z]+-security"
+# <codename>-security on Ubuntu, and the ESM
+# pockets <codename>-apps-security and
+# <codename>-infra-security once Pro is attached).
+printf '%s\n' "$inst" | grep -ciE "debian-security|[a-z]+-security"
 ```
+
+**Ubuntu:** fixes that apt cannot see because they wait
+on Pro are counted under **Ubuntu Release and Support**.
 
 **RHEL/CentOS/Fedora:**
 
@@ -152,6 +156,8 @@ modes that the simple `is-active` check misses:
 **Debian/Ubuntu:**
 
 ```bash
+uu=$(apt-config dump 2>/dev/null)
+
 # 1. Package present.
 dpkg -l unattended-upgrades 2>/dev/null \
   | grep -q "^ii" && echo "pkg=ok" || echo "pkg=MISSING"
@@ -160,22 +166,23 @@ dpkg -l unattended-upgrades 2>/dev/null \
 systemctl is-enabled apt-daily-upgrade.timer 2>/dev/null
 
 # 3. APT::Periodic actually turns the runs on.
-apt-config dump APT::Periodic 2>/dev/null \
-  | grep -E "(Update-Package-Lists|Unattended-Upgrade) "
+echo "$uu" \
+  | grep -E "^APT::Periodic::(Update-Package-Lists|Unattended-Upgrade) "
 
-# 4. Origins-Pattern covers the codename-security archive
-#    (Debian Trixie+ publishes Codename: <release>-security).
+# 4. The allowed origins cover the codename-security
+#    archive. Debian uses Origins-Pattern (Trixie+
+#    publishes Codename: <release>-security), Ubuntu
+#    uses Allowed-Origins ("<distro>:<codename>-security").
 codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
-pattern="codename=\\\$\{distro_codename\}-security"
-pattern="${pattern}|codename=${codename}-security"
-apt-config dump Unattended-Upgrade::Origins-Pattern \
-  2>/dev/null \
+pattern="(codename=|archive=|[an]=|:)(\\\$\{distro_codename\}|${codename})-security"
+echo "$uu" \
+  | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::" \
   | grep -qE "$pattern" \
   && echo "origins=ok" \
   || echo "origins=MISSING ${codename}-security pattern"
 
 # 5. Notification destination set (else failures are silent).
-apt-config dump 2>/dev/null \
+echo "$uu" \
   | grep -E "Unattended-Upgrade::(Mail |MailReport)"
 
 # 6. Recent real activity: did a Debian package upgrade run
@@ -185,7 +192,7 @@ zgrep -h "Pakete, welche aktualisiert werden\|Packages that will be upgraded" \
   2>/dev/null | tail -5
 ```
 
-Severity rules (Debian-specific):
+Severity rules (Debian and Ubuntu):
 
 - **CRITICAL** if `20auto-upgrades` is missing or any of its
   values is `0`. The timer fires but does nothing — silent
@@ -193,11 +200,18 @@ Severity rules (Debian-specific):
 - **CRITICAL** if `Origins-Pattern` is missing the
   `${distro_codename}-security` entry on Trixie or later.
   Every Debian security update is silently skipped.
+- **CRITICAL** (Ubuntu) if `Allowed-Origins` is missing
+  `${distro_id}:${distro_codename}-security`, for the
+  same reason.
+- On Ubuntu, a missing package or a zeroed value keeps
+  its severity; `rules/os/debian.md` → Automatic Security
+  Updates says how to handle it.
 - **WARN** if neither `Mail` nor `MailReport` is set. UA
   errors will be invisible.
-- **WARN** if the log shows no Debian package upgrade lines
-  in the last 30 days despite the timer running daily. UA is
-  alive but accomplishing nothing for the Debian archive.
+- **WARN** if the log shows no package upgrade lines in
+  the last 30 days despite the timer running daily. UA is
+  alive but accomplishing nothing for the distribution
+  archive.
 - **INFO** if `Automatic-Reboot-Time` is set to a fixed
   HH:MM: this defers the post-kernel reboot to that time
   the next day, leaving the new userland on the old kernel
@@ -228,6 +242,9 @@ Check that the firewall is still active.
 ```bash
 ufw status
 ```
+
+On Ubuntu, `rules/os/debian.md` → Firewall says how to
+word an inactive ufw.
 
 **RHEL/CentOS/Fedora (firewalld):**
 
@@ -427,6 +444,48 @@ ls /lib/modules
 - **INFO** if running kernel differs from installed (reboot
   recommended)
 
+## Ubuntu Release and Support
+
+Ubuntu only. The release comes from OS detection; what
+the Pro states mean is in `rules/os/debian.md` → Ubuntu
+Pro and ESM. Run it as one call; the filters keep a per-package
+list out of the report:
+
+```bash
+grep -i '^Prompt' /etc/update-manager/release-upgrades \
+  2>/dev/null
+pro status --format json 2>/dev/null | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+print("attached=%s" % s["attached"])
+for v in s["services"]:
+    print("%s=%s" % (v["name"], v.get("status", "not-attached")))'
+pro security-status 2>/dev/null | grep -i universe
+pro api u.pro.packages.updates.v1 2>/dev/null | python3 -c '
+import json, sys, collections
+a = json.load(sys.stdin)["data"]["attributes"]
+print(a["summary"])
+print(dict(collections.Counter(
+    "%s/%s" % (u["provided_by"], u["status"])
+    for u in a["updates"] if u["status"].startswith("pending_"))))'
+canonical-livepatch status 2>/dev/null
+```
+
+- Release support as `rules/version-check.md` → OS
+  End-of-Life Awareness says, with the ESM date only when
+  `esm-infra` is enabled.
+- **INFO** attached or not, and which of `esm-infra`,
+  `esm-apps` and `livepatch` are enabled.
+- **INFO** the number of installed `universe` packages
+  when `esm-apps` is not enabled: they have no guaranteed
+  security coverage.
+- **WARN** for any `pending_attach` or `pending_enable`
+  update, with the count per service: a known fix this
+  host cannot install as it is.
+- **WARN** if Livepatch's `kernel state` shows a coverage
+  end date within 30 days, or is not covered.
+- **WARN** if `Prompt` is not `lts` on an LTS release.
+
 ## Critical Services: Running Binary vs Installed Package
 
 A package upgrade installs new bytes on disk, but the
@@ -441,8 +500,8 @@ installed but not active, and nothing complains.
 **Alpine:** no needrestart; use the manual fallback
 below, which works with busybox.
 
-**Debian/Ubuntu** (needrestart is in the default
-install since Bookworm):
+**Debian/Ubuntu** (Ubuntu Server installs needrestart;
+on Debian it is an optional package):
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then

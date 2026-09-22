@@ -58,15 +58,11 @@ Rules for FreeBSD (all versions).
 - **Mandatory before any load:** the parse-only
   config test `pfctl -nf /etc/pf.conf` must pass
   first.
-- When changing pf rules over SSH, schedule a safety
-  net before loading, e.g.:
-  ```
-  echo "pfctl -d" | at now + 5 minutes
-  ```
-  If the new rules cut you off, pf disables itself
-  and you can get back in. After confirming the
-  session survived, cancel the job (`atq`, then
-  `atrm <job>`) — do not leave it behind.
+- Loading or enabling pf over SSH goes through
+  `rules/ssh-safety-net.md`. Check:
+  `pfctl -nf /etc/pf.conf`; apply:
+  `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:
+  `pfctl -d`.
 - After enabling, verify the default policy blocks
   incoming traffic.
 - Start/stop: `service pf start`, `service pf stop`
