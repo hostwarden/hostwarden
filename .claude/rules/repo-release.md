@@ -7,9 +7,9 @@ paths:
   - "scripts/**"
   - ".githooks/**"
   - "mise.dev.toml"
-description: Versioning, tagging and porting from Heinzel — for
-  work on the Hostwarden repository itself, not for sysadmin
-  sessions.
+description: Versioning, tagging, porting from Heinzel, and what
+  counts as a guard finding — for work on the Hostwarden repository
+  itself, not for sysadmin sessions.
 ---
 
 # Releasing Hostwarden
@@ -110,3 +110,20 @@ blocked after somebody refactors the pattern that blocks it — and
 it is why `.claude/hooks/**` is in this file's `paths`. A rule that
 only loads when someone opens the changelog does not reach the
 person editing the guard.
+
+## Guard findings
+
+`guard-taboos.sh` and `guard-mode.sh` are a backstop against the
+everyday mistake, not a sandbox against an agent trying to get out.
+A review finding against either counts when it is one of three
+things: a command an agent plausibly writes on its own, a false
+positive that blocks real work, or a regression — a case the
+fixture matrix blocked before and passes now.
+
+A construction that exists only to get around the guard does not
+count: brace or sequence expansion that builds a flag, a chain of
+wrappers, an option value attached to its flag, `eval`, a variable,
+a script file. Such a finding is answered "not a bug: outside the
+guard's scope" and the thread resolved, not fixed. Every fix of
+that kind invites the next variant, and against deliberate evasion
+the prose in `AGENTS.md` is the protection, not the pattern.
