@@ -42,9 +42,11 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
   `list --all` is the light listing; `list --all --autostart` for
   autostart, and per domain `domuuid` and `domiflist`.
 - **Incus / LXD:** the listing from `rules/system-containers.md`
-  → Reaching It, with `--format json`: it carries
-  `volatile.<nic>.hwaddr` and `boot.autostart` for every
-  instance.
+  → Reaching It, with `--format json`: it carries each
+  instance's project, and its `expanded_config` the
+  `volatile.<nic>.hwaddr` and `boot.autostart`, a profile's
+  included. Record the project with the name (`prod/web`); every
+  later command carries it.
 - **LXC:** `lxc-ls -f` shows state and autostart;
   `grep -H hwaddr /var/lib/lxc/*/config` the MACs.
 - **vm-bhyve:** `vm list` shows `AUTO` and `STATE`; `vm info`
@@ -128,9 +130,11 @@ has to name each guest. This is the one read-only use of via-host
 mode that needs no failed SSH first
 (`rules/system-containers.md` → Reaching It). Which guests the
 manager can enter, and how, is listed there: containers always, a
-Proxmox VM only with a responding agent. A libvirt, Hyper-V,
-XCP-ng, bhyve or VirtualBox VM, and every stopped guest, stays in
-`guests.md` alone until it is connected to by name.
+Proxmox VM only with a responding agent, whose answer is read as
+that section says (`out-data`, `exitcode`). A libvirt, Hyper-V,
+XCP-ng, bhyve or VirtualBox VM, a Windows guest on any of them
+(reached over OpenSSH only), and every stopped guest stay in
+`guests.md` alone until they are connected to by name.
 
 Per guest, after the user's request is answered and announced in
 one line (*"Registering 7 guests of pve1.example.com through
@@ -150,10 +154,14 @@ one line (*"Registering 7 guests of pve1.example.com through
    step-1 probe (`rules/os-detection.md`) and reads the link keys
    (Linking below).
 3. The hostname names the memory directory. Where one exists
-   already, its `Guest identity:` or its `IP:` must match this
-   guest: then it is the same server, and only `Runs on:` and the
-   missing keys are added. Where it does not match, ask the user
-   before writing anything.
+   already and its `Guest identity:` or its `IP:` matches this
+   guest, it is the same server: add only `Runs on:` and the
+   missing keys. Where its keys differ, this is a second server
+   of that name, and its directory is named as
+   `rules/server-memory.md` says for two guests of one hostname
+   (`web-pve1-105`). Where the existing directory has neither
+   keys nor a matching `IP:`, ask the user before writing
+   anything.
 4. Write `memory.md` as `rules/server-memory.md` says, with
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. The
@@ -177,6 +185,11 @@ the link. Often only one side ever is — a VM at a provider, a
 hypervisor someone else runs — and that is normal, never a
 finding.
 
+- **A cloud VM** (`Virtualization: amazon (VM)`, `google`, or a
+  provider after the kind, `kvm (VM, Hetzner)`) runs on its
+  provider: `Runs on: Amazon EC2 (cloud)`, `Runs on: Hetzner
+  (cloud)`, with no keys and no question. It is settled before
+  anything below.
 - **MAC addresses** — the guest reads its own without privileges
   (`ip -o link`, `ifconfig -a`, `Get-NetAdapter`); the host
   reads them from the guest's configuration. Compare them in
@@ -196,9 +209,6 @@ finding.
   `/var/lib/hyperv/.kvp_pool_3` on Linux, under
   `HKLM:\SOFTWARE\Microsoft\Virtual Machine\Guest\Parameters` on
   Windows.
-- **A cloud VM** (`Virtualization: amazon (VM)`, `google`, …)
-  runs on its provider: `Runs on: Amazon EC2 (cloud)`, with no
-  keys and no question.
 
 **On the guest,** record the keys and the result:
 
