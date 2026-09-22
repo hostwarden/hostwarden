@@ -3,23 +3,37 @@
 The BMC's System Event Log records power supply failures, fan
 failures, memory errors and thermal events, often before the OS
 notices and always while the OS was not running. Read it on a
-host whose `memory.md` has a `Management:` line naming a BMC
-this host can reach; a host with no line yet is settled first by
-`rules/management-controller.md` → Detection. A line that names
-no BMC, or a BMC the host cannot reach, has no device node for
+bare-metal host whose `memory.md` has a `Management:` line
+naming a BMC this host can reach. Where there is no line yet,
+`rules/management-controller.md` → Detection settles one first;
+this is one of the moments that does. A line that names no BMC,
+or a BMC the host cannot reach, has no device node for
 `ipmitool` to open: list the check under "Skipped".
 
 ## Probe
 
 ```
 ipmitool sel info
+ipmitool sel elist | grep -E 'Asserted|Deasserted' | tail -n 100
 ipmitool sel elist last 20
 ```
 
 `sel info` gives `Entries`, `Percent Used` and `Overflow`;
 `elist` resolves each entry's sensor name through the SDR, which
-`list` does not. `last 20` keeps a log with thousands of entries
-out of the conversation.
+`list` does not.
+
+**The middle line is the one that finds a fault**, and the
+filter is why: a power supply that failed a year ago and was
+never replaced is still asserted, and `last 20` alone would show
+only the twenty newest records and call the host clean. Every
+`Asserted` and `Deasserted` in the whole log passes the filter,
+and the tail keeps the newest hundred of them, which is where
+each sensor's current state is. `last 20` stays for the recent
+history around it.
+
+Where the middle line returns a full 100 lines, the log holds
+more state changes than the window and the oldest may be cut:
+say so in the report rather than calling the check clean.
 
 ## Reading the output
 
@@ -28,7 +42,9 @@ out of the conversation.
 `Deasserted` is that condition ending. A failure from two years
 ago whose part was replaced still stands in the log. So a finding
 needs an `Asserted` entry with no later `Deasserted` for the same
-sensor, and nothing else counts as a fault now.
+sensor, and nothing else counts as a fault now. Read that per
+sensor, from the filtered line: the last state change a sensor
+has is the state it is in.
 
 An entry whose timestamp reads `Pre-Init Time-stamp` was written
 while the BMC's clock was unset: the event happened, its age is

@@ -5,13 +5,14 @@ its own accounts and its own firmware, and the audit judges it as
 one. Its traffic never passes through the host's firewall, so
 nothing checked on the host covers it.
 
-Run this on a host whose `memory.md` has a `Management:` line
-naming a BMC this host can reach; a host with no line yet is
-settled first by `rules/management-controller.md` → Detection. A
-line that names Intel AMT runs only the AMT check at the end. A
-line that names a provider console, physical access or nothing,
-or a BMC the host cannot reach, gives `ipmitool` no device node
-to open: list the checks under "Skipped".
+Run this on a bare-metal host whose `memory.md` has a
+`Management:` line naming a BMC this host can reach. Where there
+is no line yet, `rules/management-controller.md` → Detection
+settles one first; this is one of the moments that does. A line
+that names Intel AMT runs only the AMT check at the end. A line
+that names a provider console, physical access or nothing, or a
+BMC the host cannot reach, gives `ipmitool` no device node to
+open: list the checks under "Skipped".
 
 Everything here is read-only. Nothing is fixed from the host: a
 finding names what it is, and the change is made in the
@@ -22,10 +23,16 @@ controller's own UI by the user.
 ```
 ipmitool lan print
 ipmitool user list
+ipmitool channel getaccess 1
 ```
 
 Where detection ran in this same session, its `lan print` output
-is reused rather than fetched again.
+is reused rather than fetched again. `channel getaccess
+<channel>` reads every user on that channel; 1 is the usual LAN
+channel, and `ipmitool channel info <n>` says what a channel is
+where 1 turns out to be something else. It is the read-only
+counterpart of `setaccess`, which is a write and is out of
+scope.
 
 ## Findings
 
@@ -52,14 +59,20 @@ Severities as in `references/report-format.md`. An address is
   privilege (CVE-2013-4782): **CRITICAL**.
 - **Factory accounts.** `ipmitool user list` gives each user's
   ID, `Name`, `Callin`, `Link Auth`, `IPMI Msg` and `Channel Priv
-  Limit`. An enabled `ADMINISTRATOR` named `root`, `ADMIN`,
-  `admin` or `Administrator` is the vendor's factory account:
-  **WARN**, named in the report, with the note that whether its
+  Limit` — and no enabled or disabled state, which is why
+  `channel getaccess` is in the probe: its `Enable Status` is
+  `enabled`, `disabled` or `unknown` per user. An account named
+  `root`, `ADMIN`, `admin` or `Administrator` with
+  `ADMINISTRATOR` in `Channel Priv Limit` is the vendor's factory
+  account, and it is a **WARN** only where `Enable Status` is
+  `enabled`; `disabled` is the remediated state and is not a
+  finding. Name it in the report with the note that whether its
   password was ever changed cannot be read from here and is a
-  question for the user.
+  question for the user. An `Enable Status` of `unknown` is named
+  as unknown, never as either.
 - **The null user.** User ID 1 with an empty `Name` is IPMI's
   anonymous login. Anything but `NO ACCESS` in its `Channel Priv
-  Limit` is **WARN**.
+  Limit`, with `Enable Status` `enabled`, is **WARN**.
 - **Intel AMT on the network.** 16992 and 16994 carry no TLS.
   AMT has no `lan print` and so no address of its own in
   `memory/network.md`; `references/listening-services.md` is what

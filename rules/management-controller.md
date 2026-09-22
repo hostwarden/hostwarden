@@ -14,19 +14,20 @@ where a check below would be easier with one.
 
 ## When it applies
 
-The rescue path at the end applies to every host, bare metal or
-not. Detection, recording and the two audit checks apply only to
-a host whose `Virtualization:` line records bare metal, with or
-without the `(user)` marker (`rules/os-detection.md` →
-Virtualization): a virtual machine and a container have no
-controller of their own, and what they would report belongs to
-the machine underneath.
+Every host gets a `Management:` line, because every host can
+have its SSH cut. What fills it differs: on bare metal the probe
+below, and on a virtual machine or a container the machine
+underneath, since a guest has no controller of its own. Detection
+and the two audit checks are bare metal only, on a host whose
+`Virtualization:` line records it with or without the `(user)`
+marker (`rules/os-detection.md` → Virtualization).
 
-Detection runs at first need, never in the onboarding pipeline:
-the probe needs root, and `rules/privilege-escalation.md`
-escalates only for a privileged action that is actually wanted.
-Three moments need it — the rescue path, the housekeeping event
-log and the security audit — and each is already privileged.
+The line is settled at first need, never in the onboarding
+pipeline: the probe needs root, and
+`rules/privilege-escalation.md` escalates only for a privileged
+action that is actually wanted. Three moments need it — the
+rescue path, the housekeeping event log and the security audit —
+and each is already privileged.
 
 A host whose memory has a `Management:` line is settled; read it
 and go on. The one exception is `unknown (no root)`, which is
@@ -148,15 +149,23 @@ this host can reach it:
 - Management: iDRAC (BMC), reachable from the host
 - Management: BMC, not reachable from the host (driver not loaded)
 - Management: Intel AMT, reachable from the host
+- Management: node1.example.com console (Proxmox VE guest)
 - Management: provider console (user)
 - Management: unknown (no root)
 ```
 
-`reachable from the host` is what the two audit checks below
-depend on: without it there is no device node for `ipmitool` to
-open, and both checks list themselves as not checked rather than
-running a command that cannot work. The controller is still the
-rescue path either way — it answers over its own network.
+`reachable from the host` is what the two audit checks depend
+on: without it there is no device node for `ipmitool` to open,
+and both checks list themselves as not checked rather than
+running a command that cannot work.
+
+It also decides whether there is an **address**. `lan print` is
+the only thing that reads one, so a controller the host cannot
+reach has none, and neither has one whose `IP Address` is
+`0.0.0.0`. That a BMC exists is not evidence that its network is
+configured, routed, or reachable from where the user sits — the
+LAN channel may be switched off entirely. Record the controller,
+record no address, and let the rescue path ask.
 
 The controller's **address goes in `memory/network.md`**, under a
 `## Management controllers` heading — one line per host, the
@@ -185,18 +194,28 @@ OS-replacement path in the `hostwarden-os-install` skill send you
 here when a change is about to cut SSH, or already has. Name the
 way back in; never ask the user whether they have one.
 
-- **A virtual machine or a container** has no controller, and its
-  console belongs to the machine underneath. `Virtualization:`
-  names which hypervisor that is — a guest on a Proxmox VE or
-  XCP-ng node is reached from the node's own UI, and where the
-  node is itself a host in memory, name it.
-- **Bare metal** is the `Management:` line, with the address from
-  `memory/network.md`. Settle the line first where the host has
-  none (Detection above); a controller the host cannot reach is
-  still the way back in, because it answers over its own network.
-- **`Management: none (user)`** is the one answer that names no
-  way back in. Say so, and let the user decide whether the change
-  still happens.
+Read the `Management:` line. Where the host has none, settle it
+first:
 
-A machine whose `Virtualization:` line is `unknown` is settled by
-asking the user, once, the way Provider console above asks.
+- **Bare metal** — run Detection above. It gives the controller,
+  and `lan print` gives the address for `memory/network.md`.
+- **A virtual machine or a container** — the console belongs to
+  the machine underneath. `Virtualization:` names the kind of
+  hypervisor, never which machine it is: `kvm` is not a host, and
+  nothing in memory maps a guest to its node. So name the node
+  only where it is already recorded — a `Reached as:` or a
+  network note that says which node this guest runs on — and
+  otherwise ask.
+- **Nothing settled it** — a bare-metal host with no address, a
+  guest whose node nothing names, a `Virtualization: unknown`
+  machine. Ask the Provider console question above, adding the
+  host's own hypervisor or provider as an option where one is
+  known, and record the answer with `(user)`.
+
+Then name the way back in: the controller from `memory.md`, its
+address from `memory/network.md`. Where the line is
+`none (user)`, say that there is no way back in, and let the user
+decide whether the change still happens. Never report a way back
+in that no address or recorded fact supports — a rescue path that
+turns out not to exist is found out after SSH is already gone
+(`rules/verify-before-reporting.md`).

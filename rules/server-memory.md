@@ -107,8 +107,9 @@ from `rules/os-detection.md`; `Guest identity:`,
 `Runs on:` and, on a guest registered through its
 host, `SSH: untested`, from `rules/hypervisors.md`.
 `Management:` comes from
-`rules/management-controller.md`; only a bare-metal
-host has one, and its controller's address lives in
+`rules/management-controller.md` and says how the
+machine is reached when SSH is gone; every host has
+one, and a controller's address lives in
 `memory/network.md`, not here.
 
 **Update memory immediately after any system
