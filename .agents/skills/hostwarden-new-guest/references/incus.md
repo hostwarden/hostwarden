@@ -30,7 +30,8 @@ below carries it, as `rules/system-containers.md` → Reaching It
 says, and the guest's entry in `guests.md` names it (`prod/web3`).
 
 In one call: `incus storage info <pool>` for free space,
-`incus network list --project <project>` for the networks, and
+`incus network list --project <project>` for the networks,
+`incus profile list` for the baseline profiles already there, and
 the host's `free -m` and `nproc`. The instances' limits are in the
 inventory listing.
 
@@ -79,17 +80,14 @@ belongs to this one guest — its hostname, a static address — stays
 where a key would appear in both, it is in the profile only
 (<https://linuxcontainers.org/incus/docs/main/cloud-init/>).
 
-One profile per rendered version, named for it, and never edited
-afterwards:
+One profile per rendered version, named as
+`rules/baseline.md` → Rendered Versions says, and never edited
+afterwards. It is created in the same call as the launch above,
+which gains `-p default -p hostwarden-baseline-<family>-<n>`:
 
 ```bash
 incus profile create hostwarden-baseline-debian-3
 incus profile edit hostwarden-baseline-debian-3 < <file>
-incus launch images:debian/13/cloud web3 \
-  -p default -p hostwarden-baseline-debian-3 \
-  -s <pool> -d root,size=20GiB -c limits.cpu=2 \
-  -c limits.memory=2GiB -c boot.autostart=true \
-  -c cloud-init.user-data="$(cat <file>)"
 ```
 
 The YAML given to `incus profile edit` is the profile's own

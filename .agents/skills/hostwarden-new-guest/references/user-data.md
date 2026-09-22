@@ -37,6 +37,11 @@ the reference names, or under `/run` for a command that reads it
 once. A seed ISO's copy stays on the workstation
 (`references/seed-iso.md`).
 
+Write every version with the editing tool and copy the file: never
+build one on the host from a heredoc, because a drop-in for sshd
+belongs in it, and a command that spells such a path is a write to
+sshd's config whatever it is doing.
+
 Nothing secret goes into either (`rules/secrets.md`): the
 hypervisor's storage and the guest's metadata keep them readable.
 A relay password, a monitoring token and the like are set up after
@@ -227,3 +232,39 @@ cloud-init schema -c /run/hostwarden-user-data.yaml --annotate
 no such host has cloud-init, the first guest's
 `cloud-init status --wait --long` is the check: a schema error
 shows among its errors.
+
+## The seed
+
+Where nothing hands the file to cloud-init at boot — an installed
+system, a container the manager gives no user-data, an image
+prepared beforehand — cloud-init reads it from inside the guest
+instead, out of `/etc/cloud/cloud.cfg.d/90-hostwarden.cfg`:
+
+```yaml
+datasource_list: [NoCloud, None]
+datasource:
+  NoCloud:
+    meta-data: |
+      instance-id: web1.example.com
+    user-data: |
+      #cloud-config
+      # hostwarden-baseline debian-3 (2026-09-22)
+      …
+```
+
+- The user-data is the rendered file, indented under the key. The
+  `instance-id` is the guest's and belongs to the copy, not to the
+  numbered file.
+- Where the manager owns the guest's network, hostname and
+  `/etc/hosts` — a Proxmox VE or an LXC container — add
+  `network: {config: disabled}`, `preserve_hostname: true` and
+  `manage_etc_hosts: false`, so cloud-init leaves them alone.
+- Which file puts it there differs:
+  `references/proxmox-template.md` for the container template,
+  `references/answer-files.md` for an installer,
+  `references/lxc.md` for a container's root filesystem,
+  `references/image-prep.md` for a disk image.
+
+Source:
+<https://docs.cloud-init.io/en/latest/reference/datasources/nocloud.html>,
+Source 1.

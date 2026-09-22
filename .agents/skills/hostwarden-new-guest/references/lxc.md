@@ -9,10 +9,28 @@ and <https://linuxcontainers.org/lxc/documentation/>.
 LXC hands a container no configuration of its own: there is no
 `cloud-init.user-data` key and no cloud-init drive. The baseline
 reaches the container through a seed written into its root
-filesystem before it is started for the first time, which is the
-form `AGENTS.md` → Critical Safety Rules covers. Once
+filesystem before it is started for the first time. Once
 `lxc-start` has run, that door is closed: the container is a
-server, and nothing here applies to it.
+server, and nothing in this file applies to it any more.
+
+## Before the creation
+
+In one call: the defaults, the capacity check, and what the
+download server has.
+
+```bash
+lxc-ls -f
+df -h /var/lib/lxc
+free -m
+nproc
+ip -br link show type bridge
+grep -hs 'lxc.idmap' /etc/lxc/default.conf
+lxc-create -n probe -t download -- --list
+```
+
+The `--list` output names the distribution, release and variant to
+choose from; `lxc.idmap` in the host's defaults says whether
+containers here are unprivileged.
 
 ## The image
 
@@ -44,37 +62,30 @@ distrobuilder's LXC target "disables cloud-init", writing
 (<https://github.com/lxc/distrobuilder/blob/main/generators/cloud-init.go>).
 Nothing starts it while that file is there.
 
-Two writes into `/var/lib/lxc/<name>/rootfs`, before the first
-start, in one call on the host:
+Two writes into `/var/lib/lxc/<name>/rootfs` before the first
+start: take `/etc/cloud/cloud-init.disabled` out of it, and put
+the seed in (`references/user-data.md` → The seed) in its
+manager-owned form, since LXC owns the container's network,
+hostname and `/etc/hosts`.
 
-1. Remove `/etc/cloud/cloud-init.disabled`.
-2. Write `/etc/cloud/cloud.cfg.d/90-hostwarden.cfg` with the
-   rendered container baseline as its seed — the same file
-   `references/answer-files.md` → What the answer file does uses,
-   with `instance-id` set to the container's name.
-
-Copy the seed with `scp` and the options of
-`AGENTS.md` → SSH Options, from a file rendered with the editing
-tool. The container's network, hostname and `/etc/hosts` belong to
-LXC, so the seed keeps `network: {config: disabled}`,
-`preserve_hostname: true` and `manage_etc_hosts: false` as the
-Proxmox VE template does (`references/proxmox-template.md`).
-
-Then, in one call: start it, wait for cloud-init, read the host
-key.
+Those two, the configuration below, the start and the wait go in
+one call: nothing between them needs a decision.
 
 ```bash
 lxc-start -n web4
 timeout 570 lxc-attach -n web4 -- cloud-init status --wait --long
 lxc-attach -n web4 -- cat /etc/ssh/ssh_host_ed25519_key.pub
+lxc-info -n web4 -c lxc.cgroup2.memory.max
 ```
 
 A container whose `cloud-init status` never leaves `not run` has
 the units disabled rather than only the marker file: read
 `lxc-attach -n <name> -- systemctl is-enabled cloud-init.service`
-and report what it says. Do not enable services in a container
-that was meant to configure itself — destroy it, fix the seed, and
-create it again once the user has agreed.
+and report what it says. Do not enable services by hand in a
+container that was meant to configure itself; `SKILL.md` → After
+creation says what becomes of a guest that failed, and removing
+one is the user's explicit request
+(`rules/system-containers.md` → Changes).
 
 ## The container's configuration
 
@@ -95,16 +106,17 @@ first start:
 - An unprivileged container also needs `lxc.idmap` lines, which
   the host's own setup decides. Where the host runs containers
   privileged, say so in the plan in one line rather than changing
-  it.
+  it, and record it on the guest as
+  `rules/system-containers.md` → Privileges says.
 
 ## Limits worth saying out loud
 
 LXC has no resource limits of its own in the sense Incus does:
 `lxc.cgroup2.memory.max` and `lxc.cgroup2.cpu.max` are cgroup
 settings written into the configuration, and what they accept
-depends on the host's cgroup version. Read
-`lxc-info -n <name> -c lxc.cgroup2.memory.max` after the start
-rather than reporting what was asked for.
+depends on the host's cgroup version. The `lxc-info` line in the
+call above reads back what the host enforces; report that, never
+what was asked for.
 
 The memory, CPU and disk figures from the request are still shown
 in the plan, with one line where the host cannot enforce one of

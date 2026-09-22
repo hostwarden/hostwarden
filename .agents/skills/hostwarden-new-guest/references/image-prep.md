@@ -5,7 +5,7 @@ with no cloud-init and no Ignition, a hypervisor that attaches
 neither a seed nor user-data, or a vendor's appliance image the
 user brought. The image is changed on the host while nothing runs
 from it, and the guest that boots from it is booting for the first
-time — the case `AGENTS.md` → Critical Safety Rules covers.
+time (`SKILL.md` → The baseline).
 
 The tool is libguestfs. It "modifies the guest or disk image *in
 place*. The guest must be shut down", and using it "on live virtual
@@ -17,15 +17,15 @@ the disk of a guest that exists.
 
 ## Which image, and the copy
 
-Verify the downloaded image as `references/images.md` says, then
-copy it for this guest and work on the copy. The verified original
-stays untouched, so the next guest starts from a file whose
-checksum still matches the list.
+Work on the copy the platform's reference already makes for this
+guest — `references/libvirt.md` → The disk, and the `import-from`
+of `references/proxmox.md`. The verified original stays untouched,
+so the next guest starts from a file whose checksum still matches
+the list.
 
 A checksum recorded in memory afterwards is the original's, not the
-copy's: the guest's memory records
-`- Origin: <image file>, customised before first boot`, which says
-that the running disk is no longer bit-for-bit what was verified.
+copy's, so the guest's memory records
+`- Origin: <image file>, customised before first boot`.
 
 ## The first choice: give it cloud-init instead
 
@@ -38,9 +38,7 @@ virt-customize -a /var/lib/libvirt/images/web1.qcow2 \
   --copy-in /run/90-hostwarden.cfg:/etc/cloud/cloud.cfg.d
 ```
 
-- The seed is the form `references/answer-files.md` → What the
-  answer file does describes, with `instance-id` set to the
-  guest's name.
+- The seed is `references/user-data.md` → The seed.
 - `--copy-in LOCALPATH:REMOTEDIR` needs the directory to exist
   already; `--mkdir` makes it where it does not.
 - Where the image has no cloud-init but does have a package
@@ -77,9 +75,8 @@ between versions, and this is the one command here that removes
 files rather than adding them. sshd makes new host keys at the
 next boot; nothing is copied in to replace them.
 
-This is not a change to an SSH server that runs. The image is a
-file, the keys in it belong to a boot that is over, and the guest
-they would otherwise be handed to has never started.
+The image is a file and the keys in it belong to a boot that is
+over, so this is not a change to an SSH server that runs.
 
 A freshly downloaded cloud image needs none of this: it has no
 host keys yet.
@@ -91,15 +88,13 @@ manager, no network, a filesystem the appliance owns — leaves only
 one way to a login: writing `authorized_keys` and sshd's drop-in
 into the image itself.
 
-The taboo guard denies that, and the denial is correct as the
-guard stands today even though `AGENTS.md` now allows the case.
-Do not reach the same effect with another tool or another spelling.
-Say in one line that this image can only be prepared by hand, give
-the user the two files and where they go, and stop. What would
-have to change in the guard for Hostwarden to do it is in the pull
-request that added this file, as a patch for the operator to
-apply; until it is applied, the rule and the guard disagree here
-and the guard wins.
+Hostwarden does not write those two files from outside the guest
+(`SKILL.md` → The baseline): a login placed that way is in no
+rendered file and in no version, so nothing afterwards can say
+what the guest was built with. Say in one line that this image can
+be prepared only by hand, give the user each file and where it
+goes, and stop. Replacing the whole OS on such a machine is a
+different workflow with a gate of its own, `hostwarden-os-install`.
 
 ## Checking it
 
@@ -109,7 +104,6 @@ call:
 ```bash
 virt-cat -a /var/lib/libvirt/images/web1.qcow2 \
   /etc/cloud/cloud.cfg.d/90-hostwarden.cfg
-virt-ls -a /var/lib/libvirt/images/web1.qcow2 /etc/cloud
 ```
 
 The seed must come back with the baseline's version line in it. An

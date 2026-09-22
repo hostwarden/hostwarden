@@ -72,6 +72,33 @@ Source: <https://ubuntu.com/docs/public-images/public-images-how-to/verify-image
 
 Source: <https://fedoraproject.org/security/>
 
+## Fedora CoreOS
+
+- Image: `coreos-installer download -s <stream> -p <platform>
+  -f qcow2.xz --decompress`, with `<platform>` `qemu` for libvirt
+  and `proxmoxve` for Proxmox VE. The platform decides what the
+  image reads its Ignition config from, so the wrong one comes up
+  unconfigured.
+- Check: the download verifies the release's signature itself.
+  Read `coreos-installer download --help` on the host for the flag
+  that turns that off, so the plan can say it was not passed.
+
+Source: <https://docs.fedoraproject.org/en-US/fedora-coreos/>
+
+## Flatcar
+
+- Image: `flatcar_production_<platform>_image.img` from the
+  channel, `<platform>` `qemu` or `proxmoxve`.
+- Check: the `.sig` beside it, against the image signing key,
+  fingerprint
+  `F88C FEDE FF29 A5B4 D952 3864 E25D 9AED 0593 B34A`:
+
+  ```bash
+  gpg --verify flatcar_production_qemu_image.img.sig
+  ```
+
+Source: <https://www.flatcar.org/security/image-signing-key/>
+
 ## Keys on the host
 
 `gpg` and `gpgv` on the host import into a keyring of their own

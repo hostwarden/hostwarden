@@ -84,18 +84,12 @@ network-config). Validate it like the user-data, with
 
 ## A guest that reads something other than cloud-init
 
-`--cloud-init` is for images that run cloud-init. Two other shapes
-use the same `virt-install` call with different options, and both
-have their own reference:
-
-- Fedora CoreOS and Flatcar take their Ignition config through
-  `--qemu-commandline` and the firmware config device
-  (`references/ignition.md` → libvirt).
-- A guest installed from an installer tree takes its answer file
-  through `--location`, `--initrd-inject` and `--extra-args`
-  (`references/answer-files.md` → libvirt). That is the only path
-  here that boots an installer rather than importing a disk, so
-  `--import` is left out and the disk is created empty.
+`--cloud-init` is for images that run cloud-init. The call above
+carries Ignition instead for Fedora CoreOS and Flatcar
+(`references/ignition.md` → libvirt), and an installer's answer
+file for a guest that has to be installed
+(`references/answer-files.md` → libvirt). Each names the options
+it changes.
 
 ## Waiting for the first boot
 

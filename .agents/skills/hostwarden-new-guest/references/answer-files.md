@@ -5,8 +5,7 @@ cloud image: a host whose UI can neither import a disk image nor
 attach a seed (`SKILL.md` → Hosts that keep guests to their UI), a
 distribution with no cloud image for this release, or a user who
 asks for the installer. The installer reads the answer file once,
-into a system that has never run, which is what
-`AGENTS.md` → Critical Safety Rules covers.
+into a system that has never run (`SKILL.md` → The baseline).
 
 Four formats, one per family: kickstart for the RHEL family,
 preseed for Debian, autoinstall for Ubuntu, AutoYaST for SUSE.
@@ -28,52 +27,28 @@ Everything else — the SSH user and its keys, sshd's drop-in, the
 firewall, the updater, the journal — is the same rendered file
 every other path uses (`references/user-data.md`), applied by
 cloud-init at the first boot after the install. One rendering, one
-validation, one version recorded in memory. Ubuntu is the
-exception that proves it: its installer takes that same file
-directly.
+validation, one version recorded in memory. Ubuntu's installer
+takes that rendered file as it stands (Autoinstall below).
 
-The seed is the form `references/proxmox-template.md` already
-uses, written to
-`/etc/cloud/cloud.cfg.d/90-hostwarden.cfg` in the installed
-system:
+The seed is `references/user-data.md` → The seed, written into the
+installed system.
 
-```yaml
-datasource_list: [NoCloud, None]
-datasource:
-  NoCloud:
-    meta-data: |
-      instance-id: web1.example.com
-    user-data: |
-      #cloud-config
-      # hostwarden-baseline debian-3 (2026-09-22)
-      …
-```
-
-Source: <https://docs.cloud-init.io/en/latest/reference/datasources/nocloud.html>,
-Source 1.
-
-Because the baseline arrives through cloud-init, a user who has no
-key and asks for a password gets one exactly as
-`references/user-data.md` → Passwords describes it: cloud-init
-makes it in the guest at the first boot and shows it on the
-console. Nothing on the installer side sets a password, and no
-hash is written into an answer file.
+A user with no key who asks for a password gets it from cloud-init
+at the first boot (`references/user-data.md` → Passwords). No
+answer file sets a password or carries a hash.
 
 ## The rendered files
 
-`memory/baseline/<family>-<format>-<n>.<ext>`
-(`rules/baseline.md` → Rendered Versions): `rhel-ks-<n>.cfg`,
-`debian-preseed-<n>.cfg`, `debian-autoinstall-<n>.yaml`,
-`suse-ay-<n>.xml`. Render, number and compare each as
-`references/user-data.md` → Rendering it says. The cloud-init file
-it embeds keeps its own name and number; the answer file records
-which one it carries. The guest's own names — the hostname in the
-installer's network line, the `instance-id` in the seed — go on a
-copy at hand-off and are never numbered.
+`rules/baseline.md` → Rendered Versions names them and says how a
+carrier is numbered: by its own content, recording which rendering
+of the baseline it carries. Render, number and compare each as
+`references/user-data.md` → Rendering it says. The guest's own
+names — the hostname in the installer's network line, the
+`instance-id` in the seed — go on a copy at hand-off and are never
+numbered.
 
-Write them with the editing tool and copy them to the host with
-`scp` and the options of `AGENTS.md` → SSH Options — never from a
-heredoc on the host.
+They are written and copied as `references/user-data.md` →
+Rendering it says, for the same reason.
 
 ## Kickstart — RHEL, Rocky, AlmaLinux, Fedora
 
@@ -123,7 +98,7 @@ d-i passwd/root-login boolean true
 d-i passwd/root-password-crypted password !
 d-i passwd/make-user boolean false
 d-i pkgsel/include string openssh-server qemu-guest-agent cloud-init
-d-i pkgsel/upgrade select full-upgrade
+d-i pkgsel/upgrade select none
 tasksel tasksel/first multiselect standard
 popularity-contest popularity-contest/participate boolean false
 d-i finish-install/reboot_in_progress note
@@ -139,10 +114,18 @@ d-i finish-install/reboot_in_progress note
   passwords is not completely secure as everyone with access to the
   preconfiguration file will have the knowledge of these
   passwords." The preconfiguration file lives on the hypervisor.
-- `preseed/late_command` writes the seed. It runs in the installer,
-  with the installed system mounted at `/target`, and `in-target`
-  runs a command inside it. Keep the file itself out of the command
-  line: put it on the medium beside the preseed and copy it in.
+- `pkgsel/upgrade select none`: the baseline's own
+  `package_upgrade` runs at the first boot, and an upgrade in the
+  installer would download the same packages an hour earlier and
+  can pull a reboot forward into the install.
+- `preseed/late_command` writes the seed. It runs in the
+  installer, with the installed system mounted at `/target`, so
+  the seed rides on the medium beside the preseed and is copied
+  in rather than written out on the command line:
+
+  ```
+  d-i preseed/late_command string cp /cdrom/90-hostwarden.cfg /target/etc/cloud/cloud.cfg.d/90-hostwarden.cfg
+  ```
 - A network the installer needs before it reads the file cannot be
   preseeded; a static address is given as kernel arguments
   (`netcfg/…`) or the installer takes DHCP.
@@ -187,9 +170,7 @@ autoinstall:
   `autoinstall.yaml` on the medium is passed to the installer
   directly and needs neither.
 - The rendered file also carries `shutdown: reboot`, so the guest
-  comes up by itself when the install finishes. It is not in the
-  example above because the word alone reads to the taboo guard as
-  the command that powers a server off.
+  comes up by itself when the install finishes.
 
 ## AutoYaST — SUSE
 
@@ -263,15 +244,16 @@ profile schema in the YaST modules themselves.
 `virt-install` puts the file into the installer's initrd, so
 nothing has to serve it over the network:
 
+The call is `references/libvirt.md` → Creating it, with three
+changes: `--import` and the copied disk give way to `--location`
+and an empty disk of the size asked for, because this guest boots
+an installer rather than a prepared image, and `--cloud-init` to
+the two options that carry the answer file:
+
 ```bash
-virt-install --connect qemu:///system --name web1 \
-  --memory 2048 --vcpus 2 --osinfo almalinux10 \
-  --disk size=20,pool=default,bus=virtio \
-  --network bridge=br0,model=virtio \
   --location /var/lib/libvirt/images/<installer image> \
   --initrd-inject /run/hostwarden-answer.cfg \
-  --extra-args "inst.ks=file:/hostwarden-answer.cfg console=ttyS0" \
-  --graphics none --noautoconsole --autostart
+  --extra-args "inst.ks=file:/hostwarden-answer.cfg console=ttyS0"
 ```
 
 - `--initrd-inject` "Add PATH to the root of the initrd fetched
@@ -286,8 +268,7 @@ virt-install --connect qemu:///system --name web1 \
 - `--location` takes a tree or an installer ISO; a live ISO needs
   its `kernel=` and `initrd=` sub-options. Read
   `virt-install --location=?` on the host rather than guessing the
-  paths inside an image.
-- `--osinfo` is an ID from `virt-install --osinfo list` there.
+  paths inside an image, in that file's Before the creation call.
 
 ### A host whose UI owns the guests
 
@@ -295,8 +276,8 @@ The UI attaches the installer ISO; the answer file rides on a
 second ISO, built as `references/seed-iso.md` builds one. For
 Ubuntu that ISO is the `cidata` seed the installer already looks
 for, and the guest boots with `autoinstall` on its kernel
-command line. For the others the user adds the kernel argument in
-the boot menu once, and the reference above says which.
+command line. For the others the user adds the kernel argument
+from libvirt above in the boot menu, once.
 
 This is what turns "only its installer is left, and that sets a
 password the user types" into a guest that comes up with the
@@ -327,16 +308,23 @@ used:
   so run it only on a host meant for it, never on a production
   server.
 
-The embedded cloud-init file is checked as
-`references/user-data.md` → Checking it says, before it is
-embedded.
+The rendered cloud-init file is checked once, as
+`references/user-data.md` → Checking it says. For autoinstall that
+check is the wrapper's: `cloud-init schema` reads the body under
+`user-data` with it.
 
 ## After creation
 
-`SKILL.md` → After creation, with one difference: there is no
-manager command that enters the guest, and an install takes longer
-than a call may. Wait for the guest's SSH port from the host, then
-go on at step 2 with `-o StrictHostKeyChecking=accept-new` and
+`SKILL.md` → After creation, with one difference: no manager
+command enters the guest, and an install outlasts a call. The wait
+is for the guest's SSH port, from the host:
+
+```bash
+timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
+```
+
+Run it again where it ends first, then report; then go on at step
+2 with `-o StrictHostKeyChecking=accept-new` and
 `cloud-init status --wait --long` over SSH.
 
 The guest's memory gets `- Origin: <installer image>` beside the

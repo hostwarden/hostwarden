@@ -131,9 +131,12 @@ skill says so where it needs it.
      version from `VERSION_ID` and `PRETTY_NAME`. A
      host that matches a marker with base `none` under
      Appliances below has no family, whatever its
-     `ID`. If no family file matches (e.g. Arch,
-     Gentoo), tell the user, proceed cautiously
-     with generic commands, and apply extra
+     `ID`. Neither has an image-based OS that ships no
+     package manager — `VARIANT_ID=coreos` beside
+     `ID=fedora`, or `ID=flatcar` — although its `ID`
+     points at one. If no family file matches (e.g.
+     Arch, Gentoo, those two), tell the user, proceed
+     cautiously with generic commands, and apply extra
      verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.

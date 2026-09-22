@@ -1,17 +1,17 @@
 # Ignition
 
-Fedora CoreOS and Flatcar Container Linux read no cloud-init. They
-take one Ignition config from the platform in the initramfs of the
-first boot and never again: "On first boot, Ignition reads its
-configuration from a source of truth (remote URL, network metadata
-service, hypervisor bridge, etc.) and applies the configuration"
-(<https://coreos.github.io/ignition/>). A config handed to a guest
-that has already booted does nothing, which is why this is the one
-form the first-boot exception in `AGENTS.md` → Critical Safety
-Rules covers here.
+Fedora CoreOS and Flatcar Container Linux read no cloud-init. Write
+the baseline as Butane and transpile it to Ignition JSON; Ignition
+JSON is never written by hand.
 
-The config is written as Butane and transpiled to Ignition JSON;
-Ignition JSON is never written by hand. Sources:
+The guest reads that config once, in the initramfs of its first
+boot, and never again — "On first boot, Ignition reads its
+configuration from a source of truth … and applies the
+configuration" (<https://coreos.github.io/ignition/>). A config
+handed to a guest that has already booted does nothing, so there
+is no second chance and no way to touch a guest that runs.
+
+Sources:
 <https://coreos.github.io/butane/>,
 <https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/>,
 <https://www.flatcar.org/docs/latest/provisioning/>.
@@ -32,20 +32,15 @@ documentation at the time of the creation
 
 ## The rendered file
 
-`memory/baseline/<family>-ign-<n>.bu`, with `<family>` as `fcos` or
-`flatcar` (`rules/baseline.md` → Rendered Versions). Render, number
+`rules/baseline.md` → Rendered Versions names it; `<family>` is
+`fcos` or `flatcar`. Render, number
 and compare it as `references/user-data.md` → Rendering it says;
-only the keys differ. What belongs to this one guest — its
-hostname, its keys where they are not the baseline's, a static
-address — is added to a copy at hand-off and never numbered, as it
-is there. The transpiled `.ign` is a build product of that copy
-and is not kept.
+only the keys differ, and the guest's own hostname and address go
+on the copy there. The transpiled `.ign` is a build product of
+that copy and is not kept.
 
-Write the file with the editing tool and copy it to the host with
-`scp` and the options of `AGENTS.md` → SSH Options. Never build it
-on the host from a heredoc: a drop-in for sshd belongs in it, and
-a command that spells such a path is a write to sshd's config
-whatever it is doing.
+It is written and copied as `references/user-data.md` → Rendering
+it says, for the same reason.
 
 An example carrying the baseline's Admin Keys, SSH Login and
 Journal sections:
@@ -84,8 +79,8 @@ storage:
   the image already has is `core` on both; "a privileged user named
   `core` is created on the Fedora CoreOS system, but it is not
   configured with a default password or SSH key". A user of another
-  name is created by the same list and gets `groups: [sudo, wheel]`
-  as the platform needs.
+  name is created by the same list, with `groups: [wheel]` on
+  Fedora CoreOS and `groups: [sudo]` on Flatcar.
 - Fedora CoreOS already refuses password logins through
   `40-disable-passwords.conf`, and a file that must win over it
   sorts before it. `10-hostwarden.conf` does, and the baseline
@@ -104,7 +99,9 @@ storage:
 ## Transpiling and checking it
 
 `--strict` makes a warning an error, so nothing reaches a guest on
-a config that only nearly parses:
+a config that only nearly parses. The transpile runs in the same
+call as the creation, ahead of it, so a config that does not
+transpile creates nothing:
 
 ```bash
 butane --strict --pretty --output /run/hostwarden.ign /run/hostwarden.bu
@@ -112,8 +109,8 @@ butane --strict --pretty --output /run/hostwarden.ign /run/hostwarden.bu
 
 `--output` rather than a redirect, as the documentation asks
 (<https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/>).
-Where the host has no `butane`, the documented container does the
-same work:
+Where the host has no `butane` — which its Before the creation
+call reports — the documented container does the same work:
 
 ```bash
 podman run --interactive --rm quay.io/coreos/butane:release \
@@ -135,21 +132,20 @@ differs per OS and is not interchangeable:
 - Flatcar: `opt/org.flatcar-linux/config`
   (<https://www.flatcar.org/docs/latest/deploy/virt-options/libvirt/>)
 
+The call is `references/libvirt.md` → Creating it, with
+`--cloud-init` replaced by one option:
+
 ```bash
-virt-install --connect qemu:///system --import --name web1 \
-  --memory 2048 --vcpus 2 --os-variant fedora-coreos-stable \
-  --disk size=20,backing_store=/var/lib/libvirt/images/<image> \
-  --network bridge=br0,model=virtio \
-  --graphics none --noautoconsole --autostart \
   --qemu-commandline="-fw_cfg name=opt/com.coreos/config,file=/var/lib/libvirt/images/web1.ign"
 ```
 
-- Both paths are absolute; the documentation requires it.
+- Both paths in it are absolute; the documentation requires it.
 - Where SELinux is enforcing, the config file needs the label qemu
   may read, `chcon --verbose --type svirt_home_t <file>`, before
-  the first start.
-- `--os-variant`: the ID `virt-install --osinfo list` has on this
-  host. An older database has no `fedora-coreos-*`.
+  the first start. `getenforce` on the host says whether it is,
+  and belongs in that file's Before the creation call.
+- `--osinfo`: the ID this host's database has. An older one has no
+  `fedora-coreos-*`; the newest Fedora it does have is the answer.
 - `--cloud-init` is not used and must not be: the two are separate
   mechanisms and the guest reads only this one.
 
@@ -167,14 +163,17 @@ image is the platform's own build, not the generic one:
   `--cicustom user=<storage>:snippets/<file>.ign`
   (<https://www.flatcar.org/docs/latest/deploy/virt-options/proxmoxve/>).
 
+In the creation call of `references/proxmox.md` → A VM from a
+cloud image, one `qm set` replaces the one that carries the
+user-data snippet:
+
 ```bash
-qm set <vmid> --cicustom vendor=local:snippets/<vmid>-config.ign
-qm set <vmid> --ciupgrade 0
+qm set <vmid> --cicustom vendor=local:snippets/<vmid>-config.ign --ciupgrade 0
 ```
 
 The storage, the snippets directory and everything else about the
-VM are `references/proxmox.md` → A VM from a cloud image. The one
-rule that is new: never give such a VM cloud-init data as well.
+VM are unchanged. The one rule that is new: never give such a VM
+cloud-init data as well.
 "You cannot use both Ignition config and regular cloud-init"; the
 `--ciuser`, `--sshkeys` and `--cipassword` options do nothing here
 and are left out.
@@ -187,26 +186,8 @@ stop rather than improvise one.
 
 ## The image
 
-- **Fedora CoreOS:** `coreos-installer download -s <stream>
-  -p <platform> -f qcow2.xz --decompress`, with `<platform>`
-  `qemu` for libvirt and `proxmoxve` for Proxmox VE. Read what the
-  download verifies from `coreos-installer download --help` on the
-  host before trusting it, and where it verifies nothing, treat the
-  stream's signature list as `references/images.md` does.
-- **Flatcar:** the channel's
-  `flatcar_production_<platform>_image.img` and the `.sig` beside
-  it, checked against the image signing key, fingerprint
-  `F88C FEDE FF29 A5B4 D952 3864 E25D 9AED 0593 B34A`:
-
-  ```bash
-  gpg --verify flatcar_production_qemu_image.img.sig
-  ```
-
-  Import the key into a keyring of this call's own, as
-  `references/images.md` → Keys on the host says. A signature that
-  does not verify stops the creation.
-
-  Source: <https://www.flatcar.org/security/image-signing-key/>.
+`references/images.md` → Fedora CoreOS and → Flatcar. Each
+platform takes its own build of the image, named there.
 
 ## What the baseline means here
 
@@ -221,17 +202,20 @@ finding of this run.
   Flatcar through update-engine. Nothing is installed for it. Read
   the strategy at After creation and record it; a guest whose
   updates were switched off is a finding.
-- **Firewall:** neither ships one enabled. Write the ruleset and
-  the unit that loads it into `storage.files` and `systemd.units`
-  only for the tool the release's own documentation names, read at
-  creation time; do not assume `nftables.service` exists. Where the
-  release documents none, the guest is created without one and the
-  missing firewall is a finding of this run, reported in one line.
+- **Firewall:** neither ships one enabled. The ruleset is the
+  baseline's — incoming denied by default, every port sshd listens
+  on open — written into `storage.files` with the unit that loads
+  it in `systemd.units`, for the tool the release's own
+  documentation names and no other; do not assume
+  `nftables.service` exists. Where the release documents none, the
+  guest is created without a firewall and that is a finding of
+  this run, reported in one line.
 - **SSH Login and Admin Keys:** the Butane config above.
-- **Time Sync:** the image's own service — `systemd-timesyncd` on
-  Flatcar, by its documentation's page on date and time zone
-  (<https://www.flatcar.org/docs/latest/>). Confirm it is running
-  at After creation rather than adding one.
+- **Time Sync:** the image's own service; Flatcar's documentation
+  names `systemd-timesyncd` for its images
+  (<https://www.flatcar.org/docs/latest/>). Add none. At After
+  creation, `timedatectl` on the guest says which service runs and
+  whether the clock is synchronized, and that is what is recorded.
 - **Timezone:** a `/etc/localtime` link under `storage.files`,
   only where the override names one.
 - **Journal:** the drop-in above.
@@ -247,20 +231,26 @@ finding of this run.
 
 `SKILL.md` → After creation, with two differences.
 
-There is no `cloud-init status --wait`. The guest is up when it
-answers on SSH with the keys from the config; Ignition has then
-finished, since it runs before the root filesystem is handed to
-systemd. A guest that never answers has an Ignition failure on its
-console, which the hypervisor shows: read it there rather than
-guessing, and fix the Butane file and create the guest again.
+There is no `cloud-init status --wait`. Ignition runs before the
+root filesystem is handed to systemd, so the guest is done when it
+answers on SSH with the keys from the config. The wait is one call
+on the host, not an SSH retry:
 
-Hostwarden has no family file for an image-based CoreOS
-(`rules/os/`). Detection finds Fedora or Flatcar and the family
-file's package manager does not apply. Record
+```bash
+timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
+```
+
+Run it again where it ends first, then report. A guest that never
+answers has an Ignition failure on its console, which the
+hypervisor shows: read it there rather than guessing, then fix the
+Butane file and create the guest again.
+
+Hostwarden has no family file for an image-based CoreOS. Detection
+knows that and stops at its no-family path
+(`rules/os-detection.md`, step 2): generic commands, extra
+verify-before-running care, and the user told. Record
 `- Origin: <image file>` and `- Baseline: <version> (created
-<date>)` as usual, add `- OS: image-based, no package manager` to
-the guest's memory, and say in one line that housekeeping's
-package and updater checks report not applicable there until a
-family file covers it. Everything else — sshd, the firewall, the
-journal, the audits that read them — is ordinary OpenSSH and
-systemd and holds.
+<date>)` as usual, and say in one line at the hand-over that the
+package and updater checks do not apply there. Everything else —
+sshd, the firewall, the journal, the audits that read them — is
+ordinary OpenSSH and systemd and holds.

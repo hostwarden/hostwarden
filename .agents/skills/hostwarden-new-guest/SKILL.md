@@ -117,40 +117,43 @@ login options and keys. It is the only place: the boundary is the
 guest, not the format. A guest that has already started is a
 server, and every rule for a server applies to it.
 
-Which form the configuration takes follows from the image, not
-from the hypervisor. Most guests take cloud-init; the rest take
-the format their OS or their installer reads:
+Which form it takes follows from what the guest reads at its
+first boot, not from the hypervisor:
 
-| The guest starts from                   | Reference                 |
-| --------------------------------------- | ------------------------- |
-| a cloud image with cloud-init           | `references/user-data.md` |
-| Fedora CoreOS or Flatcar                | `references/ignition.md`  |
-| a distribution's installer              | `references/answer-files.md` |
-| the LXC download template               | `references/lxc.md`       |
-| an image that can take neither          | `references/image-prep.md` |
+| The guest reads          | From                  | Reference         |
+| ------------------------ | --------------------- | ----------------- |
+| user-data from the host  | a cloud image         | `user-data.md`    |
+| a seed in its filesystem | the container template | `proxmox-template.md` |
+| a seed in its filesystem | the LXC download image | `lxc.md`         |
+| a seed in its filesystem | a prepared disk image | `image-prep.md`   |
+| an Ignition config       | Fedora CoreOS, Flatcar | `ignition.md`    |
+| an installer's answers   | an installer ISO or tree | `answer-files.md` |
 
-Every one of them ends at the same place: the rendered baseline,
-one version, recorded in the guest's memory. Ignition renders its
-own file; the others carry the cloud-init one, embedded or seeded.
+All but Ignition carry the one rendered cloud-init file, handed
+over or seeded; Fedora CoreOS and Flatcar run no cloud-init and
+get a rendering of their own. Either way one version is recorded
+in the guest's memory.
 
-One command shape stays blocked whatever the rule allows: copying
-sshd's configuration or keys into a mounted image or an unstarted
-container's root filesystem. Where a path needs that — an image
-with no cloud-init and no way to get it — say so and stop
-(`references/image-prep.md` → Where this path ends). Never reach
-the same effect with another tool or another spelling.
+Hostwarden writes sshd's configuration and keys through the
+mechanism the guest itself reads, never from outside into a
+mounted image or an unstarted container's root filesystem. Where a
+guest has no such mechanism, the files are the user's to place
+(`references/image-prep.md` → Where this path ends).
 
 ## After creation
 
 1. **Wait for the first boot** in one call on the host, as the
    reference shows: a loop there, not an SSH retry
-   (`rules/ssh-unreachable.md`). Where the manager can enter the
-   guest — `pct exec`, `qm guest exec`, `incus exec` — the same
-   call waits for `cloud-init status --wait --long` and reads the
-   public host key; read-only, and only on the guest this run
-   created. A call that ends before cloud-init has reported — out
-   of time, or cut by the reboot `package_reboot_if_required` may
-   cause — is run once more, then reported.
+   (`rules/ssh-unreachable.md`). What that call waits for is the
+   form's own signal — cloud-init reporting done, Ignition the
+   guest answering on SSH with the config's keys, an installer the
+   reboot at the end of the install. Where the manager can enter
+   the guest — `pct exec`, `qm guest exec`, `incus exec` — the
+   same call waits for `cloud-init status --wait --long` and reads
+   the public host key; read-only, and only on the guest this run
+   created. A call that ends before the signal — out of time, or
+   cut by the reboot `package_reboot_if_required` may cause — is
+   run once more, then reported.
 2. **The first login.** Add the host key to `~/.ssh/known_hosts`
    for the name and the address, then log in as usual. Where the
    manager cannot read the key (libvirt), the first login accepts
