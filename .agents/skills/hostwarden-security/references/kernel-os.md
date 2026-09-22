@@ -2,6 +2,15 @@
 
 These checks read sysctl values. No root needed.
 
+**Containers.** A system container or a FreeBSD jail —
+`Virtualization:` in memory names a container — runs on its
+host's kernel (`rules/system-containers.md`), and a kernel-wide
+sysctl read there returns the host's value. There, report ASLR
+and SUID Core Dumps `n/a (container)`. IP Forwarding and ICMP
+Redirect Acceptance belong to the container's own network
+namespace and are judged as below. Which FreeBSD keys a jail
+owns is under FreeBSD.
+
 ## ASLR (Address Space Layout Randomization)
 
 ```bash
@@ -60,7 +69,8 @@ sysctl kern.elf64.aslr.enable kern.elf64.aslr.pie_enable \
   kern.sugid_coredump kern.securelevel \
   security.bsd.see_other_uids security.bsd.see_other_gids \
   security.bsd.see_jail_proc security.bsd.unprivileged_read_msgbuf \
-  security.bsd.unprivileged_proc_debug kern.randompid
+  security.bsd.unprivileged_proc_debug kern.randompid \
+  security.jail.vnet
 ```
 
 | Key | Finding |
@@ -74,6 +84,12 @@ sysctl kern.elf64.aslr.enable kern.elf64.aslr.pie_enable \
 | the five `security.bsd` keys | `1` → **INFO**, one line naming them |
 | `kern.randompid` | `0` → **INFO**, on the same line |
 
+- In a jail, three rows are its own: `kern.securelevel`, never
+  below the host's (`jail(8)`),
+  `security.bsd.unprivileged_proc_debug`, and the `net.inet*`
+  keys where `security.jail.vnet` is `1`, a jail with its own
+  network stack. Every other row reads `n/a (container)`, and
+  the INFO line names `unprivileged_proc_debug` alone.
 - ASLR is on by default on 64-bit platforms. On a 32-bit one
   (`uname -p` shows `i386` or `armv7`) read `kern.elf32.aslr.*`,
   off by default there: **INFO**.
