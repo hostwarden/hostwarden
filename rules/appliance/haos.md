@@ -98,11 +98,9 @@ welcome banner and waits for input.
 - The configuration lives in `/homeassistant` (`/config` links to
   it in the official app). Also mounted: `/share`, `/ssl`,
   `/media`, `/backup`.
-- `rules/backups.md` applies, but keep the copies in
-  `/homeassistant/.hostwarden-backups/`: the app container's own
-  filesystem is replaced when the app updates, and `/share` is
-  shared with any app that maps it, so copies of `secrets.yaml` do
-  not belong there.
+- The backup directory is `/homeassistant/.hostwarden-backups/`.
+  Never `/share`: every app that maps it can read it, and copies of
+  `secrets.yaml` do not belong there.
 - Never print `secrets.yaml` (`rules/secrets.md`).
 - **Config test:** `ha core check` validates the configuration on
   disk. It must pass before any restart.

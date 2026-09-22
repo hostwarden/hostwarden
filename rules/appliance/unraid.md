@@ -106,8 +106,8 @@ repositories on GitHub where the docs are silent.
 - `/boot/config/go` is the documented place for commands that run
   at every boot, as root: ask before adding a line, and show the
   line.
-- `rules/backups.md` applies to `/boot/config`. Keep the copies in
-  `/boot/config/hostwarden-backups/`.
+- `rules/backups.md` applies to `/boot/config`. The backup directory
+  is `/boot/config/hostwarden-backups/`.
 - **Secrets on the boot device** (`rules/secrets.md`):
   `config/shadow`, `config/passwd`, `config/smbpasswd`, the
   WireGuard keys under `config/wireguard/`, and Docker templates,

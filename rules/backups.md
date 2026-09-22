@@ -11,9 +11,8 @@ cp /etc/some/config.conf \
 find "$BACKUP_DIR" -type f -mtime +30 -exec rm -f {} \;
 ```
 
-Where the loaded OS file names another backup directory
-(it does where `/var` is RAM), use that one as
-`BACKUP_DIR`.
+Where the loaded OS file names another backup
+directory, use that one as `$BACKUP_DIR`.
 The cleanup uses `-exec rm` rather than `-delete`, which
 some busybox builds leave out (`rules/busybox.md`).
 
