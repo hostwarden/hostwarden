@@ -450,6 +450,116 @@ ls /lib/modules
 - **INFO** if running kernel differs from installed (reboot
   recommended)
 
+## CPU Microcode
+
+Physical x86 hardware only, decided from the `Virtualization:`
+and `Arch:` lines in server memory, which the pipeline has
+settled before any check runs. Where one of the three
+conditions does not hold, run nothing and report nothing:
+
+- `Virtualization:` names bare metal, whether or not the user
+  set it. In a VM the hypervisor loads the microcode and in a
+  container the host kernel does.
+- `Arch:` names an x86 architecture — `x86_64`, `amd64` or
+  `i686`. Every other architecture takes its CPU firmware from
+  the platform, and has no microcode package.
+- The second part of `Arch:` names Intel or AMD, whatever the
+  brand string around it, and picks the package below. Where
+  it names neither, report the line as recorded and stop.
+
+Run the package query together with the two commands under
+"what the running CPU carries" as one call.
+
+**Debian/Ubuntu:**
+
+```bash
+LC_ALL=C apt-cache policy intel-microcode amd64-microcode \
+  2>/dev/null | grep -E '^[a-z0-9.-]+:$|Installed:|Candidate:'
+```
+
+Expected: `intel-microcode` on Intel, `amd64-microcode` on
+AMD. `LC_ALL=C` keeps the labels English: apt translates
+`Installed:` and `Candidate:` wherever the host has a locale
+for them. `apt-cache` answers from the local lists alone, so a
+`Candidate: (none)` on Debian says the package is in no list
+this host has, not yet why. Read the configured components
+before naming one — the usual cause is that the component
+carrying firmware is not among them, and which component that
+is follows the release (`rules/os/debian.md` → Package
+Sources) — and report an `apt-get update` that failed
+earlier as the cause instead, since it leaves the same
+answer behind.
+
+**RHEL/CentOS/Fedora:**
+
+```bash
+rpm -q microcode_ctl amd-ucode-firmware linux-firmware 2>&1
+```
+
+Expected on Intel: `microcode_ctl`. On AMD the microcode ships
+with the kernel firmware instead — `amd-ucode-firmware` on
+RHEL 10 and Fedora 43 and newer, `linux-firmware` itself on
+RHEL 9 and older. There `amd-ucode-firmware` is absent by
+design and `rpm` says so; the expectation on such a host is
+`linux-firmware` alone.
+
+**SUSE:**
+
+```bash
+rpm -q ucode-intel ucode-amd 2>&1
+```
+
+Expected: `ucode-intel` on Intel, `ucode-amd` on AMD.
+
+**Alpine:** `apk info -e intel-ucode amd-ucode`, which prints
+the names that are installed.
+
+Where the host's own file names no microcode package — another
+family, or an appliance with `Base: none` — the check ends
+here: an image-based system ships microcode inside the image
+and has none to install.
+
+What the running CPU carries:
+
+```bash
+grep -m1 '^microcode' /proc/cpuinfo
+journalctl -k -b --grep=microcode --no-pager -q | tail -3
+```
+
+**Alpine:** `dmesg | grep -i microcode | tail -3` for the
+second command. The same form serves a `journalctl` without
+`--grep`, which systemd gained in 237: on RHEL and CentOS 7
+the option errors out instead of filtering.
+
+Read the log lines by name rather than by the word microcode,
+which every x86 kernel prints at least once: `Updated early
+from: 0x…` (or `updated early to revision 0x…` before kernel
+6.7) is the package's blob reaching the CPU, `revision: 0x… ->
+0x…` is a late load, and `Current revision: 0x…` or the
+`Microcode Update Driver` banner alone says only that the
+driver ran.
+
+- **WARN** if the maker's package is not installed, with the
+  revision from `/proc/cpuinfo` beside it: the operating
+  system has no way to deliver a CPU errata fix to this host.
+  Say that much and no more — the BIOS, UEFI or BMC may carry
+  its own microcode updates, and whether this machine gets
+  them is a question for its vendor, not something the probe
+  answers.
+- **INFO** the loaded revision, and whether a line names an
+  early or late update. A kernel that names none has not said
+  the package is unloaded — before 6.7 it prints nothing when
+  the CPU already carries the packaged revision. What does
+  follow an install is an initramfs rebuild and a reboot,
+  without which the new blob waits.
+
+Sources: https://packages.debian.org/trixie/intel-microcode,
+https://packages.debian.org/trixie/amd64-microcode,
+https://launchpad.net/ubuntu/noble/+source/intel-microcode,
+https://packages.fedoraproject.org/pkgs/microcode_ctl/microcode_ctl/,
+https://packages.fedoraproject.org/pkgs/linux-firmware/amd-ucode-firmware/,
+https://pkgs.alpinelinux.org/packages?name=*ucode*&branch=edge
+
 ## Ubuntu Release and Support
 
 Ubuntu only. The release comes from OS detection; what
