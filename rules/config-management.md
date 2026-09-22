@@ -16,9 +16,13 @@ role) and name the cost as well as the gain.
 
 ## Detect
 
-Two probes, both batched into the activity check's call
-(`rules/ssh-connections.md` — one call per logical step). Neither
-is an SSH call of its own.
+Two probes, batched into the activity check's call
+(`rules/ssh-connections.md` — one call per logical step), so
+neither is an SSH call of its own. One case cannot be: the second
+probe fired by a lead the first has just returned, since that
+trigger is not known until the call is back. It follows in the next
+call, which is another logical step on the same shared connection,
+not another connection.
 
 ### Directories and agent services — every connection
 
@@ -30,11 +34,12 @@ echo "##cm-dirs"; ls -ld /etc/ansible/facts.d /root/.ansible \
 u='ansible|puppet|openvox|chef|cinc|salt[-_](minion|master)'
 u="$u|cfengine|cf-(agent|execd|serverd)|rudder|##cm-units unread"
 echo "##cm-units"
-if [ -d /run/systemd/system ]; then systemctl list-unit-files --no-legend
-elif command -v rc-update >/dev/null 2>&1; then rc-update show
-elif command -v sysrc >/dev/null 2>&1; then sysrc -a
-elif command -v launchctl >/dev/null 2>&1; then launchctl list
-else echo "##cm-units unread"; fi 2>/dev/null | grep -Ei "$u" || true
+{ if [ -d /run/systemd/system ]; then systemctl list-unit-files --no-legend
+  elif command -v rc-update >/dev/null 2>&1; then rc-update show
+  elif command -v sysrc >/dev/null 2>&1; then sysrc -a
+  elif command -v launchctl >/dev/null 2>&1; then launchctl list
+  else false; fi 2>/dev/null || echo "##cm-units unread"; } \
+  | grep -Ei "$u" || true
 ```
 
 Ansible announces itself again through its journal entries
@@ -54,11 +59,16 @@ Manager) and this runs on every connection; OpenRC is read through
 `rc-update show` for the same reason, since `rc-status` writes a
 dependency cache on the way. Each of the two lists what is enabled,
 which is what manages a host; an agent installed and left off shows
-in its directory above. `##cm-units unread` is
-in `$u` so that it survives the filter: a host with none of the
-four says so rather than falling silent, and a service list that
-was not read is not one that held nothing. The `##cm-` prefix keeps
-these headings apart from the Heinzel probe's
+in its directory above.
+
+`##cm-units unread` says the service list was not read, which is
+not the same as one that held nothing. It stands for both ways that
+happens: no branch matched, and the branch that matched failed — a
+lister that exits non-zero prints nothing, and its diagnostic goes
+to `/dev/null` with everything else, so without the `||` an
+unperformed check would read as a clean host. The marker is in `$u`
+as well, so that it survives the filter it is printed into. The
+`##cm-` prefix keeps these headings apart from the Heinzel probe's
 (`rules/heinzel-legacy.md`), which goes into the same call.
 
 ### Cron jobs and rendered files — first connection
@@ -87,7 +97,9 @@ has nothing else to give away. Run them again when:
   line, or a `none` line dated before those runs;
 - the probe above finds a directory, unit or service that the host's
   memory does not account for — no `Config management:` line at all,
-  or one that does not cover it;
+  or one that does not cover it. This is the trigger that arrives
+  too late for the activity check's call; run it in the next one,
+  before reporting the leads;
 - a `Config management: unknown` line is there and this session can
   read what the last one could not;
 - the user says a tool manages the host.
