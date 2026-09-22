@@ -44,29 +44,35 @@ the eye lands on it:
 | ! Automatic-Reboot-Time              | (unset) | (unset) | 05:30   |
 ```
 
-## Needs-root cells
+## Cells without a comparable value
 
-Probes that could not run for lack of privileges (see
-"Privilege handling" in `references/probes.md`) return the
-sentinel `unknown(needs-root)`. Render those cells as
-`needs root`:
+Two sentinels mark a cell that holds nothing to compare:
+
+- `unknown(needs-root)` — the probe could not run for lack of
+  privileges (see "Privilege handling" in
+  `references/probes.md`). Render it as `needs root`.
+- `n/a (<reason>)` — the host's OS family has no such setting,
+  such as the unattended-upgrades keys on Alpine, or a row only
+  another family has. Render it as `n/a`.
 
 ```
 | PermitRootLogin     | prohibit-password | needs root |
 ```
 
-Needs-root cells are **excluded from drift detection**: an
-unreadable value is not a disagreement. Never mark such a
-row with the `!` prefix or list it in "Drift detected"
-solely because one cell reads `needs root` — the other
-hosts' values may still drift against each other. Instead,
-mention the affected hosts once in a one-line note under
-the table, e.g.:
+Both are **excluded from drift detection**: an unreadable or
+missing value is not a disagreement. Never mark such a row
+with the `!` prefix or list it in "Drift detected" solely
+because one cell reads `needs root` or `n/a` — the other
+hosts' values may still drift against each other. A host
+that has no firewall or time service while others have one
+is still drift, whatever its family. Instead, mention
+the affected hosts once in a one-line note under the table,
+e.g.:
 
 ```
 host2: sshd and firewall state unreadable (no root, no
-passwordless sudo) — re-run with a privileged user for
-full coverage.
+passwordless sudo or doas) — re-run with a privileged user
+for full coverage.
 ```
 
 ## Drift detected

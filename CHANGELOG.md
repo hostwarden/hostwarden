@@ -17,6 +17,13 @@
   changes included. `rules/busybox.md` lists the applets
   and flags that break common checks, on OpenWrt and on
   Alpine alike.
+- **The fleet audit covers Alpine hosts.** Each probe
+  that assumed systemd or GNU tools has an Alpine
+  variant: a self-made `apk upgrade` job in place of
+  unattended-upgrades, nftables or awall, busybox
+  `ntpd` or chrony, doas beside sudo, and a kernel
+  waiting for a reboot. Settings Alpine does not have
+  show as `n/a` and never count as drift.
 - **A firewall or network change undoes itself unless SSH
   still works.** Before applying one, Hostwarden arms a
   revert on the host that fires after five minutes, and
