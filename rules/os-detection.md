@@ -370,6 +370,26 @@ type to record:
 A cloud vendor also sells bare-metal machines under
 its own name, so `Amazon EC2` and `Google` count only
 with a `hypervisor` count above 0 where there is one.
+
+Smaller cloud providers run KVM and name themselves in
+DMI, in no row of the type table. Only where case 2
+found a VM do these DMI lines name the provider,
+recorded after the kind; like `Amazon EC2`, the names
+also sit on bare-metal machines. A `sys_vendor` of
+`Hetzner`, `DigitalOcean`, `Vultr`, `UpCloud`,
+`Scaleway`, `Linode`, `Akamai` or `NWCS` is the
+provider as it stands; a `product_name` that starts
+with `Exoscale`, or is `CloudSigma` or `Alibaba Cloud
+ECS`, names `Exoscale`, `CloudSigma` or `Alibaba
+Cloud`.
+The strings are the ones cloud-init's `ds-identify`
+matches
+(https://github.com/canonical/cloud-init/blob/main/tools/ds-identify).
+A hoster that leaves QEMU's DMI in place stays plain
+`kvm (VM)`. Windows has only the type table to find a
+VM, so there a provider's name makes no VM and names
+no hardware vendor either: the host is `unknown`.
+
 On Windows the same strings come from `Manufacturer`
 and `Model` in the `@hardware` part of
 `rules/os/windows.md` → Version Detection.
@@ -385,14 +405,16 @@ are in no row — the kind alone is the type:
 ```
 - Virtualization: none (bare metal)
 - Virtualization: kvm (VM)
+- Virtualization: kvm (VM, Hetzner)
 - Virtualization: unknown (VM)
 - Virtualization: lxc (container)
 - Virtualization: unknown
 ```
 
-What the user says replaces it with `(user)` after
-the kind — `Virtualization: none (bare metal, user)`
-— and is never probed again.
+What the user says replaces it with `user` last in
+the brackets — `Virtualization: none (bare metal,
+user)`, `kvm (VM, Hetzner, user)` — and is never
+probed again.
 
 ## Roles
 
