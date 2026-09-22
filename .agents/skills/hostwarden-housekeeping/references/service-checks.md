@@ -105,7 +105,9 @@ docker ps --format \
 ```
 
 - **CRITICAL** if the daemon does not answer — that says nothing
-  about the containers, never that there are none
+  about the containers, never that there are none. Permission
+  denied on its socket is not this: the check needs the access
+  from `rules/privilege-escalation.md`, or is reported as skipped
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
