@@ -382,9 +382,15 @@ missing — an answer, not a failure:
 
 ```powershell
 if (Get-Command wbadmin -ErrorAction SilentlyContinue) { wbadmin get versions; if ($LASTEXITCODE -ne 0) { "failed: wbadmin exit $LASTEXITCODE" } } else { 'wbadmin: not installed' }
+try { Get-Service -ErrorAction Stop | Where-Object { $_.Name -match 'backup|veeam|acronis|commvault|arcserve|bacula|restic|urbackup|cobian' -or $_.DisplayName -match 'backup' } | Format-Table Name, DisplayName, Status } catch { "failed: $_" }
+try { Get-ScheduledTask -ErrorAction Stop | Where-Object { $_.TaskName -match 'backup' } | Format-Table TaskPath, TaskName, State } catch { "failed: $_" }
 ```
 
-Rate the result, and ask the question it may lead to, as that
+The second and third lines look for another backup product: a
+service or a scheduled task that names one. Any match is a
+mechanism to name and ask about, not an absence. Only when all
+three find nothing is there no mechanism. Rate the result, and
+ask the question it may lead to, as that
 file's Step 0 and Severity sections say.
 
 **Disk, memory and load:**
@@ -410,7 +416,13 @@ titles; the search does not tell security updates apart.
 winget's outdated packages are **INFO** with the count, and
 winget failing over SSH is **INFO**, never a finding.
 
-**System log.** The System-log block under Logs above.
+**System log.** The System-log block under Logs above, and
+for each source over the threshold below, its newest error in
+the same call, with the source name from the counts:
+
+```powershell
+try { Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = '<source>'; Level = 1, 2 } -MaxEvents 1 -ErrorAction Stop | Format-List TimeCreated, Id, Message } catch { "failed: $_" }
+```
 
 - A source with more than 10 errors in the day: **WARN**, with
   the newest message of that source.
@@ -471,13 +483,16 @@ Policy included — name, profile, protocol, local port and remote
 addresses:
 
 ```powershell
-try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; '{0} | {1} | {2} {3} | from {4}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ',') } } catch { "failed: $_" }
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | program {5} | service {6}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), $app, $svc } } catch { "failed: $_" }
 ```
 
 Judge only the rules of the profile in use (Firewall above). A
-port that such a rule opens and that listens is exposed, to the
-remote addresses the rule names. A rule with a local port of
-`Any` opens every port to its program or service: name it.
+rule opens its ports only to its program and service where it
+names one (`Any` means every program or service): a listener
+on that port is exposed, to the remote addresses the rule
+names, when its process is that program or service, or the rule
+names neither. A rule with a local port of `Any` opens every
+port to the program or service it names: name the rule.
 
 **Listening services**, TCP and UDP:
 
