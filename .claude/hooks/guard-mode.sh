@@ -32,9 +32,12 @@
 #     option that reaches past the container into this machine —
 #     --privileged, a host path as a volume or mount, a host
 #     namespace, a device, an added capability, a lifted security
-#     profile, a published port — and so are a build that writes
-#     its result here (--output), a compose file, a kube play and
-#     a volume over a host device, which the guard cannot read.
+#     profile, a published port, a host file or a host variable
+#     read into it (--env-file, --label-file, -e NAME without a
+#     value) — and so are a build that writes its result here
+#     (--output) or reads a secret or the SSH agent from here, a
+#     compose file, a kube play and a volume over a host device,
+#     which the guard cannot read.
 #     Every other verb is denied: exec
 #     reaches whatever container it names, a privileged one of
 #     another project included, and rm, stop, prune and the rest
@@ -366,6 +369,11 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         return p o " host"
       if (o ~ /^--(device|cap-add|volumes-from|rootfs)/) return p o
       if (o ~ /^--publish/ || w ~ /^-[dit]*[pP]/ && w !~ /^--/) return p "publishing a port"
+      # A host file or a host variable read into the container,
+      # where printing the environment shows it.
+      if (o ~ /^--(env-file|label-file|cidfile)$/) return p o
+      if ((o == "--env" || w == "-e") && val(k) !~ /=/) return p o " " val(k) " without a value"
+      if (w ~ /^-e[A-Za-z_]/ && w !~ /=/) return p w " without a value"
       if (o == "--security-opt" && val(k) ~ /unconfined|disable/)
         return p "--security-opt " val(k)
       if (o == "--mount" && (val(k) == "" || val(k) ~ /type=bind|volume-opt|bind-|\$/))
@@ -417,6 +425,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         for (k++; k <= nw; k++)
           if (u[k] ~ /^(-o|--output)(=|$)/ || u[k] ~ /^-o./ || u[k] ~ /^--cache-to/ && (u[k] ~ /type=local/ || u[k + 1] ~ /type=local/))
             return "engine " n " --output, a result written to this machine"
+          else if (u[k] ~ /^--(secret|ssh)(=|$)/)
+            return "engine " n " " u[k] ", a secret of this machine"
       if (w == "" && g == "" || w ~ /^(ps|ls|list|images|inspect|logs|version|info|search|stats|top|port|diff|history|events|df|show|config|help|pull|build)$/)
         return ""
       return "change " n
