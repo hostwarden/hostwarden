@@ -41,18 +41,24 @@ That is what CI runs.
 
 ## What goes where
 
-Two files in `.claude/rules/` hold the conventions for changing
+The files in `.claude/rules/` hold the conventions for changing
 this repository, and the `paths` at the top of each lists the
 files it governs. Read the one that covers what you change:
-[instruction-authoring.md](.claude/rules/instruction-authoring.md)
-for the instruction text — where a new instruction belongs, the
-wrap, the example identifiers allowed — and
-[repo-release.md](.claude/rules/repo-release.md) for releases,
-CI and the checks. Claude Code loads them on its own; every
-other tool has to be pointed at them.
+
+- [instruction-authoring.md](.claude/rules/instruction-authoring.md)
+  for the instruction text — where a new instruction belongs, the
+  wrap, the example identifiers allowed;
+- [repo-release.md](.claude/rules/repo-release.md) for releases,
+  CI and the checks;
+- [pull-requests.md](.claude/rules/pull-requests.md) for taking a
+  pull request from open to merged.
+
+Claude Code loads them on its own; every other tool has to be
+pointed at them.
 
 ## Commits and pull requests
 
 [Conventional Commits](https://www.conventionalcommits.org/)
 for commit messages and pull request titles. Pull requests are
-squash-merged, so the title is what lands on `main`.
+squash-merged, so the title is what lands on `main`. Update a
+branch by rebasing it on `main`, never by merging `main` into it.

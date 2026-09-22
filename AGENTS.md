@@ -357,3 +357,6 @@ landing on `main` tags a release.
 The guard hooks are a backstop, not a sandbox: a review finding about
 a construction built only to evade one is "not a bug: outside the
 guard's scope" (`.claude/rules/repo-release.md` → Guard findings).
+
+Pull requests follow `.claude/rules/pull-requests.md`; read it
+before opening one.
