@@ -136,6 +136,10 @@ check deny "shut''down -r -h now"
 check deny 'shut\down -r -h now'
 check deny 'shut"d"own -h now'
 check deny "mk''fs.ext4 /dev/sda1"
+check deny "shut\$''down -r -h now"
+check deny "shut\$'d'own -r -h now"
+check deny 'shut$""down -r -h now'
+check pass 'echo $HOME$PATH'
 check deny 'ssh root@h "fd\isk /dev/sda"'
 check pass "echo it's fine"
 check pass 'git log --format="%h %s" -5'

@@ -459,13 +459,16 @@ case "$CMD" in
   ;;
 esac
 # The same goes for quotes and backslashes inside a word:
-# shut''down and mk\fs run shutdown and mkfs. A command with one
-# between two word characters is scanned once more with every
-# quote and backslash removed, again beside the original.
+# shut''down, shut$'d'own and mk\fs run shutdown and mkfs. A
+# command with one between two word characters is scanned once
+# more with every quote, backslash and quoting $ removed, again
+# beside the original. A name built from escapes ($'\x64') or
+# variables is out of reach: this is a backstop, not a shell.
 CMDQ=
 case "$CMD$CMDJ" in
-*[[:alnum:]_][\"\'\\\`][[:alnum:]_\"\'\\\`]*)
-  CMDQ=$(printf '%s\n' "${CMDJ:-$CMD}" | tr -d '\\"`'"'")
+*[[:alnum:]_][\"\'\\\`\$][[:alnum:]_\"\'\\\`\$]*)
+  CMDQ=$(printf '%s\n' "${CMDJ:-$CMD}" \
+    | sed -e 's/\$["'\'']//g' -e 's/["'\''`\\]//g')
   ;;
 esac
 SEGS=$(printf '%s\n' "$CMD"
