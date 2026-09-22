@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **OpenMediaVault housekeeping reads SAS disks' SMART health.**
+  It takes `SMART Health Status:` as well as the SATA and NVMe
+  result line, counts a SAS disk's grown defect list with the
+  sector counts, judges NVMe media errors and wear, reads every
+  disk in one call without waking a spun-down one, and reports a
+  disk with no health line as unknown, never as passing.
 - **Pending upgrades on Alpine 3.23 and later are listed
   again.** The Alpine rule now uses `apk list --upgradeable`,
   which apk 2 and apk 3 both accept; apk 3 rejects the
