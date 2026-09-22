@@ -194,8 +194,8 @@ repositories on GitHub where the docs are silent.
   (`rules/version-check.md`); the release notes are at
   <https://docs.unraid.net/category/release-notes/>. Containers and
   plugins update from the Apps, Docker and Plugins tabs, after
-  asking; Check for Updates on those tabs refreshes what
-  housekeeping reads, and is the user's step.
+  asking; running their Check for Updates is the user's step too
+  (see Housekeeping).
 - Downgrading is a manual step on the boot device and the user's to
   take.
 
@@ -264,12 +264,11 @@ repositories on GitHub where the docs are silent.
     smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
   for f in /var/log/plugins/*.plg; do
-    p=${f##*/} t=/tmp/plugins/${f##*/}
+    p=${f##*/}; t=/tmp/plugins/$p
     case $p in unRAIDServer*) continue ;; esac
-    if [ ! -f "$t" ]; then echo "$p unchecked"
-    elif cmp -s "$f" "$t"; then echo "$p $(date -r "$t" +%F)"
-    else echo "$p $(date -r "$t" +%F) $(plugin version "$f") $(plugin version "$t")"
-    fi
+    [ -f "$t" ] || { echo "$p unchecked"; continue; }
+    v=; cmp -s "$f" "$t" || v=" $(plugin version "$f") $(plugin version "$t")"
+    echo "$p $(date -r "$t" +%F)$v"
   done
   docker ps -a --format '{{.Image}}' | sort -u
   j=/var/lib/docker/unraid-update-status.json
@@ -297,10 +296,9 @@ repositories on GitHub where the docs are silent.
   network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
   `plugin check`, which the Plugins tab and the scheduled plugin
   check run, downloads each plugin's newest `.plg` to
-  `/tmp/plugins/`, overwriting the last copy. The loop skips the OS
-  and prints each plugin with the date of its copy, its last check;
-  when the copy differs it adds both versions, and a second newer
-  than the first is an update. A plugin without a copy is
+  `/tmp/plugins/`. The loop skips the OS and prints each plugin with
+  the date of that copy, its last check, and both versions when the
+  copy differs; a newer second version is an update. A plugin without a copy is
   `unchecked`: `/tmp` lives in RAM, so it has not been checked since
   the boot, or it names no `pluginURL` a check could reach. The
   Docker tab's check writes one entry per image to
