@@ -80,8 +80,8 @@ When Remote Login admits only some users, the group
 `dseditgroup -o edit -a deploy -t user com.apple.access_ssh`.
 
 Throughout this skill, read `/Users/deploy` on macOS where it
-says `/home/deploy`, and the group `staff` where it says
-`deploy`.
+says `/home/deploy`, and `staff` where it names the group
+`deploy` (`rules/os/macos.md` → Directory Conventions).
 
 ### Verify
 
