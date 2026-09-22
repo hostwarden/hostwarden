@@ -94,15 +94,11 @@ on this host right now. Both tools administer the
 same machines during a transition, and the journal is
 the only signal they share.
 
-Where the timestamp has no year, a year-old entry
-from a retained file such as Unraid's
-`syslog-previous` can look this fresh. Before
-calling it live, find the file that holds it
-(`grep -l heinzel` over the files the read-back
-opened) and check with `ls -l` that the file changed
-in the last 15 minutes. A file that did not holds
-history, not a live session. An entry from a
-`logread` buffer needs no such check.
+Where the timestamp has no year, an entry from a year
+ago looks just as fresh, and neither the entry nor
+its file can tell the two apart. Report it as
+possibly live, say that its year is unknown, and
+handle it like a live one.
 
 Say so before making any change, and let the user
 decide whether to go ahead, wait, or do it in the
