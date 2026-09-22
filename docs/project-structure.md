@@ -24,6 +24,9 @@ bin/
                          date (called automatically on update)
   hostwarden-doctor       — Check the workstation for the tools
                          Hostwarden runs locally
+  hostwarden-lab          — Disposable containers to try commands
+                         on during development, and lab VMs
+                         for a test clone
 scripts/
   check.sh             — Everything CI checks, runnable locally
 .githooks/             — Opt-in: secret scan on commit, check.sh

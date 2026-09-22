@@ -24,6 +24,30 @@
 #     carries the shim for Bash only, so for Monitor this hook
 #     also denies a blocked tool named without a path, where the
 #     shim would have stood.
+#     Containers are allowed, as bin/hostwarden-lab starts them:
+#     docker, podman and nerdctl may read, pull, build, run and
+#     create on the local engine; --context, --host and their
+#     variables (DOCKER_HOST, CONTAINER_HOST) reach another one,
+#     a server, and are denied. A run or create is denied with an
+#     option that reaches past the container into this machine —
+#     --privileged, a host path as a volume or mount, a host
+#     namespace, a device, an added capability, a lifted security
+#     profile, a published port — and so are a build that writes
+#     its result here (--output), a compose file, a kube play and
+#     a volume over a host device, which the guard cannot read.
+#     Every other verb is denied: exec
+#     reaches whatever container it names, a privileged one of
+#     another project included, and rm, stop, prune and the rest
+#     change containers the lab does not own. The lab's exec and
+#     down run inside bin/hostwarden-lab, where only its own label
+#     is used. On Linux the engine runs as root; on macOS a bind
+#     mount reaches $HOME.
+#     A lab VM is a test server of an operations clone, so orb,
+#     orbctl, limactl and lima are denied where they run a command
+#     in one or copy to or from it. Creating one and reading their
+#     state passes; deleting, stopping or changing a VM is denied,
+#     since it may not be the lab's, and bin/hostwarden-lab vm
+#     down deletes only the ones it created.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -95,9 +119,10 @@ deny() {
 # Before anything is parsed: in development only a Bash or Monitor
 # call is read, and only its command, which cwd and the transcript
 # path are not part of. A Bash command without a path to a blocked
-# tool, command -p, a change to PATH or GIT_SSH_COMMAND holds none
-# of the forms this hook denies. That is nearly every call, and it
-# ends here without a single process. A Monitor call is rare and
+# tool, command -p, a change to PATH, GIT_SSH_COMMAND, a container
+# engine or a VM manager holds none of the forms this hook denies.
+# That is nearly every call, and it ends here without a single
+# process. A Monitor call is rare and
 # always goes on.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
@@ -114,6 +139,9 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
     *\\[nt]PATH=*|*\\[nt]path=*) ;;
     *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
     *GIT_SSH_COMMAND*) ;;
+    *docker*|*podman*|*nerdctl*|*orbctl*|*limactl*) ;;
+    *[!A-Za-z0-9_.-]orb[!A-Za-z0-9_.-]*|*\\[nt]orb[!A-Za-z0-9_.-]*) ;;
+    *[!A-Za-z0-9_.-]lima[!A-Za-z0-9_.-]*|*\\[nt]lima[!A-Za-z0-9_.-]*) ;;
     *) exit 0 ;;
     esac
     ;;
@@ -259,8 +287,15 @@ it may start a tool that reaches a server - install jq"
 # over-block.
 [ -n "$CMD" ] || CMD="$INPUT"
 
-# One line: "deny <what>" for a verdict, or "path <p>" for a path
+# One line: "deny <what>" for a verdict, "engine", "compose" or
+# "vm <what>" for a container or lab VM, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
+#
+# Containers and lab VMs: a container engine named anywhere in a
+# segment, its options read to the end of that segment, where the
+# words after the image are the container's command and can only
+# over-block. orb, orbctl, limactl and lima count as the first word
+# of a segment only, where grep orb docs/ is not.
 FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN {
     RS = "\001"
@@ -300,6 +335,136 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["ssh-agent"] = "aEOPt"
     LA["watch"] = "nq"; LL["watch"] = "interval|equexit"
   }
+  function base(w) { sub(/^.*\//, "", w); return w }
+  function priv(w) { return w ~ /^--privileged/ && w != "--privileged=false" }
+  # The value of option u[k]: after its =, or the next word.
+  function val(k,   x) {
+    if (u[k] !~ /^--[^=]*=/) return u[k + 1]
+    x = u[k]
+    sub(/^[^=]*=/, "", x)
+    return x
+  }
+  # A volume source that is a path: /x, ./x, ~/x, $HOME, a/b. A
+  # plain name is a named volume, one without a colon anonymous. A
+  # $ or nothing at all is a variable or a $(...) the segment split
+  # cut off, which can be any path.
+  function hostvol(x) {
+    if (x == "" || x ~ /\$/) return 1
+    if (x !~ /:/) return 0
+    sub(/:.*/, "", x)
+    return x ~ /^[\/.~$]/ || x ~ /\//
+  }
+  # run <prefix> <from> — what in the options of a run or create
+  # reaches past the container, or "".
+  function run(p, k,   w, o, x) {
+    for (; k <= nw; k++) {
+      w = u[k]
+      o = w
+      sub(/=.*/, "", o)
+      if (priv(w)) return p "--privileged"
+      if (o ~ /^--(pid|net|network|ipc|userns|uts|cgroupns)$/ && val(k) == "host")
+        return p o " host"
+      if (o ~ /^--(device|cap-add|volumes-from|rootfs)/) return p o
+      if (o ~ /^--publish/ || w ~ /^-[dit]*[pP]/ && w !~ /^--/) return p "publishing a port"
+      if (o == "--security-opt" && val(k) ~ /unconfined|disable/)
+        return p "--security-opt " val(k)
+      if (o == "--mount" && (val(k) == "" || val(k) ~ /type=bind|volume-opt|bind-|\$/))
+        return p "--mount with a host path"
+      if (o == "--volume" && hostvol(val(k))) return p "--volume " val(k)
+      # -v, alone or after -d, -i, -t, -P in one word.
+      if (w ~ /^-[ditP]*v/ && w !~ /^--/) {
+        x = w
+        sub(/^-[ditP]*v/, "", x)
+        if (x == "") x = u[k + 1]
+        if (hostvol(x)) return p "-v " x
+      }
+    }
+    return ""
+  }
+  # engine <tool> <from> — the verdict on what follows docker,
+  # podman or nerdctl, category first, or "". Reading, pulling,
+  # building, running and creating pass; everything else is denied.
+  function engine(t, k,   w, n, g) {
+    for (; k <= nw; k++) {
+      w = u[k]
+      if (w ~ /^(-H|--host|-c|--context|--connection|--url|--remote)(=|$)/ || w ~ /^-H./)
+        return "remote " t " " w
+      if (w ~ /^(--config|-l|--log-level)$/) { k++; continue }
+      if (w ~ /^-/) continue
+      # A management group names its verb in the next word.
+      g = ""
+      if (w ~ /^(container|image|volume|network|system|context|builder|buildx|manifest|machine|pod|secret|plugin|compose|kube|play)$/) {
+        g = w
+        for (k++; k <= nw && u[k] ~ /^-/; k++) ;
+        w = u[k]
+      }
+      n = g == "" ? t " " w : t " " g " " w
+      if (w == "run" || w == "create") {
+        if (g == "compose") return "compose " n
+        if (g == "volume") {
+          for (k++; k <= nw; k++)
+            if (u[k] ~ /device=|o=bind/) return "engine " n " over a host path"
+          return ""
+        }
+        if (g != "" && g != "container") return "change " n
+        w = run(n " ", k + 1)
+        return w == "" ? "" : "engine " w
+      }
+      if (g == "compose" && w ~ /^(up|start|restart)$/ || g ~ /^(kube|play)$/ && w ~ /^(play|kube)$/)
+        return "compose " n
+      # A build may leave its result in the image store only.
+      if (w == "build")
+        for (k++; k <= nw; k++)
+          if (u[k] ~ /^(-o|--output)(=|$)/ || u[k] ~ /^-o./ || u[k] ~ /^--cache-to/ && (u[k] ~ /type=local/ || u[k + 1] ~ /type=local/))
+            return "engine " n " --output, a result written to this machine"
+      if (w == "" && g == "" || w ~ /^(ps|ls|list|images|inspect|logs|version|info|search|stats|top|port|diff|history|events|df|show|config|help|pull|build)$/)
+        return ""
+      return "change " n
+    }
+    return ""
+  }
+  # lab — the verdict on this segment for containers and lab VMs.
+  function lab(   i, j, k, b, a, r) {
+    for (i = 1; i <= nw; i++) {
+      b = base(u[i])
+      # Another engine by variable: set in one segment, used in the
+      # next (export DOCKER_HOST=...; docker ps).
+      if (u[i] ~ /^(DOCKER_HOST|DOCKER_CONTEXT|CONTAINER_HOST|CONTAINER_CONNECTION)=/) engvar = u[i]
+      if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
+      if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
+      if (b ~ /^(docker|podman)-compose$/) {
+        for (k = i + 1; k <= nw; k++) if (u[k] ~ /^(up|run|create)$/) return "compose " b " " u[k]
+      } else if (b ~ /^(docker|podman|nerdctl)$/) {
+        r = engine(b, i + 1)
+        if (r != "") return r
+      }
+    }
+    # The first word, past a negation, assignments and the wrappers
+    # that run the next one.
+    j = 1
+    while (j <= nw && (u[j] == "" || u[j] == "!" || u[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ \
+        || u[j] ~ /^(command|exec|env|time|nohup|nice)$/ || j > 1 && u[j] ~ /^-/)) j++
+    if (j > nw) return ""
+    b = base(u[j])
+    a = u[j + 1]
+    # orb runs anything that is not one of its subcommands in a VM;
+    # of those, only creating one and reading state pass.
+    if (b == "orb" || b == "orbctl") {
+      if (a == "") return b == "orb" ? "vm orb, a shell in a lab VM" : ""
+      if (a ~ /^(-h|--help|create|add|new|list|ls|info|status|version|help|logs|doctor|start|docker|k8s)$/) return ""
+      if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|stop|top|update|usb)$/)
+        return "vmchange " b " " a
+      return "vm " b " " a ", a command in a lab VM"
+    } else if (b == "limactl") {
+      for (k = j + 1; k <= nw && u[k] ~ /^-/; k++) ;
+      if (u[k] ~ /^(shell|copy|cp|tunnel)$/) return "vm limactl " u[k] ", in a lab VM"
+      if (k <= nw && u[k] !~ /^(create|start|list|ls|info|help|validate|template|completion)$/)
+        return "vmchange limactl " u[k]
+    } else if (b == "lima" && a != "-h" && a != "--help") {
+      return "vm lima, a command in a lab VM"
+    }
+    return ""
+  }
   {
     s = $0
     # ${VAR} is a variable, not a brace group, and 2>&1 one
@@ -314,6 +479,10 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       # not: SSH.EXE>out runs SSH.EXE, 2> log ssh runs ssh.
       gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg[l])
       nw = split(seg[l], v, /[ \t]+/)
+      split("", u)
+      for (i = 1; i <= nw; i++) { u[i] = v[i]; gsub(/^["\047]+|["\047]+$/, "", u[i]) }
+      r = lab()
+      if (r != "") { print r; exit }
       # env: 1 while the words are options of an env command, 2 when
       # the next word is the value of -u, -C or -S.
       env = rsync = daemon = 0
@@ -414,6 +583,31 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
 
 BLOCKED=
 case "$FOUND" in
+"engine "*)
+  deny "${FOUND#engine } reaches past the container into this \
+machine. A development session runs containers without host \
+access; bin/hostwarden-lab up <family> starts one that way" ;;
+"remote "*)
+  hostwarden_refusal "${FOUND#remote }, another container engine,"
+  emit "$HOSTWARDEN_REFUSAL" ;;
+"vmchange "*)
+  deny "${FOUND#vmchange } deletes, stops or changes a VM that may \
+not be the lab's. bin/hostwarden-lab vm down deletes only the VMs \
+this worktree created" ;;
+"change "*)
+  deny "${FOUND#change } reaches or changes a container, image or \
+volume the lab may not own. A development session reads, pulls, \
+builds, runs and creates; bin/hostwarden-lab exec and down reach \
+and remove only the lab's own containers" ;;
+"compose "*)
+  deny "${FOUND#compose } starts what a file says, which this guard \
+cannot read; bin/hostwarden-lab up <family> starts a container \
+without host access" ;;
+"vm "*)
+  deny "${FOUND#vm } - a lab VM is a test server of the operations \
+clone it was created for, never used from a development session. \
+Next step: hand the question to a session in that clone, which \
+bin/hostwarden-lab list names; how: rules/server-check-handoff.md" ;;
 "deny "*) BLOCKED=${FOUND#deny } ;;
 *)
   # /etc/ssh is a directory, a path in a sentence names nothing,

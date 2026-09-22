@@ -31,6 +31,12 @@ and before every push what the pushed commits need:
 git config core.hooksPath .githooks
 ```
 
+To try a command on a Linux family instead of guessing its
+syntax, install docker or podman (OrbStack provides docker on
+macOS); `bin/hostwarden-lab` runs disposable containers with it.
+What only a full VM can answer goes to a test clone
+([docs/operations.md](docs/operations.md#operations-and-development)).
+
 ## Checks
 
 ```bash
