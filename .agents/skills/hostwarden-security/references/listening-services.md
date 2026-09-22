@@ -62,7 +62,10 @@ automatic severity.
 
 Run this whenever anything listens on port 53 on an address other
 than loopback — Pi-hole, AdGuard Home, unbound, dnsmasq, BIND —
-and from the housekeeping skill's Pi-hole and AdGuard Home checks.
+whenever `pihole-FTL` or `AdGuardHome` listens on any port beyond
+loopback, which is how an unconfigured AdGuard Home with no DNS
+listener yet shows up, and from the housekeeping skill's Pi-hole
+and AdGuard Home checks.
 A resolver that answers any address on the internet is an open
 resolver: it is used to amplify denial-of-service traffic, and
 its operator gets the abuse reports.
@@ -88,13 +91,19 @@ Then read who the resolver answers, from its own configuration.
 pihole-FTL --config -q dns.listeningMode
 pihole-FTL --config -q webserver.port
 pihole-FTL --config -q webserver.acl
+pihole-FTL --config -q misc.etc_dnsmasq_d
+pihole-FTL --config -q misc.dnsmasq_lines
 grep -cE '^ *pwhash = "[^"]' /etc/pihole/pihole.toml
 ```
 
 `dns.listeningMode` `LOCAL`, the default, answers only clients on
 a subnet the host has an interface on. `SINGLE`, `BIND` and `ALL`
-answer any origin that reaches the interface; `NONE` leaves it to
-hand-written dnsmasq files under `/etc/dnsmasq.d`. The web
+answer any origin that reaches the interface. `NONE` leaves it to
+the dnsmasq lines in `misc.dnsmasq_lines` and, only while
+`misc.etc_dnsmasq_d` is `true`, the files in `/etc/dnsmasq.d`:
+read those for `local-service`, `listen-address` or `interface`
+before judging it, and count it as answering any origin only when
+none of them restricts it. The web
 interface listens on `webserver.port`, by default
 `80o,443os,[::]:80o,[::]:443os` — every address; `webserver.acl`
 empty allows every client. The `grep` counts, and never prints,
@@ -131,9 +140,10 @@ a container the published ports from
 past ufw and firewalld.
 
 - **CRITICAL** if port 53 answers any origin (Pi-hole not
-  `LOCAL`, AdGuard Home without `allowed_clients`, any other
-  resolver without an access list) on a public address that the
-  firewall does not restrict — open resolver
+  `LOCAL` and, for `NONE`, not restricted as above; AdGuard Home
+  without `allowed_clients`; any other resolver without an
+  access list) on a public address that the firewall does not
+  restrict — open resolver
 - **CRITICAL** if an AdGuard Home setup wizard is reachable
   beyond loopback
 - **CRITICAL** if the web interface has no password or login and

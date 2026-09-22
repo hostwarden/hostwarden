@@ -270,8 +270,8 @@ Triggered when `memory.md` mentions Pi-hole or AdGuard Home. What
 applies to both:
 
 - **Detection:** the probe in `rules/service-class-check.md` →
-  Installer and container members. In a container, run every
-  command below through `docker exec <container>`.
+  Installer and container members. Each section says which of
+  its commands go through `docker exec <container>`.
 - **Versions:** both are Tier 1 in `rules/version-check.md`, which
   grades the result. Report the update path upstream gives for
   the install type; housekeeping never runs it.
@@ -286,7 +286,8 @@ applies to both:
 
 Pi-hole v6 only (https://docs.pi-hole.net). If `pihole -v` shows
 v5, grade it per `rules/version-check.md` and skip the rest. Run
-as root, in one call:
+as root, in one call; in a container, run all but the first
+command through `docker exec <container>`:
 
 ```bash
 systemctl is-active pihole-FTL 2>/dev/null \
@@ -337,12 +338,21 @@ Sources: https://github.com/AdguardTeam/AdGuardHome, its source
 under `internal/` and the wiki; where the two disagree, the
 source wins. `install.sh` installs to `/opt/AdGuardHome`, with
 `AdGuardHome.yaml` and a `data/` directory beside the binary
-(`/Applications/AdGuardHome` on macOS). The Docker image runs
-`/opt/adguardhome/AdGuardHome` with the configuration in its
-`conf` volume and the data in `work/data`; there, run `$A` through
-`docker exec` and set `C` and `D` to the host side of the volumes,
-which `docker inspect` names. Record paths that differ in
-`memory.md`. Run as root, in one call:
+(`/Applications/AdGuardHome` on macOS). Set the three paths by
+install type before the call:
+
+- **Snap:** the service runs `AdGuardHome -w $SNAP_DATA`
+  (`snap/snap.tmpl.yaml`), so `C` and `D` sit in
+  `/var/snap/adguard-home/current`, snapd's `$SNAP_DATA`; run the
+  binary as `snap run adguard-home`, which takes the same flags.
+- **Docker:** the image runs `/opt/adguardhome/AdGuardHome` with
+  the configuration in its `conf` volume and the data in
+  `work/data`. Run only the binary through `docker exec`; set `C`
+  and `D` to the host side of the volumes, which `docker inspect`
+  names, and run everything else on the host.
+
+Record paths that differ in `memory.md`. Run as root, in one
+call:
 
 ```bash
 A=/opt/AdGuardHome; C=$A/AdGuardHome.yaml; D=$A/data
