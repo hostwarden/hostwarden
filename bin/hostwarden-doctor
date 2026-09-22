@@ -53,8 +53,8 @@ OS=$(uname -s 2>/dev/null)
 # nothing below is worth probing here. WSL 1 reports Linux as well;
 # only its kernel release, which ends in -Microsoft there and names
 # microsoft-standard under WSL 2, tells it apart. docs/install.md
-# supports WSL 2 alone.
-UNSUPPORTED=
+# supports WSL 2 alone, and gets the WSL checks below.
+UNSUPPORTED='' WSL=''
 case "$OS" in
   MINGW*|MSYS*|CYGWIN*)
     UNSUPPORTED="a Unix workstation — on Windows, run Hostwarden in\
@@ -68,6 +68,7 @@ case "$OS" in
         UNSUPPORTED="WSL 2 — this distribution runs on WSL 1; convert\
  it with wsl --set-version ${WSL_DISTRO_NAME:-<distribution>} 2 in\
  PowerShell" ;;
+      *microsoft-standard*) WSL=1 ;;
     esac ;;
 esac
 if [ -n "$UNSUPPORTED" ]; then
@@ -121,7 +122,7 @@ hint() {
 # in its install hint. Features get one hint line each. A tool
 # mise.dev.toml pins goes to MISE_T instead: no package manager
 # has it under that name, mise does.
-NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT=''
+NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT='' WSLM=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
 
 miss() {
@@ -134,6 +135,9 @@ miss() {
     want) WANT="$WANT, $2" WANT_T="$WANT_T $3" ;;
     feat) FEAT="$FEAT
   $2: $(hint "$3")" ;;
+    # A WSL setting: the third argument is the fix, not a package.
+    wsl) WSLM="$WSLM
+  $2: $3" ;;
   esac
 }
 
@@ -187,6 +191,60 @@ mail_ok() {
 
 attach_ok() { has file && has base64; }
 
+# The drives under /mnt are Windows' own filesystem: slow for git,
+# and without Unix permissions unless mounted with metadata.
+in_distro_fs() { case $ROOT in /mnt/?/*) return 1 ;; esac; }
+
+# A key ssh can use from here: a key file ssh would try, or one an
+# agent holds, the one in SSH_AUTH_SOCK or an IdentityAgent from
+# ~/.ssh/config. Keys in Windows' ssh-agent or in a password
+# manager on Windows are not reachable from WSL unless something
+# relays them. Only names are checked, never contents; the common
+# case, a default key file, costs no process.
+key_reachable() {
+  # The names ssh tries on its own (ssh_config(5) → IdentityFile).
+  for f in id_rsa id_ecdsa id_ecdsa_sk id_ed25519 id_ed25519_sk; do
+    [ -f "$HOME/.ssh/$f" ] && return 0
+  done
+  has ssh-add && ssh-add -l >/dev/null 2>&1 && return 0
+  ssh_conf_key "$HOME/.ssh/config" 0
+}
+
+# ssh_conf_key <file> <depth> — an IdentityFile or IdentityAgent
+# that works, in <file> or a file it includes, host blocks too.
+# Read as text, never through ssh -G, which would run any Match
+# exec at every session start. Include nests at most five deep,
+# as a loop of includes must end somewhere.
+ssh_conf_key() {
+  [ "$2" -lt 5 ] && [ -r "$1" ] || return 1
+  while read -r k f; do
+    # Key value, Key=value and Key = value all occur.
+    case $k in *=*) f=${k#*=} k=${k%%=*} ;; esac
+    f=${f#=} f=${f# } f=${f#\"} f=${f%\"}
+    case $f in \~/*) f=$HOME/${f#\~/} ;; esac
+    case $k in
+      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Ff][Ii][Ll][Ee]) [ -f "$f" ] && return 0 ;;
+      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Aa][Gg][Ee][Nn][Tt]) [ -S "$f" ] \
+        && has ssh-add && SSH_AUTH_SOCK=$f ssh-add -l >/dev/null 2>&1 \
+        && return 0 ;;
+      # Several names, each relative to ~/.ssh unless absolute,
+      # each a glob. Split first, glob after the prefix.
+      [Ii][Nn][Cc][Ll][Uu][Dd][Ee])
+        set -f
+        for i in $f; do
+          case $i in \~/*) i=$HOME/${i#\~/} ;; /*) ;; *) i=$HOME/.ssh/$i ;; esac
+          set +f
+          for j in $i; do
+            ssh_conf_key "$j" $(($2 + 1)) && return 0
+          done
+          set -f
+        done
+        set +f ;;
+    esac
+  done < "$1"
+  return 1
+}
+
 [ -n "$QUIET" ] || echo "Required"
 for t in ssh git awk sed grep tar mktemp; do
   probe need "$t" "$t" has "$t"
@@ -223,6 +281,15 @@ else
   probe feat "reachability checks when SSH fails" curl has curl
 fi
 
+# Running inside WSL: what docs/install.md → Windows asks for.
+if [ -n "$WSL" ]; then
+  [ -n "$QUIET" ] || echo "WSL"
+  probe wsl "clone in the distribution's own filesystem" "the clone \
+is on the Windows drive under /mnt; clone it again under ~" in_distro_fs
+  [ -n "$DEV" ] || probe wsl "an SSH key reachable from WSL" "no key \
+in ~/.ssh or in an agent this distribution reaches" key_reachable
+fi
+
 [ -n "$QUIET" ] || echo
 if [ -n "$NEED" ]; then
   fix=''
@@ -237,7 +304,10 @@ fi
 if [ -n "$FEAT" ]; then
   echo "hostwarden: not available on this workstation:$FEAT"
 fi
-if [ -z "$QUIET$NEED$WANT$FEAT" ]; then
+if [ -n "$WSLM" ]; then
+  echo "hostwarden: WSL setup, recommended (docs/install.md → Windows):$WSLM"
+fi
+if [ -z "$QUIET$NEED$WANT$FEAT$WSLM" ]; then
   echo "Everything Hostwarden runs locally is here."
 fi
 

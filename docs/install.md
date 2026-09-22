@@ -92,10 +92,21 @@ up.
 3. Clone into the distribution's own filesystem —
    under `~`, not under `/mnt/c` — as the
    [README](../README.md#steps) describes.
-4. Start Claude Code or OpenCode inside the
+4. Give the distribution an SSH key it can use. The
+   `ssh` inside WSL does not see Windows' ssh-agent or
+   a password manager's agent on Windows. Either keep
+   a key in `~/.ssh` inside the distribution, or relay
+   the Windows agent into WSL with a tool built for
+   that. Pointing `ssh` at Windows' `ssh.exe` does not
+   work: it cannot share a connection, and in a
+   development checkout the guard refuses it.
+5. Start Claude Code or OpenCode inside the
    distribution. In the Claude desktop app, pick the
    distribution in the Code tab's environment picker
    ([Claude Code Desktop in WSL](https://code.claude.com/docs/en/desktop-wsl)).
+
+`bin/hostwarden-doctor` checks steps 3 and 4 inside
+WSL.
 
 Git Bash, PowerShell and `cmd.exe` are not supported
 as the shell Hostwarden itself runs in. The guard
