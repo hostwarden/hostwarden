@@ -201,7 +201,12 @@ of the current release branch,
   OpenWrt has no systemd and ships no `at`. The `at` package from
   the feed arms the revert (ask first: it takes flash, see Package
   Manager); without it, the change is the user's, with console
-  access ready.
+  access ready. rpcd's own timed rollback (`uci apply` with
+  `rollback`, then `uci confirm` over ubus) covers only changes
+  staged in an rpcd session, not those made with the `uci` command;
+  it is what LuCI's Save & Apply uses, so a user without `at` can
+  make the change there. Source:
+  <https://github.com/openwrt/rpcd/blob/master/uci.c>.
 - **Keep every SSH port open from where the user connects.** Read
   every dropbear instance's `Port` and `Interface`
   (`uci show dropbear`) and what actually listens
@@ -257,9 +262,9 @@ of the current release branch,
   ```
   logread | grep -E "hostwarden|heinzel" | tail -20
   ```
-  An empty result covers only the time since the last reboot or
-  the start of the buffer, whichever is shorter; say so, and read
-  the local changelog for older sessions.
+  The buffer can also have rotated past older entries since the
+  boot: an empty result reaches back only to the boot or to the
+  first line `logread` still holds, whichever is later. Say which.
 
 ## Housekeeping and Audits
 

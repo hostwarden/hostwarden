@@ -586,6 +586,22 @@ check pass 'ls -l /etc/dropbear'
 check pass 'dropbearkey -y -f /etc/dropbear/dropbear_ed25519_host_key'
 check pass 'uci set firewall.@defaults[0].syn_flood=1'
 check pass 'uci commit firewall'
+# OpenMediaVault renders sshd_config and rebuilds its
+# authorized_keys directory from the ssh Salt state; deploying that
+# state names neither path.
+check deny 'omv-salt deploy run ssh'
+check deny 'omv-salt deploy run nginx ssh samba'
+check deny 'omv-salt deploy run -q ssh'
+check deny "omv-salt deploy run 'ssh'"
+check deny 'omv-salt deploy run ssh;true'
+check deny 'ssh root@nas "omv-salt deploy run ssh"'
+check deny 'omv-salt stage run deploy'
+check deny 'omv-salt stage run --quiet deploy'
+check pass 'omv-salt deploy run samba'
+check pass 'omv-salt deploy run ssh-notes'
+check pass 'omv-salt deploy list-dirty'
+check pass 'omv-salt stage run prepare'
+check pass 'omv-salt deploy run samba; ssh root@nas uptime'
 check pass 'cat /usr/local/etc/ssh/sshd_config'
 check pass 'grep -r PermitRootLogin /usr/local/etc/ssh/sshd_config.d/'
 check pass 'stat /usr/local/etc/ssh/sshd_config'

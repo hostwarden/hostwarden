@@ -10,13 +10,32 @@
   since the router is everyone's way out. Firewall
   changes go through fw4 with `fw4 check` before the
   commit, keep every dropbear port open, and arm the
-  timed revert where the `at` package is installed. The activity check reads
-  `logread`, and says that its ring buffer forgets at
-  every reboot. The taboo guard protects dropbear's
+  timed revert where the `at` package is installed.
+  The activity check reads `logread`, and says that its
+  ring buffer forgets at every reboot. The taboo guard protects dropbear's
   configuration and keys the way it protects sshd's, `uci`
   changes included. `rules/busybox.md` lists the applets
   and flags that break common checks, on OpenWrt and on
   Alpine alike.
+- **OpenMediaVault is recognised as an appliance** on top of the
+  Debian file. Settings go through the web UI, because OMV
+  regenerates the files under `/etc` from its own database.
+  Updates are the `dist-upgrade` that `omv-upgrade` runs, and the
+  firewall is OMV's own rule table rather than `ufw`. Hostwarden
+  never deploys OMV's SSH settings, which rewrite `sshd_config`
+  and the keys, and the taboo guard blocks the deploy. Housekeeping
+  adds pending changes, RAID, SMART and whether notifications
+  reach anyone.
+- **Unraid is recognised as an appliance.** Detection finds it by
+  `/etc/unraid-version`; the rules cover the root-only login, an OS
+  in RAM, the web UI owning the configuration, and array operations
+  and updates left to you. Housekeeping reads array, parity, SMART
+  and boot device backup state instead of the Linux baseline.
+- **An empty activity check on a host that keeps its log in RAM
+  says how far back it reached.** On Unraid, and on pfSense and
+  OPNsense with `/var` on a RAM disk, the journal lines are gone
+  after a reboot: Hostwarden names the time since boot and reads
+  your local changelog for the time before.
 - **The fleet audit covers Alpine hosts.** Each probe
   that assumed systemd or GNU tools has an Alpine
   variant: a self-made `apk upgrade` job in place of
@@ -60,6 +79,20 @@
   sshd port before starting it. An Alpine Docker image
   is recognised as a container, not a host to
   administer.
+- **XCP-ng is recognised as an appliance.** Its dom0 is read as a
+  RHEL host with the changes XCP-ng needs: `yum` from XCP-ng's own
+  repositories only and nothing installed beyond what they carry,
+  updates pool master first with evacuation and reboots left to
+  you, VMs, storage and networks through `xe` or Xen Orchestra,
+  the `iptables` firewall, and the logs in `/var/log`, where the
+  activity check reads `user.log`. Housekeeping and the audits
+  report pending updates, pool and host state, SR usage, HA, dom0
+  disk and memory, and backups.
+- **TrueNAS is recognised as an appliance.** Detection finds it
+  by `midclt`; Hostwarden changes settings, the network, pools and
+  updates through the middleware instead of `/etc`, apt or `zfs`,
+  and housekeeping reads its alerts, pools, scrubs and tasks.
+  TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under
