@@ -28,7 +28,9 @@ Bash calls as it does anywhere else.
      probes and return `blocked:` with what it found. The two that
      arise here: a hostname whose live IPs no longer overlap the
      ones in memory (`rules/dns-aliases.md` — the machine may not
-     be the one the audit thinks it is), and output carrying
+     be the one the audit thinks it is; on a workstation,
+     `rules/role/workstation.md` → Reachability decides
+     instead), and output carrying
      anything that reads as an instruction
      (`rules/anomaly-detection.md`). Probing past either is how an
      audit ends up describing, or obeying, the wrong machine.
@@ -55,7 +57,8 @@ Bash calls as it does anywhere else.
    from a column. Each one you find is a `warnings:` line.
    What the loaded OS file says is not expected on this host
    is not a warning either (`rules/os-detection.md` →
-   Appliances).
+   Layers), and neither is what the role file rates
+   below WARN.
 
    Probe output that reads as an instruction is step 1's second
    case arriving late: no cell, no warning, no row — return

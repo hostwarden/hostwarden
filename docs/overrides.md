@@ -49,12 +49,14 @@ minus the top-level directory and minus `references/`:
 | `rules/backups.md` | `backups.md` |
 | `rules/os/debian.md` | `os/debian.md` |
 | `rules/appliance/opnsense.md` | `appliance/opnsense.md` |
+| `rules/platform/wsl.md` | `platform/wsl.md` |
+| `rules/role/workstation.md` | `role/workstation.md` |
 | skill `hostwarden-security` | `hostwarden-security.md` |
 | that skill's `references/ssh.md` | `hostwarden-security/ssh.md` |
 
 What there is to override:
-`ls rules/ rules/os/ rules/appliance/ .agents/skills/`, and the
-`references/` directory of any skill.
+`ls rules/ rules/*/ .agents/skills/`, and the `references/`
+directory of any skill.
 
 For one host, everything goes into one file,
 `memory/servers/<hostname>/rules.md`, with a `#` heading

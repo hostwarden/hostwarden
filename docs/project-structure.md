@@ -108,6 +108,13 @@ rules/                 — Upstream rule files (git-tracked)
     openwrt.md         — OpenWrt (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt
+  platform/            — Reference data on top of whichever
+                         family was detected. Detection reads
+                         at most one
+    wsl.md             — Windows Subsystem for Linux
+  role/                — What a machine is expected to have.
+                         Server is the default and has no file
+    workstation.md     — A machine a person works at
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

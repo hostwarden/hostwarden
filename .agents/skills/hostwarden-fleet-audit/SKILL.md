@@ -47,12 +47,23 @@ appliance file's `## Housekeeping and Audits` section says
 how. Otherwise it goes on a "skipped: appliance not yet
 supported" list, decided from memory before any probe runs.
 
+Hosts are compared only within the same role and
+platform as well (`Role:` and `Platform:` in memory): a
+cell the platform file prescribes, such as WSL's firewall,
+never differs from a native host's as drift. The
+`## Housekeeping and Audits` sections of the platform and
+role files apply to the probes (`rules/os-detection.md` →
+Layers).
+
 ## Workflow
 
 1. **Discover hosts.** List directories under
-   `memory/servers/` whose name resolves to a real host
-   (skip placeholders like `server1.example.com` and
-   `192.168.64.20` unless the user names them explicitly).
+   `memory/servers/` whose name resolves to a real host,
+   or whose `memory.md` has a `Reached as:` line, which
+   is then the destination, with `-p` and the
+   `SSH port:` line where there is one (skip placeholders like
+   `server1.example.com` and `192.168.64.20` unless the
+   user names them explicitly).
    **Skip entries that are symlinks** — those are DNS
    aliases of a canonical host already in the list
    (`rules/dns-aliases.md`), and auditing one twice would

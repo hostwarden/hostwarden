@@ -72,6 +72,17 @@ Decide per section of the base with the override prefixes; "this
 file wins wherever the two disagree" leaves the reader to find the
 disagreement on a live firewall.
 
+A platform (`rules/os-detection.md` → Platforms) gets a file in
+`rules/platform/` and a row in that section's marker table. It has
+no `Base:` line and a `## Housekeeping and Audits` section;
+`instructions-test.sh` holds its prefixed headings to the sections
+every family file has.
+
+A role (`rules/os-detection.md` → Roles) gets a file in
+`rules/role/`. It changes no command, only expectations and
+ratings, so it uses no override prefixes: each section says which
+rule, expectation or check it changes, by name.
+
 ## For people and for the agent
 
 `docs/` and the README are written for the person running

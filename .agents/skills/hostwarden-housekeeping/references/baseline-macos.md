@@ -72,8 +72,8 @@ command -v brew &>/dev/null && brew outdated
   --getglobalstate
 ```
 
-- **INFO** if the firewall is off (not WARN — common and less
-  critical on macOS behind NAT)
+- **WARN** if the firewall is off on a server; on a
+  workstation, `rules/role/workstation.md` rates it
 
 ## SMART Disk Status
 

@@ -5,15 +5,43 @@ Each server: `memory/servers/<hostname>/` with
 and optionally `rules.md` (per-server rule
 overrides — see `rules/overrides.md`).
 
+On WSL the directory is
+`<windows-hostname>-wsl-<distribution>`, lowercase:
+every distribution on one Windows machine carries
+the same hostname.
+
+- **The Windows hostname** comes from the Windows
+  side, `hostname.exe` through interop, never from
+  the Linux `hostname`, which `/etc/wsl.conf` can
+  change. Where interop is off, ask the user.
+- **The distribution** is the `WSL_DISTRO_NAME` line
+  under `@platform` (`rules/os-detection.md`). Where
+  that line is empty, as it often is over SSH, ask the
+  user for the name `wsl.exe -l -v` shows; never take
+  the os-release `ID`, which can differ from it.
+
+Its `memory.md` records how the instance is reached:
+`- Reached as: <ssh destination>`.
+
+A WSL instance is found by the Windows hostname and
+the port. When the user names a machine and memory
+holds `<that-hostname>-wsl-*` directories, the one
+whose `SSH port:` matches the
+connection is its memory; none matching is a new
+instance. In local mode, `WSL_DISTRO_NAME` picks the
+directory, and where it is empty, ask which.
+
 **On first connection:** create directory and
 `memory.md` with at least:
 
 ```markdown
 # hostname.example.com
 - IP: 203.0.113.10
+- SSH port: 22
 - OS: Debian 13 (Trixie)
 - Distro family: debian
 - Appliance: Proxmox VE 9.0.3, standalone
+- Role: server (inferred)
 - Shell: bash (root)
 - CPU: 4x Intel Xeon E-2236 @ 3.40GHz
 - RAM: 16 GB
@@ -28,8 +56,11 @@ Hosts without one never had Heinzel state, which is
 the normal case.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
-add `Mode: local` for localhost). `Appliance:` and
-`Shell:` come from `rules/os-detection.md`.
+add `Mode: local` for localhost). `Appliance:`,
+`Platform:`, `Role:` and `Shell:` come from
+`rules/os-detection.md`; `SSH port:` is the `port` line
+of `ssh -G <user>@<hostname>`, which the alias check in
+`rules/dns-aliases.md` compares.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

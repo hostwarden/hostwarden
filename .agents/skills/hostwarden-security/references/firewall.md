@@ -60,6 +60,6 @@ Check Application Firewall status:
   --getglobalstate
 ```
 
-- Disabled → **INFO** (not WARN — common on macOS behind NAT,
-  consistent with housekeeping severity)
+- Disabled → **WARN** on a server; on a workstation,
+  `rules/role/workstation.md` rates it
 - Enabled → OK

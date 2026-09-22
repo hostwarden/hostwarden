@@ -12,15 +12,16 @@ behaviour. Overrides go under `memory/custom-rules/` and into
 Later wins:
 
 1. **Shipped** — the instruction file in `rules/` or a
-   skill. On an appliance, the family file with the
-   appliance file applied on top
-   (`rules/os-detection.md` → Appliances).
+   skill. For a host, the family file with its
+   appliance, platform and role files applied on top
+   (`rules/os-detection.md` → Layers).
 2. **Global** — the file under
    `memory/custom-rules/` that mirrors it, see below.
-   On an appliance, the family file's override and then
-   the appliance file's, both on top of the merged
-   shipped file, so a shipped `Replace:` never takes
-   out what a user wrote.
+   For a host, the override of each layer in the
+   order of `rules/os-detection.md` → Layers, all on
+   top of the merged shipped files,
+   so a shipped `Replace:` never takes out what a user
+   wrote.
 3. **Every file** — `memory/custom-rules/all.md`, loaded
    once at session start and applying to everything.
 4. **This host** — `memory/servers/<hostname>/rules.md`.
@@ -48,6 +49,8 @@ Two shapes, because the shipped tree has two:
 | `rules/backups.md` | `backups.md` |
 | `rules/os/debian.md` | `os/debian.md` |
 | `rules/appliance/opnsense.md` | `appliance/opnsense.md` |
+| `rules/platform/wsl.md` | `platform/wsl.md` |
+| `rules/role/workstation.md` | `role/workstation.md` |
 | skill `hostwarden-security` | `hostwarden-security.md` |
 | that skill's `references/ssh.md` | `hostwarden-security/ssh.md` |
 
@@ -64,7 +67,7 @@ skill named `os` included.
 
 A user who wants to know what can be overridden lists the
 shipped tree:
-`ls rules/ rules/os/ rules/appliance/ .agents/skills/`
+`ls rules/ rules/*/ .agents/skills/`
 and the `references/` directory of any skill.
 
 Per host, one file — `memory/servers/<hostname>/rules.md` —

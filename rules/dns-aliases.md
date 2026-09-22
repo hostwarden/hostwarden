@@ -65,7 +65,17 @@ symlink):
 
 2. **Compare against known servers.** Scan existing
    `memory/servers/*/memory.md` files (skip
-   symlinks) for a matching `- IP:` line.
+   symlinks) for a matching `- IP:` line whose
+   `- SSH port:` also matches the `port` line of
+   `ssh -G <user>@<hostname>`, with the SSH user
+   settled in `rules/first-connection.md` step 3: a
+   `Match user` block can set another port. A file
+   without `- SSH port:` gets one first, from
+   `ssh -G <its user>@<its hostname>`, and records it;
+   never assume 22. The same
+   address on another port is another machine behind
+   a port forward, such as a second WSL distribution
+   on one Windows host: no alias.
 
 3. **Match found -> alias.**
    - Create symlink:
@@ -100,6 +110,14 @@ server memory instead of alarming. Only when there
 is no overlap at all, **stop and tell the user.**
 Ask whether the server migrated (update IP) or the
 alias now points elsewhere (detach it).
+
+The port is part of the identity too. Compare the
+`port` line of `ssh -G <user>@<hostname>` with
+`- SSH port:`, and record it where memory has none.
+A different port is a different machine until the
+user says otherwise, even on a matching IP: **stop
+and tell the user**, whatever the role file says
+about a changed address.
 
 ## Removing an Alias
 
