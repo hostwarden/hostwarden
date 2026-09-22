@@ -1428,12 +1428,20 @@ fi
 # Only the manager's own verb counts: a service stopped or a file
 # deleted inside a guest through exec stays allowed, and so do
 # snapshot, image, network and storage verbs, which carry a noun
-# before theirs. The case prefilter spares every command without a
-# manager's name the greps.
+# before theirs. A --help or -h after the verb prints the syntax
+# and changes nothing, which AGENTS.md -> Verify Before Running
+# asks for before a command is run, so it is exempt, per
+# invocation as every read-only exemption here is. The case
+# prefilter spares every command without a manager's name the
+# greps.
 GUEST=
+# The exemption, read from the verb on: --help or -h before the
+# invocation ends.
+GUESTHELP='^[^;&|]*[[:space:]](--help|-h)([[:space:]]|[;&|]|$)'
 case "$CMD$CMDJ$CMDQ" in
 *pct*|*qm*|*virsh*|*incus*|*lxc*|*vm-*)
-  if full && hit "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)"
+  if full && hit_without "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)" \
+    "$GUESTHELP"
   then
     GUEST=1
   fi
@@ -1442,7 +1450,7 @@ esac
 case "$CMD$CMDJ$CMDQ" in
 *lxc-stop*)
   if full && hit_without '(^|[^[:alnum:]_.-])lxc-stop([^[:alnum:]_.-]|$)' \
-    '(^|[[:space:]])(-r|--reboot)([[:space:]]|$)'
+    "(^|[[:space:]])(-r|--reboot)([[:space:]]|\$)|$GUESTHELP"
   then
     GUEST=1
   fi
