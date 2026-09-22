@@ -97,29 +97,36 @@ appliance file says so by name.
   from a globbed URL.
 - **The workstation frames the answers by their markers, not by
   lines**: everything between two markers is one answer, however
-  many lines it took, joined before it is parsed. A marker is a
-  line that holds exactly the two keys `@` and `code`, the code a
-  string of digits; an answer whose object merely starts with `@`
-  stays an answer:
+  many lines it took, joined before it is parsed. `want` lists the
+  markers' names in the order the requests go out. A line is a
+  marker only when it holds exactly the keys `@` and `code`, the
+  code a string of digits, and names the next request on that list;
+  an answer that carries a line of the same shape stays an answer:
 
   ```
-  jq -Rn '[inputs] as $l
-    | [range($l | length)
-       | select($l[.] | startswith("{\"@\"")
-           and (fromjson? | objects | keys == ["@", "code"]
-             and (.code | strings | test("^[0-9]+$"))) // false)] as $m
+  jq -Rn --argjson want '["<name>", …]' '[inputs] as $l
+    | (reduce range($l | length) as $i ([]; length as $k
+        | if $k < ($want | length)
+             and ($l[$i] | startswith("{\"@\"")
+               and (fromjson? | objects | keys == ["@", "code"]
+                 and .["@"] == $want[$k]
+                 and (.code | strings | test("^[0-9]+$"))) // false)
+          then . + [$i] else . end)) as $m
     | [range($m | length) as $i
        | ($l[(if $i == 0 then 0 else $m[$i-1] + 1 end):$m[$i]]
           | add // "") as $t
        | (if $t == "" then empty else $t | try fromjson
           catch {not_json: true, bytes: ($t | utf8bytelength)} end),
-         ($l[$m[$i]] | fromjson)]'
+         ($l[$m[$i]] | fromjson)]
+      + [{missing: $want[$m | length:]} | select(.missing != [])]'
   ```
 
   It reads the stream once and slices it: an answer rebuilt line by
   line takes minutes once it reaches megabytes. What comes out is
-  an array in which every answer is followed by its marker, and a
-  request whose body was discarded contributes its marker alone.
+  an array in which every answer is followed by its marker, a
+  request whose body was discarded contributes its marker alone,
+  and a last `{"missing": [...]}` names every request whose marker
+  never came.
   Then, before anything reaches the conversation, the filter in
   `rules/secrets.md` → API Credentials on the Workstation, with the
   appliance's own secret fields added to its pattern, and a
@@ -131,10 +138,10 @@ appliance file says so by name.
 - **A task is only done when every marker it expected came back.**
   `jq` accepts an empty stream, so an SSH login that fails, a
   connection that drops or a shell that never starts would
-  otherwise end in a clean-looking empty result. Count the markers
-  against the requests sent, run the local pipeline under
-  `set -o pipefail` so the transport's exit status is not swallowed
-  by `jq`, and report a missing marker as a check that did not run.
+  otherwise end in a clean-looking empty result. Every name under
+  `missing` is a check that did not run, and the local pipeline
+  runs under `set -o pipefail` so the transport's exit status is
+  not swallowed by `jq`.
 - **A read that fails is a check that did not run**, never a clean
   result: a marker whose `code` is not 2xx, or not `0` for a
   command, is reported by name. A failed login means nothing after

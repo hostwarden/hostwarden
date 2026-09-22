@@ -234,8 +234,9 @@ holds one line, `x-api-key: <key>`.
 
   `printf` is a shell builtin, so the key reaches curl without
   showing in a process list; the query in `--data` is no secret.
-  The markers, the framing, and what a failed code means:
-  `rules/appliance-api.md` → Reading.
+  `want` is `"1"` up to the number of requests. The markers, the
+  framing, and what a failed code means: `rules/appliance-api.md`
+  → Reading.
   From the workstation, the same loop runs locally with curl's
   `--unix-socket` replaced by the URL and the pin. The housekeeping
   requests, `unraid-read.jsonl`:

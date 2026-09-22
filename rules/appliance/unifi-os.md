@@ -213,8 +213,9 @@ included
     < ~/hostwarden-keys/<console>/unifi-ro.json | jq -Rn …
   ```
 
-  The markers, the framing, and what a failed login or a code
-  means: `rules/appliance-api.md` → Reading.
+  `want` is `login` followed by each URL as written. The markers,
+  the framing, and what a failed login or a code means:
+  `rules/appliance-api.md` → Reading.
 
 - Secret fields: add `^x_` to the filter's pattern — the classic
   API keeps its secrets in `x_` fields (`x_passphrase`,

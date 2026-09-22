@@ -216,8 +216,9 @@ outside the caller's role answers `Not authorized`.
   Each marker carries `midclt`'s exit status: a method unavailable
   on that release, or refused to the read role, fails there.
   `midclt`'s output format is not documented and an answer may span
-  lines; the markers, the framing, and what a failed code means:
-  `rules/appliance-api.md` → Reading.
+  lines; `want` is the methods in the loop's order. The markers, the
+  framing, and what a failed code means: `rules/appliance-api.md` →
+  Reading.
 
   On the workstation path, unlike `rules/appliance-api.md` →
   Reading, each method is its own `midclt` call and its own login,
