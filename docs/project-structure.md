@@ -109,6 +109,7 @@ rules/                 — Upstream rule files (git-tracked)
     truenas-core.md    — TrueNAS CORE, end of life (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
     synology-dsm.md    — Synology DSM 7.2+ (no base)
+    ugos.md            — UGREEN UGOS Pro (no base)
     unifi-os.md        — UniFi OS consoles: gateways, Cloud Keys,
                          UNAS (no base)
     unraid.md          — Unraid (no base)
