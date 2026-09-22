@@ -145,30 +145,28 @@ outside the caller's role answers `Not authorized`.
   Users > the user > View API Keys, and sets an expiry date rather
   than the default of none. A key has exactly its user's roles, so
   the read key belongs to `api-read` and the write key to the write
-  account. TrueNAS shows the key once; a lost key is reset. A key is
-  not subject to its user's two-factor authentication, and TrueNAS
-  revokes a key that arrives over plain HTTP
+  account. TrueNAS shows the key once; a lost key is reset. **A key
+  is not subject to its user's two-factor authentication, and
+  TrueNAS revokes a key that arrives over plain HTTP**
   (<https://www.truenas.com/docs/scale/25.10/scaletutorials/toptoolbar/managingapikeys/>).
   Each key file holds one line, the key exactly as shown
   (`<id>-<key>`): `truenas-ro.key` for the read key,
   `truenas-rw.key` for the write key.
 - The first read confirms the access: `midclt call auth.me` as the
   read user names the user and its privilege.
-- Server memory records the accounts with their roles,
-  `API read: api-read (Readonly Admin)`; **over SSH there is no key
-  file to name**, so the path after the role appears only on the
-  workstation path.
+- Server memory records `API read: api-read (Readonly Admin)`,
+  with the key file after the role on the workstation path only.
+  `api-read` is an account on the appliance, recorded there, never
+  in `memory/user.md` (`rules/ssh-user.md`): it serves API reads
+  and never replaces the session's SSH user.
 
 ### How a call reaches the API
 
 - **Over SSH, the default**, on every release this file covers.
   `midclt` runs on the host as the SSH user against the local
   socket, so no key exists anywhere and the web UI's port does not
-  have to be reachable. An API key adds nothing here, and the
-  `midclt` that 25.10 ships takes a key only as an argument, which
-  `rules/secrets.md` forbids. The read user has its own SSH login;
-  with the SSH options from `AGENTS.md` it gets its own shared
-  connection.
+  have to be reachable. The `midclt` that 25.10 ships takes a key
+  only as an argument, which `rules/secrets.md` forbids.
 - **From the workstation**, only where SSH stays off or the user
   prefers it, and only against 25.04 and later, recorded as
   `API path: workstation`. The client is `midclt` from TrueNAS's
@@ -190,16 +188,15 @@ outside the caller's role answers `Not authorized`.
   needs; against 26 and later leave it off, and the client uses
   SCRAM, which never sends the key. The client checks the
   certificate's chain and name against the workstation's trust
-  store; `rules/tls-pinning.md` cannot apply, because `midclt` has
-  no pin option. The self-signed certificate TrueNAS creates names
-  only `localhost` (`truenas/truenas_crypto_utils`,
-  `generate_self_signed.py`) and fails that check, so this path
-  needs a certificate for the name the workstation uses, from a CA
-  the workstation trusts, selected under System > General Settings >
-  GUI > Settings > GUI SSL Certificate
+  store; unlike `rules/appliance-api.md` → Reaching the API,
+  `rules/tls-pinning.md` cannot apply, because `midclt` has no pin
+  option. TrueNAS's own self-signed certificate names only
+  `localhost` and fails that check, so this path needs a certificate
+  for the name the workstation uses, from a CA it trusts, selected
+  under System > General Settings > GUI > Settings > GUI SSL
+  Certificate
   (<https://www.truenas.com/docs/scale/25.10/scaletutorials/systemsettings/general/>).
-  Never `--insecure`, and never `ws://`: a key sent over plain HTTP
-  is revoked.
+  Never `--insecure`, and never `ws://`.
 
 ### Reading
 
@@ -215,8 +212,10 @@ outside the caller's role answers `Not authorized`.
   EOF
   ```
 
-  On the workstation path each method is its own `midclt` call and
-  its own login; call only what the task needs.
+  On the workstation path, unlike `rules/appliance-api.md` →
+  Reading, each method is its own `midclt` call and its own login,
+  because the client takes one method per call; call only what the
+  task needs.
 - The filter's pattern gains:
   ```
   passwd|pass_$|bindpw|key$|key_id|hash$|salt|credentials|attributes|compose_config
@@ -229,9 +228,6 @@ outside the caller's role answers `Not authorized`.
   `src/middlewared/middlewared/api/v25_10_0/`). A `select` in the
   query options (Housekeeping and Audits) keeps the host from
   sending the rest.
-- Method names and fields come from the API reference of the
-  installed release, <https://api.truenas.com/v25.10/> for 25.10,
-  which changes between releases.
 
 ### Writing
 
@@ -245,13 +241,12 @@ outside the caller's role answers `Not authorized`.
   is `-`: over SSH
   `ssh … <write-user>@<host> "midclt call <method> <id> -" < body.json`,
   from the workstation `midclt … call <method> <id> - < body.json`.
-  The `midclt` of 24.10 to 25.10 has no `-`, so the body goes as an
-  argument; a body that carries a secret — a password, a cloud key,
-  a private key — is then entered by the user in the web UI, never
-  by Hostwarden.
-- The API has no dry-run. The check is the method's schema in the
-  reference of the installed release (`AGENTS.md` → Verify Before
-  Running), and a wrong body comes back as a validation error.
+  The `midclt` of 24.10 to 25.10 has no `-`, so there, unlike
+  `rules/appliance-api.md` → Writing, the body goes as an argument,
+  and a body that carries a secret — a password, a cloud key, a
+  private key — is entered by the user in the web UI instead.
+- The API has no dry-run; a wrong body comes back as a validation
+  error.
 - Replace: Networking names the one revert the middleware arms by
   itself for a change that can cut the way in.
 
@@ -511,15 +506,15 @@ never replaces it.
   ```
   midclt call api_key.query '[]' '{"select": ["name", "username", "created_at", "expires_at", "revoked", "revoked_reason"]}'
   ```
-  and the roles of the users they name, in the same call:
+  and, in the same call, every user's roles, matched to the keys
+  afterwards:
   ```
-  midclt call user.query '[["username", "in", [<users>]]]' '{"select": ["username", "roles"]}'
+  midclt call user.query '[]' '{"select": ["username", "roles"]}'
   ```
-  Each key with its name, user, the user's roles, expiry and whether
-  it is revoked; never the key, and `keyhash` is not selected. A key
-  without an expiry whose user has Full Admin is WARN: it is not
-  subject to two-factor authentication. A revoked key is INFO with
-  its `revoked_reason` (a key sent over HTTP is revoked). A key whose
-  user no longer exists comes back revoked, with that as the reason.
+  Never the key, and `keyhash` is not selected. A key without an
+  expiry whose user has Full Admin is WARN (see API → Setting up
+  access for why). A revoked key is INFO with its
+  `revoked_reason`; a key whose user no longer exists comes back
+  revoked, with that as the reason.
 - Fleet audit: a missing `unattended-upgrades` or host firewall is
   not drift.
