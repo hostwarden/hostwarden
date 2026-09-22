@@ -445,8 +445,25 @@ esac
 # CMD is final by now, so the split is computed once. The rules
 # below ask dozens of questions of it, and re-forking tr for each
 # of them costs more than the whole rest of the hook.
+#
+# The shell drops a backslash-newline before it reads a word, so
+# shutdown -r -\<newline>h runs shutdown -r -h. A command that
+# holds one is scanned a second time with those lines joined,
+# added beside the original rather than instead of it.
+CMDJ=
+case "$CMD" in
+*'\
+'*)
+  CMDJ=$(printf '%s\n' "$CMD" \
+    | sed -e ':a' -e '/\\$/{' -e 'N' -e 's/\\\n//' -e 'ba' -e '}')
+  ;;
+esac
 SEGS=$(printf '%s\n' "$CMD"
-       printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n')
+       printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n'
+       if [ -n "$CMDJ" ]; then
+         printf '\n%s\n' "$CMDJ"
+         printf '%s' "$CMDJ" | tr ';&|"'"'"'\n' '\n'
+       fi)
 
 segments() {
   printf '%s\n' "$SEGS"
@@ -687,7 +704,7 @@ shutting anything down cleanly"
 fi
 # Both Linux rules need the word itself, so a command without it
 # skips their greps, as the Windows rules do with WIN below.
-case "$CMD" in
+case "$CMD$CMDJ" in
 *shutdown*)
   # Windows' shutdown is judged below, so the Linux rule exempts
   # it rather than lending it its -r: shutdown.exe, or shutdown

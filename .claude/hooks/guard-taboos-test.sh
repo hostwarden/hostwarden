@@ -126,6 +126,12 @@ check deny "shutdown -r -'H' now"
 check deny "shutdown -r \$'-h' now"
 check deny "shutdown -r \$'--poweroff' now"
 check deny 'shutdown -r --h"a"lt now'
+check deny 'shutdown -r -\
+h now'
+check deny 'shut\
+down -h now'
+check deny 'mkfs.ext4 \
+/dev/sda1'
 check deny "shutdown -r --'p'oweroff now"
 check deny 'ssh root@h "shutdown -r '\''-h'\'' now"'
 check deny 'shutdown -r -kh now'
