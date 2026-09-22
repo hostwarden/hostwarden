@@ -5,6 +5,18 @@ Each server: `memory/servers/<hostname>/` with
 and optionally `rules.md` (per-server rule
 overrides — see `rules/overrides.md`).
 
+Two guests can carry the same hostname: the same instance name
+in two Incus or LXD projects, or a VM cloned and never renamed.
+The second one's directory then takes what tells them apart,
+lowercase — the hypervisor host and the project or ID,
+`web-pve1-prod`, `web-pve1-105` — while the first keeps the plain
+name. Its `memory.md` says which guest it is,
+`- Guest: prod/web on pve1.example.com`, and the `Mode: via …`
+line carries the exact command
+(`rules/system-containers.md` → Reaching It). Without that, the
+second guest's onboarding writes over the first one's memory and
+a later session acts on the wrong server.
+
 On WSL the directory is
 `<windows-hostname>-wsl-<distribution>`, lowercase:
 every distribution on one Windows machine carries

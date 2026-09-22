@@ -30,7 +30,23 @@ Through the host's manager, as root inside:
 - **LXC:** `lxc-ls -f`, `lxc-attach -n <ct> -- <cmd>`
 - **Proxmox container:** `pct list`, `pct exec <vmid> -- <cmd>`
 - **Proxmox VM:** `qm guest exec <vmid> -- <cmd>`, after
-  `qm guest cmd <vmid> ping` in the same call
+  `qm guest cmd <vmid> ping` in the same call. It answers with a
+  JSON object, not with the guest's own output and exit status:
+  read the command's output from `out-data`, its errors from
+  `err-data`, and treat any `exitcode` other than 0 as a failed
+  command — a probe whose output is taken from the raw answer
+  reads the serialised JSON as if it were the guest's, and a
+  failed command passes for an answer:
+
+  ```bash
+  qm guest exec 105 -- sh -c '…' \
+    | jq -e '.exitcode == 0' >/dev/null && \
+  qm guest exec 105 -- sh -c '…' | jq -r '."out-data"'
+  ```
+
+  Where a single call has to do, keep the two apart in it: run the
+  probe once, hold the object, then read `exitcode` and `out-data`
+  from what is held.
 
 An Incus or LXD guest lives in a project, and every command
 except `--all-projects` acts in the default one. So carry the

@@ -23,8 +23,12 @@ user-owned files. System config files cannot be
 edited — defer those to the sysadmin report.
 
 On a container or VM whose host Hostwarden can reach
-and change, prefer a snapshot of the whole guest before a risky
-change (`rules/system-containers.md` → Snapshots).
+and change, prefer a snapshot before a risky change. It covers
+the guest's snapshottable storage, not everything the guest
+sees: read its mount points first and back up by file what the
+snapshot leaves out — a bind or device mount point, a volume
+with `backup=0`, an Incus disk device on a host path
+(`rules/system-containers.md` → Snapshots).
 
 Backups made before the rename from Heinzel sit in
 `/var/backups/heinzel/` and `~/.heinzel-backups/`.
