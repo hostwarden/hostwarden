@@ -114,6 +114,7 @@ rules/                 — Upstream rule files (git-tracked)
                          UNAS (no base)
     unraid.md          — Unraid (no base)
     openwrt.md         — OpenWrt (no base)
+    qnap.md            — QNAP QTS and QuTS hero (no base)
     zimaos.md          — ZimaOS (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt

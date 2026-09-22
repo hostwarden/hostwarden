@@ -50,6 +50,7 @@ skill says so where it needs it.
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version; dpkg -l openmediavault;' \
      'cat /etc.defaults/VERSION; ls -d /ugreen;' \
+     'ls -d /etc/config/qpkg.conf;' \
      'ubnt-device-info firmware; ubnt-device-info model;' \
      'echo @virt; uname -m; systemd-detect-virt; openrc --sys;' \
      'ls -d /.dockerenv /run/.containerenv;' \
@@ -234,6 +235,7 @@ the row.
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
 | none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
+| none    | `…/qpkg.conf`        | `rules/appliance/qnap.md`           |
 
 `ii  openmediavault` is the line `dpkg -l` prints for
 the installed package, with its version. `rc` (removed,
@@ -258,6 +260,11 @@ adds to `/etc/os-release`, printed under `@release`.
 Only both together are a match. One without the other
 is none: show the user what the probe printed and ask
 what the host is.
+`…/qpkg.conf` is `/etc/config/qpkg.conf`, the package
+registry of QNAP's QTS and QuTS hero, which `ls -d`
+prints on a line of its own without needing read
+access to it. An error that names the file is no
+match; OpenWrt has an `/etc/config` but no such file.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
