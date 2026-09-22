@@ -125,13 +125,9 @@ repositories on GitHub where the docs are silent.
 From 7.2 on, Unraid has a GraphQL API built in; before, it came
 with the Unraid Connect plugin (<https://docs.unraid.net/API/>). It
 reads what the web UI shows — array, disks, parity, containers, VMs,
-notifications — and changes some of it. Hostwarden uses two access
-levels, set up separately, and the user decides whether the second
-exists at all:
-
-- **Read**: every API read, always, also where write access exists.
-- **Write**: only for a change the user asked for and approved in
-  this session.
+notifications — and changes some of it. The procedure is
+`rules/appliance-api.md`: its access levels, transport, reading and
+writing apply, and this section adds what is Unraid's own.
 
 **Root is the only SSH login, so an API key with the `VIEWER` role
 is the only read-only access Unraid itself enforces.** Over SSH the
@@ -165,25 +161,22 @@ Access → API Keys
 (<https://docs.unraid.net/API/how-to-use-the-api/>), with roles, or
 single permissions of the form `RESOURCE:ACTION`
 (<https://docs.unraid.net/API/programmatic-api-key-management/>).
-A key has no expiry; it is valid until deleted. Each key goes into
-a file the user creates and fills as `rules/secrets.md` → API
-Credentials on the Workstation describes; Hostwarden names the file
-and its one line.
+A key has no expiry; it is valid until deleted. Each key file
+holds one line, `x-api-key: <key>`.
 
 - **Read access: a key `api-read` with the role `VIEWER`**,
   which reads every resource except the API keys
   (`api/src/unraid-api/auth/casbin/policy.ts`). Not `GUEST`, which
   reads only its own profile, and not `CONNECT`, which adds remote
-  access changes. File `unraid-ro.header`, one line:
-  `x-api-key: <key>`.
+  access changes. File `unraid-ro.header`.
 - **Write access: a key `api-write`** with only the
   permissions for what Hostwarden is meant to change, never the
   role `ADMIN`: `DOCKER:UPDATE_ANY` starts and stops containers,
   `VMS:UPDATE_ANY` VMs, `NOTIFICATIONS:UPDATE_ANY` archives
   notifications (the `@UsePermissions` lines of the resolvers under
-  `api/src/unraid-api/graph/resolvers/`). File `unraid-rw.header`,
-  one line: `x-api-key: <key>`. Without it, every change stays what
-  it is today: the user's steps in the web UI.
+  `api/src/unraid-api/graph/resolvers/`). File `unraid-rw.header`.
+  Without it, every change stays what it is today: the user's
+  steps in the web UI.
 - As root on the server, `unraid-api apikey` creates and deletes
   keys too. That is the user's decision and the user's command,
   never Hostwarden's own step: `--create` prints the new key, and
@@ -202,46 +195,29 @@ and its one line.
   `/boot/config/plugins/dynamix.my.servers/keys/`, the value
   included (`api/src/store/modules/paths.ts`, `auth-keys`); see
   Configuration for what that means.
-- The first read confirms the key (see Reading); `API key
-  validation failed` is reported as such and not retried in a loop.
-  Never prove that the read key cannot write by trying a write: the
-  role the user chose is the proof, and the user reads it back on
-  the API Keys page.
-- Record in server memory:
-  ```
-  API read: api-read (VIEWER), ~/hostwarden-keys/<hostname>/unraid-ro.header
-  API write: api-write (DOCKER:UPDATE_ANY), ~/hostwarden-keys/<hostname>/unraid-rw.header
-  API path: ssh
-  ```
-  with the permissions the user actually granted, and
-  `API write: none` when the user wants read access only.
+- A key that fails answers `API key validation failed`. Server
+  memory records `API read: api-read (VIEWER), …/unraid-ro.header`
+  and, for write access, the permissions the user actually granted
+  in place of the role.
 
 ### How a call reaches the API
 
-- **Over SSH, the default.** curl runs on the server against the
-  API's own socket, `/var/run/unraid-api.sock`
-  (`api/src/environment.ts`, `PORT`), so the call needs no web UI
-  port and no certificate. The workstation feeds the key file on
-  stdin, so the key never lands on the server's disk. Because stdin
-  carries it, this call cannot use the `sh -s` bundle
-  (`rules/ssh-connections.md` → Bundle commands).
-- **From the workstation**, for reads without a root session:
-  `API path: workstation`. curl runs locally against
-  `https://<hostname>/graphql`
-  (<https://docs.unraid.net/API/how-to-use-the-api/>), on the HTTPS
-  port set under Settings → Management Access, with the certificate
-  pinned as `rules/tls-pinning.md` describes. With Use SSL/TLS set
-  to No, the key would cross the network in clear: stop, and ask the
-  user to turn HTTPS on or use the SSH path.
+- **Over SSH, the default**, curl talks to the API's own socket,
+  `/var/run/unraid-api.sock` (`api/src/environment.ts`, `PORT`),
+  instead of a loopback address: no web UI port, no certificate.
+- **From the workstation**, the only path that reads without a root
+  session behind it, the URL is `https://<hostname>/graphql`
+  (<https://docs.unraid.net/API/how-to-use-the-api/>) on the HTTPS
+  port set under Settings → Management Access; Use SSL/TLS set to
+  No is the stop `rules/appliance-api.md` names.
 
 ### Reading
 
-- **One call per task.** Stdin carries the key file's line first,
-  then one request body per line from a file in the scratch
-  directory; the server answers each after a JSON marker, so the
-  stream stays parseable. One query per area, never one for all: a
-  field that fails — `docker` with Docker off, `vms` with the VM
-  Manager off — empties its whole query.
+- Stdin carries the key file's line first, then one request body
+  per line from a file in the scratch directory. One query per
+  area, never one for all: a field that fails — `docker` with
+  Docker off, `vms` with the VM Manager off — empties its whole
+  query.
 
   ```
   { cat ~/hostwarden-keys/<hostname>/unraid-ro.header; cat <scratch>/unraid-read.jsonl; } \
@@ -271,16 +247,11 @@ and its one line.
   and `{ vms { domains { name state } } }` read containers and VMs
   when a task is about them.
 
-- **The workstation filters before anything reaches the
-  conversation**: the filter in `rules/secrets.md` → API
-  Credentials on the Workstation, with `^key$|keyfile|guid` added to
-  its pattern. A key's value is the field `key`, a LUKS key file
-  `luksKeyfile`, the license identifiers `flashGuid` and `regGuid`.
-  A query names its fields, so the answer carries nothing else, but
-  the filter runs anyway.
-- An error comes back in `errors` with a message. `Cannot query
-  field` means the installed API does not have that field (see When
-  it applies): report it, never guess another name.
+- The filter's pattern gains `^key$|keyfile|guid`: a key's value
+  is the field `key`, a LUKS key file `luksKeyfile`, the license
+  identifiers `flashGuid` and `regGuid`.
+- An error comes back in `errors`; `Cannot query field` means the
+  installed API does not have that field (see When it applies).
 - Two queries stay out. The top-level `disks` reads SMART through a
   library for every disk, and whether that wakes a spun-down disk is
   not established; SMART stays on SSH. `logFile` reads files the SSH
@@ -288,23 +259,19 @@ and its one line.
 
 ### Writing
 
-- **Only with write access, only after asking**, and only for what
-  the user asked for. Show the mutation and its variables, and name
-  what stops with it: the service a container runs, a VM's users.
-- **Record the state first.** These mutations change run state, not
-  stored configuration: read the object with the read key and keep
-  the answer as `rules/backups.md` → State behind an API describes.
-- **The request goes from a file**, on stdin after the write key's
-  line, the same way reads do; select only `id` in the answer. The
-  API has no dry run: look the mutation and its input up in the
-  schema for the installed version first (see When it applies).
+- Name what stops with a mutation: the service a container runs,
+  a VM's users. The mutations change run state, not stored
+  configuration; the backup is the object read with the read key.
+- The request goes on stdin after the write key's line, the same way
+  reads do, so nothing is copied to the server first; select only
+  `id` in the answer. The API has no dry run: the schema for the
+  installed version is the reference (see When it applies).
 - **What the API can change and this file leaves to the user** stays
   the user's: the array and parity checks (`array`, `parityCheck`),
   plugins (`addPlugin`, `removePlugin`), settings
   (`updateSettings`), and the Connect and remote access mutations.
   The write key does not get those permissions (see Storage and
   Plugins).
-- Read the object back with the read key and compare.
 
 ### What stays on SSH
 
