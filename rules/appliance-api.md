@@ -97,13 +97,17 @@ appliance file says so by name.
   from a globbed URL.
 - **The workstation frames the answers by their markers, not by
   lines**: everything between two markers is one answer, however
-  many lines it took, joined before it is parsed:
+  many lines it took, joined before it is parsed. A marker is a
+  line that holds exactly the two keys `@` and `code`, the code a
+  string of digits; an answer whose object merely starts with `@`
+  stays an answer:
 
   ```
   jq -Rn '[inputs] as $l
     | [range($l | length)
        | select($l[.] | startswith("{\"@\"")
-           and (fromjson? | objects | has("@")) // false)] as $m
+           and (fromjson? | objects | keys == ["@", "code"]
+             and (.code | strings | test("^[0-9]+$"))) // false)] as $m
     | [range($m | length) as $i
        | ($l[(if $i == 0 then 0 else $m[$i-1] + 1 end):$m[$i]]
           | add // "") as $t
@@ -119,12 +123,11 @@ appliance file says so by name.
   Then, before anything reaches the conversation, the filter in
   `rules/secrets.md` → API Credentials on the Workstation, with the
   appliance's own secret fields added to its pattern, and a
-  projection to what the question needs.
-  **A body that is not JSON is never forwarded**,
-  only counted: an error page can echo the request back, and a
-  key-name filter cannot redact a secret inside a string. Its
-  marker's `code` is what the report names; where the body itself
-  is the question, the user reads it on the appliance.
+  projection to what the question needs. **A body that is not JSON
+  is never forwarded**, only counted: an error page can echo the
+  request back, and a key-name filter cannot redact a secret inside
+  a string. Its marker's `code` is what the report names; where the
+  body itself is the question, the user reads it on the appliance.
 - **A task is only done when every marker it expected came back.**
   `jq` accepts an empty stream, so an SSH login that fails, a
   connection that drops or a shell that never starts would
