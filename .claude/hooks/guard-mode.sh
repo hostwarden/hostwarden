@@ -296,11 +296,12 @@ it may start a tool that reaches a server - install jq"
 # "vm <what>" for a container or lab VM, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
 #
-# Containers and lab VMs: a container engine named anywhere in a
-# segment, its options read to the end of that segment, where the
-# words after the image are the container's command and can only
-# over-block. orb, orbctl, limactl and lima count as the first word
-# of a segment only, where grep orb docs/ is not.
+# Containers and lab VMs: a container engine, orb, orbctl, limactl
+# and lima count as the first word of a segment only, past the
+# wrappers lab() names, sh -c among them, so grep orb docs/ and a
+# commit message about docker rm are not. An engine's options are
+# read to the end of that segment, where the words after the image
+# are the container's command and can only over-block.
 FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN {
     RS = "\001"
@@ -441,32 +442,32 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   }
   # lab — the verdict on this segment for containers and lab VMs.
   function lab(   i, j, k, b, a, r) {
-    for (i = 1; i <= nw; i++) {
-      b = base(u[i])
-      # Another engine by variable: set in one segment, used in the
-      # next (export DOCKER_HOST=...; docker ps).
+    # Another engine by variable: set in one segment, used in the
+    # next (export DOCKER_HOST=...; docker ps).
+    for (i = 1; i <= nw; i++)
       if (u[i] ~ /^(DOCKER_HOST|DOCKER_CONTEXT|CONTAINER_HOST|CONTAINER_CONNECTION)=/) engvar = u[i]
-      if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
-      if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
-      if (b ~ /^(docker|podman)-compose$/) {
-        for (k = i + 1; k <= nw && u[k] ~ /^-/; k++)
-          if (u[k] ~ /^(-f|--file|-p|--project-name|--profile|--env-file|--project-directory|--ansi|--parallel|--progress)$/) k++
-        if (u[k] ~ /^(up|start|restart|run|create)$/) return "compose " b " " u[k]
-        if (k <= nw && u[k] !~ /^(ps|ls|images|logs|version|config|top|port|events|pull|build|help)$/)
-          return "change " b " " u[k]
-      } else if (b ~ /^(docker|podman|nerdctl)$/) {
-        r = engine(b, i + 1)
-        if (r != "") return r
-      }
-    }
-    # The first word, past a negation, assignments and the wrappers
-    # that run the next one.
+    # The first word, past a negation, the keywords a command can
+    # follow, assignments and the wrappers that run the next one,
+    # with their options and a number they take: sh -c, timeout 60.
     j = 1
-    while (j <= nw && (u[j] == "" || u[j] == "!" || u[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ \
-        || u[j] ~ /^(command|exec|env|time|nohup|nice)$/ || j > 1 && u[j] ~ /^-/)) j++
+    while (j <= nw && (u[j] == "" || u[j] ~ /^(!|do|then|else|elif|if|while|until)$/ \
+        || u[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ \
+        || base(u[j]) ~ /^(command|exec|env|time|nohup|nice|setsid|timeout|xargs|watch|sh|bash|dash|ksh|zsh)$/ \
+        || j > 1 && (u[j] ~ /^-/ || u[j] ~ /^[0-9][0-9.]*[smhd]?$/))) j++
     if (j > nw) return ""
     b = base(u[j])
     a = u[j + 1]
+    if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
+    if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
+    if (b ~ /^(docker|podman)-compose$/) {
+      for (k = j + 1; k <= nw && u[k] ~ /^-/; k++)
+        if (u[k] ~ /^(-f|--file|-p|--project-name|--profile|--env-file|--project-directory|--ansi|--parallel|--progress)$/) k++
+      if (u[k] ~ /^(up|start|restart|run|create)$/) return "compose " b " " u[k]
+      if (k <= nw && u[k] !~ /^(ps|ls|images|logs|version|config|top|port|events|pull|build|help)$/)
+        return "change " b " " u[k]
+      return ""
+    }
+    if (b ~ /^(docker|podman|nerdctl)$/) return engine(b, j + 1)
     # orb runs anything that is not one of its subcommands in a VM;
     # of those, only creating one and reading state pass.
     if (b == "orb" || b == "orbctl") {
