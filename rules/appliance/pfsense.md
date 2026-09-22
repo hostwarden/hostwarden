@@ -64,8 +64,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   menu path and values. From the shell, only use the documented
   tools below.
 - pfSense keeps the last 30 configs in `/cf/conf/backup/`.
-  `rules/backups.md` still applies, `config.xml` included, and the
-  backup directory is `/root/hostwarden-backups/`.
+  The backup directory is `/root/hostwarden-backups/`, and
+  `config.xml` gets a backup there like any other file.
 - Editing `config.xml` by hand is the last resort: `viconfig`
   (clears the config cache on save), then reapply the affected area
   in the web UI or reboot. The documented safe route is to download
