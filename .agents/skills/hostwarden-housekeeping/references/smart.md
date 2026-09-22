@@ -12,14 +12,19 @@ Every disk in one call:
 ```
 smartctl --scan | while read -r dev x type rest; do
   echo "== $dev $type"
+  [ "$type" = scsi ] && type=auto
   smartctl -n standby -H -A -d "$type" "$dev" | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
 done
 ```
 
-`--scan` prints each disk as `<device> -d <type> # …`. The type
-is passed on so a disk behind a USB bridge is still read, and it
-goes in the label: behind a RAID controller several disks share
-one device node (`/dev/bus/0 -d megaraid,0`, `megaraid,1`, …).
+`--scan` prints each disk as `<device> -d <type> # …` without
+opening it, so on Linux every `/dev/sd*` disk is `scsi` there, SATA
+disks included. `-d scsi` turns off the detection that reads a
+SATA disk through its SCSI layer or a USB bridge, and the ATA
+attributes with it, so the loop hands those disks to `-d auto`.
+Any other type is passed on and goes in the label: behind a RAID
+controller several disks share one device node
+(`/dev/bus/0 -d megaraid,0`, `megaraid,1`, …).
 
 A caller that names its own disk list loops over that list with
 this `smartctl … | grep -E` line verbatim, leaving out `-d`.
@@ -40,8 +45,8 @@ this `smartctl … | grep -E` line verbatim, leaving out `-d`.
   SLEEP alone and prints `Device is in STANDBY mode` (or `SLEEP`)
   in place of the rest.
 
-The strings are smartmontools' own (`ataprint.cpp`,
-`scsiprint.cpp`, `smartctl.cpp`).
+The strings and the scan behaviour are smartmontools' own
+(`ataprint.cpp`, `scsiprint.cpp`, `smartctl.cpp`, `os_linux.cpp`).
 
 ## Findings
 
