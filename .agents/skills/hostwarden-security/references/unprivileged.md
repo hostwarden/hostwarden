@@ -20,9 +20,8 @@ Many checks in this audit work without root:
 On FreeBSD, root is needed for `sshd -T`, `/etc/master.passwd`,
 the pf and ipfw rules, and `/var/log/setuid.today`.
 
-On macOS, `Operation not permitted` even as root is privacy
-protection (`rules/os/macos.md` → Common Pitfalls): list the check
-under Skipped.
+On macOS, checks on protected paths follow `Full disk access:` in
+memory (`rules/os/macos.md` → Privacy Protection (TCC)).
 
 If a check cannot be performed due to missing privileges, do not
 skip it silently. Add it to the report:

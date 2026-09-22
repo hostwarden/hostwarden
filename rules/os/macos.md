@@ -148,17 +148,15 @@ Open protected directories without printing what is in them;
 only a refusal reaches the output:
 
 ```bash
-for d in "$HOME/Library/Mail" "$HOME/Library/Safari"; do
-  ls "$d" > /dev/null
-done
-sudo -n true 2>/dev/null \
-  && sudo -n ls "/Library/Application Support/com.apple.TCC" > /dev/null
+ls "$HOME/Library/Mail" "$HOME/Library/Safari" > /dev/null
+sudo -n ls "/Library/Application Support/com.apple.TCC" > /dev/null
 ```
 
-- `Operation not permitted` on any of them → `off`.
-- The root line ran without an error → `on`.
-- Otherwise, a user directory opened without an error → `on`;
-  only `No such file or directory` → `unknown`.
+- `Operation not permitted` anywhere → `off`.
+- The `sudo` line printed nothing → `on`.
+- Otherwise, a user directory printed nothing → `on`; only
+  `No such file or directory` and `sudo: a password is required`
+  → `unknown`.
 
 With `off`, a workflow lists its checks on protected paths
 (Time Machine settings, Mail, Safari, other apps' data under
@@ -260,10 +258,6 @@ port alone:
 - `mise` works unchanged on macOS — same as Linux.
 
 ## Common Pitfalls
-
-- **Privacy protection blocks SSH sessions.** `Operation not
-  permitted`, even as root, is a refused read, not a missing
-  file: Privacy Protection (TCC) above.
 
 - **No `systemctl`** — use `launchctl` or
   `brew services` instead.
