@@ -14,6 +14,12 @@ unchanged; the others would fail on OpenRC or busybox
 Run `rc-status -a` and `rc-status --crashed` once, in the first
 call: failed services and time sync read from that output.
 
+**Containers.** A system container — `Virtualization:` in
+memory names a container — runs on its host's kernel and clock
+(`rules/system-containers.md`). There, NTP / Time Sync and
+Kernel: Running vs Installed report `n/a (container)` and raise
+nothing, whatever the distribution.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -321,8 +327,7 @@ so the `rc-status` output of the first call shows whether
 synchronised.
 
 - **WARN** if NTP is not synchronized, or on Alpine if no time
-  service runs — except in a container (`openrc --sys` prints
-  `LXC`), whose clock is the host's
+  service runs — except in a container (Containers above)
 
 ## Log Anomalies
 
@@ -434,7 +439,7 @@ echo "Installed: $installed"
 
 **Alpine:** a kernel upgrade replaces the running kernel's
 modules, so a missing directory means a newer kernel waits for a
-reboot. Skip in a container, where the kernel is the host's:
+reboot:
 
 ```bash
 uname -r
@@ -442,7 +447,7 @@ ls /lib/modules
 ```
 
 - **INFO** if running kernel differs from installed (reboot
-  recommended)
+  recommended) — except in a container (Containers above)
 
 ## Ubuntu Release and Support
 

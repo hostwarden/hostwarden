@@ -9,6 +9,12 @@ severities. On an appliance, its `## Housekeeping and Audits`
 section replaces Release Support, Pending Updates and Update
 Notification below.
 
+**Jails.** A jail — `Virtualization:` in memory names a
+container — runs on its host's kernel and clock
+(`rules/system-containers.md`). There, the kernel lines of
+Kernel and Userland: Running vs Installed and all of Time Sync
+report `n/a (container)` and raise nothing.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -80,10 +86,13 @@ freebsd-version -kru
 ```
 
 The order of the three lines is in `rules/os/freebsd.md` →
-Version Detection.
+Version Detection. A jail usually has no `/boot/kernel`, and there
+`-k` ends the command with `unable to locate kernel` before any
+line is printed: run `freebsd-version -u` alone in a jail.
 
 - **INFO** if the installed kernel differs from the running one:
-  a base update was installed and the reboot is still due
+  a base update was installed and the reboot is still due —
+  except in a jail (Jails above)
 - Userland and kernel patch levels differ in either direction on
   an up-to-date host: an advisory may touch only one of them. Only
   the two kernel lines say whether a reboot is due.
@@ -217,6 +226,8 @@ How to read `ntpq -pn`, and what to ask instead where `chronyd` or
 
 - **WARN** if no time daemon is enabled
 - **WARN** if the daemon runs but has no selected peer
+
+Neither applies in a jail (Jails above).
 
 ## Log Anomalies
 
