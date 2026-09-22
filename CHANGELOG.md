@@ -54,6 +54,11 @@
   activity check reads `user.log`. Housekeeping and the audits
   report pending updates, pool and host state, SR usage, HA, dom0
   disk and memory, and backups.
+- **TrueNAS is recognised as an appliance.** Detection finds it
+  by `midclt`; Hostwarden changes settings, the network, pools and
+  updates through the middleware instead of `/etc`, apt or `zfs`,
+  and housekeeping reads its alerts, pools, scrubs and tasks.
+  TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under
