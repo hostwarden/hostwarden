@@ -140,6 +140,42 @@ else
   bad "settings.json no longer registers the taboo guard"
 fi
 
+# --- every tool that runs a command is guarded or denied ----------
+# A hook matches by tool name. Monitor runs shell commands just as
+# Bash does, and a matcher that names only Bash let a taboo through
+# it with no guard in the way. So each tool known to run a command
+# is either in the matcher of every guard that reads commands, or
+# denied outright by its bare name in permissions.deny. A new such
+# tool in Claude Code belongs on this list.
+# One jq prints "<tool> <guard>" for every gap.
+if command -v jq >/dev/null 2>&1; then
+  GAPS=$(jq -r '
+    . as $s
+    | ("Bash", "Monitor", "PowerShell") as $t
+    | select($s.permissions.deny // [] | any(. == $t) | not)
+    | ("guard-taboos.sh", "guard-settings.sh", "guard-mode.sh") as $g
+    | select([$s.hooks.PreToolUse[]?
+        | select(any(.hooks[]?;
+            .command | endswith("/.claude/hooks/" + $g + "\"")))
+        | .matcher // "*"
+        # No matcher, "" or "*" matches every tool.
+        | if . == "*" or . == "" then $t
+          else split("[|,]"; null)[] | gsub("^ +| +$"; "") end]
+      | any(. == $t) | not)
+    | "\($t) \($g)"' "$CLAUDE_DIR/settings.json") \
+    || bad "jq could not read settings.json"
+  while read -r t g; do
+    [ -n "$t" ] || continue
+    bad "settings.json lets $t run commands past $g: add it" \
+        "to that hook's matcher, or deny \"$t\" outright"
+  done <<EOF
+$GAPS
+EOF
+  [ -n "$GAPS" ] || ok
+else
+  bad "jq is missing, so the guard matchers cannot be checked"
+fi
+
 # --- skills resolve through .claude/skills ---------------------
 # The skills live in .agents/skills/, which OpenCode and other
 # AGENTS-style tools read directly. Claude Code does NOT search

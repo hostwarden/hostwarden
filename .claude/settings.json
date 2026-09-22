@@ -74,7 +74,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Monitor",
         "hooks": [
           {
             "type": "command",
@@ -84,7 +84,7 @@
         ]
       },
       {
-        "matcher": "Bash|Edit|Write|MultiEdit",
+        "matcher": "Bash|Monitor|Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
@@ -94,7 +94,7 @@
         ]
       },
       {
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "matcher": "Bash|Monitor|Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",

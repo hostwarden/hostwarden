@@ -1,6 +1,6 @@
 #!/bin/sh
-# guard-mode.sh — PreToolUse hook (matcher: Bash|Edit|Write|
-# MultiEdit|NotebookEdit).
+# guard-mode.sh — PreToolUse hook (matcher: Bash|Monitor|Edit|
+# Write|MultiEdit|NotebookEdit).
 #
 # Holds a session to the mode mode.sh determines:
 #
@@ -15,7 +15,11 @@
 #     which never starts ssh), and $GIT_SSH_COMMAND, git's
 #     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: Hostwarden's local mode is server
-#     work too.
+#     work too. A Monitor command is a shell command and is read
+#     exactly as a Bash one, and more: Claude Code documents the
+#     env file that carries the shim for Bash only, so for
+#     Monitor this hook also denies a blocked tool named without
+#     a path, where the shim would have stood.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -35,20 +39,22 @@
 #   - Read quotes, wrappers or rsync operands over ssh. Every such case
 #     reaches the tool through PATH, where the shim waits; a
 #     parser for them never closes. Nor does it look for a bare
-#     tool name, so grep ssh and a commit message about sudo
-#     pass. Quotes are not masked: a commit message that names
-#     /usr/bin/ssh, or changes PATH and mentions ssh at all, is
-#     denied; either is rare.
+#     tool name in a Bash command, so grep ssh and a commit
+#     message about sudo pass. Quotes are not masked: a commit
+#     message that names /usr/bin/ssh, or changes PATH and
+#     mentions ssh at all, is denied; either is rare.
 #   - Look inside a variable or a script file. A backstop against
 #     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
 #     or a script that resets PATH still reaches ssh, and only
-#     the prose in AGENTS.md stands against it.
+#     the prose in AGENTS.md stands against it. So does a bare
+#     tool inside sh -c or a script that Monitor runs, wherever
+#     the shim is not on its PATH.
 #
 # It runs on every tool call, so it forks little. In development
 # nothing at all unless the input could hold one of the forms
 # above, then one jq for the whole input and one awk for the
-# command. In operations a Bash call ends before jq; an edit runs
-# one jq, and git only for a path outside memory/.
+# command. In operations a Bash or Monitor call ends before jq;
+# an edit runs one jq, and git only for a path outside memory/.
 #
 # Being blocked is EXPECTED behavior. Explain it to the user.
 # Never rephrase, re-quote, or otherwise obfuscate a command to
@@ -79,34 +85,38 @@ deny() {
   emit "hostwarden mode guard: $1 (AGENTS.md - Development or Operations)."
 }
 
-# Before anything is parsed: in development only a Bash call is
-# read, and only its command, which cwd and the transcript path
-# are not part of. A command without a path to a blocked tool,
-# command -p, a change to PATH or GIT_SSH_COMMAND holds none of the
-# forms this hook denies. That is nearly every call, and it ends
-# here without a single process.
+# Before anything is parsed: in development only a Bash or Monitor
+# call is read, and only its command, which cwd and the transcript
+# path are not part of. A Bash command without a path to a blocked
+# tool, command -p, a change to PATH or GIT_SSH_COMMAND holds none
+# of the forms this hook denies. That is nearly every call, and it
+# ends here without a single process. A Monitor call is rare and
+# always goes on.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
-  *'"tool_name"'*'"Bash"'*) ;;
-  *) exit 0 ;;
-  esac
-  case "${INPUT#*'"command"'}" in
-  */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
-  */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
-  */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
-  # In JSON a newline or tab before it is \n or \t, a letter too.
-  *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
-  *\\[nt]PATH=*|*\\[nt]path=*) ;;
-  *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
-  *GIT_SSH_COMMAND*) ;;
+  *'"tool_name"'*'"Monitor"'*) ;;
+  *'"tool_name"'*'"Bash"'*)
+    case "${INPUT#*'"command"'}" in
+    */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
+    */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
+    */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+    # In JSON a newline or tab before it is \n or \t, a letter too.
+    *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
+    *\\[nt]PATH=*|*\\[nt]path=*) ;;
+    *'env -'*|*rsync*::*|*rsync*'rsync://'*) ;;
+    *GIT_SSH_COMMAND*) ;;
+    *) exit 0 ;;
+    esac
+    ;;
   *) exit 0 ;;
   esac
 else
-  # Operations restricts edits only, so a Bash call ends here. Inside
-  # the text of an edit every quote is escaped, so this pattern can
-  # only match the tool name itself; anything else goes on to jq.
+  # Operations restricts edits only, so a Bash or Monitor call ends
+  # here. Inside the text of an edit every quote is escaped, so
+  # these patterns can only match the tool name itself; anything
+  # else goes on to jq.
   case "$INPUT" in
-  *'"tool_name":"Bash"'*) exit 0 ;;
+  *'"tool_name":"Bash"'*|*'"tool_name":"Monitor"'*) exit 0 ;;
   esac
 fi
 
@@ -215,9 +225,16 @@ fi
 #     env -i or -, env -u PATH in its spellings) and names a
 #     blocked tool anywhere;
 #   - rsync with an rsync:// or host::module operand, which talks
-#     to the daemon itself and never starts ssh.
+#     to the daemon itself and never starts ssh;
+#   - for Monitor, a blocked tool as the first word of a segment
+#     even without a path, since the shim may not be on its PATH.
 case "$TOOL" in
 Bash|"") ;;
+Monitor)
+  # A WebSocket watch has no command and starts no shell. Without
+  # jq CMD is never read, so that call is refused below instead.
+  [ -z "$CMD" ] && [ -n "$JQ" ] && exit 0
+  ;;
 *) exit 0 ;;
 esac
 # Without jq the command is buried in JSON, and it names one of
@@ -230,7 +247,7 @@ it may start a tool that reaches a server - install jq"
 
 # One line: "deny <what>" for a verdict, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
-FOUND=$(printf '%s' "$CMD" | awk '
+FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN { RS = "\001"; T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$" }
   {
     s = $0
@@ -276,7 +293,9 @@ FOUND=$(printf '%s' "$CMD" | awk '
       }
       if (rsync && daemon) { print "deny rsync to a daemon"; exit }
       i = 1
-      while (i <= nw && (v[i] == "" || v[i] == "!" || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+      # Past a negation, assignments and the keywords a command
+      # can follow: while true; do ssh ...
+      while (i <= nw && (v[i] == "" || v[i] ~ /^(!|do|then|else|elif|if|while|until|time)$/ || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
       if (i > nw) continue
       w = v[i]
       # The real ssh that git push is given.
@@ -289,9 +308,13 @@ FOUND=$(printf '%s' "$CMD" | awk '
         w = v[i]
       }
       c = w
+      gsub(/^["\047]+|["\047]+$/, "", c)
       sub(/^.*\//, "", c)
       if (c !~ T) continue
       if (w ~ /\//) how = "by its path"
+      # A word that only ends in a quote is the tail of a quoted
+      # string split at a | inside it: grep -E "error|ssh".
+      else if (tool == "Monitor" && (w !~ /["\047]$/ || w ~ /^["\047]/)) how = "through Monitor"
       if (how != "") { print "deny " c " " how; exit }
     }
     if (cmdp && named != "") { print "deny " named " through command -p"; exit }

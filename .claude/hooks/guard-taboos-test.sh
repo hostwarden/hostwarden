@@ -13,20 +13,22 @@ PASS=0
 FAIL=0
 
 json_for() {
-  # Wrap a raw command string as PreToolUse hook input.
+  # json_for <command> [tool] — a raw command string as PreToolUse
+  # hook input for Bash, or for the tool named.
   if command -v jq >/dev/null 2>&1; then
     printf '%s' "$1" \
-      | jq -Rs '{tool_name:"Bash",tool_input:{command:.}}'
+      | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
   else
     printf '%s' "$1" | python3 -c 'import json,sys; \
-print(json.dumps({"tool_name":"Bash","tool_input":\
-{"command":sys.stdin.read()}}))'
+print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
+{"command":sys.stdin.read()}}))' "${2:-Bash}"
   fi
 }
 
 verdict() {
-  # verdict <expect> <command> — one fixture, one line of output.
-  OUT=$(json_for "$2" \
+  # verdict <expect> <command> [tool] — one fixture, one line of
+  # output.
+  OUT=$(json_for "$2" "$3" \
     | env -u HOSTWARDEN_GUARD_DISABLE sh "$HOOK")
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
@@ -37,7 +39,10 @@ verdict() {
   if [ "$GOT" = "$1" ]; then
     echo ok
   else
-    echo "FAIL [$1, got $GOT]: $2"
+    case "${3:-Bash}" in
+    Bash) echo "FAIL [$1, got $GOT]: $2" ;;
+    *) echo "FAIL [$1, got $GOT] $3: $2" ;;
+    esac
   fi
 }
 
@@ -46,7 +51,7 @@ verdict() {
 # each of the hundreds of children would queue the whole matrix
 # again.
 if [ "$1" = "--verdict" ]; then
-  verdict "$2" "$3"
+  verdict "$2" "$4" "$3"
   exit 0
 fi
 
@@ -64,7 +69,8 @@ check() {
   # another, so running them one after the other spent ~55 s to
   # learn what ~13 s answers. A check that slow is a check people
   # stop running before they commit.
-  printf '%s\0%s\0' "$1" "$2" >> "$QUEUE"
+  # check <expect> <command> [tool] — Bash unless a tool is named.
+  printf '%s\0%s\0%s\0' "$1" "${3:-Bash}" "$2" >> "$QUEUE"
   NCHECKS=$((NCHECKS + 1))
 }
 
@@ -929,6 +935,24 @@ settings_case deny 'no jq: Write settings.local.json' \
   "PATH=$NOJQ"
 rm -rf "$NOJQ"
 
+# --- Monitor runs a shell command too -----------------------------
+# Its command arrives in tool_input.command like Bash's, and the
+# matcher in settings.json hands it to both guards. A taboo sent
+# through Monitor is a taboo; an ordinary watch passes.
+check deny 'poweroff' Monitor
+check deny 'sgdisk --zap-all /dev/sda' Monitor
+check deny 'ssh root@h "shutdown -h now"' Monitor
+check deny "printf 'PermitRootLogin no\\n' >> /etc/ssh/sshd_config" Monitor
+check deny 'while true; do rm -f ~/.ssh/authorized_keys; sleep 60; done' Monitor
+check pass 'tail -f /var/log/syslog | grep --line-buffered -E "error|fail"' Monitor
+check pass 'until gh pr checks 12 | grep -qv pending; do sleep 30; done' Monitor
+settings_case deny 'Monitor: write it into settings.local.json' \
+  "$(json_for "printf x $V >> .claude/settings.local.json" Monitor)"
+settings_case deny 'Monitor: touch a guard-off record' \
+  "$(json_for 'touch ~/.cache/hostwarden/guard-off-abc' Monitor)"
+settings_case pass 'Monitor: tail a log' \
+  "$(json_for 'tail -f /var/log/syslog' Monitor)"
+
 # --- check-session.sh: worktree and guard-off notices ----------
 # The hook only reads .git files and the commondir they lead to, so
 # hand-written ones cover every case: a checkout (a directory), a
@@ -1030,7 +1054,7 @@ fi
 # Failures are sorted rather than printed as they land, so two
 # runs of the same broken tree read the same.
 if [ "$NCHECKS" -gt 0 ]; then
-  RESULT=$(xargs -0 -n2 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  RESULT=$(xargs -0 -n3 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
   XSTATUS=$?
   NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
   NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)

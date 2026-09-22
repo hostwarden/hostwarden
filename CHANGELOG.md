@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The guards also read what Claude Code's Monitor tool runs.**
+  A taboo command, a write to the guard's off switch, or an `ssh`
+  or `sudo` from a development checkout is refused through
+  Monitor, which runs a shell command in the background, just as
+  through Bash. `instructions-test.sh` fails when a tool known to
+  run commands is neither guarded nor denied outright.
 - **Housekeeping checks Pi-hole and AdGuard Home** when a
   host's memory names them: whether DNS answers, blocking
   is on, the blocklists are fresh and their last refresh

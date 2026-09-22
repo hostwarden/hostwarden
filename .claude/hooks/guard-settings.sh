@@ -1,5 +1,7 @@
 #!/bin/sh
-# guard-settings.sh — PreToolUse hook (matcher: Bash|Edit|Write|MultiEdit).
+# guard-settings.sh — PreToolUse hook (matcher: Bash|Monitor|Edit|
+# Write|MultiEdit). A Monitor command is a shell command and is
+# judged exactly as a Bash one.
 #
 # The taboo guard honours HOSTWARDEN_GUARD_DISABLE only when the
 # session STARTED with it: check-session.sh (SessionStart) records
@@ -103,7 +105,7 @@ if [ -z "$TOOL" ]; then
 fi
 
 case "$TOOL" in
-  Bash)
+  Bash|Monitor)
     printf '%s' "$NEW" | grep -q "$RECORD_RE" && deny
     printf '%s' "$NEW" | grep -Eiq "$SETTINGS_RE" || exit 0
     case "$NEW" in *"$V"*) deny ;; esac

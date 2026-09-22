@@ -1,5 +1,7 @@
 #!/bin/sh
-# guard-taboos.sh — PreToolUse hook (matcher: Bash).
+# guard-taboos.sh — PreToolUse hook (matcher: Bash|Monitor).
+# Monitor runs a shell command too, handed over in the same
+# tool_input.command field, so both are read the same way here.
 #
 # Mechanically enforces Hostwarden's absolute taboos from
 # AGENTS.md → Critical Safety Rules, below the model layer:
@@ -139,9 +141,10 @@ if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
   fi
 fi
 
-# Extract the Bash tool's command string. Without jq (or on
-# malformed input) fall back to scanning the raw stdin text —
-# that can only over-block, never under-block.
+# Extract the command string, Bash's or Monitor's. Without jq (or
+# on malformed input) fall back to scanning the raw stdin text —
+# that can only over-block, never under-block. A Monitor WebSocket
+# watch has no command, so its raw input is scanned the same way.
 CMD=""
 if command -v jq >/dev/null 2>&1; then
   CMD=$(printf '%s' "$INPUT" \
