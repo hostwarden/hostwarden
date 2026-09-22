@@ -366,4 +366,4 @@ a construction built only to evade one is "not a bug: outside the
 guard's scope" (`.claude/rules/repo-release.md` → Guard findings).
 
 Pull requests follow `.claude/rules/pull-requests.md`; read it
-before opening one.
+before working on one.
