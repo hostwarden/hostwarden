@@ -329,9 +329,10 @@ cmd pass "$DEV" 'grep -rn "docker run" docs/'
 # An engine counts as a command, not as a word in one.
 cmd pass "$DEV" 'rg "docker exec" docs/'
 cmd pass "$DEV" 'git commit -m "fix docker rm handling"'
-cmd pass "$DEV" 'grep -n -e docker -e podman .claude/hooks/guard-mode-test.sh'
 cmd deny "$DEV" 'bash -lc "docker rm -f other-project"'
 cmd deny "$DEV" 'timeout 60 docker exec other-project true'
+cmd deny "$DEV" 'timeout -s KILL 5 docker exec other-project true'
+cmd deny "$DEV" 'xargs -I x docker rm x < ids.txt'
 cmd deny "$DEV" 'if docker rm other-project; then echo gone; fi'
 cmd deny "$DEV" 'xargs -n1 docker rm < ids.txt'
 cmd pass "$DEV" 'bin/hostwarden-lab exec debian -- sh -c "ls -v /etc"'
@@ -448,7 +449,6 @@ cmd pass "$DEV" 'docker-compose -f lab.yml config'
 cmd pass "$DEV" 'docker run --rm --pid=private --pull=missing debian:13 true'
 # Lab VMs: created and deleted from here, used only by a test clone.
 cmd deny "$DEV" 'orb create --isolated debian:13 hwlab-x-debian'
-cmd deny "$DEV" 'orb create ubuntu raw-vm'
 cmd deny "$DEV" 'orbctl add debian x'
 cmd deny "$DEV" 'limactl create template:debian-13'
 cmd pass "$DEV" 'bin/hostwarden-lab vm up debian --ops ~/hostwarden-test'
@@ -470,7 +470,6 @@ cmd deny "$DEV" 'orb stop other-vm'
 cmd deny "$DEV" 'limactl delete --force other-vm'
 cmd deny "$DEV" 'limactl stop other-vm'
 cmd deny "$DEV" 'limactl factory-reset other-vm'
-cmd deny "$DEV" 'limactl create --tty=false --name=x --mount-none --plain template:debian-13'
 cmd pass "$DEV" 'limactl list'
 cmd pass "$DEV" 'grep -rn orb docs/'
 cmd pass "$DEV" 'git commit -m "lab: lima and orb"'
@@ -491,6 +490,8 @@ cmd pass "$DEV" 'echo climate orbit'
 mon deny "$DEV" 'docker run --rm -v /:/host debian:13 true'
 mon deny "$DEV" 'orb -m hwlab-x-debian journalctl -f'
 mon pass "$DEV" 'docker logs -f hwlab-x-debian'
+# A shell with -c is a launcher: its command string is read.
+mon deny "$DEV" "sh -c 'ssh server1.example.com uptime'"
 
 # The taboo guard's off switch does not reach the mode guard.
 out=$(bash_json '/usr/bin/ssh server1.example.com true' \

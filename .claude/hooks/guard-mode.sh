@@ -86,7 +86,7 @@
 #     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
 #     or a script that resets PATH still reaches ssh, and only
 #     the prose in AGENTS.md stands against it. So does a bare
-#     tool inside sh -c or a script that Monitor runs, wherever
+#     tool inside eval or a script that Monitor runs, wherever
 #     the shim is not on its PATH.
 #
 # It runs on every tool call, so it forks little. In development
@@ -301,7 +301,7 @@ it may start a tool that reaches a server - install jq"
 #
 # Containers and lab VMs: a container engine, orb, orbctl, limactl
 # and lima count as the first word of a segment only, past the
-# wrappers lab() names, sh -c among them, so grep orb docs/ and a
+# launchers cmdpos() reads, sh -c among them, so grep orb docs/ and a
 # commit message about docker rm are not. An engine's options are
 # read to the end of that segment, where the words after the image
 # are the container's command and can only over-block.
@@ -343,8 +343,50 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["busybox"] = LA["unbuffer"] = LA["chronic"] = ""
     LA["ssh-agent"] = "aEOPt"
     LA["watch"] = "nq"; LL["watch"] = "interval|equexit"
+    # A shell with -c runs the next word, its command string, as a
+    # command; without -c that word is a script, which is not read.
+    LA["sh"] = LA["bash"] = LA["dash"] = LA["ksh"] = LA["zsh"] = "oO"
   }
   function base(w) { sub(/^.*\//, "", w); return w }
+  # cmdpos <words> <count> — the index of the program a segment
+  # runs, or count + 1. Past a negation, assignments and the
+  # keywords a command can follow (while true; do ssh ...), then
+  # past the launchers in LA to the program they start, over their
+  # options, the values those take and their operands: env
+  # LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh, sh -c "ssh h".
+  # In a cluster of short options the first that takes a value
+  # takes the rest of the word, or the next word when it is last:
+  # xargs -Is ssh s runs ssh. flock -c hands over the command as
+  # its value; time takes a whole pipeline, negated too: time !
+  # ssh. env -S puts the command it carries in its own place.
+  function cmdpos(a, n,   i, c, p, x) {
+    i = 1
+    while (i <= n && (a[i] == "" || a[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+    while (i <= n) {
+      c = a[i]
+      gsub(/^["\047]+|["\047]+$/, "", c)
+      if (!(base(c) in LA)) break
+      c = base(c)
+      p = LP[c]
+      while (++i <= n) {
+        x = a[i]
+        if (x == "--") { i++; break }
+        if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
+        if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {
+          sub(/^(-[^-uCS]*S|--split-string=)/, "", x)
+          a[i] = x
+          break
+        }
+        if (x ~ /^-/) {
+          if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
+              || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
+        }
+        else if (c == "env" && x ~ /=/ || c == "time" && x == "!") ;
+        else if (p-- < 1) break
+      }
+    }
+    return i
+  }
   function priv(w) { return w ~ /^--privileged/ && w != "--privileged=false" }
   # The value of option u[k]: after its =, or the next word.
   function val(k,   x) {
@@ -449,14 +491,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     # next (export DOCKER_HOST=...; docker ps).
     for (i = 1; i <= nw; i++)
       if (u[i] ~ /^(DOCKER_HOST|DOCKER_CONTEXT|CONTAINER_HOST|CONTAINER_CONNECTION)=/) engvar = u[i]
-    # The first word, past a negation, the keywords a command can
-    # follow, assignments and the wrappers that run the next one,
-    # with their options and a number they take: sh -c, timeout 60.
-    j = 1
-    while (j <= nw && (u[j] == "" || u[j] ~ /^(!|do|then|else|elif|if|while|until)$/ \
-        || u[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ \
-        || base(u[j]) ~ /^(command|exec|env|time|nohup|nice|setsid|timeout|xargs|watch|sh|bash|dash|ksh|zsh)$/ \
-        || j > 1 && (u[j] ~ /^-/ || u[j] ~ /^[0-9][0-9.]*[smhd]?$/))) j++
+    j = cmdpos(u, nw)
     if (j > nw) return ""
     b = base(u[j])
     a = u[j + 1]
@@ -471,9 +506,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       return ""
     }
     if (b ~ /^(docker|podman|nerdctl)$/) return engine(b, j + 1)
-    # orb runs anything that is not one of its subcommands in a VM;
-    # of those, only reading state passes, and a bare orb start,
-    # which starts OrbStack itself rather than a VM.
+    # orb runs anything that is not one of its subcommands in a VM.
     if (b == "orb" || b == "orbctl") {
       if (a == "") return b == "orb" ? "vm orb, a shell in a lab VM" : ""
       if (a ~ /^(-h|--help|list|ls|info|status|version|help|logs|doctor|docker|k8s)$/) return ""
@@ -551,46 +584,12 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         }
       }
       if (rsync && daemon) { print "deny rsync to a daemon"; exit }
-      i = 1
-      # Past a negation, assignments and the keywords a command
-      # can follow: while true; do ssh ...
-      while (i <= nw && (v[i] == "" || v[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+      i = cmdpos(v, nw)
       if (i > nw) continue
       w = v[i]
-      # Past the launchers in LA to the program they start, over
-      # their options, the values those take and their operands:
-      # env LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh. In a
-      # cluster of short options the first that takes a value takes
-      # the rest of the word, or the next word when it is last:
-      # xargs -Is ssh s runs ssh. flock -c hands over the command
-      # as its value; time takes a whole pipeline, negated too:
-      # time ! ssh.
-      for (;;) {
-        c = w
-        gsub(/^["\047]+|["\047]+$/, "", c)
-        sub(/^.*\//, "", c)
-        if (!(c in LA)) break
-        p = LP[c]
-        while (++i <= nw) {
-          x = v[i]
-          if (x == "--") { i++; break }
-          if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
-          if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {
-            sub(/^(-[^-uCS]*S|--split-string=)/, "", x)
-            v[i] = x
-            break
-          }
-          if (x ~ /^-/) {
-            if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
-                || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
-          }
-          else if (c == "env" && x ~ /=/ || c == "time" && x == "!") ;
-          else if (p-- < 1) break
-        }
-        if (i > nw) break
-        w = v[i]
-      }
-      if (i > nw) continue
+      c = w
+      gsub(/^["\047]+|["\047]+$/, "", c)
+      sub(/^.*\//, "", c)
       # The real ssh that git push is given.
       if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
       how = ""
