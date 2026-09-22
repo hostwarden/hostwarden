@@ -49,10 +49,12 @@
 #     mount reaches $HOME.
 #     A lab VM is a test server of an operations clone, so orb,
 #     orbctl, limactl and lima are denied where they run a command
-#     in one or copy to or from it. Creating one and reading their
-#     state passes; deleting, stopping or changing a VM is denied,
-#     since it may not be the lab's, and bin/hostwarden-lab vm
-#     down deletes only the ones it created.
+#     in one or copy to or from it. Reading their state passes.
+#     Creating one is denied: bin/hostwarden-lab vm up creates it
+#     without this machine's files mounted, which orb and Lima do
+#     by default, and records it for vm down. Deleting, stopping or
+#     changing a VM is denied, since it may not be the lab's, and
+#     bin/hostwarden-lab vm down deletes only the ones it created.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -469,17 +471,19 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     }
     if (b ~ /^(docker|podman|nerdctl)$/) return engine(b, j + 1)
     # orb runs anything that is not one of its subcommands in a VM;
-    # of those, only creating one and reading state pass.
+    # of those, only reading state passes.
     if (b == "orb" || b == "orbctl") {
       if (a == "") return b == "orb" ? "vm orb, a shell in a lab VM" : ""
-      if (a ~ /^(-h|--help|create|add|new|list|ls|info|status|version|help|logs|doctor|start|docker|k8s)$/) return ""
+      if (a ~ /^(-h|--help|list|ls|info|status|version|help|logs|doctor|start|docker|k8s)$/) return ""
+      if (a ~ /^(create|add|new)$/) return "vmnew " b " " a
       if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|stop|top|update|usb)$/)
         return "vmchange " b " " a
       return "vm " b " " a ", a command in a lab VM"
     } else if (b == "limactl") {
       for (k = j + 1; k <= nw && u[k] ~ /^-/; k++) ;
       if (u[k] ~ /^(shell|copy|cp|tunnel)$/) return "vm limactl " u[k] ", in a lab VM"
-      if (k <= nw && u[k] !~ /^(create|start|list|ls|info|help|validate|template|completion)$/)
+      if (u[k] == "create") return "vmnew limactl create"
+      if (k <= nw && u[k] !~ /^(start|list|ls|info|help|validate|template|completion)$/)
         return "vmchange limactl " u[k]
     } else if (b == "lima" && a != "-h" && a != "--help") {
       return "vm lima, a command in a lab VM"
@@ -611,6 +615,11 @@ access; bin/hostwarden-lab up <family> starts one that way" ;;
 "remote "*)
   hostwarden_refusal "${FOUND#remote }, another container engine,"
   emit "$HOSTWARDEN_REFUSAL" ;;
+"vmnew "*)
+  deny "${FOUND#vmnew } creates a VM outside bin/hostwarden-lab vm up, \
+which creates it without this machine's files mounted and records \
+it, so vm down can delete it: bin/hostwarden-lab vm up <family> \
+--ops <test clone>" ;;
 "vmchange "*)
   deny "${FOUND#vmchange } deletes, stops or changes a VM that may \
 not be the lab's. bin/hostwarden-lab vm down deletes only the VMs \
