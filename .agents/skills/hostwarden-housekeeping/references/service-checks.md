@@ -121,7 +121,10 @@ which grew out of CasaOS, never counts: an os-release `ID` of
 is IceWhale's web UI and app store on top of an ordinary
 distribution, which keeps its family file, package manager,
 firewall and updater (https://github.com/IceWhaleTech/CasaOS). What
-CasaOS adds is below. As root, in one call:
+CasaOS adds is below, in one call. `casaos -v`, the unit states and
+the listener list answer an ordinary account; the two `grep`s under
+`/etc/casaos` and the container list need root, and without it they
+are reported as skipped (`references/unprivileged.md`):
 
 ```bash
 casaos -v
