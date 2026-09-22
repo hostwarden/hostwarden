@@ -380,8 +380,10 @@ where `apcaccess` exists. `apcaccess: not found` on a NUT host,
 and a missing `upsc` on an apcupsd host, are the other backend's
 absence, never a failed query and never a finding.
 
-**NUT.** The configuration directory is the one of
-`/etc/nut`, `/etc/ups` and `/usr/local/etc/nut` that holds
+**NUT.** The configuration directory is the one of `/etc/nut`,
+`/etc/ups`, `/usr/local/etc/nut` and, where Homebrew installed
+NUT, `$(brew --prefix)/etc/nut` — `/opt/homebrew/etc/nut` on
+Apple Silicon (`rules/os/macos.md`) — that holds
 `upsmon.conf`. Its `MONITOR` lines carry a password in the fifth
 field, so print the other fields only. The file is readable by
 root and the `nut` group only, so `m()` reads it directly where

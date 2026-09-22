@@ -615,13 +615,17 @@ says, with these differences:
   watches the UPS, never how it is: where no battery appears
   and NUT's `upsc.exe` is not there either, report the state as
   not readable, **WARN**, and name the service. NUT for Windows
-  installs `upsc.exe` under `C:\Program Files\NUT\bin`, and it
-  reads as the UPS section of
+  installs `upsc.exe` under `C:\Program Files\NUT\bin` and its
+  `upsmon.conf` beside it under `etc`; every UPS the local
+  `upsd` serves and every `MONITOR` target is queried, since a
+  client-only host has no local list. Only the target is read
+  from that file, never the password field. It reads as the UPS
+  section of
   `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
   says:
 
   ```powershell
-  $u = 'C:\Program Files\NUT\bin\upsc.exe'; if (Test-Path $u) { & $u -l; & $u (& $u -l | Select-Object -First 1) } else { 'upsc: not installed' }
+  $u = 'C:\Program Files\NUT\bin\upsc.exe'; $c = 'C:\Program Files\NUT\etc\upsmon.conf'; if (Test-Path $u) { $t = @(& $u -l 2>$null); if (Test-Path $c) { $t += @(Select-String -Path $c -Pattern '^\s*MONITOR\s+(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }) }; foreach ($n in ($t | Sort-Object -Unique)) { "== $n"; & $u $n } } else { 'upsc: not installed' }
   ```
 - The power state comes from the `root\wmi` class, whose
   `PowerOnline`, `Discharging` and `Critical` are the battery
