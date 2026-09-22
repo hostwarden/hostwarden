@@ -67,8 +67,11 @@ a `Provisioned by:` line; `rules/config-management.md`
 owns their wording. Most hosts have neither.
 
 Adapt fields to OS (add Homebrew for macOS;
-add `Mode: local` for localhost); an OS file whose
-Version Detection names fields to record adds those. `Appliance:`,
+add `Mode: local` for localhost, or
+`Mode: via pve1.example.com (pct exec 105)` for a
+guest in via-host mode, `rules/first-connection.md`);
+an OS file whose Version Detection names fields to
+record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
 `rules/os-detection.md`; `SSH port:`, remote mode only, is
 the `port` line of `ssh -G <user>@<hostname>`, which the

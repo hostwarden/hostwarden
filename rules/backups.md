@@ -22,6 +22,10 @@ In unprivileged mode, use `~/.hostwarden-backups/` for
 user-owned files. System config files cannot be
 edited — defer those to the sysadmin report.
 
+On a container or VM whose host Hostwarden can reach,
+prefer a snapshot of the whole guest before a risky
+change (`rules/system-containers.md` → Snapshots).
+
 Backups made before the rename from Heinzel sit in
 `/var/backups/heinzel/` and `~/.heinzel-backups/`.
 Look there too when restoring, but write new backups

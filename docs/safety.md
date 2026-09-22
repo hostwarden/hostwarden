@@ -54,6 +54,16 @@ under pressure.
   OpenCode does not read
   Claude Code hooks — there the prose rules remain
   the safety layer.
+- **Guests are stopped or deleted only on your say**
+  — stopping or deleting a system container or VM
+  (`pct stop`, `qm destroy`, `incus delete`,
+  `virsh undefine`, …) powers off or destroys a
+  server. The same hook puts the exact command to
+  you in a permission prompt, even in auto mode;
+  where no prompt can reach you (`bypassPermissions`,
+  `dontAsk`, an unattended `claude -p` run) it
+  blocks the command, and you run it yourself
+  (`rules/system-containers.md`).
 - **Verifies before it reports** — a finding that
   something is missing, broken, or "gone since the
   reboot" gets confirmed against the live system

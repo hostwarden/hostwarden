@@ -68,6 +68,28 @@ the workstation the latter looks at scheduled runs
 instead of backup directories
 (`rules/heinzel-adoption.md`).
 
+## Via-host mode
+
+A system container or VM reached through its
+hypervisor host's manager instead of its own SSH.
+When it applies: `rules/system-containers.md` →
+Reaching It. The connection to the host runs this
+pipeline for the host. For the guest, check the
+blacklist and the read-only list by its own name as
+well: the guest is read-only when either of the two
+is listed. Skip steps 3–4, and run the rest
+inside the guest, bundled into one call per step
+(`rules/ssh-connections.md`):
+
+```bash
+ssh … root@pve1.example.com 'pct exec 105 -- sh -s' <<'EOS'
+…
+EOS
+```
+
+The heredoc needs stdin; for `qm guest exec`, bundle
+into one `sh -c '…'` argument instead.
+
 ## Why it's mandatory
 
 Skipping steps has caused real incidents: stale

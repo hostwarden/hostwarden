@@ -57,6 +57,13 @@ mode**:
 - Skip all remote-only steps: blacklist/read-only checks, DNS alias
   detection, SSH user lookup, root SSH fallback.
 
+### Via-host mode (fallback)
+
+System containers and VMs are servers, reached by SSH first; when
+to go through the hypervisor host's manager instead is in
+`rules/system-containers.md` → Reaching It. Docker and Podman
+containers are not guests: remote mode on their host.
+
 ### Remote mode (SSH)
 
 - **Default:** `ssh root@hostname` — only when root privileges are
@@ -124,8 +131,10 @@ user when it will visibly slow the answer.
 - **Always detect the OS first** before doing any work.
 - **Ask before:** reboots, firewall and network changes, service
   restarts, credential or password rotations, any destructive command.
-  **Reloads** (`systemctl reload`) auto-proceed by default when a
-  config test passes — see `rules/service-reload.md`.
+  Stop or delete a system container or VM only on the user's explicit
+  request (`rules/system-containers.md` → Changes). **Reloads**
+  (`systemctl reload`) auto-proceed by default when a config test
+  passes — see `rules/service-reload.md`.
 - **Absolute taboos (never run without explicit user request):** any
   command that modifies the partition table, whichever tool it uses
   (`fdisk`, `cfdisk`, `sfdisk`, `gdisk`, `sgdisk`, `parted`,
@@ -291,6 +300,9 @@ trigger — not a request from the user.
 - Copying a directory tree between servers →
   `rules/directory-copy.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
+- Creating, changing, snapshotting, stopping or deleting a system
+  container or VM on its host (LXC, Incus, LXD, Proxmox, libvirt) →
+  `rules/system-containers.md`
 - The first change this session makes on a host →
   `rules/parallel-sessions.md`, to register and see who else writes;
   once the requested changes there are done and logged, deregister
