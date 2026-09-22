@@ -163,8 +163,8 @@ IPv6).
 - Only nameservers of a family the host cannot reach, such as
   IPv6 resolvers on a host with broken IPv6.
 - An A or AAAA record points at an address the host does not
-  have, outside the NAT case in `rules/network-probe.md` →
-  Public DNS view.
+  have; `rules/network-probe.md` → Public DNS view says what to
+  record when the host's own address is private.
 - IPv6 disabled by sysctl while an AAAA record is published or
   the manager configures IPv6.
 - Several default routes in one family with equal metric.

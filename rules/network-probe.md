@@ -91,8 +91,7 @@ for t in bond vlan wireguard; do
     | cut -d: -f2 | tr -d ' ' | tr '\n' ' '
   echo
 done
-ip -o addr show dev "$up"
-ip -o addr show | grep -E ': (wg|tailscale|zt|tun)[^ ]* '
+ip -o addr show | grep -vE " (lo|$n)[^ ]* "
 ip -4 route show default; ip -6 route show default
 ip -4 rule; ip -6 rule
 
@@ -168,8 +167,11 @@ for t in $T; do
       c=no-client
     fi
     echo "egress$f $t=$c"
-    [ "$c" = no-address ] && continue
-    if [ "$f" = 4 ]; then d4=1; else d6=1; fi
+    # Only an answer decides a family; a dead mirror moves on.
+    case $c in
+      000|no-address|no-client|wget-exit=[1-7]) ;;
+      *) if [ "$f" = 4 ]; then d4=1; else d6=1; fi ;;
+    esac
   done
   [ -n "$d4" ] && [ -n "$d6" ] && break
 done
@@ -202,8 +204,10 @@ Reading **A (manager)**:
 
 Reading **B (links, addresses, routes)**:
 
-- The uplink is the device of the default route.
-  `wg*`, `tailscale0`, `zt*` and `tun*` are overlays.
+- The uplink is the device of the default route. Every other
+  interface that is not a container or VM one is listed with its
+  addresses too, so a multihomed host shows all of them; `wg*`,
+  `tailscale0`, `zt*` and `tun*` among them are overlays.
 - **Dynamic addresses** carry `dynamic` and a finite
   `valid_lft`: in practice DHCP for IPv4, SLAAC or
   DHCPv6 for IPv6. `proto kernel_ra` marks an
@@ -403,9 +407,13 @@ addresses on the uplink:
 
 - An A or AAAA pointing at an address the host does
   not have breaks inbound connections for clients
-  of that family. Exception: a private IPv4 on the
-  host with a public A record is 1:1 NAT. Record
-  `NAT` rather than a mismatch.
+  of that family. On a host whose own address is
+  private, that record may instead be a NAT, a
+  reverse proxy or a load balancer in front of it,
+  or simply stale: report the mismatch and what the
+  host has, and record which of them it is only
+  once the user says, or a configuration on the
+  host shows it.
 - A generic PTR from the provider's pool
   (`dynamic-…pool.<isp>`) is not the host's own name;
   for a mail host it counts as missing.
