@@ -801,16 +801,15 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     close(p); return RAW[p] = t
   }
   FNR == 1 {
-    done(); FM = ""; based = ha = hw = 0; base = ""; prev = ""
+    done(); FM = ""; based = ha = hw = hwline = 0; base = ""
     rel = substr(FILENAME, length(root) + 1)
     if (!index(text(table), "`" rel "`"))
       print rel ": not in the marker table of rules/os-detection.md"
   }
   fenced($0) { next }
-  prev ~ /^Base: / && /^Hardware: (vendor|any)$/ { hw = 1 }
-  { prev = $0 }
+  FNR == hwline && /^Hardware: (vendor|any)$/ { hw = 1 }
   /^Base: / {
-    based = 1; b = $2; gsub(/`/, "", b)
+    based = 1; hwline = FNR + 1; b = $2; gsub(/`/, "", b)
     if (b == "none") next
     if (b !~ /^rules\/os\/[a-z0-9-]+\.md$/) print rel ": Base " b " is no family file"
     else base = root b

@@ -243,7 +243,12 @@ device: the OS cannot be replaced (the
 `hostwarden-os-install` skill refuses), hardware
 health comes only through what the appliance file
 names, and a firmware update also brings the boot
-loader and the device's own firmware.
+loader and the device's own firmware. `any` describes
+the OS, not the machine in front of you: OpenWrt on a
+consumer router, HAOS on Home Assistant Green or
+pfSense on a Netgate ARM box still run on the
+vendor's device, which the probe's hardware lines and
+the model show.
 
 ## Platforms
 
