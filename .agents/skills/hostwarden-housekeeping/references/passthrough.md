@@ -115,18 +115,20 @@ went to, named as `guests.md` names it
 (`rules/hypervisors.md` → guests.md):
 
 ```
-- Passthrough: 10de:2204 → VM 101 (exclusive); /dev/dri → CT 108 (shared); /srv/media → CT 108 (bind on nas.example.com:/media, nfs4)
+- Passthrough: 10de:2204 → VM 101 (exclusive); /dev/dri → CT 108 (shared); /srv/media → CT 108 (bind on /srv: nas.example.com:/media, nfs4)
 ```
 
 `exclusive` is a VM's device, `shared` a container's, `bind` a
-directory. A bind records the filesystem its source sat on when
-the check last saw it healthy — `SOURCE` and `FSTYPE` of the
-mount `findmnt` matched — because that is what the next run
+directory. A bind records the mount its source sat on when the
+check last saw it healthy — `TARGET`, `SOURCE` and `FSTYPE` of
+the mount `findmnt` matched — because that is what the next run
 compares against: without it, a source that has fallen back to
 the root filesystem looks like any other local directory. A
 local disk records its `UUID` instead of `SOURCE`
-(`bind on UUID=3f2a…, ext4`): its `SOURCE` is a kernel device
-name, which can change at boot.
+(`bind on /data: UUID=3f2a…, ext4`), since its `SOURCE` is a
+kernel device name that can change at boot; where only `df`
+answers, which prints no `UUID`, `SOURCE` stands. A mount is the
+recorded one when its target and its identity both match.
 
 The guest's entry in `guests.md` carries the device too; its own
 memory names the device alone, since `Runs on:` already names the
@@ -142,8 +144,8 @@ line (`references/usb-devices.md` → Findings). On top:
 - **WARN:** a bind source now on the root filesystem where its
   entry records another, or on any other filesystem while the
   recorded one is not mounted. The guest may be writing into the
-  host's system disk. A local disk is compared by its `UUID`
-  (Memory above).
+  host's system disk. Memory above says when a mount is the
+  recorded one.
 - **INFO:** a bind source on another mounted filesystem, not the
   root one, while the recorded one is still mounted: the data
   moved. Update the entry.
