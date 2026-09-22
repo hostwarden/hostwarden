@@ -457,8 +457,12 @@ joined with the activity read-back, and its
 version changed, and settle the platform (step 4)
 when the `@platform` lines and `Platform:` disagree,
 and the role (step 5) when memory has no `Role:`
-line. When memory has no `Virtualization:` line, the
-first call also carries the `@virt` lines from step
-1, on Windows the second the `@hardware` part, and
-Virtualization above settles it. If a command fails or the OS no longer matches
-memory, run the full probe from step 1.
+line. When memory has no `Virtualization:` line or no
+`Arch:` line, the first call also carries the `@virt`
+lines from step 1, and for a missing `Arch:` the
+`model name` and `hw.model` lines of `@hardware` that
+name the maker; on Windows the second call carries
+its `@hardware` part, which holds both. Virtualization
+and step 2 above settle them. If a command fails or
+the OS no longer matches memory, run the full probe
+from step 1.
