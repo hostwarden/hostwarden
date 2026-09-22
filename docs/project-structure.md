@@ -118,6 +118,10 @@ rules/                 — Upstream rule files (git-tracked)
     zimaos.md          — ZimaOS (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt
+  appliance-api.md     — Reading and changing an appliance
+                         through its web API
+  tls-pinning.md       — Pinning a self-signed appliance
+                         certificate for API calls
   platform/            — Reference data on top of whichever
                          family was detected. Detection reads
                          at most one

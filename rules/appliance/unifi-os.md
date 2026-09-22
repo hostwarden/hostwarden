@@ -127,9 +127,10 @@ than what the host contains.
   `ifconfig`: the next provisioning overwrites a hand edit, or it
   survives until an update and then silently is not there.
 - **Changes go through the application**: its web UI or its local
-  API. Give the user the exact menu path and values. A change of
-  the network's configuration names the sites and devices it
-  reaches, since one setting provisions many devices.
+  API (see Network API). Give the user the exact menu path and
+  values. A change of the network's configuration names the sites
+  and devices it reaches, since one setting provisions many
+  devices.
 - **On the console itself, over SSH**, the only thing that changes
   is the boot scripts under `/data/on_boot.d` (see Boot Scripts).
   Every change there is a config edit (`rules/backups.md`); ask
@@ -140,6 +141,130 @@ than what the host contains.
 - Never run a factory reset, whatever tool offers it, and never
   restore a backup without an explicit request; a restore is the
   user's step in the UI.
+
+## Network API
+
+SSH shows the console; the network's configuration — sites, devices,
+clients, networks, Wi-Fi, firewall — is read and changed through
+UniFi Network's local API, the way `rules/appliance-api.md`
+describes. Over SSH is the default path, against `127.0.0.1`. Only
+the local API is used; the cloud's Site Manager API and its
+connector are not part of Hostwarden.
+
+### Accounts
+
+The user creates each admin in UniFi OS under Settings > Admins &
+Users > Create New Admin, with **Restrict to local access only** on
+(no UI account, no cloud login, no MFA prompt for a script) and
+every application other than Network set to None, OS settings
+included
+(<https://help.ui.com/hc/en-us/articles/28692158912279-Adding-Admins-in-UniFi>).
+
+- **Read: an admin `api-read`** with Network set to **View Only**.
+  Ubiquiti's API keys have no read-only scope, and a View Only admin
+  may not be offered a key at all, so this admin logs in with its
+  password. File `unifi-ro.json`, one line:
+  `{"username": "api-read", "password": "<password>"}`.
+- **Write, only where the user asked for write access: an admin
+  `api-write`** with Network set to **Full Management**, or to a
+  custom role that covers only what Hostwarden is meant to change.
+  Signed in as that admin, the user creates an API key on UniFi
+  Network's Integrations page (its place in the
+  menu moves between releases; it is named Integrations or API
+  Keys). File `unifi-rw.header`, one line: `X-API-KEY: <key>`. The
+  key is shown once; a lost key is deleted and a new one created.
+- **Reads that only the key reaches** — every read on a console in
+  a UniFi Fabric, which accepts no password login
+  (<https://github.com/Art-of-WiFi/UniFi-API-client>), and the
+  Integration API everywhere — use the write key only when the user
+  agrees to that for this console, recorded as
+  `API key reads: allowed`. Without it, name what could not be read.
+- In server memory:
+  ```
+  API read: api-read (View Only), ~/hostwarden-keys/<console>/unifi-ro.json
+  API write: api-write (Full Management), ~/hostwarden-keys/<console>/unifi-rw.header
+  ```
+
+### Reading
+
+- **Every site, not just the first.** A console can carry several
+  sites, and a check that reads one reports the others as clean
+  without looking. So a task that reads per site starts by reading
+  `/proxy/network/api/self/sites`, and the workstation builds the
+  per-site batch from that answer — two calls, because the console
+  has no `jq` to loop with. Memory's list
+  (`Sites: default (Default), <name> (<desc>)`) is what the answer
+  is compared against, not what the batch is built from: a site
+  that appeared or disappeared is a change to report and to record,
+  never a reason to skip a read.
+- A task's reads over SSH with the read admin, in one call — the
+  example reads one site, and a console with more repeats the
+  per-site block, marker included, for each:
+
+  ```
+  ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT;
+    curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
+      -w "{\"@\": \"login\", \"code\": %{http_code}}\n" \
+      --data @- https://127.0.0.1/api/auth/login
+    b=https://127.0.0.1/proxy/network/api/s/<site>
+    curl -sSk -b "$j" -w "\n{\"@\": \"health\", \"code\": %{http_code}}\n" \
+      "$b/stat/health"
+    curl -sSk -b "$j" -w "\n{\"@\": \"device\", \"code\": %{http_code}}\n" \
+      "$b/stat/device"' \
+    < ~/hostwarden-keys/<console>/unifi-ro.json | jq …
+  ```
+
+  Only the login reads stdin, so each endpoint may have its own
+  `curl -b "$j"`. A key-authenticated read is one `curl -H @-` with
+  every URL after it (`rules/appliance-api.md` → Reading).
+  The login carries a marker like the reads, and a `login` code
+  other than 200 means nothing was read: never take the empty
+  stream that follows for a clean result. `401` and `403` are the
+  credential being rejected; `429`, a `5xx`, a `404` or curl's
+  `000` are a rate limit, the console, a wrong path or no
+  connection — report the code as it came, and do not ask for a new
+  password over one of those.
+
+- Secret fields: add `^x_` to the filter's pattern — the classic
+  API keeps its secrets in `x_` fields (`x_passphrase`,
+  `x_password`, the VPN keys). For housekeeping, project
+  `.data[] | {name, model, state, upgradable, version}` for devices
+  and `.data[] | {subsystem, status}` for health.
+- The endpoints the read admin reaches are the classic API under
+  `/proxy/network/api/s/<site>/` — `stat/health`, `stat/device`,
+  `stat/sta` (connected clients), `stat/sysinfo`, `rest/networkconf`,
+  `rest/wlanconf`, `rest/portforward`, `rest/firewallrule`,
+  `rest/firewallgroup`, `rest/routing` — and
+  `/proxy/network/api/self/sites` for the sites (`<site>` is a
+  site's `name`, `default` on a console that has only one).
+  Ubiquiti documents none of them; they come from the clients that
+  use them (aiounifi, go-unifi) and change between releases.
+- The key, where key reads are allowed, replaces the login and the
+  cookie with one `curl -H @-` carrying every URL of the batch and a
+  `%{url_effective}` marker, and reaches both the classic API and the
+  documented Integration API under `/proxy/network/integration/v1/`
+  (`info`, `sites`, and per site `devices`, `clients`, `networks`,
+  `wifi/broadcasts`, `firewall/zones`, `firewall/policies`, `wans`,
+  `vpn/servers`), whose reference is at
+  <https://developer.ui.com/network>, one version per Network
+  release.
+
+### Writing
+
+- **Prefer the Integration API**, documented and versioned. It
+  writes networks, Wi-Fi broadcasts, firewall zones and policies,
+  ACL rules, DNS policies, traffic matching lists and vouchers, and
+  it restarts devices and power-cycles PoE ports. For anything else
+  the key also writes the classic API; say that it is undocumented
+  before using it.
+- Name every site and device a change provisions. Provisioning to
+  adopted devices takes a while; a device still provisioning when
+  the object is read back is not a failure.
+- Firewall policies and zones, port forwards and the network or
+  VLAN the session comes from are changes that can touch the way in;
+  UniFi names no revert for them.
+- Device restarts and PoE power cycles interrupt clients: ask each
+  time, name the device and what hangs off it.
 
 ## Updates
 
@@ -264,9 +389,10 @@ directory.
   read only its chain (`nft list chain …`, or `iptables-save` through
   `grep`), and never base a change on it.
 - Rules, port forwards and zones change in the application, after
-  asking. Before a change, name what reaches SSH and the UniFi OS web
-  UI and keep both reachable from where the session comes from
-  (`rules/ssh-safety-net.md`); there is no timed revert.
+  asking, and fall under `rules/ssh-safety-net.md` with no revert
+  (see Network API → Writing): name what reaches SSH and the UniFi
+  OS web UI, and the user applies the change with a second way in
+  ready.
 
 ## Services and Logs
 
@@ -356,6 +482,10 @@ with these changes:
   a boot script that failed at the last boot, `udm-boot` and
   unifi-on-boot both enabled; on a UNAS, a degraded array or a drive
   with SMART findings.
+- With read access (see Network API), also `stat/health` and
+  `stat/device`: a subsystem whose `status` is not `ok`, an adopted
+  device that is offline, and a device with `upgradable` true are
+  findings; name the device.
 
 **A security audit** runs the security skill with these changes:
 
@@ -367,8 +497,12 @@ with these changes:
   CRITICAL** — a port forward to the console, or a WAN rule that
   passes SSH. SSH on without a reason to have it is INFO.
 - Firewall (`references/firewall.md`): replaced by the application's
-  rules (see Firewall), which the user reads out where no API access
-  is set up. The web UI reachable from the internet directly, not
+  rules (see Firewall). With read access they come from the API —
+  `rest/portforward` and `rest/firewallrule`, and the zone-based
+  `firewall/policies` where key reads are allowed; otherwise the user
+  reads them out.
+  A port forward or WAN rule to the console's SSH is the CRITICAL
+  above; the web UI reachable from the internet directly, not
   through UniFi's remote access, is WARN.
 - Listening services (`references/listening-services.md`): as
   written.
