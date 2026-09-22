@@ -44,8 +44,8 @@ If the command returns nothing — and it actually ran,
 and nothing limited what it can see —
 skip silently: no activity to report.
 
-Where the loaded OS file's `## Logs` says the log
-does not survive a reboot, an empty result covers
+Where the Logs section the read-back came from says
+the log does not survive a reboot, an empty result covers
 only the time since the last boot. Run `uptime` in
 the same call as the read-back, tell the user how far
 back the check reached, and read the local changelog

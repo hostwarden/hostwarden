@@ -211,16 +211,15 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   compression. Check the log settings before assuming either.
 - Readable firewall log:
   `tail -n 50 /var/log/filter.log | filterparser.php`.
-- `/var` may be a RAM disk: logs from before a reboot may be gone.
-  Not a finding on its own (`rules/verify-before-reporting.md`).
+- `/var` may be a RAM disk: then `df /var/log` names `tmpfs` or an
+  `md` device, and the log does not survive a reboot. Not a finding
+  on its own (`rules/verify-before-reporting.md`).
 - No `journalctl`. `logger -t hostwarden` lands in
   `/var/log/system.log`; the activity check reads it back with:
   ```
   grep -hE "hostwarden|heinzel" /var/log/system.log | tail -20
   df /var/log; uptime
   ```
-  When `df` names `tmpfs` or an `md` device, `/var/log` is a RAM
-  disk and the log does not survive a reboot.
 
 ## Housekeeping and Audits
 
