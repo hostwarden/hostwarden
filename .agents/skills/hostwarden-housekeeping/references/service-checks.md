@@ -105,8 +105,10 @@ docker ps --format \
 ls -d /etc/casaos
 ```
 
-`/etc/casaos` existing means CasaOS manages containers here: add
-`CasaOS` to `memory.md` and run the CasaOS section below.
+`/etc/casaos` existing on a host whose memory names no
+`Appliance:` means CasaOS manages containers here: add `CasaOS` to
+`memory.md` and run the CasaOS section below. ZimaOS, which grew out
+of CasaOS, is an appliance with its own file and never counts.
 
 - **CRITICAL** if the daemon does not answer — that says nothing
   about the containers, never that there are none. Permission
