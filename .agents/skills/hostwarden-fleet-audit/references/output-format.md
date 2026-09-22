@@ -63,9 +63,9 @@ Both are **excluded from drift detection**: an unreadable or
 missing value is not a disagreement. Never mark such a row
 with the `!` prefix or list it in "Drift detected" solely
 because one cell reads `needs root` or `n/a` — the other
-hosts' values may still drift against each other. Hosts of
-different families running different tools is not drift
-either; the same tool set up differently is. Instead, mention
+hosts' values may still drift against each other. A host
+that has no firewall or time service while others have one
+is still drift, whatever its family. Instead, mention
 the affected hosts once in a one-line note under the table,
 e.g.:
 

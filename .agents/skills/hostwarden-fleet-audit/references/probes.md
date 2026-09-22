@@ -231,7 +231,11 @@ fi
 lines print nothing there — and then classifies and judges
 default deny as `rules/os/alpine.md` → Firewall → Checks says,
 with `$SUDO` in front of the reads that need root. That adds
-`awall` and saved `iptables` rules to the tools above. Take
+`awall` and saved `iptables` rules to the tools above. When
+`$SUDO` is `-`, the runlevels still name the tool, but its
+state and default policy are `unknown(needs-root)` — the
+generic script's sentinel does not cover them, because it
+runs only when it found a tool itself. Take
 the runlevels from the `###rc###` block instead of
 `rc-update show`: a runlevel that lists `nftables` is what
 `nftables.enabled=enabled` means below.
@@ -345,7 +349,8 @@ Row keys on an Alpine host:
 
 - `NTPSynchronized` — `yes` when `chronyc tracking` reports
   `Leap status : Normal`, `no` for any other leap status, and
-  `n/a (busybox ntpd)` under busybox `ntpd`
+  `n/a (busybox ntpd)` or `n/a (openntpd)` under those, which
+  this probe does not read a sync state from
 - Active time service — its name and state in `###rc###`
 - Timezone — the zone `/etc/localtime` points to, else the
   abbreviation `date` prints
