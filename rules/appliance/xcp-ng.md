@@ -10,72 +10,58 @@ This file applies on top of the base (`rules/os-detection.md` →
 Appliances). Dom0 is not a general-purpose server: every VM on the
 host, and in a pool every other host, depends on it.
 
-XCP-ng itself says "day to day, nobody should log into a host
-directly"; the management plane is XAPI, reached through Xen
-Orchestra, XO Lite or the `xe` CLI
-(<https://docs.xcp-ng.org/management/users-permissions/>).
-Hostwarden on dom0 reads state, runs `xe`, and follows XCP-ng's own
-update procedure. It changes nothing by hand that XAPI owns.
+XCP-ng: "day to day, nobody should log into a host directly"
+(<https://docs.xcp-ng.org/management/users-permissions/>). The
+management plane is XAPI, reached through Xen Orchestra, XO Lite or
+the `xe` CLI. Hostwarden on dom0 reads state, runs `xe`, and
+follows XCP-ng's own update procedure.
 
 Source for everything below unless noted: the XCP-ng documentation,
 <https://docs.xcp-ng.org/>.
 
 ## Add: Version Detection
 
-- `/etc/os-release` has `ID="xcp-ng"` and
-  `ID_LIKE="centos rhel fedora"`, which maps it to the RHEL family;
-  `VERSION_ID` is the XCP-ng version
+- `/etc/os-release` has `ID="xcp-ng"`, and `VERSION_ID` is the
+  XCP-ng version
   (<https://github.com/xcp-ng/xcp-ng-release/blob/8.3/src/xenserver/etc/os-release>).
-  `/etc/redhat-release` names XCP-ng, not CentOS.
-- `/etc/xensource-inventory` exists on every host. Its
-  `PRODUCT_VERSION` repeats the version; `INSTALLATION_UUID` is the
-  host's UUID for `xe`. Read single keys with `grep`; the file names
-  the boot disk and management interface as well.
-- Pool role:
+- Pool role, in one call — this host's UUID, the master's UUID and
+  every host's UUID:
   ```
+  grep '^INSTALLATION_UUID=' /etc/xensource-inventory
   xe pool-list params=name-label,master
-  xe host-list params=uuid,name-label,enabled
+  xe host-list --minimal
   ```
-  The host whose UUID is the pool's `master` is the pool master
-  (the docs also call it the coordinator). A pool of one host is
+  This host is the pool master (the docs also say coordinator)
+  when its UUID is the pool's `master`; a pool of one host is
   standalone.
-- Record in server memory:
-  `Appliance: XCP-ng <version>`, the pool name, and `master` or
-  `member`, or `standalone`.
+- Record in server memory: `Appliance: XCP-ng <version>`, the pool
+  name, and `master`, `member` or `standalone`.
 - Take support dates from the releases page
   (<https://docs.xcp-ng.org/releases/>), never from memory. A host
-  on a release past its end of support is a finding: the page says
-  hosts below the current LTS no longer get bug or security fixes.
-- `xe` on a host whose `ID` is not `xcp-ng` (Citrix XenServer uses
-  the same toolstack) is not covered by this file. Tell the user
-  and proceed as the base alone describes, reading more than you
-  change.
+  on a release past its end of support is a finding: releases
+  below the current LTS get no bug or security fixes.
 
 ## Replace: Package Manager
 
-- **`yum`**, from the XCP-ng repositories only.
 - **Install nothing in dom0 unless the user asks for it, and then
-  only a package from XCP-ng's own repositories.** The supported
+  only with `yum` from XCP-ng's own repositories.** The supported
   list for 8.3 is
   <http://reports.xcp-ng.org/8.3/extra_installable.txt>; show the
-  user that the package is on it before installing. "Best effort
-  support is provided for additional packages provided by the
-  XCP-ng project. No support is provided for other additional
-  packages, even if installed from our repositories"
+  user that the package is on it before installing. The project
+  gives best-effort support for its own additional packages and
+  none for anything else
   (<https://docs.xcp-ng.org/management/additional-packages/>).
+  A package XCP-ng does not carry goes into a VM.
 - **Never enable another repository**, not even for one command
   with `--enablerepo`. The CentOS and EPEL repositories ship
-  pre-installed but disabled. The docs: "The update process for
-  XCP-ng assumes that only XCP-ng repositories are enabled. If you
-  enable more repositories, updates may get pulled from there and
-  overwrite XCP-ng packages and thus break your system." A package
-  that is not in XCP-ng's repositories goes into a VM, never into
-  dom0. If a third-party repository is already enabled under
-  `/etc/yum.repos.d/`, report it; turning it off (`enabled=0`) is
-  a config edit (`rules/backups.md`) and the user's decision.
-- Dry-run: `yum --assumeno update` shows what would change without
-  installing; `yum check-update` lists pending updates. Installing
-  anything follows Updates below.
+  pre-installed but disabled; the docs warn that updates "may get
+  pulled from there and overwrite XCP-ng packages and thus break
+  your system". If a third-party repository is already enabled
+  under `/etc/yum.repos.d/`, report it; turning it off
+  (`enabled=0`) is a config edit (`rules/backups.md`) and the
+  user's decision.
+- Dry-run: `yum --assumeno update`. Installing anything follows
+  Updates below.
 - Never `pip install`, `curl | sh`, or a binary dropped into
   `/usr/local` on dom0. Monitoring agents are the documented
   exception, and only the ones the repositories carry: `net-snmp`
@@ -84,20 +70,10 @@ Source for everything below unless noted: the XCP-ng documentation,
 
 ## Replace: Automatic Security Updates
 
-- **Not expected, and not a finding.** Dom0 updates follow the
-  pool procedure below, pool master first, with reboots or a
-  toolstack restart in between; nothing may install them on its
-  own. Do not install `yum-cron` or `dnf-automatic`.
-- Report pending updates instead. The `updater.py` XAPI plugin
-  returns them as a list:
-  ```
-  xe host-call-plugin host-uuid=<uuid> plugin=updater.py fn=check_update
-  ```
-  (<https://github.com/xcp-ng/xcp-ng-xapi-plugins>). `yum
-  check-update` gives the same from the host itself.
-- Update announcements are on the XCP-ng blog
-  (<https://xcp-ng.org/blog/tag/update/>); each says whether a
-  reboot or only a toolstack restart is needed.
+- **Not expected, and not a finding.** Dom0 updates follow Updates
+  below; nothing installs them on its own. Do not install
+  `yum-cron` or `dnf-automatic`. Pending updates are reported
+  instead (Housekeeping and Audits).
 
 ## Updates
 
@@ -108,15 +84,16 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   after another, and disables HA, the load balancer and backup jobs
   for the duration. It needs every VM disk on shared storage. When
   the pool has Xen Orchestra, tell the user that is the route and
-  do the update from dom0 only when they ask for it.
+  update from dom0 only when they ask for it.
 - **Always the pool master first.** "Other pool members must never
   run a higher version than the master"; a member updated first
-  loses its connection to the pool.
+  loses its connection to the pool. Never update one member on its
+  own either; only a host alone in its pool is updated by itself.
 - Before updating, as the docs list them: disable HA (see High
   Availability), check that no XAPI task runs (`xe task-list`),
-  eject the guest-tools ISO from running VMs, and do not run the
-  update from an interactive console shell. Disconnect passed-
-  through devices first. Disabling HA is a change: ask.
+  eject the guest-tools ISO from running VMs, disconnect
+  passed-through devices, and do not run the update from an
+  interactive console shell.
 - Per host, starting with the master:
   1. Dry-run and show the user the list (`yum --assumeno update`).
   2. `xe host-disable uuid=<uuid>`: no new VMs start here.
@@ -126,30 +103,28 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
      params=name-label,power-state` that nothing is left running.
   4. `yum update -y`.
   5. Reboot, or for a control-plane-only update
-     `xe-toolstack-restart`. **Never restart the toolstack while
-     HA is on**: "Attempting this will cause immediate host
-     fencing" (<https://docs.xcp-ng.org/management/ha/>).
+     `xe-toolstack-restart` (never with HA on: see High
+     Availability).
   6. `xe host-enable uuid=<uuid>` once the host is back, then the
      next host.
 - **Rebooting and evacuating are the user's decision**, every
   time: ask, and say how many VMs will move or stop. A host that
   cannot be evacuated (local storage, no room elsewhere) stops its
   VMs on reboot.
-- **Reboot or restart?** There is no automatic answer. The docs:
-  rebooting after every update is safest. A kernel, Xen or
+- **Reboot or restart?** There is no automatic answer; the docs
+  call a reboot after every update safest. A kernel, Xen or
   low-level library such as `glibc` needs a reboot; anything else a
   toolstack restart. Read the updated packages from the `yum`
-  output or `/var/log/yum.log`, and the blog post for the update.
+  output or `/var/log/yum.log`, and the announcement of the update
+  on the XCP-ng blog (<https://xcp-ng.org/blog/tag/update/>),
+  which says which one it needs.
 - On a host with a LINSTOR (XOSTOR) SR, the docs update
   `linstor-satellite` and `linstor-controller` first, on their own;
   follow the updates page for the exact steps.
-- Do not update a single member of a pool on its own. The docs
-  "do NOT recommend to install updates to individual hosts" unless
-  the host is alone in its pool.
 - **Upgrading to a new release** (e.g. 8.2 → 8.3) is done from the
   installation ISO at the console, which backs up the system and
-  reinstalls it while keeping VMs and SRs. The `yum` upgrade path
-  "is **not** supported to upgrade to XCP-ng 8.3"
+  reinstalls it while keeping VMs and SRs; the `yum` path "is
+  **not** supported to upgrade to XCP-ng 8.3"
   (<https://docs.xcp-ng.org/installation/upgrade/>). Refer the
   user to that page; it is not a job for Hostwarden over SSH.
 
@@ -158,27 +133,44 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 - `xe` runs locally on every host and acts on the whole pool
   (<https://docs.xcp-ng.org/management/manage-locally/cli/>).
   Command reference:
-  <https://docs.xcp-ng.org/appendix/cli_reference/>. Check a
-  command there before running it (`AGENTS.md` → Verify Before
-  Running); `xe help <command>` prints its syntax on the host.
+  <https://docs.xcp-ng.org/appendix/cli_reference/>; on the host,
+  `xe help <command>` prints the syntax (`AGENTS.md` → Verify
+  Before Running).
 - Select what a listing prints with `params=`, and filter with
   `<param>=<value>`; `--minimal` prints only a comma-separated
-  list of values.
+  list of values. Filter for the problem rows instead of listing
+  everything.
+- `<uuid>` below is a host, VM or SR UUID. This host's comes from
+  `INSTALLATION_UUID` in `/etc/xensource-inventory`; read it in the
+  same `sh -s` bundle that uses it rather than in a call of its
+  own:
+  ```
+  uuid=$(sed -n "s/^INSTALLATION_UUID='\(.*\)'/\1/p" /etc/xensource-inventory)
+  ```
+- Name the object an `xe` command acts on by `uuid=`. A selector
+  that matches several objects acts on all of them once
+  `--multiple` is given; never pass it unless the user asked for
+  every match.
 - **Xen Orchestra** (a VM or a separate host, not part of dom0)
   holds backup jobs, Rolling Pool Update, and the pool's history.
   It is managed as its own server when Hostwarden manages it at
   all. **XO Lite** is bundled with 8.3 and served by the host
   itself over HTTPS.
 - **VMs, storage repositories and networks change through `xe` or
-  Xen Orchestra, never by hand.** Never edit the XAPI database,
-  run `lvcreate`/`lvremove` on an SR's volume group, create files
-  in an SR's mount point, or bring interfaces up and down with
-  `ip`/`ifconfig`. XAPI keeps its own record of these objects, and
-  a change it did not make leaves that record wrong.
-- Name the object an `xe` command acts on by `uuid=`. A selector
-  that matches several objects acts on all of them once
-  `--multiple` is given; never pass it unless the user asked for
-  every match.
+  Xen Orchestra, never by hand.** Never edit the XAPI database or
+  `/etc/sysconfig/network-scripts/`, run `lvcreate`/`lvremove` on
+  an SR's volume group, create files in an SR's mount point, or
+  bring interfaces up and down with `ip`/`ifconfig`. XAPI keeps its
+  own record of these objects, and a change it did not make leaves
+  that record wrong.
+- Hardware health comes through XAPI plugins, read-only; run the
+  three in one call:
+  ```
+  xe host-call-plugin host-uuid=$uuid plugin=raid.py fn=check_raid_pool
+  xe host-call-plugin host-uuid=$uuid plugin=smartctl.py fn=health
+  xe host-call-plugin host-uuid=$uuid plugin=ipmitool.py fn=get_all_sensors
+  ```
+  (<https://github.com/xcp-ng/xcp-ng-xapi-plugins>).
 
 ## VMs
 
@@ -198,22 +190,19 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 
 ## Storage Repositories
 
-- List, sizes in bytes, and the SRs' connections to the hosts:
+- List, sizes in bytes, and the connections that are down:
   ```
   xe sr-list params=uuid,name-label,type,shared,physical-size,physical-utilisation
-  xe pbd-list params=sr-uuid,host-uuid,currently-attached
+  xe pbd-list currently-attached=false params=sr-uuid,host-uuid
   ```
   An unplugged PBD on a shared SR is a finding.
 - `xe sr-scan uuid=<uuid>` rescans an SR and is safe.
-  `sr-destroy` deletes the SR and every disk on it; `sr-forget`
-  drops it from the pool. Both need the user's explicit request,
-  and `sr-destroy` counts with the disk taboos.
-- **The disk taboos in `AGENTS.md` hold on dom0 as anywhere.**
-  Creating a local SR (`xe sr-create … device-config:device=…`)
-  writes to a whole disk device: treat it as the taboo it is. Read
-  disks with `lsblk` or the `lsblk.py` plugin
-  (`xe host-call-plugin host-uuid=<uuid> plugin=lsblk.py
-  fn=list_block_devices`), never by writing to them.
+- `sr-destroy` deletes the SR and every disk on it; `sr-forget`
+  drops it from the pool; `sr-create` over a device
+  (`device-config:device=…`) erases that device. All three only on
+  the user's explicit request, after showing what is on the SR or
+  device. Read disks with `lsblk` or the `lsblk.py` plugin
+  (`fn=list_block_devices`), never by writing to them.
 - `xe pool-eject` "reinstalls its XAPI state": the host reboots as
   a fresh standalone host, and "the contents of its local SRs are
   destroyed" (<https://docs.xcp-ng.org/management/hosts-pools/>).
@@ -221,13 +210,10 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 
 ## Networking
 
-- Networks, PIFs, bonds and VLANs are XAPI objects: `xe
-  network-list`, `xe pif-list
-  params=uuid,device,IP,management,currently-attached`.
-- Change them only through `xe` (`pif-reconfigure-ip`,
-  `host-management-reconfigure`) or Xen Orchestra, never in
-  `/etc/sysconfig/network-scripts/`: XAPI owns the network
-  configuration.
+- Networks, PIFs, bonds and VLANs: `xe network-list`,
+  `xe pif-list params=uuid,device,IP,management,currently-attached`.
+  Change them with `xe pif-reconfigure-ip` or
+  `xe host-management-reconfigure`, or in Xen Orchestra.
 - Changing the management interface or its address cuts SSH and
   the pool's connection to the host. The docs: do it "from a
   console that won't be cut". Ask the user first, and make sure
@@ -242,11 +228,11 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   `ha-plan-exists-for` below `ha-host-failures-to-tolerate` means
   the pool cannot survive the failures it promises: a finding.
 - A host with HA on that loses its heartbeat fences itself
-  (reboots). Never restart the toolstack with HA on; disable HA
-  (`xe pool-ha-disable`) first, which is itself a change to ask
-  about, and re-enable it afterwards
-  (`xe pool-ha-enable heartbeat-sr-uuids=<sr-uuid>`) with the SR
-  it had.
+  (reboots). **Never restart the toolstack while HA is on**:
+  "Attempting this will cause immediate host fencing". Disable HA
+  first (`xe pool-ha-disable`) — a change, so ask — and re-enable
+  it afterwards with the SR it had
+  (`xe pool-ha-enable heartbeat-sr-uuids=<sr-uuid>`).
 - `xe host-declare-dead`, `xe host-forget` and
   `xe pool-emergency-transition-to-master` are recovery tools for
   a dead host or master. The reference warns that declaring a host
@@ -258,32 +244,29 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
 - **Expected:** the `iptables` service with its rules in
   `/etc/sysconfig/iptables`, as XCP-ng ships it. Not `firewalld`;
   do not install or enable it.
-- Read-only: `iptables -S`, `iptables -L -n -v`, and the same with
-  `ip6tables`.
+- Read-only: `iptables -S; ip6tables -S`; `iptables -L -n -v` only
+  when the packet counters matter.
 - XAPI listens on 443 (HTTPS), and on 80 unless the pool sets
   `https-only=true` (8.3), which closes it on the management
   interface (<https://docs.xcp-ng.org/releases/release-8-3/>).
   Closing a port XAPI expects can break pool traffic.
-- **Opening a port:** only when the user asks. The docs add the
-  rule to `/etc/sysconfig/iptables` and restart `iptables`
-  (<https://docs.xcp-ng.org/management/monitoring/>), which is a
-  config edit (`rules/backups.md`) and a firewall change
-  (`AGENTS.md`). XCP-ng staff name
-  `/etc/xapi.d/plugins/firewall-port {open|close} <port> <protocol>`
-  as the tool, and warn against changing the dom0 firewall at all
-  (<https://xcp-ng.org/forum/topic/9823/xcp-ng-firewall>).
-- **Before any change:** read the ports sshd listens on
-  (`AGENTS.md` → Critical Safety Rules), keep a second SSH session
-  open, and ask. A mistake in the file takes effect on the restart,
-  SSH included.
+- **Opening or closing a port:** only when the user asks, as a
+  firewall change (`AGENTS.md` → Critical Safety Rules, including
+  the sshd ports) and a config edit (`rules/backups.md`). The docs
+  add the rule to `/etc/sysconfig/iptables` and restart `iptables`
+  (<https://docs.xcp-ng.org/management/monitoring/>); XCP-ng staff
+  name `/etc/xapi.d/plugins/firewall-port {open|close} <port>
+  <protocol>` and advise against changing the dom0 firewall at all
+  (<https://xcp-ng.org/forum/topic/9823/xcp-ng-firewall>). Keep a
+  second SSH session open: a mistake in the file takes effect on
+  the restart, SSH included.
 
 ## SSH
 
-- The sshd taboo in `AGENTS.md` holds unchanged: never modify
-  `sshd_config` or `sshd_config.d/`. On 8.3 `sshd_config` belongs
-  to Vates, and local settings go into `/etc/ssh/sshd_config.d/`
-  (<https://docs.xcp-ng.org/releases/release-8-3/>) — which the
-  user edits, not Hostwarden.
+- On 8.3 `sshd_config` belongs to Vates and local settings go into
+  `sshd_config.d/`
+  (<https://docs.xcp-ng.org/releases/release-8-3/>); the sshd
+  taboo in `AGENTS.md` covers both.
 - Root's password is shared by every host in the pool; changing it
   is a credential rotation. `xe user-password-change` takes the new
   password as an argument, which `rules/secrets.md` forbids: the
@@ -297,13 +280,14 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
 - Dom0's SELinux state is XCP-ng's. Report `getenforce` when an
   audit asks for it; never change it.
 
+## Remove: Service Manager > Logs: `journalctl -u <service>`
+
 ## Add: Service Manager
 
 - `xapi` is the toolstack. The docs restart it with
   `xe-toolstack-restart`, not `systemctl`; see Updates for when,
-  and High Availability for when never.
-- `rsyslog` writes every log (see Logs); XCP-ng's rotation hangs
-  off it.
+  and High Availability for when never. Ask first, even when
+  `memory/service-policy.md` allows restarts without asking.
 
 ## Remove: Directory Conventions
 
@@ -314,23 +298,8 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   XCP-ng backports security fixes into its own packages, so a
   CentOS advisory's fixed version may not match. Judge a package
   by XCP-ng's update announcements.
-- Hardware health comes through XAPI plugins, read-only:
-  `raid.py fn=check_raid_pool`, `smartctl.py fn=health`,
-  `ipmitool.py fn=get_all_sensors`, each with
-  `xe host-call-plugin host-uuid=<uuid> plugin=<plugin> fn=<fn>`
-  (<https://github.com/xcp-ng/xcp-ng-xapi-plugins>).
 
-## Replace: Common Pitfalls
-
-- Pool members updated before the master drop out of the pool.
-- `xe-toolstack-restart` with HA on fences the host.
-- Enabling a CentOS or EPEL repository, even once, can replace
-  XCP-ng packages with higher-versioned ones.
-- On some Dell servers the installer creates no separate `/var/log`
-  partition, and log rotation then deletes old logs the same day
-  (<https://docs.xcp-ng.org/troubleshooting/installation-upgrade/>).
-  Missing old logs there are not evidence of tampering
-  (`rules/verify-before-reporting.md`).
+## Remove: Common Pitfalls
 
 ## Logs
 
@@ -345,12 +314,15 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   `/etc/rsyslog.d/xenserver.conf` routes to `/var/log/user.log`
   (<https://github.com/xcp-ng/xcp-ng-release/blob/8.3/src/common/etc/rsyslog.d/xenserver.conf>).
   Keep `logger`'s default facility. The activity check reads it
-  back, rotated files included:
+  back, oldest file first so the last matches are the newest:
   ```
-  zgrep -hE "hostwarden|heinzel" /var/log/user.log*
+  zcat -f $(ls -tr /var/log/user.log*) | grep -E "hostwarden|heinzel" | tail -20
   ```
-  The glob does not sort by date: order the matches by their
-  timestamps before reading the newest.
+- On some Dell servers the installer creates no separate `/var/log`
+  partition, and log rotation then deletes old logs the same day
+  (<https://docs.xcp-ng.org/troubleshooting/installation-upgrade/>).
+  Missing old logs there are not evidence of tampering
+  (`rules/verify-before-reporting.md`).
 - `xen-bugtool --yestoall` collects every log and the config for
   a support case. It writes a large archive into dom0; only on
   request.
@@ -360,39 +332,41 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
 Source: <https://docs.xcp-ng.org/management/backup/>.
 
 - VM backups are Xen Orchestra backup jobs to a remote repository
-  (NFS, SMB, S3). Dom0 holds none of them; ask the user what the
-  jobs are when an audit needs them.
+  (NFS, SMB, S3); dom0 holds none of them.
 - Pool metadata: Xen Orchestra's metadata backup, or by hand
   `xe pool-dump-database file-name=<file>`. Write that file outside
-  the SRs, and it holds the pool configuration: treat it as a
-  secret (`rules/secrets.md`).
+  the SRs, and treat it as a secret (`rules/secrets.md`): it holds
+  the pool configuration.
 
 ## Housekeeping and Audits
 
-- **Pending updates:** `yum check-update` or the `updater.py`
-  plugin (see Automatic Security Updates); they are the finding.
-  A member on a newer version than its master
-  (`xe host-list params=name-label,software-version`) is a
-  critical one.
-- **Pool and hosts:** every host `enabled=true` and
-  `host-metrics-live=true`
-  (`xe host-list params=name-label,enabled,host-metrics-live`);
-  a disabled host left behind by maintenance is a finding.
-  `xe task-list` for stuck tasks.
-- **SR usage:** from `xe sr-list` (see Storage Repositories);
-  report use above 85 % of `physical-size`, as for any
-  filesystem, and any PBD not attached.
-- **HA state:** see High Availability.
-- **Dom0 disk and memory:** `df -h /` and `df -h /var/log` in dom0
-  (a full `/var/log` stops logging); `free -m` for dom0's own
-  memory. Host memory for VMs:
-  `xe host-list params=name-label,memory-total,memory-free`.
-- **Backups:** no Xen Orchestra backup job and no metadata backup
-  known for the pool is a finding; say which the user has to
-  confirm, since dom0 cannot show them.
-- **Hardware:** the RAID, SMART and IPMI plugins (see Notes).
-- **Security audit:** the firewall rows read `iptables`; a missing
-  `firewalld` or `dnf-automatic` is not a finding. Report
-  `https-only` and whether SSH is on.
-- **Fleet audit:** compare XCP-ng hosts only with each other; a
-  missing automatic-update tool is not drift.
+- **Pending updates:** `yum check-update -q`; they are the finding.
+  Xen Orchestra reads the same list through the `updater.py`
+  plugin (`plugin=updater.py fn=check_update`,
+  <https://github.com/xcp-ng/xcp-ng-xapi-plugins>).
+- **Pool, hosts and HA,** in one call:
+  ```
+  xe pool-list params=name-label,master,ha-enabled,ha-host-failures-to-tolerate,ha-plan-exists-for
+  xe host-list params=name-label,enabled,host-metrics-live,memory-total,memory-free
+  xe task-list params=uuid,name-label,status,progress
+  ```
+  A host with `enabled=false` left behind by maintenance, or
+  `host-metrics-live=false`, is a finding; HA as in High
+  Availability. A member on a newer version than its master is a
+  critical one: compare
+  `xe host-param-get uuid=<uuid> param-name=software-version
+  param-key=product_version` across the hosts.
+- **SR usage:** from `xe sr-list` and `xe pbd-list` (Storage
+  Repositories), with the filesystem thresholds of the housekeeping
+  baseline applied to `physical-utilisation` over `physical-size`.
+- **Dom0 disk:** the baseline's `df` covers it; a full `/var/log`
+  also stops logging.
+- **Backups:** the backup-presence check records the Xen
+  Orchestra jobs and the metadata backup as the host's `Backup:`
+  line; dom0 cannot show them.
+- **Hardware:** the RAID, SMART and IPMI plugins (Management
+  Plane).
+- **Security audit:** report `https-only` and whether SSH is on.
+- **Fleet audit:** compare XCP-ng hosts only with each other. Show
+  `iptables` in the firewall rows; a missing automatic-update tool
+  is not drift.
