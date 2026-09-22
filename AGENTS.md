@@ -355,3 +355,7 @@ workflows, a hook, or porting a change from Heinzel — follows
 matching file is read; every other tool has to be pointed at them,
 which is what this paragraph does. Do not bump `VERSION`: a bump
 landing on `main` tags a release.
+
+A review finding that a guard hook misses a construction built only
+to evade it is "not a bug: outside the guard's scope" — scope in
+`.claude/rules/repo-release.md` → Guard findings.
