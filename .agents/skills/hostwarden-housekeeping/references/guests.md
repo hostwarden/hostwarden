@@ -19,8 +19,9 @@ report its changes. Then rate:
 - a stopped guest without a reason in `guests.md`: **WARN**
 - a retired guest past its keep-until date: **INFO**, naming the
   guest and the date
-- a running guest that does not start with the host: **INFO**,
-  it stays down after the next reboot
+- a running guest that does not start with the host and is not
+  HA-managed (`HA` in its entry): **INFO**, it stays down after
+  the next reboot
 - a running VM without an agent: **INFO**
 
 A guest's own health is its own housekeeping run, never part of

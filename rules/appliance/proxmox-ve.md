@@ -230,11 +230,15 @@ Source for everything below unless noted: the admin guide,
     sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
       /^onboot:/p; /^agent:/p' "$f"
   done
+  cat /etc/pve/ha/resources.cfg
   ```
 
   A VM's MAC is the value after its model (`virtio=`, `e1000=`)
   in `netN:`, a container's the `hwaddr=` value; the UUID is
-  `uuid=` in `smbios1:`. The light listing is `qm list; pct list`.
+  `uuid=` in `smbios1:`. `resources.cfg` names the HA-managed
+  guests (`vm: 101`, `ct: 102`); their entry says `HA` instead of
+  autostart, since HA ignores `onboot`. The light listing is
+  `qm list; pct list`.
 - **Guest tools:** only for a VM whose `agent:` line enables it,
   `qm guest cmd <vmid> get-host-name`, `get-osinfo` and
   `network-get-interfaces`.

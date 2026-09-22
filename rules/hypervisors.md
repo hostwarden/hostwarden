@@ -22,8 +22,9 @@ then runs for the guests whose listing differs from `guests.md`.
 **Privileges:** each manager shows the system's guests to root
 and to its root-equivalent group
 (`rules/privilege-escalation.md`). Where neither is available,
-record `Hypervisor: libvirt (guests unreadable without root)`
-and say so in one line; never guess the guests.
+record the manager detection found with the reason,
+`Hypervisor: Incus (guests unreadable without root)`, and say so
+in one line; never guess the guests.
 
 **Never start a stopped guest to look inside.** A retired server
 brought back can take the IP address or the jobs of the one that
@@ -140,16 +141,18 @@ Per guest, after the user's request is answered and announced in
 one line (*"Registering 7 guests of pve1.example.com through
 `pct exec` — read-only"*):
 
-1. Check the guest's names against the blacklist and the
-   read-only list (`rules/access-control.md`) before entering it:
-   the manager's name, and the hostname the inventory already
-   has (a container's config, the agent's `get-host-name`).
-   Compare the first label too, so `db1` meets a listed
-   `db1.example.com`. Where the inventory has no hostname, a
-   first call reads only `hostname -f`, falling back to
-   `hostname`, and it is checked before anything else runs. A
-   blacklisted guest is not entered further: note `blacklisted`
-   in its entry.
+1. Before entering the guest, run the shared lookup of
+   `rules/access-control.md` for the blacklist and the read-only
+   list with everything the inventory knows of it: the manager's
+   name, the hostname it already has (a container's config, the
+   agent's `get-host-name`), the first label of each, so `db1`
+   meets a listed `db1.example.com`, and the IP addresses the
+   manager or the agent reported, against listed addresses and
+   listed names resolved. Where the inventory has no hostname or
+   no address, a first call reads only `hostname -f`, `hostname`
+   and the guest's addresses, and the lookup runs on them before
+   anything else. A blacklisted guest is not entered further:
+   note `blacklisted` in its entry.
 2. One bundled call inside the guest runs the lines of the
    step-1 probe (`rules/os-detection.md`) and reads the link keys
    (Linking below).
