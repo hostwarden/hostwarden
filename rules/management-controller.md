@@ -91,7 +91,17 @@ or `SSIF (SMBus System Interface)`. Type 42,
 interface; a host can have both, one or neither, and a host with
 only type 42 is recorded as a BMC all the same. Some boards
 describe their BMC in neither record, so a device node or a
-loaded `ipmi_si` still settles it.
+loaded `ipmi_si` still settles it — and so does a third signal,
+below.
+
+**A virtual USB device is the third signal**, and often the only
+one on a board with no DMI records: a BMC presents a keyboard,
+mouse or CD-ROM to the host for its remote console, from vendor
+`046b` (American Megatrends) or with `Virtual` in the product
+string. The housekeeping USB inventory reads the same devices
+(`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`
+→ Reading the output), so where a host's `USB:` line already
+names a BMC it is this one, not a second controller.
 
 **The device node says whether the OS can reach it.** A type 38
 record with no `/dev/ipmi*` and no `ipmi_si` in `lsmod` means the
