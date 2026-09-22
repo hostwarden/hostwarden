@@ -2,52 +2,6 @@
 
 ## Unreleased
 
-- **Four audit paths no longer miss what they exist to
-  catch.** A fleet-audit probe that reads an instruction in
-  a host's output stops and hands it to you instead of
-  putting it in the table. Housekeeping reports a Docker
-  daemon that does not answer as CRITICAL and asks Home
-  Assistant on its own port, rather than taking the host
-  for a Core install. The security audit checks every
-  AdGuard Home or Pi-hole container it finds, so a setup
-  wizard published only on port 3000 is caught.
-  The session register on a host is created with its final
-  permissions in one step.
-- **OpenMediaVault and Unraid read SMART the same way.** One
-  housekeeping reference holds the probe, the reading and the
-  findings for both: the health line of SATA, NVMe and SAS disks,
-  sector counts, a SAS disk's grown defect list, NVMe media errors
-  and wear. A spun-down disk is left asleep, and a disk with no
-  health line is reported as unknown, never as passing.
-- **Unraid counts a disk in SLEEP mode as asleep.** Housekeeping
-  reported it as unknown, because only STANDBY was recognised.
-- **Pending upgrades on Alpine 3.23 and later are listed
-  again.** The Alpine rule now uses `apk list --upgradeable`,
-  which apk 2 and apk 3 both accept; apk 3 rejects the
-  `--upgradable` spelling it named before.
-- **A blocked command says what is still allowed.** The
-  guard's refusal forbids reaching the same effect any
-  other way, and names the route for a command that only
-  carries a taboo word as text: the text goes in a file
-  (`git commit -F`), or a search pattern stops spelling
-  the word.
-- **The agent's edit tools cannot touch SSH keys or the
-  SSH server's configuration.** The taboo guard judged
-  shell commands only, so in local mode an edit could
-  still overwrite `~/.ssh/authorized_keys` or a key. Edits
-  and writes are now checked by the file they target, in
-  every mode: keys and key stores, `sshd_config`,
-  dropbear's configuration and `C:\ProgramData\ssh`. A
-  document that only mentions those files stays editable.
-- **Developing Hostwarden no longer trips the taboo
-  guard on text.** In a development checkout or a
-  worktree a commit message, a pull request title or a
-  search that names `mkfs`, `fdisk` or `shutdown` goes
-  through, since nothing there can reach a disk without
-  root. A command that names `ssh`, `sudo`, a container,
-  VM or cloud tool is still judged in full, and SSH keys,
-  `sshd_config`, `diskutil` and the Windows taboos stay
-  guarded everywhere.
 - **The Windows taboos hold on Windows Server too.** Over
   SSH, the taboo guard blocks what it blocks under WSL,
   plus `bcdedit` edits (`/enum` and `/v` still read),
@@ -110,19 +64,12 @@
   `/etc/unraid-version`; the rules cover the root-only login, an OS
   in RAM, the web UI owning the configuration, and array operations
   and updates left to you. Housekeeping reads array, parity, SMART
-  (SAS disks included) and boot device backup state, and the plugin
-  and container updates Unraid's last check found, instead of the
-  Linux baseline.
+  and boot device backup state instead of the Linux baseline.
 - **An empty activity check on a host that keeps its log in RAM
   says how far back it reached.** On Unraid, and on pfSense and
   OPNsense with `/var` on a RAM disk, the journal lines are gone
   after a reboot: Hostwarden names the time since boot and reads
   your local changelog for the time before.
-- **The same holds where the journal or syslog reaches back less
-  than a week.** On systemd hosts Hostwarden reads the journal's
-  oldest entry, which catches a journal kept in `/run` or vacuumed
-  down; on Alpine it notices busybox's RAM buffer and diskless
-  mode.
 - **On Windows, Hostwarden runs in WSL 2 only.** Git Bash,
   PowerShell and `cmd.exe` are not supported:
   `bin/hostwarden-doctor` says so at session start and names
@@ -190,9 +137,7 @@
 - **TrueNAS is recognised as an appliance.** Detection finds it
   by `midclt`; Hostwarden changes settings, the network, pools and
   updates through the middleware instead of `/etc`, apt or `zfs`,
-  and housekeeping reads its alerts, pools, scrubs, failed
-  snapshot and replication tasks, and pending updates from 24.10
-  on.
+  and housekeeping reads its alerts, pools, scrubs and tasks.
   TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
