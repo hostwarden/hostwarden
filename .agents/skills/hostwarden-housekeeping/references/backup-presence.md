@@ -118,9 +118,12 @@ for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
 done | sort | uniq -c
 crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
   | grep -oiE "$KW" | sort | uniq -c
-# periodic settings count only when set to YES
-grep -hiE "^[[:space:]]*[a-z0-9_]*(backup|snapshot)[a-z0-9_]*=[\"']?yes" \
-  /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
+# periodic settings count only when their last value, the local
+# file's where it sets one, is YES
+cat /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
+  | grep -iE '^[[:space:]]*[a-z0-9_]*(backup|snapshot)[a-z0-9_]*=' \
+  | awk -F= '{ sub(/^[[:space:]]+/, "", $1); v[$1] = $2 }
+      END { for (k in v) if (tolower(v[k]) ~ /^["\047]?yes/) print k }' \
   | grep -oiE 'backup|snapshot' | sort | uniq -c
 service -e | grep -iE 'zrepl|sanoid|bacula|bareos'
 # root's crontab needs root: as a normal user, sudo -n crontab …
