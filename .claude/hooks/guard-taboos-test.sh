@@ -566,6 +566,17 @@ check deny 'cp /tmp/k /etc/dropbear/'
 check deny "sed -i 's/-w//' /etc/conf.d/dropbear"
 check deny 'echo DROPBEAR_PORT=2222 >> /etc/default/dropbear'
 check pass 'cat /etc/conf.d/dropbear /etc/default/dropbear'
+# A bare commit writes every staged config, dropbear's included.
+check deny 'uci commit'
+check deny 'uci -q commit'
+check deny 'uci changes; uci commit'
+check deny "ssh root@router.example.com 'uci set firewall.@defaults[0].syn_flood=1; uci commit'"
+check deny "uci batch <<'EOF'
+set firewall.@defaults[0].syn_flood=1
+commit
+EOF"
+check pass 'uci set firewall.@defaults[0].syn_flood=1; uci commit firewall'
+check pass 'git commit -m "docs: uci notes"'
 check pass 'uci show dropbear'
 check pass 'uci get dropbear.@dropbear[0].Port'
 check pass 'uci changes dropbear'

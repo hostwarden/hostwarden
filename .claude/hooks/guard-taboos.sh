@@ -652,17 +652,29 @@ fi
 # uci commit dropbear. A write verb followed by the config name
 # is the change, whether uci carries it on its command line or
 # reads it from a uci batch here-document. uci show, get, changes
-# and export only read. The case is a builtin precheck: almost no
-# command mentions dropbear, and those skip both greps.
+# and export only read.
+# A bare commit names no config and writes every staged one, a
+# dropbear change someone else left in /tmp/.uci included, so it
+# is denied too: as the last word of a uci invocation, or as a
+# batch line of its own. uci commit <config> stays ordinary work.
+# The case is a builtin precheck: most commands never mention uci
+# and skip every grep.
 UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
 case "$CMD" in
-  *dropbear*)
-    if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)' \
-      && hit "(^|[[:space:]'\"])${UCIW}[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
-    then
-      deny "changing the dropbear configuration through uci modifies \
+  *uci*)
+    if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)'; then
+      if hit "(^|[[:space:]'\"])${UCIW}[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
+      then
+        deny "changing the dropbear configuration through uci modifies \
 the SSH server config, which is never allowed (reading it is fine: \
 uci show dropbear)"
+      fi
+      if hit '(^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+commit[[:space:]]*$' \
+        || hit '^[[:space:]]*commit[[:space:]]*$'
+      then
+        deny "a bare uci commit writes every staged config, dropbear \
+included - name the config: uci commit firewall"
+      fi
     fi
     ;;
 esac
