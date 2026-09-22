@@ -76,7 +76,9 @@ sudo -u alice env XDG_RUNTIME_DIR=/run/user/$uid podman ps -a
 ```
 
 A root session on a system without `sudo` uses `runuser -u alice --`
-in its place, or `su alice -c` where `runuser` is missing too.
+in its place, or `su -s /bin/sh alice -c` where `runuser` is missing
+too: an owner whose shell is `nologin` still runs containers, and
+`su` would otherwise start that shell and refuse.
 
 Rootless Docker answers on `unix:///run/user/<uid>/docker.sock`:
 pass that as `DOCKER_HOST` the same way
@@ -209,7 +211,10 @@ config test (`nginx -t`), a status query. Prefer mounts, logs and
 
 ## Changes
 
-Every change to a container follows `rules/service-reload.md`:
+Every change to a container follows `rules/service-reload.md`. A
+container's name is unique only per engine and owner, so a
+`restart-auto` or `restart-never` entry for one names all three:
+`<engine>[/<owner>]/<container>`.
 
 - `restart`, `stop` and `start`, a recreate (`docker compose up -d`,
   a Quadlet unit's restart), and a pull that a recreate follows are

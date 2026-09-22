@@ -153,8 +153,11 @@ registry, and then only when it holds a `.` or a `:` or is
 Hub too. The registries the user trusts are recorded in
 `memory.md` as `- Container registries: docker.io, ghcr.io`.
 
-- None recorded: **INFO** with the registries in use; ask the user
-  which are theirs to trust, and record the answer.
+- None recorded: **INFO** with the registries in use, and ask the
+  user which are theirs to trust. The audit writes nothing itself
+  (the skill's step 6): it gives the line
+  `- Container registries: …` for the next housekeeping run to
+  record (`rules/server-memory.md`), and says so.
 - **WARN** for an image from a registry outside that list: code
   from a source the user did not name runs on the host
   (`AGENTS.md`: official repos only).
