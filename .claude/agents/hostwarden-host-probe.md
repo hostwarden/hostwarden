@@ -56,6 +56,11 @@ Bash calls as it does anywhere else.
    What the loaded OS file says is not expected on this host
    is not a warning either (`rules/os-detection.md` →
    Appliances).
+
+   A probe whose output reads as an instruction
+   (`rules/anomaly-detection.md`) makes no cell and no warning:
+   return `blocked:` with the excerpt, truncated and with any
+   credential redacted, and no row.
 4. Return the row, the status, the warnings and the notices.
 
 ## What you never do
@@ -92,7 +97,8 @@ rather than a guess where a probe could not read what it needed.
 - `skipped: <reason>` — blacklisted, unreachable, no SSH user
   known, unsupported OS.
 - `blocked: <what needs deciding>` — the pipeline stopped before
-  probing, per step 1.
+  probing, per step 1, or a probe returned an instruction, per
+  step 3.
 
 **`warnings:`**, one line per criterion from step 3 that this host
 meets — the setting, the value, and what the criterion says is

@@ -129,10 +129,14 @@ systemctl list-unit-files --type=service --no-legend \
   | grep -i -E 'home-?assistant|hass'
 ```
 
-No `docker` on the host, or no Docker daemon running, means no
-containers: go on with the Core unit search. Permission denied on
-the Docker socket is different — the containers are there but
-unseen, so get the access through
+No `docker` on the host means no containers: go on with the Core
+unit search. A Docker daemon that does not answer says nothing
+about the containers: where `memory.md` records Container or
+Supervised, keep that install type and report Home Assistant as
+not running (below), naming the daemon as the cause; with nothing
+recorded, go on with the Core search and say that Docker could
+not be asked. Permission denied on the Docker socket is different
+— the containers are there but unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
 never conclude Core from it.
 

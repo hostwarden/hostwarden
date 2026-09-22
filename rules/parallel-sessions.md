@@ -60,7 +60,7 @@ answer is read:
 
 ```
 D=/tmp/hostwarden
-[ -e "$D" ] || { mkdir "$D" && chmod 777 "$D"; }
+[ -e "$D" ] || (umask 0 && mkdir "$D")
 ls -ld "$D"
 if [ ! -L "$D" ] && cd "$D" 2>/dev/null \
    && [ "$(pwd -P)" = "$(cd /tmp && pwd -P)/hostwarden" ] \
@@ -74,7 +74,10 @@ date +%s; ls -1 "$D"
 
 The call changes into the directory first and checks the one it is
 in, then works by relative name: a directory swapped for a link
-after the check cannot redirect the write.
+after the check cannot redirect the write. It creates the register
+with its final mode in the one `mkdir`, under `umask 0`, rather
+than with `mkdir -m` or a `chmod` afterwards, either of which can
+set the mode through a path someone swapped in the meantime.
 
 **`registered` missing** — the register is not one every session
 can use: `ls -ld` shows a link, a file, a sticky `t` in the tenth

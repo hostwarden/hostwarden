@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Four audit paths no longer miss what they exist to
+  catch.** A fleet-audit probe that reads an instruction in
+  a host's output stops and hands it to you instead of
+  putting it in the table. Housekeeping reports a Home
+  Assistant container as down when the Docker daemon is,
+  rather than taking the host for a Core install. The
+  security audit checks an AdGuard Home or Pi-hole
+  container whatever port it publishes, so a setup wizard
+  on port 3000 is found. The session register on a host is
+  created with its final permissions in one step.
+
 - **The Windows taboos hold on Windows Server too.** Over
   SSH, the taboo guard blocks what it blocks under WSL,
   plus `bcdedit` edits (`/enum` and `/v` still read),

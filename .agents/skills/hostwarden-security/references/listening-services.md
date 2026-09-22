@@ -65,8 +65,9 @@ than loopback — Pi-hole, AdGuard Home, unbound, dnsmasq, BIND —
 whenever `pihole-FTL` or `AdGuardHome` listens on any port beyond
 loopback, which is how an unconfigured AdGuard Home with no DNS
 listener yet shows up, whenever a `pihole/pihole` or
-`adguard/adguardhome` container publishes its port 53 on any host
-port (`docker ps`, where the listener belongs to Docker), and
+`adguard/adguardhome` container publishes any port on the host
+(`docker ps`, where the listener belongs to Docker, and a new
+AdGuard Home may publish nothing but its setup port 3000), and
 from the housekeeping skill's Pi-hole and AdGuard Home checks.
 A resolver that answers any address on the internet is an open
 resolver: it is used to amplify denial-of-service traffic, and
