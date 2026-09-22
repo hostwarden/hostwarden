@@ -201,10 +201,11 @@ Read on demand:
 
 ## Scope and limits
 
-- Linux (Debian family) is fully covered, and Alpine and
-  macOS through their **Alpine** and **macOS** variants in
-  `references/probes.md`. RHEL/SUSE probes share the same
-  shape but use `dnf`/`firewalld`/`zypper` equivalents.
+- Linux (Debian family) is fully covered, and Alpine, macOS
+  and FreeBSD through their **Alpine**, **macOS** and
+  **FreeBSD** variants in `references/probes.md`. RHEL/SUSE
+  probes share the same shape but use
+  `dnf`/`firewalld`/`zypper` equivalents.
 - The audit does not check that running services are
   healthy (that is housekeeping's job). It only compares
   declared policy.

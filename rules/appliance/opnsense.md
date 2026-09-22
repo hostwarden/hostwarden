@@ -184,6 +184,30 @@ documentation, <https://docs.opnsense.org/>, and the
   or `resolv.conf`, and never restart `netif` or `routing` by hand.
 - `ifconfig` and `netstat -rn` are fine for reading.
 
+## Replace: Accounts
+
+- Users, groups, passwords and SSH keys are managed under
+  System > Access > Users and written from `config.xml`; never
+  `pw useradd`, `usermod` or `userdel`. Reading
+  `/etc/master.passwd` as root for a verdict, as the base file
+  describes, is fine.
+
+## Replace: sshd
+
+- sshd is `/usr/local/sbin/sshd`, its generated configuration
+  `/usr/local/etc/ssh/sshd_config` (Access and Shell). Password
+  and root login are settings under System > Settings >
+  Administration; report them as such.
+
+## Replace: Mail and Time
+
+- Time sync is `ntpd`, configured in the web UI; `ntpq -pn` reads
+  it as on FreeBSD.
+- Mail notifications are configured in the web UI; a missing MTA
+  behind `mailwrapper` is not a finding.
+
+## Remove: Directory Conventions > sudo
+
 ## Add: Filesystem
 
 - Take ZFS snapshots before an update with `configctl zfs

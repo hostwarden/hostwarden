@@ -41,6 +41,19 @@ a password, so `$SUDO` is often `-`: expect
 `unknown(needs-root)` cells rather than a partial row. A key
 only the other families have is `n/a (macOS)`.
 
+On FreeBSD, every probe below has a **FreeBSD** variant that
+replaces it, and `rules/os/freebsd.md` is the reference for what
+the commands print. Open the FreeBSD bundle with the privilege
+prefix below, so `$SUDO` is set for every probe, and with
+`SVC=$(service -e)`, which the variants grep instead of calling
+`service -e` again. On an appliance, `service -e` misses the
+services the vendor starts itself: take the time daemon and the
+MTA from its `## Housekeeping and Audits` section instead. A key
+only the other family has is `n/a (FreeBSD)`
+(`references/output-format.md`). Rows and verdicts match the
+housekeeping baseline,
+`.agents/skills/hostwarden-housekeeping/references/baseline-freebsd.md`.
+
 **Privilege handling.** The sshd and firewall probes need
 root. Work out the prefix once, at the top of the bundle —
 never an interactive prompt, BatchMode allows none; `doas` is
@@ -152,6 +165,25 @@ The rows are `AutomaticCheckEnabled`, `AutomaticDownload`,
 `AutomaticallyInstallMacOSUpdates`, each marked `managed` where
 the profile sets it. Hosts whose keys differ are drift.
 
+**FreeBSD** has no unattended-upgrades. Run the probe from the
+baseline named above,
+`.agents/skills/hostwarden-housekeeping/references/baseline-freebsd.md`
+→ Update Notification, with `$SUDO` in front
+of its `sh -c` so root's crontab is read; when `$SUDO` is `-`, the
+cron row is `unknown(needs-root)`. The rows are
+
+- Update cron job — the command it runs (the probe prints only
+  that, never the line), or `none`
+- Periodic `pkg audit` — on, or off when either switch reads
+  `NO` (the last line per variable wins)
+- `freebsd-update` cron job, on distribution sets
+- Root mail alias — set or `none` (the probe counts it, never
+  prints its target)
+
+Highlight: nothing notices updates (no cron job and the periodic
+`pkg audit` off); a cron job that applies updates on some hosts
+only.
+
 ## 2. sshd effective config
 
 `sshd -T` needs root (it reads host keys). Run it with the
@@ -211,6 +243,13 @@ fi
 
 `all users`, or the members and nested groups (Administrators
 is a nested group). Hosts that differ are drift.
+
+**FreeBSD** runs the probe with `sshd` replaced by the full path
+of the one `rules/os/freebsd.md` → sshd says is enabled
+(`/usr/local/sbin/sshd` when `$SVC` lists
+`/usr/local/etc/rc.d/openssh`). A FreeBSD host that
+accepts passwords by `.agents/skills/hostwarden-security/references/ssh.md`
+next to hosts that do not is drift.
 
 ## 3. Firewall posture
 
@@ -329,6 +368,27 @@ Tool in use is `appfw`, `pf`, both or `none`; pf counts only
 when its status is enabled. Default policy is `deny` with
 block-all on, and `per-app` otherwise.
 
+**FreeBSD** — run the status probe from `rules/os/freebsd.md` →
+Firewall with `$SUDO` in front of `pfctl` (`unknown(needs-root)`
+when it is `-`), then read the rules of whichever runs:
+
+```bash
+if [ "$SUDO" = "-" ]; then
+  echo "state=unknown(needs-root)"
+else
+  echo "--pf"
+  $SUDO pfctl -s rules 2>/dev/null
+  echo "--ipf"
+  $SUDO ipfstat -i 2>/dev/null
+  echo "--ipfw"
+  $SUDO ipfw list 2>/dev/null
+fi
+```
+
+Tool in use is `pf`, `ipfw`, `ipf` or `none`; default policy is read as
+the OS file describes. Also highlight a running firewall whose
+`_enable` variable is not `YES`.
+
 ## 4. MTA
 
 ```bash
@@ -399,6 +459,21 @@ Installed MTA is `postfix` on every Mac; a relay host is what
 tells one that sends mail from one that cannot. Never propose
 installing an MTA on a Mac
 (`.agents/skills/hostwarden-email/references/transport-remote.md`).
+
+**FreeBSD** — the MTA is named in `/etc/mail/mailer.conf`
+(`rules/os/freebsd.md` → Mail and Time):
+
+```bash
+awk '$1 == "sendmail" {print $2}' /etc/mail/mailer.conf
+echo "$SVC" | grep -E '/(sendmail|postfix|smtpd|exim)$' \
+  | while read -r s; do "$s" status; done
+hostname -f
+```
+
+The `mailer.conf` target — the program path only, never the
+arguments, which can carry a credential — stands in for the
+package and the symlink. An enabled rc script is the active unit only when its
+`status` says it is running; enabled but stopped is drift.
 
 ## 5. Time sync
 
@@ -471,6 +546,22 @@ link target. The clock offset is housekeeping's
 (`.agents/skills/hostwarden-housekeeping/references/baseline-macos.md`
 → Time Sync).
 
+**FreeBSD** has no `timedatectl`:
+
+```bash
+echo "$SVC" | grep -E '/(ntpd|chronyd|openntpd)$'
+ntpq -pn 2>/dev/null | grep '^\*'
+chronyc tracking 2>/dev/null | grep '^Leap status'
+ntpctl -s status 2>/dev/null
+cat /var/db/zoneinfo 2>/dev/null
+```
+
+The line of the daemon that runs stands for `NTPSynchronized`:
+a selected peer in `ntpq`, `Leap status : Normal` from chronyd,
+`clock synced` from openntpd (`rules/os/freebsd.md` → Mail and
+Time). Without `/var/db/zoneinfo`, report the zone `date +%Z`
+prints.
+
 ## 6. Auto-reboot behaviour (cross-check with UA)
 
 ```bash
@@ -540,3 +631,13 @@ sysctl -n kern.boottime
 A pending restart is housekeeping's, since only `softwareupdate
 --list` knows and it asks Apple's servers; that row and
 needrestart are `n/a (macOS)`.
+
+**FreeBSD** has no `reboot-required` file and no `uptime -s`:
+
+```bash
+freebsd-version -kru
+sysctl -n kern.boottime
+```
+
+An installed kernel that differs from the running one counts as
+`pending=yes` (`rules/os/freebsd.md` → Version Detection).

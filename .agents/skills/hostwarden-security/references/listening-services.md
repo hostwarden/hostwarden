@@ -1,4 +1,4 @@
-# Listening Services — Linux and macOS
+# Listening Services — Linux, FreeBSD and macOS
 
 Audit all listening TCP/UDP ports and flag services that should
 not be exposed to all interfaces.
@@ -21,6 +21,16 @@ Alpine, without `iproute2-ss`:
 ```bash
 netstat -tulnp 2>/dev/null
 ```
+
+## FreeBSD
+
+```bash
+sockstat -46l
+```
+
+`*:<port>` is the `0.0.0.0` case below. What `sockstat` misses
+without root is in `rules/os/freebsd.md` → Networking; say so in
+the report.
 
 ## macOS
 

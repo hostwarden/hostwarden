@@ -96,13 +96,42 @@ ls /Applications 2>/dev/null \
 for the terminal, not a missing backup — treat
 errors as "unknown", not "absent", and say so.
 
-## FreeBSD
+## FreeBSD Probes
 
-No FreeBSD baseline exists yet (see SKILL.md →
-Scope and limits). Run the closest equivalents —
-`zfs list -t snapshot`, `grep -i backup
-/etc/periodic.conf /etc/crontab /etc/cron.d/*`,
-`crontab -l` — and state the gap in the report.
+```
+# Backup tools on PATH (packages install to /usr/local)
+for t in restic borg borgmatic rsnapshot duplicity \
+         rclone kopia zrepl syncoid zfs-autobackup \
+         bacula-fd bareos-fd; do
+  command -v "$t" >/dev/null && echo "$t"
+done
+
+# Scheduled jobs that look like backups: the keyword and the file,
+# never the line, which may carry a password or a token
+grep -oiE 'backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync' \
+  /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/* \
+  2>/dev/null | sort | uniq -c
+crontab -l -u root 2>/dev/null \
+  | grep -oiE 'backup|restic|borg|zfs|dump|rsync' | sort | uniq -c
+grep -oiE 'backup|snapshot' /etc/periodic.conf \
+  /etc/periodic.conf.local 2>/dev/null | sort | uniq -c
+service -e | grep -iE 'zrepl|sanoid|bacula|bareos'
+# root's crontab needs root: as a normal user, sudo -n crontab …
+
+# ZFS snapshots, newest last
+zfs list -H -t snapshot -o name,creation -s creation \
+  2>/dev/null | tail -3
+```
+
+**Recent-run evidence:** the creation date of the
+newest snapshot, the mtimes of backup logs and repo
+directories. `zrepl status` and a sanoid/syncoid log
+name the last replication where one is set up.
+
+The same-disk caveat under Linux applies: a snapshot
+in the host's own pool is not an off-host backup
+until something sends it elsewhere (`zfs send` in a
+cron job, `syncoid`, `zrepl` with a remote target).
 
 ## Severity
 

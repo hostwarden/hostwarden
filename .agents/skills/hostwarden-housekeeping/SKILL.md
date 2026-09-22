@@ -9,9 +9,9 @@ description: Run a Hostwarden housekeeping (health) inspection on a
   health check on <host>", or "do routine inspection". Do NOT
   auto-invoke for ambiguous requests like "check server <host>"
   — that's reserved for quick queries. Covers Linux (Debian,
-  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine) and macOS. Also
-  use it for "schedule housekeeping", "run a nightly check", or
-  "email me a weekly report automatically".
+  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine), FreeBSD and
+  macOS. Also use it for "schedule housekeeping", "run a
+  nightly check", or "email me a weekly report automatically".
 ---
 
 # hostwarden-housekeeping
@@ -59,6 +59,10 @@ Read on demand, only when the relevant section applies:
   severity rules (CRITICAL / WARN / INFO).
 - `references/baseline-linux.md` — disk, memory, load, uptime,
   updates, firewall, NTP, logs, SSL certs, kernel.
+- `references/baseline-freebsd.md` — disk and ZFS pools, memory
+  with the ARC, load, base and package updates, pkg audit,
+  release support, pf or ipfw, enabled services, NTP, logs, SSL
+  certs, kernel.
 - `references/baseline-macos.md` — disk, memory, load, updates,
   Homebrew, Application Firewall, SMART, time sync.
 - `references/backup-presence.md` — generic "any backup at
@@ -82,18 +86,10 @@ Read on demand, only when the relevant section applies:
 
 ## Scope and limits
 
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine)
-  and macOS are fully covered by the baseline references above.
-- FreeBSD baselines are not yet covered. On a FreeBSD host,
-  do not silently skip: run the closest read-only
-  equivalents — `pkg audit -F`, `pkg upgrade -n`,
-  `freebsd-update fetch` without `install`, the read-only
-  firewall commands of the loaded OS file's `## Firewall`
-  section, `df -h` / `swapinfo` / `uptime` for the basics,
-  `service -e` for enabled services — and state in the report
-  that FreeBSD has no baseline reference yet. On an appliance,
-  its `## Housekeeping and Audits` section replaces the update
-  commands.
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
+  FreeBSD and macOS are covered by the baseline references
+  above. On an appliance, its `## Housekeeping and Audits`
+  section replaces the update checks.
 
 ## Custom checks
 

@@ -1,4 +1,4 @@
-# File Permissions — Linux
+# File Permissions — Linux and FreeBSD
 
 ## World-Writable System Files
 
@@ -108,3 +108,65 @@ Accounts from a directory service (LDAP, SSSD) are not in
 
 - Any unowned file found → **INFO** per file
 - None found → OK
+
+## FreeBSD
+
+The checks above apply with the severities they state; only paths
+and flags differ. BSD `find` takes `-xdev`, `-perm` and
+`-nouser`/`-nogroup` as written, and `stat` needs `-f`.
+
+- **World-writable:** add `/lib /libexec /boot /usr/local` to the
+  `find` paths. On ZFS every dataset is its own filesystem, so
+  `-xdev` does not reach `/usr/local` through `/usr`.
+- **Cron:** `stat -f '%Sp %Su:%Sg %N' /etc/crontab /etc/cron.d
+  /usr/local/etc/cron.d /var/cron/tabs 2>/dev/null`
+  (`rules/os/freebsd.md` → Directory Conventions);
+  `/var/cron/tabs` is `drwx------` by default.
+- **Unowned files:** `/etc /usr /usr/local /var`, plus every
+  mount point below them that `mount -t ufs,zfs` lists (on ZFS
+  `/var/log`, `/var/mail`, `/var/tmp` are datasets of their own,
+  and `-xdev` stops at each).
+- **/tmp:** `mount | grep -E ' on /(tmp|var/tmp) '`. There is no
+  `/dev/shm`, and the installer's ZFS layout mounts both with
+  `nosuid` and exec on, so only a missing `nosuid` is **INFO**.
+
+### SUID/SGID on FreeBSD
+
+`-xdev` on `/` covers only the boot environment's dataset. The
+daily `periodic` security run already lists every setuid file on
+local filesystems that permit it; as root, read that list when it
+is from today:
+
+```bash
+ls -l /var/log/setuid.today && cat /var/log/setuid.today
+```
+
+Otherwise search each such filesystem. Skip data pools and jail
+roots unless `memory.md` says they hold binaries; say which were
+skipped.
+
+```bash
+mount -t ufs,zfs | grep -vE 'no(suid|exec)' \
+  | sed -e 's/^.* on //' -e 's/ (.*//' \
+  | while read -r mp; do
+      find "$mp" -xdev -type f -perm +6000 2>/dev/null
+    done
+```
+
+**Known-good on FreeBSD** (do not flag): in the base system `su`,
+`login`, `passwd`, `chpass`, `newgrp`, `lock`, `quota`, `crontab`,
+`at`, `atq`, `atrm`, `batch`, `ping`, `ping6`, `traceroute`,
+`traceroute6`, `wall`, `write`, `btsockstat`, `lpr`, `lpq`,
+`lprm`, `lpc`, `ppp`, `authpf`, `mksnap_ffs`, `ksu`, `sendmail`,
+and under `/usr/libexec` `ssh-keysign`, `ulog-helper`, `dma` and
+`dma-mbox-create`; the power-off binaries in `/sbin`, setuid for
+group `operator`. From packages: `sudo`, `doas`, `pkexec`,
+`polkit-agent-helper-1`, `dbus-daemon-launch-helper`. Compare by
+eye: a filter that spells the `/sbin` names trips the taboo guard.
+
+The daily run is off when `daily_status_security_enable` or
+`security_status_chksetuid_enable` reads `NO` in
+`/etc/periodic.conf` or, read after it, `/etc/periodic.conf.local`
+→ **INFO**; unset means the default, `YES`. The Update
+Notification probe of the housekeeping baseline reads both files
+the same way.

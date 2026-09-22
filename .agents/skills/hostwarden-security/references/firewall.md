@@ -51,6 +51,22 @@ firewall-cmd --zone=<zone> --get-target
   ACCEPT (allows all incoming)"
 - Zone target is `default` (reject/drop) → OK
 
+## FreeBSD
+
+Run the status probe in `rules/os/freebsd.md` → Firewall, which
+also says how each firewall's default reads. Then, as root, the
+rules of whichever runs in full — `pfctl -s rules`, `ipfstat -i`
+or `ipfw list` — for the ports passed in; the default comes from
+them as the OS file describes. Unprivileged, report the status
+lines and list the rules as skipped.
+
+- None running → **CRITICAL** "No active firewall"
+- Running but its `_enable` variable is not `YES` → **WARN**: the
+  firewall is gone after the next reboot
+- No default block of incoming traffic → **WARN** "Firewall
+  default incoming policy is not deny"
+- Otherwise OK; list the ports passed in for review
+
 ## macOS
 
 Check Application Firewall status:

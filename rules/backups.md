@@ -58,7 +58,8 @@ Affected paths include (but are not limited to):
 - `/etc/cron.d/`
 - `/etc/systemd/system/*.d/`
 - `/etc/ssh/sshd_config.d/`
-- `/etc/sudoers.d/`
+- `/etc/sudoers.d/`; on FreeBSD `/usr/local/etc/sudoers.d/`
+  and `/usr/local/etc/cron.d/`
 - `/etc/nginx/conf.d/`, `sites-enabled/`,
   `modules-enabled/`
 - `/etc/logrotate.d/`

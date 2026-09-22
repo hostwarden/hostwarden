@@ -17,6 +17,9 @@ Many checks in this audit work without root:
   (`ss -tulnp`), cron directory permissions (some dirs may be
   unreadable).
 
+On FreeBSD, root is needed for `sshd -T`, `/etc/master.passwd`,
+the pf and ipfw rules, and `/var/log/setuid.today`.
+
 If a check cannot be performed due to missing privileges, do not
 skip it silently. Add it to the report:
 

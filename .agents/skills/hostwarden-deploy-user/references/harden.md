@@ -21,6 +21,7 @@ locations:
 - `/var/www/<app>` — web applications
 - `/opt/<app>` — standalone services
 - `/home/deploy/<app>` — when no system path fits
+- `/usr/local/www/<app>` — web applications on FreeBSD
 
 Do not grant ownership of directories outside the
 deployment target.
@@ -54,6 +55,21 @@ deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload myapp.service
    `visudo -c -f /etc/sudoers.d/deploy`
 5. Back up per `rules/backups.md` before writing.
 
+On FreeBSD sudo is a package: check `command -v sudo`
+first and install it only if the user agrees
+(`rules/version-check.md`). The drop-in sits under
+`/usr/local/etc` (`rules/os/freebsd.md` → Directory
+Conventions), and the command goes through `service`:
+
+```bash
+visudo -f /usr/local/etc/sudoers.d/deploy
+```
+
+```
+deploy ALL=(root) NOPASSWD: /usr/sbin/service myapp restart
+deploy ALL=(root) NOPASSWD: /usr/sbin/service myapp reload
+```
+
 If the application can reload without sudo (e.g.
 via a signal file or socket), prefer that approach
 and skip sudoers entirely.
@@ -76,6 +92,8 @@ command plus restrictive key options:
 usermod -s /bin/sh deploy
 ```
 
+On FreeBSD: `pw usermod deploy -s /bin/sh`.
+
 As the key line:
 
 ```
@@ -93,6 +111,10 @@ full shell (e.g. rsync, multiple commands):
 ```bash
 usermod -s /bin/bash deploy
 ```
+
+On FreeBSD, bash is a package: check `command -v bash` first,
+and install it only if the user agrees (`rules/version-check.md`);
+then `pw usermod deploy -s /usr/local/bin/bash`.
 
 Discuss the trade-off with the user: a full shell
 without a forced command is more flexible but

@@ -105,8 +105,9 @@ ss -tuln 'sport = :<port>'
 sockstat -4 -6 -l | grep -E ':<port>\b'
 ```
 
-No root needed. Shows user, command, PID, protocol,
-and local address.
+Shows user, command, PID, protocol, and local
+address; what it misses without root is in
+`rules/os/freebsd.md` → Networking.
 
 ### macOS
 
