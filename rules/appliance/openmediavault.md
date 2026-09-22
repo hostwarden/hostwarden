@@ -249,8 +249,8 @@ under `deb/openmediavault/` there).
   in the UI, or through `omv-rpc` when the user asks for the CLI.
 - Applying them goes through `rules/ssh-safety-net.md`, with
   `config.xml` and `/etc/iptables/openmediavault-firewall.sh`
-  as the backup. Copy both before the rules are saved: saving
-  writes them into `config.xml`, and a later copy restores them.
+  as the backup. Copy both before the rules are saved: a copy
+  taken after the save already holds them.
   - **Check:** `omv-salt deploy list-dirty` names `iptables` and
     nothing that is not yours, and the saved rules
     (`conf.system.network.iptables.rule`) are the ones agreed.
@@ -264,17 +264,18 @@ under `deb/openmediavault/` there).
       <restore the script>`. No deploy here: it starts the
       service.
 
-    Either way, `systemctl disable openmediavault-firewall` where
-    it was disabled: the deploy enables it.
+    Either way, where it was disabled,
+    `systemctl disable openmediavault-firewall`: the apply's deploy
+    enabled it.
 
     "Restore the script" puts back the backed-up
     `/etc/iptables/openmediavault-firewall.sh`, or deletes it where
     there was none. The deploy regenerates it from the restored
     rules, and the enabled service loads it at every boot
     (<https://github.com/openmediavault/openmediavault/blob/master/deb/openmediavault/srv/salt/omv/deploy/iptables/10firewall.sls>).
-    The stop comes before the restore because the unit's `ExecStop`
-    runs that script; it flushes INPUT and OUTPUT and sets both
-    policies to ACCEPT. Tell the user when the fallback ran.
+    Stop before restoring: the unit's `ExecStop` runs that script,
+    which flushes INPUT and OUTPUT and sets both policies to
+    ACCEPT. Tell the user when the fallback ran.
 
 ## Remove: Common Pitfalls > Prefer `apt-get upgrade`
 

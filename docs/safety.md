@@ -8,11 +8,12 @@ under pressure.
 - **Asks before acting** — destructive commands,
   firewall and network changes, reboots, and service
   restarts all require your explicit approval. A
-  firewall or network change arms its own undo first: it reverts
-  after five minutes, five to ten on FreeBSD, unless a
-  new SSH login succeeds (`rules/ssh-safety-net.md`);
-  where none can be armed, you make the change with
-  console access ready. Config reloads
+  firewall or network change arms its own undo
+  first: it reverts after five minutes, five to ten
+  on FreeBSD, unless a new SSH login succeeds
+  (`rules/ssh-safety-net.md`); where none can be
+  armed, you make the change with console access
+  ready. Config reloads
   (`systemctl reload`) auto-proceed when the
   service's config test passes — see
   `rules/service-reload.md` and the

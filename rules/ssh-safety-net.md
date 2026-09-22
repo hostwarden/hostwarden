@@ -24,10 +24,14 @@ instead; they stand in for steps 4, 5 and 7 below.
    login succeeds.
 2. **Back up** everything the change overwrites
    (`rules/backups.md`), and read in the same call whether
-   the tool runs now. The revert restores that copy,
-   deletes files the change created, and leaves the tool
-   running or stopped as it was: clearing only the live
-   rules leaves the change on disk for the next boot.
+   the tool runs now and whether its loaded rules match the
+   files. The revert restores that copy, deletes files the
+   change created, and leaves the tool running or stopped as
+   it was: clearing only the live rules leaves the change on
+   disk for the next boot. Loaded rules that differ from the
+   files are lost when the revert reloads them, possibly the
+   one SSH depends on: the user settles which holds before
+   the change.
 3. **Check.** The tool's dry run or syntax test must pass.
 4. **Arm the revert**, detached from the SSH session:
 

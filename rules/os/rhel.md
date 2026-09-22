@@ -47,7 +47,8 @@ finding. See `rules/version-check.md`.
 - Changes over SSH go through `rules/ssh-safety-net.md`.
   Make them without `--permanent` first, so that
   `firewall-cmd --reload` is the revert: it replaces the
-  runtime configuration with the permanent one. First
+  runtime configuration with the permanent one. Loaded
+  rules against the files (step 2 there):
   `diff <(firewall-cmd --list-all-zones)
   <(firewall-cmd --permanent --list-all-zones)`: any output
   but an `interfaces:` line is runtime-only state the revert
@@ -132,9 +133,7 @@ finding. See `rules/version-check.md`.
   unexpectedly.
 - `firewall-cmd` changes are temporary by default:
   without `--permanent` they vanish at the next reload
-  or reboot. Repeat them with `--permanent` once the
-  fresh login works (Firewall above), never before: a
-  rule already permanent survives the `--reload` revert.
+  or reboot. Firewall above says when to add it.
 - SELinux blocks are silent by default. If a service
   fails after correct configuration, check
   `ausearch -m avc -ts recent` before assuming the

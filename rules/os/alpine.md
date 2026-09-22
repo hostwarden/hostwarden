@@ -171,12 +171,11 @@ service as shipped cuts the SSH session. Before
    - **apply:** `rc-service nftables start`, or `reload` once it
      runs.
    - **revert:** the backups restored, then
-     `rc-service nftables reload ||
-     nft flush ruleset` where the service ran before, or
-     `nft flush ruleset; rc-service nftables zap` where it did
-     not. `zap` marks the service stopped without running its
-     `stop`, which can save the live ruleset over the file
-     (`save_on_stop` in `/etc/conf.d/nftables`).
+     `rc-service nftables reload || nft flush ruleset` where the
+     service ran before, or `nft flush ruleset; rc-service nftables
+     zap` where it did not. `zap` marks the service stopped without
+     running its `stop`, which can save the live ruleset over the
+     file (`save_on_stop` in `/etc/conf.d/nftables`).
 
    `rc-update add` waits for the fresh login. Alpine ships no `at`
    and no systemd, so without `at` installed the change is the

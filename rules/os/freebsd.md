@@ -59,12 +59,13 @@ Rules for FreeBSD (all versions).
   config test `pfctl -nf /etc/pf.conf` must pass
   first.
 - Loading or enabling pf over SSH goes through
-  `rules/ssh-safety-net.md`. Where pf runs, first
-  compare the loaded rules (`pfctl -sr`) with the
-  filter rules the file parses to
-  (`pfctl -nvf /etc/pf.conf`): if they differ, the
-  file is not a safe revert, and the user settles
-  which one holds before the change. Check:
+  `rules/ssh-safety-net.md`. Loaded rules against the
+  file (its step 2), where pf runs, in the backup call:
+  ```
+  pfctl -nvf /etc/pf.conf | grep -E '^(pass|block|match|anchor)' > <tmp>
+  pfctl -sr | diff - <tmp>
+  ```
+  Check:
   `pfctl -nf /etc/pf.conf`; apply:
   `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:
   the backed-up `/etc/pf.conf` restored, then

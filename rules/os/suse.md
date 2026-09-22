@@ -43,7 +43,8 @@ Enterprise Server (SLES).
 - Changes over SSH go through `rules/ssh-safety-net.md`.
   Make them without `--permanent` first, so that
   `firewall-cmd --reload` is the revert: it replaces the
-  runtime configuration with the permanent one. First
+  runtime configuration with the permanent one. Loaded
+  rules against the files (step 2 there):
   `diff <(firewall-cmd --list-all-zones)
   <(firewall-cmd --permanent --list-all-zones)`: any output
   but an `interfaces:` line is runtime-only state the revert
