@@ -22,10 +22,11 @@ servers some agents bring are the security audit's
 
 ```bash
 a='tailscaled|headscale|netbird|zerotier-one|nebula|dnclient'
-a="$a|newt|cloudflared|wireguard-go|netclient|openvpn|charon"
-{ ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
-  | grep -oE "(^|[/[:space:]])($a)(-systemd)?([[:space:]]|\$)" \
-  | tr -d ' /' | sort -u
+a="$a|newt|cloudflared|wireguard-go|netclient|openvpn"
+a="$a|charon(-systemd)?"
+ps -Ao pid=,comm= 2>/dev/null \
+  | sed -E 's|^[[:space:]]+||; s|^([0-9]+)[[:space:]]+.*/|\1 |' \
+  | grep -E "^[0-9]+ ($a)$"
 o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
 for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
              || ifconfig -l 2>/dev/null; } \
@@ -53,10 +54,12 @@ if command -v netbird >/dev/null 2>&1; then
 fi
 ```
 
-The match takes the program name wherever the process list puts
-it — BusyBox `ps` and `ip` take neither the BSD options nor
-`-br` (`rules/busybox.md`) — and keeps no argument, which can
-hold a token (`rules/secrets.md`). Kernel WireGuard has no
+One `<pid> <program>` line per agent, the same form the security
+audit reads (`.agents/skills/hostwarden-security/references/ssh.md`
+→ SSH servers past sshd), which also says what to do where
+BusyBox `ps` takes neither `-A` nor `-o`. No argument is printed,
+since one can hold a token (`rules/secrets.md`), and BusyBox `ip`
+has no `-br`, hence the fallbacks below. Kernel WireGuard has no
 process, so the second loop finds the overlay interfaces by name
 (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`,
 Tailscale's `tailscale0`) and prints each one's addresses, which
@@ -108,17 +111,27 @@ name it, and tell the user when it falls within 7 days.
 - **OpenVPN, strongSwan:** usually site-to-site or
   hub-and-spoke; record them like WireGuard.
 
-The policy that admits peers lives with the control plane: the
-Tailscale admin console or Headscale, the NetBird dashboard, the
-ZeroTier controller, Nebula's config, the Pangolin server,
-Cloudflare. Hostwarden reads what the host shows of it and never
-changes it: a change there reaches every host at once.
+Where the policy that admits peers lives decides who may change
+it:
+
+- **With the control plane** for Tailscale and Headscale, the
+  NetBird dashboard, the ZeroTier controller, the Pangolin
+  server and Cloudflare. Hostwarden reads what the host shows of
+  it and never changes it there: one change reaches every host
+  at once, and it is the user's to make.
+- **On the host** for Nebula, whose `firewall` rules and `sshd`
+  block sit in this node's configuration file, and for
+  WireGuard, whose peers and their `AllowedIPs` sit in its own:
+  an ordinary configuration change on one machine. Nebula's
+  lighthouses and the CA it trusts are not, so admitting a host
+  to the network stays with the network.
 
 ## What cuts a host off
 
 Stopping, restarting or upgrading the agent, taking it down, a
-policy or ACL change on the control plane, a firewall change on
-its interface, an expiry. Where this session or other hosts
+policy or ACL change on the control plane, a change to a
+host-local `firewall` block, a firewall change on its interface,
+an expiry. Where this session or other hosts
 depend on the VPN — a subnet router, a WireGuard hub, a Nebula
 lighthouse, a Headscale server — say so before the change, and
 handle it as a change that can cut SSH

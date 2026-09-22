@@ -24,15 +24,20 @@ test).
 ```bash
 n='veth|cali|cni|flannel|vnet|tap|fwbr|fwpr|fwln|lxc'
 n="$n|docker|br-[0-9a-f]{12}"
-up=$(ip -4 route show default \
+# One uplink per family: they are not always the same device.
+up4=$(ip -4 route show default \
   | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -1)
-[ -n "$up" ] || up=$(ip -6 route show default \
+up6=$(ip -6 route show default \
   | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -1)
-# No default route at all: take the link SSH came in on.
+# No default route in either family: the link SSH came in on.
+up=${up4:-$up6}
 [ -n "$up" ] || up=$(ip route get "${SSH_CONNECTION%% *}" \
   2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')
-echo "uplink=$up"
-[ -e "/sys/class/net/$up/device" ] && echo "uplink-physical=yes"
+echo "uplink=$up uplink4=$up4 uplink6=$up6"
+ups=$(printf '%s\n' "$up" $up4 $up6 | grep . | sort -u)
+for i in $ups; do
+  [ -e "/sys/class/net/$i/device" ] && echo "physical=$i"
+done
 if [ "$(id -u)" = 0 ]; then S=""
 elif sudo -n true 2>/dev/null; then S="sudo -n"
 else S=-; fi
@@ -54,16 +59,21 @@ grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' \
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
     | grep -vE " ($n)"
-  networkctl status "$up" --no-pager -n0 2>/dev/null \
-    | grep -E 'Network File|State:|Address|Gateway|DNS'
+  for i in $ups; do
+    echo "== $i"
+    networkctl status "$i" --no-pager -n0 2>/dev/null \
+      | grep -E 'Network File|State:|Address|Gateway|DNS'
+  done
 fi
 if command -v nmcli >/dev/null 2>&1; then
   nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device \
     2>/dev/null | grep -vE "^($n)"
-  c=$(nmcli -g GENERAL.CONNECTION device show "$up" \
-    2>/dev/null)
-  [ -n "$c" ] && nmcli -g ipv4.method,ipv6.method \
-    connection show "$c"
+  for i in $ups; do
+    c=$(nmcli -g GENERAL.CONNECTION device show "$i" \
+      2>/dev/null)
+    [ -n "$c" ] && echo "== $i" && nmcli -g \
+      ipv4.method,ipv6.method connection show "$c"
+  done
 fi
 if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
   if [ "$S" = - ]; then echo "netplan=unknown(needs-root)"
@@ -97,7 +107,7 @@ ip -4 rule; ip -6 rule
 
 echo "### C sysctl"
 echo "ip_forward=$(cat /proc/sys/net/ipv4/ip_forward)"
-for i in all "$up"; do
+for i in all $ups; do
   for k in disable_ipv6 accept_ra forwarding; do
     echo "$i/$k=$(cat "/proc/sys/net/ipv6/conf/$i/$k" \
       2>/dev/null)"
@@ -112,10 +122,11 @@ grep -E '^(nameserver|search|domain|options)' \
 [ -L /etc/resolv.conf ] || lsattr /etc/resolv.conf \
   2>/dev/null
 if command -v resolvectl >/dev/null 2>&1; then
+  l=$(printf '%s|%s|%s' "$up" "${up4:-$up}" "${up6:-$up}")
   resolvectl dns 2>/dev/null \
-    | grep -E "^(Global|Link [0-9]+ \($up\))"
+    | grep -E "^(Global|Link [0-9]+ \(($l)\))"
   resolvectl domain 2>/dev/null \
-    | grep -E "^(Global|Link [0-9]+ \($up\))"
+    | grep -E "^(Global|Link [0-9]+ \(($l)\))"
   resolvectl status --no-pager 2>/dev/null \
     | grep -E 'resolv.conf mode|Protocols' | sort -u
 fi
@@ -207,10 +218,15 @@ Reading **A (manager)**:
 
 Reading **B (links, addresses, routes)**:
 
-- The uplink is the device of the default route. Every other
-  interface that is not a container or VM one is listed with its
-  addresses too, so a multihomed host shows all of them; `wg*`,
-  `tailscale0`, `zt*` and `tun*` among them are overlays.
+- `uplink4` and `uplink6` are the devices of the two default
+  routes, and they differ on a host whose families run over
+  different interfaces: judge each family by its own device, and
+  the stack by both (`rules/network.md` → Stack). `uplink` is
+  the one the rest of the probe keys on, IPv4's where there is
+  one. Every other interface that is not a container or VM one is
+  listed with its addresses too, so a multihomed host shows all
+  of them; `wg*`, `tailscale0`, `zt*` and `tun*` among them are
+  overlays.
 - **Dynamic addresses** carry `dynamic` and a finite
   `valid_lft`: in practice DHCP for IPv4, SLAAC or
   DHCPv6 for IPv6. `proto kernel_ra` marks an
@@ -235,6 +251,8 @@ Reading **C (kernel)**:
 
 - `disable_ipv6=1` on `all` or the uplink: IPv6 is
   off.
+- The sysctl block prints `all` and each uplink once, so an IPv6
+  setting is read on `uplink6`, which is where RAs arrive.
 - `accept_ra`: `0` the kernel ignores RAs, `1` it
   accepts them unless forwarding is on, `2` it
   accepts them even with forwarding. The uplink's

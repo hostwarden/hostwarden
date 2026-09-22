@@ -330,6 +330,22 @@ synchronised.
 - **WARN** if NTP is not synchronized, or on Alpine if no time
   service runs
 
+## Network
+
+Run `rules/network.md` → Quick check, on every host: it needs no
+root and no profile.
+
+- A global IPv6 address without a default route → the `no v6
+  route` entry in `rules/network.md` → Findings, at its severity
+- `/etc/resolv.conf` written by hand where the host has a
+  profile that records a manager as its owner → the resolv.conf
+  entry there
+- Everything as the profile records it, or no profile and
+  nothing from the list → OK, one line
+
+A difference is reported, never repaired here, and the full
+profile is offered rather than rebuilt inside the inspection.
+
 ## Log Anomalies
 
 Check for recent critical events:

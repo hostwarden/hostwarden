@@ -39,6 +39,39 @@ A profile whose `Probed:` date is older than 90 days is refreshed
 before it is relied on. The probes are in
 `rules/network-probe.md`, one call per family.
 
+## Quick check
+
+Four read-only commands, no root, for a workflow that only needs
+to know whether the network still matches the profile — or, on a
+fleet, whether the hosts match each other. It decides nothing on
+its own: the entries in Findings below do.
+
+```bash
+c='docker|br-[0-9a-f]{12}|veth|cni|flannel|vnet|tap|lxc'
+c="$c|wg|tailscale|zt|nebula|tun|utun"
+ip -o -6 addr show scope global | grep -vE " ($c)[0-9a-z.-]* "
+ip -4 route show default | head -1
+ip -6 route show default | head -1
+ls -l /etc/resolv.conf; grep -m1 '^#' /etc/resolv.conf
+```
+
+The first command lists the global IPv6 addresses that are the
+host's own: a container bridge or an overlay carries one too,
+and neither says the host has IPv6 (see Stack). A ULA
+(`fc00::/7`) on the uplink stays in the list; only such addresses
+make the stack `v4 + ULA`. On FreeBSD and
+macOS: `netstat -rn -f inet`, `netstat -rn -f inet6`,
+`ifconfig -a inet6` and the same `/etc/resolv.conf` lines. macOS
+resolves through `scutil --dns` instead of the file; the
+resolver in use is the first one whose `flags` line does not say
+`Supplemental`, since a VPN adds scoped resolvers above it.
+
+What it answers: the stack (see below), a default route per
+family, and who writes `/etc/resolv.conf` — the symlink target,
+or the generator header of a plain file, which
+`rules/network-probe.md` reads under Reading D. A difference is
+the moment to build or refresh the full profile, not to guess.
+
 ## Where it goes
 
 `memory/servers/<hostname>/network.md`, next to `memory.md`. It
