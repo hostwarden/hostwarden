@@ -29,7 +29,9 @@ which before anything else, from the files, never from the remote:
   Hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
   to a remote, no `sudo`, and no local mode either. Session Start
   and the pipeline below do not apply. Server work is handed to an
-  operations checkout, never worked around.
+  operations checkout, never worked around. A container from
+  `bin/hostwarden-lab` is neither a server nor local mode: try a
+  command there rather than guess its syntax.
 
 A fork is a development checkout like any other; its pull requests
 go to `jpawlowski/hostwarden`.

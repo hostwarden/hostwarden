@@ -59,6 +59,14 @@ worktree)
 esac
 hostwarden_next_step
 echo "  A question only a live server answers: $HOSTWARDEN_NEXT_STEP."
+# Operations never gets here: it has servers to try a command on.
+echo "  To try a command instead of guessing its syntax:"
+echo "  bin/hostwarden-lab exec <family> -- <command> runs it in a"
+echo "  disposable container (debian, ubuntu, rhel, fedora, suse,"
+echo "  alpine), neither a server nor local mode. A container cannot"
+echo "  answer for systemd services, the firewall, kernel parameters,"
+echo "  a reboot, the SSH pipeline, FreeBSD or macOS; for the Linux"
+echo "  ones, bin/hostwarden-lab vm up gives a test clone a VM."
 
 # The shim (shim.sh) goes first on the PATH of every later Bash
 # call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE

@@ -1,8 +1,8 @@
 #!/bin/sh
 # guard-mode-test.sh — dev-only fixture matrix for mode.sh,
-# guard-mode.sh, session-mode.sh, bin/hostwarden-init and
-# bin/hostwarden-sync. Run
-# before committing a change to any of them:
+# guard-mode.sh, session-mode.sh, bin/hostwarden-init,
+# bin/hostwarden-sync and bin/hostwarden-lab. Run before committing
+# a change to any of them:
 #   sh .claude/hooks/guard-mode-test.sh
 # Not invoked by Claude Code at runtime.
 #
@@ -49,7 +49,7 @@ checkout() {
     "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$c/.claude/hooks/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
-    "$REPO/bin/hostwarden-backup" "$c/bin/"
+    "$REPO/bin/hostwarden-backup" "$REPO/bin/hostwarden-lab" "$c/bin/"
   mkdir -p "$c/templates"
   cp -R "$REPO/templates/workspace" "$c/templates/"
   printf 'memory/\n.claude/settings.local.json\n' > "$c/.gitignore"
@@ -312,6 +312,166 @@ mon deny "$WT" 'ssh root@server1.example.com uptime'
 mon pass "$OPS" 'ssh root@server1.example.com tail -f /var/log/syslog'
 # Text that says Monitor does not turn a Bash call into one.
 cmd pass "$DEV" 'echo "Monitor" ssh'
+# Containers: as bin/hostwarden-lab starts them, never with a way
+# into this machine.
+cmd pass "$DEV" 'docker run --detach --rm --init --name hwlab-x-debian --label hostwarden.lab=x --security-opt no-new-privileges docker.io/library/debian:13 tail -f /dev/null'
+cmd pass "$DEV" 'podman run --rm -it docker.io/library/alpine:3.24 sh'
+cmd pass "$DEV" 'docker run --rm -v cache:/var/cache/apt debian:13 true'
+cmd pass "$DEV" 'docker run --rm -v /data debian:13 true'
+cmd pass "$DEV" 'docker run --rm --mount type=volume,src=cache,dst=/c debian:13 true'
+cmd pass "$DEV" 'docker run --rm --mount type=tmpfs,dst=/t debian:13 true'
+cmd deny "$DEV" 'docker exec -i hwlab-x-debian apt-get -s install nginx'
+cmd pass "$DEV" 'docker ps --filter label=hostwarden.lab=x'
+cmd deny "$DEV" 'docker rm -f $(docker ps -aq --filter label=hostwarden.lab=x)'
+cmd pass "$DEV" 'docker -v'
+cmd pass "$DEV" 'docker run --rm --privileged=false debian:13 true'
+cmd pass "$DEV" 'grep -rn "docker run" docs/'
+cmd pass "$DEV" 'bin/hostwarden-lab exec debian -- sh -c "ls -v /etc"'
+cmd deny "$DEV" 'docker run --rm --privileged debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v /:/host debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v "$HOME:/h" debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v ~/.ssh:/k debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v ./src:/src debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v "$(pwd)":/src debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v "${PWD}:/src" debian:13 true'
+cmd deny "$DEV" 'docker run --rm -v `pwd`:/src debian:13 true'
+cmd deny "$DEV" 'docker run --rm --volume=${HOME}/x:/x debian:13 true'
+cmd deny "$DEV" 'docker run --rm --mount src=$(pwd),dst=/x,type=bind debian:13 true'
+cmd deny "$DEV" 'docker run --rm -itv /etc:/e debian:13 sh'
+cmd deny "$DEV" 'docker run --rm -v/var/run/docker.sock:/var/run/docker.sock debian:13 true'
+cmd deny "$DEV" 'docker run --rm --volume=/srv:/srv debian:13 true'
+cmd deny "$DEV" 'docker run --rm --mount type=bind,src=/,dst=/h debian:13 true'
+cmd deny "$DEV" 'docker run --rm --mount=type=volume,dst=/h,volume-opt=device=/home,volume-opt=o=bind debian:13 true'
+cmd deny "$DEV" 'docker run --rm --pid=host debian:13 true'
+cmd deny "$DEV" 'docker run --rm --net host debian:13 true'
+cmd deny "$DEV" 'docker run --rm --network=host debian:13 true'
+cmd deny "$DEV" 'podman run --rm --userns=host debian:13 true'
+cmd deny "$DEV" 'docker run --rm --ipc host debian:13 true'
+cmd deny "$DEV" 'docker run --rm --device /dev/sda debian:13 true'
+cmd deny "$DEV" 'docker run --rm --cap-add=SYS_ADMIN debian:13 true'
+cmd deny "$DEV" 'docker run --rm --security-opt seccomp=unconfined debian:13 true'
+cmd deny "$DEV" 'podman run --rm --security-opt label=disable debian:13 true'
+cmd deny "$DEV" 'docker run --rm --volumes-from other debian:13 true'
+cmd deny "$DEV" 'podman run --rm --rootfs /srv/root true'
+cmd deny "$DEV" 'docker create --privileged debian:13'
+cmd deny "$DEV" 'docker container run --rm --privileged debian:13 true'
+cmd deny "$DEV" 'docker --context orbstack run --rm --privileged debian:13 true'
+cmd deny "$DEV" '/usr/local/bin/docker run --rm --privileged debian:13 true'
+cmd deny "$DEV" 'nerdctl run --rm --privileged debian:13 true'
+cmd deny "$DEV" "sh -c 'docker run --rm --privileged debian:13 true'"
+cmd deny "$DEV" 'true && docker run --rm --pid=host debian:13 true'
+cmd deny "$DEV" 'docker exec --privileged hwlab-x-debian true'
+cmd deny "$DEV" 'docker compose up -d'
+cmd deny "$DEV" 'docker-compose run web'
+cmd deny "$DEV" 'podman kube play pod.yaml'
+cmd deny "$DEV" 'docker volume create --opt type=none --opt device=/home --opt o=bind h'
+cmd pass "$DEV" 'docker volume create cache'
+# Reading, pulling and building pass; every other verb could reach
+# or change a container that is not the lab's.
+cmd pass "$DEV" 'docker images'
+cmd pass "$DEV" 'docker image ls'
+cmd pass "$DEV" 'docker pull docker.io/library/debian:13'
+cmd pass "$DEV" 'docker inspect hwlab-x-debian --format "{{.Config.Image}}"'
+cmd pass "$DEV" 'docker logs hwlab-x-debian'
+cmd pass "$DEV" 'docker build -t x .'
+cmd pass "$DEV" 'docker system df'
+cmd pass "$DEV" 'docker compose ps'
+cmd pass "$DEV" 'podman --help'
+cmd deny "$DEV" 'docker exec -it other-project sh'
+cmd deny "$DEV" 'docker container exec other-project sh'
+cmd deny "$DEV" 'docker attach other-project'
+cmd deny "$DEV" 'docker rm -f other-project'
+cmd deny "$DEV" 'docker stop other-project'
+cmd deny "$DEV" 'docker system prune -af'
+cmd deny "$DEV" 'docker image rm debian:13'
+cmd deny "$DEV" 'docker volume rm data'
+cmd deny "$DEV" 'podman machine stop'
+cmd deny "$DEV" 'docker cp other-project:/etc/shadow .'
+cmd deny "$DEV" 'docker compose down'
+# Only the local engine: another one is a server.
+cmd deny "$DEV" 'docker --context production ps'
+cmd deny "$DEV" 'docker -H tcp://server1.example.com:2375 ps'
+cmd deny "$DEV" 'docker --host=ssh://root@server1.example.com ps'
+cmd deny "$DEV" 'podman --remote ps'
+cmd deny "$DEV" 'podman --connection prod ps'
+cmd deny "$DEV" 'DOCKER_HOST=tcp://server1.example.com:2375 docker ps'
+cmd deny "$DEV" 'export DOCKER_HOST=ssh://root@server1.example.com; docker ps'
+cmd deny "$DEV" 'CONTAINER_HOST=ssh://root@server1.example.com podman ps'
+cmd pass "$DEV" 'echo "$DOCKER_HOST"'
+# No port on this machine, no build result written to it.
+cmd deny "$DEV" 'docker run --rm -p 8080:80 nginx'
+cmd deny "$DEV" 'docker run --rm -P nginx'
+cmd deny "$DEV" 'docker run --rm -dp 8080:80 nginx'
+cmd deny "$DEV" 'docker run --rm --publish=8080:80 nginx'
+cmd deny "$DEV" 'docker run --rm --publish-all nginx'
+cmd deny "$DEV" 'docker build --output type=local,dest=/tmp/out .'
+cmd deny "$DEV" 'docker build -o out .'
+cmd deny "$DEV" 'docker buildx build --output=type=tar,dest=x.tar .'
+cmd deny "$DEV" 'docker buildx build --cache-to type=local,dest=/tmp/c .'
+cmd pass "$DEV" 'docker build -t x --pull .'
+# No host file or host variable read into a container or a build.
+cmd deny "$DEV" 'docker run --rm --env-file ~/.env debian:13 env'
+cmd deny "$DEV" 'docker run --rm --env-file=.env debian:13 env'
+cmd deny "$DEV" 'podman run --rm --label-file labels debian:13 true'
+cmd deny "$DEV" 'docker run --rm --cidfile /tmp/id debian:13 true'
+cmd deny "$DEV" 'docker run --rm -e AWS_SECRET_ACCESS_KEY debian:13 env'
+cmd deny "$DEV" 'docker run --rm --env GITHUB_TOKEN debian:13 env'
+cmd deny "$DEV" 'docker run --rm -eGITHUB_TOKEN debian:13 env'
+cmd pass "$DEV" 'docker run --rm -e LANG=C.UTF-8 --env TZ=UTC debian:13 date'
+cmd deny "$DEV" 'docker build --secret id=aws,src=/home/alice/.aws/credentials .'
+cmd deny "$DEV" 'docker buildx build --ssh default .'
+# Another container's namespace, and a host path in a podman build.
+cmd deny "$DEV" 'docker run --rm --pid=container:other-project debian:13 ps'
+cmd deny "$DEV" 'docker run --rm --network container:other-project debian:13 true'
+cmd deny "$DEV" 'podman run --rm --ipc=ns:/proc/1/ns/ipc debian:13 true'
+cmd pass "$DEV" 'docker run --rm --network=none debian:13 true'
+cmd deny "$DEV" 'podman build -v ~/.ssh:/secrets .'
+cmd deny "$DEV" 'podman build --volume=/home/alice:/h .'
+cmd pass "$DEV" 'podman build -t x .'
+# The standalone compose tools follow the same verbs.
+cmd deny "$DEV" 'docker-compose down -v'
+cmd deny "$DEV" 'podman-compose rm -f'
+cmd deny "$DEV" 'docker-compose -f other.yml up -d'
+cmd pass "$DEV" 'docker-compose ps'
+cmd pass "$DEV" 'docker-compose -f lab.yml config'
+cmd pass "$DEV" 'docker run --rm --pid=private --pull=missing debian:13 true'
+# Lab VMs: created and deleted from here, used only by a test clone.
+cmd pass "$DEV" 'orb create --isolated debian:13 hwlab-x-debian'
+cmd deny "$DEV" 'orb delete --force hwlab-x-debian'
+cmd pass "$DEV" 'orb list'
+cmd pass "$DEV" 'orb --help'
+cmd pass "$DEV" 'orbctl status'
+cmd pass "$DEV" 'orb info hwlab-x-debian'
+cmd pass "$DEV" 'orbctl'
+cmd pass "$DEV" 'limactl start x'
+cmd deny "$DEV" 'orb rm other-vm'
+cmd deny "$DEV" 'orbctl delete -f other-vm'
+cmd deny "$DEV" 'orb reset'
+cmd deny "$DEV" 'orb stop other-vm'
+cmd deny "$DEV" 'limactl delete --force other-vm'
+cmd deny "$DEV" 'limactl stop other-vm'
+cmd deny "$DEV" 'limactl factory-reset other-vm'
+cmd pass "$DEV" 'limactl create --tty=false --name=x --mount-none --plain template:debian-13'
+cmd pass "$DEV" 'limactl list'
+cmd pass "$DEV" 'grep -rn orb docs/'
+cmd pass "$DEV" 'git commit -m "lab: lima and orb"'
+cmd deny "$DEV" 'orb'
+cmd deny "$DEV" 'orb uname -a'
+cmd deny "$DEV" 'orb -m hwlab-x-debian -u root systemctl status'
+cmd deny "$DEV" 'orb run uname -a'
+cmd deny "$DEV" 'orbctl run -m x uname -a'
+cmd deny "$DEV" 'orb push notes.txt'
+cmd deny "$DEV" 'limactl shell x uname -a'
+cmd deny "$DEV" 'limactl copy notes.txt x:/tmp/'
+cmd deny "$DEV" 'lima uname -a'
+cmd deny "$DEV" 'FOO=1 orb uname -a'
+cmd deny "$DEV" 'true
+orb uname -a'
+cmd pass "$DEV" 'grep -rn forbidden rules/ | grep -v absorb'
+cmd pass "$DEV" 'echo climate orbit'
+mon deny "$DEV" 'docker run --rm -v /:/host debian:13 true'
+mon deny "$DEV" 'orb -m hwlab-x-debian journalctl -f'
+mon pass "$DEV" 'docker logs -f hwlab-x-debian'
 
 # The taboo guard's off switch does not reach the mode guard.
 out=$(bash_json '/usr/bin/ssh server1.example.com true' \
@@ -403,6 +563,12 @@ git -C "$DEV" remote remove origin
 says operations "$OPS" "operations checkout"
 says worktree "$WT" "linked worktree"
 says worktree "$WT" "how: rules/server-check-handoff.md"
+says development "$DEV" "bin/hostwarden-lab exec <family>"
+says worktree "$WT" "the SSH pipeline, FreeBSD or macOS"
+case "$(sh "$OPS/.claude/hooks/session-mode.sh")" in
+*hostwarden-lab*) bad "session-mode named the lab in operations" ;;
+*) ok ;;
+esac
 out=$(unset CLAUDE_ENV_FILE; sh "$DEV/.claude/hooks/session-mode.sh")
 case "$out" in
 *"no CLAUDE_ENV_FILE"*) ok ;;
@@ -857,6 +1023,34 @@ sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null
 mode_is operations "$R"
 [ -f "$R/memory/servers/server1.example.com/memory.md" ] && ok \
   || bad "a restore lost server memory"
+
+# --- bin/hostwarden-lab ----------------------------------------
+# What it refuses before an engine or a VM manager is asked, and on
+# a PATH without either, so no container or VM is ever started.
+mkdir -p "$TMP/novm"
+for t in sh git awk grep sed tr basename dirname mktemp cat cut cksum; do
+  ln -s "$(command -v "$t")" "$TMP/novm/$t"
+done
+lab() { c=$1; shift; PATH="$TMP/novm" sh "$c/bin/hostwarden-lab" "$@" 2>&1; }
+fails "the lab ran in an operations checkout" lab "$OPS" list
+fails "the lab took an unknown family" lab "$DEV" up nosuch
+fails "vm up ran without a test clone" lab "$DEV" vm up debian
+fails "vm up took a development checkout as the test clone" \
+  lab "$DEV" vm up debian --ops "$DEV"
+fails "vm up took a test clone with an empty blacklist" \
+  lab "$DEV" vm up debian --ops "$OPS"
+echo '# production' > "$OPS/memory/blacklist.md"
+fails "vm up took a blacklist of comments only" \
+  lab "$DEV" vm up debian --ops "$OPS"
+echo '- web1.example.com' >> "$OPS/memory/blacklist.md"
+has "$(lab "$DEV" vm up debian --ops "$OPS")" "no VM manager" \
+  "vm up did not reach the VM manager check"
+has "$(lab "$DEV" up debian)" "no container engine" \
+  "up did not ask for an engine"
+HOSTWARDEN_LAB_ENGINE=false lab "$DEV" list >/dev/null && ok \
+  || bad "list failed without a running engine"
+has "$(lab "$WT" --help)" "hostwarden-lab up <family>" "no help"
+rm "$OPS/memory/blacklist.md"
 
 echo "guard-mode: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
