@@ -49,7 +49,10 @@ Managing guests needs root on the host
 is the host's UID 0: record `- Container: privileged` in its
 memory. Find them with
 `grep -L '^unprivileged: 1' /etc/pve/lxc/*.conf` (Proxmox) or
-`security.privileged: "true"` in `incus config show <ct>`.
+`security.privileged: "true"` in
+`incus config show <ct> --expanded`. Without `--expanded`, Incus
+prints what is set on the instance alone, and a key the guest
+inherits from a profile is missing.
 
 ## Changes
 
@@ -86,8 +89,9 @@ List what exists first, and take one only when nothing fits:
 - **Proxmox:** `pct listsnapshot <vmid>`,
   `pct snapshot <vmid> <name>` (`qm` for a VM)
 - **Incus / LXD:** `incus info <ct>` lists them,
-  `incus config show <ct>` shows `snapshots.schedule` and
-  `snapshots.expiry`; `incus snapshot create <ct> <name>`
+  `incus config show <ct> --expanded` shows
+  `snapshots.schedule` and `snapshots.expiry`, a profile's
+  included; `incus snapshot create <ct> <name>`
   (LXD: `lxc info`, `lxc snapshot <ct> <name>`)
 - **libvirt:** `virsh snapshot-list <dom>`,
   `virsh snapshot-create-as <dom> <name>`

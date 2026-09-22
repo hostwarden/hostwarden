@@ -69,9 +69,13 @@ owns their wording. Most hosts have neither.
 Adapt fields to OS (add Homebrew for macOS;
 add `Mode: local` for localhost, or
 `Mode: via pve1.example.com (pct exec 105)` for a
-guest in via-host mode, with the whole command it is
-reached by, the Incus project included,
-`rules/first-connection.md`);
+guest that has no sshd of its own, with the whole
+command it is reached by, the Incus project included
+(`rules/first-connection.md`). A guest whose SSH
+merely timed out never gets that line: via-host mode
+is this session's only, and the line would route
+every later session through the host
+(`rules/system-containers.md` → Reaching It);
 an OS file whose Version Detection names fields to
 record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
