@@ -29,12 +29,14 @@ Docker's daemon, in the same call:
 
 ```bash
 docker info --format '{{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
-grep -E '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)"' \
+grep -oE '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)" *: *[^,}]*' \
   /etc/docker/daemon.json 2>/dev/null
 grep -h -- '-H' /etc/conf.d/docker /etc/default/docker 2>/dev/null
 ps -eo args | grep -E '[d]ockerd|[s]ystem service'
 ss -tln 2>/dev/null || netstat -tln
 getent group docker
+g=$(getent group docker | cut -d: -f3)
+[ -n "$g" ] && getent passwd | awk -F: -v g="$g" '$4 == g {print $1}'
 ```
 
 `ps -eo args` works with busybox too; the `grep` finds `dockerd` and
@@ -55,7 +57,9 @@ those ports, not only 2375 and 2376. Where neither `ss` nor
   (<https://docs.docker.com/engine/daemon/remote-access/>). A
   Podman service on TCP is the same finding. **WARN** on loopback:
   every local account gets root.
-- **INFO** each member of the `docker` group: root-equivalent
+- **INFO** each member of the `docker` group, the `getent group`
+  list and the accounts whose primary group it is alike:
+  root-equivalent
   (`rules/privilege-escalation.md` → Root-Equivalent Groups).
   **WARN** for a deploy or CI account among them: a pipeline never
   gets root (`hostwarden-deploy-user` skill).

@@ -28,9 +28,11 @@ Docker, first:
 ```bash
 d=docker
 $d info --format '{{.ServerVersion}} root={{.DockerRootDir}} log={{.LoggingDriver}} {{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
-grep -E '"log-(driver|opts)"|"max-(size|file)"' \
+grep -oE '"(log-driver|max-size|max-file)" *: *"[^"]*"' \
   /etc/docker/daemon.json 2>/dev/null
 $d compose ls -a 2>/dev/null
+grep -rlE '(dock|podm)[a-z]+ +(run|start|compose)' /etc/systemd/system \
+  2>/dev/null
 ```
 
 Podman, first; for a rootless owner, `systemctl --user` as that
@@ -101,7 +103,9 @@ appliance's app — is reported there, not again here.
 
 A restart policy other than `no` or empty, a Quadlet or own unit
 (`unit=` set, `rules/containers.md` → Find What Defines the
-Container), or a compose project marks a container as meant to run;
+Container), a unit the `grep` over `/etc/systemd/system` found — read
+it for the container's name, since only Podman labels its unit — or a
+compose project marks a container as meant to run;
 a compose one-off (`oneoff=True`, from `compose run`) never does.
 Podman has no `restarting` state: there a loop shows as `restarts`
 rising between runs.
@@ -120,6 +124,9 @@ acts only once a container has run for ten seconds
 - **WARN** for `oom=true`: the kernel killed it for memory, whatever
   the state is now.
 - **WARN** for `health=unhealthy`.
+- **WARN** for a container meant to run in any other state than
+  `running` or a clean `exited`: `created` never started, `dead`
+  could not be removed, `paused` is frozen and answers nothing.
 - **WARN** for a running container with `restarts` above 0: its
   policy restarted it that many times. Name the count and the last
   error from the logs.
