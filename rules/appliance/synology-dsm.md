@@ -148,7 +148,12 @@ system rather than trust it.
   allowing by default, is a finding; on a NAS that only answers a
   trusted LAN the user may well decide to keep it so. Never write
   rules with `iptables` or `nft`: DSM owns the rule set, and
-  Container Manager's engine writes chains of its own.
+  Container Manager's engine writes chains of its own. For the same
+  reason the Docker check of the security skill's
+  `references/firewall-nftables-docker.md` does not apply: list
+  each published port not bound to `127.0.0.1` or `[::1]` with the
+  DSM firewall rule the user reads for it; a port no rule denies on
+  an interface that allows by default is the finding.
 - **Firewall changes are the user's, in the web UI.** This file
   names no revert for them, so under `rules/ssh-safety-net.md` the
   user applies the change with physical access ready. Before any
@@ -413,7 +418,7 @@ system rather than trust it.
     smartctl -n standby -H -A /dev/${d##*/} | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
   grep -c -E "Out of memory|I/O error" /var/log/messages
-  /usr/local/bin/docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Label "com.docker.compose.project"}}'
+  /usr/local/bin/docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Label "com.docker.compose.project"}}'
   ```
   DSM names drives `sd*`, `sata*`, `sas*`, `nvme*` and `nvc*` in
   `/sys/block`, depending on the model (third-party,

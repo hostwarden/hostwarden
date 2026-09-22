@@ -108,7 +108,7 @@ rules/                 — Upstream rule files (git-tracked)
     truenas.md         — TrueNAS (on os/debian.md)
     truenas-core.md    — TrueNAS CORE, end of life (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
-    synology-dsm.md    — Synology DSM 7 (no base)
+    synology-dsm.md    — Synology DSM 7.2+ (no base)
     unraid.md          — Unraid (no base)
     openwrt.md         — OpenWrt (no base)
   busybox.md           — Busybox applets and flags on Alpine
