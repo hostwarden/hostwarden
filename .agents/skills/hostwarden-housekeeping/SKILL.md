@@ -9,9 +9,10 @@ description: Run a Hostwarden housekeeping (health) inspection on a
   health check on <host>", or "do routine inspection". Do NOT
   auto-invoke for ambiguous requests like "check server <host>"
   — that's reserved for quick queries. Covers Linux (Debian,
-  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine), FreeBSD and
-  macOS. Also use it for "schedule housekeeping", "run a
-  nightly check", or "email me a weekly report automatically".
+  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine), FreeBSD, macOS
+  and Windows Server (read-only). Also use it for "schedule
+  housekeeping", "run a nightly check", or "email me a weekly
+  report automatically".
 ---
 
 # hostwarden-housekeeping
@@ -33,10 +34,13 @@ applies before any of this runs.
    plus any service-specific checks triggered by entries in the
    server's `memory.md` (e.g. PostgreSQL, nginx, Docker). The
    backup-presence check from `references/backup-presence.md`
-   runs on every host, independent of `memory.md` entries.
+   runs on every host, independent of `memory.md` entries — on
+   a host whose OS file is not `sh`, in the form that file's
+   `## Housekeeping and Audits` section gives.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
-   "Versions" section in the report.
+   "Versions" section in the report — where the OS file uses the
+   `sh -s` bundle (Scope and limits below).
 4. **Run checks in 2–3 parallel batches** for speed — not one
    massive batch. If a single parallel tool call errors, Claude
    Code cancels sibling calls, so grouping limits blast radius.
@@ -46,7 +50,8 @@ applies before any of this runs.
    revealed changed facts (disk usage shifted significantly, a
    new service appeared, a service was removed).
 7. **Log the summary** to the system journal and mirror to the
-   local changelog per `rules/changelog.md`:
+   local changelog per `rules/changelog.md`, which names the
+   writer; on a host with `logger`:
 
        logger -t hostwarden "Housekeeping: 1 CRITICAL, 2 WARN, \
        all services OK"
@@ -78,8 +83,8 @@ Read on demand, only when the relevant section applies:
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
 - The `## Housekeeping and Audits` sections of the host's
-  appliance, platform and role files, already loaded by the
-  pipeline (`rules/os-detection.md` → Layers).
+  family, appliance, platform and role files, already loaded
+  by the pipeline (`rules/os-detection.md` → Layers).
 - `references/scheduled.md` — running this inspection from cron
   or a systemd timer with no human at the keyboard, and mailing
   the result. Only when the user asks to schedule it.
@@ -90,6 +95,12 @@ Read on demand, only when the relevant section applies:
   FreeBSD and macOS are covered by the baseline references
   above. On an appliance, its `## Housekeeping and Audits`
   section replaces the update checks.
+- A reference written for `sh` — the baselines, the version
+  check, `references/service-checks.md` — runs only where the
+  loaded OS file uses the `sh -s` bundle
+  (`rules/ssh-connections.md` → Bundle commands); elsewhere,
+  as on Windows Server, the OS file's `## Housekeeping and
+  Audits` section is the whole check.
 
 ## Custom checks
 

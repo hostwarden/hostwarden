@@ -10,7 +10,9 @@ description: Run a Hostwarden security audit on a server — SSH
   "prüf die Härtung", or to "audit security on <host>". Do NOT
   auto-invoke on generic phrases like "check server <host>".
   Covers Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE,
-  Alpine), FreeBSD and macOS (SIP, FileVault, Gatekeeper).
+  Alpine), FreeBSD, macOS (SIP, FileVault, Gatekeeper) and
+  Windows Server (read-only; SSH, firewall, accounts, SMBv1,
+  Remote Desktop, Defender, BitLocker).
 ---
 
 # hostwarden-security
@@ -46,7 +48,8 @@ applies before any of this runs.
    not state changes. Memory tracks what is installed and running,
    not security posture details.
 7. **Log the summary** to the system journal and mirror to the
-   local changelog per `rules/changelog.md`:
+   local changelog per `rules/changelog.md`, which names the
+   writer; on a host with `logger`:
 
        logger -t hostwarden "Security audit: 1 WARN, 1 INFO"
 
@@ -55,6 +58,11 @@ applies before any of this runs.
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
   FreeBSD and macOS are covered by the references below; each
   one has a section per family where the commands differ.
+- A reference written for `sh` runs only where the loaded OS
+  file uses the `sh -s` bundle (`rules/ssh-connections.md` →
+  Bundle commands); elsewhere, as on Windows Server, the OS
+  file's `## Housekeeping and Audits` section is the whole
+  audit.
 
 ## Cross-references
 
@@ -89,7 +97,7 @@ Read on demand, only when the relevant section applies:
   blocklistd or sshguard on FreeBSD.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
 - The `## Housekeeping and Audits` sections of the host's
-  appliance, platform and role files, already loaded by the
-  pipeline (`rules/os-detection.md` → Layers).
+  family, appliance, platform and role files, already loaded
+  by the pipeline (`rules/os-detection.md` → Layers).
 - `references/unprivileged.md` — which checks work without root,
   which need it, and how to report skipped ones.

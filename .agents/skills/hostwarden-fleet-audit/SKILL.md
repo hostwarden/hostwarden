@@ -51,8 +51,8 @@ Hosts are compared only within the same role and
 platform as well (`Role:` and `Platform:` in memory): a
 cell the platform file prescribes, such as WSL's firewall,
 never differs from a native host's as drift. The
-`## Housekeeping and Audits` sections of the platform and
-role files apply to the probes (`rules/os-detection.md` →
+`## Housekeeping and Audits` sections of the family, platform
+and role files apply to the probes (`rules/os-detection.md` →
 Layers).
 
 ## Workflow
@@ -205,7 +205,10 @@ Read on demand:
   and FreeBSD through their **Alpine**, **macOS** and
   **FreeBSD** variants in `references/probes.md`. RHEL/SUSE
   probes share the same shape but use
-  `dnf`/`firewalld`/`zypper` equivalents.
+  `dnf`/`firewalld`/`zypper` equivalents. Windows hosts
+  (`OS:` in memory names Windows) are skipped with a "Windows
+  not yet supported" note, decided from memory before any
+  probe runs.
 - The audit does not check that running services are
   healthy (that is housekeeping's job). It only compares
   declared policy.

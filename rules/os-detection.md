@@ -314,10 +314,13 @@ each rule, expectation or check it changes. What it
 does not name applies as written.
 
 The `## Housekeeping and Audits` section of the
-appliance, platform and role file applies to
+family, appliance, platform and role file applies to
 housekeeping and both audits: it adds checks, changes
 the command of those it names, skips those it
-excludes and rates some differently.
+excludes and rates some differently. A family file
+whose commands are not `sh` (Windows) holds its checks
+there in full, and the skills' baseline references do
+not run on it.
 
 ## On subsequent connections
 

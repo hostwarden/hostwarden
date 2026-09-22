@@ -78,6 +78,11 @@ no `Base:` line and a `## Housekeeping and Audits` section;
 `instructions-test.sh` holds its prefixed headings to the sections
 every family file has.
 
+A family file may have a `## Housekeeping and Audits` section too.
+One whose commands are not `sh` — Windows — carries its checks
+there in full, because the skills' baseline references are
+written for `sh`.
+
 A role (`rules/os-detection.md` → Roles) gets a file in
 `rules/role/`. It changes no command, only expectations and
 ratings, so it uses no override prefixes: each section says which
