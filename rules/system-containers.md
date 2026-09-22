@@ -17,7 +17,10 @@ for two cases only:
   keeps its SSH access.
 - **No sshd in the guest:** ask the user once: install one (then
   SSH), or record via-host mode in its memory
-  (`rules/server-memory.md`).
+  (`rules/server-memory.md`). Not for a Windows guest: Hostwarden
+  reaches Windows over OpenSSH only (`rules/os/windows.md`), and
+  the pipeline's `sh -c` finds no shell there. Install OpenSSH,
+  or leave the guest to its console.
 
 Through the host's manager, as root inside:
 
@@ -81,8 +84,20 @@ among them: `rules/appliance/proxmox-ve.md` → Guests.
 With access to the host, and the host not on the read-only list
 (`rules/access-control.md`), a snapshot is the better safety net
 before a risky change to a guest, to its config or inside it (an
-upgrade, a larger config rework): it covers the whole guest and
-rolls back in one command.
+upgrade, a larger config rework): it covers the guest's own
+storage and rolls back in one command.
+
+**Read the mount points first.** What a snapshot leaves out stays
+changed after a rollback, and the guest comes back beside data
+that moved on without it. On Proxmox, `pct config <vmid>` lists
+`mp0:`, `mp1:` …; a bind or device mount point is not managed by
+the storage subsystem and is not snapshotted, and a volume with
+`backup=0` is left out of a backup as well (`qm config <vmid>`
+for a VM's disks). An Incus or LXD disk device pointing at a host
+path (`source=/…` in `incus config show <ct> --expanded`) is the
+same case. Back those up on their own (`rules/backups.md`), or
+say plainly that the snapshot does not cover them before the
+change starts.
 
 List what exists first, and take one only when nothing fits:
 
