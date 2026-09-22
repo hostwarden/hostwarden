@@ -18,14 +18,14 @@ When auto mode blocks a step below — answering a thread,
   `/simplify` and `/code-review --fix` are done; a comment
   `@codex review` starts another review.
 - A round is a completed Codex review that produced findings. Work
-  rounds 1 and 2 fully. From round 3, only a P1 blocks; a P2 or P3
-  is answered "not a bug: <reason>" or "deferred to a follow-up PR",
+  rounds 1 and 2 fully. From round 3, only a P0 or P1 blocks; a P2 or
+  P3 is answered "not a bug: <reason>" or "deferred to a follow-up PR",
   and the deferred ones are listed in the PR body under
   `## Deferred Codex findings`.
 - A finding against a guard hook follows `repo-release.md` → Guard
   findings.
-- Answer every Codex thread — "fixed in <sha>" or "not a bug: …" —
-  and resolve it.
+- Answer every Codex thread — "fixed in <sha>", "not a bug: …" or,
+  from round 3, "deferred to a follow-up PR" — and resolve it.
 
 ## Merge-ready
 
