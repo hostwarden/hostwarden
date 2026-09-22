@@ -410,7 +410,9 @@ host, not as documented behaviour.
   Running vs Installed" and "Critical Services: Running Binary vs
   Installed Package", which assume apt-installed packages. Disk
   Usage runs with `-x squashfs` added: the read-only image layers
-  are always full, and their 100 % is no finding. Read, in the
+  are always full, and their 100 % is no finding. The baseline's
+  own `-x overlay` hides the writable root, so `df -h /` runs
+  beside it and `/` is rated against the same limits. Read, in the
   same call as root:
   ```
   cat /proc/mdstat
