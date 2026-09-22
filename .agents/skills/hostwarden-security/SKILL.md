@@ -28,7 +28,9 @@ applies before any of this runs.
    `rules/overrides.md`. Read
    `memory/servers/<hostname>/memory.md` for context: services,
    legitimate external bindings, VPN role. A binding this host is
-   known to need is not a finding.
+   known to need is not a finding. An override of
+   `rules/baseline.md` → Firewall or SSH Login changes what the
+   firewall and SSH checks below expect.
 2. **Run checks in 2–3 parallel batches** for speed — not one
    massive batch. If a single parallel tool call errors, Claude
    Code cancels sibling calls, so grouping limits blast radius.

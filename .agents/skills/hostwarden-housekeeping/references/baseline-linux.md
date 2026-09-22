@@ -229,7 +229,8 @@ Severity rules (Debian and Ubuntu):
 **RHEL/CentOS/Fedora:**
 
 ```bash
-systemctl is-active dnf-automatic.timer 2>/dev/null \
+systemctl is-active dnf-automatic-install.timer 2>/dev/null \
+  || systemctl is-active dnf-automatic.timer 2>/dev/null \
   || systemctl is-active yum-cron.service 2>/dev/null
 ```
 
@@ -318,7 +319,7 @@ OpenRC enters to power down are stopped by design.
 
 ```bash
 timedatectl show \
-  --property=NTPSynchronized --value
+  --property=NTPSynchronized --property=Timezone
 ```
 
 **Alpine:** the default, busybox `ntpd`, reports no sync state,
@@ -329,6 +330,25 @@ synchronised.
 
 - **WARN** if NTP is not synchronized, or on Alpine if no time
   service runs
+- **INFO** if `Timezone` differs from the one an override of
+  `rules/baseline.md` → Timezone names, on a server
+
+## Journal
+
+On a server with systemd: whether the journal survives a reboot
+(`rules/baseline.md` → Journal). A workstation is not held to it
+(`rules/role/workstation.md`).
+
+```bash
+systemd-analyze cat-config systemd/journald.conf \
+  | grep -E '^Storage='
+ls -d /var/log/journal
+```
+
+The last `Storage=` wins; none means `auto`. Persistent is
+`persistent`, or `auto` with `/var/log/journal` there.
+
+- **WARN** if the journal is not persistent
 
 ## Network
 

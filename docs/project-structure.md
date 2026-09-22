@@ -79,6 +79,11 @@ mise.dev.toml          — Pinned versions of the tools check.sh
                          OS, with the disk, EFI and cloud-image
                          work that comes with it
                          (SKILL.md + references/)
+    hostwarden-new-guest/     — Create a VM or container on a
+                         hypervisor, with the baseline
+                         (SKILL.md + references/)
+    hostwarden-baseline/  — Bring an existing server up to
+                         the baseline (SKILL.md)
     hostwarden-adopt/     — Take over a heinzel installation
                          (SKILL.md + references/)
     hostwarden-runtimes/  — Install language runtimes via mise
@@ -130,9 +135,12 @@ rules/                 — Upstream rule files (git-tracked)
                          family was detected. Detection reads
                          at most one
     wsl.md             — Windows Subsystem for Linux
-  role/                — What a machine is expected to have.
-                         Server is the default and has no file
+  role/                — What a machine is expected to have
+                         instead of baseline.md. Server is the
+                         default and has no file
     workstation.md     — A machine a person works at
+  baseline.md          — What every server is expected to
+                         have
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

@@ -13,8 +13,7 @@ restart or a firewall change.
 
 ## Standing Expectations
 
-On this machine, replaces the standing expectations under
-`AGENTS.md` → Where the Rest Lives.
+On this machine, replaces `rules/baseline.md` as a whole.
 
 - **Automatic security updates** are expected, through the
   OS's own updater: the Software Update settings on macOS

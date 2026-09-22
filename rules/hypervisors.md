@@ -350,7 +350,10 @@ Hostwarden does not manage" (with its name, if they want) and
 `Runs on: <name> (user, not managed)` or `Runs on: unknown
 (user)`. It is never asked again; a later inventory that finds the
 keys replaces it. In via-host mode (`rules/first-connection.md`),
-the host is the one the session goes through.
+the host is the one the session goes through. A guest Hostwarden
+just created: the host it was created on; `Runs on:` and
+`Guest identity:` come from the creation, with no lookup and no
+question (`hostwarden-new-guest`).
 
 **On the host,** for the guests without a `→`, one `grep` over
 the `Guest identity:` lines of `memory/servers/*/memory.md`. A

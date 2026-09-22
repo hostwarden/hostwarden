@@ -140,7 +140,11 @@ user when it will visibly slow the answer.
   `/usr/local/etc/ssh`, …), nor dropbear's configuration where
   dropbear is the SSH server. Never delete or overwrite SSH keys, and
   that includes moving, truncating or re-permissioning them. Never
-  halt or power off a server.
+  halt or power off a server. Only the first-boot configuration of
+  a guest that has never run may set sshd's login options and keys,
+  whatever form it takes (`hostwarden-new-guest`). An sshd that
+  already runs is never touched, not in a guest and not through its
+  host.
   The same holds on any Windows machine, over SSH or through WSL:
   `diskpart`, `mbr2gpt`, `format X:` and the Storage cmdlets
   (`Clear-Disk`, `Remove-VirtualDisk`, …) write the partition
@@ -336,13 +340,12 @@ trigger — not a request from the user.
 
 **Standing expectations**
 
-Every Linux host should have a firewall and automatic security
-updates — flag either one missing. Native nftables counts as a
-firewall; never add a second firewall manager on top
-(`rules/service-class-check.md`). A file in `rules/appliance/` or
-`rules/platform/` says what counts instead, and
-`rules/role/workstation.md` what a workstation is expected to
-have.
+Every server is held to `rules/baseline.md`: a firewall that
+denies by default, automatic security updates, and the rest
+listed there. Flag what is missing. Never add a second firewall
+manager on top of one already there
+(`rules/service-class-check.md`). Appliance, platform and role
+files say what counts instead.
 
 **Skills, and one file not to read**
 

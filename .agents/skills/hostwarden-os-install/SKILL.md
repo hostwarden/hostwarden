@@ -14,7 +14,9 @@ description: Install, replace, or dual-boot an operating system on a
   entries, BootOrder, or a machine that no longer boots after an
   install. Destructive and irreversible in most of its paths —
   needs an explicit request, a confirmed backup, and the operator
-  to relaunch with the taboo guard disabled.
+  to relaunch with the taboo guard disabled. Not for creating a
+  new VM or container on a hypervisor, which is
+  hostwarden-new-guest.
 ---
 
 # OS Installation, Replacement and Boot Management
@@ -22,6 +24,9 @@ description: Install, replace, or dual-boot an operating system on a
 Five workflows that share one disk, one boot loader and one
 irreversible moment. Read the gate below first, then the reference
 that matches what the user asked for.
+
+A new VM or container is none of them: `hostwarden-new-guest`
+creates it, with the guard on.
 
 ## Reading is always allowed
 
@@ -138,9 +143,9 @@ the user to type at a console, not for Hostwarden to run.
   that stopped booting** → `references/efi-boot.md`. The other
   paths reach into it by section when EFI comes up; read the
   whole file only when boot management *is* the task.
-- **Deploying a qcow2 / raw / VMDK image, cloud-init trouble, a
-  fresh VM that will not boot or take SSH** →
-  `references/cloud-image.md`.
+- **Writing a qcow2 / raw / VMDK image onto a machine's disk,
+  cloud-init trouble, a fresh VM that will not boot or take SSH**
+  → `references/cloud-image.md`.
 - **Freeing a partition on a running system, repartitioning
   without physical access, needing scratch space on a disk that is
   in use** → `references/partition-staging.md`.
