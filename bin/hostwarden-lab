@@ -222,12 +222,16 @@ down() {
 
 # --- VMs ------------------------------------------------------
 # A VM has no label to find it by, so vm up writes each one it
-# creates to a file in this worktree's own git directory, and vm
-# down deletes what that file names and nothing else. Each line:
-# manager, name, family, host name, the test clone that uses it.
+# creates to a file named after this checkout, and vm down deletes
+# what that file names and nothing else. Each line: manager, name,
+# family, host name, the test clone that uses it. The file lives in
+# the common git directory, not the worktree's own, which git
+# worktree remove deletes: a worktree recreated at the same path
+# still finds the VMs it left behind.
 state() {
-  STATE="$(git -C "$REPO_DIR" rev-parse --absolute-git-dir 2>/dev/null \
-    || echo "$REPO_DIR/.git")/hostwarden-lab-vms"
+  g=$(cd "$REPO_DIR" && c=$(git rev-parse --git-common-dir 2>/dev/null) \
+    && cd "$c" && pwd -P) || g="$REPO_DIR/.git"
+  STATE="$g/hostwarden-lab-vms-$LAB"
 }
 
 vm_up() {
