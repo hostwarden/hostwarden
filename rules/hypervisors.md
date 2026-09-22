@@ -248,14 +248,17 @@ The cluster lives in `memory/clusters/<name>/`, and each member's
 `memory.md` names it: `- Cluster: prod`. Look for it before
 naming anything: a `cluster.md` is this cluster, whatever its
 directory is called, when more than half of the members its
-`Members:` lists are members of this cluster now, or when its
-title carries this cluster's name and at least one of them still
-is, as when a cluster of three loses two. A session that arrives
-through another member then finds the same one, and a member
-moved on to another cluster does not carry the old cluster's
-directory with it. A match by more
-than half whose name differs was renamed: its title takes the new
-name. Only when none matches is a directory named.
+`Members:` lists are members of this cluster now. A session that
+arrives through another member then finds the same one, and a
+member moved on to another cluster does not carry the old
+cluster's directory with it. A match whose name differs was
+renamed: its title takes the new name. Where only half or fewer
+are, but its title carries this cluster's name and at least one
+of them still is a member, it is either this cluster after losing
+members or another cluster of the same name that a member moved
+to: ask the user once which, and record the answer in
+`cluster.md` so it is not asked again. Only when none matches is a
+directory named.
 `<name>` then comes from the cluster's own name as the appliance
 file reads it, lowercased, with every character other than
 `a`–`z`, `0`–`9` and `-` turned into `-`: a pool may be called
@@ -265,7 +268,8 @@ one takes the first label of the member the session is on,
 `inc1-cluster`. Where the directory exists already, the member's
 label is added, `prod-pve4`, then a number, `prod-pve4-2`, until
 the path is free: never write into a directory that holds another
-cluster.
+cluster. A member's label goes through the same reduction as the
+name before it becomes part of a path.
 
 `cluster.md` holds what belongs to the cluster rather than a
 member, and an appliance file may add lines of its own:
