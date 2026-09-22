@@ -490,16 +490,25 @@ Judge only the rules of the profile in use (Firewall above). A
 rule opens its ports only to its program and service where it
 names one (`Any` means every program or service): a listener
 on that port is exposed, to the remote addresses the rule
-names, when its process is that program or service, or the rule
-names neither. A rule with a local port of `Any` opens every
-port to the program or service it names: name the rule.
+names, when the listener's executable path is the rule's
+program, its bracket holds the rule's service, or the rule names
+neither. A listener whose path is empty cannot be matched to a
+program-scoped rule: report it as unknown, not as covered. A
+rule with a local port of `Any` opens every port to the program
+or service it names: name the rule.
 
 **Listening services**, TCP and UDP:
 
 ```powershell
-try { $p = @{}; Get-Process -ErrorAction Stop | ForEach-Object { $p[$_.Id] = $_.ProcessName }; $l = @(Get-NetTCPConnection -State Listen -ErrorAction Stop); "tcp: $($l.Count)"; $l | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2}' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess] } } catch { "failed: $_" }
-try { $u = @(Get-NetUDPEndpoint -ErrorAction Stop); "udp: $($u.Count)"; $u | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2}' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess] } } catch { "failed: $_" }
+try { $p = @{}; Get-Process -ErrorAction Stop | ForEach-Object { $p[$_.Id] = "$($_.ProcessName) $($_.Path)" }; $s = @{}; Get-CimInstance Win32_Service -Filter 'ProcessId > 0' -ErrorAction Stop | ForEach-Object { $s[[int]$_.ProcessId] = @($s[[int]$_.ProcessId]) + $_.Name }; 'processes and services read' } catch { "failed: $_" }
+try { $l = @(Get-NetTCPConnection -State Listen -ErrorAction Stop); "tcp: $($l.Count)"; $l | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2} [{3}]' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess], ((@($s[[int]$_.OwningProcess]) | Where-Object { $_ }) -join ',') } } catch { "failed: $_" }
+try { $u = @(Get-NetUDPEndpoint -ErrorAction Stop); "udp: $($u.Count)"; $u | Sort-Object LocalPort | ForEach-Object { '{0}:{1} {2} [{3}]' -f $_.LocalAddress, $_.LocalPort, $p[[int]$_.OwningProcess], ((@($s[[int]$_.OwningProcess]) | Where-Object { $_ }) -join ',') } } catch { "failed: $_" }
 ```
+
+Each listener names its process, the executable's path, and in
+brackets the services that process hosts — `svchost` carries
+several. A path can be empty for a process this account may
+not open.
 
 Rate it as
 `.agents/skills/hostwarden-security/references/listening-services.md`
