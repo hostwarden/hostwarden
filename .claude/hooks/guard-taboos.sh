@@ -350,12 +350,13 @@ KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 
 # sshd's config: sshd_config, its drop-in directory, a file an
 # appliance merges into it when it regenerates the config
-# (pfSense appends /etc/sshd_extra), and the SSH server config of
-# an appliance that runs dropbear instead (OpenWrt's UCI file
-# /etc/config/dropbear). The .d suffix is optional, so a plain
-# hit on SSHD also finds the bare file. Then the editors that
-# rewrite a file in place.
-SSHD='/etc/(ssh/sshd_config(\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|config/dropbear)'
+# (pfSense appends /etc/sshd_extra), and dropbear's config where
+# a system runs dropbear instead: OpenWrt's UCI file
+# /etc/config/dropbear, /etc/conf.d/dropbear under OpenRC,
+# /etc/default/dropbear on Debian. The .d suffix is optional, so
+# a plain hit on SSHD also finds the bare file. Then the editors
+# that rewrite a file in place.
+SSHD='/etc/(ssh/sshd_config(\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\.d|default)/dropbear)'
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
 # A general-purpose language runtime. See the interpreter section
@@ -651,15 +652,20 @@ fi
 # uci commit dropbear. A write verb followed by the config name
 # is the change, whether uci carries it on its command line or
 # reads it from a uci batch here-document. uci show, get, changes
-# and export only read.
+# and export only read. The case is a builtin precheck: almost no
+# command mentions dropbear, and those skip both greps.
 UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
-if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)' \
-  && hit "(^|[[:space:]'\"])$UCIW[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
-then
-  deny "changing the dropbear configuration through uci modifies \
+case "$CMD" in
+  *dropbear*)
+    if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)' \
+      && hit "(^|[[:space:]'\"])$UCIW[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
+    then
+      deny "changing the dropbear configuration through uci modifies \
 the SSH server config, which is never allowed (reading it is fine: \
 uci show dropbear)"
-fi
+    fi
+    ;;
+esac
 
 # --- Writes INTO an SSH key -----------------------------------
 # Writing into a key file replaces it as surely as deleting it.
