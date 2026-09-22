@@ -16,6 +16,12 @@ unprivileged, omit `-p`:
 ss -tuln
 ```
 
+Alpine, without `iproute2-ss`:
+
+```bash
+netstat -tulnp 2>/dev/null
+```
+
 ## macOS
 
 ```bash

@@ -57,8 +57,9 @@ and fight for the same role.
   `/etc/nftables.conf` starts with `flush ruleset`, so
   starting, reloading or stopping that unit wipes
   ufw's or firewalld's rules. Raw `iptables` is a
-  backend, not a member. FreeBSD's pf and ipfw are in
-  base, no frontend packages compete.
+  backend, not a member. On Alpine, awall is a
+  member. FreeBSD's pf and ipfw are in base, no frontend
+  packages compete.
 - **Container runtime:** docker.io, docker-ce,
   moby-engine, podman, containerd.io
 
@@ -98,6 +99,29 @@ dpkg-query -W \
 
 Then, for the firewall class:
 `systemctl is-enabled nftables 2>/dev/null`.
+
+**Alpine**
+
+`apk info` lists installed package names; PostgreSQL
+carries its major version in the name:
+
+```bash
+apk info | grep -x \
+  -e apache2 -e nginx -e caddy -e lighttpd \
+  -e 'postgresql[0-9]*' -e mariadb \
+  -e postfix -e exim -e opensmtpd \
+  -e msmtp -e dma \
+  -e chrony -e openntpd \
+  -e unbound -e bind -e dnsmasq -e pdns-recursor \
+  -e knot-resolver \
+  -e ufw -e awall -e nftables \
+  -e docker -e podman -e containerd
+```
+
+Busybox `ntpd`, the default time sync, is no
+package: `rc-service ntpd status` shows whether it
+runs. `nftables` counts as a firewall manager only
+when `rc-update show boot default` lists it.
 
 **RHEL / Fedora / SUSE**
 
@@ -203,6 +227,15 @@ dnf install --assumeno <pkg> 2>&1 \
 ```bash
 zypper --non-interactive install --dry-run <pkg>
 ```
+
+**Alpine**
+
+```bash
+apk update -q && apk add --simulate <pkg>
+```
+
+Each `Installing <package> (<version>)` line is one
+package of the plan.
 
 **FreeBSD**
 

@@ -8,6 +8,12 @@ Firewall or Updates section — its commands and expectations win, at
 the same severities: a mechanism the OS file says is not expected is
 not a finding.
 
+On Alpine, the checks without an **Alpine** variant below run
+unchanged; the others would fail on OpenRC or busybox
+(`rules/os/alpine.md` → Notes). Run `rc-status -a` and
+`rc-status --crashed` once, in the first call: failed services
+and time sync read from that output.
+
 ## Backup Presence
 
 Run the generic "any backup at all?" check — see
@@ -19,6 +25,12 @@ independent of `memory.md` service entries.
 ```bash
 df -h --output=target,pcent,size,used,avail \
   -x tmpfs -x devtmpfs -x overlay
+```
+
+**Alpine:**
+
+```bash
+df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ```
 
 - **WARN** if any filesystem > 85% used
@@ -53,6 +65,8 @@ uptime -s
 last reboot | head -5
 ```
 
+**Alpine:** `uptime` alone.
+
 Report uptime. If the server rebooted since the last housekeeping
 or last session, flag it:
 
@@ -75,18 +89,22 @@ the target before relying on them.
 ```bash
 apt-get update -qq 2>/dev/null
 
+inst=$(apt-get --just-print upgrade 2>/dev/null | grep "^Inst")
+
 # Total pending upgrades.
-apt-get --just-print upgrade 2>/dev/null \
-  | grep -c "^Inst"
+printf '%s\n' "$inst" | grep -c .
 
 # Security-only subset: filter the Inst lines for
 # security origins (Debian-Security on older
 # releases, <codename>-security on newer ones,
-# <codename>-security on Ubuntu).
-apt-get --just-print upgrade 2>/dev/null \
-  | grep "^Inst" \
-  | grep -ciE "debian-security|[a-z]+-security"
+# <codename>-security on Ubuntu, and the ESM
+# pockets <codename>-apps-security and
+# <codename>-infra-security once Pro is attached).
+printf '%s\n' "$inst" | grep -ciE "debian-security|[a-z]+-security"
 ```
+
+**Ubuntu:** fixes that apt cannot see because they wait
+on Pro are counted under **Ubuntu Release and Support**.
 
 **RHEL/CentOS/Fedora:**
 
@@ -138,6 +156,8 @@ modes that the simple `is-active` check misses:
 **Debian/Ubuntu:**
 
 ```bash
+uu=$(apt-config dump 2>/dev/null)
+
 # 1. Package present.
 dpkg -l unattended-upgrades 2>/dev/null \
   | grep -q "^ii" && echo "pkg=ok" || echo "pkg=MISSING"
@@ -146,22 +166,23 @@ dpkg -l unattended-upgrades 2>/dev/null \
 systemctl is-enabled apt-daily-upgrade.timer 2>/dev/null
 
 # 3. APT::Periodic actually turns the runs on.
-apt-config dump APT::Periodic 2>/dev/null \
-  | grep -E "(Update-Package-Lists|Unattended-Upgrade) "
+echo "$uu" \
+  | grep -E "^APT::Periodic::(Update-Package-Lists|Unattended-Upgrade) "
 
-# 4. Origins-Pattern covers the codename-security archive
-#    (Debian Trixie+ publishes Codename: <release>-security).
+# 4. The allowed origins cover the codename-security
+#    archive. Debian uses Origins-Pattern (Trixie+
+#    publishes Codename: <release>-security), Ubuntu
+#    uses Allowed-Origins ("<distro>:<codename>-security").
 codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
-pattern="codename=\\\$\{distro_codename\}-security"
-pattern="${pattern}|codename=${codename}-security"
-apt-config dump Unattended-Upgrade::Origins-Pattern \
-  2>/dev/null \
+pattern="(codename=|archive=|[an]=|:)(\\\$\{distro_codename\}|${codename})-security"
+echo "$uu" \
+  | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::" \
   | grep -qE "$pattern" \
   && echo "origins=ok" \
   || echo "origins=MISSING ${codename}-security pattern"
 
 # 5. Notification destination set (else failures are silent).
-apt-config dump 2>/dev/null \
+echo "$uu" \
   | grep -E "Unattended-Upgrade::(Mail |MailReport)"
 
 # 6. Recent real activity: did a Debian package upgrade run
@@ -171,7 +192,7 @@ zgrep -h "Pakete, welche aktualisiert werden\|Packages that will be upgraded" \
   2>/dev/null | tail -5
 ```
 
-Severity rules (Debian-specific):
+Severity rules (Debian and Ubuntu):
 
 - **CRITICAL** if `20auto-upgrades` is missing or any of its
   values is `0`. The timer fires but does nothing — silent
@@ -179,11 +200,18 @@ Severity rules (Debian-specific):
 - **CRITICAL** if `Origins-Pattern` is missing the
   `${distro_codename}-security` entry on Trixie or later.
   Every Debian security update is silently skipped.
+- **CRITICAL** (Ubuntu) if `Allowed-Origins` is missing
+  `${distro_id}:${distro_codename}-security`, for the
+  same reason.
+- On Ubuntu, a missing package or a zeroed value keeps
+  its severity; `rules/os/debian.md` → Automatic Security
+  Updates says how to handle it.
 - **WARN** if neither `Mail` nor `MailReport` is set. UA
   errors will be invisible.
-- **WARN** if the log shows no Debian package upgrade lines
-  in the last 30 days despite the timer running daily. UA is
-  alive but accomplishing nothing for the Debian archive.
+- **WARN** if the log shows no package upgrade lines in
+  the last 30 days despite the timer running daily. UA is
+  alive but accomplishing nothing for the distribution
+  archive.
 - **INFO** if `Automatic-Reboot-Time` is set to a fixed
   HH:MM: this defers the post-kernel reboot to that time
   the next day, leaving the new userland on the old kernel
@@ -214,6 +242,9 @@ Check that the firewall is still active.
 ```bash
 ufw status
 ```
+
+On Ubuntu, `rules/os/debian.md` → Firewall says how to
+word an inactive ufw.
 
 **RHEL/CentOS/Fedora (firewalld):**
 
@@ -267,7 +298,14 @@ docker ps --format '{{.Names}} {{.Ports}}'
 systemctl --failed --no-pager --no-legend
 ```
 
-- **WARN** for each failed unit — list them by name
+**Alpine:** from the `rc-status` output of the first call.
+`rc-status --crashed` exits non-zero when nothing crashed; a
+service in the `sysinit`, `boot` or `default` runlevel shown as
+`stopped` was enabled but is not running. Services of the runlevel
+OpenRC enters to power down are stopped by design.
+
+- **WARN** for each failed unit, crashed service, or enabled
+  service that is stopped — list them by name
 
 ## NTP / Time Sync
 
@@ -276,7 +314,15 @@ timedatectl show \
   --property=NTPSynchronized --value
 ```
 
-- **WARN** if NTP is not synchronized
+**Alpine:** the default, busybox `ntpd`, reports no sync state,
+so the `rc-status` output of the first call shows whether
+`ntpd`, `chronyd` or `openntpd` runs. With chrony,
+`chronyc tracking` reports `Leap status : Normal` when
+synchronised.
+
+- **WARN** if NTP is not synchronized, or on Alpine if no time
+  service runs — except in a container (`openrc --sys` prints
+  `LXC`), whose clock is the host's
 
 ## Log Anomalies
 
@@ -299,6 +345,19 @@ journalctl --since "24 hours ago" -u ssh -u sshd \
   | wc -l
 ```
 
+**Alpine** (syslog, `rules/os/alpine.md` → Logs, which says who
+may read it):
+
+```bash
+dmesg | grep -oE "Out of memory|I/O error" | sort | uniq -c
+grep -h "Failed password" /var/log/auth.log \
+  /var/log/messages 2>/dev/null | wc -l
+```
+
+`dmesg` holds only what the kernel buffer still has, and the log
+files only what rotation kept: report the counts as recent, not
+as 7 days or 24 hours.
+
 - **WARN** if any OOM kills found
 - **WARN** if any disk I/O errors found
 - **INFO** if > 100 failed SSH logins in 24 hours (may indicate
@@ -319,6 +378,20 @@ for cert in /etc/letsencrypt/live/*/cert.pem; do
   days=$(( ($(date -d "$expiry" +%s) \
     - $(date +%s)) / 86400 ))
   echo "$domain: ${days}d remaining"
+done
+```
+
+**Alpine:**
+
+```bash
+for cert in /etc/letsencrypt/live/*/cert.pem; do
+  [ -r "$cert" ] || { echo "$cert: not readable"; continue; }
+  domain=$(basename "$(dirname "$cert")")
+  openssl x509 -checkend 2592000 -noout -in "$cert" \
+    >/dev/null && continue
+  if openssl x509 -checkend 604800 -noout -in "$cert" \
+    >/dev/null; then echo "$domain: expires within 30 days"
+  else echo "$domain: expires within 7 days"; fi
 done
 ```
 
@@ -359,8 +432,59 @@ echo "Running: $running"
 echo "Installed: $installed"
 ```
 
+**Alpine:** a kernel upgrade replaces the running kernel's
+modules, so a missing directory means a newer kernel waits for a
+reboot. Skip in a container, where the kernel is the host's:
+
+```bash
+uname -r
+ls /lib/modules
+```
+
 - **INFO** if running kernel differs from installed (reboot
   recommended)
+
+## Ubuntu Release and Support
+
+Ubuntu only. The release comes from OS detection; what
+the Pro states mean is in `rules/os/debian.md` → Ubuntu
+Pro and ESM. Run it as one call; the filters keep a per-package
+list out of the report:
+
+```bash
+grep -i '^Prompt' /etc/update-manager/release-upgrades \
+  2>/dev/null
+pro status --format json 2>/dev/null | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+print("attached=%s" % s["attached"])
+for v in s["services"]:
+    print("%s=%s" % (v["name"], v.get("status", "not-attached")))'
+pro security-status 2>/dev/null | grep -i universe
+pro api u.pro.packages.updates.v1 2>/dev/null | python3 -c '
+import json, sys, collections
+a = json.load(sys.stdin)["data"]["attributes"]
+print(a["summary"])
+print(dict(collections.Counter(
+    "%s/%s" % (u["provided_by"], u["status"])
+    for u in a["updates"] if u["status"].startswith("pending_"))))'
+canonical-livepatch status 2>/dev/null
+```
+
+- Release support as `rules/version-check.md` → OS
+  End-of-Life Awareness says, with the ESM date only when
+  `esm-infra` is enabled.
+- **INFO** attached or not, and which of `esm-infra`,
+  `esm-apps` and `livepatch` are enabled.
+- **INFO** the number of installed `universe` packages
+  when `esm-apps` is not enabled: they have no guaranteed
+  security coverage.
+- **WARN** for any `pending_attach` or `pending_enable`
+  update, with the count per service: a known fix this
+  host cannot install as it is.
+- **WARN** if Livepatch's `kernel state` shows a coverage
+  end date within 30 days, or is not covered.
+- **WARN** if `Prompt` is not `lts` on an LTS release.
 
 ## Critical Services: Running Binary vs Installed Package
 
@@ -373,8 +497,11 @@ services because restarting them is risky (notably
 `systemd-logind`). The result: the security fix is
 installed but not active, and nothing complains.
 
-**Debian/Ubuntu** (needrestart is in the default
-install since Bookworm):
+**Alpine:** no needrestart; use the manual fallback
+below, which works with busybox.
+
+**Debian/Ubuntu** (Ubuntu Server installs needrestart;
+on Debian it is an optional package):
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then

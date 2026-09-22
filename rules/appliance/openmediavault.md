@@ -141,6 +141,18 @@ under `deb/openmediavault/` there).
 - The apt page advises against `pip` installs on the host; offer a
   container instead.
 
+## Replace: Package Sources
+
+- The `apt` Salt state writes OMV's own sources as one-line
+  `.list` files (see Stable Branch Only); omv-extras adds a deb822
+  `omvextras.sources`. Read both formats before concluding a
+  source is missing.
+- Change OMV's sources only through
+  System > Update Management > Settings. A source of the user's
+  own goes into a file of its own, never into one OMV generates.
+  A backup of a `.sources` or `.list` file never stays in
+  `sources.list.d/` (`rules/backups.md`).
+
 ## Remove: Stable Branch Only > Preferred Alternatives
 
 ## Add: Stable Branch Only
@@ -229,10 +241,19 @@ under `deb/openmediavault/` there).
 - **Before adding or changing a rule:** discuss it with the user,
   keep every sshd port open (`AGENTS.md` → Critical Safety Rules)
   as well as the web UI ports (`conf.webadmin`, 80 and 443 by
-  default), and put the reject-all rule last. The docs' safety net
-  while testing is a cron job that flushes INPUT and OUTPUT every
-  five minutes; offer it, and remove it afterwards. Rules are
-  entered in the UI and applied with Apply.
+  default), and put the reject-all rule last. The rules are saved
+  in the UI, or through `omv-rpc` when the user asks for the CLI.
+- Applying them goes through `rules/ssh-safety-net.md`, with
+  `config.xml` as the backup:
+  - **Check:** `omv-salt deploy list-dirty` names `iptables` and
+    nothing that is not yours, and the saved rules
+    (`conf.system.network.iptables.rule`) are the ones agreed.
+  - **Apply:** `omv-salt deploy run iptables`.
+  - **Revert:** `systemctl stop openmediavault-firewall`. Its
+    stop action flushes INPUT and OUTPUT and sets both policies
+    to ACCEPT, the same flush the docs suggest as a safety net
+    while testing. It leaves the host open, not locked out; tell
+    the user the saved rules still need fixing in the UI.
 
 ## Remove: Common Pitfalls > Prefer `apt-get upgrade`
 
@@ -269,18 +290,20 @@ under `deb/openmediavault/` there).
 - Removing a shared folder or a filesystem entry that a share still
   uses breaks the share. Show the user what depends on it first.
 
-## Networking
+## Replace: Networking
 
 - OMV writes the network configuration: the `systemd-networkd`
   Salt state renders `/etc/netplan/10-openmediavault-default.yaml`
   and one `/etc/netplan/<nn>-openmediavault-<device>.yaml` per
   interface from the `conf.system.network.interface` id, for
-  systemd-networkd. Hand edits to those files do not last;
-  configure interfaces only through OMV.
+  systemd-networkd. Hand edits to those files do not last, and
+  `netplan try` on them tests a file OMV will overwrite. Configure
+  interfaces only through OMV.
 - Interfaces, bonds and VLANs are changed under
-  Network > Interfaces. A change there can cut SSH: ask the user,
-  and make sure they have console access, where `omv-firstaid`
-  restores a working interface.
+  Network > Interfaces. This file names no revert for them, so
+  under `rules/ssh-safety-net.md` the user applies the change,
+  with console access ready: `omv-firstaid` restores a working
+  interface there.
 
 ## Add: Service Manager
 

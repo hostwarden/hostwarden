@@ -176,6 +176,8 @@ end-of-life date. Use official sources:
 - **RHEL/CentOS:** Red Hat lifecycle policy
 - **FreeBSD:** freebsd.org/security
 - **SUSE:** suse.com/lifecycle
+- **Alpine:** alpinelinux.org/releases, per `vX.Y`
+  branch
 - **macOS:** Apple typically supports current and
   two prior major versions
 
@@ -183,6 +185,16 @@ Severity:
 
 - `WARN` if EOL is within 6 months
 - `CRITICAL` if the OS is past EOL
+
+Where a release has extended support on top of the
+standard one, judge the host by the end date it actually
+has. Debian LTS reaches every host that follows the
+security repository, with no enrollment
+(https://wiki.debian.org/LTS/Using); a subscription such
+as Ubuntu ESM, Debian ELTS, RHEL ELS or SUSE LTSS counts
+only where the host is enrolled in it. The OS file says
+how to tell (for Ubuntu, `rules/os/debian.md` → Ubuntu Pro
+and ESM).
 
 ## Server Memory
 

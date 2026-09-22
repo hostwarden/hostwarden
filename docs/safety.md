@@ -7,7 +7,10 @@ under pressure.
 
 - **Asks before acting** — destructive commands,
   firewall changes, reboots, and service restarts
-  all require your explicit approval. Config reloads
+  all require your explicit approval. A firewall or
+  network change arms its own undo first: it reverts
+  after five minutes unless a new SSH login succeeds
+  (`rules/ssh-safety-net.md`). Config reloads
   (`systemctl reload`) auto-proceed when the
   service's config test passes — see
   `rules/service-reload.md` and the
@@ -102,7 +105,7 @@ Hostwarden reduces this risk with multiple layers:
 - **Distro-specific rule files** — Instead of relying
   on the LLM's memory, Hostwarden loads a verified rule
   file for each platform (Debian, RHEL, SUSE,
-  macOS). These files contain the correct
+  Alpine, FreeBSD, macOS). These files contain the correct
   commands, package managers, firewall tools, and
   common pitfalls for each distro. The LLM reads
   the file and follows it — it doesn't have to
@@ -144,5 +147,8 @@ journalctl -t hostwarden -n 20
 log show \
   --predicate 'senderImagePath CONTAINS "logger"' \
   --info --last 7d | grep hostwarden
+
+# Alpine and FreeBSD (syslog)
+grep hostwarden /var/log/messages
 ```
 

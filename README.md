@@ -168,6 +168,7 @@ off your servers, and how to read its logs:
 | Debian  | Debian, Ubuntu                    | `rules/os/debian.md`  |
 | RHEL    | RHEL, CentOS, Fedora, Rocky, Alma | `rules/os/rhel.md`    |
 | SUSE    | openSUSE, SLES                    | `rules/os/suse.md`    |
+| Alpine  | Alpine Linux                      | `rules/os/alpine.md`  |
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
 
