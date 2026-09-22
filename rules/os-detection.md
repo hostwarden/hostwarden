@@ -140,8 +140,9 @@ skill says so where it needs it.
 
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`
-   from the os-release lines after `@release`. See
-   Appliances below. Where the probe already prints
+   from the os-release lines after `@release`, with or
+   without quotes around the value. See Appliances
+   below. Where the probe already prints
    what the appliance file's Version Detection reads,
    the version comes from the probe; otherwise run
    that command.
@@ -211,6 +212,7 @@ the row.
 | none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
+| none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
 
 `ii  openmediavault` is the line `dpkg -l` prints for
 the installed package, with its version. `rc` (removed,

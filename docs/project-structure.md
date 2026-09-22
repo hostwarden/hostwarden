@@ -110,6 +110,7 @@ rules/                 — Upstream rule files (git-tracked)
     haos.md            — Home Assistant OS (no base)
     unraid.md          — Unraid (no base)
     openwrt.md         — OpenWrt (no base)
+    zimaos.md          — ZimaOS (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt
   platform/            — Reference data on top of whichever
