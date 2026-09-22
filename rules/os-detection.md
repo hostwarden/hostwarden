@@ -455,10 +455,18 @@ an ordinary system:
 
 On Windows, a `vmms` line under `@hardware` is
 Hyper-V (`rules/os/windows.md` → Version Detection).
-An appliance that runs guests says in its guest
-section what to record and how to list them, and the
-markers its own guests leave (Proxmox VE's
-`/var/lib/lxc`) belong to it.
+
+**On an appliance, only its own file decides**, never
+this table. The platform's tools know its
+configuration, locks and cluster state; the generic
+ones underneath bypass them or are missing (Proxmox VE
+runs LXC and QEMU, but `lxc-attach` and `virsh` go
+around `pct`, `qm` and `/etc/pve`). An appliance file
+whose guest section has an **Inventory** entry names
+the `Hypervisor:` value and every command for its
+guests. An appliance file without one leaves its
+guests uninventoried, whatever markers show: say so in
+one line when a marker showed, and record nothing.
 
 A marker says only that the machine could run
 guests. A candidate is a hypervisor once its listing

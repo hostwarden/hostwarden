@@ -61,6 +61,9 @@ of the same name: without the project, the pipeline and every
 change after it land on the wrong server.
 
 LXD's client is named `lxc`; the classic LXC tools are `lxc-*`.
+On an appliance, only the tools its file names: on Proxmox VE
+`pct` and `qm`, never `lxc-attach` or `virsh`, although its
+guests are LXC and QEMU underneath.
 A libvirt VM, or one without the QEMU guest agent, has only its
 console: interactive, the user's tool, not Hostwarden's.
 

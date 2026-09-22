@@ -33,8 +33,9 @@ Per guest, record: ID, name, kind (VM or container), state,
 whether it starts with the host, whether the hypervisor marks it
 as a template, its MAC addresses, and a VM's UUID where Linking
 below names a source for it. Per-guest commands go into one
-bundled call (`rules/ssh-connections.md`). An appliance's guest
-section gives its own commands; elsewhere:
+bundled call (`rules/ssh-connections.md`). On an appliance, its
+file's **Inventory** entry gives every command, and nothing below
+applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
 
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.

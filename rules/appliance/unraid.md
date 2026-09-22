@@ -151,6 +151,10 @@ repositories on GitHub where the docs are silent.
   or a VM with `docker` or `virsh`: Unraid does not know about the
   change, and an update from the Docker tab recreates the container
   from its template. Hand the change to the user as web UI steps.
+- **Inventory** (`rules/hypervisors.md`): record
+  `Hypervisor: Unraid (virsh, read-only)`. The listing is
+  `virsh list --all`, the rest as `rules/hypervisors.md` gives
+  it for libvirt, reads only. Docker containers are not guests.
 - Stopping the array stops every container and VM with it.
 
 ## Storage: Array, Parity and Pools
