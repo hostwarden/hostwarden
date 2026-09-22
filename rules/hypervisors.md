@@ -205,10 +205,10 @@ finding.
   (`ip -o link`, `ifconfig -a`, `Get-NetAdapter`); the host
   reads them from the guest's configuration. Compare them in
   lowercase with colons.
-- **UUID**, from the source `rules/os-detection.md` →
-  Virtualization names for the `Virtualization:` type. A type
-  without one, `unknown (VM)` and containers included, links by
-  MAC alone.
+- **UUID**, from the source in the UUID column of
+  `rules/os-detection.md` → Virtualization for the
+  `Virtualization:` type. A type without one, `unknown (VM)` and
+  containers included, links by MAC alone.
 - **Hyper-V** gives no usable UUID, but tells its guests the
   host's name:
   `PhysicalHostNameFullyQualified` in

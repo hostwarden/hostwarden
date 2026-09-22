@@ -416,8 +416,8 @@ and `Model` in the `@hardware` part of
 
 The UUID column says where a VM reads the key
 `rules/hypervisors.md` → Linking Guest and Host
-compares. It goes with the type, however the type
-was found. DMI is
+compares. It goes with the recorded type, whether a
+row or `systemd-detect-virt` named it. DMI is
 `/sys/class/dmi/id/product_uuid`, readable by root;
 Xen is `/sys/hypervisor/uuid`, because the DMI file
 is byte-swapped there. `qemu`, which
