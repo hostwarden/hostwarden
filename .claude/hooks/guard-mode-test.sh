@@ -688,6 +688,15 @@ session "$DEV" "$ENVF" -u GIT_SSH_COMMAND -u GIT_SSH
 got=$(sh -c '. "$1"; . "$1"; printf %s "$PATH"' _ "$ENVF" \
   | tr ':' '\n' | grep -c 'hooks/shim$')
 [ "$got" -eq 1 ] && ok || bad "sourcing the env file twice doubled the shim"
+# scripts/check.sh runs the doctor with the shim on PATH, and the
+# pre-push hook with it: --dev must not count the refusal as a
+# missing tool.
+got=$(sh -c '. "$1"; sh "$2/bin/hostwarden-doctor" --dev --quiet' _ \
+  "$ENVF" "$REPO" 2>&1)
+case "$got" in
+*"connection sharing"*) bad "the doctor read the shim as missing: $got" ;;
+*) ok ;;
+esac
 # git push goes through git-ssh.sh to the real binary: the shim
 # off PATH, then what the user set, else core.sshCommand, else
 # plain ssh. A stand-in ahead on PATH records its arguments.
