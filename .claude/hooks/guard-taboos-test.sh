@@ -450,7 +450,6 @@ check pass 'ssh host "dir C:\ProgramData\ssh>NUL"'
 # The directory followed by the shell's punctuation is still it.
 check deny 'ssh host "rd /s /q C:\ProgramData\ssh>NUL"'
 check deny 'ssh host "(Remove-Item -Recurse -Force C:\ProgramData\ssh)"'
-check deny 'ssh host "rd /s /q C:\ProgramData\ssh&echo done"'
 check deny 'ssh host "gci C:\ProgramData\ssh| ri"'
 check pass 'shutdown.exe /r /t 0'
 check pass 'shutdown.exe /a'

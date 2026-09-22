@@ -1096,10 +1096,12 @@ case "$CMD" in
   # after it a separator, a quote, space or the shell's punctuation
   # (ssh>NUL, ssh)), or the end.
   WINSSHB="${WINSSHDIR}([^[:alnum:]_.-]|\$)"
-  if hit_i "${WINVERB}[[:space:]][^;&|]*${WINSSHB}" \
-    || hit_i "${WINSSHDIR}([^[:alnum:]_.-][^;&]*)?\\|[[:space:]]*($WINCLOBBER)([^[:alnum:]_.-]|\$)" \
-    || hit_i "(^|[^[:alnum:]_.-])icacls(\\.exe)?[[:space:]][^;&|]*${WINSSHB}[^;&|]*[[:space:]]/(grant|deny|remove|reset|setowner|inheritance|setintegritylevel|restore|substitute)"
-  then
+  # A verb before the path, a listing of it piped to a verb, and an
+  # icacls that changes the ACL: one grep for the three.
+  WINDEL="${WINVERB}[[:space:]][^;&|]*${WINSSHB}"
+  WINPIPE="${WINSSHDIR}([^[:alnum:]_.-][^;&]*)?\\|[[:space:]]*($WINCLOBBER)([^[:alnum:]_.-]|\$)"
+  WINACL="(^|[^[:alnum:]_.-])icacls(\\.exe)?[[:space:]][^;&|]*${WINSSHB}[^;&|]*[[:space:]]/(grant|deny|remove|reset|setowner|inheritance|setintegritylevel|restore|substitute)"
+  if hit_i "($WINDEL)|($WINPIPE)|($WINACL)"; then
     # deny() writes the reason into JSON as it is: no backslash.
     deny "deleting, moving, overwriting or re-permissioning Windows' \
 OpenSSH files under ProgramData/ssh is never allowed (reading them \
