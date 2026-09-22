@@ -247,14 +247,18 @@ Alpine logs through syslog, to `/var/log/messages`:
 
 - **busybox `syslogd`** (the `syslog` service) by default. It
   rotates at 200 KB and keeps one old file, `messages.0`, so the
-  file may cover less than a week on a busy host. With `-C` in
-  `SYSLOGD_OPTS` (`/etc/conf.d/syslog`) it writes to a memory
-  buffer instead: read it with `logread`. The file is
-  `root:wheel`, mode 0640.
+  file may cover less than a week on a busy host. The file is
+  `root:wheel`, mode 0640. With `-C` in `SYSLOGD_OPTS`
+  (`/etc/conf.d/syslog`) it writes to a ring buffer in RAM instead,
+  which does not survive a reboot: read it with `logread`.
 - **syslog-ng** or **rsyslog** where installed. Alpine's
   syslog-ng writes `/var/log/messages` as `root:adm` 0640, plus
   `auth.log`, `kern.log` and others; logrotate compresses older
   files.
+
+In diskless mode `/var/log` sits on the tmpfs root and does not
+survive a reboot either (see Diskless mode below); `df /var/log`
+then names `tmpfs`.
 
 Kernel messages: `dmesg`.
 
@@ -270,6 +274,7 @@ elif [ -r /var/log/messages ]; then
   grep -hE "hostwarden|heinzel" /var/log/messages.0 \
     /var/log/messages 2>/dev/null | tail -20
 else echo "messages: not readable"; fi
+df /var/log; uptime
 ```
 
 This shows the last 20 matches, not a strict 7-day window.

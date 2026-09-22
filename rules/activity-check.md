@@ -27,15 +27,22 @@ Linux family but Alpine — read the journal:
 ```
 journalctl -t hostwarden -t heinzel --since "7 days ago" \
   --no-pager -q
+journalctl --no-pager -q -o short-iso | head -1
 ```
+
+The second line prints the oldest entry the journal
+still holds. A journal kept in `/run/log/journal`,
+which is lost at every reboot, or one vacuumed down
+reaches back less than seven days, and this shows it
+without reading `journald.conf`.
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
-user's own entries. When connected as non-root, try
-`sudo -n journalctl …` first. If sudo is unavailable,
-run the command without `-q` and watch for the "not
-seeing messages from other users" hint, and tell the
-user the check may be incomplete.
+user's own entries. When connected as non-root, run
+both lines as `sudo -n journalctl …` first. If sudo
+is unavailable, run the first line without `-q`,
+watch for the "not seeing messages from other users"
+hint, and tell the user the check may be incomplete.
 
 Without a `## Logs` section and without systemd, tell
 the user the check could not run.
@@ -44,11 +51,13 @@ If the command returns nothing — and it actually ran,
 and nothing limited what it can see —
 skip silently: no activity to report.
 
-Where the Logs section the read-back came from says
-the log does not survive a reboot, an empty result covers
-only the time since the last boot. Run `uptime` in
-the same call as the read-back, tell the user how far
-back the check reached, and read the local changelog
+An empty result covers only part of the seven days
+when the journal's oldest entry falls inside them, or
+when the Logs section the read-back came from says
+the log does not survive a reboot; there, run
+`uptime` in the same call as the read-back. Tell the
+user how far back the check reached, to the oldest
+entry or to the boot, and read the local changelog
 for the time before it.
 
 An empty result only means "no activity" when the
