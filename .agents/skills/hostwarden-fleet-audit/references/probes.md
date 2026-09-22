@@ -301,6 +301,11 @@ probe, Alpine. For `active=`, look for `postfix`, `smtpd`
 (OpenSMTPD's service on Alpine) or `exim` as `started` in the
 `###rc###` block.
 
+Put the MTA's name in the row, not the distribution's package
+or service name: `exim` for `exim4`, `msmtp` for `msmtp-mta`,
+`opensmtpd` for the `smtpd` service. Otherwise a Debian and an
+Alpine host running the same MTA read as drift.
+
 Row keys:
 
 - Installed MTA package
