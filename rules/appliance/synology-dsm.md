@@ -339,17 +339,17 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
 ### Reading
 
 Over SSH as the session's user, curl on the NAS against its own
-HTTPS port, 5001 unless memory records `API port:`. The
+HTTPS port, `<port>`: 5001 unless memory records `API port:`. The
 password, the session ID and the token reach curl on stdin,
 through `read` and the builtin `printf`, never in `argv`; the
 login's answer is printed only when it failed, and then carries
 neither:
 
 ```
-ssh … <user>@<nas> 'u=https://127.0.0.1:5001/webapi/entry.cgi
+ssh … <user>@<nas> 'u=https://127.0.0.1:<port>/webapi/entry.cgi
   IFS= read -r p
   r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \
-    --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&format=sid&enable_syno_token=yes" \
+    --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&session=hostwarden&format=sid&enable_syno_token=yes" \
     "$u"); c=$?
   s=$(printf %s "$r" | sed -n "s/.*\"sid\" *: *\"\([^\"]*\)\".*/\1/p")
   t=$(printf %s "$r" | sed -n "s/.*\"synotoken\" *: *\"\([^\"]*\)\".*/\1/p")
@@ -360,7 +360,7 @@ ssh … <user>@<nas> 'u=https://127.0.0.1:5001/webapi/entry.cgi
       "$a" "$s" "$t" | curl -sSk --data @- "$u"); c=$?
     printf %s "$o" | tr -d "\n"; echo; echo "{\"@\": \"$a\", \"rc\": $c}"
   done
-  printf "api=SYNO.API.Auth&version=6&method=logout&_sid=%s" "$s" |
+  printf "api=SYNO.API.Auth&version=6&method=logout&session=hostwarden&_sid=%s" "$s" |
     curl -sSk -o /dev/null --data @- "$u"' \
   < ~/hostwarden-keys/<nas>/dsm-ro.pass | jq …
 ```
