@@ -15,11 +15,15 @@
 #     which never starts ssh), and $GIT_SSH_COMMAND, git's
 #     route to the real ssh (git-ssh.sh), used as a command. Local
 #     administration counts: Hostwarden's local mode is server
-#     work too. A Monitor command is a shell command and is read
-#     exactly as a Bash one, and more: Claude Code documents the
-#     env file that carries the shim for Bash only, so for
-#     Monitor this hook also denies a blocked tool named without
-#     a path, where the shim would have stood.
+#     work too. Under WSL the same goes for the Windows programs
+#     the shim covers (ssh.exe, wsl.exe, powershell.exe and the
+#     rest, shim.sh), in any spelling of their name: the drives
+#     under /mnt ignore case, and the shim does not. A Monitor
+#     command is a shell command and is read exactly as a Bash
+#     one, and more: Claude Code documents the env file that
+#     carries the shim for Bash only, so for Monitor this hook
+#     also denies a blocked tool named without a path, where the
+#     shim would have stood.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -100,6 +104,8 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
     */ssh[!A-Za-z0-9_.-]*|*/scp[!A-Za-z0-9_.-]*|*/sftp[!A-Za-z0-9_.-]*) ;;
     */mosh[!A-Za-z0-9_.-]*|*/sudo[!A-Za-z0-9_.-]*|*/sudoedit[!A-Za-z0-9_.-]*) ;;
     */doas[!A-Za-z0-9_.-]*|*/pkexec[!A-Za-z0-9_.-]*|*command*-*p*) ;;
+    # A Windows program, by path or by a spelling the shim misses.
+    *.[Ee][Xx][Ee][!A-Za-z0-9_]*) ;;
     # In JSON a newline or tab before it is \n or \t, a letter too.
     *[!A-Za-z0-9_]PATH=*|*[!A-Za-z0-9_]path=*|*'unset PATH'*) ;;
     *\\[nt]PATH=*|*\\[nt]path=*) ;;
@@ -214,10 +220,14 @@ fi
 # A blocked tool named without a path is the shim's: it refuses
 # wherever the tool is started from. This denies the ways past a
 # PATH lookup:
+#   - a Windows program from shim.sh as the first word of a
+#     segment in any spelling but the shim's own (SSH.exe);
 #   - a path to a blocked tool as the first word of a segment (split
 #     on the shell's separators, past a negation and variable
 #     assignments), or anywhere else when it names an executable
-#     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh;
+#     file: rsync -e /usr/bin/ssh, core.sshCommand=/usr/bin/ssh.
+#     A path to a Windows program counts wherever it stands,
+#     file or not, since Program Files splits it in two;
 #   - $GIT_SSH_COMMAND at the start of a segment;
 #   - command -p, which ignores PATH, anywhere in a command that
 #     names a blocked tool, inside sh -c and eval strings too;
@@ -248,7 +258,12 @@ it may start a tool that reaches a server - install jq"
 # One line: "deny <what>" for a verdict, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
 FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
-  BEGIN { RS = "\001"; T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$" }
+  BEGIN {
+    RS = "\001"
+    T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec)$"
+    # Windows programs, matched on the lowercased name.
+    W = "^(ssh|scp|sftp|sudo|runas|wsl|powershell|pwsh|cmd)[.]exe$"
+  }
   {
     s = $0
     # ${VAR} is a variable, not a brace group.
@@ -284,11 +299,16 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         if (c ~ /(^|\/)rsync$/) rsync = 1
         if (c ~ /(^|\/)env$/) env = 1
         sub(/^.*=/, "", c)
-        b = c
+        b = tolower(c)
         sub(/^.*\//, "", b)
-        if (b ~ T) {
+        if (b ~ T || b ~ W) {
           if (named == "") named = b
           if (c ~ /\//) paths = paths "path " c "\n"
+          # A Windows path is split wherever it holds a space
+          # (Program Files), so its tail is no file to test.
+          if (b ~ W && c ~ /\// && c !~ /\.claude\/hooks\/shim\//) {
+            print "deny " b " by its path"; exit
+          }
         }
       }
       if (rsync && daemon) { print "deny rsync to a daemon"; exit }
@@ -310,11 +330,14 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
       c = w
       gsub(/^["\047]+|["\047]+$/, "", c)
       sub(/^.*\//, "", c)
-      if (c !~ T) continue
+      lc = tolower(c)
+      if (lc !~ T && lc !~ W) continue
       if (w ~ /\//) how = "by its path"
       # A word that only ends in a quote is the tail of a quoted
       # string split at a | inside it: grep -E "error|ssh".
       else if (tool == "Monitor" && (w !~ /["\047]$/ || w ~ /^["\047]/)) how = "through Monitor"
+      else if (c != lc) how = "spelled " c
+      c = lc
       if (how != "") { print "deny " c " " how; exit }
     }
     if (cmdp && named != "") { print "deny " named " through command -p"; exit }

@@ -171,6 +171,28 @@ cmd deny "$DEV" "ls /etc/ssh && rsync -a -e $TMP/bin/ssh src/ server1.example.co
 cmd deny "$DEV" '$GIT_SSH_COMMAND root@server1.example.com uptime'
 cmd deny "$DEV" '"${GIT_SSH_COMMAND}" server1.example.com'
 cmd deny "$DEV" 'ssh-keygen -lf k.pub; /usr/bin/doas true'
+# WSL: Windows programs by their path, and in a spelling the shim
+# misses, since the drives under /mnt ignore case.
+cmd deny "$DEV" '/mnt/c/Windows/System32/OpenSSH/ssh.exe server1.example.com'
+cmd deny "$DEV" '/mnt/c/Windows/System32/wsl.exe -u root -e id'
+cmd deny "$DEV" '/mnt/c/Program\ Files/PowerShell/7/pwsh.exe -c Get-Disk'
+cmd deny "$DEV" 'SSH.EXE server1.example.com'
+cmd deny "$DEV" 'Wsl.exe -u root -e id'
+cmd deny "$DEV" 'true; PowerShell.exe -Command Get-Service'
+cmd deny "$DEV" 'CMD.EXE /c ver'
+cmd deny "$DEV" '"SSH.EXE" server1.example.com'
+cmd deny "$DEV" '"WSL.EXE" -u root -e id'
+cmd deny "$DEV" 'command -p wsl.exe -u root'
+cmd deny "$DEV" 'PATH=/mnt/c/Windows/System32 wsl.exe -u root'
+printf '#!/bin/sh\n' > "$TMP/bin/ssh.exe"
+chmod +x "$TMP/bin/ssh.exe"
+cmd deny "$DEV" "rsync -a -e $TMP/bin/ssh.exe src/ server1.example.com:/srv/"
+cmd pass "$DEV" 'explorer.exe .'
+cmd pass "$DEV" 'clip.exe < notes.md'
+cmd pass "$DEV" 'code.exe --version'
+cmd pass "$DEV" 'grep -rn wsl.exe rules/'
+cmd pass "$DEV" 'python3 -c "import sys; print(sys.executable)"'
+cmd pass "$DEV" 'sed -n 1,20p .claude/hooks/shim/wsl.exe'
 # ...and everything a development session actually does passes.
 cmd pass "$DEV" 'ssh root@server1.example.com uptime'
 cmd pass "$DEV" 'sudo apt-get update'
@@ -208,6 +230,10 @@ mon deny "$DEV" 'ssh root@server1.example.com tail -f /var/log/syslog'
 mon deny "$DEV" 'sudo tail -f /var/log/auth.log | grep --line-buffered sshd'
 mon deny "$DEV" 'while true; do "ssh" server1.example.com uptime; sleep 30; done'
 mon deny "$DEV" 'rsync -av server1.example.com::mod here/'
+mon deny "$DEV" 'ssh.exe server1.example.com tail -f /var/log/syslog'
+mon deny "$DEV" 'wsl.exe -u root -e tail -f /var/log/auth.log'
+mon deny "$DEV" 'PowerShell.exe -Command Get-Content -Wait C:\log.txt'
+mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered "ssh.exe|wsl.exe"'
 mon pass "$DEV" 'tail -f /tmp/build.log | grep --line-buffered -E "error|ssh"'
 mon pass "$DEV" 'until gh pr checks 12 | grep -qv pending; do sleep 30; done'
 verdict pass "$DEV" \
@@ -321,10 +347,12 @@ for f in "$HOOKS"/shim/*; do
   t=${f##*/} n=$((n + 1))
   [ -x "$f" ] && grep -q '/../shim.sh"$' "$f" && ok \
     || bad "shim/$t does not source shim.sh"
-  grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" && ok \
-    || bad "shim/$t names a tool the guard does not"
+  case "$t" in
+  *.exe) grep -q "W = .*[(|]${t%.exe}[|)]" "$HOOKS/guard-mode.sh" ;;
+  *) grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" ;;
+  esac && ok || bad "shim/$t names a tool the guard does not"
 done
-[ "$n" -eq 8 ] && ok || bad "shim/ holds $n tools, the guard names 8"
+[ "$n" -eq 17 ] && ok || bad "shim/ holds $n tools, the guard names 17"
 # session <checkout> <env file> [VAR=value...] — session-mode.sh
 # as Claude Code runs it at session start.
 session() {
@@ -356,6 +384,10 @@ refused "$DEV" "$ENVF" 'doas true'
 refused "$DEV" "$ENVF" 'scp a.txt server1.example.com:/tmp/'
 refused "$DEV" "$ENVF" 'sftp server1.example.com'
 refused "$DEV" "$ENVF" 'mosh server1.example.com'
+refused "$DEV" "$ENVF" 'ssh.exe server1.example.com'
+refused "$DEV" "$ENVF" 'wsl.exe -u root -e id'
+refused "$DEV" "$ENVF" 'powershell.exe -Command Get-Service'
+refused "$DEV" "$ENVF" 'bash -c "cmd.exe /c ver"'
 refused "$DEV" "$ENVF" 'bash -c "ssh server1.example.com"'
 refused "$DEV" "$ENVF" "sh -ec 'sudo whoami'"
 refused "$DEV" "$ENVF" 'eval "ssh server1.example.com"'
