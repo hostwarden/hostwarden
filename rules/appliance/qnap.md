@@ -74,6 +74,10 @@ is QNAP's own.
   (`IsQuTS`). Where the two disagree with what the user calls the
   system, ask the user to read the name on the web UI's login page
   rather than guess.
+- **The model decides which firmware applies**, so record it as
+  `Model: <model>` from what the user reads under Control Panel >
+  System > System Status, or from the login page; the release notes
+  and the Download Center are per model (see Updates).
 - Record in server memory: `Appliance: QTS <version>` or
   `Appliance: QuTS hero <version>`, with the version joined as
   above. The step-1 `df -h /` shows the RAM root, not the NAS's
@@ -533,7 +537,8 @@ is QNAP's own.
   last scrub per storage pool; the backup app in use, its tasks,
   their schedule and the last successful run; the autorun, Console
   Management and UPnP settings; myQNAPcloud published services; and
-  the last Security Center and Malware Remover results.
+  the snapshot schedule of every data volume or pool; and the last
+  Security Center and Malware Remover results.
 - **Exposure is the security audit's headline finding.** QNAP's
   advisory on DeadBolt (QSA-22-24,
   <https://www.qnap.com/en/security-advisory/qsa-22-24>) answers it
@@ -551,6 +556,11 @@ is QNAP's own.
   - a port forward to the NAS on the router, or services published
     under myQNAPcloud: CRIT;
   - myQNAPcloud device access control set to Public: WARN.
+- The generic account check of
+  `.agents/skills/hostwarden-security/references/user-accounts.md`
+  rates every UID 0 account beside `root` as critical: `admin` is
+  QNAP's own superuser, cannot be deleted, and is not that finding.
+  Whether it is enabled is (see below).
 - A security audit also reports: SSH and Telnet state and port,
   the accounts allowed to use SSH, whether `admin` is enabled,
   Console Management on, IP Access Protection off for SSH, unsigned
