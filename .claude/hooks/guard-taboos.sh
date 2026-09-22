@@ -1,5 +1,6 @@
 #!/bin/sh
-# guard-taboos.sh — PreToolUse hook (matcher: Bash|Monitor).
+# guard-taboos.sh — PreToolUse hook (matcher: Bash|Monitor|Edit|
+# Write|MultiEdit|NotebookEdit).
 # Monitor runs a shell command too, handed over in the same
 # tool_input.command field, so both are read the same way here.
 #
@@ -38,6 +39,9 @@
 #     Format-Volume, Remove-VirtualDisk ...),
 #     \\.\PhysicalDriveN, sshd_config and host keys under
 #     ProgramData\ssh, and PowerShell or cmd.exe as a runtime
+#   - an SSH key, a key store, sshd_config or dropbear's config
+#     as the target of Edit, Write, MultiEdit or NotebookEdit,
+#     which reach this machine's files without any shell
 #
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That
@@ -119,14 +123,40 @@
 #
 # Being blocked is EXPECTED behavior. Explain it to the user.
 # Never rephrase, re-quote, or otherwise obfuscate a command to
-# evade this guard.
+# evade this guard, and never pick another tool to reach the same
+# effect. A command that only carries a taboo word as TEXT -- a
+# commit message, a PR body, a search pattern -- evades nothing
+# when the text moves into a file that is passed instead (git
+# commit -F, gh --body-file) or the pattern stops spelling the
+# word. The deny message says so: an agent left to guess learns
+# that routing around the guard is normal, and that habit is the
+# danger on a production host.
 #
-# Hostwarden-repo development note: a commit message piped straight
-# into `git commit -m`/`-F -` still flows through the command
-# string, and git is not a data sink this hook recognizes, so
-# writing ABOUT taboo commands there can still trigger it. Write
-# the message to a file with a non-Bash tool and use
-# `git commit -F <file>` — that executes nothing on any server.
+# Two scopes, chosen by the mode mode.sh determines:
+#
+#   full   Every rule below. Operations, and any checkout whose
+#          mode cannot be read.
+#   local  A development checkout or a worktree, for a command
+#          that names nothing reaching past this user's own files
+#          (REACH below: ssh and its kin, sudo and its kin, a
+#          container, VM or cloud tool), run by a user who is
+#          neither root nor in the disk group. The rules that need
+#          root -- power off, filesystems, partition tables, raw
+#          devices -- have nothing to act on there: the shim
+#          refuses sudo, and any route to a server, root or a
+#          container brings the full scope back. What an ordinary
+#          user reaches stays guarded: SSH keys, sshd_config (a
+#          Homebrew one belongs to the user), diskutil, which
+#          erases an external disk without root, the Windows rules
+#          (wsl --unregister and Stop-Computer need no admin), and
+#          on a machine running systemd every power-off rule,
+#          because logind lets the user at the seat power off
+#          without root.
+#
+# The local scope exists because this repository names taboos all
+# day: its rules, tests, commit messages and PR titles are about
+# them. A guard that fires on that text blocks the work without
+# protecting anything, and teaches agents to route around it.
 #
 # Override for legitimate flows (the hostwarden-os-install skill
 # runs mkfs/sgdisk by design): the OPERATOR sets
@@ -149,6 +179,127 @@ if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
     exit 0
   fi
 fi
+
+deny() {
+  # JSON decision on stdout; blocks in all permission modes.
+  # Reasons must stay plain ASCII without quotes/backslashes.
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
+  printf '"permissionDecision":"deny",'
+  printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
+  printf '(AGENTS.md - Critical Safety Rules). %s' "${GUARD_SCOPE_NOTE:-}"
+  printf 'Blocked in all '
+  printf 'permission modes. Explain this to the user, and never '
+  printf 'reach the same effect another way - not by rephrasing, '
+  printf 're-quoting or switching tools. A command that only '
+  printf 'carries the word as text and runs none of it is not '
+  printf 'evading anything when the text moves into a file that '
+  printf 'is passed instead (git commit -F, gh --body-file), or '
+  printf 'when a search pattern stops spelling the word '
+  printf '(power[o]ff). Installing or '
+  printf 'replacing an OS is the one flow that legitimately '
+  printf 'needs these commands: read the hostwarden-os-install '
+  printf 'skill, which states what has to hold first."}}\n'
+  exit 0
+}
+
+# --- Edit, Write, MultiEdit, NotebookEdit: the target path ------
+# These tools write one file, named in file_path (notebook_path),
+# and a Bash call never carries that key: inside a JSON string the
+# quotes around a key-like word are escaped, so a bare
+# "file_path" is a key. Such a call is judged by its target alone,
+# in every mode and scope, and never reaches the command scan
+# below: its content is text that nothing runs.
+#
+# The targets are the key files and sshd's config the Bash rules
+# protect, matched exactly on the right, so a document about them
+# (a note named authorized_keys.md, sshd_config.example) stays
+# editable:
+# authorized_keys and OpenMediaVault's directory of that name, a
+# private or public key under .ssh, a host key, an appliance key
+# store (/conf/sshd, /etc/dropbear), Windows' ProgramData\ssh,
+# sshd_config and its drop-ins, a file an appliance merges into
+# it, and dropbear's config. ~/.ssh/config and known_hosts are not
+# keys and stay open. The left side stays open as in the Bash
+# rules, so /opt/homebrew/etc/ssh, an offline image and
+# /mnt/c/ProgramData count.
+#
+# The path is judged as given and as the file system resolves it:
+# the directory physically, and a link as the last component
+# followed, so a link elsewhere that points at a key is the key.
+# A . or .. segment is also removed by text first, and that form is
+# resolved the same way: a directory that does not exist yet cannot
+# be resolved, and a tool that normalises the path by text writes
+# ~/.ssh/nosuch/../id_ed25519 to ~/.ssh/id_ed25519. The match
+# ignores case: macOS file systems do by default, so ~/.SSH/
+# AUTHORIZED_KEYS opens authorized_keys, and pwd -P keeps the case
+# it was given.
+FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/(etc/ssh|conf/sshd)/ssh_host_[^/]+|/(conf/sshd|etc/dropbear)/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
+KEYMSG="writing an SSH key, authorized_keys or the SSH server's \
+config is never allowed"
+case "$INPUT" in
+*'"file_path"'*|*'"notebook_path"'*)
+  FP="" FWD=""
+  if command -v jq >/dev/null 2>&1; then
+    eval "$(printf '%s' "$INPUT" | jq -r '@sh "FP=\(.tool_input.file_path
+      // .tool_input.notebook_path // "") FWD=\(.cwd // "")"' 2>/dev/null)"
+  fi
+  if [ -z "$FP" ]; then
+    # Without jq, or a path jq could not read: the raw input
+    # decides, which can only over-block.
+    printf '%s' "$INPUT" | tr '"' '\n' | grep -Eiq "$FILEKEY" \
+      && deny "$KEYMSG, and without jq the target of this edit cannot \
+be told apart from its content - install jq"
+    exit 0
+  fi
+  case "$FP" in /*) ;; *) FP="$FWD/$FP" ;; esac
+  # resolve <path> — appends the path as the file system resolves it
+  # to FALL, one per line.
+  resolve() {
+    R=$1 n=0
+    while [ $n -lt 10 ]; do
+      FD=${R%/*}
+      [ -d "${FD:-/}" ] && R="$(cd "${FD:-/}" && pwd -P)/${R##*/}"
+      [ -L "$R" ] || break
+      L=$(readlink "$R")
+      case "$L" in /*) R=$L ;; *) R="${R%/*}/$L" ;; esac
+      n=$((n + 1))
+    done
+    # Still a link after ten steps: a loop, or a chain long enough
+    # to hide where it ends. Neither can be shown to miss a key.
+    [ -L "$R" ] && deny "$KEYMSG, and this edit goes through a chain \
+of links that does not end, so its target cannot be shown to be \
+something else"
+    FALL="$FALL$R
+"
+  }
+  FALL="$FP
+"
+  resolve "$FP"
+  case "/$FP/" in
+  */./*|*/../*)
+    FNORM=$(printf '%s\n' "$FP" | awk -F/ '{
+      n = 0
+      for (i = 2; i <= NF; i++) {
+        if ($i == "" || $i == ".") continue
+        if ($i == "..") { if (n) n--; continue }
+        s[++n] = $i
+      }
+      o = ""
+      for (i = 1; i <= n; i++) o = o "/" s[i]
+      print (o == "" ? "/" : o)
+    }')
+    FALL="$FALL$FNORM
+"
+    resolve "$FNORM"
+    ;;
+  esac
+  if printf '%s' "$FALL" | grep -Eiq "$FILEKEY"; then
+    deny "$KEYMSG, through an edit as much as through a shell - read \
+it with cat, grep or sshd -T, and leave a change to it to the user"
+  fi
+  exit 0
+  ;;
+esac
 
 # Extract the command string, Bash's or Monitor's. Without jq (or
 # on malformed input) fall back to scanning the raw stdin text —
@@ -459,21 +610,6 @@ hit_without() {
   return 0
 }
 
-deny() {
-  # JSON decision on stdout; blocks in all permission modes.
-  # Reasons must stay plain ASCII without quotes/backslashes.
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"hostwarden guard: %s ' "$1"
-  printf '(AGENTS.md - Critical Safety Rules). Blocked in all '
-  printf 'permission modes. Explain this to the user; do not '
-  printf 'rephrase the command to evade the guard. Installing or '
-  printf 'replacing an OS is the one flow that legitimately '
-  printf 'needs these commands: read the hostwarden-os-install '
-  printf 'skill, which states what has to hold first."}}\n'
-  exit 0
-}
-
 # The model must not disarm the guard from inside a command.
 # Matches the assignment form only — merely mentioning the
 # variable name (docs, grep) is fine. Note: heredocs flow
@@ -486,17 +622,66 @@ allowed - the operator must export it before launching the \
 session"
 fi
 
+# --- Scope: full, or local to a development session -----------
+# The header says what each scope covers. A hook copied without
+# mode.sh beside it cannot tell its mode and stays full.
+#
+# REACH names what takes a command past this user's own files: a
+# remote login or copy, a privilege tool (osascript elevates with
+# "with administrator privileges"), a container, VM or
+# cluster, a cloud CLI, Windows' shells and wsl, which the shim
+# refuses under WSL too, and git's route to the real ssh. It is
+# matched anywhere in the command, not only as a program: a
+# commit message that names ssh and a taboo gets the full scope,
+# which is rare, while a wrapper list for "program position"
+# (nohup, timeout, xargs, find -exec ...) never closes. The
+# Windows rules need no scope: WIN below gates them, and a
+# Windows user reaches wsl --unregister or Stop-Computer without
+# admin, so they apply in both.
+REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|incus|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
+SCOPE=full
+case $0 in */*) HOOKDIR=${0%/*} ;; *) HOOKDIR=. ;; esac
+if [ -f "$HOOKDIR/mode.sh" ]; then
+  # shellcheck source=mode.sh
+  . "$HOOKDIR/mode.sh"
+  hostwarden_mode "$HOOKDIR/../.."
+  case "$HOSTWARDEN_MODE" in
+  development|worktree)
+    SCOPE=local
+    # Root, or the disk group (read-write on Linux block devices),
+    # reaches what the local scope leaves out. One id answers both.
+    if hit "$REACH"; then
+      SCOPE=full
+    else
+      case "$(id 2>/dev/null)" in
+      uid=0\(*|*\(disk\)*) SCOPE=full ;;
+      esac
+    fi
+    # A development session judged in full says why in every deny.
+    [ "$SCOPE" = full ] && GUARD_SCOPE_NOTE="This session develops \
+Hostwarden; the full check applies because the command, or the user \
+running it, can reach a server, root or a container. "
+    ;;
+  esac
+fi
+# full — the rules that need root, a server or a container apply.
+full() { [ "$SCOPE" = full ]; }
+# power — the power-off rules apply: in the full scope, and on any
+# machine running systemd, whose logind lets the user at the seat
+# power off without root.
+power() { full || [ -d /run/systemd/system ]; }
+
 # --- Power off ------------------------------------------------
-if hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
+if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
   deny "halt/poweroff never runs without explicit user request"
 fi
-if hit '(^|[^[:alnum:]_.-])(tel)?init[[:space:]]+0([^0-9]|$)'; then
+if power && hit '(^|[^[:alnum:]_.-])(tel)?init[[:space:]]+0([^0-9]|$)'; then
   deny "init 0 powers off the server"
 fi
 # echo o > /proc/sysrq-trigger cuts the power instantly, and b
 # resets without syncing. Nothing reads this file, so any
 # mention of it is a write.
-if hit 'sysrq-trigger'; then
+if power && hit 'sysrq-trigger'; then
   deny "sysrq-trigger powers off or resets the server without \
 shutting anything down cleanly"
 fi
@@ -506,7 +691,7 @@ fi
 # over SSH runs it. One dash flag keeps it Linux's, quoted or
 # escaped too: the shell and PowerShell drop " ' and ` before
 # the program sees its flag.
-if hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
+if power && hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
   '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
 then
   deny "shutdown without -r powers off the server (reboots \
@@ -546,21 +731,21 @@ which is a power-off for everything running in them"
 fi
 
 # --- Filesystem creation --------------------------------------
-if hit '(^|[^[:alnum:]_.-])mkfs(\.[[:alnum:]]+)?([^[:alnum:]_.-]|$)'
+if full && hit '(^|[^[:alnum:]_.-])mkfs(\.[[:alnum:]]+)?([^[:alnum:]_.-]|$)'
 then
   deny "mkfs destroys the filesystem on its target"
 fi
 # newfs_msdos and friends: the suffix must be part of the match,
 # otherwise the trailing word boundary rejects the underscore.
-if hit '(^|[^[:alnum:]_.-])newfs([._][[:alnum:]]+)*([^[:alnum:]_.-]|$)'
+if full && hit '(^|[^[:alnum:]_.-])newfs([._][[:alnum:]]+)*([^[:alnum:]_.-]|$)'
 then
   deny "newfs destroys the filesystem on its target"
 fi
-if hit '(^|[^[:alnum:]_.-])(mke2fs|mkntfs|mkdosfs|mkexfatfs|mkudffs|mkfs2?)([^[:alnum:]_.-]|$)'
+if full && hit '(^|[^[:alnum:]_.-])(mke2fs|mkntfs|mkdosfs|mkexfatfs|mkudffs|mkfs2?)([^[:alnum:]_.-]|$)'
 then
   deny "this filesystem creator destroys the data on its target"
 fi
-if hit '(^|[^[:alnum:]_.-])wipefs([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])wipefs([^[:alnum:]_.-]|$)' \
   && hit '(^|[[:space:]])(-a|--all|-o|--offset)'; then
   deny "wipefs in write mode erases filesystem signatures"
 fi
@@ -569,20 +754,20 @@ fi
 # Read-only inspection stays allowed: fdisk -l, sfdisk -l/-d,
 # gdisk -l, sgdisk -p, parted -l/print, gpart show/status/list,
 # lsblk, diskutil list.
-if hit_without '(^|[^[:alnum:]_.-])fdisk([^[:alnum:]_.-]|$)' \
+if full && hit_without '(^|[^[:alnum:]_.-])fdisk([^[:alnum:]_.-]|$)' \
   '(^|[[:space:]])-l'; then
   deny "fdisk without -l opens the partition table for writing"
 fi
 # cfdisk has no read-only mode at all: it is the curses editor.
-if hit '(^|[^[:alnum:]_.-])cfdisk([^[:alnum:]_.-]|$)'; then
+if full && hit '(^|[^[:alnum:]_.-])cfdisk([^[:alnum:]_.-]|$)'; then
   deny "cfdisk is an interactive partition editor with no \
 read-only mode"
 fi
-if hit_without '(^|[^[:alnum:]_.-])sfdisk([^[:alnum:]_.-]|$)' \
+if full && hit_without '(^|[^[:alnum:]_.-])sfdisk([^[:alnum:]_.-]|$)' \
   '(^|[[:space:]])(-l|--list|-d|--dump|-V|--verify)'; then
   deny "sfdisk in write mode modifies the partition table"
 fi
-if hit_without '(^|[^[:alnum:]_.-])c?gdisk([^[:alnum:]_.-]|$)' \
+if full && hit_without '(^|[^[:alnum:]_.-])c?gdisk([^[:alnum:]_.-]|$)' \
   '(^|[[:space:]])-l'; then
   deny "gdisk without -l opens the partition table for writing"
 fi
@@ -594,12 +779,12 @@ fi
 # complete write set from sgdisk(8); the read-only ones (a D E f
 # F i L O p P V v) are absent on purpose, and so is -b, which
 # writes a backup FILE and not the disk.
-if hit '(^|[^[:alnum:]_.-])sgdisk([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])sgdisk([^[:alnum:]_.-]|$)' \
   && hit '(^|[[:space:]])(-[BcCdegGhIjklmnNorRstTuUzZ]|--(byte-swap-name|change-name|recompute-chs|delete|move-second-header|mbrtogpt|randomize-guids|hybrid|align-end|move-main-table|move-backup-table|load-backup|gpttombr|new|largest-new|clear|transpose|replicate|sort|typecode|transform-bsd|partition-guid|disk-guid|zap|zap-all))'
 then
   deny "sgdisk write options modify the partition table"
 fi
-if hit '(^|[^[:alnum:]_.-])parted([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])parted([^[:alnum:]_.-]|$)' \
   && hit '((mklabel|mktable|mkpartfs|mkpart|rescue|resize)([[:space:]]|$)|(rm|set|toggle|name|move|resizepart)[[:space:]]+[0-9]|disk_(set|toggle)[[:space:]])'
 then
   deny "parted write commands modify the partition table"
@@ -607,14 +792,14 @@ fi
 # growpart rewrites the partition entry to enlarge it. Its dry
 # run is the only read-only form, and the exemption is scoped
 # the same way as every other one here.
-if hit_without '(^|[^[:alnum:]_.-])growpart([^[:alnum:]_.-]|$)' \
+if full && hit_without '(^|[^[:alnum:]_.-])growpart([^[:alnum:]_.-]|$)' \
   '(^|[[:space:]])(-N|--dry-run)([[:space:]]|$)'; then
   deny "growpart rewrites the partition table to resize a \
 partition"
 fi
 # FreeBSD and macOS GUID partition table editor. show is the
 # read-only verb and stays allowed.
-if hit '(^|[^[:alnum:]_.-])gpt[[:space:]]+(create|destroy|add|remove|modify|migrate|recover|resize|restore|boot|label|set|unset)([^[:alnum:]_-]|$)'
+if full && hit '(^|[^[:alnum:]_.-])gpt[[:space:]]+(create|destroy|add|remove|modify|migrate|recover|resize|restore|boot|label|set|unset)([^[:alnum:]_-]|$)'
 then
   deny "gpt write verbs modify the partition table"
 fi
@@ -626,7 +811,7 @@ then
   deny "diskutil erase and partition verbs destroy data or the \
 partition map"
 fi
-if hit 'gpart[[:space:]]+(create|add|delete|destroy|modify|resize|bootcode|recover|set|undo|commit)'
+if full && hit 'gpart[[:space:]]+(create|add|delete|destroy|modify|resize|bootcode|recover|set|undo|commit)'
 then
   deny "gpart write verbs modify the partition table"
 fi
@@ -685,7 +870,7 @@ then
   deny "wsl --unregister deletes the distribution and its whole \
 virtual disk"
 fi
-if hit '(^|[^[:alnum:]_-])dd([^[:alnum:]_-]|$)' \
+if full && hit '(^|[^[:alnum:]_-])dd([^[:alnum:]_-]|$)' \
   && hit 'of=["'\'']?/dev/'; then
   deny "dd onto a raw device overwrites disk content and \
 partition table"
@@ -694,15 +879,15 @@ fi
 # --- Raw-device wipers ----------------------------------------
 # These leave the partition table intact and destroy everything
 # it points at, which is the same effect by another route.
-if hit '(^|[^[:alnum:]_.-])blkdiscard([^[:alnum:]_.-]|$)'; then
+if full && hit '(^|[^[:alnum:]_.-])blkdiscard([^[:alnum:]_.-]|$)'; then
   deny "blkdiscard discards every block on the device"
 fi
-if hit '(^|[^[:alnum:]_.-])nvme[[:space:]]+(format|sanitize|write|delete-ns|create-ns|attach-ns|detach-ns|security-send|copy|dsm|zns)'
+if full && hit '(^|[^[:alnum:]_.-])nvme[[:space:]]+(format|sanitize|write|delete-ns|create-ns|attach-ns|detach-ns|security-send|copy|dsm|zns)'
 then
   deny "this nvme subcommand overwrites or destroys namespace \
 data"
 fi
-if hit '(^|[^[:alnum:]_.-])hdparm([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])hdparm([^[:alnum:]_.-]|$)' \
   && hit '(--security-(erase|erase-enhanced|set-pass|unlock|disable)|--trim-sector-ranges|--make-bad-sector|--write-sector|--dco-(restore|setmax)|--repair-sector)'
 then
   deny "this hdparm option erases the drive or writes raw \
@@ -710,11 +895,11 @@ sectors"
 fi
 # badblocks -w is the destructive read-write test. -n and -sv
 # are non-destructive and stay allowed.
-if hit '(^|[^[:alnum:]_.-])badblocks([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])badblocks([^[:alnum:]_.-]|$)' \
   && hit '(^|[[:space:]])-[[:alnum:]]*w'; then
   deny "badblocks -w overwrites the device while testing it"
 fi
-if hit '(^|[^[:alnum:]_.-])shred([^[:alnum:]_.-]|$)' \
+if full && hit '(^|[^[:alnum:]_.-])shred([^[:alnum:]_.-]|$)' \
   && hit "$DEV"; then
   deny "shred on a disk device overwrites the whole device"
 fi
@@ -753,7 +938,7 @@ writes_to() {
 # A redirect, tee, cp or download onto a disk device does what
 # dd of= does. /dev/null, /dev/stderr and /dev/disk/by-id are
 # unaffected.
-if hit ">[[:space:]]*[\"']?$DEV" \
+if full && hit ">[[:space:]]*[\"']?$DEV" \
   || { hit "$DEV" && writes_to "${DEV}[[:alnum:]]*"; }
 then
   deny "writing onto a raw disk device overwrites its content \
@@ -919,7 +1104,7 @@ ssh-keygen -lf instead"
 can rewrite it, and a pattern matcher cannot tell that from a \
 read - read it with cat, grep or sshd -T instead"
   fi
-  if hit "$DEV"; then
+  if full && hit "$DEV"; then
     deny "an interpreter with a raw disk device on its command \
 line can overwrite the device, which destroys everything the \
 partition table points at"
