@@ -250,7 +250,10 @@ Alpine logs through syslog, to `/var/log/messages`:
   file may cover less than a week on a busy host. The file is
   `root:wheel`, mode 0640. With `-C` in `SYSLOGD_OPTS`
   (`/etc/conf.d/syslog`) it writes to a ring buffer in RAM instead,
-  which does not survive a reboot: read it with `logread`.
+  which does not survive a reboot: read it with `logread`. The
+  buffer holds 16 KB unless `-C<size_kb>` says otherwise, so on a
+  busy host it may reach back minutes rather than to the boot:
+  the read-back below prints its oldest line first.
 - **syslog-ng** or **rsyslog** where installed. Alpine's
   syslog-ng writes `/var/log/messages` as `root:adm` 0640, plus
   `auth.log`, `kern.log` and others; logrotate compresses older
@@ -269,7 +272,7 @@ that also shows whether a syslog daemon runs:
 ```
 rc-status -a | grep syslog
 if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
-then logread | grep -E "hostwarden|heinzel" | tail -20
+then logread | head -1; logread | grep -E "hostwarden|heinzel" | tail -20
 elif [ -r /var/log/messages ]; then
   grep -hE "hostwarden|heinzel" /var/log/messages.0 \
     /var/log/messages 2>/dev/null | tail -20

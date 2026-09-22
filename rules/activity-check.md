@@ -34,7 +34,10 @@ The second line prints the oldest entry the journal
 still holds. A journal kept in `/run/log/journal`,
 which is lost at every reboot, or one vacuumed down
 reaches back less than seven days, and this shows it
-without reading `journald.conf`.
+without reading `journald.conf`. Where it prints
+nothing, the journal holds no entries at all — with
+`Storage=none`, or none this user may read — and the
+check did not run.
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
