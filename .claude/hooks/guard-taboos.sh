@@ -625,6 +625,11 @@ EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 # the everyday mistake here is a path that looks like a guest and
 # is the host. Where no prompt can reach a human the answer is
 # deny, and the user runs it themselves.
+#
+# The ask is registered where it is found and decided at the end of
+# this file, never on the spot: decide exits, and every rule after
+# the sshd and key rules has to see the rest of the line first. A
+# first-boot write followed by any taboo is that taboo's deny.
 GUESTROOT='(/var/lib/lxc/[^/[:space:]]+/rootfs|/var/lib/machines/[^/[:space:]]+|/var/lib/(incus|lxd)/storage-pools/[^/[:space:]]+/containers/[^/[:space:]]+/rootfs)'
 IMAGETOOL='(virt-customize|virt-copy-in|virt-edit|virt-sysprep|guestfish|guestmount)'
 
@@ -659,28 +664,12 @@ first_boot_only() {
   [ "$FB_ALL" -gt 0 ] && [ "$FB_ALL" -eq "$FB_UNDER" ]
 }
 
+FB_ASK=
+
 first_boot_ask() {
-  # first_boot_ask <what> -- ask where a prompt reaches a human,
-  # deny where none does. No jq means no mode, hence deny.
-  FB_MODE=
-  if command -v jq >/dev/null 2>&1; then
-    FB_MODE=$(printf '%s' "$INPUT" \
-      | jq -r '.permission_mode // empty' 2>/dev/null) || FB_MODE=
-  fi
-  case $FB_MODE in
-  default|acceptEdits|plan|auto)
-    decide ask "$1 into a guest that has not started yet. Only the \
-first-boot configuration of a guest that never ran may set sshd's \
-login options and keys (AGENTS.md - Critical Safety Rules). Check \
-that the path is the guest's and not this host's before approving."
-    ;;
-  *)
-    decide deny "$1 needs a confirmation prompt, and this session \
-shows none, or a permission mode this hook does not know. Not a \
-taboo: run it in a session that asks, or let the user run it. Do \
-not rephrase the command."
-    ;;
-  esac
+  # first_boot_ask <what> -- register the ask; the end of the file
+  # decides it, once every taboo has seen the whole line.
+  [ -n "$FB_ASK" ] || FB_ASK=$1
 }
 
 # A general-purpose language runtime. See the interpreter section
@@ -1164,9 +1153,10 @@ if [ "$HAS_KEY" -eq 1 ] \
 then
   if first_boot_only "$KEY"; then
     first_boot_ask "deleting, moving or re-permissioning SSH keys"
-  fi
-  deny "deleting, moving or re-permissioning SSH keys is never \
+  else
+    deny "deleting, moving or re-permissioning SSH keys is never \
 allowed"
+  fi
 fi
 # A truncating redirect needs no command at all: : > key.
 if hit ">[[:space:]]*[\"']?[^[:space:];|&]*$KEYPRIV"; then
@@ -1215,9 +1205,10 @@ if hit "$SSHD"; then
   then
     if first_boot_only "$SSHD"; then
       first_boot_ask "writing sshd's configuration"
-    fi
-    deny "modifying sshd_config or a file merged into it is \
+    else
+      deny "modifying sshd_config or a file merged into it is \
 never allowed (reading it is fine: cat, grep, sshd -T)"
+    fi
   fi
 fi
 # Windows' OpenSSH files under ProgramData\ssh are changed by cmd
@@ -1578,6 +1569,32 @@ guest ID and the host before approving."
 a confirmation prompt, and this session shows none, or a permission \
 mode this hook does not know. Not a taboo: run it in a session that \
 asks, or let the user run it. Do not rephrase the command."
+    ;;
+  esac
+fi
+
+# A first-boot write registered above, and no taboo anywhere else in
+# the line: ask where a prompt reaches a human, deny where none does.
+# No jq means no mode, hence deny.
+if [ -n "$FB_ASK" ]; then
+  FB_MODE=
+  if command -v jq >/dev/null 2>&1; then
+    FB_MODE=$(printf '%s' "$INPUT" \
+      | jq -r '.permission_mode // empty' 2>/dev/null) || FB_MODE=
+  fi
+  case $FB_MODE in
+  default|acceptEdits|plan|auto)
+    decide ask "$FB_ASK into a guest that has not started yet. Only \
+the first-boot configuration of a guest that never ran may set \
+sshd's login options and keys (AGENTS.md - Critical Safety Rules). \
+Check that the path is the guest's and not this host's before \
+approving."
+    ;;
+  *)
+    decide deny "$FB_ASK needs a confirmation prompt, and this \
+session shows none, or a permission mode this hook does not know. \
+Not a taboo: run it in a session that asks, or let the user run it. \
+Do not rephrase the command."
     ;;
   esac
 fi

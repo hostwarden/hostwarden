@@ -449,6 +449,16 @@ check_mode deny default \
 check_mode ask default "virt-edit -a $FB_IMG /etc/ssh/sshd_config -e s/a/b/"
 check_mode ask default "virt-copy-in -a $FB_IMG 10.conf /etc/ssh/sshd_config.d"
 check_mode deny default "virt-edit -d web1 /etc/ssh/sshd_config -e s/a/b/"
+# The ask is decided last: a taboo anywhere after a first-boot write
+# in the same line is still that taboo's deny.
+check_mode deny default \
+  "scp a.conf root@h:$FB_LXC && cp k /root/.ssh/authorized_keys"
+check_mode deny default "scp a.conf root@h:$FB_LXC; ansible-playbook site.yml"
+check_mode deny default \
+  "scp a.conf root@h:$FB_LXC; terraform apply -auto-approve"
+check_mode deny default "scp a.conf root@h:$FB_LXC; tofu destroy"
+check_mode deny default \
+  "rm /var/lib/lxc/web4/rootfs/etc/ssh/ssh_host_ed25519_key; ansible-playbook site.yml"
 # A key further down a guest root than /etc/ssh is not covered.
 check_mode deny default "rm /var/lib/lxc/web4/rootfs/root/.ssh/authorized_keys"
 check_mode deny default "rm /var/lib/lxc/web4/rootfs/../../../../etc/ssh/ssh_host_ed25519_key"
