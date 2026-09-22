@@ -464,14 +464,15 @@ installing an MTA on a Mac
 (`rules/os/freebsd.md` → Mail and Time):
 
 ```bash
-grep -E '^sendmail[[:space:]]' /etc/mail/mailer.conf
+awk '$1 == "sendmail" {print $2}' /etc/mail/mailer.conf
 echo "$SVC" | grep -E '/(sendmail|postfix|smtpd|exim)$' \
   | while read -r s; do "$s" status; done
 hostname -f
 ```
 
-The `mailer.conf` target stands in for the package and the
-symlink. An enabled rc script is the active unit only when its
+The `mailer.conf` target — the program path only, never the
+arguments, which can carry a credential — stands in for the
+package and the symlink. An enabled rc script is the active unit only when its
 `status` says it is running; enabled but stopped is drift.
 
 ## 5. Time sync
