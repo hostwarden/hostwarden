@@ -326,8 +326,8 @@ repositories on GitHub where the docs are silent.
     basis", scheduled under Settings → Scheduler;
   - the SMART findings in
     `.agents/skills/hostwarden-housekeeping/references/smart.md`;
-  - an array disk, pool or the boot device past the baseline disk
-    thresholds;
+  - an array disk or pool above 90 % full, and the boot device
+    past the baseline disk thresholds;
   - a pending OS, plugin or container update (see Updates), and a
     server on an RC or beta; a plugin or image not checked, or
     checked more than a week ago, is named as unchecked, never as
