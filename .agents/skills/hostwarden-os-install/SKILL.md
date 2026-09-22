@@ -52,15 +52,25 @@ that, and it applies whether or not the guard is on.
 
 ## Vendor hardware is out of scope
 
-A host whose appliance file says `Hardware: vendor`
-(`rules/os-detection.md` → Appliances) gets none of the
-workflows below: the vendor's firmware is the only OS the device
-takes, and replacing or repartitioning it can leave the device
-unbootable. The same holds for an `any` appliance that runs on a
-vendor's own device — a router flashed with OpenWrt, a Home
-Assistant Green, a Netgate ARM box — and for a machine that boots
-from on-board flash without EFI or BIOS. Say so and stop. Reading its
-disks and boot state is still allowed.
+None of the workflows below runs on a device whose only OS is the
+vendor's firmware: replacing or repartitioning it can leave the
+device unbootable. That is every host whose appliance file says
+`Hardware: vendor`, an `any` appliance on the vendor's own device
+(`rules/os-detection.md` → Appliances), and a machine that boots
+from on-board flash without EFI or BIOS. For a host that is not
+`Hardware: vendor`, read the device first, in one call, and record
+it in server memory as `Device: <vendor> <model>, EFI|no EFI`:
+
+```
+cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name
+cat /proc/device-tree/model
+ls -d /sys/firmware/efi
+```
+
+On FreeBSD, `kenv smbios.system.maker smbios.system.product` and
+`sysctl machdep.bootmethod`. A missing file is no answer; where the
+reads leave doubt, ask the user what the machine is. On a vendor
+device, say so and stop.
 
 ## The gate — before the first disk write
 
