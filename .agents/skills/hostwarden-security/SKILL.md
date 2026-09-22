@@ -107,7 +107,8 @@ Read on demand, only when the relevant section applies:
 - `references/management-controller.md` — the BMC's own network,
   IPMI over LAN, cipher suite 0, factory and anonymous accounts,
   Intel AMT. Only on a bare-metal host, and only where the
-  `Management:` line names a BMC or Intel AMT.
+  `Management:` line names a BMC or Intel AMT the host can
+  reach.
 - The `## Housekeeping and Audits` sections of the host's
   family, appliance, platform and role files, already loaded
   by the pipeline (`rules/os-detection.md` → Layers).

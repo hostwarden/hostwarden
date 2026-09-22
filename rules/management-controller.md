@@ -14,16 +14,18 @@ where a check below would be easier with one.
 
 ## When it applies
 
-On a host whose `Virtualization:` line records bare metal, with
-or without the `(user)` marker (`rules/os-detection.md` →
-Virtualization). A virtual machine and a container have no
+The rescue path at the end applies to every host, bare metal or
+not. Detection, recording and the two audit checks apply only to
+a host whose `Virtualization:` line records bare metal, with or
+without the `(user)` marker (`rules/os-detection.md` →
+Virtualization): a virtual machine and a container have no
 controller of their own, and what they would report belongs to
 the machine underneath.
 
-It runs at first need, never in the onboarding pipeline: the
-probe needs root, and `rules/privilege-escalation.md` escalates
-only for a privileged action that is actually wanted. Three
-moments need it — the rescue path below, the housekeeping event
+Detection runs at first need, never in the onboarding pipeline:
+the probe needs root, and `rules/privilege-escalation.md`
+escalates only for a privileged action that is actually wanted.
+Three moments need it — the rescue path, the housekeeping event
 log and the security audit — and each is already privileged.
 
 A host whose memory has a `Management:` line is settled; read it
@@ -50,11 +52,13 @@ ipmitool mc info
 ipmitool lan print
 ```
 
-On FreeBSD, `kldstat -m ipmi` takes the place of `lsmod`, and
-`dmidecode` is a port that is often not installed — its absence
-is not an answer either way. On macOS there is no controller to
-find. On a bare-metal Windows Server the probe does not run; ask
-as Provider console below says and record the answer.
+On FreeBSD, `kldstat -m ipmi` takes the place of `lsmod`, there
+is no `/sys/class/dmi`, and `dmidecode` is a port that is often
+not installed — its absence is not an answer either way; the
+vendor comes from `ipmitool mc info` alone there. On macOS there
+is no controller to find. On a bare-metal Windows Server the
+probe does not run; ask as Provider console below says and record
+the answer.
 
 Expect errors: every one of these commands is missing on some
 host, and `ipmitool` on a machine without a BMC prints
@@ -143,10 +147,16 @@ this host can reach it:
 ```
 - Management: iDRAC (BMC), reachable from the host
 - Management: BMC, not reachable from the host (driver not loaded)
-- Management: Intel AMT
+- Management: Intel AMT, reachable from the host
 - Management: provider console (user)
 - Management: unknown (no root)
 ```
+
+`reachable from the host` is what the two audit checks below
+depend on: without it there is no device node for `ipmitool` to
+open, and both checks list themselves as not checked rather than
+running a command that cannot work. The controller is still the
+rescue path either way — it answers over its own network.
 
 The controller's **address goes in `memory/network.md`**, under a
 `## Management controllers` heading — one line per host, the
@@ -170,12 +180,23 @@ finding needs it.
 
 ## The rescue path
 
-`rules/ssh-safety-net.md` and the OS-replacement path in the
-`hostwarden-os-install` skill send you here when a change is
-about to cut SSH and there is no revert to arm.
+`rules/ssh-safety-net.md`, `rules/ssh-unreachable.md` and the
+OS-replacement path in the `hostwarden-os-install` skill send you
+here when a change is about to cut SSH, or already has. Name the
+way back in; never ask the user whether they have one.
 
-Settle the `Management:` line first if the host has none, then
-name the way back in to the user: the controller from
-`memory.md`, its address from `memory/network.md`. Where the
-line is `none (user)`, say that there is no way back in and let
-the user decide whether the change still happens.
+- **A virtual machine or a container** has no controller, and its
+  console belongs to the machine underneath. `Virtualization:`
+  names which hypervisor that is — a guest on a Proxmox VE or
+  XCP-ng node is reached from the node's own UI, and where the
+  node is itself a host in memory, name it.
+- **Bare metal** is the `Management:` line, with the address from
+  `memory/network.md`. Settle the line first where the host has
+  none (Detection above); a controller the host cannot reach is
+  still the way back in, because it answers over its own network.
+- **`Management: none (user)`** is the one answer that names no
+  way back in. Say so, and let the user decide whether the change
+  still happens.
+
+A machine whose `Virtualization:` line is `unknown` is settled by
+asking the user, once, the way Provider console above asks.

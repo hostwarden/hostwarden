@@ -94,7 +94,7 @@ Read on demand, only when the relevant section applies:
 - `references/bmc-event-log.md` — the BMC's System Event Log,
   which carries power supply, fan, memory and thermal failures
   the OS never sees. Only on a bare-metal host, and only where
-  the `Management:` line names a BMC.
+  the `Management:` line names a BMC the host can reach.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
   GPU, MariaDB/MySQL, WireGuard, UPS (NUT, apcupsd), Pi-hole,

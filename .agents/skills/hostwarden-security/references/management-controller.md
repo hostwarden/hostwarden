@@ -6,11 +6,12 @@ one. Its traffic never passes through the host's firewall, so
 nothing checked on the host covers it.
 
 Run this on a host whose `memory.md` has a `Management:` line
-naming a BMC; a host with no line yet is settled first by
-`rules/management-controller.md` → Detection. A line that names
-Intel AMT runs only the AMT check at the end. A line that names a
-provider console, physical access or nothing has no controller
-to ask, and the checks are listed under "Skipped".
+naming a BMC this host can reach; a host with no line yet is
+settled first by `rules/management-controller.md` → Detection. A
+line that names Intel AMT runs only the AMT check at the end. A
+line that names a provider console, physical access or nothing,
+or a BMC the host cannot reach, gives `ipmitool` no device node
+to open: list the checks under "Skipped".
 
 Everything here is read-only. Nothing is fixed from the host: a
 finding names what it is, and the change is made in the
@@ -60,6 +61,7 @@ Severities as in `references/report-format.md`. An address is
   anonymous login. Anything but `NO ACCESS` in its `Channel Priv
   Limit` is **WARN**.
 - **Intel AMT on the network.** 16992 and 16994 carry no TLS.
-  Where `references/listening-services.md` or the address in
-  `memory/network.md` shows AMT answering on either from outside
-  the host, that is **WARN**; on a public address, **CRITICAL**.
+  AMT has no `lan print` and so no address of its own in
+  `memory/network.md`; `references/listening-services.md` is what
+  shows whether either port answers. Answering on an address
+  other than loopback is **WARN**; on a public one, **CRITICAL**.

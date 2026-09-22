@@ -3,10 +3,11 @@
 The BMC's System Event Log records power supply failures, fan
 failures, memory errors and thermal events, often before the OS
 notices and always while the OS was not running. Read it on a
-host whose `memory.md` has a `Management:` line naming a BMC; a
-host with no line yet is settled first by
-`rules/management-controller.md` → Detection, and one whose line
-names anything else has no BMC to ask.
+host whose `memory.md` has a `Management:` line naming a BMC
+this host can reach; a host with no line yet is settled first by
+`rules/management-controller.md` → Detection. A line that names
+no BMC, or a BMC the host cannot reach, has no device node for
+`ipmitool` to open: list the check under "Skipped".
 
 ## Probe
 
@@ -46,9 +47,11 @@ Severities as in `references/report-format.md`:
   reports `Overflow` or `Percent Used` at 90 or more — a full SEL
   stops recording, so the next failure is not logged at all.
   Clearing it is the user's call, never Hostwarden's.
-- **INFO:** entries newer than the `Last connected:` date in
-  `memory.md` that are none of the above, by count. Record IDs
-  restart at 1 when a user clears the log, so the date is what
-  separates new from old, never a stored record number.
+- **INFO:** entries dated after the previous housekeeping entry
+  in the host's `changelog.log` (`rules/changelog.md`) that are
+  none of the above, by count. Not `Last connected:`, which this
+  session has already moved to today, and not a stored record
+  number: record IDs restart at 1 when a user clears the log, and
+  a stored high-water mark would then hide every later entry.
 - **Named as not checked**, never as passing: no root, no
   `ipmitool`, or no device node to reach the BMC through.

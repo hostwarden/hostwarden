@@ -12,9 +12,9 @@ under pressure.
   first: it reverts after five minutes, five to ten
   on FreeBSD, unless a new SSH login succeeds
   (`rules/ssh-safety-net.md`); where none can be
-  armed, Hostwarden names the console it recorded
-  for that machine and you make the change with it
-  open. Config reloads
+  armed, Hostwarden names the console it knows for
+  that machine — or tells you there is none — and
+  you make the change with it open. Config reloads
   (`systemctl reload`) auto-proceed when the
   service's config test passes — see
   `rules/service-reload.md` and the
