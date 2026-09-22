@@ -54,7 +54,8 @@
 #
 #   - stopping or deleting a system container or VM (pct/qm
 #     stop, shutdown or destroy, incus/lxc stop or delete, virsh
-#     destroy, shutdown or undefine, lxc-stop, lxc-destroy)
+#     destroy, shutdown or undefine, xe vm-shutdown, vm-destroy
+#     or vm-uninstall, lxc-stop, lxc-destroy)
 #
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That
@@ -724,11 +725,12 @@ full() { [ "$SCOPE" = full ]; }
 # power off without root.
 power() { full || [ -d /run/systemd/system ]; }
 
-# The global options a guest manager (pct, qm, virsh, incus, lxc)
-# takes between its name and its verb: -c URI, --project NAME, or
-# any single dash word. The power-off rules and the guest rule
+# The global options a guest manager (pct, qm, virsh, incus, lxc,
+# xe) takes between its name and its verb: a flag with a value of
+# its own (virsh -c URI, incus --project NAME, xe -s HOST -u USER),
+# or any single dash word. The power-off rules and the guest rule
 # below both need them.
-GOPTS='([[:space:]]+(-c|--connect|--project)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
+GOPTS='([[:space:]]+(-c|--connect|--project|-s|--server|-u|--user|-p|--port|-pw|-pwf|--password)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
 
 # --- Power off ------------------------------------------------
 if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
@@ -754,9 +756,10 @@ case "$CMD$CMDJ$CMDQ" in
   # restored after them.
   SEGS_ALL=$SEGS
   case $SEGS in
-  *pct*|*qm*|*virsh*)
+  *pct*|*qm*|*virsh*|*vm-shutdown*)
     SEGS=$(printf '%s\n' "$SEGS" | sed -E \
-      "s/((^|[^[:alnum:]_.-])(pct|qm|virsh)${GOPTS}[[:space:]]+)shutdown/\1guest-off/g")
+      -e "s/((^|[^[:alnum:]_.-])(pct|qm|virsh)${GOPTS}[[:space:]]+)shutdown/\1guest-off/g" \
+      -e "s/((^|[^[:alnum:]_.-])xe${GOPTS}[[:space:]]+vm-)shutdown/\1off/g")
     ;;
   esac
   # Windows' shutdown is judged below, so the Linux rule exempts
@@ -1429,8 +1432,8 @@ fi
 # manager's name the greps.
 GUEST=
 case "$CMD$CMDJ$CMDQ" in
-*pct*|*qm*|*virsh*|*incus*|*lxc*)
-  if full && hit "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|lxc-destroy)([^[:alnum:]_-]|\$)"
+*pct*|*qm*|*virsh*|*incus*|*lxc*|*vm-*)
+  if full && hit "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)"
   then
     GUEST=1
   fi
