@@ -1,4 +1,4 @@
-# System Containers (LXC, Incus, LXD, Proxmox)
+# System Containers (LXC, Incus, LXD, Proxmox, FreeBSD Jails)
 
 A system container shares the host's kernel and clock but boots
 its own init, package manager and journal. For Hostwarden it is a
@@ -33,6 +33,14 @@ Through the host's manager, as root inside:
 - **LXD:** `lxc list --all-projects`, `lxc exec <ct> -- <cmd>`
 - **LXC:** `lxc-ls -f`, `lxc-attach -n <ct> -- <cmd>`
 - **Proxmox container:** `pct list`, `pct exec <vmid> -- <cmd>`
+- **FreeBSD jail**, whichever manager made it: `jls -N`,
+  `jexec <jail> <cmd>`, with the name `jls -N` prints: iocage's
+  `web.example` is `ioc-web_example`, its dots turned into
+  underscores. Use `jexec` rather than `bastille cmd`, which
+  puts a header line of its own into the output; `jexec` passes
+  stdin on to the `sh -s` bundle. Leave out `jexec -l`, which
+  cuts `PATH` down to `/bin:/usr/bin` and loses `sysctl` and
+  `pkg`. Never `iocage exec --force`: it starts a stopped jail.
 - **Proxmox VM:** `qm guest exec <vmid> -- <cmd>`, after
   `qm guest cmd <vmid> ping` in the same call. It answers with a
   JSON object, not with the guest's own output and exit status:
@@ -87,13 +95,16 @@ every change is asked first:
 
 - Restarting a container or VM is a reboot of that server
   (`AGENTS.md` → Critical Safety Rules → Ask before).
-- Before a config change (`incus config set`, `pct set`): a
-  snapshot (below), else a copy of `/etc/pve/lxc/<vmid>.conf` or
-  of `incus config show <ct>` (`rules/backups.md`).
+- Before a config change (`incus config set`, `pct set`,
+  `iocage set`, a jail's `jail.conf`): a snapshot (below), else a
+  copy of `/etc/pve/lxc/<vmid>.conf`, of `incus config show <ct>`,
+  of the file that defines the jail or of `iocage get -a <jail>`
+  (`rules/backups.md`).
 - **Stopping or deleting one** powers off or destroys a server:
   only on the user's explicit request. First show, from the live
   host and in one call, what it hits: ID, name, host, state,
-  disks, and the newest backup (a snapshot goes with the guest).
+  disks (a jail's path and the dataset under it), and the newest
+  backup (a snapshot goes with the guest).
   A run with no human to ask never does it: the user runs the
   command.
 - Deleting a snapshot, or rolling back to one, which discards
@@ -118,9 +129,12 @@ the storage subsystem and is not snapshotted, and a volume with
 `backup=0` is left out of a backup as well (`qm config <vmid>`
 for a VM's disks). An Incus or LXD disk device pointing at a host
 path (`source=/…` in `incus config show <ct> --expanded`) is the
-same case. Back those up on their own (`rules/backups.md`), or
-say plainly that the snapshot does not cover them before the
-change starts.
+same case, and so is a jail's nullfs mount of a host directory:
+the file its `mount.fstab` names (Bastille's
+`<jailsdir>/<name>/fstab`), `mount +=` lines in its
+configuration, or `iocage fstab -l <jail>`. Back those up on
+their own (`rules/backups.md`), or say plainly that the snapshot
+does not cover them before the change starts.
 
 List what exists first, and take one only when nothing fits:
 
@@ -133,6 +147,18 @@ List what exists first, and take one only when nothing fits:
   (LXD: `lxc info`, `lxc snapshot <ct> <name>`)
 - **libvirt:** `virsh snapshot-list <dom>`,
   `virsh snapshot-create-as <dom> <name>`
+- **iocage:** `iocage snaplist <jail>`,
+  `iocage snapshot -n <name> <jail>`
+- **Bastille** on ZFS: `bastille zfs <jail> snapshot <name>`. A
+  jail from `jail.conf` on ZFS: `zfs snapshot <dataset>@<name>`,
+  only where its path is a dataset of its own —
+  `zfs list -H -o name,mountpoint <path>` prints the path itself
+  as the mountpoint. A path inside a shared dataset (the root
+  file system, a common `jails` dataset) is no case for a
+  snapshot, a new or an automatic one: a rollback would take the
+  host's or other jails' data back with it, so the file backup
+  applies. Both list as the ZFS host entry
+  below shows.
 - **ZFS host**, for automatic ones (sanoid, zfs-auto-snapshot),
   the newest five of the guest's dataset:
 

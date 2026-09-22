@@ -58,8 +58,10 @@ skill says so where it needs it.
      'cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name;' \
      'sysctl kern.vm_guest security.jail.jailed;' \
      'sysctl kern.hv_vmm_present hw.model;' \
-     'echo @hypervisor; which virsh incus lxd lxc-ls vm VBoxManage;' \
+     'echo @hypervisor; which virsh incus lxd lxc-ls vm VBoxManage' \
+     'bastille iocage appjail pot cbsd;' \
      'ls -d /run/libvirt /var/snap/lxd/common/lxd /var/lib/lxc /dev/vmm;' \
+     'ls /etc/jail.conf /etc/jail.conf.d; sysrc jail_enable jail_conf;' \
      'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    `ssh` joins the quoted pieces with spaces into one
@@ -342,7 +344,8 @@ case that matches decides:
    …), `openrc --sys` prints `LXC`, `DOCKER` or
    `PODMAN`, `ls` lists `/.dockerenv` or
    `/run/.containerenv`, or `security.jail.jailed` is
-   `1` (a FreeBSD jail). Checked first because in a
+   `1` (a FreeBSD jail, recorded as `jail`). Checked
+   first because in a
    container the DMI lines and the `hypervisor` count
    describe the machine underneath.
 2. **Virtual machine.** `systemd-detect-virt` prints a
@@ -460,14 +463,29 @@ VM; the two facts are independent.
 The lines after `@hypervisor` name the candidates on
 an ordinary system:
 
-| Marker                                | Manager    |
-| ------------------------------------- | ---------- |
-| `virsh`, or `/run/libvirt` listed     | libvirt    |
-| `incus`                               | Incus      |
-| `lxd`, or `/var/snap/lxd/common/lxd`  | LXD        |
-| `lxc-ls`, or `/var/lib/lxc` listed    | LXC        |
-| `vm` and `/dev/vmm` listed (FreeBSD)  | vm-bhyve   |
-| `VBoxManage`                          | VirtualBox |
+| Marker                                      | Manager            |
+| ------------------------------------------- | ------------------ |
+| `virsh`, or `/run/libvirt` listed           | libvirt            |
+| `incus`                                     | Incus              |
+| `lxd`, or `/var/snap/lxd/common/lxd`        | LXD                |
+| `lxc-ls`, or `/var/lib/lxc` listed          | LXC                |
+| `vm` and `/dev/vmm` listed (FreeBSD)        | vm-bhyve           |
+| `VBoxManage`                                | VirtualBox         |
+| `jail_enable: YES`, or a jail configuration | jail               |
+| `bastille`                                  | Bastille           |
+| `iocage`                                    | iocage             |
+| `appjail`, `pot`, `cbsd`                    | other jails        |
+
+The last four rows are FreeBSD jails and count on
+FreeBSD only; `jail` is the base system's `jail.conf`.
+A jail configuration is `/etc/jail.conf` listed, a
+`.conf` file listed in `/etc/jail.conf.d`, or a
+`jail_conf` other than `/etc/jail.conf`: that file is
+the one `service jail` starts from. FreeBSD ships
+`/etc/jail.conf.d` empty, so the directory alone is
+no marker. What each manager's listing covers, and
+when other jails count: `rules/hypervisors.md` →
+FreeBSD jails.
 
 On Windows, a `vmms` line under `@hardware` is
 Hyper-V (`rules/os/windows.md` → Version Detection).
