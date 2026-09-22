@@ -20,9 +20,14 @@ instead; they stand in for steps 4, 5 and 7 below.
 1. **Agree on it.** The change is the user's decision
    (`AGENTS.md` → Critical Safety Rules), and so is the
    window: say that the change undoes itself after five
-   minutes unless a new login succeeds.
+   minutes, five to ten on FreeBSD (step 4), unless a new
+   login succeeds.
 2. **Back up** everything the change overwrites
-   (`rules/backups.md`). The revert restores that copy.
+   (`rules/backups.md`), and read in the same call whether
+   the tool runs now. The revert restores that copy,
+   deletes files the change created, and leaves the tool
+   running or stopped as it was: clearing only the live
+   rules leaves the change on disk for the next boot.
 3. **Check.** The tool's dry run or syntax test must pass.
 4. **Arm the revert**, detached from the SSH session:
 
@@ -54,6 +59,9 @@ instead; they stand in for steps 4, 5 and 7 below.
    `systemctl stop hostwarden-revert.timer`, or
    `atrm <job>` — and confirm it is gone. A revert left
    armed undoes, minutes later, a change the user kept.
+   In the same call, persist only the tested change, never
+   the whole live state, and where starting a firewall and
+   enabling it at boot are separate commands, enable it.
 8. **Login fails:** change nothing more. Wait for the
    revert, then try a fresh login again. If the host still
    does not answer, follow `rules/ssh-unreachable.md` and

@@ -59,10 +59,19 @@ Rules for FreeBSD (all versions).
   config test `pfctl -nf /etc/pf.conf` must pass
   first.
 - Loading or enabling pf over SSH goes through
-  `rules/ssh-safety-net.md`. Check:
+  `rules/ssh-safety-net.md`. Where pf runs, first
+  compare the loaded rules (`pfctl -sr`) with the
+  filter rules the file parses to
+  (`pfctl -nvf /etc/pf.conf`): if they differ, the
+  file is not a safe revert, and the user settles
+  which one holds before the change. Check:
   `pfctl -nf /etc/pf.conf`; apply:
   `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:
-  `pfctl -d`.
+  the backed-up `/etc/pf.conf` restored, then
+  `pfctl -f /etc/pf.conf` where pf ran before, or
+  `pfctl -d` where it did not. `pf_enable="YES"` waits
+  for the fresh login
+  (<https://man.freebsd.org/cgi/man.cgi?query=pfctl&sektion=8>).
 - After enabling, verify the default policy blocks
   incoming traffic.
 - Start/stop: `service pf start`, `service pf stop`

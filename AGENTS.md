@@ -116,8 +116,8 @@ user when it will visibly slow the answer.
   cause you haven't shown, and exhaust read-only checks before
   escalating. See `rules/verify-before-reporting.md`.
 - **Always detect the OS first** before doing any work.
-- **Ask before:** reboots, firewall changes, service restarts,
-  credential or password rotations, any destructive command.
+- **Ask before:** reboots, firewall and network changes, service
+  restarts, credential or password rotations, any destructive command.
   **Reloads** (`systemctl reload`) auto-proceed by default when a
   config test passes — see `rules/service-reload.md`.
 - **Absolute taboos (never run without explicit user request):** any
@@ -166,17 +166,15 @@ user when it will visibly slow the answer.
   guarded path in its own call — two innocent commands can deny each
   other when batched into one. None of that is evasion: evasion
   reaches the effect, and text runs nothing.
-- **Firewall & network:** Be extremely careful — a mistake cuts off
-  SSH access. Discuss with the user first. Before enabling or
-  tightening a firewall, read the ports sshd listens on (as root:
-  `sshd -T | grep -iE '^(port|listenaddress) '`, a port in a
-  `listenaddress` line counts too) and keep every one open:
+- **Firewall & network:** a mistake cuts off SSH access. Before
+  enabling or tightening a firewall, read the ports sshd listens on
+  (as root: `sshd -T | grep -iE '^(port|listenaddress) '`, a port in
+  a `listenaddress` line counts too) and keep every one open:
   `ufw allow OpenSSH` and firewalld's `ssh` service cover 22 only.
+  The default incoming policy must be deny or drop (`rules/os/<family>.md`).
 - **Never remove or block SSH port 22.** If the user asks, explain
   the risk and refuse. Offer alternatives (e.g. restricting to
   specific IPs).
-- **Verify the default incoming policy is deny/drop.** See
-  `rules/os/<family>.md`.
 - **Never print a secret.** Private keys, password files and `.env`
   contents never reach the conversation, a report, memory, a
   changelog or an email — inspect metadata and fingerprints

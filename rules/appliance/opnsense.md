@@ -232,5 +232,8 @@ documentation, <https://docs.opnsense.org/>, and the
 - Pending updates come from `configctl firmware probe` (see
   Updates); they are the finding. Check that the anti-lockout rule
   is on.
+  `pfctl -si` reporting `Status: Disabled` is **CRITICAL** "No
+  active firewall": `pfctl -d` leaves it off until the next
+  reload.
 - Report settings OPNsense generates as web UI changes, not file
   edits.

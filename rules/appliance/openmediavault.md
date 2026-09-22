@@ -248,16 +248,33 @@ under `deb/openmediavault/` there).
   default), and put the reject-all rule last. The rules are saved
   in the UI, or through `omv-rpc` when the user asks for the CLI.
 - Applying them goes through `rules/ssh-safety-net.md`, with
-  `config.xml` as the backup:
+  `config.xml` and `/etc/iptables/openmediavault-firewall.sh`
+  as the backup. Copy both before the rules are saved: saving
+  writes them into `config.xml`, and a later copy restores them.
   - **Check:** `omv-salt deploy list-dirty` names `iptables` and
     nothing that is not yours, and the saved rules
     (`conf.system.network.iptables.rule`) are the ones agreed.
   - **Apply:** `omv-salt deploy run iptables`.
-  - **Revert:** `systemctl stop openmediavault-firewall`. Its
-    stop action flushes INPUT and OUTPUT and sets both policies
-    to ACCEPT, the same flush the docs suggest as a safety net
-    while testing. It leaves the host open, not locked out; tell
-    the user the saved rules still need fixing in the UI.
+  - **Revert:** the backed-up `config.xml` restored, then, by
+    what `systemctl is-active` and `is-enabled` said at step 2:
+    - firewall ran before: `omv-salt deploy run iptables || {
+      systemctl stop openmediavault-firewall; <restore the script>;
+      systemctl start openmediavault-firewall; }`;
+    - it did not: `systemctl stop openmediavault-firewall;
+      <restore the script>`. No deploy here: it starts the
+      service.
+
+    Either way, `systemctl disable openmediavault-firewall` where
+    it was disabled: the deploy enables it.
+
+    "Restore the script" puts back the backed-up
+    `/etc/iptables/openmediavault-firewall.sh`, or deletes it where
+    there was none. The deploy regenerates it from the restored
+    rules, and the enabled service loads it at every boot
+    (<https://github.com/openmediavault/openmediavault/blob/master/deb/openmediavault/srv/salt/omv/deploy/iptables/10firewall.sls>).
+    The stop comes before the restore because the unit's `ExecStop`
+    runs that script; it flushes INPUT and OUTPUT and sets both
+    policies to ACCEPT. Tell the user when the fallback ran.
 
 ## Remove: Common Pitfalls > Prefer `apt-get upgrade`
 

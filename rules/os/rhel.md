@@ -29,7 +29,8 @@ finding. See `rules/version-check.md`.
 - **Expected:** `firewalld`
 - Check status: `firewall-cmd --state`
 - List rules: `firewall-cmd --list-all`
-- Add rule: `firewall-cmd --permanent --add-service=http`
+- Add rule: `firewall-cmd --add-service=http`, kept with
+  `--permanent` once tested (see the safety net below)
 - Reload: `firewall-cmd --reload`
 - If `firewalld` is not running, flag it to the user.
 - **Critical:** before `systemctl start firewalld` on
@@ -46,10 +47,21 @@ finding. See `rules/version-check.md`.
 - Changes over SSH go through `rules/ssh-safety-net.md`.
   Make them without `--permanent` first, so that
   `firewall-cmd --reload` is the revert: it replaces the
-  runtime configuration with the permanent one. Once a
-  fresh login works, `firewall-cmd --runtime-to-permanent`
-  keeps them; `firewall-cmd --check-config` checks the
-  permanent configuration. A change made with
+  runtime configuration with the permanent one. First
+  `diff <(firewall-cmd --list-all-zones)
+  <(firewall-cmd --permanent --list-all-zones)`: any output
+  but an `interfaces:` line is runtime-only state the revert
+  discards too, possibly the rule SSH depends on. Settle it
+  with the user before the change. `--reload` binds every
+  interface to its zone again, NetworkManager's included
+  (<https://github.com/firewalld/firewalld/blob/main/src/firewall/core/fw.py>,
+  `reload`). Once a fresh login works, repeat the
+  commands with `--permanent`, then
+  `firewall-cmd --check-config`. Never
+  `--runtime-to-permanent`: it saves every runtime-only
+  rule, not just this change
+  (<https://firewalld.org/documentation/man-pages/firewall-cmd.html>).
+  A change made with
   `--permanent` (the zone target, a service added before
   starting firewalld) reverts by restoring the backed-up
   `/etc/firewalld/`, then `firewall-cmd --reload`.
@@ -118,10 +130,11 @@ finding. See `rules/version-check.md`.
   RHEL/CentOS 7 uses `yum`, everything newer uses
   `dnf`. Running the wrong one may fail or behave
   unexpectedly.
-- `firewall-cmd` changes are temporary by default.
-  Always use `--permanent` and then `--reload`.
-  Forgetting `--permanent` means rules vanish on
-  reboot.
+- `firewall-cmd` changes are temporary by default:
+  without `--permanent` they vanish at the next reload
+  or reboot. Repeat them with `--permanent` once the
+  fresh login works (Firewall above), never before: a
+  rule already permanent survives the `--reload` revert.
 - SELinux blocks are silent by default. If a service
   fails after correct configuration, check
   `ausearch -m avc -ts recent` before assuming the

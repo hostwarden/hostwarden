@@ -24,7 +24,8 @@ Enterprise Server (SLES).
 - **Expected:** `firewalld`
 - Check status: `firewall-cmd --state`
 - List rules: `firewall-cmd --list-all`
-- Add rule: `firewall-cmd --permanent --add-service=http`
+- Add rule: `firewall-cmd --add-service=http`, kept with
+  `--permanent` once tested (see the safety net below)
 - Reload: `firewall-cmd --reload`
 - Some systems may use SuSEfirewall2 (older) — if so,
   flag it to the user as it's deprecated.
@@ -42,10 +43,21 @@ Enterprise Server (SLES).
 - Changes over SSH go through `rules/ssh-safety-net.md`.
   Make them without `--permanent` first, so that
   `firewall-cmd --reload` is the revert: it replaces the
-  runtime configuration with the permanent one. Once a
-  fresh login works, `firewall-cmd --runtime-to-permanent`
-  keeps them; `firewall-cmd --check-config` checks the
-  permanent configuration. A change made with
+  runtime configuration with the permanent one. First
+  `diff <(firewall-cmd --list-all-zones)
+  <(firewall-cmd --permanent --list-all-zones)`: any output
+  but an `interfaces:` line is runtime-only state the revert
+  discards too, possibly the rule SSH depends on. Settle it
+  with the user before the change. `--reload` binds every
+  interface to its zone again, NetworkManager's included
+  (<https://github.com/firewalld/firewalld/blob/main/src/firewall/core/fw.py>,
+  `reload`). Once a fresh login works, repeat the
+  commands with `--permanent`, then
+  `firewall-cmd --check-config`. Never
+  `--runtime-to-permanent`: it saves every runtime-only
+  rule, not just this change
+  (<https://firewalld.org/documentation/man-pages/firewall-cmd.html>).
+  A change made with
   `--permanent` (the zone target, a service added before
   starting firewalld) reverts by restoring the backed-up
   `/etc/firewalld/`, then `firewall-cmd --reload`.
