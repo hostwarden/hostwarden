@@ -191,8 +191,9 @@ included
 
   ```
   ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT;
-    curl -fsSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
-      --data @- https://127.0.0.1/api/auth/login || exit 1
+    curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
+      -w "{\"@\": \"login\", \"code\": %{http_code}}\n" \
+      --data @- https://127.0.0.1/api/auth/login
     b=https://127.0.0.1/proxy/network/api/s/default
     curl -sSk -b "$j" -w "\n{\"@\": \"health\", \"code\": %{http_code}}\n" \
       "$b/stat/health"
@@ -204,6 +205,9 @@ included
   Only the login reads stdin, so each endpoint may have its own
   `curl -b "$j"`. A key-authenticated read is one `curl -H @-` with
   every URL after it (`rules/appliance-api.md` → Reading).
+  The login carries a marker like the reads: a `login` code that is
+  not 200 means the credential was rejected and nothing was read —
+  report that, and never read an empty stream as a clean result.
 
 - Secret fields: add `^x_` to the filter's pattern — the classic
   API keeps its secrets in `x_` fields (`x_passphrase`,
