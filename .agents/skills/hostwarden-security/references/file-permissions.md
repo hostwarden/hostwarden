@@ -94,5 +94,8 @@ Accounts from a directory service (LDAP, SSSD) are not in
 `/etc/passwd`; where server memory records one, check a hit with
 `getent passwd <uid>` before reporting it.
 
+**OpenWrt:** skipped. Its busybox has neither the flags nor `stat`
+(`rules/busybox.md`); list the check under "Skipped".
+
 - Any unowned file found → **INFO** per file
 - None found → OK

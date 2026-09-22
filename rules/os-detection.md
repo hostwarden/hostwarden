@@ -38,12 +38,14 @@ skill says so where it needs it.
      'echo @release; freebsd-version;' \
      'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
-     'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
+     'nproc; grep -c "^processor" /proc/cpuinfo; free -h;' \
+     'grep -m1 "model name" /proc/cpuinfo;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version'
+     'which pveversion ha opnsense-version pfSense-upgrade' \
+     'midclt; ls -d /homeassistant; pveversion;' \
+     'opnsense-version; cat /etc/version /etc/unraid-version;' \
+     'midclt call system.version; dpkg -l openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -79,10 +81,13 @@ skill says so where it needs it.
    from `rules/ssh-connections.md` → Bundle commands,
    whatever the shell; only this probe goes without
    stdin, so nothing is ever typed into a menu. An
-   error in place of the second line (busybox `ps` may
-   reject `-p`) records `Shell: unknown`. A shell that
-   rejects the whole line (fish rejects `$$`) does too,
-   and then the probe goes again through `sh -s`.
+   error in place of the second line (busybox `ps`
+   rejects `-p`) means reading the shell from the SSH
+   user's line in `/etc/passwd` in the next call;
+   record `Shell: unknown` only if that fails too. A
+   shell that rejects the whole line (fish rejects
+   `$$`) records `Shell: unknown`, and then the probe
+   goes again through `sh -s`.
 
 2. **Map the OS to a family** from the lines after
    `@release`, and read `rules/os/<family>.md`:
@@ -90,28 +95,34 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
-     `ID=alpine` inside a Home Assistant app container,
-     have no family: see Appliances below. If no family
-     file matches (e.g. Arch, Gentoo), tell the user,
-     proceed cautiously with generic commands, and
-     apply extra verify-before-running care.
+     version from `VERSION_ID` and `PRETTY_NAME`. A
+     host that matches a marker with base `none` under
+     Appliances below has no family, whatever its
+     `ID`. If no family file matches (e.g. Arch,
+     Gentoo), tell the user, proceed cautiously
+     with generic commands, and apply extra
+     verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
      line.
 
    Hardware comes from the lines after `@hardware`:
-   `nproc`, the CPU model and `free` on Linux, `sysctl`
-   elsewhere.
+   the CPU count, the CPU model and `free` on Linux,
+   `sysctl` elsewhere. The CPU count is `nproc`'s, the
+   first number, which honours a container's CPU limit;
+   the `processor` count after it stands in only where
+   `nproc` is missing (OpenWrt).
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below. The same lines
-   carry the version of Proxmox VE, OPNsense and
-   pfSense; any other appliance file says how to read
-   its own.
+   `@appliance`, and for a marker of the form `ID=…`
+   from the os-release lines after `@release`. See
+   Appliances below. Where the probe already prints
+   what the appliance file's Version Detection reads,
+   the version comes from the probe; otherwise run
+   that command.
 
 4. Create a server memory file.
 
@@ -127,18 +138,34 @@ not one.
 
 The probe in step 1 reports the markers. `which`
 prints a path for a command that exists; what it
-prints for a missing one depends on the shell.
+prints for a missing one depends on the shell. Where
+one marker has two rows, the family from step 2 picks
+the row.
 
-| Base    | Marker             | Appliance file                  |
-| ------- | ------------------ | ------------------------------- |
-| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
-| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
-| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
-| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
+| Base    | Marker               | Appliance file                      |
+| ------- | -------------------- | ----------------------------------- |
+| Debian  | `pveversion`         | `rules/appliance/proxmox-ve.md`     |
+| Debian  | `ii  openmediavault` | `rules/appliance/openmediavault.md` |
+| Debian  | `midclt`             | `rules/appliance/truenas.md`        |
+| FreeBSD | `opnsense-version`   | `rules/appliance/opnsense.md`       |
+| FreeBSD | `pfSense-upgrade`    | `rules/appliance/pfsense.md`        |
+| FreeBSD | `midclt`             | `rules/appliance/truenas-core.md`   |
+| RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
+| none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
+| none    | `version="…"`        | `rules/appliance/unraid.md`         |
+| none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
+
+`ii  openmediavault` is the line `dpkg -l` prints for
+the installed package, with its version. `rc` (removed,
+config files left) and the "no packages found" error
+name the package too and are no match.
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
 itself; its file says to stop there.
+`version="…"` is the content of `/etc/unraid-version`
+on a line of its own; an error that names the file is
+no match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way

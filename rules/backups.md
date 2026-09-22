@@ -8,8 +8,14 @@ mkdir -p "$BACKUP_DIR"
 cp /etc/some/config.conf \
   "$BACKUP_DIR/config.conf.$(date +%Y%m%d-%H%M%S)"
 # Clean backups older than 30 days
-find "$BACKUP_DIR" -type f -mtime +30 -delete
+find "$BACKUP_DIR" -type f -mtime +30 -exec rm -f {} \;
 ```
+
+Where the loaded OS file names another backup directory
+(it does where `/var` is RAM), use that one as
+`BACKUP_DIR`.
+The cleanup uses `-exec rm` rather than `-delete`, which
+some busybox builds leave out (`rules/busybox.md`).
 
 In unprivileged mode, use `~/.hostwarden-backups/` for
 user-owned files. System config files cannot be
@@ -58,9 +64,11 @@ Affected paths include (but are not limited to):
   `modules-enabled/`
 - `/etc/logrotate.d/`
 - `/etc/profile.d/`
+- `/etc/config/` (OpenWrt: every file there is a UCI
+  config)
 
 When editing a file in one of those directories, write
-the backup to `/var/backups/hostwarden/` only. Never leave
+the backup to `$BACKUP_DIR` only. Never leave
 it in the source directory, not even with a `.bak` or
 timestamped suffix:
 
@@ -73,9 +81,8 @@ timestamped suffix:
   privileges silently if its parser pass fails.
 
 If a session uncovers an existing in-place backup in
-one of those directories, move it to
-`/var/backups/hostwarden/` rather than leaving it where
-it is.
+one of those directories, move it to `$BACKUP_DIR`
+rather than leaving it where it is.
 
 ## Verify cross-backups at the receiver, not the source
 

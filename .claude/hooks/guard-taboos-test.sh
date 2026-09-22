@@ -535,6 +535,78 @@ check deny 'cp extra.conf /etc/sshd_extra'
 check deny "python3 -c \"open('/etc/sshd_extra','a')\""
 check pass 'cat /etc/sshd_extra'
 check pass 'ls -l /etc/sshd_extra'
+# OpenWrt runs dropbear: its config is the UCI file
+# /etc/config/dropbear, changed through uci, and /etc/dropbear
+# holds its host keys and root's authorized_keys, nothing else.
+check deny "uci set dropbear.@dropbear[0].Port=2222"
+check deny "uci set 'dropbear.@dropbear[0].PasswordAuth=on'"
+check deny 'uci -q delete dropbear.@dropbear[0].Interface'
+check deny 'uci add_list dropbear.@dropbear[0].keyfile=/tmp/k'
+check deny 'uci add dropbear dropbear'
+check deny 'uci commit dropbear'
+check deny 'uci import dropbear < /tmp/dropbear.uci'
+check deny "ssh root@router.example.com 'uci set dropbear.@dropbear[0].RootLogin=1; uci commit dropbear'"
+check deny "uci batch <<'EOF'
+set dropbear.@dropbear[0].Port=2222
+commit dropbear
+EOF"
+check deny 'echo "option Port 2222" >> /etc/config/dropbear'
+check deny "sed -i 's/22/2222/' /etc/config/dropbear"
+check deny 'vi /etc/config/dropbear'
+check deny 'cp /tmp/dropbear /etc/config/dropbear'
+check deny 'rm /etc/config/dropbear'
+check deny "python3 -c \"open('/etc/config/dropbear','a')\""
+check deny 'rm /etc/dropbear/dropbear_ed25519_host_key'
+check deny ': > /etc/dropbear/dropbear_rsa_host_key'
+check deny 'mv /etc/dropbear/dropbear_ecdsa_host_key /tmp/'
+check deny 'rm -rf /etc/dropbear'
+check deny 'chmod -R 644 /etc/dropbear'
+check deny 'cp /tmp/k /etc/dropbear/'
+# dropbear elsewhere: OpenRC's conf.d, Debian's defaults file.
+check deny "sed -i 's/-w//' /etc/conf.d/dropbear"
+check deny 'echo DROPBEAR_PORT=2222 >> /etc/default/dropbear'
+check pass 'cat /etc/conf.d/dropbear /etc/default/dropbear'
+# A bare commit writes every staged config, dropbear's included.
+check deny 'uci commit'
+check deny 'uci -q commit'
+check deny 'uci changes; uci commit'
+check deny 'uci commit >/dev/null'
+check deny 'uci -q commit 2>/dev/null'
+check deny 'uci commit 2>&1'
+check deny 'uci commit # all of them'
+check pass 'uci commit firewall >/dev/null'
+check deny "ssh root@router.example.com 'uci set firewall.@defaults[0].syn_flood=1; uci commit'"
+check deny "uci batch <<'EOF'
+set firewall.@defaults[0].syn_flood=1
+commit
+EOF"
+check pass 'uci set firewall.@defaults[0].syn_flood=1; uci commit firewall'
+check pass 'git commit -m "docs: uci notes"'
+check pass 'uci show dropbear'
+check pass 'uci get dropbear.@dropbear[0].Port'
+check pass 'uci changes dropbear'
+check pass 'uci export dropbear'
+check pass 'cat /etc/config/dropbear'
+check pass 'ls -l /etc/dropbear'
+check pass 'dropbearkey -y -f /etc/dropbear/dropbear_ed25519_host_key'
+check pass 'uci set firewall.@defaults[0].syn_flood=1'
+check pass 'uci commit firewall'
+# OpenMediaVault renders sshd_config and rebuilds its
+# authorized_keys directory from the ssh Salt state; deploying that
+# state names neither path.
+check deny 'omv-salt deploy run ssh'
+check deny 'omv-salt deploy run nginx ssh samba'
+check deny 'omv-salt deploy run -q ssh'
+check deny "omv-salt deploy run 'ssh'"
+check deny 'omv-salt deploy run ssh;true'
+check deny 'ssh root@nas "omv-salt deploy run ssh"'
+check deny 'omv-salt stage run deploy'
+check deny 'omv-salt stage run --quiet deploy'
+check pass 'omv-salt deploy run samba'
+check pass 'omv-salt deploy run ssh-notes'
+check pass 'omv-salt deploy list-dirty'
+check pass 'omv-salt stage run prepare'
+check pass 'omv-salt deploy run samba; ssh root@nas uptime'
 check pass 'cat /usr/local/etc/ssh/sshd_config'
 check pass 'grep -r PermitRootLogin /usr/local/etc/ssh/sshd_config.d/'
 check pass 'stat /usr/local/etc/ssh/sshd_config'

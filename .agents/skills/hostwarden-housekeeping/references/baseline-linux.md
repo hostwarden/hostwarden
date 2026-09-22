@@ -10,9 +10,9 @@ not a finding.
 
 On Alpine, the checks without an **Alpine** variant below run
 unchanged; the others would fail on OpenRC or busybox
-(`rules/os/alpine.md` → Notes). Run `rc-status -a` and
-`rc-status --crashed` once, in the first call: failed services
-and time sync read from that output.
+(`rules/os/alpine.md` → Service Manager, `rules/busybox.md`).
+Run `rc-status -a` and `rc-status --crashed` once, in the first
+call: failed services and time sync read from that output.
 
 ## Backup Presence
 

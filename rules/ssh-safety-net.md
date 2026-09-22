@@ -11,7 +11,9 @@ The loaded OS or appliance file names three commands for
 its tool: a **check** that changes nothing, the **apply**,
 and the **revert**. Where it names no revert, do not apply
 over SSH: the user applies the change with console access
-ready.
+ready. A tool that arms its own timed revert when it
+applies names an **apply and arm** and a **confirm**
+instead; they stand in for steps 4, 5 and 7 below.
 
 ## The steps
 
