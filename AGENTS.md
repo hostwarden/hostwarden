@@ -135,9 +135,16 @@ user when it will visibly slow the answer.
   dropbear is the SSH server. Never delete or overwrite SSH keys, and
   that includes moving, truncating or re-permissioning them. Never
   halt or power off a server.
+  Under WSL the same holds for Windows: `diskpart`, `mbr2gpt`,
+  `format X:` and the Storage cmdlets (`Clear-Disk`,
+  `Format-Volume`, …) write the partition table or erase a disk,
+  `wsl --unregister` erases one, `Stop-Computer` and
+  `wsl --shutdown`/`--terminate` halt, and `C:\ProgramData\ssh`
+  holds sshd's config and host keys.
   Inspect `sshd_config`, SSH keys and disk devices with `cat`,
   `grep`, `stat`, `ls` or `sshd -T` — never through a language
-  runtime (`python3 -c`, `node -e`, `perl -e`, `awk`). Such a
+  runtime (`python3 -c`, `node -e`, `perl -e`, `awk`,
+  `powershell.exe`). Such a
   command line cannot be shown to be read-only, so it counts as a
   write and is blocked.
   This list holds on its own. Some tools also run a mechanical

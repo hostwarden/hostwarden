@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **The guards also cover Windows under WSL.** In a
+  development checkout, the Windows programs that reach a
+  server or administer the machine (`ssh.exe`, `wsl.exe`,
+  `powershell.exe`, `cmd.exe` and a few more) refuse
+  whether they are called by name, by path or in another
+  spelling. The taboo guard also blocks what Windows can
+  do to disks, power and sshd: `diskpart`, the Storage
+  cmdlets, `wsl --shutdown` and `--unregister`, and
+  writes under `C:\ProgramData\ssh`.
 - **The guards also read what Claude Code's Monitor tool runs.**
   A taboo command, a write to the guard's off switch, or an `ssh`
   or `sudo` from a development checkout is refused through

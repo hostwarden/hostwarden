@@ -21,7 +21,9 @@ under pressure.
   mechanically blocks the absolute taboos — halt/
   poweroff, `mkfs`, partition-table writers, deleting
   or overwriting SSH keys, writes to `sshd_config`
-  or to dropbear's configuration —
+  or to dropbear's configuration, and under WSL their
+  Windows counterparts (`diskpart`, `Format-Volume`,
+  `wsl --shutdown`, …) —
   in **every**
   permission mode, even
   `--dangerously-skip-permissions`, and even when the

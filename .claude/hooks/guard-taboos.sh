@@ -29,6 +29,14 @@
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
+#   - the same effects on a machine that carries Windows, as
+#     WSL reaches it: shutdown.exe /s, Stop-Computer, wsl
+#     --shutdown/--terminate (halt), wsl --unregister (the
+#     distribution's whole disk), the same through wslconfig,
+#     diskpart, mbr2gpt, format
+#     X:, the Storage cmdlets (Clear-Disk, Format-Volume ...),
+#     \\.\PhysicalDriveN, sshd_config and host keys under
+#     ProgramData\ssh, and PowerShell or cmd.exe as a runtime
 #
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That
@@ -305,7 +313,7 @@ hit_i() {
 # A raw disk device, as opposed to /dev/null, /dev/stderr,
 # /dev/shm or /dev/disk/by-id (all of which are ordinary and
 # must stay usable).
-DEV='/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])'
+DEV='(/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])|[Pp][Hh][Yy][Ss][Ii][Cc][Aa][Ll][Dd][Rr][Ii][Vv][Ee][0-9])'
 
 # Any SSH key file, OR the directory that holds them. The
 # directory belongs in here because re-permissioning or removing
@@ -347,27 +355,53 @@ DEV='/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])'
 # /etc/ssh itself is NOT a key store: it also holds ssh_config
 # and moduli, so rm -rf /etc/ssh or chmod -R on it is left open,
 # on the same terms as the home directory above.
-HOSTKEY='((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_)'
+#
+# Windows' OpenSSH keeps both in C:\ProgramData\ssh, reached from
+# WSL as /mnt/c/ProgramData/ssh. NTFS ignores case, and a Windows
+# path may use backslashes, hence WINSSH.
+WINSSH='[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa][/\\]+[Ss][Ss][Hh][/\\]+'
+HOSTKEY="((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}ssh_host_)"
 KEYDIR='(\.ssh|/conf/sshd|/etc/dropbear)'
 KEY="($HOSTKEY|authorized_keys|$KEYDIR"'(/|[^[:alnum:]_.-]|$))'
-KEYFILE="($HOSTKEY"'[[:alnum:]_-]*key|\.ssh/id_[[:alnum:]_-]+|authorized_keys)'
+KEYFILE="($HOSTKEY"'[[:alnum:]_-]*key|\.ssh[/\\]+id_[[:alnum:]_-]+|authorized_keys)'
 KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 
 # sshd's config: sshd_config, its drop-in directory, a file an
 # appliance merges into it when it regenerates the config
-# (pfSense appends /etc/sshd_extra), and dropbear's config where
+# (pfSense appends /etc/sshd_extra), dropbear's config where
 # a system runs dropbear instead: OpenWrt's UCI file
 # /etc/config/dropbear, /etc/conf.d/dropbear under OpenRC,
-# /etc/default/dropbear on Debian. The .d suffix is optional, so
-# a plain hit on SSHD also finds the bare file. Then the editors
-# that rewrite a file in place.
-SSHD='/etc/(ssh/sshd_config(\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\.d|default)/dropbear)'
+# /etc/default/dropbear on Debian, and Windows' sshd_config
+# under ProgramData\ssh. The .d suffix is optional, so a plain
+# hit on SSHD also finds the bare file. Then the editors that
+# rewrite a file in place.
+SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}sshd_config)"
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
 # A general-purpose language runtime. See the interpreter section
 # at the bottom for why this list, and not a list of the ways
 # those runtimes spell a write.
 INTERP='(^|[^[:alnum:]_.-])(python[0-9.]*|perl|ruby|node|nodejs|deno|bun|php[0-9.]*|lua[0-9.]*|tclsh|osascript|Rscript|julia|elixir|escript|erl|[gmn]?awk)([^[:alnum:]_.-]|$)'
+# Windows' shells are runtimes too: Set-Content and Remove-Item
+# spell a write no rule below knows. Matched without regard to
+# case, as Windows finds them; cmd only as cmd.exe, since a bare
+# cmd is a common word.
+WININTERP='(^|[^[:alnum:]_.-])((powershell|pwsh)(\.exe)?|cmd\.exe)([^[:alnum:]_.-]|$)'
+# wsl.exe and its older twin wslconfig.exe, as a command word.
+WSL='(^|[^[:alnum:]_.-])wsl(config)?(\.exe)?[[:space:]]'
+
+# The Windows rules below can only match a command that names
+# wsl, a .exe, PowerShell, or one of the words they look for.
+# Checking that once, without a process, keeps their greps off
+# every other call; the guard runs on each one.
+WIN=
+case "$CMD" in
+*[Ww][Ss][Ll]*|*.[Ee][Xx][Ee]*|*[Pp][Ww][Ss][Hh]*) WIN=1 ;;
+*[Pp][Oo][Ww][Ee][Rr][Ss][Hh][Ee][Ll][Ll]*|*[Dd][Ii][Ss][Kk]*) WIN=1 ;;
+*-[Cc][Oo][Mm][Pp][Uu][Tt][Ee][Rr]*|*-[Pp][Aa][Rr][Tt]*) WIN=1 ;;
+*-[Vv][Oo][Ll][Uu][Mm][Ee]*|*[Mm][Bb][Rr]2*) WIN=1 ;;
+*[Ff][Oo][Rr][Mm][Aa][Tt]*) WIN=1 ;;
+esac
 
 # True when command $1 occurs somewhere WITHOUT its read-only
 # exemption $2 applying to that occurrence. Two conditions make
@@ -376,17 +410,19 @@ INTERP='(^|[^[:alnum:]_.-])(python[0-9.]*|perl|ruby|node|nodejs|deno|bun|php[0-9
 # a wrapper disarms the taboo, which is what issue #4 reported:
 # ssh -l root host "fdisk /dev/sda" and lsblk -l && fdisk /dev/sdb
 # were both waved through because a bare -l existed anywhere.
+# A third argument i matches without regard to case, as Windows
+# reads its commands; both patterns are then written in lowercase.
 hit_without() {
-  segments | grep -Eq "$1" || return 1
+  segments | grep -Eq${3:-} "$1" || return 1
   # The command IS present. From here on the only question is
   # whether the exemption belongs to it, so every failure path
   # below must deny. If this awk cannot evaluate POSIX classes,
   # we cannot prove the exemption applies: block.
   printf 'x' | awk '{ exit(($0 ~ /[[:alnum:]]/) ? 0 : 1) }' \
     2>/dev/null || return 0
-  segments | awk -v cmd="$1" -v exempt="$2" '
+  segments | awk -v cmd="$1" -v exempt="$2" -v fold="${3:-}" '
     {
-      line = $0
+      line = fold ? tolower($0) : $0
       while (match(line, cmd)) {
         if (RLENGTH <= 0) break
         if (substr(line, RSTART) !~ exempt) { bare = 1; exit }
@@ -442,10 +478,35 @@ if hit 'sysrq-trigger'; then
   deny "sysrq-trigger powers off or resets the server without \
 shutting anything down cleanly"
 fi
+# shutdown.exe is Windows' own and is judged below, so the Linux
+# rule exempts it rather than lending it its -r.
 if hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
-  '(^|[[:space:]])-(r|c)([[:space:]]|$)'; then
+  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown\.exe'; then
   deny "shutdown without -r powers off the server (reboots \
 use shutdown -r; -c cancels)"
+fi
+# Windows reads shutdown.exe in any case and takes its flags with
+# / or -: /r restarts, /a aborts.
+if [ -n "$WIN" ] \
+  && hit_without '(^|[^[:alnum:]_-])shutdown\.exe([^[:alnum:]_.-]|$)' \
+  '(^|[[:space:]])[/-][ra]([[:space:]]|$)' i; then
+  deny "shutdown.exe without /r or /a powers off the machine"
+fi
+# Windows, as WSL reaches it. Stop-Computer is PowerShell's
+# power-off. wsl --shutdown stops the virtual machine that every
+# distribution runs in, and --terminate (-t, and wslconfig's /t)
+# one distribution: either is a halt for whatever runs inside.
+# -t counts only right after wsl, where it cannot belong to the
+# command wsl runs.
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_-])stop-computer([^[:alnum:]_-]|$)'; then
+  deny "Stop-Computer powers off the machine"
+fi
+if [ -n "$WIN" ] \
+  && hit_i "${WSL}([^;&|]*[[:space:]])?(--(shutdown|terminate)([[:space:]=]|\$)|/(t|terminate)([[:space:]]|\$))|${WSL}+-t([[:space:]]|\$)"
+then
+  deny "wsl --shutdown and --terminate stop WSL distributions, \
+which is a power-off for everything running in them"
 fi
 
 # --- Filesystem creation --------------------------------------
@@ -532,6 +593,40 @@ fi
 if hit 'gpart[[:space:]]+(create|add|delete|destroy|modify|resize|bootcode|recover|set|undo|commit)'
 then
   deny "gpart write verbs modify the partition table"
+fi
+# Windows, as WSL reaches it. Names are matched without regard to
+# case, as Windows reads them. diskpart runs its verbs from a
+# prompt or a script file, so no read-only form of it can be
+# shown; Get-Disk, Get-Partition and Get-Volume inspect instead.
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_.-])diskpart(\.exe)?([^[:alnum:]_.-]|$)'; then
+  deny "diskpart edits disks and partition tables, and none of \
+its forms can be shown to be read-only - inspect with Get-Disk, \
+Get-Partition or Get-Volume"
+fi
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_-])(clear-disk|initialize-disk|set-disk|new-partition|remove-partition|resize-partition|set-partition|format-volume|new-volume)([^[:alnum:]_-]|$)'
+then
+  deny "this Storage cmdlet erases a disk or changes its \
+partition table"
+fi
+# mbr2gpt rewrites the partition table unless it only validates.
+if [ -n "$WIN" ] \
+  && hit_without '(^|[^[:alnum:]_.-])mbr2gpt(\.exe)?([^[:alnum:]_.-]|$)' \
+  '(^|[[:space:]])[/-]validate' i; then
+  deny "mbr2gpt without /validate converts the partition table"
+fi
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_.-])format(\.com)?[[:space:]]+[a-z]:'; then
+  deny "format erases the volume on that drive letter"
+fi
+# wsl --unregister (wslconfig /u) deletes a distribution together
+# with the virtual disk that holds its whole filesystem.
+if [ -n "$WIN" ] \
+  && hit_i "${WSL}([^;&|]*[[:space:]])?(--unregister|/(u|unregister))([[:space:]]|\$)"
+then
+  deny "wsl --unregister deletes the distribution and its whole \
+virtual disk"
 fi
 if hit '(^|[^[:alnum:]_-])dd([^[:alnum:]_-]|$)' \
   && hit 'of=["'\'']?/dev/'; then
@@ -755,7 +850,7 @@ fi
 # cat of the file chained to an unrelated python call. Read with
 # cat, grep, jq, stat or sshd -T instead, which is what the rule
 # files use anyway.
-if hit "$INTERP"; then
+if hit "$INTERP" || { [ -n "$WIN" ] && hit_i "$WININTERP"; }; then
   if hit "$KEY"; then
     deny "an interpreter with an SSH key path on its command \
 line can overwrite or delete the key, and a pattern matcher \
