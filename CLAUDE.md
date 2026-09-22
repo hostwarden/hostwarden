@@ -7,7 +7,8 @@ tool reads. This file adds only what exists here and nowhere else.
 
 - **The taboo guard runs.** `.claude/hooks/guard-taboos.sh` is
   registered as a `PreToolUse` hook on `Bash` and `Monitor`, which
-  both run shell commands, and denies in every permission mode,
+  both run shell commands, and on the edit tools, which it judges
+  by the file they write. It denies in every permission mode,
   `--dangerously-skip-permissions` included. The `PowerShell`
   tool, whose commands it cannot read, is denied outright. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`

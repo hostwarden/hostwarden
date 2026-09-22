@@ -46,7 +46,8 @@ mise.dev.toml          — Pinned versions of the tools check.sh
                          update and release lines (run by
                          scripts/check.sh)
     guard-taboos.sh    — PreToolUse hook that blocks taboo
-                         commands in every permission mode
+                         commands, and edits of SSH keys and
+                         sshd_config, in every permission mode
     guard-taboos-test.sh — Dev-only fixture matrix for the
                          guard (run by scripts/check.sh)
     guard-settings.sh  — PreToolUse hook that keeps the

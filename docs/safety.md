@@ -30,6 +30,8 @@ under pressure.
   `--dangerously-skip-permissions`, and even when the
   command hides inside an `ssh host "…"` wrapper or
   behind a language runtime (`python3 -c "open(…)"`).
+  The agent's own edit tools cannot write an SSH key
+  or `sshd_config` either.
   Read-only forms (`fdisk -l`, `gpart show`, …) stay
   allowed. The hooks read every command Claude Code's
   Bash and Monitor tools run; its PowerShell tool,
