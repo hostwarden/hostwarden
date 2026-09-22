@@ -108,11 +108,15 @@ for t in restic borg borgmatic rsnapshot duplicity \
 done
 
 # Scheduled jobs that look like backups: the keyword and the file,
-# never the line, which may carry a password or a token
-grep -oiE 'backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync' \
-  /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/* \
-  2>/dev/null | sort | uniq -c
-crontab -l -u root 2>/dev/null \
+# never the line, which may carry a password or a token;
+# commented-out lines are not jobs
+for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
+  [ -f "$f" ] || continue
+  grep -v '^[[:space:]]*#' "$f" \
+    | grep -oiE 'backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync' \
+    | sed "s|^|$f:|"
+done | sort | uniq -c
+crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
   | grep -oiE 'backup|restic|borg|zfs|dump|rsync' | sort | uniq -c
 grep -oiE 'backup|snapshot' /etc/periodic.conf \
   /etc/periodic.conf.local 2>/dev/null | sort | uniq -c
