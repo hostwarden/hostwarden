@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Four audit paths no longer miss what they exist to
+  catch.** A fleet-audit probe that reads an instruction in
+  a host's output stops and hands it to you instead of
+  putting it in the table. Housekeeping reports a Docker
+  daemon that does not answer as CRITICAL and asks Home
+  Assistant on its own port, rather than taking the host
+  for a Core install. The security audit checks every
+  AdGuard Home or Pi-hole container it finds, so a setup
+  wizard published only on port 3000 is caught.
+  The session register on a host is created with its final
+  permissions in one step.
 - **OpenMediaVault housekeeping reads SAS disks' SMART health.**
   It takes `SMART Health Status:` as well as the SATA and NVMe
   result line, counts a SAS disk's grown defect list with the

@@ -101,10 +101,13 @@ Triggered when `memory.md` mentions Docker.
 
 ```bash
 docker ps --format \
-  "table {{.Names}}\t{{.Status}}\t{{.Ports}}" \
-  2>/dev/null
+  "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
 ```
 
+- **CRITICAL** if the daemon does not answer — that says nothing
+  about the containers, never that there are none. Permission
+  denied on its socket is not this: the check needs the access
+  from `rules/privilege-escalation.md`, or is reported as skipped
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
@@ -129,10 +132,28 @@ systemctl list-unit-files --type=service --no-legend \
   | grep -i -E 'home-?assistant|hass'
 ```
 
-No `docker` on the host, or no Docker daemon running, means no
-containers: go on with the Core unit search. Permission denied on
-the Docker socket is different — the containers are there but
-unseen, so get the access through
+No `docker` on the host means no containers: go on with the Core
+unit search. A Docker daemon that does not answer is the Docker
+section's finding, not an empty list. Where `memory.md` records
+Container or Supervised, keep that type, and ask Home Assistant
+itself at the URL `memory.md` records, `http://127.0.0.1:8123/`
+when it records none:
+
+```bash
+curl -sk -m 5 <url>manifest.json | grep -c '"name": *"Home Assistant"'
+```
+
+`1` means Home Assistant answers and runs: live restore keeps
+containers up while the daemon is down
+(https://docs.docker.com/engine/daemon/live-restore/); its
+frontend serves that manifest
+(https://github.com/home-assistant/core/blob/dev/homeassistant/components/frontend/__init__.py).
+Anything else — no answer, a proxy's 502, another service's page
+— proves nothing either way: report Home Assistant's state as
+unknown, with the daemon named, never as stopped or running. With
+nothing recorded, go on with the Core search and say Docker could
+not be asked. Permission denied on the Docker socket is different — the
+containers are there but unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
 never conclude Core from it.
 
