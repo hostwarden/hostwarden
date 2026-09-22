@@ -103,12 +103,14 @@ has nothing else to give away. Run them again when:
 
 - the activity check shows Ansible runs (`rules/activity-check.md`
   → Ansible runs) and the host's memory has no `Config management:`
-  line, or a `none` line dated before those runs;
+  line, or a dismissal older than those runs — a `none` line or a
+  `no ansible` entry;
 - the probe above finds a directory, unit or service that the host's
   memory does not account for — no `Config management:` line at all,
-  or one that does not cover it. This is the trigger that arrives
-  too late for the activity check's call; run it in the next one,
-  before reporting the leads;
+  one that does not cover that tool, or a dismissal of it older than
+  the date `ls -ld` prints beside the directory. This is the trigger
+  that arrives too late for the activity check's call; run it in the
+  next one, before reporting the leads;
 - a `Config management: unknown` line is there and this session can
   read what the last one could not;
 - the user says a tool manages the host.
@@ -186,13 +188,14 @@ and ask one question about the tool that is new: does it manage the
 host? A hit is unaccounted for in three ways:
 
 - the memory has no `Config management:` line;
-- it has a `none` or `unknown` one that the hit outdates;
+- it has a dismissal the hit outdates — an `unknown` one, a `none`
+  line, or a `no <tool>` entry for the tool just found;
 - it has a confirmed line that names other tools but not this one.
 
 The third is the one a host grows into: a Puppet agent turns up on a
 host recorded as `ansible`, and asking is the whole point. The
-answer joins the line rather than replacing it, and a tool already
-named there is never asked about again.
+answer joins the line rather than replacing it, and a tool the line
+records as managing the host is not asked about again.
 
 - **Yes, the whole host.**
 - **Yes, some areas** — ask which: a service, a directory, a role
@@ -216,7 +219,15 @@ a marker or the tool's directories say so. A `no <tool>` entry, and
 the `none` line where no tool is left at all, are what keep the
 question from coming back — record a dismissed lead or the same
 directory asks again on the next connection, since the probe that
-found it runs on every one. Otherwise ask again only on one of the
+found it runs on every one.
+
+Both carry a date, and a dismissal holds only until something newer
+than that date turns up: Ansible runs in the journal after it, or a
+directory or unit whose own date is later. It says the markers were
+stale then, never that the tool cannot come back — a host recorded
+`puppet, no ansible (markers stale, 2026-09-22)` whose next
+connection shows Ansible runs is asked again, and the entry is
+replaced by the answer. Otherwise ask again only on one of the
 triggers under Detect above, or when the user raises it. When the
 user takes a host or an area out of a tool, change the line or
 remove it; the files stay as they are, and from then on Hostwarden
