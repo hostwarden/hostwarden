@@ -155,8 +155,22 @@ same_content() {
     # not count against it — a host gains its
     # heinzel-inventory.md, a todo, a longer log, and
     # a byte-for-byte test would call it a conflict
-    # from the first session onwards.
-    ! diff -r "$1" "$2" 2>/dev/null | grep -qv "^Only in $2"
+    # from the first session onwards. A file Hostwarden
+    # has added to since, the log above all, differs
+    # rather than being extra; it still matches as long
+    # as the imported bytes come first, unchanged.
+    diff -rq "$1" "$2" 2>/dev/null | while IFS= read -r sc_line; do
+      case "$sc_line" in
+        "Only in $2"*) continue ;;
+        "Files $1/"*" differ")
+          sc_rel=${sc_line#"Files $1/"}
+          sc_rel=${sc_rel%%" and $2/"*}
+          sc_size=$(wc -c < "$1/$sc_rel")
+          head -c "$sc_size" "$2/$sc_rel" \
+            | cmp -s - "$1/$sc_rel" || exit 1 ;;
+        *) exit 1 ;;
+      esac
+    done
   else
     cmp -s "$1" "$2" 2>/dev/null
   fi
@@ -544,6 +558,11 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       STATE=adopted
     fi
 
+    # Also under --force: everything the old checkout
+    # has is here unchanged, so it has already won,
+    # and what is extra — a longer log, a todo, the
+    # inventory — is this clone's work since, which
+    # replacing the directory would throw away.
     if [ "$STATE" = adopted ]; then
       # Named on stdout: the adopt skill builds an
       # inventory for the hosts a run selected, and a
@@ -557,11 +576,15 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
 
     # An alias here that already points at the same
     # name is not in the way — only the memory behind
-    # it is missing, and that gets repaired below.
+    # it is missing, and that gets repaired below. An
+    # alias whose name is taken here is kept only
+    # after its canonical host: the adopt skill builds
+    # the inventory for that host, which it cannot do
+    # in a directory that never arrived.
+    KEEP=""
     if [ "$STATE" = new ] && occupied "$SRC" "$DST" \
         && [ -z "$FORCE" ]; then
-      keep_host "$H" "already here, use --force to overwrite"
-      continue
+      KEEP=yes
     fi
 
     if [ -n "$CANON" ]; then
@@ -612,6 +635,10 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
         [ -n "$LIST" ] \
           || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
       fi
+    fi
+    if [ -n "$KEEP" ]; then
+      keep_host "$H" "already here, use --force to overwrite"
+      continue
     fi
 
     case "$ESCAPING" in

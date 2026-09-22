@@ -77,7 +77,10 @@ up.
    Then restart Windows. Where WSL is already
    installed, this prints its help instead; install
    the distribution with `wsl --install -d Ubuntu`
-   (`wsl --list --online` shows the names).
+   (`wsl --list --online` shows the names). A
+   distribution still on WSL 1 (`wsl --list
+   --verbose` shows the version) converts with
+   `wsl --set-version Ubuntu 2`.
 2. Open Ubuntu, create the Linux user it asks for,
    and install git and jq:
    ```

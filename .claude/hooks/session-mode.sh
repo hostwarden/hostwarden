@@ -104,10 +104,11 @@ fi
 # Where a pull request goes. Compared by URL, never by remote
 # name: in the maintainer's checkout `upstream` is Heinzel, in a
 # contributor's fork it is this project.
-# Credentials in the URL (a user and token before the host)
-# never reach the transcript: the user part goes for every host.
+# Credentials in the URL (a user and token before the host, or an
+# access_token in the query) never reach the transcript: the user
+# part, the query and the fragment go for every host.
 ORIGIN=$(git remote get-url origin 2>/dev/null |
-  sed -E 's#^([a-z+]+://)[^@/]*@#\1#
+  sed -E 's#^([a-z+]+://)[^@/]*@#\1#; s|[?#].*$||
     s#^(https?://|ssh://)?([^@/]*@)?github\.com[:/]##; s#\.git$##')
 if [ -n "$ORIGIN" ] && [ "$ORIGIN" != "$CANON" ]; then
   echo "  origin is $ORIGIN, not $CANON: pull requests go from"

@@ -39,17 +39,12 @@ case "${1:-}" in
       --no-banner . ;;
 esac
 
-# Which tools there are, and how to install the rest, is the
-# doctor's to say.
-# A doctor that fails to run at all must not read as nothing missing.
-missing=$(sh bin/hostwarden-doctor --dev --quiet) || exit 2
-[ -z "$missing" ] || { printf '%s\n' "$missing" >&2; exit 2; }
-
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything.
-PUSHED='' ALL='' TIPS=''
+PUSHED='' ALL='' TIPS='' OTHER=''
 if [ "${1:-}" = "--pre-push" ]; then
   # One line per ref: <local ref> <sha> <remote ref> <sha>.
+  REFS=$(cat)
   while read -r _ lsha _ rsha; do
     case $lsha in *[!0]*) ;; *) continue ;; esac # a deletion
     TIPS="$TIPS $lsha"
@@ -61,9 +56,46 @@ if [ "${1:-}" = "--pre-push" ]; then
       # may be stale. Run everything.
       ALL=1
     fi
-  done
+  done <<EOF
+$REFS
+EOF
   [ -n "$PUSHED$ALL" ] || exit 0
+  # The checks below read the working tree. That is what is pushed
+  # only when every tip is HEAD and nothing is changed or new;
+  # otherwise each tip is checked out on its own and checked there,
+  # by its own copy of this file, with its own ref line. git sets
+  # GIT_DIR and friends for a hook, and they would point the copy
+  # back at this checkout. An annotated tag's line carries the tag
+  # object, never equal to the HEAD of the checkout made from it, so
+  # tips compare as commits, or that checkout would hand off again
+  # without end.
+  head=$(git rev-parse HEAD)
+  for tip in $TIPS; do
+    [ "$(git rev-parse -q --verify "$tip^{commit}")" = "$head" ] \
+      || OTHER=1
+  done
+  if [ -n "$OTHER" ] || [ -n "$(git status --porcelain)" ]; then
+    rc=0
+    for tip in $(printf '%s\n' $TIPS | sort -u); do
+      tree=$(mktemp -d)
+      git worktree add --quiet --detach "$tree" "$tip" \
+        || { rmdir "$tree"; exit 2; }
+      echo "== checking $tip in a checkout of its own"
+      printf '%s\n' "$REFS" | awk -v t="$tip" '$2 == t' \
+        | (unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+           cd "$tree" && sh scripts/check.sh --pre-push) || rc=1
+      git worktree remove --force "$tree"
+    done
+    exit $rc
+  fi
 fi
+
+# Which tools there are, and how to install the rest, is the
+# doctor's to say. It runs after the hand-over above, which leaves
+# it to each tip's own run.
+# A doctor that fails to run at all must not read as nothing missing.
+missing=$(sh bin/hostwarden-doctor --dev --quiet) || exit 2
+[ -z "$missing" ] || { printf '%s\n' "$missing" >&2; exit 2; }
 
 # pushed_files -- every file the pushed commits touch; -m shows a
 # merge's own changes too, conflict resolutions included.

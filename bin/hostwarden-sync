@@ -81,18 +81,20 @@ upstream() {
     2>/dev/null || true
 }
 
-# A rebase, merge or conflict the user is in the middle of is
-# theirs to finish. Pulling, committing or pushing across it
-# would at best fail, at worst abort their half-resolved work or
-# commit its conflict markers as server memory.
+# A rebase, merge, cherry-pick, revert or conflict the user is in
+# the middle of is theirs to finish. Pulling, committing or pushing
+# across it would at best fail, at worst abort their half-resolved
+# work, commit its conflict markers as server memory, or conclude a
+# resolved cherry-pick under the journal headline.
 GITDIR=$(W rev-parse --git-dir 2>/dev/null) || exit 0
 case "$GITDIR" in /*) ;; *) GITDIR="memory/$GITDIR" ;; esac
 if [ -d "$GITDIR/rebase-merge" ] || [ -d "$GITDIR/rebase-apply" ] \
-    || [ -f "$GITDIR/MERGE_HEAD" ] \
+    || [ -f "$GITDIR/MERGE_HEAD" ] || [ -f "$GITDIR/CHERRY_PICK_HEAD" ] \
+    || [ -f "$GITDIR/REVERT_HEAD" ] || [ -d "$GITDIR/sequencer" ] \
     || [ -n "$(conflicts)" ]; then
   echo "hostwarden: the workspace is in the middle of a rebase, a"
-  echo "  merge or an unresolved conflict; finish it with git -C memory"
-  echo "  first. Nothing synced."
+  echo "  merge, a cherry-pick or revert, or an unresolved conflict;"
+  echo "  finish it with git -C memory first. Nothing synced."
   exit 0
 fi
 

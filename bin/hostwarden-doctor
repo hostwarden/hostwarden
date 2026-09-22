@@ -50,16 +50,32 @@ fi
 OS=$(uname -s 2>/dev/null)
 
 # The guards and connection sharing need a POSIX workstation, so
-# nothing below is worth probing here.
+# nothing below is worth probing here. WSL 1 reports Linux as well;
+# only its kernel release, which ends in -Microsoft there and names
+# microsoft-standard under WSL 2, tells it apart. docs/install.md
+# supports WSL 2 alone.
+UNSUPPORTED=
 case "$OS" in
   MINGW*|MSYS*|CYGWIN*)
-    echo "hostwarden: required, missing: a Unix workstation —" \
-      "on Windows, run Hostwarden in WSL 2 with Ubuntu:" \
-      "wsl --install in an administrator PowerShell, then restart" \
-      "(docs/install.md → Windows)"
-    [ -n "$QUIET" ] && exit 0
-    exit 1 ;;
+    UNSUPPORTED="a Unix workstation — on Windows, run Hostwarden in\
+ WSL 2 with Ubuntu: wsl --install in an administrator PowerShell,\
+ then restart" ;;
+  Linux)
+    REL=
+    { read -r REL < /proc/sys/kernel/osrelease; } 2>/dev/null || true
+    case $REL in
+      *-Microsoft)
+        UNSUPPORTED="WSL 2 — this distribution runs on WSL 1; convert\
+ it with wsl --set-version ${WSL_DISTRO_NAME:-<distribution>} 2 in\
+ PowerShell" ;;
+    esac ;;
 esac
+if [ -n "$UNSUPPORTED" ]; then
+  echo "hostwarden: required, missing: $UNSUPPORTED" \
+    "(docs/install.md → Windows)"
+  [ -n "$QUIET" ] && exit 0
+  exit 1
+fi
 
 PM=
 for p in brew apt-get dnf yum zypper pkg pacman apk; do

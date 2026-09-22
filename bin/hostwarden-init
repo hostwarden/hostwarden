@@ -85,6 +85,14 @@ check_hooks() {
 }
 
 if [ -n "$CLONE" ]; then
+  # The staging directory is ours only once this run made it. One
+  # already there is not ignored by git, so it may well be the
+  # user's, and deleting it unasked is not a step to take.
+  if [ -e memory.clone ] || [ -L memory.clone ]; then
+    echo "hostwarden-init: memory.clone/ is in the way; --clone clones" >&2
+    echo "  into it first. Move it aside or delete it, then run this again." >&2
+    exit 1
+  fi
   # rmdir succeeds on an empty directory only.
   if [ -e memory ] && ! rmdir memory 2>/dev/null; then
     echo "hostwarden-init: memory/ is not empty. --clone needs an" >&2
@@ -93,7 +101,6 @@ if [ -n "$CLONE" ]; then
   fi
   # The clone brings the workspace marker, so it only becomes
   # memory/ once it has passed the checks.
-  rm -rf memory.clone
   hostwarden_git_batch
   git clone --quiet -- "$CLONE" memory.clone
   if ! check_hooks memory.clone; then

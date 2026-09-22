@@ -626,19 +626,22 @@ BLOCKS=$(mktemp -d)
 # through the guard would fail CI for describing a past mistake
 # accurately.
 #
-# Both Markdown fence characters count. A prohibited command in a
-# ~~~ block was invisible to this matrix, which is the one place
-# that cannot have a blind spot.
+# Blocks are found by fenced() from corpus.sh, the parser the layout
+# test uses: both fence characters, and a close only on a run at
+# least as long as the opener. A prohibited command in a ~~~ block
+# was once invisible to this matrix, which is the one place that
+# cannot have a blind spot, and a ~~~~ block closed by nothing
+# would sweep the next ordinary block into its exemption.
 corpus_files | grep '\.md$' | grep -v '/CHANGELOG\.md$' \
   | tr '\n' '\0' | xargs -0 \
-  awk -v dir="$BLOCKS" '
-  /^[ \t]*(```|~~~)/ && !inb { inb = 1
-                         fence = ($0 ~ /~~~/) ? "~~~" : "```"
-                         if (/[ \t](operator|guard-off)[ \t]*$/) next
+  awk -v dir="$BLOCKS" "$FENCE_AWK"'
+  FNR == 1             { FM = ""; out = "" }
+  { was = FM }
+  !fenced($0)          { next }
+  was == ""            { if (/[ \t](operator|guard-off)[ \t]*$/) next
                          f = FILENAME; gsub(/\//, "_", f); n++
                          out = dir "/" f "." n; next }
-  inb && $0 ~ ("^[ \t]*" fence "[ \t]*$") {
-                         if (out) close(out); out = ""; inb = 0; next }
+  FM == ""             { if (out) close(out); out = ""; next }
   out                  { print > out }
 '
 NBLOCKS=0
