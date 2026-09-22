@@ -144,9 +144,13 @@ The six units are the ones the installer starts
   the web UI is down, without app management the apps cannot be
   changed from it.
 - **WARN** where the listener list shows the gateway's `port`, 80
-  by default in the installer, on every address: the web UI answers
-  plain HTTP there. With the gateway unit inactive and no such
-  listener, report the inactive unit alone, and that the UI would
+  by default in the installer, on every address **and names
+  `casaos-gateway` as the process**: the web UI answers plain HTTP
+  there. Another process on that port is that service's line, not
+  CasaOS's; where `ss` gives no process column, say which of the
+  two it is only after the user or an HTTP probe settles it. With
+  the gateway unit inactive and no such listener, report the
+  inactive unit alone, and that the UI would
   answer that way once it runs. The gateway listens with an empty
   host and no TLS
   (https://github.com/IceWhaleTech/CasaOS-Gateway, `main.go`), and
