@@ -1,6 +1,7 @@
 # ZimaOS
 
 Base: none
+Hardware: any
 
 ZimaOS is IceWhale's NAS OS for its ZimaCube, ZimaBoard and
 ZimaBlade hardware and for generic x86-64 machines with UEFI. It is
