@@ -72,7 +72,8 @@ device the host lists but no VM holds is the finding below.
 Which guest got it comes from the guest inventory, which reads
 the lines anyway (`rules/hypervisors.md` → Inventory, and on an
 appliance its own file's Inventory entry): the `hostpci`, `usb`,
-`dev`, `mp` and `lxc.` lines of a Proxmox guest configuration,
+`virtiofs`, `dev`, `mp` and `lxc.` lines of a Proxmox guest
+configuration,
 the `lxc.mount.entry` and device lines of a plain LXC
 container's `config`, `expanded_devices` under Incus and LXD,
 `<hostdev>`, `<filesystem>` and a `hostdev` `<interface>` in a
@@ -135,12 +136,15 @@ inventory also has — a recorded device that is gone, a device
 memory does not list yet — count here against the `Passthrough:`
 line (`references/usb-devices.md` → Findings). On top:
 
-- **WARN:** a bind whose recorded `SOURCE` is missing from the
-  `findmnt` output, its source now on another filesystem — above
-  all the root one. What it sat on is not mounted, and the guest
-  may be writing into the host's system disk.
-- **INFO:** a bind source on another filesystem while the recorded
-  one is still mounted: the data moved. Update the entry.
+- **WARN:** a bind source now on the root filesystem where its
+  entry records another, or on any other filesystem while the
+  recorded one is not mounted. The guest may be writing into the
+  host's system disk. A local disk's `SOURCE` is a kernel device
+  name, which can change at boot: the same `FSTYPE` on the same
+  mount point is the same filesystem.
+- **INFO:** a bind source on another mounted filesystem, not the
+  root one, while the recorded one is still mounted: the data
+  moved. Update the entry.
 - **INFO:** a reserved device no guest claims. `vfio-pci` also
   serves the host's own userspace drivers (DPDK, SPDK), so ask
   once whether a host workload uses it and record the answer in

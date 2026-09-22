@@ -52,11 +52,11 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
   and what the host passed to it:
 
   ```sh
-  v='virsh -c qemu:///system'
-  $v list --all --name | while read -r d; do
+  v() { virsh -c qemu:///system "$@"; }
+  v list --all --name | while read -r d; do
     [ -n "$d" ] || continue
-    echo "@dom $d"; $v domuuid "$d"; $v domiflist "$d"
-    $v dumpxml "$d" | sed -n "/<hostdev/,/<\/hostdev>/p; /<filesystem/,/<\/filesystem>/p; /<interface type='hostdev'/,/<\/interface>/p"
+    echo "@dom $d"; v domuuid "$d"; v domiflist "$d"
+    v dumpxml "$d" | sed -n "/<hostdev/,/<\/hostdev>/p; /<filesystem/,/<\/filesystem>/p; /<interface type='hostdev'/,/<\/interface>/p"
   done
   ```
 

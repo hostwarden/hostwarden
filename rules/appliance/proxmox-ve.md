@@ -230,27 +230,31 @@ Source for everything below unless noted: the admin guide,
     sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
       /^onboot:/p; /^agent:/p; /^hostpci[0-9]*:/p;
       /^usb[0-9]*:/p; /^dev[0-9]*:/p; /^mp[0-9]*:/p;
+      /^virtiofs[0-9]*:/p;
       /^lxc\.mount\.entry:/p;
       /^lxc\.cgroup2\.devices\.allow:/p' "$f"
   done
   cat /etc/pve/ha/resources.cfg
-  if grep -qs 'mapping=' /etc/pve/qemu-server/*.conf; then
+  if grep -qsE 'mapping=|^virtiofs[0-9]*:' /etc/pve/qemu-server/*.conf; then
     pvesh get /cluster/mapping/pci --output-format json
     pvesh get /cluster/mapping/usb --output-format json
+    pvesh get /cluster/mapping/dir --output-format json
   fi
   ```
 
   A VM's MAC is the value after its model (`virtio=`, `e1000=`)
   in `netN:`, a container's the `hwaddr=` value; the UUID is
-  `uuid=` in `smbios1:`. The `hostpci`, `usb`, `dev`, `mp` and
-  `lxc.` lines are what the host passed to that guest
+  `uuid=` in `smbios1:`. The `hostpci`, `usb`, `virtiofs`, `dev`,
+  `mp` and `lxc.` lines are what the host passed to that guest
   (`.agents/skills/hostwarden-housekeeping/references/passthrough.md`):
   a VM's `hostpci0:` names its device by PCI address
   (`01:00.0`; `01:00` is every function of it), `usb0:` by
   `vendor:product` or a bus port, and either by `mapping=`
-  instead: a cluster-wide name the two `pvesh` lists resolve to a
-  `path=` and `id=` per node, read only where a guest uses one. A
-  container's `dev0:` is a device node. An `mp0:` is passthrough
+  instead: a cluster-wide name the `pvesh` lists resolve to a
+  `path=` and `id=` per node, read only where a guest uses one.
+  `virtiofs0:` is a VM's host directory, always by such a name,
+  which the `dir` list resolves to a `path=`. A container's
+  `dev0:` is a device node. An `mp0:` is passthrough
   when its source is a host path (`/srv/media,mp=/media`, or a
   path under `/dev/`), not when it is a storage volume
   (`local-lvm:vm-101-disk-1`). `resources.cfg` names the
