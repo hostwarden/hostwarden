@@ -207,7 +207,18 @@ Record which one in server memory.
 - **Enable/disable services:**
   - `sysrc <name>_enable="YES"` (preferred)
   - Or manually in `/etc/rc.conf`
-  - Check: `sysrc -a | grep <name>`
+  - Check: `sysrc -n <name>_enable`
+- **Read `rc.conf` without printing a secret:**
+  `sysrc -N -a` lists the variable names alone and costs one
+  pass. `sysrc -e <name> …` prints `name="value"` for the names
+  it is given. Resolve values that way, for names already in
+  hand: `sysrc` re-sources `/etc/defaults/rc.conf` in a subshell
+  for every value it prints, so a whole-host `sysrc -e -a` pays
+  that per variable. Match on the name with an anchored pattern,
+  never on a whole `name="value"` line — a `<something>_flags`
+  value can carry a token (`rules/secrets.md`). An empty result
+  proves nothing on its own: the `-a` path exits 0 whatever it
+  could not read.
 - **List enabled services:** `service -e` prints the
   paths of the enabled rc scripts in boot order —
   `/etc/rc.d/` for the base system,

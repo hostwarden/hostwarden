@@ -49,7 +49,7 @@ system before it is wiped. Store it in
 
 - List all enabled services
   (`systemctl list-unit-files --state=enabled`,
-  `sysrc -a | grep _enable`)
+  `sysrc -e -a | grep -E '^[A-Za-z0-9_]+_enable='`)
 - For each service: config files, data directories,
   listening ports
 - Database dumps (PostgreSQL, MySQL, etc.)
