@@ -22,8 +22,7 @@ goes in the label: behind a RAID controller several disks share
 one device node (`/dev/bus/0 -d megaraid,0`, `megaraid,1`, …).
 
 A caller that names its own disk list loops over that list with
-this `smartctl … | grep -E` line verbatim, leaving out `-d`. Its
-file says where the list comes from.
+this `smartctl … | grep -E` line verbatim, leaving out `-d`.
 
 ## Reading the output
 
@@ -31,18 +30,15 @@ file says where the list comes from.
   - SATA and NVMe: `SMART overall-health self-assessment test
     result:`, then `PASSED`, `FAILED!` or `UNKNOWN!`.
   - SAS and other SCSI disks: `SMART Health Status: OK`, or the
-    failure in its place followed by `[asc=…, ascq=…]`. A SCSI
-    disk without an Informational Exceptions mode page prints no
-    health line at all.
+    failure in its place followed by `[asc=…, ascq=…]`, or nothing
+    when the disk has no Informational Exceptions mode page.
 - **Counts:** on SATA the ATA attributes, whose raw value is the
   last column. A SAS disk has no ATA attributes and prints
   `Elements in grown defect list: <n>` instead. NVMe prints
   `Media and Data Integrity Errors` and `Percentage Used`.
 - **A sleeping disk:** `-n standby` leaves a disk in STANDBY or
   SLEEP alone and prints `Device is in STANDBY mode` (or `SLEEP`)
-  in place of the rest; it is read on the next run.
-- **Unknown:** a disk that prints neither a health line nor
-  `Device is in` has unknown health.
+  in place of the rest.
 
 The strings are smartmontools' own (`ataprint.cpp`,
 `scsiprint.cpp`, `smartctl.cpp`).
@@ -57,8 +53,11 @@ Severities as in `references/report-format.md`:
   reported-uncorrect sectors, a grown defect list above 0, NVMe
   media errors above 0, or NVMe `Percentage Used` at 90 or more.
 - **Named as unknown**, never as passing: a disk whose health line
-  is `UNKNOWN!` or missing. A sleeping disk is named as asleep.
+  is `UNKNOWN!`, or that prints neither a health line nor
+  `Device is in`. A sleeping disk is named as asleep and read on
+  the next run.
 
-Record each disk's counts in the host's `memory.md` on the first
-run and whenever they change, so the next run can say whether they
-grew. No other threshold applies without a source for it.
+Record every WARN count in the host's `memory.md`, by disk, when it
+first appears and whenever it changes; a disk with no entry had
+none, so the next run can say whether a count grew. No other
+threshold applies without a source for it.
