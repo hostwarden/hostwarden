@@ -102,13 +102,9 @@ local socket and a remote client at `wss://<host>/api/current`
 (25.04 and later; 24.10 has only the older protocol at
 `/websocket`). The REST API under `/api/v2.0` is deprecated since
 25.04 and is never used
-(<https://www.truenas.com/docs/scale/25.10/api/>). Hostwarden uses
-two access levels, set up separately, and the user decides whether
-the second exists at all:
-
-- **Read**: every API read, always, also where write access exists.
-- **Write**: only for a change the user asked for and approved in
-  this session.
+(<https://www.truenas.com/docs/scale/25.10/api/>). The procedure is
+`rules/appliance-api.md`; this section adds what is TrueNAS's own,
+and names where it differs.
 
 The middleware enforces roles on every call, the local socket
 included: a `midclt` run by a user other than root gets that user's
@@ -153,27 +149,15 @@ outside the caller's role answers `Not authorized`.
   not subject to its user's two-factor authentication, and TrueNAS
   revokes a key that arrives over plain HTTP
   (<https://www.truenas.com/docs/scale/25.10/scaletutorials/toptoolbar/managingapikeys/>).
-  Each key goes into a file the user creates and fills as
-  `rules/secrets.md` → API Credentials on the Workstation
-  describes, one line, the key exactly as shown (`<id>-<key>`):
-  `truenas-ro.key` for the read key, `truenas-rw.key` for the write
-  key.
+  Each key file holds one line, the key exactly as shown
+  (`<id>-<key>`): `truenas-ro.key` for the read key,
+  `truenas-rw.key` for the write key.
 - The first read confirms the access: `midclt call auth.me` as the
-  read user names the user and its privilege. A login that fails or
-  a key that is rejected is reported as such and not retried in a
-  loop. Never prove that the read user cannot write by trying a
-  write: the role the user set in the UI is the proof.
-- Record in server memory:
-  ```
-  API read: api-read (Readonly Admin)
-  API write: truenas_admin (Full Admin)
-  API path: ssh
-  ```
-  and `API write: none` when the user wants read access only. On
-  the workstation path each account line adds its key file:
-  ```
-  API read: api-read (Readonly Admin), ~/hostwarden-keys/<host>/truenas-ro.key
-  ```
+  read user names the user and its privilege.
+- Server memory records the accounts with their roles,
+  `API read: api-read (Readonly Admin)`; **over SSH there is no key
+  file to name**, so the path after the role appears only on the
+  workstation path.
 
 ### How a call reaches the API
 
@@ -219,10 +203,10 @@ outside the caller's role answers `Not authorized`.
 
 ### Reading
 
-- **One call per task.** Over SSH, everything a task reads goes into
-  one bundle run as the read user (`rules/ssh-connections.md` →
-  Bundle commands), each method preceded by a JSON marker so the
-  stream stays parseable:
+- **Over SSH no credential travels on stdin**, so unlike
+  `rules/appliance-api.md` → Reaching the API, a task's reads go
+  into one `sh -s` bundle run as the read user
+  (`rules/ssh-connections.md` → Bundle commands):
 
   ```
   ssh … api-read@<host> sh -s <<'EOF' | jq …
@@ -233,9 +217,7 @@ outside the caller's role answers `Not authorized`.
 
   On the workstation path each method is its own `midclt` call and
   its own login; call only what the task needs.
-- **The workstation filters before anything reaches the
-  conversation**: the filter in `rules/secrets.md` → API Credentials
-  on the Workstation, with this added to its pattern:
+- The filter's pattern gains:
   ```
   passwd|pass_$|bindpw|key$|key_id|hash$|salt|credentials|attributes|compose_config
   ```
@@ -244,28 +226,23 @@ outside the caller's role answers `Not authorized`.
   cloud credentials' `attributes`, a cloud sync task's
   `credentials`, a custom app's compose config, and the SNMP, iSCSI
   and NVMe keys (`truenas/middleware`,
-  `src/middlewared/middlewared/api/v25_10_0/`). Then `jq -s` reads
-  the stream as one array in which each marker precedes its
-  response, and a projection keeps what the question needs; a
-  `select` in the query options (Housekeeping and Audits) keeps the
-  host from sending the rest.
+  `src/middlewared/middlewared/api/v25_10_0/`). A `select` in the
+  query options (Housekeeping and Audits) keeps the host from
+  sending the rest.
 - Method names and fields come from the API reference of the
   installed release, <https://api.truenas.com/v25.10/> for 25.10,
-  which changes between releases. A method or field that is missing
-  is a fact to report, never one to work around.
+  which changes between releases.
 
 ### Writing
 
-- **Only with write access, only after asking**, and only for what
-  the user asked for. Show the method and its arguments, and what
-  else the change touches (Pools and Datasets names what to show
-  before a dataset change). A method that runs as a job gets `-j`.
-- **Back up the object first** (`rules/backups.md` → State behind
-  an API): the `…config` or `…get_instance` of what changes, read as
-  the read user straight into the backup file, which never passes
-  through the conversation.
-- **The body is a file on the workstation.** A `midclt` from 26.0
-  on reads it from stdin when the last argument is `-`: over SSH
+- Pools and Datasets names what to show before a dataset change. A
+  method that runs as a job gets `-j`.
+- The backup is the `…config` or `…get_instance` of what changes,
+  read as the read user straight into the backup file.
+- **The body is a file on the workstation**, and unlike
+  `rules/appliance-api.md` → Writing it is not copied to the host:
+  a `midclt` from 26.0 on reads it from stdin when the last argument
+  is `-`: over SSH
   `ssh … <write-user>@<host> "midclt call <method> <id> -" < body.json`,
   from the workstation `midclt … call <method> <id> - < body.json`.
   The `midclt` of 24.10 to 25.10 has no `-`, so the body goes as an
@@ -275,10 +252,8 @@ outside the caller's role answers `Not authorized`.
 - The API has no dry-run. The check is the method's schema in the
   reference of the installed release (`AGENTS.md` → Verify Before
   Running), and a wrong body comes back as a validation error.
-- A change that can cut the way in — the network, the SSH service,
-  the UI allowlist — follows `rules/ssh-safety-net.md`; Replace:
-  Networking names the one revert the middleware arms by itself.
-- Read the object back after the change and compare.
+- Replace: Networking names the one revert the middleware arms by
+  itself for a change that can cut the way in.
 
 ### What stays on SSH
 
