@@ -270,7 +270,7 @@ repositories on GitHub where the docs are silent.
     v=; cmp -s "$f" "$t" || v=" $(plugin version "$f") $(plugin version "$t")"
     echo "$p $(date -r "$t" +%s)$v"
   done
-  docker ps -a --format '{{.Image}}' | sort -u
+  docker ps -a --format '{{.Image}}' | sed -e '\|/|!s|^|library/|' -e '/:[^/]*$/!s/$/:latest/' | sort -u
   j=/var/lib/docker/unraid-update-status.json
   date -r "$j" +%s && grep -E '^    "|"status"' "$j"
   ```
@@ -304,10 +304,12 @@ repositories on GitHub where the docs are silent.
   the boot, or it names no `pluginURL` a check could reach. The
   Docker tab's check writes one entry per image to
   `unraid-update-status.json`, timed like the plugins by its last
-  run, keyed by the image with its tag (`:latest` when the
-  container names none): `status` `false` is an update, `undef`
-  unchecked, and an image `docker ps` lists without an entry was
-  never checked.
+  run, keyed by the image the way `ensureImageTag` in
+  `DockerClient.php` writes it and the `sed` above rewrites the
+  `docker ps` list: `library/` before a name without a `/`,
+  `:latest` when it names no tag. `status` `false` is an update,
+  `undef` unchecked, and an image `docker ps` lists without an
+  entry was never checked.
 - Findings:
   - load above the CPU count in server memory, or memory and swap
     nearly exhausted;
