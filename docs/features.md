@@ -153,8 +153,8 @@ Hosts can be mixed freely. Outside that scope Hostwarden
 works by hand as usual. Inside it, it tells you the
 tool would undo a hand change, and offers to make it in
 your Ansible playbooks instead; a hand change happens
-only when you insist, and goes on the host's to-do list
-to be carried into the code. Ansible runs by anyone show
+only when you insist, and stays noted in the host's
+memory until it is carried into the code. Ansible runs by anyone show
 up in the recent-activity summary on connect.
 
 Hosts built with Terraform or OpenTofu are noted when you

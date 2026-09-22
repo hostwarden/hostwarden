@@ -130,38 +130,40 @@ writers.
 
 ## Ansible runs
 
-Ansible logs every module it runs on a host, whoever started it:
-under the journal's own process name with the message
-`ansible-<module> Invoked with …`, or under the identifier
-`ansible-<module>` where it falls back to syslog. On a host with
-systemd, read them in the same call as the journal, with the same
-privileges:
+On a host with systemd, read Ansible's module runs in the same call
+as the journal, with the same privileges. Ansible logs them with the
+field `MODULE=basic.py`, or under the identifier `ansible-<module>`
+where the host lacks Python's systemd bindings; both are looked up
+in the journal's index, never by scanning it:
 
 ```
-{ journalctl --since "7 days ago" --no-pager -q -o short-iso 2>&1 \
-    || echo "check failed: journalctl exit $?"; } \
-  | sed -nE -e '/^check failed:/p' -e 's/^([^ ]+|[A-Z][a-z]{2} +[0-9]+ [0-9:]+) [^ ]+ ([^ ]+\[[0-9]+\]: )?(ansible-[A-Za-z0-9_.]+):? Invoked with .*/\1 \3/p' \
-  | tail -n 50
+ids=$(journalctl -F SYSLOG_IDENTIFIER 2>&1 | sed -n 's/^ansible-/-t ansible-/p')
+{ journalctl --since "7 days ago" --no-pager -q -o short-iso MODULE=basic.py
+  [ -z "$ids" ] || journalctl --since "7 days ago" --no-pager -q -o short-iso $ids
+} 2>&1 | awk '
+  /^[0-9][0-9][0-9][0-9]-/ {
+    if (/ Invoked with /) for (i = 3; i <= 4; i++) if ($i ~ /^ansible-/) {
+      m = $i; sub(/\[.*/, "", m); sub(/:$/, "", m); n++
+      if (f == "" || $1 < f) f = $1
+      if ($1 > l) { l = $1; lm = m }
+      break
+    }
+    next
+  }
+  NF { print "check failed: " $0 }
+  END { if (n) print n " module runs, " f " to " l ", last " lm }'
 ```
 
-Where the OS file's `## Logs` section reads a syslog file instead —
-`/var/log/messages` on FreeBSD and Alpine — run the same `sed` over
-that file. Elsewhere this read does not run; say so only when the
-host's memory has a `Config management: ansible` line.
+It prints one line or nothing, never the entries themselves: their
+arguments can carry values the module did not mark secret
+(`rules/secrets.md`). A `check failed:` line means the read did not
+run. Without systemd it does not run at all, and the leads in
+`rules/config-management.md` stand in.
 
-The `sed` keeps the time and the module name and drops the rest:
-the arguments after `Invoked with` can carry values the module did
-not mark secret (`rules/secrets.md`), so never print the raw lines.
-A `check failed:` line is a failed check, like any other here.
-
-Nothing is logged for a module with `no_log`, or where the run set
-`no_target_syslog`, so silence is not proof that Ansible never ran.
-
-Report runs as activity: how many module runs, first and last time,
-and the last module. A run inside the last 15 minutes may still be
-going on — treat it like a live Heinzel entry above before making a
-change. Runs on a host whose memory has no `Config management:` line
-send you to `rules/config-management.md`.
+Report the line as activity. A last run inside the last 15 minutes
+may still be going on: treat it like a live Heinzel entry above
+before making a change. Runs on a host whose memory has no
+`Config management:` line send you to `rules/config-management.md`.
 
 ## What to show
 

@@ -60,8 +60,7 @@ A host that a configuration management tool manages,
 wholly or in some areas, gains a `Config management:`
 line, and one that Terraform or OpenTofu provisioned
 a `Provisioned by:` line; `rules/config-management.md`
-owns both. Hosts without one are managed by hand,
-which is the normal case too.
+owns their wording. Most hosts have neither.
 
 Adapt fields to OS (add Arch, Homebrew for macOS;
 add `Mode: local` for localhost); an OS file whose

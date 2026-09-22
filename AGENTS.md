@@ -269,8 +269,8 @@ trigger — not a request from the user.
 **Before you change something**
 
 - Changing anything on a host whose memory has a
-  `Config management:` line → `rules/config-management.md`, for
-  what the tool would undo
+  `Config management:` or `Provisioned by:` line, or a file whose
+  header says a tool manages it → `rules/config-management.md`
 - Editing any config file → `rules/backups.md`
 - Installing or upgrading any software →
   `rules/version-check.md`, for the stable version to install.
