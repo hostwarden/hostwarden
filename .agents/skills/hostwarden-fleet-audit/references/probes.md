@@ -345,6 +345,7 @@ is started there, and read the timezone directly:
 
 ```bash
 readlink /etc/localtime
+cat /etc/timezone 2>/dev/null
 date +%Z
 ```
 
@@ -355,8 +356,12 @@ Row keys on an Alpine host:
   `n/a (busybox ntpd)` or `n/a (openntpd)` under those, which
   this probe does not read a sync state from
 - Active time service — its name and state in `###rc###`
-- Timezone — the zone `/etc/localtime` points to, else the
-  abbreviation `date` prints
+- Timezone — the zone name after `zoneinfo/` in the link
+  target: `setup-timezone` links `/etc/localtime` into
+  `/etc/zoneinfo/` or `/usr/share/zoneinfo/`, and only the
+  name compares with `timedatectl`'s. Where `/etc/localtime`
+  is a copied file, `/etc/timezone`; the abbreviation `date`
+  prints only when neither names the zone
 
 Judge on the host alone: no time service started is a warning,
 except in LXC (`openrc --sys` prints `LXC`), whose clock is the
@@ -415,5 +420,6 @@ fi
 uptime
 ```
 
-The row keys and the criteria above apply unchanged; read the
-uptime from the `up …` part of the line.
+The row keys and the criteria above apply, with the uptime read
+from the `up …` part of the line. The needrestart row is
+`n/a (Alpine)`: there is no needrestart and no apt hook.
