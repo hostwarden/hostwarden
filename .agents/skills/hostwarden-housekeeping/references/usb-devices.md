@@ -142,7 +142,7 @@ a VM holds answers nothing here.
 Record the result in the host's `memory.md`, one line for all:
 
 ```
-- USB: UPS APC Back-UPS ES 700 (051d:0002, NUT `ups`); Zigbee ConBee II (1cf1:0030)
+- USB: UPS APC Back-UPS (051d:0002, NUT `ups`); Zigbee ConBee II (1cf1:0030)
 - USB: none relevant
 ```
 
