@@ -447,7 +447,7 @@ is QNAP's own.
   dmesg | grep -i -o -E "out of memory|oom-killer|I/O error" | sort | uniq -c
   grep -c zfs /proc/filesystems
   cat /proc/mdstat
-  zpool list -H -o name,cap,health
+  zpool list -H -o name,size,alloc,free,cap,health
   zpool status -v
   awk '$2 ~ /^\/share\/[^/]+$/ && $3 ~ /^ext[34]$/ {print $2}' /proc/mounts | while read -r m; do df -h "$m" | tail -n 1; done
   awk '/^\[/{s=$0; next} {k=$0; sub(/[ \t]*=.*/, "", k); v=$0; sub(/^[^=]*=[ \t]*/, "", v)} k ~ /^(Version|Enable|Author|store)$/ {r[s]=r[s] " " k "=" v} END{for (x in r) print x r[x]}' /etc/config/qpkg.conf
@@ -461,9 +461,10 @@ is QNAP's own.
   belongs to. `dmesg` reaches back only to the boot, not the seven
   days the Linux baseline reads; say which. The `df` loop reads only
   the local ext4 volumes that QTS mounts directly under `/share`;
-  QuTS hero's fill level is `zpool list`'s `cap`. The `qpkg.conf`
-  loop prints one line per package. The `docker ps` line is judged
-  as `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+  QuTS hero's size is `zpool list`'s `size`, its fill level `cap`.
+  The `qpkg.conf` loop prints one line per package. The `docker ps`
+  line is judged as
+  `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
   → Docker says. Where `smartctl` exists, append the probe in
   `.agents/skills/hostwarden-housekeeping/references/smart.md` to
   the same call; where it does not, the SMART state is under
