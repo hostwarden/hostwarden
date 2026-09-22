@@ -64,9 +64,13 @@ deny() {
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
 RECORD_RE='guard-off-'
 
+# $0 has no slash when the hook runs as `sh guard-settings.sh` from
+# its own directory; dirname gave "." there, and so does this.
+case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
+
 # A settings file this session loads that already carries the
 # variable. Two files, test and grep, no parsing of paths.
-PROJECT=${CLAUDE_PROJECT_DIR:-${0%/*}/../..}
+PROJECT=${CLAUDE_PROJECT_DIR:-$HERE/../..}
 any_holds_var() {
   grep -qs "$V" "$PROJECT/.claude/settings.local.json" \
     "$PROJECT/.claude/settings.json" "$HOME/.claude/settings.json"

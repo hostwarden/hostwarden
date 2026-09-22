@@ -832,6 +832,18 @@ settings_case deny 'Bash: sed on settings while the key exists' \
 settings_case pass 'Bash: sed on settings without the key' \
   "$(json_for "sed -i 's/0/1/' .claude/settings.local.json")" \
   "CLAUDE_PROJECT_DIR=$SET/none" "HOME=$SET/none"
+# Without CLAUDE_PROJECT_DIR the hook finds the project from its own
+# path, also when it runs by bare name from its directory.
+mkdir -p "$SET/.claude/hooks"
+cp "$SGUARD" "$SET/.claude/hooks/"
+SED_JSON=$(json_for "sed -i 's/0/1/' .claude/settings.local.json")
+for RUN in "sh $SET/.claude/hooks/guard-settings.sh" \
+  "cd $SET/.claude/hooks && sh guard-settings.sh"; do
+  OUT=$(printf '%s' "$SED_JSON" | env -u "$V" -u CLAUDE_PROJECT_DIR \
+    HOME="$SET/none" sh -c "$RUN")
+  expect "guard-settings found no project without CLAUDE_PROJECT_DIR: $RUN" \
+    denied "$OUT"
+done
 rm -rf "$SET"
 settings_case pass 'Edit a hook that mentions the records' \
   '{"tool_name":"Edit","tool_input":{"file_path":"/r/.claude/hooks/check-session.sh","old_string":"a","new_string":"guard-off-"}}'
