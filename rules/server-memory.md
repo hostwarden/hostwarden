@@ -11,7 +11,8 @@ every distribution on one Windows machine carries
 the same hostname.
 
 - **The Windows hostname** comes from the Windows
-  side, `hostname.exe` through interop, never from
+  side, `hostname.exe` through interop
+  (`rules/platform/wsl.md` → Windows programs), never from
   the Linux `hostname`, which `/etc/wsl.conf` can
   change. Where interop is off, ask the user.
 - **The distribution** is the `WSL_DISTRO_NAME` line

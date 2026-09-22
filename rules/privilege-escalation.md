@@ -3,7 +3,9 @@
 **Local mode:** when the target is the local
 machine, skip the root SSH fallback entirely. If
 sudo is unusable, go straight to unprivileged mode
-(see `AGENTS.md` → Local mode).
+(see `AGENTS.md` → Local mode) — after the stand-in
+from Stand-ins for sudo below, where the OS file names
+one.
 
 ## Sudo
 
@@ -31,26 +33,17 @@ command -v sudo && sudo -n true
 On subsequent connections, check server memory for
 the sudo flag.
 
-## Doas
+## Stand-ins for sudo
 
-Where `sudo` may be missing — on Alpine, whose
-default is `doas` (`rules/os/alpine.md` → Notes) —
-send this probe in place of the one above, before
-falling back to root SSH:
-
-```
-command -v sudo && sudo -n true && echo sudo=ok
-command -v doas && doas -n true && echo doas=ok
-```
-
-Judge each tool by its own `=ok` line, never by the
-exit status of the whole call: the last command
-decides that. Record the sudo line as above, and
-`- Doas: passwordless` or
-`- Doas: requires password (unusable)` next to it.
-When doas works and sudo does not, `doas -n` stands in for
-`sudo -n` wherever an instruction names it, for the
-whole session.
+The loaded OS file may have a `## Privileges` section
+that names a tool standing in for `sudo -n` where sudo
+is unusable: `doas` on Alpine (`rules/os/alpine.md`),
+`wsl.exe -u root` on WSL (`rules/platform/wsl.md`).
+Probe it as that section says and record the line it
+gives. Where it works and sudo does not, it stands in
+for `sudo -n` wherever an instruction names it, for the
+whole session. It comes before the root SSH fallback,
+and in local mode before unprivileged mode.
 
 ## Root SSH Fallback
 

@@ -310,6 +310,27 @@ check could not see the log.
 entry is lost. When no `rc-status` line shows a syslog daemon as
 `started`, log to the local changelog only and tell the user.
 
+## Privileges
+
+Alpine's default is `doas` (main); `sudo` is in community.
+`doas` stands in for sudo (`rules/privilege-escalation.md` →
+Stand-ins for sudo). Send this probe in place of the sudo probe:
+
+```
+command -v sudo && sudo -n true && echo sudo=ok
+command -v doas && doas -n true && echo doas=ok
+```
+
+Judge each tool by its own `=ok` line, never by the exit status
+of the whole call: the last command decides that. Record the sudo
+line as that file says, and `- Doas: passwordless` or
+`- Doas: requires password (unusable)` next to it.
+
+`doas -n` fails unless the matching rule in `/etc/doas.conf` or
+`/etc/doas.d/*.conf` says `nopass`; a `persist` rule does not help
+over non-interactive SSH. `doas` takes `-u <user>` and `-s`; it has
+no `-i` or `-E`.
+
 ## Directory Conventions
 
 - Config files: `/etc/`
@@ -328,15 +349,6 @@ entry is lost. When no `rc-status` line shows a syslog daemon as
   there)
 
 ## Notes
-
-### doas and sudo
-
-Alpine's default is `doas` (main); `sudo` is in community. Probe
-the one that is installed (`rules/privilege-escalation.md`).
-`doas -n` fails unless the matching rule in `/etc/doas.conf` or
-`/etc/doas.d/*.conf` says `nopass`; a `persist` rule does not help
-over non-interactive SSH. `doas` takes `-u <user>` and `-s`; it has
-no `-i` or `-E`.
 
 ### Busybox userland
 
