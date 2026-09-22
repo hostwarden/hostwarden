@@ -31,8 +31,8 @@ system rather than trust it.
   this release, and change nothing on the host.
 - `/etc.defaults/VERSION` holds `key="value"` lines, among them
   `majorversion`, `minorversion`, `productversion` (e.g. `7.2.2`),
-  `buildnumber`, `smallfixnumber` and `os_name="DSM"`. Synology
-  does not document the file; Salt's grains
+  `buildnumber`, `smallfixnumber` and `os_name="DSM"`, the last
+  confirmed from DSM 7.2 on. Synology does not document the file; Salt's grains
   (`salt/grains/core.py`) and Tailscale
   (`hostinfo/hostinfo_linux.go`) read the version from it. Step 1
   of `rules/os-detection.md` prints it; later connections read it
@@ -50,15 +50,14 @@ system rather than trust it.
   Each minor version (7.1, 7.2, 7.3, …) has its own end of
   maintenance and, for a long-term support version, an end of
   extended life; releases past both get no security fixes. A host
-  on such a release is a critical finding. Container Manager needs
-  DSM 7.2 or later (see Containers).
+  on such a release is a critical finding.
 - A model stops receiving new DSM versions of its own: the release
   notes list the models a release skips and the models for which it
   is the last one, and the product support status page gives each
   model's phase (<https://www.synology.com/en-global/products/status>).
   A model past its end of life is a finding.
 
-## Privileges
+## Access and Privileges
 
 - **Only members of the local `administrators` group may log in
   over SSH or Telnet, and only with a password that is not blank.
@@ -75,15 +74,11 @@ system rather than trust it.
 - **Do not probe root SSH unless the user says root login is set
   up.** The Knowledge Center names root as an SSH login only up to
   DSM 5.2
-  (<https://kb.synology.com/en-global/DSM/tutorial/How_to_login_to_DSM_with_root_permission_via_SSH_Telnet>),
-  and auto block counts failed SSH logins (Access and SSH). Record
-  `Root SSH: unavailable` and go on in unprivileged mode.
-- **Unprivileged mode is the usual state here.** Without root, the
-  version, load, memory, the RAID state in `/proc/mdstat`, disk
-  space, the package list and pending package updates are readable;
-  the syslog, SMART, the containers, the effective SSH settings and
-  pending DSM updates are not (Housekeeping and Audits). Say which
-  checks were skipped for that reason.
+  (<https://kb.synology.com/en-global/DSM/tutorial/How_to_login_to_DSM_with_root_permission_via_SSH_Telnet>).
+  Record `Root SSH: unavailable` and
+  `Privilege mode: unprivileged` without the probe.
+- **Unprivileged mode is the usual state here.** Housekeeping and
+  Audits says which checks need root; name the ones skipped.
 - Passwordless `sudo` for the SSH account is the user's decision
   and the user's change, made at their own root shell; Hostwarden
   does not write `sudoers` here. Third-party reports say a DSM
@@ -94,8 +89,6 @@ system rather than trust it.
   `/usr/syno/bin/synogetkeyvalue` and `/usr/syno/sbin/synoupgrade`,
   as third-party scripts do
   (<https://github.com/007revad/Synology_app_mover>).
-
-## Access and SSH
 
 - SSH is switched on, and its port set, under Control Panel →
   Terminal & SNMP → Terminal; Advanced Settings there sets the
@@ -165,8 +158,7 @@ system rather than trust it.
   current version, never a new major one), and, on models released
   in 2024 and earlier, "Notify me and let me decide"
   (<https://kb.synology.com/en-global/DSM/help/DSM/AdminCenter/system_dsmupdate?version=7>).
-  Expected: one of the first two. Notify-only is a finding, and so
-  is any pending update (see Updates). Packages update under Package
+  Expected: one of the first two. Packages update under Package
   Center → Settings → Auto-update.
 - **Services.** DSM starts its services and packages itself; turn a
   service on or off on its settings page, and a package in Package
@@ -399,7 +391,6 @@ system rather than trust it.
 - The Linux baseline does not apply (see What Does Not Apply).
   Housekeeping reads, in one call; the first part needs no root:
   ```
-  cat /etc.defaults/VERSION
   cat /proc/uptime /proc/loadavg
   grep -E "^(MemTotal|MemAvailable|SwapTotal|SwapFree):" /proc/meminfo
   cat /proc/mdstat
@@ -416,9 +407,7 @@ system rather than trust it.
     echo "== ${d##*/}"
     smartctl -n standby -H -A /dev/${d##*/} | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
-  for f in $(ls -tr /var/log/messages*); do
-    case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac
-  done | grep -c -E "Out of memory|I/O error"
+  grep -c -E "Out of memory|I/O error" /var/log/messages
   /usr/local/bin/docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Label "com.docker.compose.project"}}'
   ```
   DSM names drives `sd*`, `sata*`, `sas*`, `nvme*` and `nvc*` in
@@ -431,9 +420,9 @@ system rather than trust it.
   is the user's view of it. A USB drive is an `sd*` drive too, and
   often answers only through its bridge. NVMe drives do not run
   SMART tests in DSM (HDD/SSD help page), but report their
-  counters. The syslog counts reach back as far as the files do
-  (Logs), not the seven days the Linux baseline reads; say how
-  far.
+  counters. The syslog count reads the current `messages` file
+  only, not the seven days the Linux baseline reads; say how far
+  back its first line goes.
 - Findings:
   - a DSM release past its end of maintenance, and past its end of
     extended life, or a model past its end of life (Version
@@ -443,14 +432,16 @@ system rather than trust it.
     nearly exhausted;
   - an md array degraded (`_` in its `[UU…]` map), resyncing or
     recovering;
-  - a volume above 90 % full, or the system partition (`/`) nearly
-    full;
+  - a volume or the system partition (`/`) past the Disk Usage
+    limits of
+    `.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`;
   - the SMART findings in `smart.md`;
   - OOM kills or I/O errors in the syslog;
   - pending package updates, and a package from a third-party
     maintainer or source (named, not rated);
-  - a container that exited unexpectedly, restarts, or is
-    `unhealthy`;
+  - the Docker findings of
+    `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+    → Docker, and a container that is `unhealthy`;
   - `support_disk_compatibility="no"` or a `drive_db_test_url` line
     (Storage);
   - a check that needed root and did not run, named as unchecked.
