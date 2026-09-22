@@ -210,11 +210,11 @@ Source for everything below unless noted: the admin guide,
   `pct migrate <vmid> <target> --restart` (containers have no live
   migration; the restart is a reboot of that guest, so ask first).
 - **Stopping or deleting a guest** powers off or destroys a
-  server: only on the user's explicit request. First show, from the
-  live host and in one call, what it hits: ID, name, state, disks
-  and the newest backup. The clean stop is the `shutdown`
-  subcommand of `qm` or `pct`; `qm stop` / `pct stop` is a hard
-  power cut.
+  server: `rules/system-containers.md` → Changes. The clean stop is
+  the `shutdown` subcommand of `qm` or `pct`; `qm stop` /
+  `pct stop` is a hard power cut.
+- Reaching a guest through `pct exec` or `qm guest exec`, and
+  snapshots before a risky change: `rules/system-containers.md`.
 - Guests with `onboot: 1` start when the node boots. HA-managed
   guests ignore `onboot` and start order.
 

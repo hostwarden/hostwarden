@@ -5,6 +5,18 @@ Each server: `memory/servers/<hostname>/` with
 and optionally `rules.md` (per-server rule
 overrides — see `rules/overrides.md`).
 
+Two guests can carry the same hostname: the same instance name
+in two Incus or LXD projects, or a VM cloned and never renamed.
+The second one's directory then takes what tells them apart,
+lowercase — the hypervisor host and the project or ID,
+`web-pve1-prod`, `web-pve1-105` — while the first keeps the plain
+name. Its `memory.md` says which guest it is,
+`- Guest: prod/web on pve1.example.com`, and the `Mode: via …`
+line carries the exact command
+(`rules/system-containers.md` → Reaching It). Without that, the
+second guest's onboarding writes over the first one's memory and
+a later session acts on the wrong server.
+
 On WSL the directory is
 `<windows-hostname>-wsl-<distribution>`, lowercase:
 every distribution on one Windows machine carries
@@ -67,8 +79,17 @@ a `Provisioned by:` line; `rules/config-management.md`
 owns their wording. Most hosts have neither.
 
 Adapt fields to OS (add Homebrew for macOS;
-add `Mode: local` for localhost); an OS file whose
-Version Detection names fields to record adds those. `Appliance:`,
+add `Mode: local` for localhost, or
+`Mode: via pve1.example.com (pct exec 105)` for a
+guest that has no sshd of its own, with the whole
+command it is reached by, the Incus project included
+(`rules/first-connection.md`). A guest whose SSH
+merely timed out never gets that line: via-host mode
+is this session's only, and the line would route
+every later session through the host
+(`rules/system-containers.md` → Reaching It);
+an OS file whose Version Detection names fields to
+record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
 `rules/os-detection.md`; `SSH port:`, remote mode only, is
 the `port` line of `ssh -G <user>@<hostname>`, which the

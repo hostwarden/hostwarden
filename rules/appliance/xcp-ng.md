@@ -181,10 +181,9 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   params=uuid,name-label,power-state,resident-on`. Dom0 itself
   appears as a VM with `is-control-domain=true`; never act on it.
 - **Stopping, destroying or uninstalling a VM** powers off or
-  deletes a server: only on the user's explicit request. First
-  show, from the live host and in one call, what it hits: UUID,
-  name, power state, disks (`xe vm-disk-list vm=<uuid>`) and the
-  newest backup from Xen Orchestra if the user can name it.
+  deletes a server: `rules/system-containers.md` → Changes. Its
+  disks come from `xe vm-disk-list vm=<uuid>`, the newest backup
+  from Xen Orchestra if the user can name it.
   `xe vm-shutdown uuid=<uuid>` is the clean shutdown;
   `force=true` is a hard power cut. `vm-uninstall` and
   `vdi-destroy` delete disks.

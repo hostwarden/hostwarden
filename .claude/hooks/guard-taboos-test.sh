@@ -33,24 +33,30 @@ fi
 HOOK=$GUARD_OPS
 
 json_for() {
-  # json_for <command> [tool] — a raw command string as PreToolUse
-  # hook input for Bash, or for the tool named. The tool JSON takes
-  # the first argument as the whole hook input already.
+  # json_for <command> [tool] [mode] — a raw command string as
+  # PreToolUse hook input for Bash, or for the tool named, in the
+  # permission mode given, or none. The tool JSON takes the first
+  # argument as the whole hook input already.
   if [ "${2:-}" = JSON ]; then
     printf '%s' "$1"
   elif command -v jq >/dev/null 2>&1; then
-    printf '%s' "$1" \
-      | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
+    printf '%s' "$1" | jq -cRs --arg t "${2:-Bash}" --arg m "${3:-}" \
+      '{tool_name:$t,tool_input:{command:.}}
+       + (if $m == "" then {} else {permission_mode:$m} end)'
   else
     printf '%s' "$1" | python3 -c 'import json,sys; \
-print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
-{"command":sys.stdin.read()}}))' "${2:-Bash}"
+d={"tool_name":sys.argv[1],"tool_input":{"command":sys.stdin.read()}}; \
+d.update({"permission_mode":sys.argv[2]} if sys.argv[2] else {}); \
+print(json.dumps(d))' "${2:-Bash}" "${3:-}"
   fi
 }
 
 # Whether a guard's output is a deny. verdict below and hook_case
 # further down both judge by it.
 denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
+# The guard's second tier: a prompt the user answers, for a guest
+# stopped or deleted (guard-taboos.sh -> Guest stop and delete).
+asked() { case "$1" in *'"permissionDecision":"ask"'*) true ;; *) false ;; esac; }
 
 verdict() {
   # verdict <expect> <tool> <command> <hook> <input> [label] — one
@@ -63,12 +69,16 @@ verdict() {
 $5
 EOF
 )
-  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
-  # A deny Claude Code cannot parse is no deny at all: a reason with
-  # a backslash in it once broke the JSON unnoticed. The drain
-  # validates every deny it gets back, all in one jq run.
+  if denied "$OUT"; then GOT=deny
+  elif asked "$OUT"; then GOT=ask
+  else GOT=pass
+  fi
+  # A decision Claude Code cannot parse is no decision at all: a
+  # reason with a backslash in it once broke the JSON unnoticed.
+  # The drain validates every deny and every ask it gets back, all
+  # in one jq run.
   case "$GOT:$1" in
-  deny:deny) printf 'deny:%s\n' "$OUT" ;;
+  deny:deny|ask:ask) printf '%s:%s\n' "$GOT" "$OUT" ;;
   pass:pass) echo ok ;;
   *)
     case $2 in
@@ -122,6 +132,12 @@ check() {
   # check <expect> <command> [tool] — Bash unless a tool is named.
   printf '%s\0%s\0%s\0' "$1" "${3:-Bash}" "$2" >> "$QUEUE"
   NCHECKS=$((NCHECKS + 1))
+}
+
+check_mode() {
+  # check_mode <expect> <permission mode> <command> -- a Bash call
+  # in that mode. check alone sends no mode at all.
+  check "$1" "$(json_for "$3" Bash "$2")" JSON
 }
 
 # --- must block ------------------------------------------------
@@ -268,6 +284,119 @@ check deny 'ssh root@h "xzcat img.xz > /dev/vda"'
 # --- power off under another name ------------------------------
 check deny 'telinit 0'
 check deny 'echo o > /proc/sysrq-trigger'
+
+# --- a guest stopped or deleted -------------------------------
+# Asked where a prompt can reach a human; denied without a
+# permission mode, which counts as no prompt, and in the modes that
+# show none.
+check deny 'pct stop 105'
+check_mode ask default 'pct stop 105'
+check deny 'pct shutdown 105'
+check_mode ask default 'pct shutdown 105'
+check deny 'ssh root@pve1 "pct stop 105"'
+check_mode ask default 'ssh root@pve1 "pct stop 105"'
+check deny 'incus stop web'
+check_mode ask default 'incus stop web'
+check deny 'incus --project prod stop web'
+check_mode ask default 'incus --project prod stop web'
+check deny 'incus stop --all'
+check_mode ask default 'incus stop --all'
+check deny 'incus -q stop web'
+check_mode ask default 'incus -q stop web'
+check deny 'incus --project=prod stop web'
+check_mode ask default 'incus --project=prod stop web'
+check deny 'lxc --force-local stop web'
+check_mode ask default 'lxc --force-local stop web'
+check deny 'qm stop 100'
+check_mode ask default 'qm stop 100'
+check deny 'qm shutdown 100 --timeout 60'
+check_mode ask default 'qm shutdown 100 --timeout 60'
+check deny 'pct destroy 105'
+check_mode ask default 'pct destroy 105'
+check deny 'qm destroy 100 --purge'
+check_mode ask default 'qm destroy 100 --purge'
+check deny 'incus delete --force web'
+check_mode ask default 'incus delete --force web'
+check deny 'incus --project prod delete web'
+check_mode ask default 'incus --project prod delete web'
+check deny 'lxc delete -f web'
+check_mode ask default 'lxc delete -f web'
+check deny 'virsh undefine web --remove-all-storage'
+check_mode ask default 'virsh undefine web --remove-all-storage'
+check deny 'virsh -c qemu:///system undefine web'
+check_mode ask default 'virsh -c qemu:///system undefine web'
+check deny 'lxc-destroy -n web'
+check_mode ask default 'lxc-destroy -n web'
+check deny 'ssh root@pve1 "qm stop 100 --skiplock"'
+check_mode ask default 'ssh root@pve1 "qm stop 100 --skiplock"'
+check deny 'virsh destroy web'
+check_mode ask default 'virsh destroy web'
+check deny 'virsh destroy web --graceful'
+check_mode ask default 'virsh destroy web --graceful'
+check deny 'virsh shutdown web'
+check_mode ask default 'virsh shutdown web'
+check deny 'virsh -c qemu:///system destroy web'
+check_mode ask default 'virsh -c qemu:///system destroy web'
+check deny 'virsh -c qemu:///system shutdown web'
+check_mode ask default 'virsh -c qemu:///system shutdown web'
+check deny 'virsh --connect qemu:///system destroy web'
+check_mode ask default 'virsh --connect qemu:///system destroy web'
+check deny 'lxc stop web --force'
+check_mode ask default 'lxc stop web --force'
+check deny 'lxc-stop -n web'
+check_mode ask default 'lxc-stop -n web'
+check deny 'lxc-stop -n web -k'
+check_mode ask default 'lxc-stop -n web -k'
+check deny 'xe vm-shutdown uuid=abc123'
+check_mode ask default 'xe vm-shutdown uuid=abc123'
+check deny 'xe vm-shutdown uuid=abc123 force=true'
+check_mode ask default 'xe vm-shutdown uuid=abc123 force=true'
+check deny 'xe vm-uninstall uuid=abc123 --force'
+check_mode ask default 'xe vm-uninstall uuid=abc123 --force'
+check deny 'xe vm-destroy uuid=abc123'
+check_mode ask default 'xe vm-destroy uuid=abc123'
+check deny 'xe -s pool1 -u root vm-shutdown uuid=abc123'
+check_mode ask default 'xe -s pool1 -u root vm-shutdown uuid=abc123'
+check deny 'ssh root@xen1 "xe vm-uninstall uuid=abc123"'
+check_mode ask default 'ssh root@xen1 "xe vm-uninstall uuid=abc123"'
+check_mode deny default 'xe vm-shutdown uuid=abc123; shutdown -h now'
+check deny 'midclt call vm.stop 1'
+check_mode ask default 'midclt call vm.stop 1'
+# vm.poweroff spells the word the rule above denies in every
+# mode. Stricter than the ask tier, and left that way.
+check deny 'midclt call vm.poweroff 1'
+check_mode deny default 'midclt call vm.poweroff 1'
+check deny 'midclt call vm.delete 1'
+check_mode ask default 'midclt call vm.delete 1'
+check deny 'midclt call virt.instance.stop web'
+check_mode ask default 'midclt call virt.instance.stop web'
+check deny 'midclt call virt.instance.delete web'
+check_mode ask default 'midclt call virt.instance.delete web'
+check deny 'ssh root@nas1 "midclt call vm.delete 1"'
+check_mode ask default 'ssh root@nas1 "midclt call vm.delete 1"'
+check dev-deny 'midclt call vm.delete 1'
+check deny 'pct stop 105 && pct destroy 105'
+check_mode ask default 'pct stop 105 && pct destroy 105'
+check dev-deny 'pct stop 105'
+check dev-deny 'lxc-destroy -n web'
+check dev-deny 'xe vm-destroy uuid=abc123'
+check dev-deny 'xe -s pool1 vm-destroy uuid=abc123'
+check dev-deny 'incus delete --force web'
+check dev-deny 'virsh undefine web'
+check dev-deny 'qm destroy 100'
+for m in acceptEdits plan auto; do
+  check_mode ask "$m" 'pct stop 105'
+done
+for m in bypassPermissions dontAsk bogus; do
+  check_mode deny "$m" 'pct stop 105'
+done
+# A host taboo in the same command still wins over the ask, and a
+# guest's shutdown verb does not lend the host's its exemption.
+check_mode deny default 'pct stop 105; mkfs.ext4 /dev/sda1'
+check_mode deny default 'qm destroy 100 && reboot -f; halt'
+check_mode deny default 'pct shutdown 105; shutdown -h now'
+check_mode deny default 'ssh root@h "qm shutdown 100 && shutdown now"'
+check_mode deny default 'pct exec 105 -- shutdown -h now'
 
 # --- SSH keys destroyed without rm/shred/unlink ----------------
 check deny 'echo "" > /root/.ssh/authorized_keys'
@@ -621,6 +750,55 @@ check deny 'ssh root@bsd "shutdown -c now"'
 check pass 'mkswap /dev/sda2'
 check pass 'rm /tmp/foo'
 check pass 'systemctl restart nginx'
+check pass 'pct list'
+check pass 'pct status 105'
+check pass 'pct reboot 105'
+check pass 'incus restart web'
+check pass 'incus exec web -- systemctl stop nginx'
+check pass 'incus --project prod exec web -- systemctl stop nginx'
+check pass 'pct exec 105 -- systemctl stop nginx'
+check pass 'lxc-stop -n web -r'
+check pass 'qm list'
+check pass 'qm reboot 100'
+check pass 'virsh list --all'
+check pass 'virsh reboot web'
+check pass 'virsh pool-destroy default'
+check pass 'virsh net-destroy default'
+check pass 'virsh dominfo web'
+check pass 'incus snapshot delete web snap0'
+check pass 'incus image delete abc123'
+check pass 'pct delsnapshot 105 snap0'
+check pass 'virsh vol-delete disk.qcow2 --pool default'
+check pass 'pct exec 105 -- rm /tmp/old.log'
+check pass 'incus exec web -- rm -rf /var/cache/apt/archives'
+check pass 'docker stop web'
+check pass 'xe vm-list is-control-domain=false'
+check pass 'xe vm-disk-list vm=abc123'
+check pass 'xe vm-reboot uuid=abc123'
+check pass 'xe vm-param-list uuid=abc123'
+check pass 'xe vdi-destroy uuid=abc123'
+check pass 'xe sr-list'
+check pass 'midclt call vm.query'
+check pass 'midclt call vm.start 1'
+check pass 'midclt call virt.instance.query'
+check pass 'midclt call pool.dataset.query'
+check pass 'midclt call vm.delete --help'
+check pass 'incus delete --help'
+check pass 'pct destroy --help'
+check pass 'virsh shutdown --help'
+check pass 'qm stop --help'
+check pass 'xe vm-uninstall --help'
+check pass 'lxc-stop -h'
+check pass 'lxc-destroy --help'
+check pass 'incus stop -h'
+check_mode pass default 'incus delete --help'
+check_mode pass default 'pct destroy --help'
+# The help form exempts its own invocation only.
+check deny 'pct destroy --help; pct destroy 105'
+check_mode ask default 'pct destroy --help && pct destroy 105'
+check deny 'incus delete --help && incus delete web'
+check_mode pass default 'pct list'
+check_mode pass default 'incus exec web -- systemctl stop nginx'
 check pass 'cat /etc/ssh/sshd_config'
 check pass 'grep PermitRootLogin /etc/ssh/sshd_config'
 check pass 'sshd -T'
@@ -1685,15 +1863,17 @@ if [ "$NCHECKS" -gt 0 ]; then
   # a FAIL line. Without jq the JSON cannot be checked.
   if command -v jq >/dev/null 2>&1; then
     RESULT=$(printf '%s\n' "$RESULT" | jq -Rr '
-      if startswith("deny:") then .[5:] as $j
+      if startswith("deny:") or startswith("ask:")
+      then (index(":")) as $i | .[:$i] as $d | .[$i+1:] as $j
         | if ($j | try (fromjson
-              | .hookSpecificOutput.permissionDecision == "deny")
+              | .hookSpecificOutput.permissionDecision == $d)
             catch false)
           then "ok"
-          else "FAIL [deny, got deny as invalid JSON]: \($j)" end
+          else "FAIL [\($d), got \($d) as invalid JSON]: \($j)" end
       else . end')
   else
-    RESULT=$(printf '%s\n' "$RESULT" | sed 's/^deny:.*/ok/')
+    RESULT=$(printf '%s\n' "$RESULT" | sed -e 's/^deny:.*/ok/' \
+      -e 's/^ask:.*/ok/')
   fi
   NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
   NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)

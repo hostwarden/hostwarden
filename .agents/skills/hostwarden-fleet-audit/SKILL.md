@@ -59,7 +59,8 @@ Layers).
 
 1. **Discover hosts.** List directories under
    `memory/servers/` whose name resolves to a real host,
-   or whose `memory.md` has a `Reached as:` line, which
+   whose `memory.md` has a `Mode: via …` line (reached
+   through that host, step 2), or a `Reached as:` line, which
    is then the destination, for the user lookup too, with `-p` and the
    `SSH port:` line where there is one (skip placeholders like
    `server1.example.com` and `192.168.64.20` unless the
@@ -80,7 +81,10 @@ Layers).
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
-   report).
+   report). A host with `Mode: via …` in its memory uses
+   its hypervisor host's SSH user and runs the probes
+   through that host (`rules/first-connection.md` →
+   Via-host mode).
 
 3. **Probe each host.** Hosts that time out or refuse the
    connection go on a "skipped: unreachable" list.
@@ -95,7 +99,8 @@ Layers).
 
    Each task prompt carries four things:
 
-   - the hostname and the SSH user;
+   - the hostname and the SSH user, and for a via-host
+     guest its `Mode: via …` line;
    - which probe categories to run, and the journal line
      from step 6. Not the probe commands: the agent reads
      `references/probes.md` itself, and a fleet of a dozen
@@ -133,7 +138,8 @@ Layers).
    jump host, and without it `ssh -G` reports a different
    config than the connection will use. Group the targets
    that share a `proxyjump`, and run each group in
-   sequence.
+   sequence. Via-host guests of one hypervisor host are
+   such a group too, together with the host itself.
 
    Elsewhere, and whenever a host needs a decision the
    agent cannot make alone, read `references/probes.md`

@@ -291,6 +291,9 @@ trigger — not a request from the user.
 - Copying a directory tree between servers →
   `rules/directory-copy.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
+- A system container or VM as the target, or creating, changing,
+  snapshotting, stopping or deleting one on its host (LXC, Incus,
+  LXD, Proxmox, libvirt) → `rules/system-containers.md`
 - The first change this session makes on a host →
   `rules/parallel-sessions.md`, to register and see who else writes;
   once the requested changes there are done and logged, deregister
