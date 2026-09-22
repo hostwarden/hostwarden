@@ -290,8 +290,7 @@ repositories on GitHub where the docs are silent.
   the seven days the Linux baseline reads; say which.
   The SMART loop is the probe in
   `.agents/skills/hostwarden-housekeeping/references/smart.md`
-  over the `device=` lines of `disks.ini`, without `-d`; that file
-  says how to read it.
+  over the `device=` lines of `disks.ini`.
   The update probes read what the last check left and reach no
   network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
   `plugin check`, which the Plugins tab and the scheduled plugin
@@ -319,8 +318,8 @@ repositories on GitHub where the docs are silent.
   - no parity check in the last three months, or errors in the last
     one: the documentation advises checks "on a monthly or quarterly
     basis", scheduled under Settings → Scheduler;
-  - the SMART findings the housekeeping skill's
-    `references/smart.md` names;
+  - the SMART findings in
+    `.agents/skills/hostwarden-housekeeping/references/smart.md`;
   - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a

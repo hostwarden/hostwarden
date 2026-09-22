@@ -355,9 +355,8 @@ under `deb/openmediavault/` there).
   omv-confdbadm read --prettify conf.service.smartmontools
   omv-confdbadm read --prettify conf.service.smartmontools.device
   ```
-  That file says how to read the output and what it finds. OMV
-  adds one finding: a disk missing from the monitored device list,
-  or monitoring turned off.
+  OMV adds one finding: a disk missing from the monitored device
+  list, or monitoring turned off.
 - **Pending updates:** `apt-get -s --auto-remove dist-upgrade`,
   and
   `conf.system.apt.updates` for unattended upgrades.
