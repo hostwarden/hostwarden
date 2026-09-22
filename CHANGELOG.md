@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Pending upgrades on Alpine 3.23 and later are listed
+  again.** The Alpine rule now uses `apk list --upgradeable`,
+  which apk 2 and apk 3 both accept; apk 3 rejects the
+  `--upgradable` spelling it named before.
 - **A blocked command says what is still allowed.** The
   guard's refusal forbids reaching the same effect any
   other way, and names the route for a command that only
