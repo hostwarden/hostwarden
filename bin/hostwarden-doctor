@@ -225,7 +225,7 @@ ssh_conf_key() {
     # a # that starts a word, which ssh reads as a comment.
     case $f in
       \"*) f=${f#\"} f=${f%%\"*} ;;
-      *) f=${f%%[[:space:]]#*} ;;
+      *) f=${f%%[[:space:]]#*} f=${f%"${f##*[![:space:]]}"} ;;
     esac
     case $f in \~/*) f=$HOME/${f#\~/} ;; esac
     case $k in
