@@ -67,7 +67,9 @@ cat /proc/device-tree/model
 ls -d /sys/firmware/efi
 ```
 
-On FreeBSD, `kenv smbios.system.maker smbios.system.product` and
+On FreeBSD, `kenv -q smbios.system.maker`,
+`kenv -q smbios.system.product` — one name per call: a second
+argument sets the first name to it — and
 `sysctl machdep.bootmethod`. A missing file is no answer; where the
 reads leave doubt, ask the user what the machine is. On a vendor
 device, say so and stop.
