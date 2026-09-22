@@ -21,12 +21,17 @@ under pressure.
   mechanically blocks the absolute taboos — halt/
   poweroff, `mkfs`, partition-table writers, deleting
   or overwriting SSH keys, writes to `sshd_config`
-  or to dropbear's configuration —
+  or to dropbear's configuration, and their Windows
+  counterparts, over SSH or under WSL (`diskpart`,
+  `Format-Volume`, `bcdedit /set`, `shutdown /s`,
+  `wsl --shutdown`, …) —
   in **every**
   permission mode, even
   `--dangerously-skip-permissions`, and even when the
   command hides inside an `ssh host "…"` wrapper or
   behind a language runtime (`python3 -c "open(…)"`).
+  The agent's own edit tools cannot write an SSH key
+  or `sshd_config` either.
   Read-only forms (`fdisk -l`, `gpart show`, …) stay
   allowed. The hooks read every command Claude Code's
   Bash and Monitor tools run; its PowerShell tool,
@@ -48,7 +53,8 @@ under pressure.
   a false alarm. See
   `rules/verify-before-reporting.md`.
 - **Backs up config files** — copies to
-  `/var/backups/hostwarden/` before editing
+  `/var/backups/hostwarden/`, or the directory an
+  appliance's rules name, before editing
   (auto-cleaned after 30 days).
 - **Tests before applying** — uses dry-run, test, or
   validation modes before real execution whenever a

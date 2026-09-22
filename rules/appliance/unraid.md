@@ -106,8 +106,8 @@ repositories on GitHub where the docs are silent.
 - `/boot/config/go` is the documented place for commands that run
   at every boot, as root: ask before adding a line, and show the
   line.
-- `rules/backups.md` applies to `/boot/config`. Keep the copies in
-  `/boot/config/hostwarden-backups/`.
+- `rules/backups.md` applies to `/boot/config`. The backup directory
+  is `/boot/config/hostwarden-backups/`.
 - **Secrets on the boot device** (`rules/secrets.md`):
   `config/shadow`, `config/passwd`, `config/smbpasswd`, the
   WireGuard keys under `config/wireguard/`, and Docker templates,
@@ -194,7 +194,8 @@ repositories on GitHub where the docs are silent.
   (`rules/version-check.md`); the release notes are at
   <https://docs.unraid.net/category/release-notes/>. Containers and
   plugins update from the Apps, Docker and Plugins tabs, after
-  asking.
+  asking; running their Check for Updates is the user's step too
+  (see Housekeeping).
 - Downgrading is a manual step on the boot device and the user's to
   take.
 
@@ -260,8 +261,18 @@ repositories on GitHub where the docs are silent.
   zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
     echo "== $d"
-    smartctl -n standby -H -A /dev/$d | grep -E "result:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|Media and Data|Percentage Used"
+    smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
+  for f in /var/log/plugins/*.plg; do
+    p=${f##*/}; t=/tmp/plugins/$p
+    case $p in unRAIDServer*) continue ;; esac
+    [ -f "$t" ] || { echo "$p unchecked"; continue; }
+    v=; cmp -s "$f" "$t" || v=" $(plugin version "$f") $(plugin version "$t")"
+    echo "$p $(date -r "$t" +%s)$v"
+  done
+  docker ps -a --format '{{.Image}}' | sed -e '\|/|!s|^|library/|' -e '/:[^/]*$/!s/$/:latest/' | sort -u
+  j=/var/lib/docker/unraid-update-status.json
+  date -r "$j" +%s && grep -E '^    "|"status"' "$j"
   ```
   `var.ini`'s `sbSynced2` is the end of the last parity check in
   epoch seconds, measured against `date +%s`. `disks.ini` lists
@@ -277,6 +288,28 @@ repositories on GitHub where the docs are silent.
   means the count did not run, never that there are none. The
   syslog counts reach back only to the boot (see Logs), not the
   seven days the Linux baseline reads; say which.
+  SMART health is the `result:` line on SATA and NVMe disks and
+  `SMART Health Status:` on SAS; a SAS disk has no ATA attributes
+  and reports its grown defect list instead. A disk that prints
+  neither health line nor `STANDBY` has unknown health.
+  The update probes read what the last check left and reach no
+  network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
+  `plugin check`, which the Plugins tab and the scheduled plugin
+  check run, downloads each plugin's newest `.plg` to
+  `/tmp/plugins/`. The loop skips the OS and prints each plugin with
+  the time of that copy, its last check in epoch seconds against
+  `date +%s`, and both versions when the copy differs; a newer
+  second version is an update. A plugin without a copy is
+  `unchecked`: `/tmp` lives in RAM, so it has not been checked since
+  the boot, or it names no `pluginURL` a check could reach. The
+  Docker tab's check writes one entry per image to
+  `unraid-update-status.json`, timed like the plugins by its last
+  run, keyed by the image the way `ensureImageTag` in
+  `DockerClient.php` writes it and the `sed` above rewrites the
+  `docker ps` list: `library/` before a name without a `/`,
+  `:latest` when it names no tag. `status` `false` is an update,
+  `undef` unchecked, and an image `docker ps` lists without an
+  entry was never checked.
 - Findings:
   - load above the CPU count in server memory, or memory and swap
     nearly exhausted;
@@ -287,11 +320,14 @@ repositories on GitHub where the docs are silent.
     one: the documentation advises checks "on a monthly or quarterly
     basis", scheduled under Settings → Scheduler;
   - SMART health not passing, or reallocated, pending or
-    uncorrectable sectors;
+    uncorrectable sectors or grown defects; unknown health is
+    reported as unknown, never as passing;
   - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a
-    server on an RC or beta;
+    server on an RC or beta; a plugin or image not checked, or
+    checked more than a week ago, is named as unchecked, never as
+    current;
   - no boot device backup: no Unraid Connect flash backup and no
     recent zip from Main → Boot Device → Boot Device Backup, which
     the user downloads and keeps off the server;

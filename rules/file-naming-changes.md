@@ -57,7 +57,7 @@ written files, where mtime may sit either side of the
 rotation window; the resulting duplicates are how you
 find out the rule was wrong.
 
-Write the mapping to `/var/backups/hostwarden/` as
+Write the mapping to `$BACKUP_DIR` (`rules/backups.md`) as
 `<scheme>-rename-map-<timestamp>.txt` (new TAB old) so
 the rename can be replayed backwards, and use
 `mv -n` so an unforeseen collision cannot overwrite.

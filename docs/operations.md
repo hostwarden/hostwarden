@@ -27,7 +27,23 @@ first also puts a shim in front of `ssh`, `scp`,
 `sudo` and the rest on the `PATH` of every command
 the agent runs, so they refuse however they are
 started; `git push` still reaches the real `ssh`.
+Under WSL the shim also covers the Windows programs
+that reach a server or administer the machine:
+`ssh.exe`, `wsl.exe`, `powershell.exe` and the rest.
 Other tools follow the same rule from `AGENTS.md`.
+
+The taboo guard knows the mode as well. In
+development it judges a command in full only when
+the command can reach past your own files — it
+names `ssh`, `sudo`, a container, VM or cloud tool —
+or when the session runs as root or in the `disk`
+group. Otherwise a commit message, a pull request
+title or a search that names `mkfs` or `fdisk` is
+text and goes through. SSH keys, `sshd_config`,
+`diskutil` and the Windows taboos stay guarded in
+every mode, and so does power off on a machine
+running systemd, which lets you power off without
+root.
 
 When development needs to know something about a
 live server, the agent hands the question to a

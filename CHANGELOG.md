@@ -2,6 +2,55 @@
 
 ## Unreleased
 
+- **OpenMediaVault housekeeping reads SAS disks' SMART health.**
+  It takes `SMART Health Status:` as well as the SATA and NVMe
+  result line, counts a SAS disk's grown defect list with the
+  sector counts, judges NVMe media errors and wear, reads every
+  disk in one call without waking a spun-down one, and reports a
+  disk with no health line as unknown, never as passing.
+- **Pending upgrades on Alpine 3.23 and later are listed
+  again.** The Alpine rule now uses `apk list --upgradeable`,
+  which apk 2 and apk 3 both accept; apk 3 rejects the
+  `--upgradable` spelling it named before.
+- **A blocked command says what is still allowed.** The
+  guard's refusal forbids reaching the same effect any
+  other way, and names the route for a command that only
+  carries a taboo word as text: the text goes in a file
+  (`git commit -F`), or a search pattern stops spelling
+  the word.
+- **The agent's edit tools cannot touch SSH keys or the
+  SSH server's configuration.** The taboo guard judged
+  shell commands only, so in local mode an edit could
+  still overwrite `~/.ssh/authorized_keys` or a key. Edits
+  and writes are now checked by the file they target, in
+  every mode: keys and key stores, `sshd_config`,
+  dropbear's configuration and `C:\ProgramData\ssh`. A
+  document that only mentions those files stays editable.
+- **Developing Hostwarden no longer trips the taboo
+  guard on text.** In a development checkout or a
+  worktree a commit message, a pull request title or a
+  search that names `mkfs`, `fdisk` or `shutdown` goes
+  through, since nothing there can reach a disk without
+  root. A command that names `ssh`, `sudo`, a container,
+  VM or cloud tool is still judged in full, and SSH keys,
+  `sshd_config`, `diskutil` and the Windows taboos stay
+  guarded everywhere.
+- **The Windows taboos hold on Windows Server too.** Over
+  SSH, the taboo guard blocks what it blocks under WSL,
+  plus `bcdedit` edits (`/enum` and `/v` still read),
+  `cipher /w`, `shutdown /p` and `/h`, and
+  `Remove-VirtualDisk` and `Remove-StoragePool`, also
+  inside a `pwsh -Command -` heredoc. `shutdown /r`, `/g`
+  and `/a` pass, with or without `.exe`.
+- **The guards also cover Windows under WSL.** In a
+  development checkout, the Windows programs that reach a
+  server or administer the machine (`ssh.exe`, `wsl.exe`,
+  `powershell.exe`, `cmd.exe` and a few more) refuse
+  whether they are called by name, by path or in another
+  spelling. The taboo guard also blocks what Windows can
+  do to disks, power and sshd: `diskpart`, the Storage
+  cmdlets, `wsl --shutdown` and `--unregister`, and
+  writes under `C:\ProgramData\ssh`.
 - **The guards also read what Claude Code's Monitor tool runs.**
   A taboo command, a write to the guard's off switch, or an `ssh`
   or `sudo` from a development checkout is refused through
@@ -48,7 +97,9 @@
   `/etc/unraid-version`; the rules cover the root-only login, an OS
   in RAM, the web UI owning the configuration, and array operations
   and updates left to you. Housekeeping reads array, parity, SMART
-  and boot device backup state instead of the Linux baseline.
+  (SAS disks included) and boot device backup state, and the plugin
+  and container updates Unraid's last check found, instead of the
+  Linux baseline.
 - **An empty activity check on a host that keeps its log in RAM
   says how far back it reached.** On Unraid, and on pfSense and
   OPNsense with `/var` on a RAM disk, the journal lines are gone
@@ -126,7 +177,9 @@
 - **TrueNAS is recognised as an appliance.** Detection finds it
   by `midclt`; Hostwarden changes settings, the network, pools and
   updates through the middleware instead of `/etc`, apt or `zfs`,
-  and housekeeping reads its alerts, pools, scrubs and tasks.
+  and housekeeping reads its alerts, pools, scrubs, failed
+  snapshot and replication tasks, and pending updates from 24.10
+  on.
   TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,

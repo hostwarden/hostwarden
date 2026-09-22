@@ -16,7 +16,8 @@ OpenRC manuals.
   or `-U` on the command itself (`apk -U upgrade`).
 - Dry-run before upgrading: `apk upgrade --simulate` (`-s`), after
   `apk update` — a simulation does not refresh the index.
-- List pending upgrades: `apk list --upgradable`. apk has no
+- List pending upgrades: `apk list --upgradeable` (`-u`); apk 3,
+  from Alpine 3.23 on, rejects `--upgradable`. apk has no
   security-only view: report the total, and say no subset exists.
   Which fixes a package carries is on
   <https://security.alpinelinux.org/>.

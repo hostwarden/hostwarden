@@ -135,25 +135,37 @@ user when it will visibly slow the answer.
   dropbear is the SSH server. Never delete or overwrite SSH keys, and
   that includes moving, truncating or re-permissioning them. Never
   halt or power off a server.
+  The same holds on any Windows machine, over SSH or through WSL:
+  `diskpart`, `mbr2gpt`, `format X:` and the Storage cmdlets
+  (`Clear-Disk`, `Remove-VirtualDisk`, …) write the partition
+  table or erase a disk, as `cipher /w` and `wsl --unregister`
+  erase, `bcdedit` beyond `/enum` and `/v` rewrites the boot
+  configuration, `Stop-Computer`, `shutdown /s`, `/p`, `/h` and
+  `wsl --shutdown`/`--terminate` halt, and `C:\ProgramData\ssh`
+  holds sshd's config and host keys.
   Inspect `sshd_config`, SSH keys and disk devices with `cat`,
   `grep`, `stat`, `ls` or `sshd -T` — never through a language
-  runtime (`python3 -c`, `node -e`, `perl -e`, `awk`). Such a
+  runtime (`python3 -c`, `node -e`, `perl -e`, `awk`,
+  `powershell.exe`). Such a
   command line cannot be shown to be read-only, so it counts as a
   write and is blocked.
   This list holds on its own. Some tools also run a mechanical
   guard behind it — `CLAUDE.md` says where, and where nothing does,
   this list is the whole of the protection. Being blocked by the
-  guard is expected: explain it to the user, never rephrase or
-  re-quote a command to evade it. Legitimate exceptions — OS
-  installation and replacement, the `hostwarden-os-install` skill —
-  need the operator to export the guard-disable variable named in
-  that skill before launching the session.
+  guard is expected: explain it to the user, and never reach the
+  same effect by rephrasing, re-quoting or another tool. Legitimate
+  exceptions — OS installation and replacement, the
+  `hostwarden-os-install` skill — need the operator to export the
+  guard-disable variable named in that skill before launching the
+  session.
   When *writing* a probe, remember the guard scans the whole command
   string and cannot tell a taboo word used as data from an
   invocation. So write patterns that never spell one from the start,
-  and keep a probe that merely *mentions* a guarded path in its own
-  call — two innocent commands can deny each other when batched into
-  one.
+  put text that names one — a commit message, a PR body — in a file
+  and pass the file, and keep a probe that merely *mentions* a
+  guarded path in its own call — two innocent commands can deny each
+  other when batched into one. None of that is evasion: evasion
+  reaches the effect, and text runs nothing.
 - **Firewall & network:** Be extremely careful — a mistake cuts off
   SSH access. Discuss with the user first. Before enabling or
   tightening a firewall, read the ports sshd listens on (as root:

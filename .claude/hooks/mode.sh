@@ -101,7 +101,8 @@ missing here"
 workspace)"
   fi
   hostwarden_next_step
-  HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server, and \
+  HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server or \
+administers this machine, and \
 $hr_why. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - Development \
 or Operations)."
 }
