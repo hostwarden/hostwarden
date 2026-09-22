@@ -61,9 +61,8 @@ documentation, <https://docs.opnsense.org/>, and the
   Do not use `sysrc` or edit `rc.conf`.
 - Every save keeps a copy in
   `/conf/backup/config-<epoch>.<fraction>.xml`. `rules/backups.md`
-  still applies, `config.xml` included. If `/var` is a RAM disk
-  (see Logs), keep the copies in `/root/hostwarden-backups/`
-  instead.
+  still applies, `config.xml` included, and the backup directory is
+  `/root/hostwarden-backups/`.
 - **Apply from the shell with `configctl`**, the front end to
   `configd`:
   - `configctl configd actions` lists all actions.

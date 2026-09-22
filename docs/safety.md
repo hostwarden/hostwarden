@@ -48,8 +48,10 @@ under pressure.
   a false alarm. See
   `rules/verify-before-reporting.md`.
 - **Backs up config files** — copies to
-  `/var/backups/hostwarden/` before editing
-  (auto-cleaned after 30 days).
+  `/var/backups/hostwarden/` before editing, or to
+  the directory an appliance's rules name where
+  `/var` does not survive a reboot (auto-cleaned
+  after 30 days).
 - **Tests before applying** — uses dry-run, test, or
   validation modes before real execution whenever a
   tool supports it.
