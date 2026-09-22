@@ -5,6 +5,11 @@ fine: a filter on the way blocks the client,
 frequently because of Hostwarden's own connections (see
 `rules/ssh-connections.md`).
 
+Where the checks below run out and the host needs
+reaching another way, name the way rather than asking
+for one: `rules/management-controller.md` → The rescue
+path says where the host's console is recorded.
+
 ## Login rejected
 
 `Permission denied (publickey)` and `Too many

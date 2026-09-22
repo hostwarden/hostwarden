@@ -122,6 +122,10 @@ rules/                 — Upstream rule files (git-tracked)
                          through its web API
   tls-pinning.md       — Pinning a self-signed appliance
                          certificate for API calls
+  management-controller.md — How any host is reached when
+                         SSH is gone: a BMC or Intel AMT where
+                         there is one, the node or provider
+                         console otherwise
   platform/            — Reference data on top of whichever
                          family was detected. Detection reads
                          at most one

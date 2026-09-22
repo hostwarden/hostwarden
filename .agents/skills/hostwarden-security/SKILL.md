@@ -44,9 +44,13 @@ applies before any of this runs.
    method otherwise.
 5. **Emit the report** using the format in
    `references/report-format.md`.
-6. **Do NOT update `memory.md`.** These are config observations,
-   not state changes. Memory tracks what is installed and running,
-   not security posture details.
+6. **Do NOT update `memory.md`**, with one exception. These are
+   config observations, not state changes: memory tracks what is
+   installed and running, not security posture details. The
+   exception is the `Management:` line and its address, which are
+   inventory rather than posture — where this audit is what first
+   settled them, record them as
+   `rules/management-controller.md` → What to record says.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
@@ -104,6 +108,10 @@ Read on demand, only when the relevant section applies:
 - `references/intrusion-prevention.md` — fail2ban, and
   blocklistd or sshguard on FreeBSD.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
+- `references/management-controller.md` — the `Management:` line
+  on every host, and on a bare-metal one the controller's own
+  network, IPMI over LAN, cipher suite 0, factory and anonymous
+  accounts, Intel AMT.
 - The `## Housekeeping and Audits` sections of the host's
   family, appliance, platform and role files, already loaded
   by the pipeline (`rules/os-detection.md` → Layers).

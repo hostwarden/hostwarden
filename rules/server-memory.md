@@ -74,6 +74,14 @@ with; `rules/heinzel-adoption.md` owns its wording.
 Hosts without one never had Heinzel state, which is
 the normal case.
 
+Every host gains a `Management:` line saying how it
+is reached when SSH is gone —
+`Management: iDRAC (BMC), reachable from the host`.
+`rules/management-controller.md` owns its wording and
+settles it at first need, not on the first
+connection above; a controller's address lives in
+`memory/network.md`.
+
 A host that a configuration management tool manages,
 wholly or in some areas, gains a `Config management:`
 line, and one that Terraform or OpenTofu provisioned
@@ -145,6 +153,10 @@ backup target, which UPS powers which machines — go
 in `memory/network.md`, created
 on first need. Current facts only; it is a picture
 of now, not a history.
+
+Management controller addresses go there too, under
+`## Management controllers`
+(`rules/management-controller.md` → What to record).
 
 ## Personal versus shared
 
