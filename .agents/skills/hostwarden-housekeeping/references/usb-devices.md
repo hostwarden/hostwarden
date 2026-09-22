@@ -123,8 +123,14 @@ Name each remaining device by what it is:
   `0529` (Aladdin/SafeNet, Sentinel HASP).
 - **Management controller** — a virtual keyboard, mouse or CD-ROM
   from vendor `046b` (American Megatrends) or with `Virtual` in its
-  product string is the server's BMC. It is no dependency, but it
-  says the machine has an out-of-band console.
+  product string is the server's BMC, the controller the
+  `Management:` line records (`rules/management-controller.md`).
+  It stays out of `USB:`: two lines for one controller drift
+  apart. Where `Management:` is unset, the device is that file's
+  third detection signal; take it to the settling in
+  `references/bmc-event-log.md` rather than recording it here.
+  Where the line is settled on a value that names no controller,
+  such as `provider console (user)`, Findings below takes it up.
 - **Anything else** is recorded by its product string.
 
 On a host with guests a device may belong to one of them:
@@ -136,7 +142,7 @@ a VM holds answers nothing here.
 Record the result in the host's `memory.md`, one line for all:
 
 ```
-- USB: UPS APC Back-UPS ES 700 (051d:0002, NUT `ups`); Zigbee ConBee II (1cf1:0030); BMC (046b)
+- USB: UPS APC Back-UPS (051d:0002, NUT `ups`); Zigbee ConBee II (1cf1:0030)
 - USB: none relevant
 ```
 
@@ -160,6 +166,13 @@ Severities as in `references/report-format.md`:
   radio stick or dongle stops whatever used it.
 - **INFO:** a relevant device that memory does not list yet. Add it
   to `USB:`.
+- **INFO:** a BMC's USB device on a host whose settled
+  `Management:` line names no controller. The line is what the rescue
+  path and the event log check go by, and it no longer matches the
+  machine. An interactive run asks the user once whether the machine
+  has a BMC after all and settles the line again from the answer and
+  `rules/management-controller.md` → Detection; a scheduled run
+  reports it and leaves the question to the next interactive one.
 
 The first time a UPS turns up on a host, ask the user once which
 other machines it powers, and record the answer in

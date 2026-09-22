@@ -109,9 +109,8 @@ Naming the signal is not enough on its own: nothing else in a
 session enumerates USB, since the housekeeping inventory that
 also sees these devices
 (`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`
-→ Reading the output) does not run during a security audit. Where
-a host's `USB:` line does already name a BMC it is this one, not
-a second controller.
+→ Reading the output) does not run during a security audit, and
+leaves the BMC out of `USB:` for this file's line to record.
 
 **The device node says whether the OS can reach it.** A type 38
 record with no `/dev/ipmi*` and no `ipmi_si` in `lsmod` means the
