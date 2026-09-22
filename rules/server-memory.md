@@ -62,7 +62,8 @@ Version Detection names fields to record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
 `rules/os-detection.md`; `SSH port:` is the `port` line
 of `ssh -G <user>@<hostname>`, which the alias check in
-`rules/dns-aliases.md` compares.
+`rules/dns-aliases.md` compares. It is remote-only: a
+local-mode host has no SSH port and gets no such line.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
