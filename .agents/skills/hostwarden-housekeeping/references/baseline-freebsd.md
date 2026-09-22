@@ -86,7 +86,8 @@ freebsd-version -kru
 ```
 
 The order of the three lines is in `rules/os/freebsd.md` →
-Version Detection, and so is the command a jail runs instead.
+Version Detection, and so is why a jail runs `freebsd-version -u`
+alone.
 
 - **INFO** if the installed kernel differs from the running one:
   a base update was installed and the reboot is still due
