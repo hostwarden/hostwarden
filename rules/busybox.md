@@ -6,7 +6,8 @@ fewer flags than GNU, and on OpenWrt some applets left out of the
 build altogether. A missing applet answers "not found", a missing
 flag prints the applet's usage. `busybox --list` names the applets
 the build has; `<command> --help` shows the flags before you use a
-GNU one (`AGENTS.md` → Verify Before Running).
+GNU one (`AGENTS.md` → Verify Before Running). The GNU tools are
+packages on both; do not install one just to run a check.
 
 Sources: Alpine's build configuration,
 <https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/main/busybox/busyboxconfig>;
@@ -21,9 +22,9 @@ the applets' usage text in the busybox source,
   `-P`, a long device name wraps onto its own line.
 - `uptime` takes no options, so no `uptime -s`.
 - `grep` has no `-P`.
-- `find` has no `-nouser` or `-nogroup`: it rejects them, and with
-  stderr discarded the check reads as clean.
-- `ps` takes no `-p`.
+- `find` has no `-nouser` or `-nogroup`.
+- `ps` takes no `-p`, and `-o` only on Alpine; on OpenWrt, plain
+  `ps` or `ps w`.
 - No `ss`: use busybox `netstat -tulnp`.
 - No `lscpu`: read `/proc/cpuinfo`.
 - No `timedatectl`, `journalctl` or `systemctl`.
@@ -33,19 +34,15 @@ the applets' usage text in the busybox source,
 
 ## Alpine
 
-- `ps` takes `-o`.
 - `date -d` does not parse the `notAfter` format `openssl` prints:
   use `openssl x509 -checkend <seconds>` instead.
 - `last` takes no filter, so no `last reboot`.
-- The GNU tools are packages (`coreutils`, `findutils`, `grep`,
-  `procps-ng`, `iproute2-ss`). Do not install one just to run a
-  check.
+- GNU packages: `coreutils`, `findutils`, `grep`, `procps-ng`,
+  `iproute2-ss`.
 
 ## OpenWrt
 
-- `ps` takes no `-o` either: plain `ps`, or `ps w` for wide
-  output.
-- Not in the build: `nproc` (use `grep -c ^processor
+- Not in the build: `nproc` (use `grep -c "^processor"
   /proc/cpuinfo`), `last`, `stat` (use `ls -l`), `timeout`, `diff`,
   `hostname` (use `uci get system.@system[0].hostname`), `whoami`
   (use `id -un`), `su`, `realpath`, `base64`, `lsof`, `pkill`
@@ -58,7 +55,6 @@ the applets' usage text in the busybox source,
 - `df` has no `-a`, `-i` or `-B` either.
 - No `openssl` binary: a certificate expiry check needs the
   `openssl-util` package, which is not there by default.
-- The GNU tools are packages (`coreutils-*`, `procps-ng-ps`,
-  `diffutils`, `ss`). Do not install one just to run a check:
-  every package takes flash space and is gone after the next
-  sysupgrade (`rules/appliance/openwrt.md` → Updates).
+- GNU packages: `coreutils-*`, `procps-ng-ps`, `diffutils`, `ss`.
+  On a router each one also costs flash
+  (`rules/appliance/openwrt.md` → Package Manager).

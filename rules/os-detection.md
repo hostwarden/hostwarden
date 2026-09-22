@@ -38,7 +38,8 @@ skill says so where it needs it.
      'echo @release; freebsd-version;' \
      'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
-     'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
+     'grep -c "^processor" /proc/cpuinfo; free -h;' \
+     'grep -m1 "model name" /proc/cpuinfo;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade;' \
@@ -79,10 +80,13 @@ skill says so where it needs it.
    from `rules/ssh-connections.md` → Bundle commands,
    whatever the shell; only this probe goes without
    stdin, so nothing is ever typed into a menu. An
-   error in place of the second line (busybox `ps` may
-   reject `-p`) records `Shell: unknown`. A shell that
-   rejects the whole line (fish rejects `$$`) does too,
-   and then the probe goes again through `sh -s`.
+   error in place of the second line (busybox `ps`
+   rejects `-p`) means reading the shell from the SSH
+   user's line in `/etc/passwd` in the next call;
+   record `Shell: unknown` only if that fails too. A
+   shell that rejects the whole line (fish rejects
+   `$$`) records `Shell: unknown`, and then the probe
+   goes again through `sh -s`.
 
 2. **Map the OS to a family** from the lines after
    `@release`, and read `rules/os/<family>.md`:
@@ -90,10 +94,10 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`.
-     `ID=haos`, `ID="openwrt"`, and `ID=alpine` inside a
-     Home Assistant app container, have no family: see
-     Appliances below. If no family
+     version from `VERSION_ID` and `PRETTY_NAME`. An
+     `ID` the marker table under Appliances names, and
+     `ID=alpine` inside a Home Assistant app container,
+     have no family: see Appliances below. If no family
      file matches (e.g. Arch, Gentoo), tell the user,
      proceed cautiously with generic commands, and
      apply extra verify-before-running care.
@@ -103,8 +107,8 @@ skill says so where it needs it.
      line.
 
    Hardware comes from the lines after `@hardware`:
-   `nproc`, the CPU model and `free` on Linux, `sysctl`
-   elsewhere.
+   the `processor` count, the CPU model and `free` on
+   Linux, `sysctl` elsewhere.
    Add `zpool status` to the next call on a FreeBSD
    host with ZFS.
 

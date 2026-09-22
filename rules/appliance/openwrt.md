@@ -26,19 +26,15 @@ of the current release branch,
   unless someone installed it. Connect as root
   (`rules/privilege-escalation.md` still decides what a command
   needs).
-- The shell is busybox `ash`, the only one in `/etc/shells`. The
-  probe's `ps` line fails here (`rules/busybox.md`); record
-  `Shell: ash (root)` from root's entry in `/etc/passwd`.
-- The SSH server is **dropbear**, not OpenSSH. Its settings are the
-  UCI file `/etc/config/dropbear` (Port, Interface, PasswordAuth,
+- The shell is busybox `ash`, the only one in `/etc/shells`.
+- The SSH server is **dropbear**, not OpenSSH, and under the SSH
+  taboo in `AGENTS.md`. Its settings are the UCI file
+  `/etc/config/dropbear` (Port, Interface, PasswordAuth,
   RootPasswordAuth, RootLogin; one `dropbear` section per
-  instance). Root's keys are in `/etc/dropbear/authorized_keys`,
-  the host keys are `/etc/dropbear/dropbear_*_host_key`.
-- **The SSH taboo in `AGENTS.md` covers dropbear**: its UCI file,
-  `uci set`/`delete`/`commit` on `dropbear`, and all of
-  `/etc/dropbear`. Read with `uci show dropbear` and `ls -l`,
-  never change. A dropbear change the user wants is theirs to make,
-  in LuCI (System > Administration) or on the console.
+  instance); `/etc/dropbear` holds root's `authorized_keys` and the
+  host keys. Read with `uci show dropbear` and `ls -l`, never
+  change: a dropbear change is the user's to make, in LuCI
+  (System > Administration) or on the console.
 - Dropbear has no SFTP server. Copy with `scp -O` (legacy protocol);
   `rsync` is not installed by default.
 - Recovery without the network: failsafe mode, entered with a
@@ -55,9 +51,13 @@ of the current release branch,
   `rootfs_type`, and a `release` table with the same version.
 - `/etc/os-release` has `ID="openwrt"` and `ID_LIKE="lede openwrt"`;
   the detection probe reads it.
-- Hardware: the probe's `nproc` does not exist here. Count CPUs
-  with `grep -c ^processor /proc/cpuinfo`, and take the device
-  model from `ubus call system board`.
+- The device model comes from `ubus call system board`, not from
+  the probe's `/proc/cpuinfo` line.
+- Read these in one call, together with which package manager the
+  device has (see Package Manager):
+  ```
+  cat /etc/openwrt_release; ubus call system board; which apk opkg owut
+  ```
 - Record in server memory:
   `Appliance: OpenWrt <version> (<target>, <model>)`.
 - Releases, their support status and end-of-life dates:
@@ -70,8 +70,8 @@ of the current release branch,
 - **Every setting lives in `/etc/config/<name>`** (`network`,
   `wireless`, `firewall`, `dhcp`, `system`, `dropbear` and one file
   per package that has one). Services generate their real config
-  files from these, mostly into `/var/etc/` or `/tmp/`, which are
-  RAM, and overwrite them on every start. Never edit a generated
+  files from these, mostly into `/var/etc/` or `/tmp/`, and
+  overwrite them on every start. Never edit a generated
   file; the change is gone at the next reload.
 - **Change settings with `uci`**, not with an editor:
   - `uci show <config>` and `uci get <config>.<section>.<option>`
@@ -91,7 +91,7 @@ of the current release branch,
   at the next reboot, unannounced.
 - `rules/backups.md` applies to `/etc/config/<name>` before any
   change: a copy with `cp`, or `uci export <config>` into a file.
-  Keep copies in `/root/hostwarden-backups/`; `/tmp` is RAM.
+  The backup directory here is `/root/hostwarden-backups/`.
   `sysupgrade -b /tmp/backup-<date>.tar.gz` archives the whole
   configuration; copy it off the device with `scp -O` before a
   larger change.
@@ -153,9 +153,9 @@ of the current release branch,
 - Without `owut`: the user downloads the sysupgrade image for the
   device from <https://firmware-selector.openwrt.org/>. Check it
   with `sysupgrade -T <image>` (tests image and kept configuration,
-  flashes nothing), then flash with `sysupgrade -v <image>`. Every
-  package installed after the fact has to be reinstalled afterwards.
-  `sysupgrade -k` stores the package list in the backup.
+  flashes nothing), then flash with `sysupgrade -v <image>`.
+  `sysupgrade -k` stores the list of installed packages in the
+  backup, for reinstalling them afterwards.
 - Never flash with `-n` (discards the configuration), `-F` (skips
   the image check) or an image for another device, and never skip a
   major release without reading its release notes first.
@@ -255,34 +255,34 @@ of the current release branch,
   ```
   cat /etc/openwrt_release; uptime; free; df -Ph /overlay /tmp
   grep " overlay ro," /proc/mounts; service; uci changes
-  logread -l 50
+  logread -l 50; owut check
   ```
-  plus `owut check` where it exists, or `apk list --upgradeable` /
-  `opkg list-upgradable` after refreshing the lists (reported, not
-  applied: see Package Manager). Findings: pending firmware update,
+  Where `owut` does not exist, list upgradable packages instead
+  (`apk list --upgradeable` or `opkg list-upgradable`, after
+  refreshing the lists), reported and not applied (see Package
+  Manager). Findings: pending firmware update,
   a release past its end of life, overlay nearly full or read-only,
   uncommitted UCI changes, a service disabled or stopped that should
   run, errors in the log.
-- A security audit reports instead of the `sshd` checks:
+- A security audit reads, in one call, instead of the `sshd`
+  checks:
+  ```
+  uci show dropbear; uci show firewall; netstat -tlnp
+  cat /etc/apk/repositories.d/*.list /etc/opkg/*.conf
+  ```
+  and reports:
   - dropbear's `PasswordAuth`, `RootPasswordAuth` and `Interface`
-    per instance (`uci show dropbear`); password login from `wan`
-    is CRITICAL;
-  - whether root has a password at all:
-    `grep -c "^root::" /etc/shadow` prints `1` when it has none,
-    which is CRITICAL (OpenWrt ships that way until the user sets
-    one), and never print the file itself;
+    per instance; password login from `wan` is CRITICAL;
   - the firewall zones, their input policies and every rule that
-    accepts traffic on `wan` (`uci show firewall`);
-  - LuCI and other services listening on `wan` (`netstat -tlnp`
-    against the zones);
+    accepts traffic on `wan`;
+  - LuCI and other services listening on `wan` (`netstat` against
+    the zones);
   - package feeds other than `downloads.openwrt.org`.
 
-  The unowned-files check cannot run here: busybox `find` has no
-  `-nouser`, and the Alpine variant needs `stat`, which the build
-  leaves out (`rules/busybox.md`). Report it as skipped.
-
-  A router forwards traffic by design: `net.ipv4.ip_forward=1` is
-  expected here, not a finding.
-- Fleet audit: compare OpenWrt devices only with each other. A
-  missing `unattended-upgrades`, `sshd -T` or `systemctl` is not
-  drift.
+  The empty-password check applies as it stands, and finds root
+  until the user sets a password: OpenWrt ships without one. The
+  unowned-files check is skipped (its **OpenWrt** line). A router
+  forwards traffic by design: `net.ipv4.ip_forward=1` is expected
+  here, not a finding.
+- Fleet audit: a missing `unattended-upgrades`, `sshd -T` or
+  `systemctl` is not drift.
