@@ -86,7 +86,8 @@ sysctl kern.elf64.aslr.enable kern.elf64.aslr.pie_enable \
 - In a jail, only these keys are its own: `kern.securelevel`;
   `security.bsd.unprivileged_proc_debug`; and, where
   `security.jail.vnet` is `1`, the `net.inet*` keys. Every other
-  key reads `n/a (container)`, and the INFO line names
+  key, `kern.elf32.aslr.*` below included, reads
+  `n/a (container)`, and the INFO line names
   `unprivileged_proc_debug` alone.
 - ASLR is on by default on 64-bit platforms. On a 32-bit one
   (`uname -p` shows `i386` or `armv7`) read `kern.elf32.aslr.*`,
