@@ -132,6 +132,13 @@ check deny 'shut\
 down -h now'
 check deny 'mkfs.ext4 \
 /dev/sda1'
+check deny "shut''down -r -h now"
+check deny 'shut\down -r -h now'
+check deny 'shut"d"own -h now'
+check deny "mk''fs.ext4 /dev/sda1"
+check deny 'ssh root@h "fd\isk /dev/sda"'
+check pass "echo it's fine"
+check pass 'git log --format="%h %s" -5'
 check deny "shutdown -r --'p'oweroff now"
 check deny 'ssh root@h "shutdown -r '\''-h'\'' now"'
 check deny 'shutdown -r -kh now'

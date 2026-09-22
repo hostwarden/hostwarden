@@ -458,12 +458,23 @@ case "$CMD" in
     | sed -e ':a' -e '/\\$/{' -e 'N' -e 's/\\\n//' -e 'ba' -e '}')
   ;;
 esac
+# The same goes for quotes and backslashes inside a word:
+# shut''down and mk\fs run shutdown and mkfs. A command with one
+# between two word characters is scanned once more with every
+# quote and backslash removed, again beside the original.
+CMDQ=
+case "$CMD$CMDJ" in
+*[[:alnum:]_][\"\'\\\`][[:alnum:]_\"\'\\\`]*)
+  CMDQ=$(printf '%s\n' "${CMDJ:-$CMD}" | tr -d '\\"`'"'")
+  ;;
+esac
 SEGS=$(printf '%s\n' "$CMD"
        printf '%s' "$CMD" | tr ';&|"'"'"'\n' '\n'
-       if [ -n "$CMDJ" ]; then
-         printf '\n%s\n' "$CMDJ"
-         printf '%s' "$CMDJ" | tr ';&|"'"'"'\n' '\n'
-       fi)
+       for more in "$CMDJ" "$CMDQ"; do
+         [ -n "$more" ] || continue
+         printf '\n%s\n' "$more"
+         printf '%s' "$more" | tr ';&|"'"'"'\n' '\n'
+       done)
 
 segments() {
   printf '%s\n' "$SEGS"
@@ -704,7 +715,7 @@ shutting anything down cleanly"
 fi
 # Both Linux rules need the word itself, so a command without it
 # skips their greps, as the Windows rules do with WIN below.
-case "$CMD$CMDJ" in
+case "$CMD$CMDJ$CMDQ" in
 *shutdown*)
   # Windows' shutdown is judged below, so the Linux rule exempts
   # it rather than lending it its -r: shutdown.exe, or shutdown
