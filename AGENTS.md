@@ -276,8 +276,8 @@ trigger — not a request from the user.
   second web server, database or MTA the host already has
 - Installing, removing or reconfiguring a network-facing service →
   `rules/firewall-changes.md`
-- Any firewall or network change that can cut SSH →
-  `rules/ssh-safety-net.md`, before applying it
+- Any firewall, network or login-shell change that can cut
+  SSH → `rules/ssh-safety-net.md`, before applying it
 - Reloading or restarting a service → `rules/service-reload.md`
 - Any install, service, permission or exposure change the user asked
   for → `rules/best-practices.md` for the anti-pattern catalog

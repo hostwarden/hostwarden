@@ -12,7 +12,9 @@ find "$BACKUP_DIR" -type f -mtime +30 -exec rm -f {} \;
 ```
 
 Where the loaded OS file names another backup
-directory, use that one as `$BACKUP_DIR`.
+directory, use that one as `$BACKUP_DIR`; where it
+names its own backup and cleanup commands, they
+replace the block above.
 The cleanup uses `-exec rm` rather than `-delete`, which
 some busybox builds leave out (`rules/busybox.md`).
 

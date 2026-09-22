@@ -54,7 +54,8 @@ Hostwarden session looks the same.
 - Key-based SSH access to the target, without a
   password or passphrase prompt
 - Linux, FreeBSD or macOS on the target, or Windows
-  Server with PowerShell 7 for read-only reports
+  Server, where Hostwarden reports and, when asked,
+  installs PowerShell 7 and sets it as the SSH shell
 - A checkout with working symbolic links
 - On Windows: WSL 2
 
@@ -172,7 +173,7 @@ off your servers, and how to read its logs:
 | Alpine  | Alpine Linux                      | `rules/os/alpine.md`  |
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
-| Windows | Windows Server, read-only         | `rules/os/windows.md` |
+| Windows | Windows Server, mostly read-only  | `rules/os/windows.md` |
 
 Appliances run their own updater, configuration and
 firewall on top of that OS, so they get a file of their own

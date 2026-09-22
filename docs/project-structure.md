@@ -96,7 +96,7 @@ rules/                 — Upstream rule files (git-tracked)
     alpine.md          — Alpine Linux (apk, OpenRC, busybox)
     macos.md           — macOS
     freebsd.md         — FreeBSD
-    windows.md         — Windows Server (read-only, PowerShell 7)
+    windows.md         — Windows Server (read-only; PowerShell 7 setup)
   appliance/           — Reference data on top of one family
                          file, or none. Detection reads at
                          most one

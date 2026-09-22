@@ -110,7 +110,10 @@ mode once detection has read it, whatever
 `memory/readonly.md` says. Announce it with the OS
 file as the reason. Only an override that wins over
 that statement lifts it (`rules/overrides.md` →
-Precedence).
+Precedence). The OS file may name single changes as
+exceptions; they are then the only thing the Blocked
+list above lets through, and a host listed in
+`memory/readonly.md` gets none of them.
 
 ## Linked Worktrees
 
