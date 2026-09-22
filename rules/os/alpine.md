@@ -274,13 +274,15 @@ rc-status -a | grep syslog
 if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
 then logread | head -1; logread | grep -E "hostwarden|heinzel" | tail -20
 elif [ -r /var/log/messages ]; then
+  cat /var/log/messages.0 /var/log/messages 2>/dev/null | head -1
   grep -hE "hostwarden|heinzel" /var/log/messages.0 \
     /var/log/messages 2>/dev/null | tail -20
 else echo "messages: not readable"; fi
 df /var/log; uptime
 ```
 
-This shows the last 20 matches, not a strict 7-day window.
+This shows the last 20 matches, not a strict 7-day window, and
+first the oldest line the log still holds.
 `messages: not readable` means the check has not run: as a user
 outside `wheel` (busybox) or `adm` (syslog-ng), run it through
 `doas -n` or `sudo -n`, and otherwise tell the user the activity

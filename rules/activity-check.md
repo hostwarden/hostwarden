@@ -55,7 +55,8 @@ and nothing limited what it can see —
 skip silently: no activity to report.
 
 An empty result covers only part of the seven days
-when the journal's oldest entry falls inside them, or
+when the oldest entry the read-back prints, from the
+journal or from a Logs section, falls inside them, or
 when the Logs section the read-back came from says
 the log does not survive a reboot; there, run
 `uptime` in the same call as the read-back. Tell the
