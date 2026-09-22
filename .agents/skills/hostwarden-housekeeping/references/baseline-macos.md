@@ -148,8 +148,7 @@ fi
 - **WARN** for each panic report from the last seven days, with
   its date
 - `unknown(unreadable)`: neither root nor this user could read
-  the reports. List the check under "Skipped"; it is not a Mac
-  without panics.
+  the reports. List the check under "Skipped".
 
 ## Time Machine Local Snapshots
 

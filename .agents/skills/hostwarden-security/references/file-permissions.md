@@ -254,6 +254,5 @@ done
   it.
 - A `skipped:` line is a path this user cannot reach — below a
   directory it may not enter, or one privacy protection (TCC)
-  guards. List it under "Skipped" with its plist: unchecked is
-  not clean. A path that does not exist is an argument, not a
-  file, and prints nothing.
+  guards. List it under "Skipped" with its plist. A path that
+  does not exist is an argument, not a file, and prints nothing.
