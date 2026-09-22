@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **OpenMediaVault is recognised as an appliance** on top of the
+  Debian file. Settings go through the web UI, because OMV
+  regenerates the files under `/etc` from its own database.
+  Updates are the `dist-upgrade` that `omv-upgrade` runs, and the
+  firewall is OMV's own rule table rather than `ufw`. Hostwarden
+  never deploys OMV's SSH settings, which rewrite `sshd_config`
+  and the keys, and the taboo guard blocks the deploy. Housekeeping
+  adds pending changes, RAID, SMART and whether notifications
+  reach anyone.
 - **Unraid is recognised as an appliance.** Detection finds it by
   `/etc/unraid-version`; the rules cover the root-only login, an OS
   in RAM, the web UI owning the configuration, and array operations

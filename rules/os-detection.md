@@ -44,7 +44,7 @@ skill says so where it needs it.
      'which pveversion ha opnsense-version pfSense-upgrade' \
      'midclt; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
-     'midclt call system.version'
+     'midclt call system.version; dpkg -l openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -135,16 +135,22 @@ prints for a missing one depends on the shell. Where
 one marker has two rows, the family from step 2 picks
 the row.
 
-| Base    | Marker             | Appliance file                    |
-| ------- | ------------------ | --------------------------------- |
-| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md`   |
-| Debian  | `midclt`           | `rules/appliance/truenas.md`      |
-| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`     |
-| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`      |
-| FreeBSD | `midclt`           | `rules/appliance/truenas-core.md` |
-| RHEL    | `ID=xcp-ng`        | `rules/appliance/xcp-ng.md`       |
-| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`         |
-| none    | `version="…"`      | `rules/appliance/unraid.md`       |
+| Base    | Marker               | Appliance file                      |
+| ------- | -------------------- | ----------------------------------- |
+| Debian  | `pveversion`         | `rules/appliance/proxmox-ve.md`     |
+| Debian  | `ii  openmediavault` | `rules/appliance/openmediavault.md` |
+| Debian  | `midclt`             | `rules/appliance/truenas.md`        |
+| FreeBSD | `opnsense-version`   | `rules/appliance/opnsense.md`       |
+| FreeBSD | `pfSense-upgrade`    | `rules/appliance/pfsense.md`        |
+| FreeBSD | `midclt`             | `rules/appliance/truenas-core.md`   |
+| RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
+| none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
+| none    | `version="…"`        | `rules/appliance/unraid.md`         |
+
+`ii  openmediavault` is the line `dpkg -l` prints for
+the installed package, with its version. `rc` (removed,
+config files left) and the "no packages found" error
+name the package too and are no match.
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
