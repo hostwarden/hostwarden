@@ -228,7 +228,7 @@ for p in /Library/LaunchDaemons/*.plist; do
     $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
     | sed -n 's|^ *\(/.*\)$|\1|p' | sort -u \
     | while IFS= read -r x; do
-        if [ ! -e "$x" ]; then
+        if [ ! -e "$x" ] && [ ! -L "$x" ]; then
           ls -dL "$x" 2>&1 | grep -q 'No such file' || echo "skipped: $x"
           continue
         fi
@@ -255,4 +255,6 @@ done
 - A `skipped:` line is a path this user cannot reach — below a
   directory it may not enter, or one privacy protection (TCC)
   guards. List it under "Skipped" with its plist. A path that
-  does not exist is an argument, not a file, and prints nothing.
+  does not exist is an argument, not a file, and prints nothing;
+  a symlink whose target is missing is still walked, since
+  whoever can write where it points can create the target.
