@@ -472,10 +472,10 @@ apt-cache policy intel-microcode amd64-microcode 2>/dev/null \
 ```
 
 Expected: `intel-microcode` on Intel, `amd64-microcode` on
-AMD. A `Candidate: (none)` on Debian means the
-`non-free-firmware` component is missing from the sources
-rather than the package — `rules/os/debian.md` → Package
-Sources.
+AMD. A `Candidate: (none)` on Debian means the component that
+carries firmware is missing from the sources rather than the
+package, and which one that is follows the release —
+`rules/os/debian.md` → Package Sources.
 
 **RHEL/CentOS/Fedora:**
 

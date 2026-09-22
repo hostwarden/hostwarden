@@ -211,11 +211,13 @@ never stays in `sources.list.d/` (`rules/backups.md`).
 Debian 12 and newer publish firmware in a component of its
 own, `non-free-firmware`, which the installer enables; a host
 upgraded from an older release carries it only where someone
-added it. Where it is absent, `apt-cache policy` answers
-`Candidate: (none)` for a package that does exist, the CPU
-microcode packages `intel-microcode` and `amd64-microcode`
-among them. Ubuntu has no such component and publishes both
-in `main`.
+added it. Debian 11 has no such component and publishes the
+same packages in `non-free`, so the component to look for
+follows the release. Where it is absent, `apt-cache policy`
+answers `Candidate: (none)` for a package that does exist,
+the CPU microcode packages `intel-microcode` and
+`amd64-microcode` among them. Ubuntu keeps both in `main`, in
+the release, security and updates pockets alike.
 
 Sources: https://documentation.ubuntu.com/release-notes/24.04/,
 https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html,
