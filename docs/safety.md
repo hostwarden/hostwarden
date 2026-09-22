@@ -33,6 +33,13 @@ under pressure.
   `--dangerously-skip-permissions`, and even when the
   command hides inside an `ssh host "…"` wrapper or
   behind a language runtime (`python3 -c "open(…)"`).
+  The same effects through a configuration tool count
+  too: Hostwarden runs no playbook, `ansible-pull` or
+  `ansible-console` (applying your Ansible code is your
+  step), no ad-hoc `ansible` call whose module
+  partitions, formats, powers off, writes SSH keys or
+  runs a local script, and no `terraform` or `tofu`
+  `apply` or `destroy`.
   The agent's own edit tools cannot write an SSH key
   or `sshd_config` either.
   Read-only forms (`fdisk -l`, `gpart show`, …) stay

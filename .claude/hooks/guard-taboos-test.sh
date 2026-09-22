@@ -670,6 +670,9 @@ corpus_files | grep '\.md$' | grep -v '/CHANGELOG\.md$' \
   !fenced($0)          { next }
   was == ""            { if (/[ \t](operator|guard-off)[ \t]*$/) next
                          f = FILENAME; gsub(/\//, "_", f); n++
+                         # A long checkout path would pass the
+                         # 255-byte limit on one file name.
+                         if (length(f) > 150) f = substr(f, length(f) - 149)
                          out = dir "/" f "." n; next }
   FM == ""             { if (out) close(out); out = ""; next }
   out                  { print > out }
@@ -867,6 +870,48 @@ check deny 'uci import # restore'
 check deny "ssh root@router.example.com 'uci import < /tmp/backup.uci'"
 check pass 'uci import firewall < /tmp/firewall.uci'
 check pass 'uci -m import network < /tmp/network.uci'
+# Configuration tools. A playbook's tasks are out of sight, so only
+# the forms that run none pass; ad-hoc calls are judged by module.
+check deny 'ansible-playbook -i inventory site.yml'
+check deny 'ansible-playbook --check --diff -l web1.example.com site.yml'
+check deny 'cd ~/ansible && ansible-playbook site.yml --limit web1.example.com'
+check deny "ssh root@server1.example.com 'ansible-playbook -c local /etc/site.yml'"
+check pass 'ansible-playbook --syntax-check site.yml'
+check pass 'ansible-playbook -i inventory --list-tasks site.yml'
+check pass 'ansible-playbook -i inventory site.yml --list-hosts'
+check deny 'ansible-playbook --list-hosts site.yml; ansible-playbook site.yml'
+check deny 'ansible-pull -U https://git.example.com/site.git'
+check deny 'ansible-console web'
+check pass 'ansible web1.example.com -m ping'
+check pass 'ansible all -m setup -a filter=ansible_distribution*'
+check pass 'ansible web1.example.com -a uptime'
+check pass 'ansible web1.example.com -m command -a "cat /etc/ssh/sshd_config"'
+check pass 'ansible web1.example.com -m stat -a path=/etc/ssh/sshd_config'
+check pass 'ansible web1.example.com -b -m apt -a "name=nginx state=present"'
+check pass 'ls -ld /etc/ansible/facts.d /root/.ansible 2>/dev/null || true'
+check deny 'ansible web1.example.com -b -m parted -a "device=/dev/sdb number=1 state=present"'
+check deny 'ansible web1.example.com -m community.general.parted -a "device=/dev/sdb"'
+check deny "ansible web1.example.com -m 'community.general.filesystem' -a 'fstype=ext4 dev=/dev/sdb1'"
+check deny 'ansible web1.example.com --module-name=community.general.shutdown'
+check deny 'ansible win1.example.com -m community.windows.win_format -a drive_letter=D'
+check deny 'ansible web1.example.com -m ansible.posix.authorized_key -a "user=root state=absent key=x"'
+check deny 'ansible web1.example.com -m community.crypto.openssh_keypair -a path=/tmp/k'
+check deny 'ansible web1.example.com -m script -a ./fix.sh'
+check deny "ssh root@server1.example.com 'ansible localhost -c local -m parted -a device=/dev/sdb'"
+check deny 'bash -c "ansible web1.example.com -m authorized_key -a user=root"'
+check pass "ssh root@server1.example.com 'ansible localhost -c local -m ping'"
+check deny 'ansible web1.example.com -b -m lineinfile -a "path=/etc/ssh/sshd_config line=PermitRootLogin\ no"'
+check deny 'ansible web1.example.com -mcopy -a "src=k dest=/root/.ssh/authorized_keys"'
+check deny 'ansible web1.example.com -m ansible.builtin.file -a "path=/root/.ssh mode=0777"'
+check deny 'ansible web1.example.com -m shell -a "sed -i s/22/2222/ /etc/ssh/sshd_config"'
+check deny 'ansible web1.example.com -m shell -a "mkfs.ext4 /dev/sdb1"'
+check deny 'ansible web1.example.com -b -a "poweroff"'
+check deny 'terraform apply'
+check deny 'terraform -chdir=infra apply -auto-approve'
+check deny 'tofu destroy -target=hcloud_server.web1'
+check pass 'terraform plan'
+check pass 'tofu state list'
+check pass 'grep -rn "ansible[-]pull" /etc/cron.d/ 2>/dev/null || true'
 check deny "ssh root@router.example.com 'uci set dropbear.@dropbear[0].RootLogin=1; uci commit dropbear'"
 check deny "uci batch <<'EOF'
 set dropbear.@dropbear[0].Port=2222
@@ -1515,6 +1560,8 @@ if [ -n "$LOCAL_SCOPE" ]; then
   check_dev pass 'git commit -m "docs: explain why mkfs is blocked"'
   check_dev pass 'git commit -m "fix: guard misses sfdisk --delete"'
   check_dev pass 'git log --oneline --grep=wipefs'
+  check_dev pass 'git commit -m "feat(guard): refuse ansible-playbook and tofu apply"'
+  check_dev pass 'grep -rn "ansible web1 -m parted" .claude/hooks/'
   check_dev pass 'gh pr create --title "guard: catch parted mklabel" --body x'
   check_dev pass 'grep -n "dd if=" rules/os/debian.md'
   check_dev pass 'mkfs.ext4 -F /tmp/disk.img'

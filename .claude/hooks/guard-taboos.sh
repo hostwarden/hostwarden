@@ -30,6 +30,11 @@
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
+#   - the same effects through a configuration tool: running a
+#     playbook, ansible-pull or ansible-console at all; an ad-hoc
+#     ansible call with a module that partitions, formats, powers
+#     off, writes keys or runs a local script, or that writes to a
+#     key or sshd_config; terraform or tofu apply and destroy
 #   - the same effects on any Windows machine, reached over
 #     SSH or through WSL: shutdown /s /p /h, Stop-Computer,
 #     wsl --shutdown/--terminate (halt), wsl --unregister (the
@@ -1160,6 +1165,106 @@ replaces the keys there"
     deny "editing an SSH key file in place can delete keys from it"
   fi
 fi
+
+# --- Configuration management tools ---------------------------
+# A playbook reaches every taboo above through modules whose names
+# and arguments never spell a shell command: parted and filesystem
+# write the partition table and make filesystems, lineinfile and
+# template rewrite sshd_config, authorized_key replaces keys, and
+# none of it is on the command line of ansible-playbook. So Hostwarden
+# runs no playbook (rules/config-management.md: applying Ansible
+# code is the user's step), except the forms that run no task at all:
+# --syntax-check, --list-hosts, --list-tasks and --list-tags.
+# ansible-pull applies a playbook from a repository in the same way,
+# and ansible-console takes its commands from a prompt this hook
+# never sees.
+#
+# An ad-hoc ansible call names its module and arguments, so it is
+# judged like a shell command. The rules above have scanned its
+# arguments already: -m shell -a "sed -i ... sshd_config" is a
+# sed -i onto sshd_config wherever it runs. What they cannot see is
+# the module itself:
+#   - parted, filesystem, the Windows partition, format and
+#     initialize modules, and shutdown, in any collection
+#     (community.general.parted is parted);
+#   - authorized_key and openssh_keypair, which write keys without
+#     naming a key file;
+#   - script, which runs a local file this hook cannot read;
+#   - any module but the ones that only read or run a command the
+#     rules above have judged, once a key or sshd_config is named.
+# The module is the last -m or --module-name of the invocation, as
+# Ansible reads it, and command when there is none. The words are
+# read from the dequoted command, so -m 'copy' is copy.
+#
+# terraform and tofu apply and destroy can replace or delete the
+# server itself (rules/config-management.md), and Hostwarden never
+# runs them. plan, show and state list only read.
+#
+# Full scope only: a development session reaches none of these
+# tools (the shim refuses them), and this repository names them in
+# rules, tests and commit messages all day.
+case "$CMD$CMDJ$CMDQ" in
+*ansible*|*terraform*|*tofu*)
+  if full; then
+    if hit_without '(^|[^[:alnum:]_.-])ansible-playbook([^[:alnum:]_.-]|$)' \
+      '^[^[:alnum:]]?ansible-playbook[^;&|]*[[:space:]]--(syntax-check|list-(hosts|tasks|tags))([[:space:]=]|$)'
+    then
+      deny "ansible-playbook applies whatever its tasks do, and this \
+guard cannot read them - applying Ansible code is left to the \
+user (rules/config-management.md); --syntax-check and --list-tasks, \
+--list-hosts or --list-tags run nothing"
+    fi
+    if hit '(^|[^[:alnum:]_.-])ansible-(pull|console)([^[:alnum:]_.-]|$)'
+    then
+      deny "ansible-pull applies a playbook this guard cannot read, \
+and ansible-console runs commands it never sees - the user runs \
+them"
+    fi
+    # One line per ad-hoc ansible invocation, then its module.
+    # Quotes are dropped first: in ssh host 'ansible web -m parted'
+    # the quote is what stands before ansible.
+    AMODS=$(printf '%s\n' "${CMDQ:-${CMDJ:-$CMD}}" | tr -d "\"'" \
+      | tr ';&|' '\n\n\n' \
+      | grep -E '(^|[[:space:](])ansible[[:space:]]' \
+      | while IFS= read -r al; do
+          am=$(printf '%s\n' "$al" | sed -nE \
+            's/.*[[:space:]](-m|--module-name)(=|[[:space:]]*)([[:alnum:]_.]+).*/\3/p')
+          printf '%s\n' "${am:-command}" | sed 's/.*\.//'
+        done)
+    if [ -n "$AMODS" ]; then
+      if printf '%s\n' "$AMODS" | grep -Eq \
+        '^(parted|filesystem|shutdown|win_partition|win_format|win_initialize_disk|win_shutdown)$'
+      then
+        deny "this Ansible module writes a partition table, makes a \
+filesystem or powers the host off"
+      fi
+      if printf '%s\n' "$AMODS" | grep -Eq '^(authorized_key|openssh_keypair)$'
+      then
+        deny "this Ansible module writes SSH keys or authorized_keys, \
+which is never allowed"
+      fi
+      if printf '%s\n' "$AMODS" | grep -Eq '^script$'; then
+        deny "the Ansible script module runs a local file this guard \
+cannot read - run the commands through the shell or command module, \
+where they are checked"
+      fi
+      if { hit "$KEY" || hit "$SSHD"; } && printf '%s\n' "$AMODS" \
+        | grep -Evq '^(command|shell|raw|stat|find|slurp|setup|ping|win_command|win_shell|win_stat)$'
+      then
+        deny "an Ansible module that writes files, pointed at an SSH \
+key or sshd_config, can replace it - read it with -m command \
+and cat, or with -m stat"
+      fi
+    fi
+    if hit '(^|[[:space:]])(terraform|tofu)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|$)'
+    then
+      deny "terraform and tofu apply and destroy can replace or \
+delete the server itself - the user runs them \
+(rules/config-management.md)"
+    fi
+  fi
+  ;;
+esac
 
 # --- Effects reached through an interpreter -------------------
 # Every rule above recognizes a write by the way it is spelled: a
