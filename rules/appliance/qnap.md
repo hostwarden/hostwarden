@@ -1,6 +1,7 @@
 # QNAP QTS and QuTS hero
 
 Base: none
+Hardware: vendor
 
 For QNAP NAS devices running QTS 5.x or QuTS hero h5.x. Both are
 QNAP's own Linux-based operating systems and no family file applies:
