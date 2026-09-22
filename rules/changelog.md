@@ -29,6 +29,9 @@ Reading back: `rules/activity-check.md` → How to
 check.
 
 If `logger` fails, log to the local changelog only.
+The same holds when the loaded OS file says `logger`
+can succeed without writing, and its check shows
+that it did.
 
 ### Entry format
 

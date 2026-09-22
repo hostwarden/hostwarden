@@ -40,7 +40,9 @@ Bash calls as it does anywhere else.
    calls as the host allows (`rules/ssh-connections.md`),
    including the audit-trail line, which is part of the same call,
    not a second login. If that line fails to write, the audit trail
-   for this host does not exist: that is `partial:`, not `ok`.
+   for this host does not exist: that is `partial:`, not `ok` —
+   and so is a write `rules/changelog.md` says did not happen
+   although `logger` succeeded.
 3. Apply that file's criteria to what you got back. Two kinds
    live there and only one of them survives without you. A
    criterion that compares hosts ("different firewall tool across
