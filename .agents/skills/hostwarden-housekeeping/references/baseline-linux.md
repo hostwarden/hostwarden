@@ -467,12 +467,14 @@ Run the package query together with the two commands under
 **Debian/Ubuntu:**
 
 ```bash
-apt-cache policy intel-microcode amd64-microcode 2>/dev/null \
-  | grep -E '^[a-z0-9.-]+:$|Installed:|Candidate:'
+LC_ALL=C apt-cache policy intel-microcode amd64-microcode \
+  2>/dev/null | grep -E '^[a-z0-9.-]+:$|Installed:|Candidate:'
 ```
 
 Expected: `intel-microcode` on Intel, `amd64-microcode` on
-AMD. `apt-cache` answers from the local lists alone, so a
+AMD. `LC_ALL=C` keeps the labels English: apt translates
+`Installed:` and `Candidate:` wherever the host has a locale
+for them. `apt-cache` answers from the local lists alone, so a
 `Candidate: (none)` on Debian says the package is in no list
 this host has, not yet why. Read the configured components
 before naming one — the usual cause is that the component
