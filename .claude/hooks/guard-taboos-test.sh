@@ -351,6 +351,85 @@ check pass 'ls -l /mnt/c/ProgramData/ssh/'
 check pass 'date +%Y-%m-%d --date=yesterday'
 check pass 'git log --format="%h %s" -5'
 
+# --- Windows Server, as SSH reaches it -------------------------
+# The shape the Windows rules send: PowerShell in the body of a
+# heredoc, which the guard scans because pwsh executes it.
+PS_SSH='ssh -o BatchMode=yes -o ConnectTimeout=5 administrator@win1.example.com '\''pwsh -NoProfile -NonInteractive -Command -'\'' <<'\''EOS'\''
+'
+check deny 'shutdown /s /t 0'
+check deny 'shutdown /p'
+check deny 'shutdown /h'
+check deny 'SHUTDOWN /P /F'
+check deny 'shutdown /sg /t 0'
+check deny 'shutdown.exe /h'
+check deny 'shutdown /r /p'
+check deny 'shutdown.exe /r /s'
+check deny 'shutdown /r -h now'
+check deny 'ssh administrator@win1.example.com shutdown /s /t 0'
+check deny "${PS_SSH}shutdown /p
+EOS"
+check deny 'bcdedit /set {default} safeboot minimal'
+check deny 'bcdedit /deletevalue {default} safeboot'
+check deny 'bcdedit /v /set {default} testsigning on'
+check deny 'bcdedit /enum; bcdedit /delete {ntldr}'
+check deny 'BCDEdit.exe /default {current}'
+check deny 'bcdedit /import C:\bcd.bak'
+check deny 'C:\Windows\System32\bcdedit.exe /timeout 0'
+check deny 'ssh administrator@win1.example.com "bcdedit /enum && bcdedit /bootsequence {fwbootmgr}"'
+check deny "${PS_SSH}bcdedit /enum all
+bcdedit /set {current} recoveryenabled No
+EOS"
+check deny 'cipher /w:C:\'
+check deny 'cipher.exe /W:D:\data'
+check deny 'cmd.exe /c "cipher /w:C:\temp"'
+check deny "${PS_SSH}cipher /w:C:\\
+EOS"
+check deny 'powershell.exe -c "Remove-VirtualDisk Data01"'
+check deny "${PS_SSH}Remove-VirtualDisk -FriendlyName Data01 -Confirm:\$false
+EOS"
+check deny "${PS_SSH}Get-StoragePool -FriendlyName Pool1 | Remove-StoragePool
+EOS"
+check deny "${PS_SSH}Get-Disk 1 | Clear-Disk -RemoveData
+EOS"
+check deny "${PS_SSH}Stop-Computer -Force
+EOS"
+check deny "${PS_SSH}Set-Content C:\\ProgramData\\ssh\\sshd_config 'Port 22'
+EOS"
+check pass 'shutdown /r /t 0'
+check pass 'shutdown /g /t 0'
+check pass 'shutdown /a'
+check pass 'ssh administrator@win1.example.com shutdown /r /t 0'
+check pass "${PS_SSH}shutdown /r /t 60 /d p:2:17
+EOS"
+check pass "${PS_SSH}Restart-Computer -Force
+EOS"
+check pass 'shutdown -r now'
+check pass 'bcdedit'
+check pass 'bcdedit /enum'
+check pass 'bcdedit /enum all /v'
+check pass 'bcdedit.exe /enum {current}'
+check pass 'BCDEDIT /V'
+check pass 'bcdedit /store C:\Boot\BCD /enum'
+check pass 'ssh administrator@win1.example.com "bcdedit /enum active" 2>&1 | head -20'
+check pass "${PS_SSH}bcdedit /enum firmware | Out-String
+EOS"
+check pass 'cipher'
+check pass 'cipher /c secret.txt'
+check pass 'cipher /u /n'
+check pass "${PS_SSH}Get-Disk
+Get-Partition
+Get-Volume
+Get-VirtualDisk
+Get-StoragePool
+EOS"
+check pass 'ssh administrator@win1.example.com '\''cmd /c ver'\'''
+# The OpenSSH DefaultShell value is Hostwarden's to set once the
+# user approves; it is not a taboo.
+check pass "${PS_SSH}Get-ItemProperty -Path HKLM:\\SOFTWARE\\OpenSSH -Name DefaultShell
+EOS"
+check pass "${PS_SSH}New-ItemProperty -Path HKLM:\\SOFTWARE\\OpenSSH -Name DefaultShell -Value 'C:\\Program Files\\PowerShell\\7\\pwsh.exe' -PropertyType String -Force
+EOS"
+
 # --- must pass -------------------------------------------------
 check pass 'fdisk -l'
 check pass 'sfdisk -l /dev/sda'

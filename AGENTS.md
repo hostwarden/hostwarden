@@ -135,10 +135,12 @@ user when it will visibly slow the answer.
   dropbear is the SSH server. Never delete or overwrite SSH keys, and
   that includes moving, truncating or re-permissioning them. Never
   halt or power off a server.
-  Under WSL the same holds for Windows: `diskpart`, `mbr2gpt`,
-  `format X:` and the Storage cmdlets (`Clear-Disk`,
-  `Format-Volume`, …) write the partition table or erase a disk,
-  `wsl --unregister` erases one, `Stop-Computer` and
+  The same holds on any Windows machine, over SSH or through WSL:
+  `diskpart`, `mbr2gpt`, `format X:` and the Storage cmdlets
+  (`Clear-Disk`, `Remove-VirtualDisk`, …) write the partition
+  table or erase a disk, as `cipher /w` and `wsl --unregister`
+  erase, `bcdedit` beyond `/enum` and `/v` rewrites the boot
+  configuration, `Stop-Computer`, `shutdown /s`, `/p`, `/h` and
   `wsl --shutdown`/`--terminate` halt, and `C:\ProgramData\ssh`
   holds sshd's config and host keys.
   Inspect `sshd_config`, SSH keys and disk devices with `cat`,
