@@ -69,8 +69,9 @@ silent.
     a plain string. `-j` waits for a method that runs as a job.
   - It authenticates as the user who runs it: a user with the Full
     Admin role reaches the whole API without `sudo`, other users
-    only what their role allows. Never pass `-u`/`-p` or an API key
-    on the command line (`rules/secrets.md`).
+    only what their role allows. Never pass `-U`/`-P` or an API key
+    on the command line (`rules/secrets.md`); how a key is used is
+    under API.
   - Method names, arguments and which methods are jobs come from
     the API reference of the installed release
     (<https://api.truenas.com/>), which changes between releases.
@@ -92,6 +93,201 @@ silent.
 - `config.reset` (factory defaults) and `config.upload` (restore a
   configuration file) exist. Never, unless the user explicitly
   asks.
+
+## API
+
+Everything the web UI does goes through the middleware's API:
+JSON-RPC 2.0 over a WebSocket, which `midclt` reaches over the
+local socket and a remote client at `wss://<host>/api/current`
+(25.04 and later; 24.10 has only the older protocol at
+`/websocket`). The REST API under `/api/v2.0` is deprecated since
+25.04 and is never used
+(<https://www.truenas.com/docs/scale/25.10/api/>). Hostwarden uses
+two access levels, set up separately, and the user decides whether
+the second exists at all:
+
+- **Read**: every API read, always, also where write access exists.
+- **Write**: only for a change the user asked for and approved in
+  this session.
+
+The middleware enforces roles on every call, the local socket
+included: a `midclt` run by a user other than root gets that user's
+roles, which come from the privileges of the user's groups
+(`truenas/middleware`, `src/middlewared/middlewared/plugins/auth.py`,
+`check_permission`, 25.10.7). `sudo midclt` runs as root and reaches
+everything, so read access never uses `sudo`. The **Readonly Admin**
+role (`READONLY_ADMIN`) expands into every `*_READ` role: it calls
+any query and read-only method and none that creates, updates or
+deletes (<https://api.truenas.com/v25.10/rbac.html>). A method
+outside the caller's role answers `Not authorized`.
+
+### Setting up access
+
+- **Read access: a user `api-read` with the Readonly Admin role and
+  SSH access.** The user creates it under Credentials > Users > Add:
+  TrueNAS Access with the role **Readonly Admin**, SSH Access on,
+  the workstation's public key in Public SSH Key, "Allow SSH Login
+  with Password" off, a home directory and a login shell (SSH needs
+  both), and no sudo of any kind; the docs say "Do not allow sudo
+  permissions for read-only administrators"
+  (<https://www.truenas.com/docs/scale/25.10/scaleuireference/credentials/usersscreen/>,
+  <https://www.truenas.com/docs/scale/25.10/scaletutorials/credentials/adminroles/>).
+  Nothing is stored on the workstation but the SSH key it already
+  has: the login is the credential, and the role that the
+  middleware enforces keeps it from writing.
+- **Write access: the account that makes changes today**, the admin
+  user the session connects as (Access and Shell), usually with Full
+  Admin. Where the user wants less, a user whose role covers only
+  what Hostwarden is meant to change, such as Sharing Admin for
+  shares. With `API write: none` Hostwarden makes no change through
+  the API: every change goes to the user as web UI steps, even where
+  the session's SSH user could make it.
+- **API keys, for the workstation path only** (see How a call
+  reaches the API). The user creates each key for the account it
+  belongs to, signed in as that account under the user menu in the
+  top toolbar > My API Keys > Add API Key, or under Credentials >
+  Users > the user > View API Keys, and sets an expiry date rather
+  than the default of none. A key has exactly its user's roles, so
+  the read key belongs to `api-read` and the write key to the write
+  account. TrueNAS shows the key once; a lost key is reset. A key is
+  not subject to its user's two-factor authentication, and TrueNAS
+  revokes a key that arrives over plain HTTP
+  (<https://www.truenas.com/docs/scale/25.10/scaletutorials/toptoolbar/managingapikeys/>).
+  Each key goes into a file the user creates and fills as
+  `rules/secrets.md` → API Credentials on the Workstation
+  describes, one line, the key exactly as shown (`<id>-<key>`):
+  `truenas-ro.key` for the read key, `truenas-rw.key` for the write
+  key.
+- The first read confirms the access: `midclt call auth.me` as the
+  read user names the user and its privilege. A login that fails or
+  a key that is rejected is reported as such and not retried in a
+  loop. Never prove that the read user cannot write by trying a
+  write: the role the user set in the UI is the proof.
+- Record in server memory:
+  ```
+  API read: api-read (Readonly Admin)
+  API write: truenas_admin (Full Admin)
+  API path: ssh
+  ```
+  and `API write: none` when the user wants read access only. On
+  the workstation path each account line adds its key file:
+  ```
+  API read: api-read (Readonly Admin), ~/hostwarden-keys/<host>/truenas-ro.key
+  ```
+
+### How a call reaches the API
+
+- **Over SSH, the default**, on every release this file covers.
+  `midclt` runs on the host as the SSH user against the local
+  socket, so no key exists anywhere and the web UI's port does not
+  have to be reachable. An API key adds nothing here, and the
+  `midclt` that 25.10 ships takes a key only as an argument, which
+  `rules/secrets.md` forbids. The read user has its own SSH login;
+  with the SSH options from `AGENTS.md` it gets its own shared
+  connection.
+- **From the workstation**, only where SSH stays off or the user
+  prefers it, and only against 25.04 and later, recorded as
+  `API path: workstation`. The client is `midclt` from TrueNAS's
+  own `truenas_api_client` (<https://github.com/truenas/api_client>),
+  installed on the workstation into its own virtual environment
+  (`pipx`) from a release tag. Only the 26.0 tags (`TS-26.0.0…`)
+  and later read the key from a file, `-K` followed by an absolute
+  path; an older tag takes the key only as an argument and is not
+  used. Look
+  up the tag to install as `rules/version-check.md` says, and read
+  the installed client's `midclt -h` before the first call. A call:
+
+  ```
+  midclt -u wss://<host>/api/current -U api-read \
+    -K ~/hostwarden-keys/<host>/truenas-ro.key --plain call system.info
+  ```
+
+  `--plain` sends the key inside TLS, which a server before 26
+  needs; against 26 and later leave it off, and the client uses
+  SCRAM, which never sends the key. The client checks the
+  certificate's chain and name against the workstation's trust
+  store; `rules/tls-pinning.md` cannot apply, because `midclt` has
+  no pin option. The self-signed certificate TrueNAS creates names
+  only `localhost` (`truenas/truenas_crypto_utils`,
+  `generate_self_signed.py`) and fails that check, so this path
+  needs a certificate for the name the workstation uses, from a CA
+  the workstation trusts, selected under System > General Settings >
+  GUI > Settings > GUI SSL Certificate
+  (<https://www.truenas.com/docs/scale/25.10/scaletutorials/systemsettings/general/>).
+  Never `--insecure`, and never `ws://`: a key sent over plain HTTP
+  is revoked.
+
+### Reading
+
+- **One call per task.** Over SSH, everything a task reads goes into
+  one bundle run as the read user (`rules/ssh-connections.md` →
+  Bundle commands), each method preceded by a JSON marker so the
+  stream stays parseable:
+
+  ```
+  ssh … api-read@<host> sh -s <<'EOF' | jq …
+  echo '{"@": "alert.list"}'; midclt call alert.list
+  echo '{"@": "update.status"}'; midclt call update.status
+  EOF
+  ```
+
+  On the workstation path each method is its own `midclt` call and
+  its own login; call only what the task needs.
+- **The workstation filters before anything reaches the
+  conversation**: the filter in `rules/secrets.md` → API Credentials
+  on the Workstation, with this added to its pattern:
+  ```
+  passwd|pass_$|bindpw|key$|key_id|hash$|salt|credentials|attributes|compose_config
+  ```
+  These cover the fields that 25.10's API marks as secret beyond
+  the pattern's own words: `unixhash`, `smbhash`, `keyhash`, the
+  cloud credentials' `attributes`, a cloud sync task's
+  `credentials`, a custom app's compose config, and the SNMP, iSCSI
+  and NVMe keys (`truenas/middleware`,
+  `src/middlewared/middlewared/api/v25_10_0/`). Then `jq -s` reads
+  the stream as one array in which each marker precedes its
+  response, and a projection keeps what the question needs; a
+  `select` in the query options (Housekeeping and Audits) keeps the
+  host from sending the rest.
+- Method names and fields come from the API reference of the
+  installed release, <https://api.truenas.com/v25.10/> for 25.10,
+  which changes between releases. A method or field that is missing
+  is a fact to report, never one to work around.
+
+### Writing
+
+- **Only with write access, only after asking**, and only for what
+  the user asked for. Show the method and its arguments, and what
+  else the change touches (Pools and Datasets names what to show
+  before a dataset change). A method that runs as a job gets `-j`.
+- **Back up the object first** (`rules/backups.md` → State behind
+  an API): the `…config` or `…get_instance` of what changes, read as
+  the read user straight into the backup file, which never passes
+  through the conversation.
+- **The body is a file on the workstation.** A `midclt` from 26.0
+  on reads it from stdin when the last argument is `-`: over SSH
+  `ssh … <write-user>@<host> "midclt call <method> <id> -" < body.json`,
+  from the workstation `midclt … call <method> <id> - < body.json`.
+  The `midclt` of 24.10 to 25.10 has no `-`, so the body goes as an
+  argument; a body that carries a secret — a password, a cloud key,
+  a private key — is then entered by the user in the web UI, never
+  by Hostwarden.
+- The API has no dry-run. The check is the method's schema in the
+  reference of the installed release (`AGENTS.md` → Verify Before
+  Running), and a wrong body comes back as a validation error.
+- A change that can cut the way in — the network, the SSH service,
+  the UI allowlist — follows `rules/ssh-safety-net.md`; Replace:
+  Networking names the one revert the middleware arms by itself.
+- Read the object back after the change and compare.
+
+### What stays on SSH
+
+The API does not stand in for the session's own SSH user (Access
+and Shell) for the journal, `/var/log/middlewared.log`,
+`zpool status` in full, `smartctl`, `docker logs` and the
+Hostwarden journal line: they are read or written as that user, as
+the rest of this file describes. The read user has no sudo and
+never replaces it.
 
 ## Replace: Package Manager
 
@@ -297,8 +493,10 @@ silent.
 ## Housekeeping and Audits
 
 - Read, in one call; `select` keeps the JSON to the fields the
-  findings need. Before 25.10 the update and reboot calls differ
-  (see Updates):
+  findings need. Where server memory records `API read:`, the call
+  runs as that user with the markers and the filter from API >
+  Reading, otherwise as the session's SSH user. Before 25.10 the
+  update and reboot calls differ (see Updates):
   ```
   midclt call alert.list
   midclt call update.status
@@ -331,10 +529,22 @@ silent.
     `state.error` and `state.datetime`. Pools with data and no
     snapshot task are a finding to report, not to fix.
   - **Apps** with an update available.
-- A security audit also reports: the SSH service's settings
-  (`midclt call ssh.config`: root login, password login), users with
-  SSH access and "no password" sudo, the web UI's `ui_allowlist`,
-  and API keys (`midclt call api_key.query`, names and expiry only,
-  never the key).
+- A security audit also reports, read through the API as above:
+  the SSH service's settings (`midclt call ssh.config`: root login,
+  password login), users with SSH access and "no password" sudo, the
+  web UI's `ui_allowlist`, and the API keys:
+  ```
+  midclt call api_key.query '[]' '{"select": ["name", "username", "created_at", "expires_at", "revoked", "revoked_reason"]}'
+  ```
+  and the roles of the users they name, in the same call:
+  ```
+  midclt call user.query '[["username", "in", [<users>]]]' '{"select": ["username", "roles"]}'
+  ```
+  Each key with its name, user, the user's roles, expiry and whether
+  it is revoked; never the key, and `keyhash` is not selected. A key
+  without an expiry whose user has Full Admin is WARN: it is not
+  subject to two-factor authentication. A revoked key is INFO with
+  its `revoked_reason` (a key sent over HTTP is revoked). A key whose
+  user no longer exists comes back revoked, with that as the reason.
 - Fleet audit: a missing `unattended-upgrades` or host firewall is
   not drift.
