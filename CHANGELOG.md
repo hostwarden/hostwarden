@@ -116,6 +116,11 @@
   OPNsense with `/var` on a RAM disk, the journal lines are gone
   after a reboot: Hostwarden names the time since boot and reads
   your local changelog for the time before.
+- **The same holds where the journal or syslog reaches back less
+  than a week.** On systemd hosts Hostwarden reads the journal's
+  oldest entry, which catches a journal kept in `/run` or vacuumed
+  down; on Alpine it notices busybox's RAM buffer and diskless
+  mode.
 - **On Windows, Hostwarden runs in WSL 2 only.** Git Bash,
   PowerShell and `cmd.exe` are not supported:
   `bin/hostwarden-doctor` says so at session start and names
