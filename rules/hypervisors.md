@@ -33,7 +33,12 @@ replaced it.
 Per guest, record: ID, name, kind (VM or container), state,
 whether it starts with the host, whether the hypervisor marks it
 as a template, its MAC addresses, and a VM's UUID where Linking
-below names a source for it. Per-guest commands go into one
+below names a source for it. On a host with more than one
+manager, an ID or a name is unique only within its manager: each
+entry then starts with its manager (`incus: prod/web`), and
+`Runs on:`, the link and a second directory of one hostname
+(`rules/server-memory.md`) carry it too. Per-guest commands go
+into one
 bundled call (`rules/ssh-connections.md`). On an appliance, its
 file's **Inventory** entry gives every command, and nothing below
 applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
@@ -153,9 +158,12 @@ one line (*"Registering 7 guests of pve1.example.com through
    and the guest's addresses, and the lookup runs on them before
    anything else. A blacklisted guest is not entered further:
    note `blacklisted` in its entry.
-2. One bundled call inside the guest runs the lines of the
-   step-1 probe (`rules/os-detection.md`) and reads the link keys
-   (Linking below).
+2. Inside the guest, run the rest of the pipeline as
+   `rules/first-connection.md` → Via-host mode gives it, one
+   bundled call per step: OS detection with the link keys
+   (Linking below), the activity check with its
+   configuration-management probe, and the Heinzel check where it
+   applies. What they find is recorded as they say.
 3. The hostname names the memory directory. Where one exists
    already and its `Guest identity:` or its `IP:` matches this
    guest, it is the same server: add only `Runs on:` and the
@@ -248,9 +256,18 @@ Report each difference in one line, and nothing when there is
 none:
 
 - **New guest:** its full entry.
-- **Gone guest:** remove its entry. A guest with memory of its
-  own gets `Runs on: unknown (left <host> <date>)`; if it turns up
-  on another host, the keys link it there.
+- **Gone guest:** a missing row proves nothing by itself: the
+  manager may have failed, printed part of its list, or be
+  migrating the guest. Only after a listing that exited 0, and a
+  read-only check for that guest by its own manager that says it
+  does not exist (`qm config`, `pct config`, `virsh dominfo`,
+  `incus info --project …`, `xe vm-list uuid=…`), remove its
+  entry; a guest with memory of its own then gets
+  `Runs on: unknown (left <host> <date>)`, and if it turns up on
+  another host, the keys link it there. A guest the cluster
+  listing shows on another node moved: `Runs on:` names that node.
+  Until the check settles it, the entry only gains
+  `not listed <date>`.
 - **State changed:** update the entry.
 
 Update `Inventoried:` after every listing, full or light: it is
