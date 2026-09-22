@@ -647,7 +647,12 @@ that program. A rule whose local addresses (`to`) are not `Any`
 reaches only a listener bound to one of them or to a wildcard
 address; a listener bound to another address is not exposed by
 it. A listener whose path is empty cannot be matched to a
-program-scoped rule: report it as unknown, not as covered. A
+program-scoped rule: report it as unknown, not as covered. Nor
+can a listener whose bracket holds several services be matched
+to a service-scoped rule: a socket names only its process, not
+which of that process's services opened it. Report such a
+listener as unknown against that rule, neither exposed nor
+covered; only a bracket with one service is that service. A
 rule with a local port of `Any` opens every port to the program
 or service it names: name the rule.
 
