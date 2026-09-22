@@ -160,8 +160,8 @@ Heinzel's memory, not this clone's.
 
 Report what points at the old checkout and offer to
 point it at this one (the `hostwarden-housekeeping`
-skill, scheduled). A crontab or unit file is standing configuration,
-so each edit needs its own approval. Key material
+skill, scheduled). A crontab or unit file is standing
+configuration, so each edit needs its own approval. Key material
 under `~/heinzel-keys/` is reported, never touched,
 moved or re-permissioned (`AGENTS.md` → Critical
 Safety Rules).

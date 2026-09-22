@@ -173,7 +173,8 @@ summarizing it.
   caller is known — see `rules/heinzel-adoption.md` § "An improvised
   script keeps its name".
 - **No scheduled runs.** Heinzel's cron lines and timers on the
-  workstation are `rules/heinzel-adoption.md` § "On the workstation
-  (local mode)", and change only with explicit approval.
+  workstation are reported under `rules/heinzel-adoption.md` § "On
+  the workstation (local mode)", and change only with explicit
+  approval.
 - **No secrets.** If the old tree holds key material or a file with
   credentials, report the path and leave it (`rules/secrets.md`).

@@ -34,12 +34,15 @@ journalctl -t hostwarden --no-pager | grep 'Adopted heinzel state'
 
 Without a journal, grep syslog's file for the same text.
 
-A line naming `/var/backups/heinzel` means adopted:
-report it so, with the file count of the new path.
-Without that line the adoption is not shown: Hostwarden
-fills `/var/backups/hostwarden/` with its own backups
-too. Report the directory as missing, with what the new
-path holds, and let the user decide. A false
+A line naming `/var/backups/heinzel` means adopted,
+unless your own journal entries (`journalctl -t
+heinzel`) go on after it: then you may have made the
+directory again since, and the old line says nothing
+about it. Report an adoption with the file count of
+the new path. Otherwise the adoption is not shown:
+Hostwarden fills `/var/backups/hostwarden/` with its
+own backups too. Report the directory as missing, with
+what the new path holds, and let the user decide. A false
 "your backups are gone" costs the user an hour of fear,
 and a false "adopted" costs the backups
 (`rules/verify-before-reporting.md`).
