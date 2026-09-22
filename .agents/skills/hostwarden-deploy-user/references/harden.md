@@ -135,8 +135,8 @@ On FreeBSD, bash is a package: check `command -v bash` first,
 and install it only if the user agrees (`rules/version-check.md`);
 then `pw usermod deploy -s /usr/local/bin/bash`.
 
-On macOS, prefer `/bin/sh` or `/bin/zsh`: `/bin/bash` is 3.2
-and lacks what bash 4 added.
+On macOS, prefer `/bin/zsh`, the default login shell, or
+`/bin/sh`.
 
 Discuss the trade-off with the user: a full shell
 without a forced command is more flexible but

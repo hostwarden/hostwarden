@@ -58,11 +58,16 @@ Accounts live in the directory service. Create the record with
 `dscl` as root: `sysadminctl` asks for an administrator's
 password, which a session cannot answer, and gives the account a
 password hash this one must not have. Pick a free UID from 501
-up (`dscl . -list /Users UniqueID`); below 500 is where macOS
-updates add their own accounts, and `IsHidden` keeps it off the
-login window.
+up in the search node, which includes a bound directory service
+as well as local accounts (`dscl /Search -list /Users UniqueID`);
+below 500 is where macOS updates add their own accounts, and
+`IsHidden` keeps it off the login window.
+
+`dscl -create` overwrites an account that already exists. Stop
+and ask when the first line finds one:
 
 ```bash
+dscl /Search -read /Users/deploy RecordName 2>/dev/null && exit 1
 dscl . -create /Users/deploy
 dscl . -create /Users/deploy UniqueID <free-uid>
 dscl . -create /Users/deploy PrimaryGroupID 20
@@ -139,6 +144,8 @@ id deploy && getent passwd deploy
 ls -ld <deploy-target> 2>/dev/null
 sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
 ```
+
+On macOS the first line is the `dscl` read from Verify above.
 
 On FreeBSD, sudoers and web roots are where
 `rules/os/freebsd.md` → Directory Conventions puts them.
