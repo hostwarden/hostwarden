@@ -145,9 +145,12 @@ What reaches the instance depends on the networking mode
 (Version Detection above):
 
 - `nat` — the default. A port the instance listens on is
-  reachable from Windows as `localhost:<port>`, and from
-  nowhere else unless someone forwarded it with
-  `netsh interface portproxy` on Windows.
+  reachable from Windows as `localhost:<port>` while
+  `.wslconfig` leaves `localhostForwarding` on, which is the
+  default; `localhostForwarding=false` under `[wsl2]` takes
+  that path away. From nowhere else is it reachable unless
+  someone forwarded it with `netsh interface portproxy` on
+  Windows.
 - `mirrored` — the instance shares Windows' interfaces, and a
   port it listens on is reachable from the network as far as
   the Hyper-V firewall lets it through.
