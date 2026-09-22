@@ -111,16 +111,20 @@ Where the loaded OS file says a host has no register, the
 journal stands in for it (`rules/changelog.md`), and the session
 token (The register above, made with the same command on the
 workstation where the host has no `sh`) tells one session from
-another, two windows of the same operator included. Right before each change
-there, read the journal as the activity check does
-(`rules/activity-check.md`), then write
-`[<operator> as <unix-user>] starting <token>: <task>`; once the
-change is done and logged, write
-`[<operator> as <unix-user>] done <token>: <task>`. Every
-change gets its own pair. A `starting` entry with another token
-from the last 30 minutes, and no `done` entry with that token
-after it, is a live session — name it and ask, as for a live
-entry above. A pair that is complete is a finished change.
+another, two windows of the same operator included. Right before
+each change there, write
+`[<operator> as <unix-user>] starting <token>: <task>` and then
+read the journal as the activity check does
+(`rules/activity-check.md`), in one call; once the change is done and logged,
+write `[<operator> as <unix-user>] done <token>: <task>`. The
+marker goes first for the reason the register is made before it
+is listed: two sessions that both read before writing can each
+miss the other. Every change gets its own pair. A `starting`
+entry with another token from the last 30 minutes, and no `done`
+entry with that token after it, is a live session — name it and
+ask, as for a live entry above. A change that then does not go
+ahead gets its `done` entry at once. A pair that is complete is
+a finished change.
 
 ## Talk to the other session
 

@@ -88,10 +88,10 @@ may not reach Windows at all.
 
 ## Add: Version Detection
 
-One call reads all three:
+One call reads all four:
 
 ```
-wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
+wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm; uname -r
 ```
 
 - The first line is the WSL package version. Releases before
@@ -101,9 +101,14 @@ wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
   `none`.
 - The third is `systemd` when systemd runs, and `init` when
   WSL's own init does.
+- The fourth, the kernel release, gives the generation: WSL 2
+  runs a Linux kernel whose release ends in
+  `-microsoft-standard-WSL2`; WSL 1 has none of its own and
+  reports `…-Microsoft`. A custom WSL 2 kernel may carry
+  neither; then the generation is `unknown`.
 
 Record them next to the platform:
-`Platform: WSL 2 (<version>, nat, systemd)`.
+`Platform: WSL <1|2> (<version>, <networking mode>, <PID 1>)`.
 
 ## Add: Package Manager
 
@@ -143,9 +148,10 @@ What reaches the instance depends on the networking mode
 (Version Detection above):
 
 - `nat` — the default. A port the instance listens on is
-  reachable from Windows as `localhost:<port>`, and from
-  nowhere else unless someone forwarded it with
-  `netsh interface portproxy` on Windows.
+  reachable from Windows as `localhost:<port>` unless
+  `.wslconfig` sets `localhostForwarding=false` under
+  `[wsl2]`, and from nowhere else unless someone forwarded
+  it with `netsh interface portproxy` on Windows.
 - `mirrored` — the instance shares Windows' interfaces, and a
   port it listens on is reachable from the network as far as
   the Hyper-V firewall lets it through.

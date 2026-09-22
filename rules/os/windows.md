@@ -463,17 +463,24 @@ headline goes to the local changelog only.
 **Read back** (`rules/activity-check.md`):
 
 ```powershell
-try { $null = Get-WinEvent -LogName Application -MaxEvents 1 -ErrorAction Stop; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
+try { try { $o = Get-WinEvent -LogName Application -MaxEvents 1 -Oldest -ErrorAction Stop } catch { if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw } }; if ($o) { "oldest: $($o.TimeCreated.ToString('s'))" } else { 'oldest: none' }; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
 ```
 
 The `entries:` line is the proof the check ran; `failed:`, or
-no line at all, means it did not. `Get-WinEvent` reports an
+no line at all, means it did not. The `oldest:` line is how far
+back the log reaches (`rules/activity-check.md` → How far back
+it reached). `Get-WinEvent` reports an
 error, not an empty result, when its filter matches nothing,
 and the same error when access is denied
 ([PowerShell#18965](https://github.com/PowerShell/PowerShell/issues/18965)).
-So the first statement proves the log can be read, with one
-event and an error that stops the line; after that, the
+So the first statement proves the log can be read, with its
+oldest event and an error that stops the line; after that, the
 filtered query's error can only mean no match, and is silenced.
+Read by name, without a filter, the log tells the two apart: an
+empty log raises `NoMatchingEventsFound`, a denied read another
+error. So `oldest: none` is a readable, empty log that reaches
+back no time at all: tell the user so, and read the local
+changelog for the whole seven days.
 The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
 `Event Log Reader`.
@@ -619,21 +626,23 @@ no file:
 
 **Firewall.** The Firewall block above, rated as it says, and
 the enabled inbound allow rules of the policy in effect, Group
-Policy included — name, profile, protocol, local port and remote
+Policy included — name, profile, protocol, local port, remote and local
 addresses:
 
 ```powershell
-try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | program {5} | service {6}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), $app, $svc } } catch { "failed: $_" }
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
 ```
 
 Judge only the rules of the profile in use (Firewall above). A
-rule opens its ports only to its program and service where it
-names one (`Any` means every program or service): a listener
-on that port is exposed, to the remote addresses the rule
-names, when the listener's executable path is the rule's
-program, its bracket holds the rule's service, or the rule names
-neither. A listener whose path is empty cannot be matched to a
-program-scoped rule: report it as unknown, not as covered. A
+listener on the rule's port is exposed, to the remote addresses
+the rule names, when every scope the rule names matches (`Any`
+names none): its executable path is the rule's program, its
+bracket is the rule's service, and its bound address is one of
+the rule's local addresses (`to`) or a wildcard. A listener
+with an empty path, or a bracket of several services, cannot be
+matched to a program- or service-scoped rule — a socket names
+only its process, not which of its services opened it: report
+it as unknown against that rule, neither exposed nor covered. A
 rule with a local port of `Any` opens every port to the program
 or service it names: name the rule.
 
@@ -679,11 +688,26 @@ domain controller these checks do not apply.
 
 ```powershell
 try { Get-SmbServerConfiguration -ErrorAction Stop | Format-List EnableSMB1Protocol } catch { "failed: $_" }
+try { $k = 'HKLM:\SYSTEM\CurrentControlSet\Services\mrxsmb10'; if (Test-Path $k) { "client driver start: $((Get-ItemProperty $k -ErrorAction Stop).Start)" } else { 'client driver: not installed' }; $d = Get-CimInstance Win32_SystemDriver -Filter "Name='mrxsmb10'" -ErrorAction SilentlyContinue; "client driver state: $(if ($d) { $d.State } else { 'not loaded' })"; "workstation depends on: $((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation' -ErrorAction Stop).DependOnService -join ',')" } catch { "failed: $_" }
 ```
 
-- `True`: **WARN** — SMBv1 is not installed by default on
-  Server 2019 and later, and Microsoft advises against it
+The first line is the server side, which accepts SMBv1
+connections; the rest is the client side, which opens them.
+
+- `EnableSMB1Protocol` `True`: **WARN** — SMBv1 is not
+  installed by default on Server 2019 and later, and Microsoft
+  advises against it
   ([SMB protocols](https://learn.microsoft.com/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3)).
+- The client driver `mrxsmb10` installed with a start value
+  other than `4` (disabled), or `MRxSmb10` among the
+  workstation service's dependencies: **WARN**, for the same
+  reason — this host can still connect to others over SMBv1.
+- A client driver state of `Running` while its start value is
+  already `4`: **WARN** "SMBv1 client disabled, restart
+  pending" — the driver stays loaded until the restart
+  Microsoft's procedure asks for, and the client still works.
+- Report SMBv1 as off only when both sides are, and the client
+  driver is not running.
 
 **Remote Desktop:**
 
@@ -749,6 +773,14 @@ sections say.
   (`ssh_host_*_key` without `.pub`) is a secret
   (`rules/secrets.md`): look at it only with `dir` or
   `icacls`, and take its fingerprint from its `.pub` file.
+  Where the default shell is a POSIX layer
+  (`rules/os-detection.md`), `type` is that shell's builtin
+  and `dir` may be missing: read with `cat` and list with
+  `ls -l` instead, on the layer's path —
+  `/c/ProgramData/ssh/…` under Git Bash and MSYS2,
+  `/cygdrive/c/ProgramData/ssh/…` under Cygwin. `icacls` is a
+  Windows program and works the same, with the Windows path in
+  single quotes.
 - **Windows Server 2025** has the OpenSSH server installed by
   default; earlier versions add it as a capability. Membership
   in the local group `OpenSSH Users` can be what lets an

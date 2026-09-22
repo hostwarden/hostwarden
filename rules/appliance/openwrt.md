@@ -286,7 +286,7 @@ of the current release branch,
   logread -l 50; owut check
   nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
   nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
-  awk '$2=="00000000" && $8=="00000000" {print $1}' /proc/net/route
+  awk '$2=="00000000" && $8=="00000000" && $1!="lo" && substr($4,2,1)!~/[2367ABEF]/ {print $1}' /proc/net/route
   awk '$1~/^0+$/ && $2=="00" && $10!="lo" {print $10}' /proc/net/ipv6_route
   ```
   Where `owut` does not exist, list upgradable packages instead
@@ -296,7 +296,9 @@ of the current release branch,
   UCI, which can hold a committed change fw4 has not loaded. No
   `inet fw4` table is **CRITICAL** "No active firewall". The
   uplinks are the devices of every IPv4 and IPv6 default route,
-  or, where there is none, the `wan` zone's devices. The `input` chain
+  or, where there is none, the `wan` zone's devices. An
+  unreachable default route sits on `lo` with the reject flag
+  (`0x0200` in `Flags`), leads nowhere, and is left out. The `input` chain
   sends each device to its zone with `iifname … jump input_<zone>`
   (`*` is a wildcard); the `jump <verdict>_from_<zone>` that ends
   the zone's chain is its policy, and a device no rule names gets

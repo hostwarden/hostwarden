@@ -37,8 +37,11 @@ for Windows.
   for details.
 
 - Linux (any distribution), FreeBSD, or macOS on the
-  target machines. All supported systems can also be
-  managed locally without SSH.
+  target machines; these can also be managed locally
+  without SSH. Windows Server is a target over SSH
+  only, mostly read-only (`rules/os/windows.md`); a
+  Windows workstation runs Hostwarden in WSL 2, under
+  [Windows](#windows).
 - **A checkout that supports symbolic links.**
   Hostwarden uses them in two load-bearing places:
   `.claude/skills` links to `.agents/skills/`, and

@@ -279,10 +279,15 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 - Time Sync: judge by `ntpq -pn` alone; `ntpd_enable` is not where
   the vendor enables ntpd.
 - Failed Services: `service -e` says nothing here — `rc.conf` is
-  unused and PHP starts the services. Ask each service the host's
-  memory lists as running, as Replace: Service Manager shows, all
-  in one SSH call; a stopped one is WARN. SSH is off by default, so
-  a stopped `sshd` counts only where memory lists it.
+  unused and PHP starts the services. Take the list from the
+  appliance, never from memory, which need not hold one:
+  ```
+  php -r 'require_once("config.inc"); require_once("service-utils.inc"); foreach (get_services() as $s) { echo $s["name"], get_service_status($s) ? " running" : " stopped", "\n"; }'
+  ```
+  `get_services()` is what Status > Services lists: every service
+  the configuration enables, packages included, and `sshd` only
+  where SSH is enabled (`/etc/inc/service-utils.inc`). A stopped
+  one is WARN.
 - Certificate expiry: also the web UI's `/var/etc/cert.crt`.
 - Backups: AutoConfigBackup keeps copies off the box once enabled:
   ```

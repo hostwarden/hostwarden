@@ -22,7 +22,9 @@ the same hostname.
   the os-release `ID`, which can differ from it.
 
 Its `memory.md` records how the instance is reached:
-`- Reached as: <ssh destination>`.
+`- Reached as: <ssh destination>`. That destination, not
+the directory name, is the host's key in `memory/user.md`
+and the target of the SSH call.
 
 A WSL instance is found by the Windows hostname and
 the port. When the user names a machine and memory
@@ -60,9 +62,11 @@ Adapt fields to OS (add Arch, Homebrew for macOS;
 add `Mode: local` for localhost); an OS file whose
 Version Detection names fields to record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
-`rules/os-detection.md`; `SSH port:` is the `port` line
-of `ssh -G <user>@<hostname>`, which the alias check in
-`rules/dns-aliases.md` compares.
+`rules/os-detection.md`; `SSH port:`, remote mode only, is
+the `port` line of `ssh -G <user>@<hostname>`, which the
+alias check in `rules/dns-aliases.md` compares. A
+field a probe could not read is written `unknown`, never
+filled from an example.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
