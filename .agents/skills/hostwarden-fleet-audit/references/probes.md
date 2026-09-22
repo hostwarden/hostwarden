@@ -368,8 +368,9 @@ fi
 ```
 
 Tool in use is `appfw`, `pf`, both or `none`; pf counts only
-when its status is enabled. Default policy is `deny` with
-block-all on, and `per-app` otherwise.
+when its status is enabled. Default policy is `none` while
+the global state is disabled, whatever block-all says; with
+it enabled, `deny` with block-all on and `per-app` otherwise.
 
 **FreeBSD** — run the status probe from `rules/os/freebsd.md` →
 Firewall with `$SUDO` in front of `pfctl` and `ipf`
