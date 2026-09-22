@@ -32,7 +32,8 @@ third party says so; check it on the live host before relying on it.
   table of verified facts in its README). Step 1 of
   `rules/os-detection.md` prints them; later connections read them
   with
-  `grep -E '^(ID|VERSION_ID)=' /etc/os-release`.
+  `grep -E "^(ID|VERSION_ID)=" /etc/os-release`, in double quotes
+  because the step-1 shape wraps each piece in single ones.
 - `rauc status`, as root, names the slots and marks the one that
   booted
   (<https://www.zimaspace.com/docs/zimaos/system-recovery>).
