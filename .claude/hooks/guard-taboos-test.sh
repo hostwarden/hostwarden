@@ -48,32 +48,34 @@ print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
   fi
 }
 
+# Whether a guard's output is a deny. verdict below and hook_case
+# further down both judge by it.
+denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
+
 verdict() {
-  # verdict <expect> <command> <tool> <hook> <input> — one fixture,
-  # one line of output. Runs no process but the guard itself:
-  # every fork and exec here is paid once per fixture, and on a
-  # workstation with an EDR agent each one is also inspected.
-  # HOSTWARDEN_GUARD_DISABLE is unset by the caller, once.
-  OUT=$(printf '%s' "$5" | sh "$4")
-  case $OUT in
-  *'"permissionDecision":"deny"'*) GOT=deny ;;
-  *) GOT=pass ;;
+  # verdict <expect> <tool> <command> <hook> <input> [label] — one
+  # fixture, one line of output, in the queue's own field order.
+  # Runs no process but the guard itself: every fork and exec here
+  # is paid once per fixture, and on a workstation with an EDR agent
+  # each one is also inspected. HOSTWARDEN_GUARD_DISABLE is unset by
+  # the caller, once.
+  OUT=$(sh "$4" <<EOF
+$5
+EOF
+)
+  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
+  # A deny Claude Code cannot parse is no deny at all: a reason with
+  # a backslash in it once broke the JSON unnoticed. The drain
+  # validates every deny it gets back, all in one jq run.
+  case "$GOT:$1" in
+  deny:deny) printf 'deny:%s\n' "$OUT" ;;
+  pass:pass) echo ok ;;
+  *)
+    case $2 in
+    Bash) echo "FAIL [$1, got $GOT]$6: $3" ;;
+    *) echo "FAIL [$1, got $GOT] $2$6: $3" ;;
+    esac ;;
   esac
-  if [ "$GOT" = "$1" ]; then
-    # A deny Claude Code cannot parse is no deny at all: a reason
-    # with a backslash in it once broke the JSON unnoticed. The
-    # drain validates every deny it gets back in one jq run.
-    if [ "$GOT" = deny ]; then
-      printf 'deny:%s\n' "$OUT"
-    else
-      echo ok
-    fi
-  else
-    case $3 in
-    Bash) echo "FAIL [$1, got $GOT]${6:+ in development}: $2" ;;
-    *) echo "FAIL [$1, got $GOT] $3${6:+ in development}: $2" ;;
-    esac
-  fi
 }
 
 # Child of the parallel drain at the bottom, judging a batch of
@@ -91,8 +93,9 @@ if [ "$1" = "--verdict" ]; then
     IN=$4
     [ "$IN" != - ] || IN=$(json_for "$3" "$2")
     case $1 in
-    dev-*) verdict "${1#dev-}" "$3" "$2" "$GUARD_DEV" "$IN" dev ;;
-    *) verdict "$1" "$3" "$2" "$HOOK" "$IN" ;;
+    dev-*) verdict "${1#dev-}" "$2" "$3" "$GUARD_DEV" "$IN" \
+      ' in development' ;;
+    *) verdict "$1" "$2" "$3" "$HOOK" "$IN" ;;
     esac
     shift 4
   done
@@ -1140,7 +1143,6 @@ expect() {
   fi
 }
 V=HOSTWARDEN_GUARD_DISABLE
-denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
 
 # --- operator override: set at launch, and recorded then ---------
 # The variable switches the guard off only for a session whose start
@@ -1568,7 +1570,8 @@ if [ "$NCHECKS" -gt 0 ]; then
   # One jq run builds every fixture's hook input, so no child
   # starts one: four fields per fixture from here on.
   # Without jq the fourth is a dash and the child falls back to
-  # json_for. Not an empty field: BSD xargs drops those.
+  # json_for. Not an empty field: BSD xargs drops those. printf
+  # repeats its format, so one takes a hundred fixtures.
   if command -v jq >/dev/null 2>&1; then
     jq -Rsj '([0] | implode) as $nul | split($nul)[:-1] | _nwise(3)
       | (.[0], .[1], .[2],
@@ -1576,7 +1579,7 @@ if [ "$NCHECKS" -gt 0 ]; then
          else {tool_name: .[1], tool_input: {command: .[2]}} | tojson
          end) + $nul' < "$QUEUE" > "$QUEUE.in"
   else
-    xargs -0 -n3 printf '%s\0%s\0%s\0-\0' < "$QUEUE" > "$QUEUE.in"
+    xargs -0 -n 300 printf '%s\0%s\0%s\0-\0' < "$QUEUE" > "$QUEUE.in"
   fi
   # Batches, not one child per fixture: each child is a shell that
   # parses this file. A few batches per core keep every core busy
@@ -1588,28 +1591,25 @@ if [ "$NCHECKS" -gt 0 ]; then
   RESULT=$(xargs -0 -n $((PER * 4)) -P "$JOBS" sh "$SELF" --verdict \
     < "$QUEUE.in")
   XSTATUS=$?
-  NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
-  NOK=$(printf '%s\n' "$RESULT" | grep -cE '^(ok$|deny:)' || true)
-  # Every deny that came back, validated in one jq run; only when
-  # that fails, one per deny, to name the ones that broke.
-  DENIES=$(printf '%s\n' "$RESULT" | sed -n 's/^deny://p')
-  if [ -n "$DENIES" ] && command -v jq >/dev/null 2>&1 \
-    && ! printf '%s\n' "$DENIES" | jq -es \
-      'all(.[]; .hookSpecificOutput.permissionDecision == "deny")' \
-      >/dev/null 2>&1; then
-    printf '%s\n' "$DENIES" | while IFS= read -r d; do
-      printf '%s' "$d" | jq -e \
-        '.hookSpecificOutput.permissionDecision == "deny"' \
-        >/dev/null 2>&1 \
-        || echo "FAIL [deny, got deny as invalid JSON]: $d"
-    done > "$QUEUE.in"
-    NBAD=$(grep -c . "$QUEUE.in" || true)
-    cat "$QUEUE.in"
-    NOK=$((NOK - NBAD))
-    FAIL=$((FAIL + NBAD))
+  # Every deny that came back is valid JSON Claude Code reads as a
+  # deny, or a failure: one jq run turns each deny: line into ok or
+  # a FAIL line. Without jq the JSON cannot be checked.
+  if command -v jq >/dev/null 2>&1; then
+    RESULT=$(printf '%s\n' "$RESULT" | jq -Rr '
+      if startswith("deny:") then .[5:] as $j
+        | if ($j | try (fromjson
+              | .hookSpecificOutput.permissionDecision == "deny")
+            catch false)
+          then "ok"
+          else "FAIL [deny, got deny as invalid JSON]: \($j)" end
+      else . end')
+  else
+    RESULT=$(printf '%s\n' "$RESULT" | sed 's/^deny:.*/ok/')
   fi
+  NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
+  NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)
   PASS=$((PASS + NOK))
-  BADS=$(printf '%s\n' "$RESULT" | grep -vE '^(ok$|deny:)' | grep . \
+  BADS=$(printf '%s\n' "$RESULT" | grep -v '^ok$' | grep . \
     | LC_ALL=C sort || true)
   if [ -n "$BADS" ]; then
     printf '%s\n' "$BADS"
