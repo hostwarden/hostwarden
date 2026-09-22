@@ -692,7 +692,7 @@ fi
 # Windows rules need no scope: WIN below gates them, and a
 # Windows user reaches wsl --unregister or Stop-Computer without
 # admin, so they apply in both.
-REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|lxc-[[:alpha:]]+|incus|pct|qm|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
+REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|lxc-[[:alpha:]]+|incus|pct|qm|xe|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
 SCOPE=full
 case $0 in */*) HOOKDIR=${0%/*} ;; *) HOOKDIR=. ;; esac
 if [ -f "$HOOKDIR/mode.sh" ]; then

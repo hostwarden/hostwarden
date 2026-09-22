@@ -364,6 +364,11 @@ check deny 'pct stop 105 && pct destroy 105'
 check_mode ask default 'pct stop 105 && pct destroy 105'
 check dev-deny 'pct stop 105'
 check dev-deny 'lxc-destroy -n web'
+check dev-deny 'xe vm-destroy uuid=abc123'
+check dev-deny 'xe -s pool1 vm-destroy uuid=abc123'
+check dev-deny 'incus delete --force web'
+check dev-deny 'virsh undefine web'
+check dev-deny 'qm destroy 100'
 for m in acceptEdits plan auto; do
   check_mode ask "$m" 'pct stop 105'
 done
