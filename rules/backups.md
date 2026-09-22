@@ -30,6 +30,20 @@ reaches those directories, which is why the first
 connection to a host offers to adopt them
 (`rules/heinzel-legacy.md`).
 
+## State behind an API
+
+Configuration an appliance keeps behind its API, not
+in a file, is backed up the same way before a change:
+GET the object and keep the response on the
+workstation as
+`~/hostwarden-keys/<hostname>/api-backups/<object>.<YYYYmmdd-HHMMSS>.json`,
+directory mode 700, file mode 600. Such a copy holds
+the secrets a read filter drops (`rules/secrets.md` →
+API Credentials on the Workstation), so it never goes
+under the repo and is never printed; the local
+changelog names the file. Restoring is a write of that
+object, after asking.
+
 ## Moving a backup into `$BACKUP_DIR`
 
 Retention goes by mtime, and `mv` keeps it. A file

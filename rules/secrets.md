@@ -305,6 +305,47 @@ material outside the repo
 `0700` on the directory and `0600` on files) and
 record only the *path* in memory or inventories.
 
+## API Credentials on the Workstation
+
+An appliance API that Hostwarden calls — a key, a
+token, a login — lives in a file on the workstation
+that the user writes, never in the conversation:
+
+- The directory is `~/hostwarden-keys/<hostname>/`
+  (mode 700) and the file is created empty before
+  anything goes in, so it never exists readable:
+
+  ```bash operator
+  mkdir -p -m 700 ~/hostwarden-keys/<hostname>
+  install -m 600 /dev/null ~/hostwarden-keys/<hostname>/<file>
+  ```
+
+  The user then writes the value into it with an
+  editor. Hostwarden names the file and its format and
+  never sees what goes in.
+- Before the first call in a session, check the file
+  without reading it — `stat -f '%Lp %u' <file>` on
+  macOS, `stat -c '%a %u' <file>` on Linux: mode `600`
+  and the user's own UID. Anything else: stop and have
+  the user fix it.
+- The value reaches the tool on stdin or through a
+  file option (`curl -H @-`, `--data @-`), never as an
+  argument (Never Pass Secrets on the Command Line).
+- Memory records the file's path and which account
+  or access level it holds, never the value. Rotating
+  it is a rotation (When a Secret Has Already Leaked):
+  the user's step, after asking.
+- **Every response passes a filter on the workstation**
+  before any of it reaches the conversation. For JSON,
+  drop every key that can carry a secret:
+
+  ```
+  jq 'walk(if type == "object" then with_entries(select(.key | test("pass(word|phrase)|secret|preshared|psk|token|private|apikey"; "i") | not)) else . end)'
+  ```
+
+  The appliance file adds its own field names to the
+  pattern where they differ.
+
 ## Secrets the User Pastes Into Chat
 
 Sometimes the user pastes a password or token
