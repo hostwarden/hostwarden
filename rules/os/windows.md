@@ -478,7 +478,9 @@ oldest event and an error that stops the line; after that, the
 filtered query's error can only mean no match, and is silenced.
 Read by name, without a filter, the log tells the two apart: an
 empty log raises `NoMatchingEventsFound`, a denied read another
-error. So `oldest: none` is a readable, empty log.
+error. So `oldest: none` is a readable, empty log that reaches
+back no time at all: tell the user so, and read the local
+changelog for the whole seven days.
 The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
 `Event Log Reader`.
