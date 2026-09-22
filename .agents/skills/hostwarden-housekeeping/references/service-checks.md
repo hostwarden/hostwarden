@@ -255,21 +255,22 @@ Never run `pihole-FTL --config` without a full key, never read a
 Sources: https://github.com/AdguardTeam/AdGuardHome, its source
 under `internal/` and the wiki; where the two disagree, the
 source wins. `install.sh` installs to `/opt/AdGuardHome`, with
-`AdGuardHome.yaml` and a `data/` directory beside the binary; the
-Docker image keeps them in the `conf` and `work` volumes under
-`/opt/adguardhome`, and `docker inspect` names their host paths.
-Record paths that differ in `memory.md`. Run as root, in one
-call:
+`AdGuardHome.yaml` and a `data/` directory beside the binary
+(`/Applications/AdGuardHome` on macOS). The Docker image runs
+`/opt/adguardhome/AdGuardHome` with the configuration in its
+`conf` volume and the data in `work/data`; there, run `$A` through
+`docker exec` and set `C` and `D` to the host side of the volumes,
+which `docker inspect` names. Record paths that differ in
+`memory.md`. Run as root, in one call:
 
 ```bash
-A=/opt/AdGuardHome
+A=/opt/AdGuardHome; C=$A/AdGuardHome.yaml; D=$A/data
 $A/AdGuardHome -s status
 $A/AdGuardHome --version
 dig +time=2 +tries=1 @127.0.0.1 healthcheck.adguardhome.test
-sed -n -e '/^filtering:/,/^[^ ]/p' -e '/^filters:/,/^[^ ]/p' \
-  $A/AdGuardHome.yaml \
+sed -n -e '/^filtering:/,/^[^ ]/p' -e '/^filters:/,/^[^ ]/p' "$C" \
   | grep -E 'filters_update_interval|- enabled:|^ +id:'
-ls -lt $A/data/filters/
+ls -lt "$D/filters/"
 journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
   | grep 'updating filter' | grep -ci error
 ```
@@ -303,5 +304,7 @@ it holds the `users` password hashes and can hold
 - **CRITICAL** if the service or container is not running, or
   the query times out or is refused
 - **WARN** if an enabled list's file is older than twice the
-  interval, or refresh errors appear in the last 7 days
+  interval, or refresh errors appear in the last 7 days. An
+  interval of `0` turns automatic refresh off: report the list
+  ages as **INFO** instead
 - Report the number of enabled lists and the newest file's age

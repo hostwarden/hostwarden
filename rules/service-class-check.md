@@ -192,7 +192,8 @@ lists them. Probe for them on every OS:
 
 ```bash
 command -v pihole-FTL AdGuardHome
-ls -d /etc/pihole /opt/AdGuardHome 2>/dev/null
+ls -d /etc/pihole /opt/AdGuardHome \
+  /Applications/AdGuardHome 2>/dev/null
 snap list adguard-home 2>/dev/null
 docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
   2>/dev/null | grep -iE 'pihole/pihole|adguard/adguardhome'
@@ -200,7 +201,10 @@ docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
 
 Any hit is an installed DNS resolver. For Pi-hole,
 `pihole-FTL --config -q ntp.sync.active` decides the
-time sync membership above.
+time sync membership above. When Pi-hole is the
+existing time sync member, option (b) below means
+setting `ntp.sync.active` to `false` — a change to
+confirm like any other — never removing Pi-hole.
 
 ### Phase 2 — Pending-install dry-run
 
