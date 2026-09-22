@@ -202,28 +202,19 @@ included
   per-site block, marker included, for each:
 
   ```
-  ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT;
+  ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT
     curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
-      -w "{\"@\": \"login\", \"code\": %{http_code}}\n" \
+      -w "\n{\"@\": \"login\", \"code\": \"%{http_code}\"}\n" \
       --data @- https://127.0.0.1/api/auth/login
     b=https://127.0.0.1/proxy/network/api/s/<site>
-    curl -sSk -b "$j" -w "\n{\"@\": \"health\", \"code\": %{http_code}}\n" \
-      "$b/stat/health"
-    curl -sSk -b "$j" -w "\n{\"@\": \"device\", \"code\": %{http_code}}\n" \
-      "$b/stat/device"' \
-    < ~/hostwarden-keys/<console>/unifi-ro.json | jq …
+    curl -sSk -b "$j" \
+      -w "\n{\"@\": \"%{url_effective}\", \"code\": \"%{http_code}\"}\n" \
+      "$b/stat/health" "$b/stat/device"' \
+    < ~/hostwarden-keys/<console>/unifi-ro.json | jq -Rn …
   ```
 
-  Only the login reads stdin, so each endpoint may have its own
-  `curl -b "$j"`. A key-authenticated read is one `curl -H @-` with
-  every URL after it (`rules/appliance-api.md` → Reading).
-  The login carries a marker like the reads, and a `login` code
-  other than 200 means nothing was read: never take the empty
-  stream that follows for a clean result. `401` and `403` are the
-  credential being rejected; `429`, a `5xx`, a `404` or curl's
-  `000` are a rate limit, the console, a wrong path or no
-  connection — report the code as it came, and do not ask for a new
-  password over one of those.
+  The markers, the framing, and what a failed login or a code
+  means: `rules/appliance-api.md` → Reading.
 
 - Secret fields: add `^x_` to the filter's pattern — the classic
   API keeps its secrets in `x_` fields (`x_passphrase`,

@@ -226,20 +226,16 @@ holds one line, `x-api-key: <key>`.
         n=$((n+1))
         printf "%s\n" "$h" | curl -sS --unix-socket /var/run/unraid-api.sock \
           -H @- -H "Content-Type: application/json" --data "$q" \
-          -w "\n{\"@\": $n, \"http\": %{http_code}}\n" http://localhost/graphql \
-          || echo "{\"@\": $n, \"curl\": $?}"
+          -w "\n{\"@\": \"$n\", \"code\": \"%{http_code}\"}\n" \
+          http://localhost/graphql
       done' \
-    | jq -s …
+    | jq -Rn …
   ```
 
   `printf` is a shell builtin, so the key reaches curl without
   showing in a process list; the query in `--data` is no secret.
-  **The marker follows its response**, with the HTTP status curl
-  reports, or curl's own exit status where the socket did not
-  answer at all: a marker printed before the request would count as
-  a completed read even when nothing came back. A request whose
-  marker says anything but `200`, or that has none, is a check that
-  did not run (`rules/appliance-api.md` → Reading).
+  The markers, the framing, and what a failed code means:
+  `rules/appliance-api.md` → Reading.
   From the workstation, the same loop runs locally with curl's
   `--unix-socket` replaced by the URL and the pin. The housekeeping
   requests, `unraid-read.jsonl`:

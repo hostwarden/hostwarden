@@ -206,28 +206,18 @@ outside the caller's role answers `Not authorized`.
   (`rules/ssh-connections.md` → Bundle commands):
 
   ```
-  ssh … api-read@<host> sh -s <<'EOF' | jq …
-  o=$(midclt call alert.list); r=$?
-  printf '%s' "$o" | tr -d '\n'; echo
-  echo "{\"@\": \"alert.list\", \"rc\": $r}"
-  o=$(midclt call update.status); r=$?
-  printf '%s' "$o" | tr -d '\n'; echo
-  echo "{\"@\": \"update.status\", \"rc\": $r}"
+  ssh … api-read@<host> sh -s <<'EOF' | jq -Rn …
+  for m in alert.list update.status; do
+    midclt call "$m"; printf '\n{"@": "%s", "code": "%s"}\n' "$m" "$?"
+  done
   EOF
   ```
 
-  The line-by-line filter of `rules/appliance-api.md` → Reading
-  reads each line as one document, and `midclt`'s output format is
-  not documented: a pretty-printed answer would span lines and be
-  dropped. `tr -d '\n'` puts each answer on one line of its own
-  before it leaves the host, whatever the client does; a `midclt`
-  that already answers on one line is unchanged by it.
-  **The marker follows its answer and carries `midclt`'s exit
-  status**, which `tr` and `echo` would otherwise hide: a marker
-  printed first would count a method that failed — unavailable on
-  that release, or refused to the read role — as a completed read.
-  An `rc` other than 0, or a missing marker, is a check that did
-  not run.
+  Each marker carries `midclt`'s exit status: a method unavailable
+  on that release, or refused to the read role, fails there.
+  `midclt`'s output format is not documented and an answer may span
+  lines; the markers, the framing, and what a failed code means:
+  `rules/appliance-api.md` → Reading.
 
   On the workstation path, unlike `rules/appliance-api.md` →
   Reading, each method is its own `midclt` call and its own login,

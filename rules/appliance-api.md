@@ -62,45 +62,69 @@ appliance file says so by name.
   reads, the audit reads — goes into a single call, with one login
   where the appliance needs one, and a cookie jar in a `mktemp` file
   under `umask 077` that the same call removes on exit.
-- **Every response carries its own marker and status**, written by
-  curl itself so a failed request cannot pass as a missing one:
+- **Every answer is followed by its own marker**, a JSON line naming
+  the request and how it went; a marker printed before the request
+  would count a read that never came back as done. curl writes it,
+  on a failed connection too, with the code `000`:
 
   ```
-  -w '\n{"@": "<name>", "code": %{http_code}}\n'
+  -w '\n{"@": "<name>", "code": "%{http_code}"}\n'
   ```
 
-  Leave `-f` off when the marker is what reports the failure: `-f`
-  drops the body an error explains, and the exit status of one
-  request in a batch does not reach the caller. A marker whose
-  `code` is not 2xx is a check that did not run.
+  Inside the single-quoted SSH argument the same marker is
+  `-w "\n{\"@\": \"<name>\", \"code\": \"%{http_code}\"}\n"`. A
+  command on the host writes its own in a `sh -s` bundle, carrying
+  its exit status:
+
+  ```
+  <command>; printf '\n{"@": "%s", "code": "%s"}\n' <name> "$?"
+  ```
+
+  `<command>` is the command itself, never a pipeline, whose `$?`
+  would be its last stage's. The code is quoted, so `000` stays
+  `000` instead of the number 0. The answer goes to stdout as it
+  comes, however many lines it takes, and never to a file on the
+  appliance, where a response that carries a Wi-Fi key or a VPN
+  secret would outlive the call (`rules/secrets.md`).
+- Leave `-f` off: it drops the body an error explains, and one
+  request's exit status does not reach the caller of a batch.
 - **A credential on stdin serves exactly one curl process.** With
   `-H @-` the first request consumes it and every later one would go
   out unauthenticated, so a batch that authenticates by credential
-  is **one** curl invocation with several URLs after it; the header
-  and `-w` apply to each, and `%{url_effective}` in the marker names
-  which response is which. A batch behind a session cookie may use
-  one curl per endpoint: only the login reads stdin.
-- **The workstation filters before anything reaches the
-  conversation**: the filter in `rules/secrets.md` → API
-  Credentials on the Workstation, with the appliance's own secret
-  fields added to its pattern, then a projection to what the
-  question needs. **Read the stream line by line, not as one
-  document**: an error page is HTML, and a single `jq -s` over the
-  whole stream then aborts on it and loses the markers that say
-  which request failed.
+  is **one** curl invocation with several URLs after it: `-w` runs
+  for each, and `%{url_effective}` as the marker's name says which
+  answer it closes. `-o` cannot split them: its `#1` fills in only
+  from a globbed URL.
+- **The workstation frames the answers by their markers, not by
+  lines**: everything between two markers is one answer, however
+  many lines it took, joined before it is parsed:
 
   ```
-  jq -Rn '[inputs | . as $l | try fromjson
-    catch {"not_json": true, "bytes": ($l | length)}]'
+  jq -Rn '[inputs] as $l
+    | [range($l | length)
+       | select($l[.] | startswith("{\"@\"")
+           and (fromjson? | objects | has("@")) // false)] as $m
+    | [range($m | length) as $i
+       | ($l[(if $i == 0 then 0 else $m[$i-1] + 1 end):$m[$i]]
+          | add // "") as $t
+       | (if $t == "" then empty else $t | try fromjson
+          catch {not_json: true, bytes: ($t | utf8bytelength)} end),
+         ($l[$m[$i]] | fromjson)]'
   ```
 
-  Each response and each marker is one line, so what survives is an
-  array in which every response is followed by its marker. **A body
-  that is not JSON is never forwarded**, only counted: an error page
-  can echo the request back, and a key-name filter cannot redact a
-  secret inside a string. Its marker's `code` is what the report
-  names; where the body itself is the question, the user reads it on
-  the appliance.
+  It reads the stream once and slices it: an answer rebuilt line by
+  line takes minutes once it reaches megabytes. What comes out is
+  an array in which every answer is followed by its marker, and a
+  request whose body was discarded contributes its marker alone.
+  Then, before anything reaches the conversation, the filter in
+  `rules/secrets.md` → API Credentials on the Workstation, with the
+  appliance's own secret fields added to its pattern, and a
+  projection to what the question needs.
+  **A body that is not JSON is never forwarded**,
+  only counted: an error page can echo the request back, and a
+  key-name filter cannot redact a secret inside a string. Its
+  marker's `code` is what the report names; where the body itself
+  is the question, the user reads it on the appliance.
 - **A task is only done when every marker it expected came back.**
   `jq` accepts an empty stream, so an SSH login that fails, a
   connection that drops or a shell that never starts would
@@ -108,9 +132,14 @@ appliance file says so by name.
   against the requests sent, run the local pipeline under
   `set -o pipefail` so the transport's exit status is not swallowed
   by `jq`, and report a missing marker as a check that did not run.
-- A read that fails is a check that did not run, never a clean
-  result: report every marker whose `code` says so, by name. An
-  unknown field or a `404` is a fact to report; never guess another
+- **A read that fails is a check that did not run**, never a clean
+  result: a marker whose `code` is not 2xx, or not `0` for a
+  command, is reported by name. A failed login means nothing after
+  it was read. `401` and `403` are the credential being rejected;
+  `429`, a `5xx`, a `404` or `000` are a rate limit, the appliance,
+  a wrong path or no connection: report the code as it came, and
+  never ask for a new credential over one of those. An unknown
+  field or a `404` is a fact to report; never guess another
   endpoint or field in its place.
 
 ## Writing
