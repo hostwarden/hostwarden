@@ -218,8 +218,11 @@ documentation, <https://docs.opnsense.org/>, and the
   ```
   grep -hE "hostwarden|heinzel" /var/log/system/system_*.log \
     | tail -20
+  df /var/log; uptime
   ```
   The daily files sort by date, so the last matches are the newest.
+  When `df` names `tmpfs` or an `md` device, `/var/log` is a RAM
+  disk and the log does not survive a reboot.
 
 ## Housekeeping and Audits
 

@@ -218,8 +218,8 @@ repositories on GitHub where the docs are silent.
   done | tail -20
   uptime
   ```
-  An empty result reaches back only to the boot `uptime` shows; say
-  so, and read the local changelog for the time before.
+  `/var/log/syslog` reaches back to the boot, `syslog-previous` one
+  boot further when the mirror is on.
 - Tools → Diagnostics collects an anonymised bundle for support.
 
 ## Housekeeping and Audits

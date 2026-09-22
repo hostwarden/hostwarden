@@ -44,6 +44,13 @@ If the command returns nothing — and it actually ran,
 and nothing limited what it can see —
 skip silently: no activity to report.
 
+Where the loaded OS file's `## Logs` says the log
+does not survive a reboot, an empty result covers
+only the time since the last boot. Run `uptime` in
+the same call as the read-back, tell the user how far
+back the check reached, and read the local changelog
+for the time before it.
+
 An empty result only means "no activity" when the
 command succeeded. If it errored, was shadowed by a
 shell alias, or you sent its stderr to `/dev/null`,
