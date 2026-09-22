@@ -23,17 +23,18 @@ tailscale debug prefs 2>&1 | grep -e '"RunSSH"' -e '"OperatorUser"'
 netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile'
 # newt
 { ps ax -o args= 2>/dev/null || ps w; } \
-  | grep -cE -- '^[^ ]*newt( .*)? --?disable-ssh( |=|$)'
+  | grep -cE -- '(^|[/[:space:]])newt( .*)? --?disable-ssh( |=|$)'
 # cloudflared
 { ps ax -o args= 2>/dev/null || ps w; } \
-  | grep -cE -- '^[^ ]*cloudflared( .*)? --?token( |=|$)'
+  | grep -cE -- '(^|[/[:space:]])cloudflared( .*)? --?token( |=|$)'
 grep -Hn 'ssh://' /etc/cloudflared/*.y*ml \
   /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml 2>/dev/null
 ```
 
 The `grep -c` lines count, never print (`rules/secrets.md`); the
-anchor on the program name keeps the probe's own command line out
-of the count. Both programs take a flag with one dash or two, and
+program name is matched wherever the process list puts it, as in
+`references/ssh.md`, and never inside the probe's own command
+line. Both programs take a flag with one dash or two, and
 `--token-file`, the safe form, is not a match.
 
 An agent inside a container with its own network namespace shows
@@ -108,7 +109,9 @@ One report line per agent found, as `VPN SSH`:
   made. Without root, or with Newt in a container, it is
   **INFO** "Newt SSH unchecked": the environment may turn it off
 - Nebula `sshd.enabled: true` → **INFO**, name `listen` and
-  `authorized_users`
+  `authorized_users`. Try `/etc/nebula/config.yml` unprivileged
+  too; where it is unreadable, **INFO** "Nebula admin console
+  unchecked" rather than OK
 - Cloudflare ingress to `ssh://` → **INFO**: sshd is reachable
   through Cloudflare, and Cloudflare Access decides who. A
   token-managed tunnel (the token count above 0) keeps its
