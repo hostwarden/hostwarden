@@ -37,7 +37,7 @@ echo "##dirs"; ls -ld /etc/ansible/facts.d /root/.ansible \
   /usr/local/etc/puppet /etc/chef /etc/cinc /etc/salt \
   /usr/local/etc/salt 2>/dev/null || true
 echo "##pull"; { crontab -l 2>/dev/null; cat /etc/crontab \
-  /etc/cron.d/* 2>/dev/null; } | grep ansible-pull || true
+  /etc/cron.d/* 2>/dev/null; } | grep "ansible[-]pull" || true
 echo "##units"; systemctl list-unit-files 2>/dev/null \
   | grep -Ei "ansible|puppet|openvox|chef|cinc|salt-minion" || true
 ```
@@ -79,7 +79,10 @@ was partial and record `Config management: unknown (privileged
 paths unread, <date>)`, so that a later session with root looks
 again.
 
-Nothing found and nothing left unread: say nothing, record nothing.
+Nothing found and nothing left unread: say nothing, record nothing —
+unless the user said a tool manages the host. What they said is a
+fact the probe cannot overrule: ask the scope question below and
+record the answer, leads or not.
 
 **Not a lead:**
 
