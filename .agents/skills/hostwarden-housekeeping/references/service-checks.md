@@ -397,7 +397,9 @@ hours (default 24) into `data/filters/<id>.txt`. A failed refresh
 still resets the file's time (`internal/filtering/filter.go`,
 `update`), so a stale file means refreshing stopped and a failure
 shows only as an error line `updating filter` in the log. That
-line carries the list URL: count it, never print it. In Docker,
+line carries the list URL: count it, never print it. For the
+Snap, the unit is `snap.adguard-home.adguard-home`, snapd's
+`snap.<snap>.<app>` name for the service. In Docker,
 `docker logs --since 168h <container> 2>&1` replaces
 `journalctl`; without journald, read the file the `log` section
 of `AdGuardHome.yaml` names. Print nothing else from that file:

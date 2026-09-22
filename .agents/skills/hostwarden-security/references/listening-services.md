@@ -126,8 +126,9 @@ sed -n '/^users:/,/^[^ ]/p' "$C" | grep -c 'name:'
 No config file means the setup wizard is running: it listens on
 `0.0.0.0:3000` and configures itself for whoever reaches it
 first. `http.address` is the web interface, `dns.bind_hosts`
-defaults to `0.0.0.0`, and a non-empty `allowed_clients` is the
-only list that restricts who is answered. `users` with no `name`
+defaults to `0.0.0.0`, and `allowed_clients` is the only list
+that restricts who is answered — unless it is empty or holds a
+network that covers everything, such as `0.0.0.0/0` or `::/0`. `users` with no `name`
 line means no login. The `sed` ranges keep the `users` password
 hashes and `tls.private_key` out of the output. Source:
 https://github.com/AdguardTeam/AdGuardHome, `internal/home/` and
@@ -141,9 +142,9 @@ past ufw and firewalld.
 
 - **CRITICAL** if port 53 answers any origin (Pi-hole not
   `LOCAL` and, for `NONE`, not restricted as above; AdGuard Home
-  without `allowed_clients`; any other resolver without an
-  access list) on a public address that the firewall does not
-  restrict — open resolver
+  without an `allowed_clients` that restricts; any other
+  resolver without an access list) on a public address that the
+  firewall does not restrict — open resolver
 - **CRITICAL** if an AdGuard Home setup wizard is reachable
   beyond loopback
 - **CRITICAL** if the web interface has no password or login and

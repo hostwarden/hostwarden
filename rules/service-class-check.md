@@ -49,10 +49,12 @@ and fight for the same role.
   via Debian's alternatives system and play the
   same role as the full servers above.
 - **Time sync:** chrony, ntp (provides ntpd),
-  openntpd, systemd-timesyncd, and Pi-hole while its
-  `ntp.sync.active` is `true`, the default: FTL then
-  sets the system clock from `pool.ntp.org` and
-  answers NTP on port 123 (https://github.com/pi-hole/FTL,
+  openntpd, systemd-timesyncd, and Pi-hole while any
+  of `ntp.sync.active`, `ntp.ipv4.active` or
+  `ntp.ipv6.active` is `true` — all three by default:
+  the first makes FTL set the system clock from
+  `pool.ntp.org`, the other two make it answer NTP on
+  port 123 (https://github.com/pi-hole/FTL,
   `src/config/config.c`)
 - **DNS resolver:** unbound, bind9 (RPM: `bind`),
   dnsmasq, pdns-recursor, knot-resolver,
@@ -224,8 +226,8 @@ docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
 ```
 
 Any hit is an installed DNS resolver. For Pi-hole,
-`pihole-FTL --config -q ntp.sync.active` decides the
-time sync membership above. When Pi-hole is the
+`pihole-FTL --config -q` on each of the three `ntp`
+keys above decides its time sync membership. When Pi-hole is the
 existing time sync member, option (b) below means
 setting `ntp.sync.active`, `ntp.ipv4.active` and
 `ntp.ipv6.active` to `false` — the first stops it
