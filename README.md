@@ -191,6 +191,7 @@ that changes the base file where it would be wrong:
 | Home Assistant OS | —       | `rules/appliance/haos.md`           |
 | Unraid            | —       | `rules/appliance/unraid.md`         |
 | OpenWrt           | —       | `rules/appliance/openwrt.md`        |
+| ZimaOS            | —       | `rules/appliance/zimaos.md`         |
 
 Two more layers sit on top. A platform is what the OS runs
 inside when something outside owns part of the machine:

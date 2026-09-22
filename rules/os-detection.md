@@ -211,6 +211,7 @@ the row.
 | none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
+| none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
 
 `ii  openmediavault` is the line `dpkg -l` prints for
 the installed package, with its version. `rc` (removed,
@@ -223,6 +224,10 @@ itself; its file says to stop there.
 `version="…"` is the content of `/etc/unraid-version`
 on a line of its own; an error that names the file is
 no match.
+`ID=zimaos` is the os-release line of ZimaOS, with or
+without quotes. CasaOS, ZimaOS's ancestor, installs on
+top of a distribution and leaves its `ID` alone: no
+match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
