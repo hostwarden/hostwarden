@@ -207,10 +207,17 @@ outside the caller's role answers `Not authorized`.
 
   ```
   ssh … api-read@<host> sh -s <<'EOF' | jq …
-  echo '{"@": "alert.list"}'; midclt call alert.list
-  echo '{"@": "update.status"}'; midclt call update.status
+  echo '{"@": "alert.list"}'; midclt call alert.list | tr -d '\n'; echo
+  echo '{"@": "update.status"}'; midclt call update.status | tr -d '\n'; echo
   EOF
   ```
+
+  The line-by-line filter of `rules/appliance-api.md` → Reading
+  reads each line as one document, and `midclt`'s output format is
+  not documented: a pretty-printed answer would span lines and be
+  dropped. `tr -d '\n'` puts each answer on one line of its own
+  before it leaves the host, whatever the client does; a `midclt`
+  that already answers on one line is unchanged by it.
 
   On the workstation path, unlike `rules/appliance-api.md` →
   Reading, each method is its own `midclt` call and its own login,
