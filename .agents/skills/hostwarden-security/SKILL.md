@@ -87,6 +87,11 @@ Read on demand, only when the relevant section applies:
 - `references/vpn-ssh.md` — only when `references/ssh.md` → SSH
   servers past sshd finds an agent: Tailscale, NetBird, Newt,
   Nebula or Cloudflare Tunnel.
+- `references/containers.md` — Docker, Podman and containerd:
+  the API on TCP, root-equivalent groups, privileged containers,
+  capabilities, host namespaces, the engine socket and host paths
+  mounted in, confinement, root users, credential-like environment
+  names, registries. Whenever an engine is present.
 - `references/user-accounts.md` — empty passwords, multiple UID
   0, system accounts with login shells.
 - `references/listening-services.md` — audit `ss` / `lsof`

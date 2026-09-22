@@ -84,6 +84,10 @@ Read on demand, only when the relevant section applies:
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
   GPU, MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
   ones the server's `memory.md` mentions.
+- `references/containers.md` — Docker, Podman and containerd:
+  the engine, containers that should run, restart loops, health,
+  disk and logs, image age and pending image updates. Whenever an
+  engine is present.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
 - The `## Housekeeping and Audits` sections of the host's

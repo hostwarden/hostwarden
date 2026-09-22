@@ -16,6 +16,13 @@ At the end of the report, add a section:
 
 List each skipped check with a brief reason.
 
+Containers: Docker, rootful Podman and `nerdctl` need root, or
+membership in the `docker` group for Docker
+(`rules/privilege-escalation.md` → Root-Equivalent Groups).
+Without either, report them as "skipped: needs root", never as no
+containers. A rootless owner's containers are readable as that
+owner, and only by them.
+
 Backup presence: most probes survive without root —
 `command -v`, `systemctl list-timers`, and `/etc/cron.d` is
 usually world-readable. The root crontab (`crontab -l` as

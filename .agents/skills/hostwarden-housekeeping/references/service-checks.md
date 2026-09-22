@@ -95,21 +95,11 @@ for details.
 - **WARN** if latest pull is older than 25 hours
 - **CRITICAL** if older than 48 hours
 
-## Docker
+## Docker (Podman, containerd)
 
-Triggered when `memory.md` mentions Docker.
-
-```bash
-docker ps --format \
-  "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
-```
-
-- **CRITICAL** if the daemon does not answer — that says nothing
-  about the containers, never that there are none. Permission
-  denied on its socket is not this: the check needs the access
-  from `rules/privilege-escalation.md`, or is reported as skipped
-- **WARN** for any container not in "Up" state
-- Report container names and status
+Triggered by a `Container runtime:` line in `memory.md`, a mention
+of Docker or Podman there, or an engine on the host: the checks and
+their findings are `references/containers.md`.
 
 ## CasaOS
 
