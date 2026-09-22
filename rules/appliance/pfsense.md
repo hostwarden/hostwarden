@@ -217,8 +217,15 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   `/var/log/system.log`; the activity check reads it back with:
   ```
   grep -hE "hostwarden|heinzel" /var/log/system.log | tail -20
-  df /var/log; uptime
+  head -1 /var/log/system.log
+  date
   ```
+  The file rotates at 500 KiB by default and the read-back does not
+  open the compressed rotations, so the first line is the oldest
+  entry it saw (`rules/activity-check.md` → How far back it
+  reached). With "syslog (RFC 5424)" instead of the default BSD
+  format under Status > System Logs > Settings, the timestamp
+  carries the year itself.
 
 ## Housekeeping and Audits
 

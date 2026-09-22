@@ -111,16 +111,14 @@
   (SAS disks included) and boot device backup state, and the plugin
   and container updates Unraid's last check found, instead of the
   Linux baseline.
-- **An empty activity check on a host that keeps its log in RAM
-  says how far back it reached.** On Unraid, and on pfSense and
-  OPNsense with `/var` on a RAM disk, the journal lines are gone
-  after a reboot: Hostwarden names the time since boot and reads
-  your local changelog for the time before.
-- **The same holds where the journal or syslog reaches back less
-  than a week.** On systemd hosts Hostwarden reads the journal's
-  oldest entry, which catches a journal kept in `/run` or vacuumed
-  down; on Alpine it notices busybox's RAM buffer and diskless
-  mode.
+- **An empty activity check says how far back it reached.** Every
+  read-back also prints the oldest entry its log still holds: the
+  journal on systemd hosts, syslog on FreeBSD, Alpine, pfSense,
+  OPNsense, Unraid, OpenWrt and XCP-ng, the unified log's store on
+  macOS. Where that entry falls inside the week — through
+  rotation, a size cap, a vacuumed journal or a log kept in RAM —
+  Hostwarden names its date and reads your local changelog for the
+  time before. Where it prints nothing, the check did not run.
 - **On Windows, Hostwarden runs in WSL 2 only.** Git Bash,
   PowerShell and `cmd.exe` are not supported:
   `bin/hostwarden-doctor` says so at session start and names

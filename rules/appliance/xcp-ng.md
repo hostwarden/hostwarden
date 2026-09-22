@@ -325,6 +325,8 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   back, oldest file first so the last matches are the newest:
   ```
   zcat -f $(ls -tr /var/log/user.log*) | grep -E "hostwarden|heinzel" | tail -20
+  zcat -f $(ls -tr /var/log/user.log* | head -1) | head -1
+  date
   ```
 - On some Dell servers the installer creates no separate `/var/log`
   partition, and log rotation then deletes old logs the same day

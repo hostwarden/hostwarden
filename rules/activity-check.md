@@ -30,15 +30,6 @@ journalctl -t hostwarden -t heinzel --since "7 days ago" \
 journalctl --no-pager -q -o short-iso | head -1
 ```
 
-The second line prints the oldest entry the journal
-still holds. A journal kept in `/run/log/journal`,
-which is lost at every reboot, or one vacuumed down
-reaches back less than seven days, and this shows it
-without reading `journald.conf`. Where it prints
-nothing, the journal holds no entries at all — with
-`Storage=none`, or none this user may read — and the
-check did not run.
-
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
 user's own entries. When connected as non-root, run
@@ -54,16 +45,6 @@ If the command returns nothing — and it actually ran,
 and nothing limited what it can see —
 skip silently: no activity to report.
 
-An empty result covers only part of the seven days
-when the oldest entry the read-back prints, from the
-journal or from a Logs section, falls inside them, or
-when the Logs section the read-back came from says
-the log does not survive a reboot; there, run
-`uptime` in the same call as the read-back. Tell the
-user how far back the check reached, to the oldest
-entry or to the boot, and read the local changelog
-for the time before it.
-
 An empty result only means "no activity" when the
 command succeeded. If it errored, was shadowed by a
 shell alias, or you sent its stderr to `/dev/null`,
@@ -71,6 +52,38 @@ you have no result at all — tell the user the check
 did not run, rather than reporting silence. A failed
 check that reads as a clean host is how a concurrent
 session's work goes unnoticed.
+
+## How far back it reached
+
+Every read-back prints, in the same call, the oldest
+entry its source still holds: the journal's second
+line above, and the equivalent line in each `## Logs`
+section. Rotation, a size cap, a vacuum or a log
+kept in RAM can each leave less than seven days
+behind, and the oldest entry shows the reach
+whichever of them applied. A note in a Logs section
+about a RAM disk or `df /var/log` explains why the
+reach is short; the oldest entry decides how short.
+
+- **Older than seven days:** the read-back covered
+  the whole window.
+- **Inside the seven days:** an empty result covers
+  only the time since that entry. Tell the user how
+  far back the check reached, and read the local
+  changelog for the time before it.
+- **Nothing printed:** the source holds no entries
+  this user may read, and the check did not run. Say
+  so, as for any failed check, and read the local
+  changelog for the whole seven days.
+
+Syslog lines in the BSD format
+(`Sep 22 14:32:07 host …`) carry no year. The
+read-backs that print them also print `date`: take
+the server's current year, or the year before where
+that would put the entry in the future. An old entry
+can then read as recent, which only shortens the
+reach and costs a changelog read; a recent one never
+reads as old.
 
 ## A fresh Heinzel entry means a live session
 

@@ -267,10 +267,12 @@ of the current release branch,
   back with:
   ```
   logread | grep -E "hostwarden|heinzel" | tail -20
+  logread | head -1
   ```
-  The buffer can also have rotated past older entries since the
-  boot: an empty result reaches back only to the boot or to the
-  first line `logread` still holds, whichever is later. Say which.
+  The second line is the oldest entry the buffer still holds
+  (`rules/activity-check.md` → How far back it reached); it is
+  never older than the boot, and on a busy router much younger.
+  Its timestamp carries the year.
 
 ## Housekeeping and Audits
 

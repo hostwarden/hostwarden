@@ -158,14 +158,18 @@ are read back from `/var/log/messages`, both tags
 for f in /var/log/messages.0 /var/log/messages; do
   [ -f "$f" ] && grep -hE "hostwarden|heinzel" "$f"
 done | tail -20
+for f in /var/log/messages.0 /var/log/messages; do
+  [ -f "$f" ] && { head -1 "$f"; break; }
+done
+date
 ```
 
-`messages.0` is missing until the first rotation, so it is read only
-where it exists.
-
-This shows the last 20 matches, not a strict 7-day window, and only
-reaches one rotation back (`messages.0`). Older rotated logs are
-usually compressed; mention the limitation if relevant.
+This shows the last 20 matches, not a strict 7-day window; the
+second loop and `date` bound it (`rules/activity-check.md` → How
+far back it reached). The stock `/etc/newsyslog.conf` rotates
+`messages` at 1000 KB or on 1 January and compresses the old files
+(`messages.0.bz2` and on), so the read-back opens `messages` and
+an uncompressed `messages.0` only where one exists.
 
 ## Directory Conventions
 

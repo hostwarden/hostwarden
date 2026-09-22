@@ -218,9 +218,14 @@ documentation, <https://docs.opnsense.org/>, and the
   ```
   grep -hE "hostwarden|heinzel" /var/log/system/system_*.log \
     | tail -20
-  df /var/log; uptime
+  ls /var/log/system/system_*.log | head -1 | xargs head -1
   ```
-  The daily files sort by date, so the last matches are the newest.
+  The daily files sort by date, so the last matches are the newest
+  and the first line of the first file is the oldest entry
+  (`rules/activity-check.md` → How far back it reached). "Maximum
+  preserved files" under System > Settings > Logging sets how many
+  days are kept. Keep the line csh-safe: root's remote commands run
+  in csh (see Access and Shell).
 
 ## Housekeeping and Audits
 
