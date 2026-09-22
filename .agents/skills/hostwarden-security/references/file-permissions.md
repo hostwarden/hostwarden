@@ -221,9 +221,10 @@ The files a root job runs matter as much as its plist, wherever
 they live, and so does every directory above them: whoever can
 write one can swap the file. That is the `Program`, and every
 absolute path among the `ProgramArguments`, which includes the
-script an interpreter such as `/bin/sh` is handed. Resolve each
-through symlinks first, so the directories checked are the real
-ones:
+script an interpreter such as `/bin/sh` is handed. Where one is a
+symlink, the link, every link it leads through and the file it
+ends at all count, each with the real directories above it:
+whoever can write any of them can point the job elsewhere.
 
 ```bash
 PB=/usr/libexec/PlistBuddy
@@ -237,10 +238,18 @@ for p in /Library/LaunchDaemons/*.plist; do
           ls -dL "$x" 2>&1 | grep -q 'No such file' || echo "skipped: $x"
           continue
         fi
-        d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) \
-          || { echo "skipped: $x"; continue; }
-        ls -leL "$d/$(basename "$x")"
-        while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+        n=0
+        while :; do
+          d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) \
+            || { echo "skipped: $x"; break; }
+          f=${d%/}/$(basename "$x")
+          ls -lde "$f"
+          while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
+          [ -L "$f" ] && [ "$n" -lt 16 ] || break
+          l=$(readlink "$f")
+          case $l in /*) x=$l ;; *) x=${f%/*}/$l ;; esac
+          n=$((n + 1))
+        done
       done
 done
 ```
