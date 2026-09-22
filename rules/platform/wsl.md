@@ -88,10 +88,10 @@ may not reach Windows at all.
 
 ## Add: Version Detection
 
-One call reads all three:
+One call reads all four:
 
 ```
-wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
+wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm; uname -r
 ```
 
 - The first line is the WSL package version. Releases before
@@ -101,6 +101,11 @@ wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
   `none`.
 - The third is `systemd` when systemd runs, and `init` when
   WSL's own init does.
+- The fourth, the kernel release, gives the generation: WSL 2
+  runs a Linux kernel whose release ends in
+  `-microsoft-standard-WSL2`; WSL 1 has none of its own and
+  reports `…-Microsoft`. A custom WSL 2 kernel may carry
+  neither; then the generation is `unknown`.
 
 Record them next to the platform:
 `Platform: WSL <1|2> (<version>, <networking mode>, <PID 1>)`.
