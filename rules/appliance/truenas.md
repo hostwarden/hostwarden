@@ -282,8 +282,8 @@ silent.
 - `rules/service-class-check.md` still applies: TrueNAS already
   brings Samba, NFS, an nginx for its UI and more.
 - Virtual machines are managed under Virtualization. Stopping or
-  deleting one powers off or destroys a server: only on the user's
-  explicit request.
+  deleting one powers off or destroys a server:
+  `rules/system-containers.md` → Changes.
 
 ## Logs
 

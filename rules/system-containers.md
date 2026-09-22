@@ -48,7 +48,7 @@ Creating and changing guests is ordinary work on the host, and
 every change is asked first:
 
 - Restarting a container or VM is a reboot of that server
-  (`rules/service-reload.md`).
+  (`AGENTS.md` → Critical Safety Rules → Ask before).
 - Before a config change (`incus config set`, `pct set`): a
   snapshot (below), else a copy of `/etc/pve/lxc/<vmid>.conf` or
   of `incus config show <ct>` (`rules/backups.md`).
@@ -56,10 +56,8 @@ every change is asked first:
   only on the user's explicit request. First show, from the live
   host and in one call, what it hits: ID, name, host, state,
   disks, and the newest backup (a snapshot goes with the guest).
-  The taboo guard then puts the exact command to the user in a
-  prompt. Where no prompt reaches a human (`bypassPermissions` or
-  `dontAsk` mode, an unattended `claude -p` run) it blocks, and
-  the user runs the command.
+  A run with no human to ask never does it: the user runs the
+  command.
 - Deleting a snapshot, or rolling back to one, which discards
   everything since: name what goes.
 
