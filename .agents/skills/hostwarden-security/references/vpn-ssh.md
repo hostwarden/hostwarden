@@ -53,8 +53,9 @@ tailscale debug netmap 2>&1 \
 grep -rHoE --include='*.json' \
   '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)": *(true|false)' \
   /var/lib/netbird /var/db/netbird /etc/netbird 2>/dev/null
-# Nebula — its admin console
-grep -A4 '^sshd:' /etc/nebula/config.yml 2>/dev/null
+# Nebula — its admin console, the whole sshd mapping
+sed -n '/^sshd:/,/^[^[:space:]#]/p' /etc/nebula/config.yml \
+  2>/dev/null
 # Newt on Linux, no --disable-ssh — DISABLE_SSH in its environment
 for p in $(pgrep -x newt); do
   tr '\0' '\n' < "/proc/$p/environ" | grep -ciE '^DISABLE_SSH=(true|1)$'
@@ -107,7 +108,11 @@ One report line per agent found, as `VPN SSH`:
 - Nebula `sshd.enabled: true` → **INFO**, name `listen` and
   `authorized_users`
 - Cloudflare ingress to `ssh://` → **INFO**: sshd is reachable
-  through Cloudflare, and Cloudflare Access decides who
+  through Cloudflare, and Cloudflare Access decides who. A
+  token-managed tunnel (the token count above 0) keeps its
+  ingress in the dashboard, not on the host: no local hit then
+  means **INFO** "Cloudflare ingress unchecked" — ask the user
+  what the tunnel publishes
 - Tailscale `OperatorUser` set → **INFO**, name the account: it
   can turn SSH on without root
 - Policy not readable from the host (Tailscale without root,

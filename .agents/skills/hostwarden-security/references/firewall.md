@@ -33,7 +33,11 @@ grep '^IPV6=' /etc/default/ufw
 ```
 
 - Not installed or inactive → check native nftables
-- `IPV6=no` → ufw writes no IPv6 rules: the IPv6 gap
+- `IPV6=no` → ufw writes no IPv6 rules. Before calling that the
+  IPv6 gap, read the effective rules as
+  `references/firewall-nftables-docker.md` → Native nftables
+  does: another ruleset may carry a default-deny input chain for
+  IPv6
 - Active but default incoming is not `deny` → **WARN** "Firewall
   default incoming policy is not deny"
 - Active and default deny → OK
