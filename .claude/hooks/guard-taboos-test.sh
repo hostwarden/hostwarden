@@ -48,51 +48,66 @@ print(json.dumps({"tool_name":sys.argv[1],"tool_input":\
   fi
 }
 
+# Whether a guard's output is a deny. verdict below and hook_case
+# further down both judge by it.
+denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
+
 verdict() {
-  # verdict <expect> <command> [tool] [hook] — one fixture, one
-  # line of output.
-  OUT=$(json_for "$2" "$3" \
-    | env -u HOSTWARDEN_GUARD_DISABLE sh "${4:-$HOOK}")
-  if printf '%s' "$OUT" \
-    | grep -q '"permissionDecision":"deny"'; then
-    GOT=deny
-    # A deny Claude Code cannot parse is no deny at all: a reason
-    # with a backslash in it once broke the JSON unnoticed.
-    if command -v jq >/dev/null 2>&1 && ! printf '%s' "$OUT" \
-      | jq -e '.hookSpecificOutput.permissionDecision == "deny"' \
-        >/dev/null 2>&1; then
-      GOT="deny as invalid JSON"
-    fi
-  else
-    GOT=pass
-  fi
-  if [ "$GOT" = "$1" ]; then
-    echo ok
-  else
-    case "${3:-Bash}" in
-    Bash) echo "FAIL [$1, got $GOT]${4:+ in development}: $2" ;;
-    *) echo "FAIL [$1, got $GOT] $3${4:+ in development}: $2" ;;
-    esac
-  fi
+  # verdict <expect> <tool> <command> <hook> <input> [label] — one
+  # fixture, one line of output, in the queue's own field order.
+  # Runs no process but the guard itself: every fork and exec here
+  # is paid once per fixture, and on a workstation with an EDR agent
+  # each one is also inspected. HOSTWARDEN_GUARD_DISABLE is unset by
+  # the caller, once.
+  OUT=$(sh "$4" <<EOF
+$5
+EOF
+)
+  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
+  # A deny Claude Code cannot parse is no deny at all: a reason with
+  # a backslash in it once broke the JSON unnoticed. The drain
+  # validates every deny it gets back, all in one jq run.
+  case "$GOT:$1" in
+  deny:deny) printf 'deny:%s\n' "$OUT" ;;
+  pass:pass) echo ok ;;
+  *)
+    case $2 in
+    Bash) echo "FAIL [$1, got $GOT]$6: $3" ;;
+    *) echo "FAIL [$1, got $GOT] $2$6: $3" ;;
+    esac ;;
+  esac
 }
 
-# Child of the parallel drain at the bottom. Everything it needs
-# is defined above; it must exit before the fixtures below, or
-# each of the hundreds of children would queue the whole matrix
-# again.
+# Child of the parallel drain at the bottom, judging a batch of
+# fixtures. Everything it needs is defined above; it must exit
+# before the fixtures below, or each child would queue the whole
+# matrix again.
+# Each fixture is four arguments: expectation, tool, command, and
+# the hook input the drain built from them (a dash without jq).
 # An expectation with a dev- prefix is judged by the copy in the
 # development tree (check_dev below).
 if [ "$1" = "--verdict" ]; then
-  case "$2" in
-  dev-*) verdict "${2#dev-}" "$4" "$3" "$GUARD_DEV" ;;
-  *) verdict "$2" "$4" "$3" ;;
-  esac
+  shift
+  unset HOSTWARDEN_GUARD_DISABLE
+  while [ $# -ge 4 ]; do
+    IN=$4
+    [ "$IN" != - ] || IN=$(json_for "$3" "$2")
+    case $1 in
+    dev-*) verdict "${1#dev-}" "$2" "$3" "$GUARD_DEV" "$IN" \
+      ' in development' ;;
+    *) verdict "$1" "$2" "$3" "$HOOK" "$IN" ;;
+    esac
+    shift 4
+  done
+  # A batch cut short mid-fixture would misread every fixture after
+  # the cut; it fails the run instead.
+  [ $# -eq 0 ] || echo "FAIL: a batch ended mid-fixture ($# arguments left)"
   exit 0
 fi
 
 SELF="$CLAUDE_DIR/hooks/$(basename "$0")"
 QUEUE=$(mktemp)
-trap 'rm -rf "$QUEUE" "$GUARD_TREES"' EXIT INT TERM
+trap 'rm -rf "$QUEUE" "$QUEUE.in" "$GUARD_TREES"' EXIT INT TERM
 NCHECKS=0
 # One core is the floor, not the default: a machine that will not
 # say how many it has still runs the matrix, just no faster.
@@ -1134,7 +1149,6 @@ expect() {
   fi
 }
 V=HOSTWARDEN_GUARD_DISABLE
-denied() { case "$1" in *'"permissionDecision":"deny"'*) true ;; *) false ;; esac; }
 
 # --- operator override: set at launch, and recorded then ---------
 # The variable switches the guard off only for a session whose start
@@ -1559,8 +1573,45 @@ rm -rf "$NOMODE"
 # Failures are sorted rather than printed as they land, so two
 # runs of the same broken tree read the same.
 if [ "$NCHECKS" -gt 0 ]; then
-  RESULT=$(xargs -0 -n3 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  # One jq run builds every fixture's hook input, so no child
+  # starts one: four fields per fixture from here on.
+  # Without jq the fourth is a dash and the child falls back to
+  # json_for. Not an empty field: BSD xargs drops those. printf
+  # repeats its format, so one takes a hundred fixtures.
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rsj '([0] | implode) as $nul | split($nul)[:-1] | _nwise(3)
+      | (.[0], .[1], .[2],
+         if .[1] == "JSON" then .[2]
+         else {tool_name: .[1], tool_input: {command: .[2]}} | tojson
+         end) + $nul' < "$QUEUE" > "$QUEUE.in"
+  else
+    xargs -0 -n 300 printf '%s\0%s\0%s\0-\0' < "$QUEUE" > "$QUEUE.in"
+  fi
+  # Batches of 25, not one child per fixture: each child is a shell
+  # that parses this file. 25 keeps a batch far below GNU xargs'
+  # 128 KiB command buffer (under 30 KB today, the longest fenced
+  # blocks included) and still gives every core several batches. A
+  # batch that xargs cuts at that limit anyway fails in the child,
+  # which counts what is left over. (BSD xargs -x would say so
+  # itself, but with -0 it hands over one argument per call.)
+  RESULT=$(xargs -0 -n 100 -P "$JOBS" sh "$SELF" --verdict \
+    < "$QUEUE.in")
   XSTATUS=$?
+  # Every deny that came back is valid JSON Claude Code reads as a
+  # deny, or a failure: one jq run turns each deny: line into ok or
+  # a FAIL line. Without jq the JSON cannot be checked.
+  if command -v jq >/dev/null 2>&1; then
+    RESULT=$(printf '%s\n' "$RESULT" | jq -Rr '
+      if startswith("deny:") then .[5:] as $j
+        | if ($j | try (fromjson
+              | .hookSpecificOutput.permissionDecision == "deny")
+            catch false)
+          then "ok"
+          else "FAIL [deny, got deny as invalid JSON]: \($j)" end
+      else . end')
+  else
+    RESULT=$(printf '%s\n' "$RESULT" | sed 's/^deny:.*/ok/')
+  fi
   NGOT=$(printf '%s\n' "$RESULT" | grep -c . || true)
   NOK=$(printf '%s\n' "$RESULT" | grep -c '^ok$' || true)
   PASS=$((PASS + NOK))
