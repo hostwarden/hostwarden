@@ -10,8 +10,8 @@ directory and runs the whole pipeline. Application containers
 
 **SSH first, always.** Via-host mode
 (`rules/first-connection.md` → Via-host mode) is the fallback
-for the first two cases below, and the third is one read-only
-first contact:
+for the first two cases below, and the last two are contacts of
+their own:
 
 - **SSH gives no answer:** only as `rules/ssh-unreachable.md` →
   A guest on a known host allows, for this session. Server memory
@@ -25,6 +25,10 @@ first contact:
 - **Registering a guest from its host's inventory:** read-only,
   once per guest, as `rules/hypervisors.md` → Registering Guests
   describes.
+- **A guest being created:** read-only until its first SSH login,
+  to wait for its first boot and read its public host key; and
+  the build container of a baseline template, which never becomes
+  a server (`hostwarden-new-guest`).
 
 Through the host's manager, as root inside:
 
@@ -90,8 +94,9 @@ inherits from a profile is missing.
 
 ## Changes
 
-Creating and changing guests is ordinary work on the host, and
-every change is asked first:
+Creating and changing guests is ordinary work on the host;
+creating one is the `hostwarden-new-guest` skill. Every change is
+asked first:
 
 - Restarting a container or VM is a reboot of that server
   (`AGENTS.md` → Critical Safety Rules → Ask before).
@@ -109,6 +114,13 @@ every change is asked first:
   command.
 - Deleting a snapshot, or rolling back to one, which discards
   everything since: name what goes.
+- **A guest's cloud-init settings** — Proxmox VE's `--ipconfig`
+  and `--cicustom` files without a fixed meta-data file, Incus's
+  and LXD's `cloud-init.*` and `user.*` keys, a NIC's name there —
+  can give it a new instance ID. At its next boot cloud-init then
+  treats it as a new server: it regenerates the SSH host keys and
+  runs `users` again. Name that before asking; where the guest's
+  own configuration can make the change, make it there instead.
 
 Proxmox specifics, the clean `shutdown` against the hard `stop`
 among them: `rules/appliance/proxmox-ve.md` → Guests.

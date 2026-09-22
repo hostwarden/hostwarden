@@ -113,6 +113,9 @@ filled from an example. A container engine is recorded as
 from `rules/os-detection.md`; `Guest identity:`,
 `Runs on:` and, on a guest registered through its
 host, `SSH: untested`, from `rules/hypervisors.md`.
+`Baseline:` comes from `rules/baseline.md` → Rendered
+Versions, and on a Proxmox VE node `Baseline template:`
+from `rules/appliance/proxmox-ve.md` → Guests.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

@@ -85,6 +85,9 @@ finding. See `rules/version-check.md`.
 - Config: `/etc/dnf/automatic.conf`
 - Check if active:
   `systemctl status dnf-automatic-install.timer`
+- `upgrade_type = security` under `[commands]` limits it to
+  security updates, which the install timer applies; a key the
+  file leaves out keeps its default.
 - On RHEL 7/CentOS 7: `yum-cron` instead
 - If not installed or not enabled, flag it to the
   user.

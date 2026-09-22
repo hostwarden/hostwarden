@@ -44,7 +44,10 @@ applies before any of this runs.
    from `references/guests.md`, and
    `references/bmc-event-log.md`, which settles the `Management:`
    line on every host and reads the event log where there is a
-   BMC.
+   BMC. An override of `rules/baseline.md` changes what the checks
+   that measure it expect, and where one fills the sections left
+   empty there, `rules/baseline.md` → The Sections an Override
+   Fills says how they are checked.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report — where the OS file uses the

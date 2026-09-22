@@ -59,6 +59,68 @@ see, never from a name alone. A jail without a network
 stack of its own has no MAC, and links by its path or by
 name and IP address together.
 
+## Server baseline
+
+What every server is expected to have is written down in
+one place, `rules/baseline.md`: a firewall that denies
+incoming traffic by default and keeps SSH open, automatic
+security updates, time sync, SSH by key only, a persistent
+journal, the guest agent in a VM, and a backup. The
+security audit and housekeeping measure every server
+against it. Ask Hostwarden to bring a server up to the
+baseline, and it lists what is missing and applies it one
+asked step at a time. It never changes sshd on a running
+server: for SSH it gives you the change to make.
+
+Your own additions go into
+`memory/custom-rules/baseline.md`, as an override
+(`docs/overrides.md`):
+
+```markdown
+## Add: Admin Keys
+- alice: ssh-ed25519 AAAAC3Nza… alice@example.com
+
+## Add: Timezone
+Europe/Berlin
+
+## Add: Monitoring
+node_exporter from the distribution's package.
+```
+
+Public keys only: passwords and tokens never go there.
+
+## New guests
+
+```
+ ❯ Create a Debian VM on pve1.example.com
+ ❯ Leg einen neuen LXC auf pve1 an
+```
+
+Hostwarden creates VMs and containers on Proxmox VE,
+libvirt, Incus and LXD, with the platform's own tools. A
+VM starts from the distribution's official cloud image,
+checked against its checksum, and gets the baseline as
+cloud-init user-data at its first boot, so there is no
+golden image to go stale. The rendered user-data is kept,
+numbered, in `memory/baseline/`, and each guest records the
+version it got. On Proxmox VE, containers come from a
+baseline template Hostwarden builds from the official
+container template; housekeeping says when it is due for a
+rebuild.
+
+You log in with your SSH keys from the first boot on. If
+you have no key and want a password, the guest generates
+one and shows it only on its console, where you change it
+at the first login. The new guest
+then goes through the usual first connection and is
+registered with its host like every other guest. On
+Unraid, ZimaOS, TrueNAS and XCP-ng you get the steps for
+the web UI or Xen Orchestra instead, with a small seed ISO
+that carries the same configuration where the UI has no
+field for it.
+Replacing the OS of a machine that already exists is the
+OS-install workflow, not this one.
+
 ## Session to-do list
 
 When a multi-step task gets interrupted — connection

@@ -242,6 +242,25 @@ Source for everything below unless noted: the admin guide,
 - **Guest tools:** only for a VM whose `agent:` line enables it,
   `qm guest cmd <vmid> get-host-name`, `get-osinfo` and
   `network-get-interfaces`.
+- **Cloning:** `pct clone` keeps the source's SSH host keys, so
+  every clone of one container shares them; `pct create` from an
+  archive writes new ones and removes the machine ID
+  (`src/PVE/LXC/Setup.pm` in `pve-container`).
+- **Node status:** only ever `pvesh get /nodes/<node>/status`; a
+  `create` (POST) on that path reboots or shuts down the node.
+- **Baseline template:** the archive new containers are created
+  from (`hostwarden-new-guest`), one line per distribution release
+  in the node's memory, with the baseline version and the `pveam`
+  template it was built from:
+
+  ```
+  - Baseline template: local:vztmpl/<file>
+    (debian-ct-3 from <pveam template>, built 2026-09-22)
+  ```
+
+  It is due for a rebuild once it is older than 30 days, or a
+  newer `memory/baseline/<family>-ct-<n>.yaml` of its family
+  exists (`rules/baseline.md` → Rendered Versions).
 
 ## Replace: Networking
 
@@ -302,6 +321,9 @@ Source for everything below unless noted: the admin guide,
   grep -H '^usb[0-9]*:' /etc/pve/qemu-server/*.conf
   grep -HE '^dev[0-9]*:|lxc.mount.entry.*(ttyUSB|ttyACM|serial)' /etc/pve/lxc/*.conf
   ```
+- A `Baseline template:` line (Guests): its archive missing from
+  `pveam list local` is **WARN**, containers cannot be created
+  from it; one due for a rebuild is **INFO**.
 - Fleet audit: compare Proxmox VE nodes only with each other. Show
   `pve-firewall` in the firewall rows; a missing
   `unattended-upgrades` is not drift.
