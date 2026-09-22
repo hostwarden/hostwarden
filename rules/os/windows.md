@@ -463,7 +463,7 @@ headline goes to the local changelog only.
 **Read back** (`rules/activity-check.md`):
 
 ```powershell
-try { $o = Get-WinEvent -LogName Application -MaxEvents 1 -Oldest -ErrorAction Stop; "oldest: $($o.TimeCreated.ToString('s'))"; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
+try { $o = $null; try { $o = Get-WinEvent -LogName Application -MaxEvents 1 -Oldest -ErrorAction Stop } catch { if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') { throw } }; if ($o) { "oldest: $($o.TimeCreated.ToString('s'))" } else { 'oldest: none' }; $e = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'hostwarden'; StartTime = (Get-Date).AddDays(-7) } -ErrorAction SilentlyContinue); "entries: $($e.Count)"; $e | Format-List TimeCreated, Message } catch { "failed: $_" }
 ```
 
 The `entries:` line is the proof the check ran; `failed:`, or
@@ -478,6 +478,11 @@ and the same error when access is denied
 So the first statement proves the log can be read, with its
 oldest event and an error that stops the line; after that, the
 filtered query's error can only mean no match, and is silenced.
+Read by name, without a filter, the log tells the two apart: an
+empty log raises `NoMatchingEventsFound`, a denied read another
+error. So `oldest: none` is a readable, empty log — just
+cleared — whose reach is nothing: read the local changelog for
+the whole seven days.
 The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
 `Event Log Reader`.
