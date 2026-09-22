@@ -675,8 +675,9 @@ fi
 # and export only read.
 # A bare commit names no config and writes every staged one, a
 # dropbear change someone else left in /tmp/.uci included, so it
-# is denied too: as the last word of a uci invocation, or as a
-# batch line of its own. uci commit <config> stays ordinary work.
+# is denied too: as the last word of a uci invocation (a redirect
+# or a comment after it changes nothing), or as a batch line of
+# its own. uci commit <config> stays ordinary work.
 # The case is a builtin precheck: most commands never mention uci
 # and skip every grep.
 UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
@@ -689,8 +690,8 @@ case "$CMD" in
 the SSH server config, which is never allowed (reading it is fine: \
 uci show dropbear)"
       fi
-      if hit '(^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+commit[[:space:]]*$' \
-        || hit '^[[:space:]]*commit[[:space:]]*$'
+      if hit '(^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+commit[[:space:]]*([0-9]*[<>]|#|$)' \
+        || hit '^[[:space:]]*commit[[:space:]]*([0-9]*[<>]|#|$)'
       then
         deny "a bare uci commit writes every staged config, dropbear \
 included - name the config: uci commit firewall"

@@ -570,6 +570,11 @@ check pass 'cat /etc/conf.d/dropbear /etc/default/dropbear'
 check deny 'uci commit'
 check deny 'uci -q commit'
 check deny 'uci changes; uci commit'
+check deny 'uci commit >/dev/null'
+check deny 'uci -q commit 2>/dev/null'
+check deny 'uci commit 2>&1'
+check deny 'uci commit # all of them'
+check pass 'uci commit firewall >/dev/null'
 check deny "ssh root@router.example.com 'uci set firewall.@defaults[0].syn_flood=1; uci commit'"
 check deny "uci batch <<'EOF'
 set firewall.@defaults[0].syn_flood=1
