@@ -1189,16 +1189,27 @@ fi
 #     (community.general.parted is parted);
 #   - authorized_key and openssh_keypair, which write keys without
 #     naming a key file;
-#   - script, which runs a local file this hook cannot read;
+#   - script, which runs a local file this hook cannot read, and
+#     include_role, include_tasks, import_role and import_tasks,
+#     which run tasks from files as a playbook does;
 #   - any module but the ones that only read or run a command the
-#     rules above have judged, once a key or sshd_config is named.
-# The module is the last -m or --module-name of the invocation, as
-# Ansible reads it, and command when there is none. The words are
-# read from the dequoted command, so -m 'copy' is copy.
+#     rules above have judged, once a key or sshd_config is named
+#     in the invocation - outside --private-key, --key-file and
+#     *private_key_file=, which only say how Ansible logs in.
+# An invocation is a word whose last path component is ansible, to
+# the end of its segment. Every word there that can name a module
+# counts: the value of -m, of a run of short flags holding m (-bm
+# parted, -mcopy), and of --module-name or an abbreviation of it.
+# Ansible uses the last one, but the dequoted words cannot tell an
+# -m of ansible from one inside -a, so judging all of them is the
+# only reading that never passes a taboo module; grep -m1 inside
+# -a counts as a module named 1, and --max-count reads the same.
+# A value that is not a plain name, $MOD for one, counts as a
+# writing module.
 #
 # terraform and tofu apply and destroy can replace or delete the
 # server itself (rules/config-management.md), and Hostwarden never
-# runs them. plan, show and state list only read.
+# runs them, by any path. plan, show and state list only read.
 #
 # Full scope only: a development session reaches none of these
 # tools (the shim refuses them), and this repository names them in
@@ -1220,21 +1231,44 @@ user (rules/config-management.md); --syntax-check and --list-tasks, \
 and ansible-console runs commands it never sees - the user runs \
 them"
     fi
-    # One word per ad-hoc ansible invocation: its module without the
-    # collection, command without a -m, unknown where the -m cannot
-    # be read. Quotes are dropped first: in ssh host 'ansible web
-    # -m parted' the quote is what stands before ansible.
+    # Per invocation, every module word without its collection
+    # (command without one, unknown for a value that is not a
+    # name), and PATH when a key or sshd_config is named. Quotes
+    # are dropped first: in ssh host 'ansible web -m parted' the
+    # quote is what stands before ansible.
     AMODS=$(printf '%s\n' "${CMDQ:-${CMDJ:-$CMD}}" | tr -d "\"'" \
-      | tr ';&|' '\n' | sed -nE '/(^|[[:space:](])ansible[[:space:]]/{
-          s/.*[[:space:]](-m|--module-name)(=|[[:space:]]*)([[:alnum:]_]+\.)*([[:alnum:]_]+).*/\4/p
-          t
-          s/.*[[:space:]](-m|--module-name).*/unknown/p
-          t
-          s/.*/command/p
-        }')
-    AWRITE=
+      | tr ';&|`()' '\n' | K="$KEY|$SSHD" awk '
+      {
+        for (i = 1; i <= NF; i++) {
+          t = $i; sub(/.*\//, "", t)
+          if (t == "ansible") break
+        }
+        if (i > NF) next
+        n = 0; rest = ""
+        for (i++; i <= NF; i++) {
+          w = $i; v = ""
+          if (w ~ /^--(private-key|key-file)$/) { i++; continue }
+          if (w ~ /^--(private-key|key-file)=/ || w ~ /private_key_file=/) continue
+          if (w ~ /^--module-n[a-z-]*(=|$)/) {
+            if (w ~ /=/) { v = w; sub(/^[^=]*=/, "", v) } else v = $(++i)
+          } else if (w ~ /^-[A-Za-z]/ && index(w, "m")) {
+            v = substr(w, index(w, "m") + 1); sub(/^=/, "", v)
+            if (v == "") v = $(++i)
+          } else { rest = rest " " w; continue }
+          n++
+          if (v !~ /^[A-Za-z0-9_.]+$/) v = "unknown"
+          sub(/.*\./, "", v); print v
+        }
+        if (!n) print "command"
+        if (rest ~ ENVIRON["K"]) print "PATH"
+      }')
+    AWRITE='' APATH=''
     for am in $AMODS; do
       case $am in
+      PATH) APATH=1 ;;
+      include_role|include_tasks|import_role|import_tasks)
+        deny "this Ansible module runs tasks from files, which this \
+guard cannot read - applying Ansible code is left to the user" ;;
       parted|filesystem|shutdown|win_partition|win_format|win_initialize_disk|win_shutdown)
         deny "this Ansible module writes a partition table, makes a \
 filesystem or powers the host off" ;;
@@ -1249,7 +1283,7 @@ where they are checked" ;;
       *) AWRITE=1 ;;
       esac
     done
-    if [ -n "$AWRITE" ] && { [ "$HAS_KEY" -eq 1 ] || hit "$SSHD"; }; then
+    if [ -n "$AWRITE" ] && [ -n "$APATH" ]; then
       deny "an Ansible module that writes files, pointed at an SSH \
 key or sshd_config, can replace it - read it with -m command \
 and cat, or with -m stat"
@@ -1259,7 +1293,7 @@ and cat, or with -m stat"
 esac
 case "$CMD$CMDJ$CMDQ" in
 *terraform*|*tofu*)
-  if full && hit '(^|[[:space:]])(terraform|tofu)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|$)'
+  if full && hit '(^|[^[:alnum:]_.-])(terraform|tofu)[[:space:]]([^;&|]*[[:space:]])?(apply|destroy)([^[:alnum:]_-]|$)'
   then
     deny "terraform and tofu apply and destroy can replace or \
 delete the server itself - the user runs them \

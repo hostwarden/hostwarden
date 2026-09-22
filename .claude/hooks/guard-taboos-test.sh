@@ -899,6 +899,25 @@ check deny 'ansible web1.example.com -m community.crypto.openssh_keypair -a path
 check deny 'ansible web1.example.com -m script -a ./fix.sh'
 check deny 'ansible web1.example.com -m "$MOD" -a "dest=/etc/ssh/sshd_config src=x"'
 check pass 'ansible web1.example.com -m "$MOD" -a "name=nginx"'
+# By path or in backticks, with the flags run together, and with an
+# -m inside -a: every word that can name a module counts.
+check deny '/usr/bin/ansible web1.example.com -m parted -a device=/dev/sdb'
+check deny '/opt/homebrew/bin/ansible web1.example.com -m authorized_key -a user=root'
+check deny 'echo `ansible web1.example.com -m parted -a device=/dev/sdb`'
+check deny 'ansible web1.example.com -bm parted -a device=/dev/sdb'
+check deny 'ansible web1.example.com --module-na parted -a device=/dev/sdb'
+check deny 'ansible web1.example.com -m script -a "./setup.sh -m 700"'
+check deny 'ansible web1.example.com -b -m parted -a "device=/dev/sdb" --ssh-extra-args "-m hmac-sha2-512"'
+check deny 'ansible web1.example.com -m include_role -a name=disks'
+check deny 'ansible web1.example.com -m ansible.builtin.include_tasks -a file=wipe.yml'
+# Login options name a key without writing it.
+check pass 'ansible web1.example.com --private-key ~/.ssh/deploy -b -m apt -a "name=nginx state=present"'
+check pass 'ansible web1.example.com -e ansible_ssh_private_key_file=~/.ssh/hw -m service -a "name=nginx state=reloaded"'
+check pass 'ansible web1.example.com -m apt -a name=nginx; cat /etc/ssh/sshd_config'
+check deny '/usr/local/bin/terraform apply'
+check deny 'echo $(terraform apply -auto-approve)'
+check deny '(tofu destroy)'
+check deny 'terraform -chdir="my infra" apply'
 check deny "ssh root@server1.example.com 'ansible localhost -c local -m parted -a device=/dev/sdb'"
 check deny 'bash -c "ansible web1.example.com -m authorized_key -a user=root"'
 check pass "ssh root@server1.example.com 'ansible localhost -c local -m ping'"
