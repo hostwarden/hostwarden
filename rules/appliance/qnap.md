@@ -114,8 +114,11 @@ is QNAP's own.
   SSH-user interview (`rules/ssh-user.md`) under `Other…`, and do
   not ask the user to enable a disabled `admin` account for
   Hostwarden's sake: that is the user's decision, and QNAP's advice
-  is to keep it disabled. Without either, the session is
-  unprivileged (`rules/privilege-escalation.md`); the ZFS commands
+  is to keep it disabled. The root SSH probe of
+  `rules/privilege-escalation.md` goes to `admin@`, never to
+  `root@`, and records `Root SSH: available (admin)` or
+  `Root SSH: unavailable`. Without either, the session is
+  unprivileged; the ZFS commands
   need root and fail with "failed to initialize ZFS library"
   without it
   (<https://www.qnap.com/en/how-to/faq/article/internal-error-failed-to-initialize-zfs-library-running-zfs-commands-from-ssh-shell>).
@@ -136,22 +139,16 @@ is QNAP's own.
   the user to turn it off under Control Panel > System > General
   Settings > Console Management
   (`enabling-or-disabling-console-management-AB7BE9DD.html`). QTS
-  enables it by default; the QuTS hero guide says both that it is
-  enabled by default and that it is disabled by default
-  (`configuring-console-management-361B3D03.html`), so read it on
-  the host. Third-party reports show the menu started from
-  `/etc/profile` for an interactive login, which a command given
-  to `ssh` does not read
-  (<https://sandrotosi.blogspot.com/2020/11/qnap-firmware-4511465-disable-ssh.html>);
+  enables it by default, and the QuTS hero guide contradicts itself
+  on its default (`configuring-console-management-361B3D03.html`):
   the first line of the probe is what decides.
 - **The SSH taboo covers `/etc/config/ssh/` and `/etc/ssh/`,** and
   every `authorized_keys`: read only. QNAP documents neither path;
   users report `sshd_config`, `authorized_keys` and, on QTS 5, a
   `sshd_user_config` in `/etc/config/ssh/`, with the firmware
   rewriting parts of `sshd_config` at start
-  (<https://forum.qnap.com/viewtopic.php?t=165520>). Read them with
-  `ls -l` and `cat`, never change them. Where the user wants other
-  SSH settings, the Telnet/SSH page is the place.
+  (<https://forum.qnap.com/viewtopic.php?t=165520>). Other SSH
+  settings are the Telnet/SSH page's.
 - The same page offers Telnet, on port 13131 by default
   (`configuring-telnet-connections-4B8F6F42.html`). Telnet on is a
   finding.
@@ -294,11 +291,15 @@ is QNAP's own.
   `docker-compose.yml` in a folder per project under
   `container-station-data/application` in the `Container` shared
   folder (the same guide). Container data lives wherever the
-  container's bind mounts and volumes point; read them with
-  `docker inspect`.
-- Read with `docker ps -a`, `docker inspect` and `docker logs`,
+  container's bind mounts and volumes point.
+- Read with `docker ps -a` and `docker logs --tail 50 <name>`,
   called as `"$d/bin/docker"` (the housekeeping call below shows
-  the form). **Change containers and
+  the form), and one container's details only with named fields:
+  ```
+  "$d/bin/docker" inspect --format '{{.Config.Image}} {{.State.Status}} privileged={{.HostConfig.Privileged}} net={{.HostConfig.NetworkMode}} {{json .Mounts}}' <name>
+  ```
+  A bare `docker inspect` prints `Config.Env`, where containers keep
+  their credentials (`rules/secrets.md`). **Change containers and
   Applications in Container Station, never with `docker` or
   `docker compose`:** a stack brought up from the command line
   shows in Container Station, but Container Station cannot control
@@ -413,19 +414,10 @@ is QNAP's own.
   syslog that it reaches. Where `log_tool` fails, or no log
   destination is set, log to the local changelog only.
 - **Reading back.** QNAP documents no command that queries the
-  event log. A 2010 forum thread shows a query option
-  (`log_tool -q …`,
-  <https://forum.qnapclub.de/thread/7480-log-dateien-auswerten/>),
-  too old to trust unread. On the first connection, run
-  `/sbin/log_tool -h` as root (`AGENTS.md` → Verify Before Running)
-  and work out, from its help, one query for entries containing
-  `hostwarden` or `heinzel` and one for the oldest entry the log
-  still holds. Record both in server memory as `Log query:` and use
-  them for the activity check, the oldest entry being its bound
-  (`rules/activity-check.md` → How far back it reached). Where the
-  help offers no such query, the activity check could not run: say
-  so, and read the local changelog for the seven days. The user can
-  search QuLog Center > Local Device > Event Log for `hostwarden`.
+  event log, so the activity check reads the local changelog
+  instead of a journal (`rules/changelog.md`) and says so. The user
+  can search QuLog Center > Local Device > Event Log for
+  `hostwarden`.
 - The session register in `/tmp/hostwarden`
   (`rules/parallel-sessions.md`) lives in RAM and is gone after a
   reboot, as the sessions it names are.
@@ -439,8 +431,7 @@ is QNAP's own.
   echo "$(/sbin/getcfg System Version -f $c).$(/sbin/getcfg System Number -f $c) build $(/sbin/getcfg System 'Build Number' -f $c)"
   uptime
   grep -E "^(MemTotal|MemAvailable|SwapTotal|SwapFree):" /proc/meminfo
-  dmesg | grep -c -i -E "out of memory|oom-killer"
-  dmesg | grep -c -i "I/O error"
+  dmesg | grep -i -o -E "out of memory|oom-killer|I/O error" | sort | uniq -c
   grep -c zfs /proc/filesystems
   cat /proc/mdstat
   zpool list -H -o name,cap,health
@@ -450,7 +441,7 @@ is QNAP's own.
   /sbin/getcfg 'QPKG Management' Ignore_Cert -u -d FALSE
   d=$(/sbin/getcfg container-station Install_Path -d none -f /etc/config/qpkg.conf)
   [ "$d" != none ] && "$d/bin/docker" ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
-  command -v smartctl
+  command -v smartctl || echo "smartctl missing"
   ```
   QTS answers the `zpool` lines with "not found", QuTS hero the
   `mdstat` line with no arrays; read each for the system it
@@ -458,25 +449,27 @@ is QNAP's own.
   days the Linux baseline reads; say which. The `df` loop reads only
   the local ext4 volumes that QTS mounts directly under `/share`;
   QuTS hero's fill level is `zpool list`'s `cap`. The `qpkg.conf`
-  loop prints one line per package. Where `command -v` finds
-  `smartctl`, run the probe in
-  `.agents/skills/hostwarden-housekeeping/references/smart.md` in
-  the next call; where it does not, the SMART state is under
+  loop prints one line per package. The `docker ps` line is judged
+  as `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+  → Docker says. Where `smartctl` exists, append the probe in
+  `.agents/skills/hostwarden-housekeeping/references/smart.md` to
+  the same call; where it does not, the SMART state is under
   Storage & Snapshots > Storage > Disks/VJBOD > Disks > Health
   (`disk-health-63ACC54A.html`), for the user to read.
 - Findings:
   - a release past its end of life (see Version Detection), a beta
     or release candidate, or a pending firmware update;
   - a firmware update policy that neither installs nor notifies;
-  - load above the CPU count in server memory, memory and swap
-    nearly exhausted, OOM kills or I/O errors since the boot;
+  - load, memory and swap past the limits of
+    `.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`,
+    OOM kills or I/O errors since the boot;
   - on QTS, an md array whose status line shows a missing member
     (`_` in `[UU_]`) or a rebuild; on QuTS hero, a pool whose
     health is not `ONLINE`, or whose `scan:` line reports errors;
   - no scrub in the last month (QNAP's recommendation above), or no
     scrub schedule;
   - the SMART findings in `smart.md`;
-  - a volume or pool above 90 % full;
+  - a volume or pool past the baseline's Disk Usage limits;
   - apps with an update available (App Center) and disabled apps
     the user no longer needs: QNAP recommends removing them;
   - no snapshot schedule on a volume or pool that holds data, and no
