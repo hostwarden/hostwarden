@@ -123,6 +123,10 @@ check deny "shutdown -r '-h' now"
 check deny 'shutdown -r "--poweroff" now'
 check deny 'shutdown -r \-P now'
 check deny "shutdown -r -'H' now"
+check deny "shutdown -r \$'-h' now"
+check deny "shutdown -r \$'--poweroff' now"
+check deny 'shutdown -r --h"a"lt now'
+check deny "shutdown -r --'p'oweroff now"
 check deny 'ssh root@h "shutdown -r '\''-h'\'' now"'
 check deny 'shutdown -r -kh now'
 check deny 'shutdown -c -h now'

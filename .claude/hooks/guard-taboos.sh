@@ -706,10 +706,10 @@ use shutdown -r; -c cancels)"
   # pair. Order does not matter here: a flag that halts one
   # implementation is not waved through because another reboots.
   # Only a dash flag counts, so Windows' slash form is left to the
-  # rules below. The shell drops quotes and backslashes before the
-  # program sees '-h', "--poweroff" or \-P, so they may sit
-  # anywhere in the flag.
-  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\]*(-["'\''`\\[:alnum:]]*[hHPp]["'\''`\\[:alnum:]]*|-["'\''`\\]*-["'\''`\\]*(ha|p)[[:alpha:]]*)(["'\''`\\[:space:]]|$)'
+  # rules below. The shell drops quotes, backslashes and the $ of
+  # $'...' before the program sees '-h', $'--poweroff', \-P or
+  # --h"a"lt, so any of them may sit anywhere in the flag.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\$]*(-["'\''`\\$[:alnum:]]*[hHPp]["'\''`\\$[:alnum:]]*|-["'\''`\\$]*-["'\''`\\$]*(h["'\''`\\$]*a|p)["'\''`\\$[:alpha:]]*)(["'\''`\\$[:space:]]|$)'
   then
     deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
 halts or powers off the server even beside -r"
