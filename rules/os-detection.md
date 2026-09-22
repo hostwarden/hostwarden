@@ -386,7 +386,9 @@ The strings are the ones cloud-init's `ds-identify`
 matches
 (https://github.com/canonical/cloud-init/blob/main/tools/ds-identify).
 A hoster that leaves QEMU's DMI in place stays plain
-`kvm (VM)`.
+`kvm (VM)`. Windows has only the type table to find a
+VM, so there a provider's name makes no VM and names
+no hardware vendor either: the host is `unknown`.
 
 On Windows the same strings come from `Manufacturer`
 and `Model` in the `@hardware` part of
