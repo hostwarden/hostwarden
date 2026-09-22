@@ -118,8 +118,10 @@ for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
 done | sort | uniq -c
 crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
   | grep -oiE 'backup|restic|borg|zfs|dump|rsync' | sort | uniq -c
-grep -oiE 'backup|snapshot' /etc/periodic.conf \
-  /etc/periodic.conf.local 2>/dev/null | sort | uniq -c
+# periodic settings count only when set to YES
+grep -hiE "^[[:space:]]*[a-z0-9_]*(backup|snapshot)[a-z0-9_]*=[\"']?yes" \
+  /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
+  | grep -oiE 'backup|snapshot' | sort | uniq -c
 service -e | grep -iE 'zrepl|sanoid|bacula|bareos'
 # root's crontab needs root: as a normal user, sudo -n crontab …
 
