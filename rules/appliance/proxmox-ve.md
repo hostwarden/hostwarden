@@ -1,6 +1,7 @@
 # Proxmox VE
 
 Base: `rules/os/debian.md`
+Hardware: any
 
 A Proxmox VE node is a Debian host, and this file applies on top of
 the base (`rules/os-detection.md` → Appliances). Every guest on the

@@ -50,6 +50,15 @@ not written yet, or overwriting the fallback binary before it is.
 `references/os-replacement.md` § Boot Configuration Safety owns
 that, and it applies whether or not the guard is on.
 
+## Vendor hardware is out of scope
+
+A host whose appliance file says `Hardware: vendor`
+(`rules/os-detection.md` → Appliances) gets none of the
+workflows below: the vendor's firmware is the only OS the device
+takes, and replacing or repartitioning it can leave the device
+unbootable. Say so and stop. Reading its disks and boot state is
+still allowed.
+
 ## The gate — before the first disk write
 
 The moment a step would write to a disk or a partition table, all

@@ -67,7 +67,10 @@ one-family cap still holds.
 An appliance (`rules/os-detection.md` → Appliances) gets a file in
 `rules/appliance/` and a row in that section's marker table. The
 file opens with a `Base:` line naming its family file, or
-`Base: none`, and has a `## Housekeeping and Audits` section.
+`Base: none`, followed by `Hardware: vendor` for an OS the vendor
+sells only with its own device or `Hardware: any` for one that
+installs on ordinary machines and in VMs, and has a
+`## Housekeeping and Audits` section.
 Decide per section of the base with the override prefixes; "this
 file wins wherever the two disagree" leaves the reader to find the
 disagreement on a live firewall.

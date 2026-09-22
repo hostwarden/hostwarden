@@ -1,6 +1,7 @@
 # Home Assistant OS
 
 Base: none
+Hardware: any
 
 Home Assistant OS (HAOS) is Linux, but no family file applies: no
 package manager, a read-only root filesystem, and everything managed

@@ -784,6 +784,7 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
   function done() {
     if (rel == "") return
     if (!based) print rel ": no Base line"
+    else if (!hw) print rel ": no Hardware: vendor or any line under Base"
     if (!ha) print rel ": no ## Housekeeping and Audits section"
   }
   function body(p, sec,   l, h, on, t) {
@@ -800,12 +801,14 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     close(p); return RAW[p] = t
   }
   FNR == 1 {
-    done(); FM = ""; based = ha = 0; base = ""
+    done(); FM = ""; based = ha = hw = 0; base = ""; prev = ""
     rel = substr(FILENAME, length(root) + 1)
     if (!index(text(table), "`" rel "`"))
       print rel ": not in the marker table of rules/os-detection.md"
   }
   fenced($0) { next }
+  prev ~ /^Base: / && /^Hardware: (vendor|any)$/ { hw = 1 }
+  { prev = $0 }
   /^Base: / {
     based = 1; b = $2; gsub(/`/, "", b)
     if (b == "none") next

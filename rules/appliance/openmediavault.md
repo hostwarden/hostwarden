@@ -1,6 +1,7 @@
 # OpenMediaVault
 
 Base: `rules/os/debian.md`
+Hardware: any
 
 An OpenMediaVault (OMV) host is a Debian host, and this file applies
 on top of the base (`rules/os-detection.md` → Appliances). OMV owns

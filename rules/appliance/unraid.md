@@ -1,6 +1,7 @@
 # Unraid
 
 Base: none
+Hardware: any
 
 Unraid is a NAS and virtualisation host built on Slackware, and no
 family file applies: no package manager for the user, a root file

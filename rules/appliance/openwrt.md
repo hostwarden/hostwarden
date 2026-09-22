@@ -1,6 +1,7 @@
 # OpenWrt
 
 Base: none
+Hardware: any
 
 OpenWrt is Linux, but no family file applies: its own package
 manager and repositories, a busybox userland, procd instead of

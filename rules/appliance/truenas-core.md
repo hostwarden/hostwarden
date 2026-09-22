@@ -1,6 +1,7 @@
 # TrueNAS CORE
 
 Base: `rules/os/freebsd.md`
+Hardware: any
 
 TrueNAS CORE (FreeBSD, 13.x) is end of life: 13.3-U1.2 was its last
 release, and TrueNAS names 25.10, the Linux edition, as the

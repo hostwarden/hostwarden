@@ -1,6 +1,7 @@
 # OPNsense
 
 Base: `rules/os/freebsd.md`
+Hardware: any
 
 OPNsense is built on FreeBSD, so the base file supplies the
 vocabulary (`ifconfig`, `pfctl`, ZFS). Most of its instructions for

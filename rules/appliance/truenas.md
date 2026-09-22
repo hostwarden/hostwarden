@@ -1,6 +1,7 @@
 # TrueNAS
 
 Base: `rules/os/debian.md`
+Hardware: any
 
 For TrueNAS Community Edition and TrueNAS Enterprise, the
 Linux-based releases (24.10 and later, called SCALE before 25.04),
