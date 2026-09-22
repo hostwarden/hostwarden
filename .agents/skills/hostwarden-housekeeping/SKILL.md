@@ -78,8 +78,8 @@ Read on demand, only when the relevant section applies:
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
-  Docker, Home Assistant, Ollama, node_exporter, NVIDIA GPU,
-  MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
+  Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
+  GPU, MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
   ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.

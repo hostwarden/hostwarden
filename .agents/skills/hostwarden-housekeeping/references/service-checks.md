@@ -102,7 +102,11 @@ Triggered when `memory.md` mentions Docker.
 ```bash
 docker ps --format \
   "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
+ls -d /etc/casaos
 ```
+
+`/etc/casaos` existing means CasaOS manages containers here: add
+`CasaOS` to `memory.md` and run the CasaOS section below.
 
 - **CRITICAL** if the daemon does not answer — that says nothing
   about the containers, never that there are none. Permission
@@ -114,11 +118,10 @@ docker ps --format \
 ## CasaOS
 
 Triggered when `memory.md` mentions CasaOS. CasaOS is IceWhale's web
-UI and app store, installed by a script on top of Debian, Ubuntu or
-Raspberry Pi OS; other systems are community-supported or untested
-(https://github.com/IceWhaleTech/CasaOS, `README.md`). The
-distribution underneath keeps its family file, its package manager,
-its firewall and its updater. What CasaOS adds is below. As root:
+UI and app store on top of an ordinary distribution, which keeps its
+family file, package manager, firewall and updater
+(https://github.com/IceWhaleTech/CasaOS). What CasaOS adds is below.
+As root, in one call:
 
 ```bash
 casaos -v
@@ -130,8 +133,8 @@ docker ps -a --format \
   '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project.working_dir"}}'
 ```
 
-`casaos -v` is the version command the README gives; the six units
-are the ones the installer starts (https://get.casaos.io).
+The six units are the ones the installer starts
+(https://get.casaos.io).
 
 - **WARN** for each unit that is not active: without the gateway
   the web UI is down, without app management the apps cannot be
@@ -144,17 +147,13 @@ are the ones the installer starts (https://get.casaos.io).
   `build/sysroot/usr/lib/systemd/system/casaos.service`).
   **CRITICAL** if the user says a port forward reaches it from the
   internet.
-- **WARN** for the version: take the newest release and its date
-  from https://github.com/IceWhaleTech/CasaOS/releases in a live
-  lookup (`rules/version-check.md`) and name both. CVE-2025-34171
-  lets anyone who reaches the UI read files and debug data without
-  logging in, in every version up to 0.4.15
-  (https://www.vulncheck.com/advisories/casaos-unauthenticated-file-and-debug-data-exposure);
-  a version it covers is the finding while no fixed release
-  exists. IceWhale's documentation offers a migration from CasaOS
-  to ZimaOS
-  (https://www.zimaspace.com/docs/zimaos/casaos-to-zimaos-migration);
-  moving is the user's decision.
+- **WARN** for a version up to 0.4.15: CVE-2025-34171 lets anyone
+  who reaches the UI read files and debug data without logging in
+  (https://www.vulncheck.com/advisories/casaos-unauthenticated-file-and-debug-data-exposure).
+  Name the newest release from
+  https://github.com/IceWhaleTech/CasaOS/releases and its date only
+  through `rules/version-check.md`, its cooldown included; while no
+  release fixes the CVE, that is the finding.
 - **INFO** for each `appstore` source outside `IceWhaleTech`: a
   third-party store whose apps run with whatever the compose file
   grants them.
@@ -162,18 +161,18 @@ are the ones the installer starts (https://get.casaos.io).
   own directory under `AppsPath`, `/var/lib/casaos/apps` by default
   (https://github.com/IceWhaleTech/CasaOS-AppManagement,
   `build/sysroot/etc/casaos/app-management.conf.sample`); the last
-  `docker ps` column shows it. A container that is not "Up" goes
-  under Docker, not again here.
+  `docker ps` column shows it. Report a container that is not "Up"
+  once, here or under Docker.
 
 Hand any change to an app to the user as steps in the CasaOS web
 UI, never as `docker` or compose commands: the app service lists
 the compose projects Docker reports, and an update from the UI
 merges its settings into the store's compose file and applies it
-again, recreating the containers (`CasaOS-AppManagement`,
-`service/compose_service.go`, `List`; `service/compose_app.go`,
-`Update` and `Apply`). A change made beside the UI is lost at the
-next update or shown wrongly. Updating CasaOS itself is the UI's
-Settings → Update, or the README's script from
+again, recreating the containers
+(https://github.com/IceWhaleTech/CasaOS-AppManagement). A change
+made beside the UI is lost at the next update or shown wrongly.
+Updating CasaOS itself is the UI's Settings → Update, or the
+README's script from
 `https://get.casaos.io/update` piped into a root shell: ask first,
 and name the script.
 
