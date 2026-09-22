@@ -66,9 +66,15 @@ optional. `sysrc -a` prints `name=value`, and a filter that reads
 the whole line matches on the value too, so an unrelated
 `<something>_flags` whose value merely mentions one of these tools
 would be printed in full — with whatever token it carries
-(`rules/secrets.md`). A name is all the probe needs: whether the
-variable says `YES` or `NO` is not what makes it a lead, and the
+(`rules/secrets.md`). A name is enough to make a lead, and the
 directory above is the evidence either way.
+
+It is not enough to read a variable as enabled, though, so the
+`enabled` case below is the one thing FreeBSD cannot contribute: a
+dismissal there is outdated by the journal or by a directory's own
+date, not by this listing. The other three branches do show state —
+`systemctl list-unit-files` prints it per unit, and `rc-update show`
+and `launchctl list` name only what is enabled or loaded.
 
 `##cm-units unread` says the service list was not read, which is
 not the same as one that held nothing. It stands for both ways that
@@ -107,10 +113,10 @@ has nothing else to give away. Run them again when:
   `no ansible` entry;
 - the probe above finds a directory, unit or service that the host's
   memory does not account for — no `Config management:` line at all,
-  one that does not cover that tool, or a dismissal of it older than
-  the date `ls -ld` prints beside the directory. This is the trigger
-  that arrives too late for the activity check's call; run it in the
-  next one, before reporting the leads;
+  one that does not cover that tool, or a dismissal of it that this
+  find outdates, by the rule under Ask once, record. This is the
+  trigger that arrives too late for the activity check's call; run
+  it in the next one, before reporting the leads;
 - a `Config management: unknown` line is there and this session can
   read what the last one could not;
 - the user says a tool manages the host.
@@ -221,14 +227,25 @@ question from coming back — record a dismissed lead or the same
 directory asks again on the next connection, since the probe that
 found it runs on every one.
 
-Both carry a date, and a dismissal holds only until something newer
-than that date turns up: Ansible runs in the journal after it, or a
-directory or unit whose own date is later. It says the markers were
-stale then, never that the tool cannot come back — a host recorded
-`puppet, no ansible (markers stale, 2026-09-22)` whose next
-connection shows Ansible runs is asked again, and the entry is
-replaced by the answer. Otherwise ask again only on one of the
-triggers under Detect above, or when the user raises it. When the
+Both carry a date, and neither is permanent. A dismissal covers what
+is inert — a directory, a file, a unit that is installed and left
+off — and says those were stale on that date. It stops holding as
+soon as the probe returns something the date does not explain:
+
+- **An agent service the listing shows as enabled**, whichever
+  branch found it. That is not a leftover, and no service listing
+  prints a date to compare against, so an enabled agent outdates a
+  dismissal by itself — the one case where the dates do not decide.
+- **Ansible runs in the journal** after that date
+  (`rules/activity-check.md` → Ansible runs).
+- **A directory or file whose own date is later**, as `ls -ld`
+  prints it beside the path.
+
+A host recorded `puppet, no ansible (markers stale, 2026-09-22)`
+whose next connection shows Ansible runs is asked again, and so is
+one whose dismissed Puppet unit has since been enabled; either way
+the entry is replaced by the answer. Otherwise ask again only on one
+of the triggers under Detect above, or when the user raises it. When the
 user takes a host or an area out of a tool, change the line or
 remove it; the files stay as they are, and from then on Hostwarden
 changes them by hand.
