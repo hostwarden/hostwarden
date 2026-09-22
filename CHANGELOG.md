@@ -12,6 +12,13 @@
   OPNsense with `/var` on a RAM disk, the journal lines are gone
   after a reboot: Hostwarden names the time since boot and reads
   your local changelog for the time before.
+- **The fleet audit covers Alpine hosts.** Each probe
+  that assumed systemd or GNU tools has an Alpine
+  variant: a self-made `apk upgrade` job in place of
+  unattended-upgrades, nftables or awall, busybox
+  `ntpd` or chrony, doas beside sudo, and a kernel
+  waiting for a reboot. Settings Alpine does not have
+  show as `n/a` and never count as drift.
 - **A firewall or network change undoes itself unless SSH
   still works.** Before applying one, Hostwarden arms a
   revert on the host that fires after five minutes, and
@@ -48,6 +55,20 @@
   sshd port before starting it. An Alpine Docker image
   is recognised as a container, not a host to
   administer.
+- **XCP-ng is recognised as an appliance.** Its dom0 is read as a
+  RHEL host with the changes XCP-ng needs: `yum` from XCP-ng's own
+  repositories only and nothing installed beyond what they carry,
+  updates pool master first with evacuation and reboots left to
+  you, VMs, storage and networks through `xe` or Xen Orchestra,
+  the `iptables` firewall, and the logs in `/var/log`, where the
+  activity check reads `user.log`. Housekeeping and the audits
+  report pending updates, pool and host state, SR usage, HA, dom0
+  disk and memory, and backups.
+- **TrueNAS is recognised as an appliance.** Detection finds it
+  by `midclt`; Hostwarden changes settings, the network, pools and
+  updates through the middleware instead of `/etc`, apt or `zfs`,
+  and housekeeping reads its alerts, pools, scrubs and tasks.
+  TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,
   records `Appliance:` in server memory, and reads a file under

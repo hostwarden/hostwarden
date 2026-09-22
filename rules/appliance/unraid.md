@@ -18,6 +18,12 @@ repositories on GitHub where the docs are silent.
 
 ## Version Detection
 
+- **This file covers Unraid up to 7.x**, the releases built on
+  Slackware. Unraid 8 is announced on a Fedora base (uCore) and is
+  not covered
+  (<https://unraid.net/blog/unraid-8-announced>). When the version
+  is 8 or later, stop: tell the user that Hostwarden has no rules
+  for this release yet, and change nothing on the host.
 - `/etc/unraid-version` holds one line, `version="<version>"`
   (`unraid/api`, `get-unraid-version-sync.ts`). Step 1 of
   `rules/os-detection.md` prints it; later connections read it with
@@ -26,8 +32,11 @@ repositories on GitHub where the docs are silent.
   (`-beta.<n>`)
   (<https://docs.unraid.net/unraid-os/updating-unraid/release-types/>).
 - Record in server memory: `Appliance: Unraid <version>`, and the
-  boot device, `USB flash` or `internal boot pool`, from the `/boot`
-  row of the housekeeping `df` or `zpool` output.
+  boot device from the type the housekeeping `df -hT /boot` shows:
+  `zfs` is an internal boot pool, which always uses ZFS
+  (<https://docs.unraid.net/unraid-os/getting-started/set-up-unraid/internal-boot-faq/>);
+  anything else is a flash device. Where that is unclear, ask the
+  user to read Main → Boot Device rather than guess.
 
 ## Access and Privileges
 
@@ -71,6 +80,12 @@ repositories on GitHub where the docs are silent.
   (<https://docs.unraid.net/unraid-os/system-administration/secure-your-server/security-fundamentals/>).
   Exposure is the finding: a port forward to the web UI or SSH, or
   a DMZ.
+- **Network changes over SSH.** Addresses, bonds and bridges are set
+  under Settings → Network Settings
+  (<https://docs.unraid.net/unraid-os/getting-started/set-up-unraid/customize-unraid-settings/>),
+  and this file names no revert for them: a network change is the
+  user's to make in the web UI with console access ready
+  (`rules/ssh-safety-net.md`).
 - **Automatic security updates.** There is no `unattended-upgrades`
   and no automatic OS update. Pending updates are the finding (see
   Updates).
@@ -210,10 +225,11 @@ repositories on GitHub where the docs are silent.
   (<https://docs.unraid.net/unraid-os/troubleshooting/diagnostics/capture-diagnostics-and-logs/>).
   Do not turn it on for Hostwarden's sake.
 - `logger -t hostwarden` lands in `/var/log/syslog`
-  (`rules/changelog.md`). The activity check reads back, older file
-  first so `tail` keeps the newest lines:
+  (`rules/changelog.md`). The activity check reads back, oldest file
+  first so `tail` keeps the newest lines, and takes the rotated
+  `syslog.1` along where it exists:
   ```
-  for f in /boot/logs/syslog-previous /var/log/syslog; do
+  for f in /boot/logs/syslog-previous /var/log/syslog.1 /var/log/syslog; do
     [ -e "$f" ] && grep -hE "hostwarden|heinzel" "$f"
   done | tail -20
   uptime
@@ -230,8 +246,15 @@ repositories on GitHub where the docs are silent.
   cat /etc/unraid-version
   date +%s
   grep -E "^(mdState|mdNumDisabled|mdNumInvalid|mdNumMissing|mdResyncAction|sbSynced2|sbSyncErrs)=" /var/local/emhttp/var.ini
-  awk -F= '/^\[/{s=$0} /^(status|color|numErrors)=/{v[s]=v[s]" "$0} END{for(k in v) if(v[k]!~/_NP/) print k v[k]}' /var/local/emhttp/disks.ini
-  ls /tmp/notifications/unread | wc -l
+  awk -F= '/^\[/{s=$0} /^(status|color|numErrors)=/{v[s]=v[s]" "$0} END{for(k in v) if(v[k]!~/"DISK_NP"/) print k v[k]}' /var/local/emhttp/disks.ini
+  n=$(sed -n '/^\[notify\]/,/^\[/s/^path="\(.*\)"/\1/p' /boot/config/plugins/dynamix/dynamix.cfg)
+  ls "${n:-/tmp/notifications}/unread" | wc -l
+  uptime
+  free -h
+  df -hT /boot
+  for f in /var/log/syslog.1 /var/log/syslog; do
+    [ -e "$f" ] && echo "$f: oom $(grep -c 'Out of memory' "$f") io $(grep -c 'I/O error' "$f") ssh $(grep -c 'Failed password' "$f")"
+  done
   df -h -t vfat -t xfs -t btrfs
   zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
@@ -241,15 +264,22 @@ repositories on GitHub where the docs are silent.
   ```
   `var.ini`'s `sbSynced2` is the end of the last parity check in
   epoch seconds, measured against `date +%s`. `disks.ini` lists
-  every slot; the `awk` prints one line per filled slot and drops
-  the empty ones, whose status contains `_NP`. `-n standby` leaves
+  every slot; the `awk` prints one line per slot and drops the
+  empty ones (`status="DISK_NP"`). A status that only contains
+  `_NP`, as a missing or disabled disk has, stays in. `-n standby` leaves
   a spun-down disk asleep. `df -t` lists local file systems only,
   so a dead network mount under `/mnt/remotes` cannot hang the
   call; the btrfs rows include the `docker.img` and `libvirt.img`
-  loop mounts. Unread notifications sit in
-  `/tmp/notifications/unread/` by default; the user can move them
-  under Settings → Notifications.
+  loop mounts. The notification directory is `path=` under
+  `[notify]` in `dynamix.cfg`, `/tmp/notifications` when unset
+  (`unraid/webgui`, `plugins/dynamix/default.cfg`); an `ls` error
+  means the count did not run, never that there are none. The
+  syslog counts reach back only to the boot (see Logs), not the
+  seven days the Linux baseline reads; say which.
 - Findings:
+  - load above the CPU count in server memory, or memory and swap
+    nearly exhausted;
+  - OOM kills, I/O errors, or failed SSH passwords in the syslog;
   - the array not `STARTED`, a disabled, invalid or missing disk, a
     disk whose `color` is not green, `numErrors` above 0;
   - no parity check in the last three months, or errors in the last
@@ -257,7 +287,7 @@ repositories on GitHub where the docs are silent.
     basis", scheduled under Settings → Scheduler;
   - SMART health not passing, or reallocated, pending or
     uncorrectable sectors;
-  - a user share, disk or pool above 90 % full, and the boot device
+  - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a
     server on an RC or beta;
@@ -265,7 +295,10 @@ repositories on GitHub where the docs are silent.
     recent zip from Main → Boot Device → Boot Device Backup, which
     the user downloads and keeps off the server;
   - unread notifications; list them only when the user asks.
-- A security audit reports instead: SSH and Telnet state and port,
+- A security audit reports instead: SSH and Telnet state and port;
+  with SSH on, the effective settings from `sshd -T`, read the way
+  the security skill's SSH reference reads them — root login is how
+  Unraid works, so password authentication for root is the finding;
   root's authorized keys by fingerprint, whether the web UI answers
   on HTTPS only, port forwards or a DMZ the user describes, the
   installed plugins and their authors, containers running

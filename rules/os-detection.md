@@ -41,9 +41,10 @@ skill says so where it needs it.
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version /etc/unraid-version'
+     'which pveversion ha opnsense-version pfSense-upgrade' \
+     'midclt; ls -d /homeassistant; pveversion;' \
+     'opnsense-version; cat /etc/version /etc/unraid-version;' \
+     'midclt call system.version'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -109,10 +110,12 @@ skill says so where it needs it.
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below. Where the probe
-   already runs the version command the appliance
-   file's Version Detection names, the version is on
-   these lines; otherwise run that command.
+   `@appliance`, and for a marker of the form `ID=…`
+   from the os-release lines after `@release`. See
+   Appliances below. Where the probe already prints
+   what the appliance file's Version Detection reads,
+   the version comes from the probe; otherwise run
+   that command.
 
 4. Create a server memory file.
 
@@ -128,15 +131,20 @@ not one.
 
 The probe in step 1 reports the markers. `which`
 prints a path for a command that exists; what it
-prints for a missing one depends on the shell.
+prints for a missing one depends on the shell. Where
+one marker has two rows, the family from step 2 picks
+the row.
 
-| Base    | Marker             | Appliance file                  |
-| ------- | ------------------ | ------------------------------- |
-| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
-| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
-| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
-| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
-| none    | `version="…"`      | `rules/appliance/unraid.md`     |
+| Base    | Marker             | Appliance file                    |
+| ------- | ------------------ | --------------------------------- |
+| Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md`   |
+| Debian  | `midclt`           | `rules/appliance/truenas.md`      |
+| FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`     |
+| FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`      |
+| FreeBSD | `midclt`           | `rules/appliance/truenas-core.md` |
+| RHEL    | `ID=xcp-ng`        | `rules/appliance/xcp-ng.md`       |
+| none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`         |
+| none    | `version="…"`      | `rules/appliance/unraid.md`       |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
