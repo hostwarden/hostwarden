@@ -263,3 +263,156 @@ Check each peer's latest handshake timestamp.
 - **WARN** if any peer's last handshake was > 5 minutes ago (may
   indicate connectivity issues)
 - Report interface names and peer handshake ages
+
+## Pi-hole and AdGuard Home
+
+Triggered when `memory.md` mentions Pi-hole or AdGuard Home. What
+applies to both:
+
+- **Detection:** the probe in `rules/service-class-check.md` →
+  Installer and container members. Each section says which of
+  its commands go through `docker exec <container>`.
+- **Versions:** both are Tier 1 in `rules/version-check.md`, which
+  grades the result. Report the update path upstream gives for
+  the install type; housekeeping never runs it.
+- **Exposure** — open DNS, a reachable setup wizard, a web
+  interface without a password — is the probe in
+  `.agents/skills/hostwarden-security/references/listening-services.md`
+  → DNS Resolvers. Run it from there, at its severities.
+- **Secrets** (`rules/secrets.md`): the admin password hash and
+  any token in a blocklist URL never reach the output.
+
+## Pi-hole
+
+Pi-hole v6 only (https://docs.pi-hole.net). If `pihole -v` shows
+v5, grade it per `rules/version-check.md` and skip the rest. Run
+as root, in one call; in a container, send all but the first
+command to `docker exec -i <container> sh -s`:
+
+```bash
+systemctl is-active pihole-FTL 2>/dev/null \
+  || rc-service pihole-FTL status 2>/dev/null
+pihole status
+pihole -v
+G=$(pihole-FTL --config -q files.gravity)
+pihole-FTL sqlite3 -ni "$G" \
+  "SELECT property, value FROM info
+   WHERE property IN ('updated', 'gravity_restored');
+   SELECT id, status, number FROM adlist WHERE enabled = 1;"
+```
+
+`pihole status` exits 0 even when FTL is down: read the text.
+`files.gravity` is where Pi-hole keeps the blocklist database,
+read the same way `gravity.sh` reads it.
+`pihole -v` prints `Core version is vX (Latest: vY)`, likewise
+Web and FTL; `Latest` is up to a day old, so confirm it live at
+https://github.com/pi-hole/pi-hole/releases and the FTL and web
+repos beside it, and for a container read `/pihole.docker.tag`
+against https://github.com/pi-hole/docker-pi-hole/releases.
+Update path: `pihole -up` on a host install; in Docker, pull
+`pihole/pihole` and recreate the container, since `pihole -up`
+refuses to run there (https://docs.pi-hole.net/docker/upgrading/).
+
+Gravity, the blocklist database, is rebuilt weekly from
+`/etc/cron.d/pihole`. `updated` is the epoch time of the last
+successful run; `gravity_restored` is set when a run fell back to
+a backup, or to `failed`. List `status`
+(https://docs.pi-hole.net/database/domain-database/): `1`
+downloaded, `2` unchanged, `3` unavailable and cached copy used,
+`4` unavailable with no copy. The query leaves out `address`,
+which can carry a token.
+
+- **CRITICAL** if the unit or container is not running, or
+  `pihole status` says `DNS service is NOT running` or `NOT
+  listening`
+- **WARN** if it says `Pi-hole blocking is disabled`
+- **WARN** if `updated` is older than 8 days, `gravity_restored`
+  is present, or an enabled list has status `4`
+- **INFO** for lists with status `3`
+- Report the gravity age and the number of enabled lists
+
+Never run `pihole-FTL --config` without a full key, never read a
+`webserver.api` key or `/etc/pihole/cli_pw`, and never run
+`pihole api`, which puts that password on a `curl` command line.
+
+## AdGuard Home
+
+Sources: https://github.com/AdguardTeam/AdGuardHome, its source
+under `internal/` and the wiki; where the two disagree, the
+source wins. `install.sh` installs to `/opt/AdGuardHome`, with
+`AdGuardHome.yaml` and a `data/` directory beside the binary
+(`/Applications/AdGuardHome` on macOS). Set the three paths by
+install type before the call:
+
+- **Snap:** the service runs `AdGuardHome -w $SNAP_DATA`
+  (`snap/snap.tmpl.yaml`), so `C` and `D` sit in
+  `/var/snap/adguard-home/current`, snapd's `$SNAP_DATA`; run the
+  binary as `snap run adguard-home`, which takes the same flags.
+- **Docker:** the image runs `/opt/adguardhome/AdGuardHome` with
+  the configuration in its `conf` volume and the data in
+  `work/data`. Run only the binary through `docker exec`; set `C`
+  and `D` to the host side of the volumes, which `docker inspect`
+  names, and run everything else on the host.
+
+Record paths that differ in `memory.md`. Run as root, in one
+call:
+
+```bash
+A=/opt/AdGuardHome; C=$A/AdGuardHome.yaml; D=$A/data
+$A/AdGuardHome -s status
+$A/AdGuardHome --version
+sed -n -e '/^filtering:/,/^[^ ]/p' -e '/^filters:/,/^[^ ]/p' "$C" \
+  | grep -E 'filters_update_interval|- enabled:|^ +id:'
+sed -n '/^dns:/,/^[^ ]/p' "$C" \
+  | grep -A3 -E '^  (bind_hosts|port|allowed_clients):'
+ls -lt "$D/filters/"
+journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
+  | grep 'updating filter' | grep -ci error
+```
+
+`-s status` applies to the `install.sh` service; for Snap and
+Docker use the state from detection. Then ask DNS itself, on the
+host, at an address from `bind_hosts` — `127.0.0.1` when that is
+`0.0.0.0` — and on `port`, or for a container the host port
+`docker ps` shows published for it; use `nslookup` where `dig`
+is missing:
+
+```bash
+dig +time=2 +tries=1 -p <port> @<bind-host> \
+  healthcheck.adguardhome.test
+```
+
+AdGuard Home answers that name with NOERROR and no records
+(https://github.com/AdguardTeam/AdGuardHome/wiki/Docker). When
+`allowed_clients` is set and does not cover the address the query
+comes from, a refusal is the access list working: judge the
+service by its state alone.
+
+Compare `--version` with the latest stable release at
+https://github.com/AdguardTeam/AdGuardHome/releases. Update path:
+the built-in updater (`AdGuardHome --update`, or the web
+interface) for `install.sh`; pull `adguard/adguardhome` and
+recreate the container for Docker; refresh the Snap. Docker and
+Snap run with `--no-check-update`.
+
+Each enabled list is refreshed every `filters_update_interval`
+hours (default 24) into `data/filters/<id>.txt`. A failed refresh
+still resets the file's time (`internal/filtering/filter.go`,
+`update`), so a stale file means refreshing stopped and a failure
+shows only as an error line `updating filter` in the log. That
+line carries the list URL: count it, never print it. For the
+Snap, the unit is `snap.adguard-home.adguard-home`, snapd's
+`snap.<snap>.<app>` name for the service. In Docker,
+`docker logs --since 168h <container> 2>&1` replaces
+`journalctl`; without journald, read the file the `log` section
+of `AdGuardHome.yaml` names. Print nothing else from that file:
+it holds the `users` password hashes and can hold
+`tls.private_key`.
+
+- **CRITICAL** if the service or container is not running, or
+  the query times out or is refused
+- **WARN** if an enabled list's file is older than twice the
+  interval, or refresh errors appear in the last 7 days. An
+  interval of `0` turns automatic refresh off: report the list
+  ages as **INFO** instead
+- Report the number of enabled lists and the newest file's age

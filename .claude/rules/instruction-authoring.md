@@ -127,9 +127,10 @@ somebody else already set, so nobody has to judge case by case.
   `localhost`. Never a domain that belongs to someone.
 - **IP addresses: RFC 5737 and RFC 3849 only** — `192.0.2.0/24`,
   `198.51.100.0/24`, `203.0.113.0/24`, `2001:db8::/32`. Private
-  ranges, loopback and link-local are fine where the example is
-  genuinely about one (`127.0.0.1`, `10.0.0.0/8`,
-  `192.168.0.0/16`, `169.254.169.254` for cloud metadata). Both
+  ranges, shared address space, loopback and link-local are fine
+  where the example is genuinely about one (`127.0.0.1`,
+  `10.0.0.0/8`, `192.168.0.0/16`, `100.64.0.0/10` for
+  carrier-grade NAT, `169.254.169.254` for cloud metadata). Both
   families are checked.
 - **People: Alice and Bob**, then Carol, Dave, Eve, and on through
   the alphabet when an example needs more actors — the convention

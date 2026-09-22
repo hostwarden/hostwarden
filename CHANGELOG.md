@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Housekeeping checks Pi-hole and AdGuard Home** when a
+  host's memory names them: whether DNS answers, blocking
+  is on, the blocklists are fresh and their last refresh
+  worked, and whether a newer release is out, with the
+  update path upstream recommends for that install. Nothing
+  is updated. The security audit flags an open DNS
+  resolver of any kind, an AdGuard Home setup wizard
+  anyone can reach, and an admin interface without a
+  password or open to the internet. Neither ever prints
+  the admin password or its hash. Both count as DNS
+  resolvers when you install another one, and Pi-hole
+  also counts as a time server.
 - **OpenWrt is recognised as an appliance.** Hostwarden
   changes settings through UCI instead of editing the
   files it generates, uses apk or opkg, whichever the

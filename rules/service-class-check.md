@@ -24,6 +24,9 @@ and fight for the same role.
   that would start a second service in the class.
 - Creating a systemd or rc unit that would start a
   class member.
+- Running a vendor installer script or a
+  `docker run` that starts a class member. Phase 2
+  has no dry-run for these; Phase 1 still applies.
 
 **Do not trigger on:**
 
@@ -46,10 +49,20 @@ and fight for the same role.
   via Debian's alternatives system and play the
   same role as the full servers above.
 - **Time sync:** chrony, ntp (provides ntpd),
-  openntpd, systemd-timesyncd
+  openntpd, systemd-timesyncd, and Pi-hole while any
+  of `ntp.sync.active`, `ntp.ipv4.active` or
+  `ntp.ipv6.active` is `true` — all three by default:
+  the first makes FTL set the system clock from
+  `pool.ntp.org`, the other two make it answer NTP on
+  port 123 (https://github.com/pi-hole/FTL,
+  `src/config/config.c`)
 - **DNS resolver:** unbound, bind9 (RPM: `bind`),
   dnsmasq, pdns-recursor, knot-resolver,
-  systemd-resolved
+  systemd-resolved, Pi-hole and AdGuard Home.
+  Pi-hole's resolver, `pihole-FTL`, is built on
+  dnsmasq (https://docs.pi-hole.net/ftldns/), so a
+  host with Pi-hole already runs dnsmasq although no
+  `dnsmasq` package is installed.
 - **Firewall manager:** ufw, firewalld, and native
   nftables — the last only when `systemctl is-enabled
   nftables` says `enabled` (the package sits unused on
@@ -196,6 +209,34 @@ output is `active`. A unit that is `inactive`,
 `masked`, or absent is not a conflict — the user
 already disabled it (often when they installed
 chrony or unbound the first time).
+
+### Installer and container members
+
+Pi-hole and AdGuard Home are installed by their own
+scripts or run as containers, so no package database
+lists them. Probe for them on every OS:
+
+```bash
+command -v pihole-FTL AdGuardHome
+ls -d /etc/pihole /opt/AdGuardHome \
+  /Applications/AdGuardHome 2>/dev/null
+snap list adguard-home 2>/dev/null
+docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
+  2>/dev/null | grep -iE 'pihole/pihole|adguard/adguardhome'
+```
+
+Any hit is an installed DNS resolver. For Pi-hole,
+`pihole-FTL --config -q` on each of the three `ntp`
+keys above decides its time sync membership — through
+`docker exec` for a container. When they cannot be
+read, a stopped container for one, count Pi-hole as a
+member: all three are on by default. When Pi-hole is the
+existing time sync member, option (b) below means
+setting `ntp.sync.active`, `ntp.ipv4.active` and
+`ntp.ipv6.active` to `false` — the first stops it
+setting the clock, the other two free port 123 for
+the new daemon — a change to confirm like any
+other, never removing Pi-hole.
 
 ### Phase 2 — Pending-install dry-run
 
