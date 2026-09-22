@@ -148,8 +148,7 @@ Paths in parentheses are files in that repository.
 ### When it applies
 
 - From `/etc/unraid-version` 7.2 on. Below 7.2, reads and changes
-  stay on SSH and the web UI as the rest of this file describes,
-  whether the Connect plugin is installed or not.
+  stay on SSH and the web UI as the rest of this file describes.
 - The installed API version is `info.versions.core.api` in the
   first read. Its schema is `api/generated-schema.graphql` at the
   tag `v<version>`: look a field or mutation up there before relying
@@ -233,8 +232,7 @@ and its one line.
   port set under Settings → Management Access, with the certificate
   pinned as `rules/tls-pinning.md` describes. With Use SSL/TLS set
   to No, the key would cross the network in clear: stop, and ask the
-  user to turn HTTPS on or use the SSH path. The API throttles
-  requests, one more reason for one call per task.
+  user to turn HTTPS on or use the SSH path.
 
 ### Reading
 
@@ -264,20 +262,21 @@ and its one line.
   requests, `unraid-read.jsonl`:
 
   ```
-  {"query": "{ info { versions { core { unraid api } } } }"}
+  {"query": "{ info { versions { core { api } } } }"}
   {"query": "{ array { state parityCheckStatus { status date errors running } parities { name status color numErrors } disks { name status color numErrors fsSize fsUsed } caches { name status color numErrors fsSize fsUsed } } }"}
   {"query": "{ notifications { overview { unread { info warning alert total } } } }"}
-  {"query": "{ docker { containers { names image state status autoStart isUpdateAvailable } } }"}
-  {"query": "{ vms { domains { name state } } }"}
   ```
+
+  `{ docker { containers { names state status isUpdateAvailable } } }`
+  and `{ vms { domains { name state } } }` read containers and VMs
+  when a task is about them.
 
 - **The workstation filters before anything reaches the
   conversation**: the filter in `rules/secrets.md` → API
   Credentials on the Workstation, with `^key$|keyfile|guid` added to
   its pattern. A key's value is the field `key`, a LUKS key file
-  `luksKeyfile`, the license identifiers `flashGuid` and `regGuid`;
-  `csrfToken`, `apikey` and `clientSecret` are caught already. A
-  query names its fields, so the answer carries nothing else, but
+  `luksKeyfile`, the license identifiers `flashGuid` and `regGuid`.
+  A query names its fields, so the answer carries nothing else, but
   the filter runs anyway.
 - An error comes back in `errors` with a message. `Cannot query
   field` means the installed API does not have that field (see When
@@ -519,23 +518,17 @@ security audit reads from files.
   `:latest` when it names no tag. `status` `false` is an update,
   `undef` unchecked, and an image `docker ps` lists without an
   entry was never checked.
-- **With `API read:` in server memory**, on 7.2 or later, the
-  housekeeping requests in Unraid API → Reading run as a second
-  call, and the call above leaves out what they replace: the
-  `var.ini` grep, the `disks.ini` `awk`, and the notification count.
-  They map as `array.state` for `mdState`, each disk's `status`,
-  `color` and `numErrors` for the `disks.ini` line, with `DISK_NP`
-  dropped as there, `parityCheckStatus` `date` and `errors` for
-  `sbSynced2` and `sbSyncErrs`, and `unread` for the count, split
-  into alerts, warnings and info. `fsUsed` against `fsSize` gives
-  each array disk's and pool's fill. `docker` and `vms` add the
-  state `docker ps` and `virsh list` show, and `isUpdateAvailable`
-  `true` is a pending container update, still timed by the `date
-  -r` of `unraid-update-status.json`. Everything else stays in the
-  call above (see Unraid API → What stays on SSH). When the API
-  call fails or a query comes back with `errors`, say so, and run
-  the lines it replaces over SSH instead: a failed read is never a
-  clean result.
+- **With `API read:` and `API path: workstation` in server
+  memory**, the housekeeping requests in Unraid API → Reading
+  replace the `var.ini` grep, the `disks.ini` `awk` and the
+  notification count; over the SSH path the root session reads
+  those files anyway, and the call above stays as it is. The
+  answers map to the same findings: `array.state` for `mdState`,
+  each disk's `status`, `color` and `numErrors` with `DISK_NP`
+  dropped, `parityCheckStatus` for `sbSynced2` and `sbSyncErrs`,
+  `unread` split into alerts, warnings and info. When the API call
+  fails or a query comes back with `errors`, say so and read those
+  files over SSH instead: a failed read is never a clean result.
 - Findings:
   - load (against the CPU count in server memory), memory or swap
     past the baseline thresholds;
