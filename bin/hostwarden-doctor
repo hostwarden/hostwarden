@@ -49,14 +49,21 @@ if [ -f "$ROOT/mise.dev.toml" ]; then
 fi
 OS=$(uname -s 2>/dev/null)
 
+# Git Bash, MSYS2 and Cygwin: the guards, connection sharing and
+# links all fail here, so nothing below is worth reporting
+# (docs/install.md → Windows).
 case "$OS" in
-  MINGW*|MSYS*|CYGWIN*) PM=gitbash ;;
-  *)
-    PM=
-    for p in brew apt-get dnf yum zypper pkg pacman apk; do
-      has "$p" && { PM=$p; break; }
-    done ;;
+  MINGW*|MSYS*|CYGWIN*)
+    echo "hostwarden: required, missing: a Unix workstation —" \
+      "on Windows, run Hostwarden in WSL 2 (docs/install.md → Windows)"
+    [ -n "$QUIET" ] && exit 0
+    exit 1 ;;
 esac
+
+PM=
+for p in brew apt-get dnf yum zypper pkg pacman apk; do
+  has "$p" && { PM=$p; break; }
+done
 
 # pkgname <tool> — the package that ships it under $PM.
 pkgname() {
@@ -89,7 +96,6 @@ hint() {
     apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$pkgs" ;;
     pacman) echo "sudo pacman -S$pkgs" ;;
     apk) echo "sudo apk add$pkgs" ;;
-    gitbash) echo "Git Bash cannot install$pkgs; WSL can (docs/install.md → Windows)" ;;
     *) echo "install:$pkgs" ;;
   esac
 }
@@ -138,10 +144,10 @@ ssh_shares() {
     -o ControlPersist=10m example.invalid
 }
 
-# .claude/skills and every DNS alias are links, and Git Bash copies
-# where it should link unless MSYS says otherwise (docs/install.md →
-# Windows). Probed in the clone: a temporary directory can sit on
-# a filesystem that links when this one does not.
+# .claude/skills and every DNS alias are links, and git writes a
+# text file where it cannot link (docs/install.md → Symbolic
+# links). Probed in the clone: a temporary directory can sit on a
+# filesystem that links when this one does not.
 links_work() {
   d=$(mktemp -d "$ROOT/.link-probe.XXXXXX") || return 1
   ln -s "$d" "$d/l" 2>/dev/null
@@ -169,7 +175,7 @@ for t in ssh git awk sed grep tar mktemp; do
   probe need "$t" "$t" has "$t"
 done
 has ssh && probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
-probe need "symbolic links (docs/install.md → Windows)" "" links_work
+probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"

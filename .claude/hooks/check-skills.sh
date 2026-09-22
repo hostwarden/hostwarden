@@ -8,8 +8,8 @@
 # docs/install.md; this does not paper over a checkout that is not
 # one, it only refuses to be silent about it.
 #
-# Where symlink support is missing — native Windows without
-# Developer Mode, an archive export, a zip download — git writes
+# Where symlink support is missing — a clone with
+# core.symlinks=false, an archive export, a zip download — git writes
 # the link as a text file and Claude Code then finds no skill at
 # all: no housekeeping, no security audit. Nothing else in the
 # session would mention it, and the agent would work on a
@@ -17,7 +17,7 @@
 #
 # Hence a SessionStart hook with no matcher. The fix it points
 # at is the user's to make: turn on symlink support and restore
-# the link (docs/install.md → Windows).
+# the link (docs/install.md → Symbolic links).
 set -e
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -49,7 +49,7 @@ fi
 echo "hostwarden: .claude/skills does not lead to .agents/skills/,"
 echo "  so Claude Code sees no skill at all — no housekeeping, no"
 echo "  security audit, and no warning but this one."
-echo "  docs/install.md → Windows says how to repair the link in a"
-echo "  clone; an archive download has to be replaced by a clone."
+echo "  docs/install.md → Symbolic links says how to repair the link"
+echo "  in a clone; an archive download has to be replaced by a clone."
 
 exit 0

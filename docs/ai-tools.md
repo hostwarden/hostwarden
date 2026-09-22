@@ -123,12 +123,11 @@ agent that your shell profile points to
 (`SSH_AUTH_SOCK`), `IdentityAgent` in `~/.ssh/config`
 makes that independent of how the app starts.
 
-On Windows the app can fall back to PowerShell when
-Git for Windows is missing. Hostwarden's hooks and
-`bin/` scripts need a POSIX shell, so install Git for
-Windows as described under [Windows](install.md#windows); if the
-app does not find it, point `CLAUDE_CODE_GIT_BASH_PATH`
-at its `bash.exe`.
+On Windows, run the session in a WSL 2 distribution:
+pick it in the environment picker and open the clone
+inside it, as described under
+[Windows](install.md#windows). A session on Windows
+itself is not supported.
 
 ## OpenCode with Ollama
 

@@ -5,7 +5,8 @@
       "Bash(halt *)",
       "Bash(poweroff)",
       "Bash(poweroff *)",
-      "Bash(mkfs*)"
+      "Bash(mkfs*)",
+      "PowerShell"
     ]
   },
   "hooks": {

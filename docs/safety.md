@@ -28,7 +28,9 @@ under pressure.
   command hides inside an `ssh host "…"` wrapper or
   behind a language runtime (`python3 -c "open(…)"`).
   Read-only forms (`fdisk -l`, `gpart show`, …) stay
-  allowed. For legitimate exceptions (OS
+  allowed. The hooks read Bash commands only, so
+  `.claude/settings.json` denies Claude Code's
+  PowerShell tool outright. For legitimate exceptions (OS
   replacement), launch the session with
   `HOSTWARDEN_GUARD_DISABLE=1` — in the desktop app,
   through `.claude/settings.local.json`

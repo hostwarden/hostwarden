@@ -13,8 +13,8 @@ One git worktree per branch keeps parallel sessions apart;
 [docs/project-structure.md](docs/project-structure.md) says where
 things live.
 
-Clone with symbolic links working; native Windows needs three
-settings first (docs/install.md → Windows). The checks need
+Clone with symbolic links working, on Windows inside WSL 2
+(docs/install.md → Windows). The checks need
 ShellCheck, actionlint, betterleaks and `python3`. `mise.dev.toml`
 pins the versions CI uses; mise asks you to trust it once:
 
