@@ -14,7 +14,8 @@
 #   CORPUS_ROOT   — the repository root, so a path printed in a
 #                   failure reads the way a reader would write it
 #   corpus_files  — prints every file in the corpus, one per line
-#   FENCE_AWK     — the awk function fenced(), below
+#   FENCE_AWK     — the awk functions fenced() and commented(),
+#                   below
 #
 # The corpus is what the repository ships, which is what git
 # would carry: tracked files, plus files that are new and not
@@ -80,5 +81,15 @@ function fenced(l,   m) {
     if (!match(m, /^(```+|~~~+)/)) return 0
     FM = substr(m, 1, RLENGTH)
   } else if (m ~ /^(`+|~+)$/ && index(m, FM) == 1) FM = ""
+  return 1
+}
+# commented(l) -- whether line l opens or sits inside an HTML
+# comment: a <!-- outside a fence, at most three spaces in (four
+# make it code), up to the line that holds -->. Call it before
+# fenced(). CM holds the state; reset it with FM.
+function commented(l) {
+  if (CM == "" && FM == "" && l ~ /^ ? ? ?<!--/) CM = 1
+  if (CM == "") return 0
+  if (l ~ /-->/) CM = ""
   return 1
 }'

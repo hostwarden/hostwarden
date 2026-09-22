@@ -134,9 +134,12 @@ session never uses the VM — the mode guard denies
 `orb`, `limactl shell` and `lima` commands inside
 one — and hands its question to a session in the
 test clone (`rules/server-check-handoff.md`). The
-guard also denies deleting, stopping or changing a
-VM directly: `bin/hostwarden-lab vm down` deletes
-the VMs that worktree created, and no other.
+guard also denies creating, starting, stopping,
+deleting or changing a VM directly:
+`bin/hostwarden-lab vm up` creates and starts one
+without your home mounted, and
+`bin/hostwarden-lab vm down` deletes the VMs that
+worktree created, and no other.
 
 ## Where production comes from
 

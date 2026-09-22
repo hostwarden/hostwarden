@@ -36,8 +36,8 @@
 #     published port, a host file or a host variable
 #     read into it (--env-file, --label-file, -e NAME without a
 #     value) — and so are a build that writes its result here
-#     (--output) or reads a secret, the SSH agent or a host path
-#     (podman build -v) from here, a
+#     (--output, --iidfile, --metadata-file) or reads a secret,
+#     the SSH agent or a host path (podman build -v) from here, a
 #     compose file, a kube play and a volume over a host device,
 #     which the guard cannot read.
 #     Every other verb is denied: exec
@@ -49,10 +49,13 @@
 #     mount reaches $HOME.
 #     A lab VM is a test server of an operations clone, so orb,
 #     orbctl, limactl and lima are denied where they run a command
-#     in one or copy to or from it. Creating one and reading their
-#     state passes; deleting, stopping or changing a VM is denied,
-#     since it may not be the lab's, and bin/hostwarden-lab vm
-#     down deletes only the ones it created.
+#     in one or copy to or from it. Reading their state passes.
+#     Creating one is denied: bin/hostwarden-lab vm up creates it
+#     without this machine's files mounted, which orb and Lima do
+#     by default, and records it for vm down. Starting, stopping,
+#     deleting or changing a VM is denied, since it may not be the
+#     lab's: vm up starts the VMs it creates, and vm down deletes
+#     only those. A bare orb start starts OrbStack itself and passes.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -83,7 +86,7 @@
 #     the everyday mistake, not a sandbox: eval $GIT_SSH_COMMAND
 #     or a script that resets PATH still reaches ssh, and only
 #     the prose in AGENTS.md stands against it. So does a bare
-#     tool inside sh -c or a script that Monitor runs, wherever
+#     tool inside eval or a script that Monitor runs, wherever
 #     the shim is not on its PATH.
 #
 # It runs on every tool call, so it forks little. In development
@@ -296,11 +299,12 @@ it may start a tool that reaches a server - install jq"
 # "vm <what>" for a container or lab VM, or "path <p>" for a path
 # elsewhere in the command, which counts once it is a program.
 #
-# Containers and lab VMs: a container engine named anywhere in a
-# segment, its options read to the end of that segment, where the
-# words after the image are the container's command and can only
-# over-block. orb, orbctl, limactl and lima count as the first word
-# of a segment only, where grep orb docs/ is not.
+# Containers and lab VMs: a container engine, orb, orbctl, limactl
+# and lima count as the first word of a segment only, past the
+# launchers cmdpos() reads, sh -c among them, so grep orb docs/ and a
+# commit message about docker rm are not. An engine's options are
+# read to the end of that segment, where the words after the image
+# are the container's command and can only over-block.
 FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   BEGIN {
     RS = "\001"
@@ -339,8 +343,62 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     LA["busybox"] = LA["unbuffer"] = LA["chronic"] = ""
     LA["ssh-agent"] = "aEOPt"
     LA["watch"] = "nq"; LL["watch"] = "interval|equexit"
+    # A shell with -c runs the next word, its command string, as a
+    # command; without -c the shell itself is the program.
+    LA["sh"] = LA["bash"] = LA["dash"] = LA["ksh"] = LA["zsh"] = "oO"
   }
   function base(w) { sub(/^.*\//, "", w); return w }
+  # cmdpos <words> <count> — the index of the program a segment
+  # runs, or count + 1. Past a negation, assignments and the
+  # keywords a command can follow (while true; do ssh ...), then
+  # past the launchers in LA to the program they start, over their
+  # options, the values those take and their operands: env
+  # LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh, sh -c "ssh h".
+  # In a cluster of short options the first that takes a value
+  # takes the rest of the word, or the next word when it is last:
+  # xargs -Is ssh s runs ssh. flock -c hands over the command as
+  # its value; time takes a whole pipeline, negated too: time !
+  # ssh. env -S puts the command it carries in its own place.
+  function cmdpos(a, n,   i, k, c, p, x, s, sh, cf) {
+    i = 1
+    while (i <= n && (a[i] == "" || a[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+    while (i <= n) {
+      c = a[i]
+      gsub(/^["\047]+|["\047]+$/, "", c)
+      if (!(base(c) in LA)) break
+      c = base(c)
+      p = LP[c]
+      # A shell is a launcher only once -c stood in its options:
+      # bash -s -- docker rm reads its script from stdin, and the
+      # words after it are arguments to that script.
+      s = i; sh = c ~ /^(sh|bash|dash|ksh|zsh)$/; cf = 0
+      while (++i <= n) {
+        x = a[i]
+        if (sh && !cf && (x == "--" || x !~ /^-/)) return s
+        if (sh && x ~ /^-[A-Za-z]*c/) cf = 1
+        if (x == "--") { i++; break }
+        if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
+        if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {
+          sub(/^(-[^-uCS]*S|--split-string=)/, "", x)
+          a[i] = x
+          break
+        }
+        if (x ~ /^-/) {
+          if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
+              || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
+        }
+        else if (c == "env" && x ~ /=/ || c == "time" && x == "!") ;
+        else if (p-- < 1) break
+      }
+    }
+    # find runs the word after its first -exec.
+    c = a[i]
+    gsub(/^["\047]+|["\047]+$/, "", c)
+    if (i <= n && base(c) == "find")
+      for (k = i + 1; k <= n; k++)
+        if (a[k] ~ /^-(exec|execdir|ok|okdir)$/) return k + 1
+    return i
+  }
   function priv(w) { return w ~ /^--privileged/ && w != "--privileged=false" }
   # The value of option u[k]: after its =, or the next word.
   function val(k,   x) {
@@ -427,6 +485,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         for (k++; k <= nw; k++)
           if (u[k] ~ /^(-o|--output)(=|$)/ || u[k] ~ /^-o./ || u[k] ~ /^--cache-to/ && (u[k] ~ /type=local/ || u[k + 1] ~ /type=local/))
             return "engine " n " --output, a result written to this machine"
+          else if (u[k] ~ /^--(iidfile|metadata-file)(=|$)/)
+            return "engine " n " " u[k] ", a file written to this machine"
           else if (u[k] ~ /^--(secret|ssh)(=|$)/)
             return "engine " n " " u[k] ", a secret of this machine"
           else if (u[k] ~ /^--volume(=|$)/ && hostvol(val(k)) || u[k] ~ /^-v/ && hostvol(u[k] == "-v" ? u[k + 1] : substr(u[k], 3)))
@@ -439,44 +499,39 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   }
   # lab — the verdict on this segment for containers and lab VMs.
   function lab(   i, j, k, b, a, r) {
-    for (i = 1; i <= nw; i++) {
-      b = base(u[i])
-      # Another engine by variable: set in one segment, used in the
-      # next (export DOCKER_HOST=...; docker ps).
+    # Another engine by variable: set in one segment, used in the
+    # next (export DOCKER_HOST=...; docker ps).
+    for (i = 1; i <= nw; i++)
       if (u[i] ~ /^(DOCKER_HOST|DOCKER_CONTEXT|CONTAINER_HOST|CONTAINER_CONNECTION)=/) engvar = u[i]
-      if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
-      if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
-      if (b ~ /^(docker|podman)-compose$/) {
-        for (k = i + 1; k <= nw && u[k] ~ /^-/; k++)
-          if (u[k] ~ /^(-f|--file|-p|--project-name|--profile|--env-file|--project-directory|--ansi|--parallel|--progress)$/) k++
-        if (u[k] ~ /^(up|start|restart|run|create)$/) return "compose " b " " u[k]
-        if (k <= nw && u[k] !~ /^(ps|ls|images|logs|version|config|top|port|events|pull|build|help)$/)
-          return "change " b " " u[k]
-      } else if (b ~ /^(docker|podman|nerdctl)$/) {
-        r = engine(b, i + 1)
-        if (r != "") return r
-      }
-    }
-    # The first word, past a negation, assignments and the wrappers
-    # that run the next one.
-    j = 1
-    while (j <= nw && (u[j] == "" || u[j] == "!" || u[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ \
-        || u[j] ~ /^(command|exec|env|time|nohup|nice)$/ || j > 1 && u[j] ~ /^-/)) j++
+    j = cmdpos(u, nw)
     if (j > nw) return ""
     b = base(u[j])
     a = u[j + 1]
-    # orb runs anything that is not one of its subcommands in a VM;
-    # of those, only creating one and reading state pass.
+    if (b ~ /^(docker|podman|nerdctl)(-compose)?$/) engnamed = b
+    if (engvar != "" && engnamed != "") return "remote " engnamed " with " engvar
+    if (b ~ /^(docker|podman)-compose$/) {
+      for (k = j + 1; k <= nw && u[k] ~ /^-/; k++)
+        if (u[k] ~ /^(-f|--file|-p|--project-name|--profile|--env-file|--project-directory|--ansi|--parallel|--progress)$/) k++
+      if (u[k] ~ /^(up|start|restart|run|create)$/) return "compose " b " " u[k]
+      if (k <= nw && u[k] !~ /^(ps|ls|images|logs|version|config|top|port|events|pull|build|help)$/)
+        return "change " b " " u[k]
+      return ""
+    }
+    if (b ~ /^(docker|podman|nerdctl)$/) return engine(b, j + 1)
+    # orb runs anything that is not one of its subcommands in a VM.
     if (b == "orb" || b == "orbctl") {
       if (a == "") return b == "orb" ? "vm orb, a shell in a lab VM" : ""
-      if (a ~ /^(-h|--help|create|add|new|list|ls|info|status|version|help|logs|doctor|start|docker|k8s)$/) return ""
-      if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|stop|top|update|usb)$/)
+      if (a ~ /^(-h|--help|list|ls|info|status|version|help|logs|doctor|docker|k8s)$/) return ""
+      if (a == "start" && u[j + 2] == "") return ""
+      if (a ~ /^(create|add|new)$/) return "vmnew " b " " a
+      if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|start|stop|top|update|usb)$/)
         return "vmchange " b " " a
       return "vm " b " " a ", a command in a lab VM"
     } else if (b == "limactl") {
       for (k = j + 1; k <= nw && u[k] ~ /^-/; k++) ;
       if (u[k] ~ /^(shell|copy|cp|tunnel)$/) return "vm limactl " u[k] ", in a lab VM"
-      if (k <= nw && u[k] !~ /^(create|start|list|ls|info|help|validate|template|completion)$/)
+      if (u[k] == "create") return "vmnew limactl create"
+      if (k <= nw && u[k] !~ /^(list|ls|info|help|validate|template|completion)$/)
         return "vmchange limactl " u[k]
     } else if (b == "lima" && a != "-h" && a != "--help") {
       return "vm lima, a command in a lab VM"
@@ -541,46 +596,12 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         }
       }
       if (rsync && daemon) { print "deny rsync to a daemon"; exit }
-      i = 1
-      # Past a negation, assignments and the keywords a command
-      # can follow: while true; do ssh ...
-      while (i <= nw && (v[i] == "" || v[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || v[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
+      i = cmdpos(v, nw)
       if (i > nw) continue
       w = v[i]
-      # Past the launchers in LA to the program they start, over
-      # their options, the values those take and their operands:
-      # env LC_ALL=C ssh, timeout -s KILL 5 ssh, setsid ssh. In a
-      # cluster of short options the first that takes a value takes
-      # the rest of the word, or the next word when it is last:
-      # xargs -Is ssh s runs ssh. flock -c hands over the command
-      # as its value; time takes a whole pipeline, negated too:
-      # time ! ssh.
-      for (;;) {
-        c = w
-        gsub(/^["\047]+|["\047]+$/, "", c)
-        sub(/^.*\//, "", c)
-        if (!(c in LA)) break
-        p = LP[c]
-        while (++i <= nw) {
-          x = v[i]
-          if (x == "--") { i++; break }
-          if (c == "flock" && x ~ /^(-[A-Za-z]*c|--command)$/) { i++; break }
-          if (c == "env" && x ~ /^(-[^-uCS]*S.|--split-string=)/) {
-            sub(/^(-[^-uCS]*S|--split-string=)/, "", x)
-            v[i] = x
-            break
-          }
-          if (x ~ /^-/) {
-            if (LA[c] != "" && x ~ ("^-[^-" LA[c] "]*[" LA[c] "]$") \
-                || LL[c] != "" && x ~ ("^--(" LL[c] ")$")) i++
-          }
-          else if (c == "env" && x ~ /=/ || c == "time" && x == "!") ;
-          else if (p-- < 1) break
-        }
-        if (i > nw) break
-        w = v[i]
-      }
-      if (i > nw) continue
+      c = w
+      gsub(/^["\047]+|["\047]+$/, "", c)
+      sub(/^.*\//, "", c)
       # The real ssh that git push is given.
       if (w ~ /^"?\$GIT_SSH_COMMAND/) { print "deny ssh through GIT_SSH_COMMAND"; exit }
       how = ""
@@ -608,10 +629,15 @@ access; bin/hostwarden-lab up <family> starts one that way" ;;
 "remote "*)
   hostwarden_refusal "${FOUND#remote }, another container engine,"
   emit "$HOSTWARDEN_REFUSAL" ;;
+"vmnew "*)
+  deny "${FOUND#vmnew } creates a VM outside bin/hostwarden-lab vm up, \
+which creates it without this machine's files mounted and records \
+it, so vm down can delete it: bin/hostwarden-lab vm up <family> \
+--ops <test clone>" ;;
 "vmchange "*)
-  deny "${FOUND#vmchange } deletes, stops or changes a VM that may \
-not be the lab's. bin/hostwarden-lab vm down deletes only the VMs \
-this worktree created" ;;
+  deny "${FOUND#vmchange } starts, stops, deletes or changes a VM that \
+may not be the lab's. bin/hostwarden-lab vm up starts the VMs this \
+worktree creates, and vm down deletes only those" ;;
 "change "*)
   deny "${FOUND#change } reaches or changes a container, image or \
 volume the lab may not own. A development session reads, pulls, \

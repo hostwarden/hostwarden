@@ -442,14 +442,13 @@ report "$MISNAMED" "the name it is dispatched by"
 # runtime of this file. A heading inside an HTML comment renders as
 # nothing, so a section parked in one has no anchor either.
 LOAD_AWK="$FENCE_AWK"'
-function load(p,   l, h, c) {
+function load(p,   l, h) {
   if (p in NH) return NH[p] >= 0
   NH[p] = -1
   if ((getline l < p) <= 0) return 0
-  NH[p] = 0; FM = ""; c = 0
+  NH[p] = 0; FM = CM = ""
   do {
-    if (!c && FM == "" && l ~ /^[ \t]*<!--/) c = 1
-    if (c) { if (l ~ /-->/) c = 0; continue }
+    if (commented(l)) continue
     # Seven or more #s are text, not a heading.
     if (!fenced(l) && l ~ /^#+[ \t]/ && l !~ /^#######/) {
       h = l; sub(/^#+[ \t]+/, "", h); sub(/[ \t]+(#+[ \t]*)?$/, "", h)
@@ -543,15 +542,18 @@ report "$(printf '%s\n' "$POINTERS" \
 # ASCII only; the Latin-1 capitals (Ä, Ö, Ü, É …) are folded by
 # hand, and anything beyond them is a matter for review.
 #
-# A link shown in a fenced block is code, not a link, and a heading
-# that is a link slugs from its text alone: `## [Install](x.md)` is
-# #install. Inline HTML renders as nothing; an autolink renders as
-# its address.
+# A link shown in a fenced block is code, not a link, and one inside
+# an HTML comment renders as nothing, as load() reads its headings.
+# A heading that is a link slugs from its text alone:
+# `## [Install](x.md)` is #install. Inline HTML renders as nothing;
+# an autolink renders as its address.
 report "$(scan \
   | grep -E '^((README|CONTRIBUTING|SECURITY)\.md|docs/[^/]*\.md): ' \
   | awk "$FENCE_AWK"'
-    { f = $0; sub(/: .*/, "", f); if (f != last) { FM = ""; last = f }
-      t = $0; sub(/^[^ ]+: /, "", t); if (!fenced(t)) print }' \
+    { f = $0; sub(/: .*/, "", f)
+      if (f != last) { FM = CM = ""; last = f }
+      t = $0; sub(/^[^ ]+: /, "", t)
+      if (!commented(t) && !fenced(t)) print }' \
   | tag '\]\([^):[:space:]]*#[^)[:space:]]+([[:space:]][^)]*)?\)' \
   | sed -E 's#^([^ ]+): \]\(([^#]*)\#([^)[:space:]]*).*$#\1|\2|\3#' \
   | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
