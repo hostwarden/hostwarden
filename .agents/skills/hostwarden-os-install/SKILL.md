@@ -50,6 +50,40 @@ not written yet, or overwriting the fallback binary before it is.
 `references/os-replacement.md` § Boot Configuration Safety owns
 that, and it applies whether or not the guard is on.
 
+## Vendor hardware is out of scope
+
+No workflow below **writes** on a device whose only OS is the
+vendor's firmware: replacing or repartitioning it can leave the
+device unbootable. That is every host whose appliance file says
+`Hardware: vendor`, an `any` appliance on the vendor's own device
+(`rules/os-detection.md` → Appliances), and a machine that boots
+from on-board flash without EFI or BIOS. For a host that is not
+`Hardware: vendor`, read the device first, in one call, and record
+it in server memory as `Device: <vendor> <model>, EFI|no EFI`:
+
+```
+cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name
+cat /proc/device-tree/model
+ls -d /sys/firmware/efi
+```
+
+On macOS the machine is Apple's own hardware, so the refusal
+applies to every Mac: `sysctl -n hw.model` names the model for the
+record, and Hostwarden installs no other OS on it. On FreeBSD,
+`kenv -q smbios.system.maker`,
+`kenv -q smbios.system.product` — one name per call: a second
+argument sets the first name to it — and
+`sysctl machdep.bootmethod`. A missing file is no answer; where the
+reads leave doubt, ask the user what the machine is.
+
+On a vendor device, say so, and stop at the first step that would
+write: no replacement, no dual boot, no repartitioning, no image
+deployment, and no change to its boot configuration. Reading stays
+open as Reading is always allowed says — inspecting disks and EFI
+state, and working out why the machine no longer boots — and so
+does `references/efi-boot.md` for what a boot entry means, as long
+as nothing is written.
+
 ## The gate — before the first disk write
 
 The moment a step would write to a disk or a partition table, all

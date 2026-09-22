@@ -244,6 +244,21 @@ does not name applies as the base wrote it.
 `Appliance: …` in server memory, in the form the
 appliance file gives.
 
+The line under `Base:` says whose hardware the
+appliance runs on. `Hardware: any` is an OS that
+installs on ordinary machines and in VMs.
+`Hardware: vendor` is sold only with the vendor's
+device: the OS cannot be replaced (the
+`hostwarden-os-install` skill refuses), hardware
+health comes only through what the appliance file
+names, and a firmware update also brings the boot
+loader and the device's own firmware. `any` describes
+the OS, not the machine: OpenWrt on a consumer router,
+HAOS on a Home Assistant Green or pfSense on a Netgate
+ARM box still run on the vendor's device. Where that
+decides something, the `hostwarden-os-install` skill
+reads the device.
+
 ## Platforms
 
 A platform is what an ordinary OS runs inside when

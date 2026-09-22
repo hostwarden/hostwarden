@@ -1,6 +1,7 @@
 # XCP-ng
 
 Base: `rules/os/rhel.md`
+Hardware: any
 
 An XCP-ng host is a Xen hypervisor, and the shell you reach over
 SSH is its control domain, dom0: a CentOS 7 userland with security

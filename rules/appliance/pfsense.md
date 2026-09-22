@@ -1,6 +1,7 @@
 # pfSense
 
 Base: `rules/os/freebsd.md`
+Hardware: any
 
 For pfSense CE and pfSense Plus. pfSense is built on FreeBSD, so the
 base file supplies the vocabulary (`ifconfig`, `pfctl`,

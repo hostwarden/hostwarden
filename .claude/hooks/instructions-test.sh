@@ -786,6 +786,7 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
   function done() {
     if (rel == "") return
     if (!based) print rel ": no Base line"
+    else if (!hw) print rel ": no Hardware: vendor or any line under Base"
     if (!ha) print rel ": no ## Housekeeping and Audits section"
   }
   function body(p, sec,   l, h, on, t) {
@@ -802,14 +803,15 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     close(p); return RAW[p] = t
   }
   FNR == 1 {
-    done(); FM = ""; based = ha = 0; base = ""
+    done(); FM = ""; based = ha = hw = hwline = 0; base = ""
     rel = substr(FILENAME, length(root) + 1)
     if (!index(text(table), "`" rel "`"))
       print rel ": not in the marker table of rules/os-detection.md"
   }
   fenced($0) { next }
+  FNR == hwline && /^Hardware: (vendor|any)$/ { hw = 1 }
   /^Base: / {
-    based = 1; b = $2; gsub(/`/, "", b)
+    based = 1; hwline = FNR + 1; b = $2; gsub(/`/, "", b)
     if (b == "none") next
     if (b !~ /^rules\/os\/[a-z0-9-]+\.md$/) print rel ": Base " b " is no family file"
     else base = root b
