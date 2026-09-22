@@ -63,6 +63,8 @@ dmidecode --type 38,42
 cat /sys/class/dmi/id/sys_vendor
 ls -d /dev/ipmi0 /dev/ipmi/0 /dev/ipmidev/0 /dev/mei0
 lsmod | grep -E '^(ipmi|mei)'
+grep -l 046b /sys/bus/usb/devices/*/idVendor
+grep -l Virtual /sys/bus/usb/devices/*/product
 ipmitool mc info
 ipmitool lan print | grep -E \
   '^(IP Address|Subnet Mask|802\.1q VLAN ID|Cipher Suite Priv Max)'
@@ -98,10 +100,18 @@ below.
 one on a board with no DMI records: a BMC presents a keyboard,
 mouse or CD-ROM to the host for its remote console, from vendor
 `046b` (American Megatrends) or with `Virtual` in the product
-string. The housekeeping USB inventory reads the same devices
+string. The two `grep` lines above are that check — they read
+sysfs, need no root and no `lsusb`, print the matching device's
+path and nothing at all when there is no match. On FreeBSD
+`usbconfig list` shows the same devices.
+
+Naming the signal is not enough on its own: nothing else in a
+session enumerates USB, since the housekeeping inventory that
+also sees these devices
 (`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`
-→ Reading the output), so where a host's `USB:` line already
-names a BMC it is this one, not a second controller.
+→ Reading the output) does not run during a security audit. Where
+a host's `USB:` line does already name a BMC it is this one, not
+a second controller.
 
 **The device node says whether the OS can reach it.** A type 38
 record with no `/dev/ipmi*` and no `ipmi_si` in `lsmod` means the
@@ -264,7 +274,24 @@ first:
 Then name the way back in: the controller from `memory.md`, its
 address from `memory/network.md`. Where the line is
 `none (user)`, say that there is no way back in, and let the user
-decide whether the change still happens. Never report a way back
-in that no address or recorded fact supports — a rescue path that
+decide whether the change still happens.
+
+**An address is not access**, and this is the last moment to
+learn the difference: a BMC on an unrouted management VLAN
+answers `lan print` on the host and nothing at all from where the
+user sits. So reach for it once from the workstation before
+calling it the way back in:
+
+```
+curl -s -o /dev/null --connect-timeout 5 -m 5 \
+  -w 'connect=%{time_connect}\n' telnet://<bmc-address>:443
+```
+
+`connect=` above zero means the workstation reached it, and
+`0.000000` that it did not. Report which: an address that answers
+is the rescue path, and one that does not is an address the user
+may still reach over a VPN or a jump host — say so and let them
+confirm, rather than presenting it as a way back in or writing it
+off. Never report a rescue path that nothing supports; one that
 turns out not to exist is found out after SSH is already gone
 (`rules/verify-before-reporting.md`).
