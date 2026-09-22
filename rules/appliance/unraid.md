@@ -261,7 +261,7 @@ repositories on GitHub where the docs are silent.
   zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
     echo "== $d"
-    smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
+    smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
   for f in /var/log/plugins/*.plg; do
     p=${f##*/}; t=/tmp/plugins/$p
@@ -278,20 +278,19 @@ repositories on GitHub where the docs are silent.
   epoch seconds, measured against `date +%s`. `disks.ini` lists
   every slot; the `awk` prints one line per slot and drops the
   empty ones (`status="DISK_NP"`). A status that only contains
-  `_NP`, as a missing or disabled disk has, stays in. `-n standby` leaves
-  a spun-down disk asleep. `df -t` lists local file systems only,
-  so a dead network mount under `/mnt/remotes` cannot hang the
-  call; the btrfs rows include the `docker.img` and `libvirt.img`
-  loop mounts. The notification directory is `path=` under
-  `[notify]` in `dynamix.cfg`, `/tmp/notifications` when unset
-  (`unraid/webgui`, `plugins/dynamix/default.cfg`); an `ls` error
-  means the count did not run, never that there are none. The
-  syslog counts reach back only to the boot (see Logs), not the
-  seven days the Linux baseline reads; say which.
-  SMART health is the `result:` line on SATA and NVMe disks and
-  `SMART Health Status:` on SAS; a SAS disk has no ATA attributes
-  and reports its grown defect list instead. A disk that prints
-  neither health line nor `STANDBY` has unknown health.
+  `_NP`, as a missing or disabled disk has, stays in. `df -t`
+  lists local file systems only, so a dead network mount under
+  `/mnt/remotes` cannot hang the call; the btrfs rows include
+  the `docker.img` and `libvirt.img` loop mounts. The
+  notification directory is `path=` under `[notify]` in
+  `dynamix.cfg`, `/tmp/notifications` when unset
+  (`unraid/webgui`, `plugins/dynamix/default.cfg`); an `ls`
+  error means the count did not run, never that there are none.
+  The syslog counts reach back only to the boot (see Logs), not
+  the seven days the Linux baseline reads; say which.
+  The SMART loop is the probe in
+  `.agents/skills/hostwarden-housekeeping/references/smart.md`
+  over the `device=` lines of `disks.ini`.
   The update probes read what the last check left and reach no
   network (`unraid/webgui`, `sbin/plugin`, `DockerClient.php`).
   `plugin check`, which the Plugins tab and the scheduled plugin
@@ -319,9 +318,8 @@ repositories on GitHub where the docs are silent.
   - no parity check in the last three months, or errors in the last
     one: the documentation advises checks "on a monthly or quarterly
     basis", scheduled under Settings → Scheduler;
-  - SMART health not passing, or reallocated, pending or
-    uncorrectable sectors or grown defects; unknown health is
-    reported as unknown, never as passing;
+  - the SMART findings in
+    `.agents/skills/hostwarden-housekeeping/references/smart.md`;
   - an array disk or pool above 90 % full, and the boot device
     nearly full;
   - a pending OS, plugin or container update (see Updates), and a

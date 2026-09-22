@@ -348,32 +348,15 @@ under `deb/openmediavault/` there).
 - **RAID:** `cat /proc/mdstat`; for each array, `mdadm --detail`.
   Degraded, resyncing or with a failed member is a finding.
   ZFS: `zpool status -x`.
-- **SMART:** in one call,
+- **SMART:** the probe in
+  `.agents/skills/hostwarden-housekeeping/references/smart.md`,
+  with OMV's monitoring settings in the same call:
   ```
-  smartctl --scan | while read -r dev x type rest; do
-    echo "== $dev $type"
-    smartctl -n standby -H -A -d "$type" "$dev" | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
-  done
   omv-confdbadm read --prettify conf.service.smartmontools
   omv-confdbadm read --prettify conf.service.smartmontools.device
   ```
-  `--scan` prints each disk as `<device> -d <type> # …`. The type
-  is passed on so a disk behind a USB bridge is still read, and
-  labels each disk: behind a RAID controller several share one
-  device (`/dev/bus/0 -d megaraid,0`, `megaraid,1`, …).
-  SMART health is the `result:` line on SATA and NVMe disks and
-  `SMART Health Status:` on SAS and other SCSI disks, which print
-  `OK` or the failure. A SAS disk has no ATA attributes and
-  reports its grown defect list instead (smartmontools,
-  `scsiprint.cpp`). `-n standby` leaves a spun-down disk asleep;
-  it prints `Device is in STANDBY mode` (or `SLEEP`) and is read
-  on the next run. A disk that prints neither a health line nor
-  `Device is in` has unknown health: report it as unknown, never
-  as passing. Findings: a disk missing from the monitored device
-  list or monitoring turned off, health that is not `PASSED` or
-  `OK`, a growing reallocated, pending or uncorrectable sector
-  count or grown defect list, NVMe media errors above 0, and an
-  NVMe `Percentage Used` near 100 %.
+  OMV adds one finding: a disk missing from the monitored device
+  list, or monitoring turned off.
 - **Pending updates:** `apt-get -s --auto-remove dist-upgrade`,
   and
   `conf.system.apt.updates` for unattended upgrades.

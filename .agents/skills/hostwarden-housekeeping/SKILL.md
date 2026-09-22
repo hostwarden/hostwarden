@@ -64,6 +64,9 @@ Read on demand, only when the relevant section applies:
 - `references/backup-presence.md` — generic "any backup at
   all?" probe, the provider-snapshot question, and the
   `Backup:` acknowledgment line in `memory.md`.
+- `references/smart.md` — the `smartctl` probe, how to read
+  SATA, SAS and NVMe output, and its findings. Only when an
+  appliance's section sends you there.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, Home Assistant, Ollama, node_exporter, NVIDIA GPU,
   MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
