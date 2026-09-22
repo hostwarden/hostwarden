@@ -351,14 +351,16 @@ under `deb/openmediavault/` there).
 - **SMART:** in one call,
   ```
   smartctl --scan | while read -r dev x type rest; do
-    echo "== $dev"
+    echo "== $dev $type"
     smartctl -n standby -H -A -d "$type" "$dev" | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
   done
   omv-confdbadm read --prettify conf.service.smartmontools
   omv-confdbadm read --prettify conf.service.smartmontools.device
   ```
-  `--scan` prints each disk as `<device> -d <type> # …`, and the
-  type is passed on so a disk behind a USB bridge is still read.
+  `--scan` prints each disk as `<device> -d <type> # …`. The type
+  is passed on so a disk behind a USB bridge is still read, and
+  labels each disk: behind a RAID controller several share one
+  device (`/dev/bus/0 -d megaraid,0`, `megaraid,1`, …).
   SMART health is the `result:` line on SATA and NVMe disks and
   `SMART Health Status:` on SAS and other SCSI disks, which print
   `OK` or the failure. A SAS disk has no ATA attributes and
