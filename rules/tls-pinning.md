@@ -11,32 +11,31 @@ detection.
 
 Once per host, from the workstation:
 
+**Fetch the certificate once**, into the scratch directory, and
+derive both values from that one file. A second connection can be
+answered by a different certificate — a rotation, or someone in the
+middle — and the user would then confirm one certificate while the
+pin recorded belongs to another:
+
 ```
-openssl s_client -connect <host>:443 -servername <host> \
-    </dev/null \
-  | openssl x509 -pubkey -noout \
-  | openssl pkey -pubin -outform der \
+c=$(mktemp)
+openssl s_client -connect <host>:443 -servername <host> </dev/null \
+  | openssl x509 -outform pem > "$c"
+openssl x509 -in "$c" -noout -fingerprint -sha256
+openssl x509 -in "$c" -pubkey -noout | openssl pkey -pubin -outform der \
   | openssl dgst -sha256 -binary | base64
+rm -f "$c"
 ```
 
 Use the port the appliance's web UI listens on where it is not 443.
 
-**What the user compares is not that value.** The pin hashes the
-public key; a browser's certificate viewer shows the hash of the
-whole certificate, and the two differ for the same certificate. So
-read the certificate's fingerprint in the same call and show that
-one for comparison:
-
-```
-openssl s_client -connect <host>:443 -servername <host> \
-    </dev/null \
-  | openssl x509 -noout -fingerprint -sha256
-```
-
-Once the user confirms that fingerprint against what their browser
-shows for the same host, record the pin in server memory as
-`API pin: sha256//<hash>`. The pin is a public key's hash, not a
-secret.
+**What the user compares is the fingerprint, not the pin.** The pin
+hashes the public key, a browser's certificate viewer shows the hash
+of the whole certificate, and the two differ for the same
+certificate. Show the fingerprint, and once the user confirms it
+against what their browser shows for the same host, record the pin
+from the same file in server memory as `API pin: sha256//<hash>`.
+The pin is a public key's hash, not a secret.
 
 ## Using it
 

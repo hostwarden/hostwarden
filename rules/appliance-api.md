@@ -105,16 +105,20 @@ appliance file says so by name.
 - **Back up the object first** (`rules/backups.md` → State behind
   an API).
 - **The body goes from a file**: `--data @<file>`, never inline.
-  Over SSH, stdin already carries the credential, so the body is
-  copied first with `scp` into a root-only scratch directory the
-  call creates and removes — `install -d -m 700
-  /root/hostwarden-scratch`, a unique file name, and an exit trap
-  that deletes it even when the call is interrupted. Never `/tmp`:
-  a body can carry a credential, and with `fs.protected_regular` a
-  same-named file owned by another user makes the write fail
-  silently (`rules/secrets.md`). A body that carries a
-  secret is written by the user, never by Hostwarden, and goes from
-  the workstation.
+  **A body that carries a secret** — a Wi-Fi passphrase, a VPN key
+  — is written by the user, never by Hostwarden, and goes from the
+  workstation, where it never leaves the credential file's
+  directory.
+- Over SSH, stdin already carries the credential, so a body without
+  a secret in it is copied first with `scp` into a root-only
+  scratch directory — `install -d -m 700 /root/hostwarden-scratch`
+  and a unique file name, never `/tmp`, where
+  `fs.protected_regular` lets a same-named file owned by another
+  user make the write fail silently (`rules/secrets.md`). The call
+  that follows removes it in an exit trap. **When that call never
+  starts** — the login fails, the connection drops — the copy is
+  removed in a call of its own before anything else; if that fails
+  too, tell the user the path to delete.
 - **A change that can touch the way in** — a firewall rule, a
   network or interface setting, the SSH service — falls under
   `rules/ssh-safety-net.md`. An API change applies at once and has

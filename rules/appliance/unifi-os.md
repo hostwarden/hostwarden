@@ -187,14 +187,23 @@ included
 
 ### Reading
 
-- A task's reads over SSH with the read admin, in one call:
+- **Every site, not just the first.** A console can carry several
+  sites, and a check that reads one reports the others as clean
+  without looking. Read `/proxy/network/api/self/sites` on the
+  first connection, record the sites' `name` and `desc` in server
+  memory (`Sites: default (Default), <name> (<desc>)`), and let
+  every per-site read cover each of them. A site that appears or
+  disappears is a change to record.
+- A task's reads over SSH with the read admin, in one call — the
+  example reads one site, and a console with more repeats the
+  per-site block, marker included, for each:
 
   ```
   ssh … root@<console> 'umask 077; j=$(mktemp); trap "rm -f $j" EXIT;
     curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
       -w "{\"@\": \"login\", \"code\": %{http_code}}\n" \
       --data @- https://127.0.0.1/api/auth/login
-    b=https://127.0.0.1/proxy/network/api/s/default
+    b=https://127.0.0.1/proxy/network/api/s/<site>
     curl -sSk -b "$j" -w "\n{\"@\": \"health\", \"code\": %{http_code}}\n" \
       "$b/stat/health"
     curl -sSk -b "$j" -w "\n{\"@\": \"device\", \"code\": %{http_code}}\n" \
@@ -223,10 +232,10 @@ included
   `stat/sta` (connected clients), `stat/sysinfo`, `rest/networkconf`,
   `rest/wlanconf`, `rest/portforward`, `rest/firewallrule`,
   `rest/firewallgroup`, `rest/routing` — and
-  `/proxy/network/api/self/sites` for the sites (`<site>` is each
-  site's `name`; the first is `default`). Ubiquiti documents none of
-  them; they come from the clients that use them (aiounifi,
-  go-unifi) and change between releases.
+  `/proxy/network/api/self/sites` for the sites (`<site>` is a
+  site's `name`, `default` on a console that has only one).
+  Ubiquiti documents none of them; they come from the clients that
+  use them (aiounifi, go-unifi) and change between releases.
 - The key, where key reads are allowed, replaces the login and the
   cookie with one `curl -H @-` carrying every URL of the batch and a
   `%{url_effective}` marker, and reaches both the classic API and the
