@@ -102,14 +102,7 @@ Triggered when `memory.md` mentions Docker.
 ```bash
 docker ps --format \
   "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>&1
-ls -d /etc/casaos
-grep -E '^ID=' /etc/os-release
 ```
-
-`/etc/casaos` existing means CasaOS manages containers here: add
-`CasaOS` to `memory.md` and run the CasaOS section below. Not on
-ZimaOS, which grew out of CasaOS: an os-release `ID` of `zimaos`,
-quoted or not, or an `Appliance:` line in memory never counts.
 
 - **CRITICAL** if the daemon does not answer — that says nothing
   about the containers, never that there are none. Permission
@@ -120,11 +113,15 @@ quoted or not, or an `Appliance:` line in memory never counts.
 
 ## CasaOS
 
-Triggered when `memory.md` mentions CasaOS. CasaOS is IceWhale's web
-UI and app store on top of an ordinary distribution, which keeps its
-family file, package manager, firewall and updater
-(https://github.com/IceWhaleTech/CasaOS). What CasaOS adds is below.
-As root, in one call:
+Triggered when `memory.md` mentions CasaOS, or when the selection
+step of the housekeeping skill finds `/etc/casaos` on a Linux host
+that is no appliance; record `CasaOS` in `memory.md` then. ZimaOS,
+which grew out of CasaOS, never counts: an os-release `ID` of
+`zimaos`, quoted or not, or an `Appliance:` line in memory. CasaOS
+is IceWhale's web UI and app store on top of an ordinary
+distribution, which keeps its family file, package manager,
+firewall and updater (https://github.com/IceWhaleTech/CasaOS). What
+CasaOS adds is below. As root, in one call:
 
 ```bash
 casaos -v
