@@ -180,10 +180,19 @@ record the answer, leads or not.
 
 ## Ask once, record
 
-On a hit for a host whose memory has no `Config management:` line,
-or only a `none` or `unknown` one that the hit outdates, report the
-leads — directories with their dates, units, the files that carry a
-marker — and ask one question: does this tool manage the host?
+On a hit the host's memory does not account for, report the leads —
+directories with their dates, units, the files that carry a marker —
+and ask one question about the tool that is new: does it manage the
+host? A hit is unaccounted for in three ways:
+
+- the memory has no `Config management:` line;
+- it has a `none` or `unknown` one that the hit outdates;
+- it has a confirmed line that names other tools but not this one.
+
+The third is the one a host grows into: a Puppet agent turns up on a
+host recorded as `ansible`, and asking is the whole point. The
+answer joins the line rather than replacing it, and a tool already
+named there is never asked about again.
 
 - **Yes, the whole host.**
 - **Yes, some areas** — ask which: a service, a directory, a role
@@ -191,19 +200,24 @@ marker — and ask one question: does this tool manage the host?
 - **No longer** — the markers are left over.
 - **Don't know.**
 
-Record the answer in the host's memory:
+Record the answer in the host's memory, one entry per tool:
 
 ```markdown
 - Config management: ansible
 - Config management: ansible (scope: base, nginx)
 - Config management: puppet (detected)
+- Config management: ansible (scope: base), puppet (scope: monitoring)
+- Config management: ansible, no puppet (markers stale, 2026-09-22)
 - Config management: none (ansible markers stale, 2026-09-22)
 ```
 
 `detected` stands for "don't know": treat the host as managed wherever
-a marker or the tool's directories say so. The `none` line keeps the
-question from coming back; ask again only on one of the triggers
-under Detect above, or when the user raises it. When the
+a marker or the tool's directories say so. A `no <tool>` entry, and
+the `none` line where no tool is left at all, are what keep the
+question from coming back — record a dismissed lead or the same
+directory asks again on the next connection, since the probe that
+found it runs on every one. Otherwise ask again only on one of the
+triggers under Detect above, or when the user raises it. When the
 user takes a host or an area out of a tool, change the line or
 remove it; the files stay as they are, and from then on Hostwarden
 changes them by hand.
@@ -222,7 +236,8 @@ them only when the user says so:
 - **A change outside the tool's scope** is made by hand, as on any
   other host. Hosts mix freely: a request that spans several is
   split by their lines, and the report says, per host, which way
-  the change went.
+  the change went. A host that runs two tools is split the same
+  way, by their scopes.
 - **A change inside it** — a file in a named area or carrying a
   marker, or a package or service the tool manages there — belongs
   in the tool's code, or the tool undoes it. Say so, name the file
