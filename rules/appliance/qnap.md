@@ -76,7 +76,10 @@ is QNAP's own.
   rather than guess.
 - Record in server memory: `Appliance: QTS <version>` or
   `Appliance: QuTS hero <version>`, with the version joined as
-  above.
+  above. The step-1 `df -h /` shows the RAM root, not the NAS's
+  storage: record the disk capacity from the volume `df` loop and
+  `zpool list` of the housekeeping call (Housekeeping and Audits)
+  instead.
 - **Lifecycle.** QTS 5.2 and QuTS hero h5.2 are long-term support
   releases until 2029-08; QTS 5.0 and 5.1, h5.0 and h5.1 have
   reached their end of life (the lifecycle table above). Read the
@@ -178,7 +181,12 @@ is QNAP's own.
   (<https://www.qnap.com/en/how-to/faq/article/what-is-the-best-practice-for-enhancing-nas-security>),
   and exposure is the finding (see Housekeeping and Audits). Never
   write `iptables` rules by hand: they are gone at the next boot,
-  and QuFirewall and Container Station manage their own. A
+  and QuFirewall and Container Station manage their own. For the
+  same reason the Docker check of the security skill's
+  `references/firewall-nftables-docker.md` does not apply: list
+  each published port not bound to `127.0.0.1` or `[::1]` with the
+  QuFirewall profile or Allow/Deny List entry the user reads for
+  it. A
   QuFirewall change is the user's in the app, with local access to
   the device ready: this file names no revert for it
   (`rules/ssh-safety-net.md`).
@@ -440,12 +448,12 @@ is QNAP's own.
   grep -c zfs /proc/filesystems
   cat /proc/mdstat
   zpool list -H -o name,cap,health
-  zpool status | grep -E "pool:|state:|scan:"
+  zpool status -v
   awk '$2 ~ /^\/share\/[^/]+$/ && $3 ~ /^ext[34]$/ {print $2}' /proc/mounts | while read -r m; do df -h "$m" | tail -n 1; done
   awk '/^\[/{s=$0; next} {k=$0; sub(/[ \t]*=.*/, "", k); v=$0; sub(/^[^=]*=[ \t]*/, "", v)} k ~ /^(Version|Enable|Author|store)$/ {r[s]=r[s] " " k "=" v} END{for (x in r) print x r[x]}' /etc/config/qpkg.conf
   /sbin/getcfg 'QPKG Management' Ignore_Cert -u -d FALSE
   d=$(/sbin/getcfg container-station Install_Path -d none -f /etc/config/qpkg.conf)
-  [ "$d" != none ] && "$d/bin/docker" ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+  [ "$d" != none ] && "$d/bin/docker" ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
   command -v smartctl || echo "smartctl missing"
   ```
   QTS answers the `zpool` lines with "not found", QuTS hero the
@@ -470,7 +478,9 @@ is QNAP's own.
     OOM kills or I/O errors since the boot;
   - on QTS, an md array whose status line shows a missing member
     (`_` in `[UU_]`) or a rebuild; on QuTS hero, a pool whose
-    health is not `ONLINE`, or whose `scan:` line reports errors;
+    health is not `ONLINE`, whose `scan:` line reports errors, a
+    device with a non-zero `READ`, `WRITE` or `CKSUM` count, or an
+    `errors:` line other than `No known data errors`;
   - no scrub in the last month (QNAP's recommendation above), or no
     scrub schedule;
   - the SMART findings in `smart.md`;
