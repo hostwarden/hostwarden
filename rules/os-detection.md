@@ -41,8 +41,8 @@ skill says so where it needs it.
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'which omv-confdbadm; ls -d /homeassistant; pveversion;' \
+     'which pveversion ha opnsense-version pfSense-upgrade' \
+     'omv-confdbadm; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version;' \
      'dpkg-query -W openmediavault'
    ```

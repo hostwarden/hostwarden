@@ -60,15 +60,14 @@ under `deb/openmediavault/` there).
     all.
   - Pending changes that someone else made are theirs: show the
     list to the user and never apply them along with your own.
-  - `omv-salt stage run deploy` renders everything, `ssh`
-    included, and is therefore off limits (see Access and SSH).
+  - Never `omv-salt stage run deploy`: it renders every state,
+    `ssh` included (see Access and SSH).
 - **Persistent local changes** go through environment variables,
   never through edits to generated files. `omv-env list`,
   `omv-env get <VAR>`, `omv-env set -- <VAR> <value>` manage them in
   `/etc/default/openmediavault`; the advanced-settings page lists
-  the variables. It applies them with `omv-salt stage run deploy`;
-  Hostwarden runs `omv-salt stage run prepare` and then deploys
-  only the states the variable affects. A custom Salt state belongs
+  the variables. Apply one with `omv-salt stage run prepare`, then
+  deploy only the states it affects. A custom Salt state belongs
   in `/srv/salt/omv/deploy/` (same page).
 - `rules/backups.md` still applies, `config.xml` included. A copy of
   a generated file restores nothing: the next deploy overwrites the
@@ -103,7 +102,6 @@ under `deb/openmediavault/` there).
   one, converted from RFC 4716 format. A key added to
   `~/.ssh/authorized_keys` by hand survives a deploy, but the UI
   does not show it.
-- Inspect with `sshd -T`, `cat` and `grep` as `AGENTS.md` says.
 - `omv-firstaid` is the console tool for recovery: network, web UI
   port, admin password, failed logins, pending-change repair. It is
   interactive — the user runs it at the console.
@@ -127,8 +125,8 @@ under `deb/openmediavault/` there).
   apt-get -s dist-upgrade
   apt-mark showhold
   ```
-  If it wants to remove `openmediavault`, **stop**. A held package
-  is not held for `omv-upgrade`: name every hold to the user.
+  If it wants to remove `openmediavault`, **stop**. Name every
+  hold to the user: `omv-upgrade` overrides them.
 - After the user agrees, run `omv-upgrade`, or the user applies
   the updates under System > Update Management > Updates.
 - **Never install a desktop environment or Apache.** OMV refuses to
@@ -138,26 +136,20 @@ under `deb/openmediavault/` there).
 - The apt page advises against `pip` installs on the host; offer a
   container instead.
 
-## Replace: Stable Branch Only
+## Remove: Stable Branch Only > Preferred Alternatives
+
+## Add: Stable Branch Only
 
 - **Add no Debian Backports, Testing or Experimental source.** The
   apt page: "openmediavault is strictly tied to the Debian version
-  it is based on." The same page allows one exception: a package the
-  user insists on, pinned so nothing else comes from that source.
-  Say first that the next OMV upgrade may break on it, and record the
-  pin in server memory.
+  it is based on." It allows the pinned single package the base
+  describes as a last resort; say first that the next OMV upgrade
+  may break on it.
 - OMV writes its own sources: `/etc/apt/sources.list.d/openmediavault.list`,
   `openmediavault-kernel-backports.list` and
   `openmediavault-os-security.list` come from the `apt` Salt state.
-  They are generated; change them only through
-  System > Update Management > Settings.
-- Check existing hosts:
-  ```
-  grep -r "testing\|unstable\|sid\|experimental" \
-    /etc/apt/sources.list /etc/apt/sources.list.d/
-  ```
-  A match is a **WARN**. The kernel backports list written by OMV is
-  not one.
+  Change them only through System > Update Management > Settings.
+  The kernel backports list is not a **WARN** in the base's check.
 
 ## Plugins and Third-Party Sources
 
@@ -206,8 +198,8 @@ under `deb/openmediavault/` there).
   run it only with the user's console access at hand, and over SSH
   only inside `tmux` or `screen`. Never run `apt-get` against the
   next Debian release by hand.
-- Unattended upgrades never reboot. A kernel update needs a reboot,
-  which only happens with the user's agreement.
+- A kernel update needs a reboot, which unattended upgrades never
+  do and Hostwarden does only with the user's agreement.
 
 ## Replace: Firewall
 
@@ -260,17 +252,15 @@ under `deb/openmediavault/` there).
   advanced-settings page.
 - **Software RAID** is the `openmediavault-md` plugin
   (Storage > Multiple Device, id `conf.system.mdadm.device`).
-  Read with `cat /proc/mdstat` and `mdadm --detail /dev/md<n>`.
-- **ZFS** needs a plugin from omv-extras (see Plugins and
-  Third-Party Sources); read it with `zpool status` and `zfs list`.
+  **ZFS** needs a plugin from omv-extras (see Plugins and
+  Third-Party Sources). The read commands for both are in
+  Housekeeping and Audits.
 - **The disk taboos in `AGENTS.md` hold for the web UI's backend
   too.** Storage > Disks > Wipe erases a whole disk; creating or
   growing a filesystem or an array partitions and formats disks.
   Hostwarden never calls these through `omv-rpc` or `omv-salt`,
   where the taboo guard cannot see them — they run in the UI, by
-  the user. Read-only inspection is always allowed:
-  `lsblk`, `blkid`,
-  `omv-confdbadm read --prettify conf.system.filesystem.mountpoint`.
+  the user. `lsblk` and `blkid` are always allowed.
 - Removing a shared folder or a filesystem entry that a share still
   uses breaks the share. Show the user what depends on it first.
 
@@ -303,21 +293,21 @@ under `deb/openmediavault/` there).
 
 - **Pending changes:** `omv-salt deploy list-dirty`. Anything listed
   was saved and never applied; report it with the list.
-- **Filesystems:** `df -h`, and the mountpoints from
+- **Filesystems:** the mountpoints from
   `omv-confdbadm read --prettify conf.system.filesystem.mountpoint`
   compared with `findmnt`. A registered filesystem that is not
   mounted is a finding.
 - **RAID:** `cat /proc/mdstat`; for each array, `mdadm --detail`.
   Degraded, resyncing or with a failed member is a finding.
   ZFS: `zpool status -x`.
-- **SMART:** `smartctl -H` and `smartctl -A` per disk. Whether
+- **SMART:** `smartctl -H -A` per disk. Whether
   monitoring is on: `omv-confdbadm read --prettify
   conf.service.smartmontools` and the device list
   (`conf.service.smartmontools.device`). A disk without monitoring
   is a finding; so is a failed health check or a growing
   reallocated or pending sector count.
-- **Pending updates:** `apt-get -s dist-upgrade`, plus the state of
-  unattended upgrades (see Automatic Security Updates).
+- **Pending updates:** `apt-get -s dist-upgrade`, and
+  `conf.system.apt.updates` for unattended upgrades.
 - **Notifications:** check whether mail is set up without printing
   the SMTP password:
   ```
@@ -331,27 +321,20 @@ under `deb/openmediavault/` there).
   failing disk or a degraded array: a finding, fixed under
   System > Notification. Events turned off (`monitfilesystems`,
   `smartmontools`, `mdadm`, `apt`, …) are worth one line each.
-- **Firewall:** see Firewall. An empty rule table is reported, not
-  flagged as a missing firewall manager.
 - **Logs:** OMV uses the journal (the UI's log viewer runs
   `journalctl`), so the base's read-back applies. With the
   `openmediavault-flashmemory` plugin from omv-extras, `/var/log`
   lives in RAM: entries from before the last reboot may be gone,
   and the activity check says so rather than reporting no activity.
-- Security audit: SSH findings go to the user as UI changes
-  (Services > SSH, Users > Users); see Access and SSH.
+- Security audit: SSH findings go to the user as menu paths
+  (Services > SSH, Users > Users).
 - Fleet audit: compare OpenMediaVault hosts only with each other.
   Show OMV's firewall in the firewall rows; `sshd_config` drift
   between OMV hosts is a difference in their UI settings.
 
 ## Add: Common Pitfalls
 
-- A file under `/etc` that looks wrong is usually generated. Look
-  for the "Do not edit this file" header before touching it, and
-  find the setting in the UI.
 - Do not add Samba shares to `smb.conf` or NFS exports to
   `/etc/exports`: the docs say manual changes "will not be
   reflected in the web interface", and the next deploy of that
   service overwrites them.
-- `omv-upgrade` answers every prompt with yes; the dry-run in
-  Package Manager is the only moment to read what it will do.

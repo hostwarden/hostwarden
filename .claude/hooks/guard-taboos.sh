@@ -632,22 +632,24 @@ if hit '(^|[^[:alnum:]_-])ssh-keygen([^[:alnum:]_-]|$)' \
 fingerprint of a .pub runs in a call of its own, with no private \
 key path in it"
 fi
-# OpenMediaVault renders sshd_config from its own database, and its
-# ssh Salt state also empties and rebuilds the key directory
-# /var/lib/openmediavault/ssh/authorized_keys. Deploying that state
-# writes both without naming either path, so the rules above cannot
-# see it. Two commands deploy it: omv-salt deploy run with ssh among
-# its state names, and omv-salt stage run deploy, which renders every
-# state. --append-dirty deploys whatever the web UI left pending,
-# ssh possibly among it; the guard cannot know that, and
-# rules/appliance/openmediavault.md carries that part.
-if hit '(^|[^[:alnum:]_.-])omv-salt[[:space:]]+deploy[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?["'\'']?ssh(["'\''[:space:]]|$)' \
-  || hit '(^|[^[:alnum:]_.-])omv-salt[[:space:]]+stage[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?["'\'']?deploy(["'\''[:space:]]|$)'
-then
-  deny "deploying the OpenMediaVault ssh state rewrites sshd_config \
-and rebuilds the authorized_keys directory - the user changes SSH \
-settings in the web UI"
-fi
+# OpenMediaVault's ssh Salt state renders sshd_config and empties and
+# rebuilds /var/lib/openmediavault/ssh/authorized_keys, naming
+# neither path on the command line. It deploys through
+# omv-salt deploy run with ssh among the state names, or through
+# omv-salt stage run deploy, which renders every state. What
+# --append-dirty deploys is invisible here; the appliance file
+# (rules/appliance/openmediavault.md) covers it. The case keeps the
+# grep off every other Bash call.
+case "$CMD" in
+*omv-salt*)
+  if hit "(^|[^[:alnum:]_.-])omv-salt[[:space:]]+(deploy|stage)[[:space:]]+run[[:space:]]([^;&|]*[[:space:]])?[\"']?(ssh|deploy)$END"
+  then
+    deny "deploying the OpenMediaVault ssh state rewrites \
+sshd_config and rebuilds the authorized_keys directory - the user \
+changes SSH settings in the web UI"
+  fi
+  ;;
+esac
 if hit "$SSHD"; then
   if hit '>>?[[:space:]]*["'\'']?[^[:space:];|&]*'"$SSHD" \
     || { hit '(^|[^[:alnum:]_-])(sed|perl)([^[:alnum:]_-]|$)' \
