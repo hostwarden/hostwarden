@@ -220,7 +220,13 @@ ssh_conf_key() {
   while read -r k f; do
     # Key value, Key=value and Key = value all occur.
     case $k in *=*) f=${k#*=} k=${k%%=*} ;; esac
-    f=${f#=} f=${f# } f=${f#\"} f=${f%\"}
+    f=${f#=} f=${f# }
+    # A quoted value ends at its closing quote; an unquoted one at
+    # a # that starts a word, which ssh reads as a comment.
+    case $f in
+      \"*) f=${f#\"} f=${f%%\"*} ;;
+      *) f=${f%%[[:space:]]#*} ;;
+    esac
     case $f in \~/*) f=$HOME/${f#\~/} ;; esac
     case $k in
       [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Ff][Ii][Ll][Ee]) [ -f "$f" ] && return 0 ;;
