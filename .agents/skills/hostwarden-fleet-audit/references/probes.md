@@ -444,11 +444,10 @@ Highlight as drift:
 - Different MTAs in use without a documented reason in
   the per-host `memory.md`.
 
-**macOS** ships Postfix, run by launchd on demand, so whether
-it is running at the moment says only whether mail went out
-recently. Compare whether its job is loaded instead:
-`launchctl print` succeeds for a loaded job, and its output is
-not a stable interface, so only the exit status counts.
+**macOS** ships Postfix, which launchd starts on demand, so
+compare whether its job is loaded, not whether it runs; only the
+exit status of `launchctl print` counts, its output is not a
+stable interface. An empty relay host means direct delivery.
 
 ```bash
 ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
@@ -463,12 +462,8 @@ fi
 hostname -f
 ```
 
-Installed MTA is `postfix` on every Mac, and the loaded job is
-the active unit: a Mac whose job is not loaded sends no mail.
-The relay host is routing policy, not a verdict — empty means
-Postfix delivers straight to each recipient's domain — and
-hosts that differ in it are drift. Never propose
-installing an MTA on a Mac
+Installed MTA is `postfix` on every Mac; `loaded` is the active
+unit. Never propose installing an MTA on a Mac
 (`.agents/skills/hostwarden-email/references/transport-remote.md`).
 
 **FreeBSD** — the MTA is named in `/etc/mail/mailer.conf`
