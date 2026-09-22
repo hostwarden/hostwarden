@@ -36,8 +36,9 @@ echo "##dirs"; ls -ld /etc/ansible/facts.d /root/.ansible \
   /home/*/.ansible /Users/*/.ansible /etc/puppetlabs \
   /usr/local/etc/puppet /etc/chef /etc/cinc /etc/salt \
   /usr/local/etc/salt 2>/dev/null || true
-echo "##pull"; { crontab -l 2>/dev/null; cat /etc/crontab \
-  /etc/cron.d/* 2>/dev/null; } | grep "ansible[-]pull" || true
+echo "##pull"; crontab -l 2>/dev/null | grep -q "ansible[-]pull" \
+  && echo "crontab of $(id -un)"
+grep -l "ansible[-]pull" /etc/crontab /etc/cron.d/* 2>/dev/null || true
 echo "##units"; systemctl list-unit-files 2>/dev/null \
   | grep -Ei "ansible|puppet|openvox|chef|cinc|salt-minion" || true
 ```
@@ -53,7 +54,9 @@ What the leads mean — none is proof on its own
   FreeBSD).
 
 Every search ends in `|| true`, because finding nothing is the
-normal case and must not read as a failed command. Use the OS's own
+normal case and must not read as a failed command. The cron search
+prints where the job is, never the line: an `ansible-pull` line can
+carry a repository URL with a token in it (`rules/secrets.md`). Use the OS's own
 service listing where `systemctl` does not exist
 (`rules/os/<family>.md`).
 
