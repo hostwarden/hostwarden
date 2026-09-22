@@ -134,9 +134,16 @@ docker), or podman."
   # the mode guard sees only this script's command line. podman
   # machine is a local VM reached over ssh to this machine.
   case "$e" in
+    # DOCKER_CONTEXT outranks DOCKER_HOST, which outranks the
+    # context docker context use chose.
     docker)
-      ep=${DOCKER_HOST:-$("$e" context inspect \
-        --format '{{.Endpoints.docker.Host}}' 2>/dev/null)} ;;
+      if [ -n "${DOCKER_CONTEXT:-}" ] || [ -z "${DOCKER_HOST:-}" ]; then
+        ep=$("$e" context inspect ${DOCKER_CONTEXT:+"$DOCKER_CONTEXT"} \
+          --format '{{.Endpoints.docker.Host}}' 2>/dev/null) \
+          || ep="context ${DOCKER_CONTEXT:-} that cannot be read"
+      else
+        ep=$DOCKER_HOST
+      fi ;;
     podman)
       ep=${CONTAINER_HOST:-$("$e" system connection list \
         --format '{{if .Default}}{{.URI}}{{end}}' 2>/dev/null)}
@@ -152,6 +159,12 @@ A lab runs on the local engine only: unset DOCKER_HOST or \
 CONTAINER_HOST, or switch to a local context or connection."
       return 1 ;;
   esac
+  if [ "$e" = docker ] && [ -n "${DOCKER_CONTEXT:-}" ] \
+      && [ -n "${DOCKER_HOST:-}" ]; then
+    WHY="DOCKER_CONTEXT and DOCKER_HOST are both set, which docker \
+refuses; unset one of them."
+    return 1
+  fi
   if ! "$e" info >/dev/null 2>&1; then
     WHY="$e is installed but its engine is not running. Start it \
 yourself — OrbStack: orb start; Docker Desktop: open it; podman: \
