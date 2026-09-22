@@ -28,23 +28,28 @@ $d ps -aq | xargs -r $d inspect --format '{{.Name}} priv={{.HostConfig.Privilege
 Docker's daemon, in the same call:
 
 ```bash
-docker info --format '{{json .SecurityOptions}}'
+docker info --format '{{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
 grep -E '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)"' \
   /etc/docker/daemon.json 2>/dev/null
-ps -o args= -C dockerd 2>/dev/null
-ss -tln 2>/dev/null | grep -E ':(2375|2376) '
+grep -h -- '-H' /etc/conf.d/docker /etc/default/docker 2>/dev/null
+ps -eo args | grep -E '[d]ockerd|[s]ystem service'
+ss -tln 2>/dev/null || netstat -tln
 getent group docker
 ```
 
-For Podman, `systemctl is-active podman.socket` and the `ss` line:
-its API listens on a Unix socket unless someone ran
-`podman system service tcp://…`.
+`ps -eo args` works with busybox too; the `grep` finds `dockerd` and
+a `podman system service`, whose API listens on TCP wherever its
+arguments name `tcp://`, on any port. The listeners are read for
+those ports, not only 2375 and 2376. Where neither `ss` nor
+`netstat` exists, name the listener check as not run.
 
 ## Engine
 
 - **CRITICAL** for the Docker API on TCP without TLS on an address
   beyond loopback: a `tcp://` in the `dockerd` arguments or in
-  `hosts`, with no `tlsverify`, or a listener on 2375. Whoever
+  `hosts` or an init file's `-H`, with no `tlsverify`, a listener on
+  2375, or `docker info` warning that the API is reachable without
+  encryption. Whoever
   reaches it controls the daemon, and through it the host; Docker
   calls remote access without TLS "not recommended"
   (<https://docs.docker.com/engine/daemon/remote-access/>). A

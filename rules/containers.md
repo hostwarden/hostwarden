@@ -57,7 +57,9 @@ and busybox `ps` has no `-C`: `ps -o user,comm | grep -E
   `podman-docker` shim: treat the host as Podman.
 - The `ps` line names the accounts with running containers:
   `conmon` for Podman, `rootlesskit` for rootless Docker. `root`
-  there is rootful Podman.
+  there is rootful Podman. `ps` prints a numeric UID for a name
+  longer than eight characters: `getent passwd <uid>` gives the
+  name that `sudo -u` needs.
 - The `ls` line also finds the accounts whose containers have all
   stopped.
 

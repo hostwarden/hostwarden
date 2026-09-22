@@ -46,10 +46,10 @@ Then, for every engine:
 
 ```bash
 $d ps -a --format '{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}'
-i=$($d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} image={{.Config.Image}} id={{.Image}} logpath={{.LogPath}}')
+i=$($d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} oneoff={{index .Config.Labels "com.docker.compose.oneoff"}} image={{.Config.Image}} id={{.Image}} logpath={{.LogPath}}')
 printf '%s\n' "$i"
 printf '%s\n' "$i" | sed -n 's/.* logpath=\([^ ][^ ]*\).*/\1/p' \
-  | xargs -r du -m 2>/dev/null | sort -rn | head -5
+  | xargs -r du -m | sort -rn | head -5
 $d images --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}'
 $d system df
 $d images -qf dangling=true | wc -l
@@ -57,7 +57,14 @@ $d volume ls -qf dangling=true | wc -l
 ```
 
 The format strings name every field (`rules/containers.md` → List
-and Inspect). `nerdctl` has no `compose ls` and no dangling-volume
+and Inspect). **A template that stops on a field it does not know
+prints nothing for any container**: that check is "not checked",
+with the error, never clean. Podman before 4.0 names the health
+field `.State.Healthcheck` and may lack `.Host.LogDriver`; with
+`podman --version` below 4, use `.State.Healthcheck.Status` and drop
+`log=`. A `du` error on the log paths — the `docker` group reaches
+the API, not `/var/lib/docker` — makes log size "skipped: needs
+root". `nerdctl` has no `compose ls` and no dangling-volume
 filter
 (<https://github.com/containerd/nerdctl/blob/main/docs/command-reference.md>):
 name those two as not checked. Its `inspect` answers in Docker's
@@ -72,7 +79,10 @@ appliance's app — is reported there, not again here.
 ## Engine
 
 - **CRITICAL** if the daemon does not answer — that says nothing
-  about the containers, never that there are none. Permission denied
+  about the containers, never that there are none. A rootless
+  Docker whose owner has no session and no lingering
+  (`loginctl show-user <owner> -p Linger`, no `/run/user/<uid>`) is
+  not running by design: **INFO**, "owner logged out". Permission denied
   on its socket is not this: the check needs the access from
   `rules/privilege-escalation.md`, or is reported as skipped.
   Rootful Podman has no daemon; a `podman` that fails is reported
@@ -83,15 +93,18 @@ appliance's app — is reported there, not again here.
   pending-updates check's, and a version is graded only through
   `rules/version-check.md`.
 - **INFO** for each line `docker info` prints under warnings. One
-  about the API on TCP without encryption is **WARN** here and the
-  security skill's to rate
+  about the API on TCP without encryption is rated as the security
+  skill rates it, **CRITICAL** off loopback
   (`.agents/skills/hostwarden-security/references/containers.md`).
 
 ## Containers That Should Run
 
-A restart policy other than `no`, a Quadlet or own unit
+A restart policy other than `no` or empty, a Quadlet or own unit
 (`unit=` set, `rules/containers.md` → Find What Defines the
-Container), or a compose project marks a container as meant to run.
+Container), or a compose project marks a container as meant to run;
+a compose one-off (`oneoff=True`, from `compose run`) never does.
+Podman has no `restarting` state: there a loop shows as `restarts`
+rising between runs.
 Docker ignores the policy of a container stopped by hand until the
 daemon restarts or the container is started again, and the policy
 acts only once a container has run for ten seconds
@@ -152,6 +165,8 @@ system past its WARN threshold.
   than a year ago (`CreatedAt`), **INFO** past six months: whatever
   its base image fixed since is not in it. The build date is the
   image's, not the pull's.
+  A `CreatedAt` before 2000 is a reproducible build's placeholder,
+  not a date: say the build date is unknown.
 - **INFO** for a container whose image is `:latest` or names no tag:
   what runs changes at the next pull, and which version runs is not
   written anywhere. A digest (`@sha256:`) is a pin. On an appliance
