@@ -39,7 +39,14 @@ grep -oE '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)" *: *[^,}]*' \
   /etc/docker/daemon.json 2>/dev/null
 grep -hoE -- '-H +[^ "'"'"']+' /etc/conf.d/docker /etc/default/docker \
   2>/dev/null
-ps -eo args | grep -oE '[d]ockerd([^ ]*)?|[s]ystem service[^ ]*|-H +[^ ]+|--host[= ][^ ]+|--tls[a-z]*([= ][^ ]+)?|tcp://[^ ]+'
+pat='(^|/)(dockerd|podman)|system service|-H +[^ ]+'
+pat="$pat"'|--host[= ][^ ]+|--tls[a-z]*([= ][^ ]+)?|tcp://[^ ]+'
+ps -eo args | grep -E '[d]ockerd|[s]ystem service' \
+  | while IFS= read -r line; do
+      printf '== '
+      printf '%s\n' "$line" | grep -oE "$pat" | tr '\n' ' '
+      echo
+    done
 systemctl cat podman.socket 2>/dev/null | grep -E '^(ListenStream|ListenDatagram)='
 loginctl list-users --no-legend 2>/dev/null | awk '{print $2}' \
   | while read -r u; do
@@ -52,11 +59,13 @@ g=$(getent group docker | cut -d: -f3)
 [ -n "$g" ] && getent passwd | awk -F: -v g="$g" '$4 == g {print $1}'
 ```
 
-`ps -eo args` works with busybox too, and the `grep -o` keeps only
-the engine's name and its listen and TLS options, so a credential in
-a neighbouring argument — a proxy or registry URL — never reaches the
-output. It finds `dockerd` and a `podman system service`, whose API
-listens on TCP wherever its arguments name `tcp://`, on any port. A
+`ps -eo args` works with busybox too. The loop keeps one line per
+process, and the inner `grep -o` keeps only the engine's name and
+its listen and TLS options from it, so a credential in a
+neighbouring argument — a proxy or registry URL — never reaches the
+output, and two processes never blend into one. It finds `dockerd`
+and a `podman system service`, whose API listens on TCP wherever its
+arguments name `tcp://`, on any port. A
 `podman.socket` unit with a TCP `ListenStream` exposes the same API
 with no process until it is activated, which is why the unit is read
 too, for root and for each logged-in owner. The listeners are read for
@@ -136,9 +145,12 @@ neither `ss` nor
 
 ## Registries
 
-The registry is the part of `image=` before the first `/` when it
-holds a `.` or a `:` or is `localhost`; otherwise it is Docker Hub,
-`docker.io`. The registries the user trusts are recorded in
+A reference without a `/` — `postgres:16`, `alpine:3.19` — is a
+Docker Hub image, `docker.io`, and its `:` is the tag. Only where
+the reference holds a `/` is the part before the first one a
+registry, and then only when it holds a `.` or a `:` or is
+`localhost`: `ghcr.io/owner/app` names one, `owner/app` is Docker
+Hub too. The registries the user trusts are recorded in
 `memory.md` as `- Container registries: docker.io, ghcr.io`.
 
 - None recorded: **INFO** with the registries in use; ask the user
