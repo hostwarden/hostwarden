@@ -90,13 +90,17 @@ appliance file says so by name.
   which request failed.
 
   ```
-  jq -Rn '[inputs | . as $l | try fromjson catch {"raw": $l[0:200]}]'
+  jq -Rn '[inputs | . as $l | try fromjson
+    catch {"not_json": true, "bytes": ($l | length)}]'
   ```
 
   Each response and each marker is one line, so what survives is an
-  array in which every response is followed by its marker, and a
-  body that is not JSON is carried as `raw` instead of killing the
-  run.
+  array in which every response is followed by its marker. **A body
+  that is not JSON is never forwarded**, only counted: an error page
+  can echo the request back, and a key-name filter cannot redact a
+  secret inside a string. Its marker's `code` is what the report
+  names; where the body itself is the question, the user reads it on
+  the appliance.
 - **A task is only done when every marker it expected came back.**
   `jq` accepts an empty stream, so an SSH login that fails, a
   connection that drops or a shell that never starts would
