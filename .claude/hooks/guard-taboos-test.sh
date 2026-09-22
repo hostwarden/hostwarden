@@ -395,6 +395,17 @@ check deny "${PS_SSH}Stop-Computer -Force
 EOS"
 check deny "${PS_SSH}Set-Content C:\\ProgramData\\ssh\\sshd_config 'Port 22'
 EOS"
+# A quote or backtick is dropped before the program sees its flag.
+check deny 'bcdedit "/set" {default} safeboot minimal'
+check deny 'bcdedit `/set {default} safeboot minimal'
+check deny "bcdedit /enum '/delete' {ntldr}"
+check deny 'cipher "/w:C:\"'
+check deny "cipher.exe '/w' C:\\"
+check deny 'shutdown /r "-h" now'
+check deny 'shutdown /r "/p"'
+check deny 'shutdown.exe /r "/s"'
+check pass 'shutdown /r /t 0 /c "planned restart"'
+check pass 'bcdedit /store "C:\Boot\BCD" /enum'
 check pass 'shutdown /r /t 0'
 check pass 'shutdown /g /t 0'
 check pass 'shutdown /a'

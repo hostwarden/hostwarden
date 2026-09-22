@@ -503,9 +503,11 @@ fi
 # Windows' shutdown is judged below, so the Linux rule exempts it
 # rather than lending it its -r: shutdown.exe, or shutdown whose
 # every flag takes Windows' slash, as a Windows server reached
-# over SSH runs it. One dash flag keeps it Linux's.
+# over SSH runs it. One dash flag keeps it Linux's, quoted or
+# escaped too: the shell and PowerShell drop " ' and ` before
+# the program sees its flag.
 if hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
-  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+[^[:space:];&|-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
+  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
 then
   deny "shutdown without -r powers off the server (reboots \
 use shutdown -r; -c cancels)"
@@ -516,9 +518,9 @@ fi
 # beside a /r. Otherwise /r and /g restart and /a aborts. Both
 # rules must match every form the Linux rule hands over, and the
 # gate for WIN must let it through: widen all four together.
-WINSHUT='(^|[^[:alnum:]_-])shutdown(\.exe[[:space:]]+([^;&|]*[[:space:]])?[/-]|[[:space:]]+/([^;&|]*[[:space:]]/)?)'
+WINSHUT='(^|[^[:alnum:]_-])shutdown(\.exe[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*[/-]|[[:space:]]+/([^;&|]*[[:space:]]["'\''`]*/)?)'
 if [ -n "$WIN" ] \
-  && hit_i "${WINSHUT}(s|sg|p|h)([[:space:]]|\$)"; then
+  && hit_i "${WINSHUT}(s|sg|p|h)([[:space:]\"'\`]|\$)"; then
   deny "shutdown /s, /p and /h power off or hibernate the machine"
 fi
 if [ -n "$WIN" ] \
@@ -648,10 +650,12 @@ fi
 # alone it lists too. Every other option edits the boot
 # configuration, so the exemption holds only while each argument
 # up to the next ; & or | is one of those or no option at all:
-# bcdedit /v /set ... still edits.
+# bcdedit /v /set ... still edits. A quote or backtick in front
+# of an option is dropped before bcdedit sees it, so "/set" is
+# still /set.
 if [ -n "$WIN" ] \
   && hit_without '(^|[^[:alnum:]_.-])bcdedit([.]exe)?([^[:alnum:]_.-]|$)' \
-  "^[^[:alnum:]]?bcdedit([.]exe)?([[:space:]]+(/(enum|v|store|[?])[\"']*|[^/[:space:];&|-][^[:space:];&|]*))*[[:space:]]*([;&|]|\$)" i
+  "^[^[:alnum:]]?bcdedit([.]exe)?([[:space:]]+[\"'\`]*(/(enum|v|store|[?])[\"'\`]*|[^/[:space:];&|\"'\`-][^[:space:];&|]*))*[[:space:]]*([;&|]|\$)" i
 then
   deny "bcdedit beyond /enum and /v rewrites the boot \
 configuration and can leave the machine unbootable"
@@ -669,7 +673,7 @@ fi
 # cipher /w overwrites all free space on the volume that holds
 # its directory, so nothing deleted there can be recovered.
 if [ -n "$WIN" ] \
-  && hit_i '(^|[^[:alnum:]_.-])cipher(\.exe)?[[:space:]]+([^;&|]*[[:space:]])?[/-]w(:|[[:space:]]|$)'
+  && hit_i '(^|[^[:alnum:]_.-])cipher(\.exe)?[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*[/-]w(:|[[:space:]]|["'\''`]|$)'
 then
   deny "cipher /w wipes the free space of a whole volume"
 fi
