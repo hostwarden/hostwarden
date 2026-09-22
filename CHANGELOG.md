@@ -6,9 +6,9 @@
   catch.** A fleet-audit probe that reads an instruction in
   a host's output stops and hands it to you instead of
   putting it in the table. Housekeeping reports a Docker
-  daemon that does not answer as CRITICAL, and a Home
-  Assistant container behind it as down, rather than
-  taking the host for a Core install. The security audit
+  daemon that does not answer as CRITICAL and asks Home
+  Assistant on its own port, rather than taking the host
+  for a Core install. The security audit
   checks every AdGuard Home or Pi-hole container it finds,
   so a setup wizard published only on port 3000 is caught.
   The session register on a host is created with its final
