@@ -97,8 +97,9 @@ sudo launchctl list com.openssh.sshd 2>/dev/null
 ```
 
 - If Remote Login is **off** → **INFO** "Remote Login (SSH) is
-  disabled — SSH checks skipped." Stop here, no further SSH
-  checks needed.
+  disabled — sshd checks skipped." Skip the sshd checks in this
+  file, but still run SSH servers past sshd below: an agent
+  serves its own SSH whether or not Remote Login is on.
 - If Remote Login is **on** → proceed with the same `sshd -T`
   / config file approach as Linux.
 
@@ -156,3 +157,22 @@ Fallback: parse from config files.
 - `no` → OK
 
 Skip this check on macOS.
+
+## SSH servers past sshd
+
+Some VPN and tunnel agents let people in without sshd, where none
+of the checks above look. Find them in the same batch, no root
+needed. `ps w` is the fallback where BusyBox takes no BSD
+options (`rules/busybox.md`), and because its columns differ per
+implementation, the match takes the program name wherever it
+stands and keeps no argument, which could hold a token
+(`rules/secrets.md`):
+
+```bash
+{ ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
+  | grep -oE '(^|[/[:space:]])(tailscaled|netbird|newt|nebula|cloudflared)([[:space:]]|$)' \
+  | tr -d ' /' | sort -u
+```
+
+No output → OK, nothing more to check. Otherwise read
+`references/vpn-ssh.md` for the agents found.

@@ -34,7 +34,11 @@ table does not undo it. Default deny means one of:
   nft list chain <family> <table> <chain> | tail -3
   ```
 
-A table of family `ip` covers IPv4 only; `inet` covers both.
+A table of family `ip` covers IPv4 only, `ip6` IPv6 only and
+`inet` both. Rules added through `iptables` land in `table ip
+filter`, those through `ip6tables` in `table ip6 filter`.
+Default-deny input chains only in family `ip` are the IPv6 gap
+that `references/firewall.md` → IPv6 weighs.
 
 Native nftables is *active* when `nftables.service` is
 active or an input chain is default deny. Input chains that

@@ -4,6 +4,9 @@ The variants below are the family defaults. Where the loaded OS
 file's `## Firewall` section names another firewall, its commands
 and expectations win, at the same severities.
 
+Each firewall below also says where it leaves IPv6 open; the
+IPv6 section at the end weighs that gap.
+
 ## Linux
 
 Verify a firewall is installed, active, and the default incoming
@@ -26,9 +29,15 @@ firewall.
 
 ```bash
 ufw status verbose
+grep '^IPV6=' /etc/default/ufw
 ```
 
 - Not installed or inactive → check native nftables
+- `IPV6=no` → ufw writes no IPv6 rules. Before calling that the
+  IPv6 gap, read the effective rules as
+  `references/firewall-nftables-docker.md` → Native nftables
+  does: another ruleset may carry a default-deny input chain for
+  IPv6
 - Active but default incoming is not `deny` → **WARN** "Firewall
   default incoming policy is not deny"
 - Active and default deny → OK
@@ -50,6 +59,9 @@ firewall-cmd --zone=<zone> --get-target
 - Zone target is `ACCEPT` → **WARN** "Default zone target is
   ACCEPT (allows all incoming)"
 - Zone target is `default` (reject/drop) → OK
+
+A zone applies to IPv4 and IPv6 alike, so firewalld has no IPv6
+gap of its own.
 
 ## FreeBSD
 
@@ -74,6 +86,13 @@ on a WAN interface from any source, **WARN** when one reaches SSH
 or the web UI. The appliance file names where those rules live in
 its web UI.
 
+IPv6: a pf rule without `inet` or `inet6` covers both families,
+so the gap is a default block that carries `inet` with none for
+IPv6 beside it. In ipfw, the unconditional rule that sets the
+default counts for IPv6 only when it names `ip`, not `ip4`.
+IPFilter keeps its IPv6 rules apart: report INFO "IPv6 coverage
+not checked" rather than guess.
+
 ## macOS
 
 Check Application Firewall status:
@@ -86,3 +105,27 @@ Check Application Firewall status:
 - Disabled → **WARN** on a server; on a workstation,
   `rules/role/workstation.md` rates it
 - Enabled → OK
+
+The Application Firewall filters per application, whatever the
+family: no IPv6 gap.
+
+## IPv6
+
+A firewall that filters only IPv4 leaves every service open over
+IPv6. Take the addresses in the same batch as the firewall status;
+no root needed:
+
+```bash
+ip -6 -o addr show 2>/dev/null
+```
+
+On FreeBSD, `ifconfig -a inet6`. Where a section above found a
+gap:
+
+- No address but `::1` → IPv6 is off; no finding.
+- A public address, as `references/listening-services.md` defines
+  it, on an interface that is not a container or VM bridge
+  (`docker0`, `br-*`, `veth*`, `virbr*`, `lxcbr*`, `cni*`,
+  `podman*`) → **CRITICAL** "Firewall does not filter IPv6"
+- Otherwise the local network still reaches the host over IPv6 →
+  **WARN** "Firewall does not filter IPv6 (local network)"
