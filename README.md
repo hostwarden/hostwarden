@@ -182,7 +182,11 @@ that changes the base file where it would be wrong:
 | OpenMediaVault    | Debian  | `rules/appliance/openmediavault.md` |
 | OPNsense          | FreeBSD | `rules/appliance/opnsense.md`       |
 | pfSense           | FreeBSD | `rules/appliance/pfsense.md`        |
+| TrueNAS           | Debian  | `rules/appliance/truenas.md`        |
+| TrueNAS CORE      | FreeBSD | `rules/appliance/truenas-core.md`   |
+| XCP-ng            | RHEL    | `rules/appliance/xcp-ng.md`         |
 | Home Assistant OS | —       | `rules/appliance/haos.md`           |
+| Unraid            | —       | `rules/appliance/unraid.md`         |
 
 Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it

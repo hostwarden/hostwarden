@@ -99,7 +99,11 @@ rules/                 — Upstream rule files (git-tracked)
     openmediavault.md  — OpenMediaVault (on os/debian.md)
     opnsense.md        — OPNsense (on os/freebsd.md)
     pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
+    xcp-ng.md          — XCP-ng (on os/rhel.md)
+    truenas.md         — TrueNAS (on os/debian.md)
+    truenas-core.md    — TrueNAS CORE, end of life (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
+    unraid.md          — Unraid (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

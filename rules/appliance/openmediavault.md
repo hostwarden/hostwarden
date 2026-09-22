@@ -321,6 +321,22 @@ under `deb/openmediavault/` there).
   their configuration is generated: change it in the UI, then
   reload as `rules/service-reload.md` says.
 
+## Logs
+
+- OMV logs to the journal: the UI's log viewer runs `journalctl`,
+  and `rsyslog` runs beside it. The activity check reads back, with
+  `df` and `uptime` in the same call:
+  ```
+  journalctl -t hostwarden -t heinzel --since "7 days ago" \
+    --no-pager -q
+  df /var/log
+  uptime
+  ```
+- With the `openmediavault-flashmemory` plugin from omv-extras,
+  `/var/log` sits on a zram device (`df /var/log` names
+  `/dev/zram<n>` or an overlay on one). Treat that log as one that
+  does not survive a reboot.
+
 ## Housekeeping and Audits
 
 - **Pending changes:** `omv-salt deploy list-dirty`. Anything listed
@@ -354,11 +370,6 @@ under `deb/openmediavault/` there).
   failing disk or a degraded array: a finding, fixed under
   System > Notification. Events turned off (`monitfilesystems`,
   `smartmontools`, `mdadm`, `apt`, …) are worth one line each.
-- **Logs:** OMV uses the journal (the UI's log viewer runs
-  `journalctl`), so the base's read-back applies. With the
-  `openmediavault-flashmemory` plugin from omv-extras, `/var/log`
-  lives in RAM: entries from before the last reboot may be gone,
-  and the activity check says so rather than reporting no activity.
 - Security audit: SSH findings go to the user as menu paths
   (Services > SSH, Users > Users).
 - Fleet audit: compare OpenMediaVault hosts only with each other.

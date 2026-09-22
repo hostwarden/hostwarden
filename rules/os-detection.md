@@ -41,9 +41,10 @@ skill says so where it needs it.
      'nproc; grep -m1 "model name" /proc/cpuinfo; free -h;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
-     'which pveversion ha opnsense-version pfSense-upgrade;' \
-     'ls -d /homeassistant; pveversion; opnsense-version;' \
-     'cat /etc/version; dpkg -l openmediavault'
+     'which pveversion ha opnsense-version pfSense-upgrade' \
+     'midclt; ls -d /homeassistant; pveversion;' \
+     'opnsense-version; cat /etc/version /etc/unraid-version;' \
+     'midclt call system.version; dpkg -l openmediavault'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -90,12 +91,13 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
-     `ID=alpine` inside a Home Assistant app container,
-     have no family: see Appliances below. If no family
-     file matches (e.g. Arch, Gentoo), tell the user,
-     proceed cautiously with generic commands, and
-     apply extra verify-before-running care.
+     version from `VERSION_ID` and `PRETTY_NAME`. A
+     host that matches a marker with base `none` under
+     Appliances below has no family, whatever its
+     `ID`. If no family file matches (e.g. Arch,
+     Gentoo), tell the user, proceed cautiously
+     with generic commands, and apply extra
+     verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
@@ -108,10 +110,12 @@ skill says so where it needs it.
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below. The same lines
-   carry the version of Proxmox VE, OPNsense, pfSense
-   and OpenMediaVault; any other appliance file says
-   how to read its own.
+   `@appliance`, and for a marker of the form `ID=…`
+   from the os-release lines after `@release`. See
+   Appliances below. Where the probe already prints
+   what the appliance file's Version Detection reads,
+   the version comes from the probe; otherwise run
+   that command.
 
 4. Create a server memory file.
 
@@ -127,15 +131,21 @@ not one.
 
 The probe in step 1 reports the markers. `which`
 prints a path for a command that exists; what it
-prints for a missing one depends on the shell.
+prints for a missing one depends on the shell. Where
+one marker has two rows, the family from step 2 picks
+the row.
 
-| Base    | Marker                     | Appliance file                      |
-| ------- | -------------------------- | ----------------------------------- |
-| Debian  | `pveversion`               | `rules/appliance/proxmox-ve.md`     |
-| Debian  | `ii  openmediavault`       | `rules/appliance/openmediavault.md` |
-| FreeBSD | `opnsense-version`         | `rules/appliance/opnsense.md`       |
-| FreeBSD | `pfSense-upgrade`          | `rules/appliance/pfsense.md`        |
-| none    | `ID=haos`, `ha`            | `rules/appliance/haos.md`           |
+| Base    | Marker               | Appliance file                      |
+| ------- | -------------------- | ----------------------------------- |
+| Debian  | `pveversion`         | `rules/appliance/proxmox-ve.md`     |
+| Debian  | `ii  openmediavault` | `rules/appliance/openmediavault.md` |
+| Debian  | `midclt`             | `rules/appliance/truenas.md`        |
+| FreeBSD | `opnsense-version`   | `rules/appliance/opnsense.md`       |
+| FreeBSD | `pfSense-upgrade`    | `rules/appliance/pfsense.md`        |
+| FreeBSD | `midclt`             | `rules/appliance/truenas-core.md`   |
+| RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
+| none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
+| none    | `version="…"`        | `rules/appliance/unraid.md`         |
 
 `ii  openmediavault` is the line `dpkg -l` prints for
 the installed package, with its version. `rc` (removed,
@@ -145,6 +155,9 @@ name the package too and are no match.
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
 itself; its file says to stop there.
+`version="…"` is the content of `/etc/unraid-version`
+on a line of its own; an error that names the file is
+no match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way

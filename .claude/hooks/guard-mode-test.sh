@@ -17,8 +17,14 @@ FAIL=0
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-mode-test.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT INT TERM
 # Run inside a Claude Code session, session-mode.sh would write to
-# that session's own env file.
-unset CLAUDE_ENV_FILE
+# that session's own env file, and every call carries what that
+# file set: the shim first on PATH and git-ssh.sh as
+# GIT_SSH_COMMAND. The cases build that environment themselves, so
+# they start from one without it, as in CI.
+unset CLAUDE_ENV_FILE GIT_SSH_COMMAND GIT_SSH HOSTWARDEN_GIT_SSH_COMMAND
+PATH=$(printf %s "$PATH" | tr : '\n' | grep -v '/\.claude/hooks/shim$' |
+  paste -sd: -)
+export PATH
 
 ok() { PASS=$((PASS + 1)); }
 bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
