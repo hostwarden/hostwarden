@@ -108,7 +108,12 @@ appliance file says so by name.
   **A body that carries a secret** — a Wi-Fi passphrase, a VPN key
   — is written by the user, never by Hostwarden, and goes from the
   workstation, where it never leaves the credential file's
-  directory.
+  directory. Over SSH one stdin cannot carry both the credential
+  and the body, so such a write takes the workstation path with its
+  pin (`rules/tls-pinning.md`) even where memory records
+  `API path: ssh`. Without a pin recorded, read one first; where
+  the appliance is not reachable from the workstation at all, say
+  so and leave the change to the user's UI.
 - Over SSH, stdin already carries the credential, so a body without
   a secret in it is copied first with `scp` into a root-only
   scratch directory — `install -d -m 700 /root/hostwarden-scratch`

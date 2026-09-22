@@ -189,11 +189,14 @@ included
 
 - **Every site, not just the first.** A console can carry several
   sites, and a check that reads one reports the others as clean
-  without looking. Read `/proxy/network/api/self/sites` on the
-  first connection, record the sites' `name` and `desc` in server
-  memory (`Sites: default (Default), <name> (<desc>)`), and let
-  every per-site read cover each of them. A site that appears or
-  disappears is a change to record.
+  without looking. So a task that reads per site starts by reading
+  `/proxy/network/api/self/sites`, and the workstation builds the
+  per-site batch from that answer — two calls, because the console
+  has no `jq` to loop with. Memory's list
+  (`Sites: default (Default), <name> (<desc>)`) is what the answer
+  is compared against, not what the batch is built from: a site
+  that appeared or disappeared is a change to report and to record,
+  never a reason to skip a read.
 - A task's reads over SSH with the read admin, in one call — the
   example reads one site, and a console with more repeats the
   per-site block, marker included, for each:
