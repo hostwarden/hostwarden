@@ -128,6 +128,7 @@ casaos -v
 systemctl is-active casaos casaos-gateway casaos-message-bus \
   casaos-user-service casaos-local-storage casaos-app-management
 grep -E '^port *=' /etc/casaos/gateway.ini
+ss -tlnp 2>/dev/null || netstat -tln
 grep -E '^(AppsPath|appstore) *=' /etc/casaos/app-management.conf
 docker ps -a --format \
   '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project.working_dir"}}'
@@ -139,9 +140,12 @@ The six units are the ones the installer starts
 - **WARN** for each unit that is not active: without the gateway
   the web UI is down, without app management the apps cannot be
   changed from it.
-- **WARN**: the web UI answers plain HTTP on every address, on the
-  gateway's `port`, 80 by default in the installer. The gateway
-  listens with an empty host and no TLS
+- **WARN** where the listener list shows the gateway's `port`, 80
+  by default in the installer, on every address: the web UI answers
+  plain HTTP there. With the gateway unit inactive and no such
+  listener, report the inactive unit alone, and that the UI would
+  answer that way once it runs. The gateway listens with an empty
+  host and no TLS
   (https://github.com/IceWhaleTech/CasaOS-Gateway, `main.go`), and
   the CasaOS units set no `User=`, so they run as root (`CasaOS`,
   `build/sysroot/usr/lib/systemd/system/casaos.service`).
