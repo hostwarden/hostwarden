@@ -74,7 +74,31 @@ Severities as in `references/report-format.md`. An address is
   anonymous login. Anything but `NO ACCESS` in its `Channel Priv
   Limit`, with `Enable Status` `enabled`, is **WARN**.
 - **Intel AMT on the network.** 16992 and 16994 carry no TLS.
-  AMT has no `lan print` and so no address of its own in
-  `memory/network.md`; `references/listening-services.md` is what
-  shows whether either port answers. Answering on an address
-  other than loopback is **WARN**; on a public one, **CRITICAL**.
+  **`references/listening-services.md` cannot see them**, and
+  neither can `ss`, `sockstat` or `lsof`: the Management Engine
+  answers these ports below the operating system, so they are in
+  no socket table the host can print. AMT has no `lan print`
+  either, so there is no recorded address to judge.
+
+  The only probe that settles it runs from the workstation, not
+  on the host, and is one TCP connect per port:
+
+  ```
+  curl -s -o /dev/null -m 5 -w '%{http_code}\n' \
+    http://<host>:16992/
+  curl -s -o /dev/null -m 5 -w '%{http_code}\n' -k \
+    https://<host>:16993/
+  ```
+
+  A status code — AMT answers `401` unauthenticated — means the
+  port answers; a timeout or a refused connection means it does
+  not. `-k` skips certificate checking because this asks whether
+  anything is there, not whether its certificate is good, and
+  nothing ever authenticates: AMT credentials are out of scope
+  (`rules/secrets.md`).
+
+  An answer on 16992 from the workstation is **WARN**, and
+  **CRITICAL** where the host's address is public as
+  `references/listening-services.md` defines it. Where the
+  workstation cannot reach the host directly — NAT, a jump host —
+  the check is **named as not checked**, never as passing.

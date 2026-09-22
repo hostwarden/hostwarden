@@ -42,9 +42,17 @@ say so in the report rather than calling the check clean.
 `Deasserted` is that condition ending. A failure from two years
 ago whose part was replaced still stands in the log. So a finding
 needs an `Asserted` entry with no later `Deasserted` for the same
-sensor, and nothing else counts as a fault now. Read that per
-sensor, from the filtered line: the last state change a sensor
-has is the state it is in.
+sensor **and the same event**, and nothing else counts as a fault
+now.
+
+Both halves matter. One sensor carries several conditions — a
+temperature sensor asserts `Upper Non-critical going high` and
+`Upper Critical going high` separately — and pairing by sensor
+alone lets a deassertion of one clear an assertion of the other,
+which reports a machine that is still too hot as clean. `elist`
+prints the event beside the sensor for exactly this reason: pair
+on the two together, and a sensor with three conditions has three
+states to read, not one.
 
 An entry whose timestamp reads `Pre-Init Time-stamp` was written
 while the BMC's clock was unset: the event happened, its age is

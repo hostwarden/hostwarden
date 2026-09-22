@@ -34,10 +34,16 @@ and go on. The one exception is `unknown (no root)`, which is
 probed again by the first session that has root.
 
 Where the appliance file loaded for this host names its own way
-to the controller, that way wins and the probe below does not
-run: an XCP-ng dom0 reaches IPMI through the XAPI plugin its own
-file names, never through `ipmitool`
-(`rules/appliance/xcp-ng.md` → Housekeeping and Audits).
+to the controller, that way wins **for what it actually covers**,
+and no further. On an XCP-ng dom0 that is the sensor read:
+`rules/appliance/xcp-ng.md` → Housekeeping and Audits runs
+`get_all_sensors` through a XAPI plugin, so hardware health comes
+from there and not from `ipmitool`. It reads no controller
+identity, no firmware revision and no LAN address, and it writes
+no memory — so Detection below still runs on such a host, and the
+`Management:` line and the address still come from it. An
+appliance file that covers those too would displace them; none
+does today.
 
 ## Detection
 
