@@ -111,9 +111,9 @@ it is why `.claude/hooks/**` is in this file's `paths`. A rule that
 only loads when someone opens the changelog does not reach the
 person editing the guard.
 
-Auto mode denies an agent edits to `.claude/hooks/guard-*.sh`. The
-agent builds the change in a scratch clone and hands the maintainer
-a patch to apply with `git am`; it never writes the file another way.
+In auto mode, Claude Code does not let an agent edit
+`.claude/hooks/guard-*.sh`. The agent builds the change in a scratch
+clone and hands the maintainer a patch to apply with `git am`.
 
 ## Guard findings
 

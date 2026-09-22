@@ -18,10 +18,10 @@ When auto mode blocks a step below — answering a thread,
   `/simplify` and `/code-review --fix` are done; a comment
   `@codex review` starts another review.
 - A round is a completed Codex review that produced findings. Work
-  rounds 1 and 2 fully. From round 3, only a P1 blocks and is fixed;
-  a P2 or P3 is answered "not a bug: <reason>" or "deferred to a
-  follow-up PR" and resolved, and the deferred ones are listed in
-  the PR body under `## Deferred Codex findings`.
+  rounds 1 and 2 fully. From round 3, only a P1 blocks; a P2 or P3
+  is answered "not a bug: <reason>" or "deferred to a follow-up PR",
+  and the deferred ones are listed in the PR body under
+  `## Deferred Codex findings`.
 - A finding against a guard hook follows `repo-release.md` → Guard
   findings.
 - Answer every Codex thread — "fixed in <sha>" or "not a bug: …" —
@@ -35,15 +35,15 @@ When auto mode blocks a step below — answering a thread,
   review.
 - No unresolved thread, CI green, not a draft, and GitHub reports
   the pull request CLEAN.
-- After a rebase that `git range-diff` shows resolved no conflict,
-  green CI is enough, provided Codex had completed on the
-  pre-rebase head with nothing open.
+- After a rebase without conflicts (check with `git range-diff`),
+  green CI is enough if Codex had completed on the pre-rebase head
+  with nothing open.
 - Once a pull request is reported ready, push no new commit without
   telling whoever merges, or an unreviewed head gets merged.
 - The merge is `gh pr merge --squash --match-head-commit <sha>`.
-  The squash message carries the why, not only the what: the
-  changelog is rewritten from the code and the pull request and
-  commit messages before 1.0.0.
+  The squash message carries the why, not only the what: before
+  1.0.0 the changelog is rewritten from the code, the pull requests
+  and the commit messages.
 
 ## Updating a branch
 
