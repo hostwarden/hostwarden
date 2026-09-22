@@ -92,9 +92,10 @@ ls /Applications 2>/dev/null \
   | grep -iE 'arq|carbon copy|backblaze'
 ```
 
-A `tmutil` error can be privacy protection refusing
-the read (`rules/os/macos.md` → Common Pitfalls):
-"unknown", not "absent", and say so.
+With `Full disk access: off` in memory, the `tmutil`
+lines are skipped (`rules/os/macos.md` → Privacy
+Protection (TCC)); the backup is "unknown", not
+"absent".
 
 ## FreeBSD Probes
 
