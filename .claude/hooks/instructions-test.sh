@@ -440,17 +440,15 @@ report "$MISNAMED" "the name it is dispatched by"
 # returns whether the file could be read. Each target is named by
 # dozens of pointers; reading it once per pointer tripled the
 # runtime of this file. A heading inside an HTML comment renders as
-# nothing, so a section parked in one has no anchor either. Four
-# spaces or a tab before the <!-- make it code, not a comment.
+# nothing, so a section parked in one has no anchor either.
 LOAD_AWK="$FENCE_AWK"'
-function load(p,   l, h, c) {
+function load(p,   l, h) {
   if (p in NH) return NH[p] >= 0
   NH[p] = -1
   if ((getline l < p) <= 0) return 0
-  NH[p] = 0; FM = ""; c = 0
+  NH[p] = 0; FM = CM = ""
   do {
-    if (!c && FM == "" && l ~ /^(   |  | )?<!--/) c = 1
-    if (c) { if (l ~ /-->/) c = 0; continue }
+    if (commented(l)) continue
     # Seven or more #s are text, not a heading.
     if (!fenced(l) && l ~ /^#+[ \t]/ && l !~ /^#######/) {
       h = l; sub(/^#+[ \t]+/, "", h); sub(/[ \t]+(#+[ \t]*)?$/, "", h)
@@ -553,11 +551,9 @@ report "$(scan \
   | grep -E '^((README|CONTRIBUTING|SECURITY)\.md|docs/[^/]*\.md): ' \
   | awk "$FENCE_AWK"'
     { f = $0; sub(/: .*/, "", f)
-      if (f != last) { FM = ""; c = 0; last = f }
+      if (f != last) { FM = CM = ""; last = f }
       t = $0; sub(/^[^ ]+: /, "", t)
-      if (!c && FM == "" && t ~ /^(   |  | )?<!--/) c = 1
-      if (c) { if (t ~ /-->/) c = 0; next }
-      if (!fenced(t)) print }' \
+      if (!commented(t) && !fenced(t)) print }' \
   | tag '\]\([^):[:space:]]*#[^)[:space:]]+([[:space:]][^)]*)?\)' \
   | sed -E 's#^([^ ]+): \]\(([^#]*)\#([^)[:space:]]*).*$#\1|\2|\3#' \
   | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
