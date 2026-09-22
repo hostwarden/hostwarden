@@ -36,8 +36,8 @@
 #     published port, a host file or a host variable
 #     read into it (--env-file, --label-file, -e NAME without a
 #     value) — and so are a build that writes its result here
-#     (--output) or reads a secret, the SSH agent or a host path
-#     (podman build -v) from here, a
+#     (--output, --iidfile, --metadata-file) or reads a secret,
+#     the SSH agent or a host path (podman build -v) from here, a
 #     compose file, a kube play and a volume over a host device,
 #     which the guard cannot read.
 #     Every other verb is denied: exec
@@ -427,6 +427,8 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         for (k++; k <= nw; k++)
           if (u[k] ~ /^(-o|--output)(=|$)/ || u[k] ~ /^-o./ || u[k] ~ /^--cache-to/ && (u[k] ~ /type=local/ || u[k + 1] ~ /type=local/))
             return "engine " n " --output, a result written to this machine"
+          else if (u[k] ~ /^--(iidfile|metadata-file)(=|$)/)
+            return "engine " n " " u[k] ", a file written to this machine"
           else if (u[k] ~ /^--(secret|ssh)(=|$)/)
             return "engine " n " " u[k] ", a secret of this machine"
           else if (u[k] ~ /^--volume(=|$)/ && hostvol(val(k)) || u[k] ~ /^-v/ && hostvol(u[k] == "-v" ? u[k + 1] : substr(u[k], 3)))
