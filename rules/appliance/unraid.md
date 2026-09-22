@@ -223,16 +223,23 @@ holds one line, `x-api-key: <key>`.
   { cat ~/hostwarden-keys/<hostname>/unraid-ro.header; cat <scratch>/unraid-read.jsonl; } \
     | ssh … root@<hostname> 'IFS= read -r h; n=0
       while IFS= read -r q; do
-        n=$((n+1)); echo "{\"@\": $n}"
+        n=$((n+1))
         printf "%s\n" "$h" | curl -sS --unix-socket /var/run/unraid-api.sock \
-          -H @- -H "Content-Type: application/json" --data "$q" http://localhost/graphql
-        echo
+          -H @- -H "Content-Type: application/json" --data "$q" \
+          -w "\n{\"@\": $n, \"http\": %{http_code}}\n" http://localhost/graphql \
+          || echo "{\"@\": $n, \"curl\": $?}"
       done' \
     | jq -s …
   ```
 
   `printf` is a shell builtin, so the key reaches curl without
   showing in a process list; the query in `--data` is no secret.
+  **The marker follows its response**, with the HTTP status curl
+  reports, or curl's own exit status where the socket did not
+  answer at all: a marker printed before the request would count as
+  a completed read even when nothing came back. A request whose
+  marker says anything but `200`, or that has none, is a check that
+  did not run (`rules/appliance-api.md` → Reading).
   From the workstation, the same loop runs locally with curl's
   `--unix-socket` replaced by the URL and the pin. The housekeeping
   requests, `unraid-read.jsonl`:
