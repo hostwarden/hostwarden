@@ -25,10 +25,9 @@ repositories on GitHub where the docs are silent.
 - Releases come as Stable, Release Candidate (`-rc.<n>`) and Beta
   (`-beta.<n>`)
   (<https://docs.unraid.net/unraid-os/updating-unraid/release-types/>).
-  A production server on an RC or beta is a finding.
 - Record in server memory: `Appliance: Unraid <version>`, and the
-  boot device, `USB flash` or `internal boot pool`, from the source
-  `df -h /boot` shows.
+  boot device, `USB flash` or `internal boot pool`, from the `/boot`
+  row of the housekeeping `df` or `zpool` output.
 
 ## Access and Privileges
 
@@ -97,11 +96,9 @@ repositories on GitHub where the docs are silent.
 - **Secrets on the boot device** (`rules/secrets.md`):
   `config/shadow`, `config/passwd`, `config/smbpasswd`, the
   WireGuard keys under `config/wireguard/`, and Docker templates,
-  which can carry application credentials. Never print them, never
-  edit them by hand — the Users page owns the passwords — and never
-  copy them into the backup directory: Unraid Connect's flash backup
-  uploads the boot device and leaves out only `shadow`, `smbpasswd`
-  and the WireGuard keys
+  which can carry application credentials. Never edit them by hand
+  — the Users page owns the passwords — and never copy them into the
+  backup directory: Unraid Connect's flash backup uploads it
   (<https://docs.unraid.net/unraid-connect/automated-flash-backup/>).
 
 ## Plugins and Community Applications
@@ -139,8 +136,7 @@ repositories on GitHub where the docs are silent.
   or a VM with `docker` or `virsh`: Unraid does not know about the
   change, and an update from the Docker tab recreates the container
   from its template. Hand the change to the user as web UI steps.
-- Stopping a container or a VM takes a service down: ask first.
-  Stopping the array stops every container and VM with it.
+- Stopping the array stops every container and VM with it.
 
 ## Storage: Array, Parity and Pools
 
@@ -151,9 +147,9 @@ repositories on GitHub where the docs are silent.
 - The disk taboos in `AGENTS.md` cover every array, parity, pool
   and boot device; a write that bypasses Unraid also invalidates
   parity for the whole array.
-- Never send anything to `mdcmd` but `status`: every other argument
-  is written straight into the array driver (`unraid/webgui`,
-  `sbin/mdcmd`). `mdcmd status` only prints `/proc/mdstat`.
+- Never run `mdcmd`: its arguments are written straight into the
+  array driver (`unraid/webgui`, `sbin/mdcmd`). Array state comes
+  from `var.ini` (see Housekeeping and Audits).
 - **Array operations belong to the user**, on Main → Array
   Operations: start, stop, parity check, rebuild, adding or
   replacing a disk, New Config. Hostwarden reports and names the
@@ -164,14 +160,6 @@ repositories on GitHub where the docs are silent.
   - "Do not use New Config for disk rebuilds": it clears the history
     a rebuild needs
     (<https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/array/array-health-and-maintenance/>).
-- Array state is in `/var/local/emhttp/var.ini` (`mdState`,
-  `mdNumDisabled`, `mdNumInvalid`, `mdNumMissing`, `mdResyncAction`,
-  and `sbSynced2`, the end of the last parity check as epoch
-  seconds, with `sbSyncErrs`); per-disk state in
-  `/var/local/emhttp/disks.ini` (`status`, `color`, `numErrors`,
-  `device`; an empty slot has `status="DISK_NP"`).
-  `/boot/config/parity-checks.log` is the parity history, one line
-  per check, newest last.
 
 ## Updates
 
@@ -182,11 +170,10 @@ repositories on GitHub where the docs are silent.
 - The documentation's order: back up the boot device, read the
   release notes, update the plugins, optionally stop the array,
   update, reboot
-  (<https://docs.unraid.net/unraid-os/updating-unraid/>). An update
-  needs a reboot (see Reboots).
+  (<https://docs.unraid.net/unraid-os/updating-unraid/>).
 - Which versions the updater offers depends on the server's release
   branch, Stable or Next, and the branch is changed in the Unraid
-  account, not in the OS. Keep production servers on Stable.
+  account, not in the OS.
 - Pending updates: compare the version in `/etc/unraid-version` with
   the newest stable release from a live lookup
   (`rules/version-check.md`); the release notes are at
@@ -198,8 +185,8 @@ repositories on GitHub where the docs are silent.
 
 ## Reboots
 
-- Ask first, and name what stops: the array, every container, every
-  VM, every share.
+- Name what stops: the array, every container, every VM, every
+  share.
 - Reboot through the web UI or with `reboot`. Never `powerdown`: it
   is deprecated and, without `-r`, halts the machine (`AGENTS.md`
   taboo).
@@ -240,19 +227,28 @@ repositories on GitHub where the docs are silent.
 - The Linux baseline does not apply (see What Does Not Apply).
   Housekeeping reads, in one call:
   ```
+  cat /etc/unraid-version
+  date +%s
   grep -E "^(mdState|mdNumDisabled|mdNumInvalid|mdNumMissing|mdResyncAction|sbSynced2|sbSyncErrs)=" /var/local/emhttp/var.ini
-  grep -E "^(\[|status=|color=|numErrors=|device=)" /var/local/emhttp/disks.ini
+  awk -F= '/^\[/{s=$0} /^(status|color|numErrors)=/{v[s]=v[s]" "$0} END{for(k in v) if(v[k]!~/_NP/) print k v[k]}' /var/local/emhttp/disks.ini
   ls /tmp/notifications/unread | wc -l
-  df -h -t vfat -t xfs -t btrfs -t zfs
-  uptime
+  df -h -t vfat -t xfs -t btrfs
+  zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
     echo "== $d"
-    smartctl -n standby -H -A /dev/$d | grep -E "result:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|Media_and_Data|Percentage Used"
+    smartctl -n standby -H -A /dev/$d | grep -E "result:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|Media and Data|Percentage Used"
   done
   ```
-  `-n standby` leaves a spun-down disk asleep. `df -t` lists local
-  file systems only, so a dead network mount under `/mnt/remotes`
-  cannot hang the call; ZFS prints one row per dataset.
+  `var.ini`'s `sbSynced2` is the end of the last parity check in
+  epoch seconds, measured against `date +%s`. `disks.ini` lists
+  every slot; the `awk` prints one line per filled slot and drops
+  the empty ones, whose status contains `_NP`. `-n standby` leaves
+  a spun-down disk asleep. `df -t` lists local file systems only,
+  so a dead network mount under `/mnt/remotes` cannot hang the
+  call; the btrfs rows include the `docker.img` and `libvirt.img`
+  loop mounts. Unread notifications sit in
+  `/tmp/notifications/unread/` by default; the user can move them
+  under Settings → Notifications.
 - Findings:
   - the array not `STARTED`, a disabled, invalid or missing disk, a
     disk whose `color` is not green, `numErrors` above 0;
@@ -268,15 +264,14 @@ repositories on GitHub where the docs are silent.
   - no boot device backup: no Unraid Connect flash backup and no
     recent zip from Main → Boot Device → Boot Device Backup, which
     the user downloads and keeps off the server;
-  - unread notifications in `/tmp/notifications/unread/`, the
-    default path, which the user can change under Settings →
-    Notifications; list them only when the user asks.
+  - unread notifications; list them only when the user asks.
 - A security audit reports instead: SSH and Telnet state and port,
   root's authorized keys by fingerprint, whether the web UI answers
   on HTTPS only, port forwards or a DMZ the user describes, the
   installed plugins and their authors, containers running
   privileged or with host networking, and shares exported
   publicly.
-- Fleet audit: compare Unraid servers only with each other; a
-  missing firewall or `unattended-upgrades` is not drift (see What
-  Does Not Apply).
+- Fleet audit: compare Unraid servers only with each other, on the
+  version and release type, SSH state and port (`USE_SSH`, `PORTSSH`
+  in `/boot/config/ident.cfg`), and the age of the last parity
+  check. A missing firewall or `unattended-upgrades` is not drift.

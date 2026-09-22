@@ -109,10 +109,10 @@ skill says so where it needs it.
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below. The same lines
-   carry the version of Proxmox VE, OPNsense,
-   pfSense and Unraid; any other appliance file says
-   how to read its own.
+   `@appliance`. See Appliances below. Where the probe
+   already runs the version command the appliance
+   file's Version Detection names, the version is on
+   these lines; otherwise run that command.
 
 4. Create a server memory file.
 
@@ -136,11 +136,14 @@ prints for a missing one depends on the shell.
 | FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
 | FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
-| none    | `unraid-version`   | `rules/appliance/unraid.md`     |
+| none    | `version="…"`      | `rules/appliance/unraid.md`     |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
 itself; its file says to stop there.
+`version="…"` is the content of `/etc/unraid-version`
+on a line of its own; an error that names the file is
+no match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way
