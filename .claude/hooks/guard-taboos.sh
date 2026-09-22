@@ -592,6 +592,78 @@ KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}[Ss][Ss][Hh][Dd]_[Cc][Oo][Nn][Ff][Ii][Gg])"
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
+# --- a guest that has never run --------------------------------
+# AGENTS.md -> Critical Safety Rules lets the first-boot
+# configuration of a guest that has never started set sshd's login
+# options and keys, whatever form that configuration takes, and
+# hostwarden-new-guest writes it. Nothing here can prove that a
+# root filesystem or an image belongs to such a guest, so the two
+# shapes a manager owns are put to the user with the path in front
+# of them, and everything else stays denied.
+#
+#   - the root filesystem of a container under its manager's own
+#     directory: /var/lib/lxc/<name>/rootfs, /var/lib/machines/
+#     <name>, an Incus or LXD container in its storage pool. A
+#     path under one of those is not the running system's /etc.
+#   - a disk image a libguestfs tool opened with -a or --add.
+#     libguestfs refuses a disk another process has open, so that
+#     is a file rather than a server. A -d or --domain names a
+#     libvirt guest that may be running and does not count.
+#
+# /mnt and /media are deliberately absent: a bind mount of the
+# live system is spelled exactly the same way, and what the guard
+# cannot tell apart it must not decide.
+#
+# Asking, not allowing, for the same reason the guest rules ask:
+# the everyday mistake here is a path that looks like a guest and
+# is the host. Where no prompt can reach a human the answer is
+# deny, and the user runs it themselves.
+GUESTROOT='(/var/lib/lxc/[^/[:space:]]+/rootfs|/var/lib/machines/[^/[:space:]]+|/var/lib/(incus|lxd)/storage-pools/[^/[:space:]]+/containers/[^/[:space:]]+/rootfs)'
+IMAGETOOL='(virt-customize|virt-copy-in|virt-edit|virt-sysprep|guestfish|guestmount)'
+
+first_boot_only() {
+  # first_boot_only <path pattern> -- true when the command works
+  # on an image through libguestfs, or when EVERY occurrence of
+  # that pattern sits under a guest root. One unqualified /etc/ssh
+  # beside a qualified one is enough to fail: a command that
+  # touches both is a command that touches the host.
+  if hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)"; then
+    # A domain may be running, whatever else the line carries.
+    hit '(^|[[:space:]])(-d|--domain)([[:space:]]|=)' && return 1
+    # Every invocation must name an image with -a, scoped to the
+    # invocation rather than to the whole string.
+    hit_without "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
+      '(^|[[:space:]])(-a|--add)([[:space:]]|=)' || return 0
+  fi
+  FB_ALL=$(segments | grep -oE "$1" | grep -c .)
+  FB_UNDER=$(segments | grep -oE "$GUESTROOT$1" | grep -c .)
+  [ "$FB_ALL" -gt 0 ] && [ "$FB_ALL" -eq "$FB_UNDER" ]
+}
+
+first_boot_ask() {
+  # first_boot_ask <what> -- ask where a prompt reaches a human,
+  # deny where none does. No jq means no mode, hence deny.
+  FB_MODE=
+  if command -v jq >/dev/null 2>&1; then
+    FB_MODE=$(printf '%s' "$INPUT" \
+      | jq -r '.permission_mode // empty' 2>/dev/null) || FB_MODE=
+  fi
+  case $FB_MODE in
+  default|acceptEdits|plan|auto)
+    decide ask "$1 into a guest that has not started yet. Only the \
+first-boot configuration of a guest that never ran may set sshd's \
+login options and keys (AGENTS.md - Critical Safety Rules). Check \
+that the path is the guest's and not this host's before approving."
+    ;;
+  *)
+    decide deny "$1 needs a confirmation prompt, and this session \
+shows none, or a permission mode this hook does not know. Not a \
+taboo: run it in a session that asks, or let the user run it. Do \
+not rephrase the command."
+    ;;
+  esac
+}
+
 # A general-purpose language runtime. See the interpreter section
 # at the bottom for why this list, and not a list of the ways
 # those runtimes spell a write.
@@ -1071,6 +1143,9 @@ if [ "$HAS_KEY" -eq 1 ] \
   && { hit "(^|[^[:alnum:]_-])($CLOBBER)([^[:alnum:]_-]|\$)" \
        || hit '(^|[[:space:]])(-delete|--remove-s(ource|ent)-files)([[:space:]]|$)'; }
 then
+  if first_boot_only "$KEY"; then
+    first_boot_ask "deleting, moving or re-permissioning SSH keys"
+  fi
   deny "deleting, moving or re-permissioning SSH keys is never \
 allowed"
 fi
@@ -1114,8 +1189,13 @@ if hit "$SSHD"; then
          && hit '(^|[[:space:]])-i'; } \
     || hit "(^|[^[:alnum:]_-])$EDITOR([^[:alnum:]_-]|\$)" \
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
+    || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
+         && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)"; } \
     || writes_to "$SSHD"
   then
+    if first_boot_only "$SSHD"; then
+      first_boot_ask "writing sshd's configuration"
+    fi
     deny "modifying sshd_config or a file merged into it is \
 never allowed (reading it is fine: cat, grep, sshd -T)"
   fi

@@ -398,6 +398,51 @@ check_mode deny default 'pct shutdown 105; shutdown -h now'
 check_mode deny default 'ssh root@h "qm shutdown 100 && shutdown now"'
 check_mode deny default 'pct exec 105 -- shutdown -h now'
 
+# --- a guest that has never run ---------------------------------
+# AGENTS.md -> Critical Safety Rules lets the first-boot
+# configuration of a guest that never started set sshd's login
+# options and keys. The guard cannot prove a root filesystem
+# belongs to such a guest, so it asks for the two shapes a manager
+# owns and denies everything else. hostwarden-new-guest writes
+# these files; references/lxc.md and references/image-prep.md are
+# where they come from.
+FB_LXC=/var/lib/lxc/web4/rootfs/etc/ssh/sshd_config.d/10-hostwarden.conf
+FB_IMG=/var/lib/libvirt/images/web1.qcow2
+check deny "scp 10-hostwarden.conf root@h:$FB_LXC"
+check_mode ask default "scp 10-hostwarden.conf root@h:$FB_LXC"
+check_mode ask default "rsync a.conf root@h:/var/lib/machines/web4/etc/ssh/sshd_config.d/"
+check_mode ask default "tee $FB_LXC"
+check_mode ask default "sed -i s/x/y/ /var/lib/lxc/web4/rootfs/etc/ssh/sshd_config"
+check_mode ask default "rm /var/lib/lxc/web4/rootfs/etc/ssh/ssh_host_ed25519_key"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in 10-hostwarden.conf:/etc/ssh/sshd_config.d"
+check_mode ask default \
+  "guestfish --rw -a $FB_IMG -i write /etc/ssh/sshd_config.d/10-hostwarden.conf x"
+# Where no prompt reaches a human, the answer is deny, as it is
+# for stopping a guest.
+for m in acceptEdits plan auto; do
+  check_mode ask "$m" "scp 10-hostwarden.conf root@h:$FB_LXC"
+done
+for m in bypassPermissions dontAsk bogus; do
+  check_mode deny "$m" "scp 10-hostwarden.conf root@h:$FB_LXC"
+done
+# The running system is never one of these, whatever it is called.
+# /mnt is the live system as often as it is an image, one
+# unqualified path beside a qualified one is still the host, and
+# -d names a libvirt guest that may be running.
+check_mode deny default "cp 10-hostwarden.conf /etc/ssh/sshd_config.d/10-hostwarden.conf"
+check_mode deny default "cp 10-hostwarden.conf /mnt/etc/ssh/sshd_config.d/x.conf"
+check_mode deny default "rm /etc/ssh/ssh_host_ed25519_key"
+check_mode deny default \
+  "scp a.conf root@h:$FB_LXC b.conf root@h:/etc/ssh/sshd_config.d/b.conf"
+check_mode deny default \
+  "virt-customize -d web1 --copy-in 10-hostwarden.conf:/etc/ssh/sshd_config.d"
+# Reading stays reading, and the seed the guest actually reads is
+# not sshd's config at all.
+check pass "cat /var/lib/lxc/web4/rootfs/etc/ssh/sshd_config"
+check pass "scp user-data root@h:/var/lib/lxc/web4/rootfs/var/lib/cloud/seed/nocloud-net/user-data"
+check pass "virt-customize -a $FB_IMG --copy-in 90-hostwarden.cfg:/etc/cloud/cloud.cfg.d"
+
 # --- SSH keys destroyed without rm/shred/unlink ----------------
 check deny 'echo "" > /root/.ssh/authorized_keys'
 check deny ': > /etc/ssh/ssh_host_ed25519_key'
