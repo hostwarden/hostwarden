@@ -14,6 +14,7 @@
 #   CORPUS_ROOT   — the repository root, so a path printed in a
 #                   failure reads the way a reader would write it
 #   corpus_files  — prints every file in the corpus, one per line
+#   FENCE_AWK     — the awk function fenced(), below
 #
 # The corpus is what the repository ships, which is what git
 # would carry: tracked files, plus files that are new and not
@@ -62,3 +63,22 @@ corpus_files() {
     | CORPUS_ROOT="$CORPUS_ROOT" awk \
       '{ print ENVIRON["CORPUS_ROOT"] "/" $0 }'
 }
+
+# fenced(line) -- awk: whether a line opens, sits in or closes a
+# fenced block. Inside one, a `#` line is a shell comment rather
+# than a heading, and a long line is a command rather than prose;
+# the guard matrix runs what the blocks hold through the guard. As
+# in Markdown, only a run of the opener's character at least as
+# long, and nothing after it, closes the block: a four-backtick
+# fence that shows a three-backtick example stays open across it.
+# FM holds the open marker; reset it per file.
+# shellcheck disable=SC2034 # read by the scripts that source this
+FENCE_AWK='
+function fenced(l,   m) {
+  m = l; sub(/^[ \t]*/, "", m); sub(/[ \t]+$/, "", m)
+  if (FM == "") {
+    if (!match(m, /^(```+|~~~+)/)) return 0
+    FM = substr(m, 1, RLENGTH)
+  } else if (m ~ /^(`+|~+)$/ && index(m, FM) == 1) FM = ""
+  return 1
+}'
