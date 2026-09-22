@@ -27,15 +27,27 @@ Linux family but Alpine — read the journal:
 ```
 journalctl -t hostwarden -t heinzel --since "7 days ago" \
   --no-pager -q
+journalctl --list-boots --no-pager | head -2
 ```
+
+The second line names the oldest boot the journal holds
+and its first entry; newer versions print a header
+line above it. Whether the journal survives a reboot
+depends on the distribution's build and on
+`journald.conf`: with `Storage=volatile`, or `auto`
+and no `/var/log/journal`, it lives in
+`/run/log/journal` and is lost at every reboot. The
+boot list answers for this host whichever applies,
+and also where the journal was vacuumed down to the
+current boot.
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
-user's own entries. When connected as non-root, try
-`sudo -n journalctl …` first. If sudo is unavailable,
-run the command without `-q` and watch for the "not
-seeing messages from other users" hint, and tell the
-user the check may be incomplete.
+user's own entries. When connected as non-root, run
+both lines as `sudo -n journalctl …` first. If sudo
+is unavailable, run them without `-q` and watch for
+the "not seeing messages from other users" hint, and
+tell the user the check may be incomplete.
 
 Without a `## Logs` section and without systemd, tell
 the user the check could not run.
@@ -44,10 +56,13 @@ If the command returns nothing — and it actually ran,
 and nothing limited what it can see —
 skip silently: no activity to report.
 
-Where the Logs section the read-back came from says
-the log does not survive a reboot, an empty result covers
-only the time since the last boot. Run `uptime` in
-the same call as the read-back, tell the user how far
+An empty result covers only the time since the last
+boot in two cases: where the Logs section the
+read-back came from says the log does not survive a
+reboot — run `uptime` in the same call as the
+read-back — and where the oldest boot the journal
+holds is the current one, index `0`, with its first
+entry inside the seven days. Tell the user how far
 back the check reached, and read the local changelog
 for the time before it.
 

@@ -12,6 +12,10 @@
   OPNsense with `/var` on a RAM disk, the journal lines are gone
   after a reboot: Hostwarden names the time since boot and reads
   your local changelog for the time before.
+- **The same holds for a journal or syslog that starts at the
+  last boot.** On systemd hosts Hostwarden asks the journal for
+  its oldest boot, so a journal kept in `/run` counts too, and on
+  Alpine it notices busybox's RAM buffer and diskless mode.
 - **A firewall or network change undoes itself unless SSH
   still works.** Before applying one, Hostwarden arms a
   revert on the host that fires after five minutes, and

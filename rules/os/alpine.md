@@ -247,20 +247,27 @@ Alpine logs through syslog, to `/var/log/messages`:
 
 - **busybox `syslogd`** (the `syslog` service) by default. It
   rotates at 200 KB and keeps one old file, `messages.0`, so the
-  file may cover less than a week on a busy host. With `-C` in
-  `SYSLOGD_OPTS` (`/etc/conf.d/syslog`) it writes to a memory
-  buffer instead: read it with `logread`. The file is
-  `root:wheel`, mode 0640.
+  file may cover less than a week on a busy host. The file is
+  `root:wheel`, mode 0640. With `-C` in `SYSLOGD_OPTS`
+  (`/etc/conf.d/syslog`) it writes to a memory buffer instead:
+  read it with `logread`. The buffer is a ring in RAM and does not
+  survive a reboot.
 - **syslog-ng** or **rsyslog** where installed. Alpine's
   syslog-ng writes `/var/log/messages` as `root:adm` 0640, plus
   `auth.log`, `kern.log` and others; logrotate compresses older
   files.
 
+In diskless mode the root file system is a tmpfs and `lbu commit`
+saves only what it tracks, `/etc` by default, so `/var/log` does
+not survive a reboot either; then `df /var/log` names `tmpfs`. In
+data disk mode `/var` sits on disk and survives.
+
 Kernel messages: `dmesg`.
 
 Hostwarden's journal entries (`rules/changelog.md`) are read back
 from there, both tags (`rules/activity-check.md`), in one call
-that also shows whether a syslog daemon runs:
+that also shows whether a syslog daemon runs and, with `uptime`,
+how far back a log that does not survive a reboot reaches:
 
 ```
 rc-status -a | grep syslog
@@ -270,6 +277,7 @@ elif [ -r /var/log/messages ]; then
   grep -hE "hostwarden|heinzel" /var/log/messages.0 \
     /var/log/messages 2>/dev/null | tail -20
 else echo "messages: not readable"; fi
+df /var/log; uptime
 ```
 
 This shows the last 20 matches, not a strict 7-day window.
