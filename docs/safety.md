@@ -7,7 +7,10 @@ under pressure.
 
 - **Asks before acting** — destructive commands,
   firewall changes, reboots, and service restarts
-  all require your explicit approval. Config reloads
+  all require your explicit approval. A firewall or
+  network change arms its own undo first: it reverts
+  after five minutes unless a new SSH login succeeds
+  (`rules/ssh-safety-net.md`). Config reloads
   (`systemctl reload`) auto-proceed when the
   service's config test passes — see
   `rules/service-reload.md` and the

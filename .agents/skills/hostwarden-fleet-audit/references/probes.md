@@ -35,6 +35,7 @@ apt-config dump 2>/dev/null | grep \
   -e '^APT::Periodic::Update-Package-Lists ' \
   -e '^APT::Periodic::Unattended-Upgrade ' \
   -e '^Unattended-Upgrade::Origins-Pattern::' \
+  -e '^Unattended-Upgrade::Allowed-Origins::' \
   -e '^Unattended-Upgrade::Mail ' \
   -e '^Unattended-Upgrade::MailReport ' \
   -e '^Unattended-Upgrade::Automatic-Reboot ' \
@@ -42,15 +43,31 @@ apt-config dump 2>/dev/null | grep \
   -e '^Unattended-Upgrade::Automatic-Reboot-Time ' \
   -e '^Unattended-Upgrade::Remove-Unused-Kernel-Packages ' \
   -e '^Unattended-Upgrade::Remove-Unused-Dependencies '
+# Ubuntu: Pro coverage decides what the security runs can
+# install (rules/os/debian.md → Ubuntu Pro and ESM).
+if command -v pro >/dev/null 2>&1; then
+  pro status --format json 2>/dev/null | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+print("pro.attached=%s" % s["attached"])
+for v in s["services"]:
+    print("pro.%s=%s" % (v["name"], v.get("status", "not-attached")))'
+else
+  echo "pro=n/a"
+fi
 ```
 
 Row keys to extract for the table:
 
 - `APT::Periodic::Update-Package-Lists`
 - `APT::Periodic::Unattended-Upgrade`
-- `Origins-Pattern` count (number of `::` entries)
-- `Origins-Pattern` contains `${distro_codename}-security`
-  pattern (yes/no)
+- Origins count (number of `Origins-Pattern::` plus
+  `Allowed-Origins::` entries)
+- Origins cover the security archive (yes/no): Debian
+  lists it in `Origins-Pattern` as
+  `codename=${distro_codename}-security`, Ubuntu in
+  `Allowed-Origins` as
+  `${distro_id}:${distro_codename}-security`
 - `Mail`
 - `MailReport` (or legacy `MailOnlyOnError`)
 - `Automatic-Reboot`
@@ -58,6 +75,11 @@ Row keys to extract for the table:
 - `Automatic-Reboot-Time` (present/absent — absent is the
   preferred fleet policy)
 - `Remove-Unused-Kernel-Packages`
+- Pro attached, and esm-infra, esm-apps, livepatch
+  enabled (Ubuntu; `n/a` elsewhere or without `pro`)
+
+Highlight as drift: Pro attached on some Ubuntu hosts but
+not others, or different ESM services enabled.
 
 ## 2. sshd effective config
 
@@ -257,6 +279,13 @@ Highlight as drift:
 test -f /var/run/reboot-required && echo "pending=yes" \
   || echo "pending=no"
 uptime -s
+# needrestart: an uncommented restart mode, if any.
+if command -v needrestart >/dev/null 2>&1; then
+  grep -rhs '^[[:space:]]*\$nrconf{restart}' /etc/needrestart/ \
+    || echo "needrestart=default"
+else
+  echo "needrestart=absent"
+fi
 ```
 
 Row keys:
@@ -264,6 +293,11 @@ Row keys:
 - `/var/run/reboot-required` present? (kernel waiting for
   reboot)
 - Boot time / uptime
+- needrestart restart mode: the value `$nrconf{restart}`
+  sets, `default`, or `absent`.
+  `default` on Ubuntu 24.04 and later means the apt hook
+  restarts services itself (`rules/os/debian.md` →
+  Non-interactive apt runs)
 
 Highlight as drift / warning:
 
@@ -271,3 +305,5 @@ Highlight as drift / warning:
   has not fired despite a pending kernel.
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
+- Different needrestart restart modes: one host restarts
+  services after every apt run, another only lists them.

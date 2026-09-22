@@ -217,7 +217,7 @@ Source for everything below unless noted: the admin guide,
 - Guests with `onboot: 1` start when the node boots. HA-managed
   guests ignore `onboot` and start order.
 
-## Networking
+## Replace: Networking
 
 - `/etc/network/interfaces` with `ifupdown2`. Guests hang off
   bridges (`vmbr0`, …); the node's own IP usually sits on a bridge

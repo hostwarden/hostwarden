@@ -165,6 +165,10 @@ service as shipped cuts the SSH session. Before
    packaged rule, `/usr/share/nftables.avail/50_sshd.nft` from
    `openssh-nftrules`, opens port 22 only.
 3. Test the ruleset: `rc-service nftables checkconfig`.
+4. Start it through `rules/ssh-safety-net.md`, with
+   `nft flush ruleset` as the revert. Alpine ships no
+   `at` and no systemd, so without `at` installed the
+   start is the user's, with console access ready.
 
 Discuss all of it with the user first (`rules/firewall-changes.md`).
 
