@@ -44,7 +44,10 @@ or command. Otherwise the server address is:
   (`rules/mesh-vpn.md`);
 - `127.0.0.1` or `::1` → **a local tunnel**, such as Cloudflare
   Tunnel or a port forward;
-- a private or unique local address → **LAN**, or a site VPN;
+- a private or unique local address → **LAN** or a site VPN,
+  but a gateway that forwards the SSH port from the internet
+  leaves the same address behind: say unknown unless the
+  workstation's own configuration, or the user, says which;
 - `100.64.0.0/10` with no agent found → carrier-grade NAT or an
   unknown VPN: say unknown;
 - anything else → **WAN**.

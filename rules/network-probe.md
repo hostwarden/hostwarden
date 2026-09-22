@@ -402,8 +402,9 @@ dig +short -x <each public address>
 Resolve each PTR name the same way to confirm it
 points back. The check of the A record against
 `- IP:` stays with `rules/dns-aliases.md` → IP
-Verification; here compare A and AAAA with the
-addresses on the uplink:
+Verification; here compare A and AAAA with every
+address section B listed, not the uplink's alone: a
+public address often sits on a second interface.
 
 - An A or AAAA pointing at an address the host does
   not have breaks inbound connections for clients
