@@ -56,6 +56,13 @@ verdict() {
   if printf '%s' "$OUT" \
     | grep -q '"permissionDecision":"deny"'; then
     GOT=deny
+    # A deny Claude Code cannot parse is no deny at all: a reason
+    # with a backslash in it once broke the JSON unnoticed.
+    if command -v jq >/dev/null 2>&1 && ! printf '%s' "$OUT" \
+      | jq -e '.hookSpecificOutput.permissionDecision == "deny"' \
+        >/dev/null 2>&1; then
+      GOT="deny as invalid JSON"
+    fi
   else
     GOT=pass
   fi
@@ -436,6 +443,8 @@ check pass 'ssh host "icacls C:\ProgramData\ssh\ssh_host_ed25519_key"'
 check pass 'ssh host "findstr Port C:\ProgramData\ssh\sshd_config"'
 check pass 'ssh host "Get-Acl C:\ProgramData\ssh\sshd_config | Format-List"'
 check pass 'ssh host "Get-Service sshd; Get-Content C:\ProgramData\ssh\sshd_config"'
+check pass 'ssh host "del C:\ProgramData\ssh-backups\old.txt"'
+check pass 'ssh host "Set-Content C:\ProgramData\ssh_notes\report.txt x"'
 check pass 'shutdown.exe /r /t 0'
 check pass 'shutdown.exe /a'
 check pass 'Shutdown.exe -r -t 0'
