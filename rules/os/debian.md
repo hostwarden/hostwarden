@@ -208,8 +208,18 @@ source is missing, and add a new source in the format
 the host already uses. A backup of a `.sources` or `.list` file
 never stays in `sources.list.d/` (`rules/backups.md`).
 
+Debian 12 and newer publish firmware in a component of its
+own, `non-free-firmware`, which the installer enables; a host
+upgraded from an older release carries it only where someone
+added it. Where it is absent, `apt-cache policy` answers
+`Candidate: (none)` for a package that does exist, the CPU
+microcode packages `intel-microcode` and `amd64-microcode`
+among them. Ubuntu has no such component and publishes both
+in `main`.
+
 Sources: https://documentation.ubuntu.com/release-notes/24.04/,
-https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html
+https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html,
+https://www.debian.org/releases/bookworm/amd64/release-notes/ch-whats-new.en.html
 
 ## Version Detection
 
