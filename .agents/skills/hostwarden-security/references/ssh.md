@@ -97,8 +97,9 @@ sudo launchctl list com.openssh.sshd 2>/dev/null
 ```
 
 - If Remote Login is **off** → **INFO** "Remote Login (SSH) is
-  disabled — SSH checks skipped." Stop here, no further SSH
-  checks needed.
+  disabled — sshd checks skipped." Skip the sshd checks in this
+  file, but still run SSH servers past sshd below: an agent
+  serves its own SSH whether or not Remote Login is on.
 - If Remote Login is **on** → proceed with the same `sshd -T`
   / config file approach as Linux.
 
