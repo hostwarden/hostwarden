@@ -48,17 +48,24 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.
   `list --all` is the light listing; `list --all --autostart` for
-  autostart, and per domain `domuuid`, `domiflist`, and for what
-  the host passed to it the whole `<hostdev>` and `<filesystem>`
-  blocks of its XML, since a disk's `<source>` and a hostdev's
-  guest-side `<address>` look alike out of context:
+  autostart, and per domain in one loop its UUID, its interfaces
+  and what the host passed to it:
 
   ```sh
-  virsh -c qemu:///system dumpxml <dom> | sed -n '/<hostdev/,/<\/hostdev>/p; /<filesystem/,/<\/filesystem>/p'
+  v='virsh -c qemu:///system'
+  $v list --all --name | while read -r d; do
+    [ -n "$d" ] || continue
+    echo "@dom $d"; $v domuuid "$d"; $v domiflist "$d"
+    $v dumpxml "$d" | sed -n "/<hostdev/,/<\/hostdev>/p; /<filesystem/,/<\/filesystem>/p; /<interface type='hostdev'/,/<\/interface>/p"
+  done
   ```
 
-  In a PCI `<hostdev>` the host's device is the `<address>` inside
-  `<source>`; the one after it is where the guest sees it.
+  The `sed` keeps whole blocks, since a lone `<source>` or
+  `<address>` line is ambiguous: `<hostdev>` is a device,
+  `<filesystem>` a host directory, and an `<interface>` of type
+  `hostdev` an SR-IOV function. In the first and last, the host's
+  device is the `<address>` inside `<source>`; one after it is
+  where the guest sees it.
 - **Incus / LXD:** the listing from `rules/system-containers.md`
   → Reaching It, with `--format json`: it carries each
   instance's project, its `expanded_config` the

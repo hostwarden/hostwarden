@@ -182,10 +182,9 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   appears as a VM with `is-control-domain=true`; never act on it.
 - **Devices passed through:** `xe pci-list params=all` names each
   PCI device with every field this version has, dom0's access
-  among them, and the `pci` key of a VM's `other-config` the ones
-  that VM holds; `xe vm-param-get uuid=<uuid>
-  param-name=other-config param-key=pci` reads it for one VM. Both
-  ride in the Inventory call below. Read them with
+  among them, and the `pci` key of each VM's `other-config` the
+  ones it holds; both come from the Inventory call below. Read
+  them with
   `.agents/skills/hostwarden-housekeeping/references/passthrough.md`;
   a dom0 that no longer reaches a device is that file's reserved
   device.
@@ -199,8 +198,7 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 - With HA on, a VM shut down from inside the guest is restarted by
   default (`ha-reboot-vm-on-internal-shutdown`).
 - **Inventory** (`rules/hypervisors.md`): record
-  `Hypervisor: XCP-ng (xe)`. The full inventory is one call of
-  three commands, the last for Devices passed through above:
+  `Hypervisor: XCP-ng (xe)`. The full inventory is one call:
 
   ```sh
   xe vm-list is-control-domain=false params=uuid,name-label,power-state,resident-on,is-a-template,other-config

@@ -75,9 +75,9 @@ appliance its own file's Inventory entry): the `hostpci`, `usb`,
 `dev`, `mp` and `lxc.` lines of a Proxmox guest configuration,
 the `lxc.mount.entry` and device lines of a plain LXC
 container's `config`, `expanded_devices` under Incus and LXD,
-`<hostdev>` and `<filesystem>` in a libvirt domain's XML, and for
-Hyper-V `rules/os/windows.md` → Housekeeping. No call of this
-file's own.
+`<hostdev>`, `<filesystem>` and a `hostdev` `<interface>` in a
+libvirt domain's XML, and for Hyper-V `rules/os/windows.md` →
+Housekeeping. No call of this file's own.
 
 A container takes a device node, not a PCI function; the same
 lines carry both.
@@ -135,24 +135,25 @@ inventory also has — a recorded device that is gone, a device
 memory does not list yet — count here against the `Passthrough:`
 line (`references/usb-devices.md` → Findings). On top:
 
-- **WARN:** a bind source on the root filesystem or another local
-  one where its `Passthrough:` entry records a network share. The
-  share is not mounted, and the guest may be writing into the
-  host's system disk.
-- **INFO:** a bind source on a mounted filesystem other than the
-  recorded one, and not a local one standing in for a share: the
-  data moved rather than fell away. Update the entry.
+- **WARN:** a bind whose recorded `SOURCE` is missing from the
+  `findmnt` output, its source now on another filesystem — above
+  all the root one. What it sat on is not mounted, and the guest
+  may be writing into the host's system disk.
+- **INFO:** a bind source on another filesystem while the recorded
+  one is still mounted: the data moved. Update the entry.
 - **INFO:** a reserved device no guest claims. `vfio-pci` also
   serves the host's own userspace drivers (DPDK, SPDK), so ask
   once whether a host workload uses it and record the answer in
   `Passthrough:` (`01:00.0 (host: DPDK)`); a device nobody claims
   after that is a **WARN**.
 - **WARN:** a guest configured for a device the host no longer
-  has. The host's side above lists only devices a stub holds,
-  and a stopped VM's device may be back on its own driver, so
-  look the configured address up in sysfs before reporting it —
-  `ls -d /sys/bus/pci/devices/0000:01:00.*` — and a USB device in
-  the `==` lines of `references/usb-devices.md`. Only one that is
-  in neither is gone.
+  has. The host's side lists only what a stub holds, and a stopped
+  VM's device may be back on its own driver, so check the full
+  device list before reporting it. Resolve a Proxmox `mapping=` to
+  this node's `path=` first, then look the address up:
+  `ls -d /sys/bus/pci/devices/0000:01:00.*` on Linux, `pciconf -l`
+  without the `grep` on FreeBSD, `xe pci-list` from XCP-ng's
+  inventory; a USB device in the `==` lines of
+  `references/usb-devices.md`.
 - **INFO:** an `also` line — a device sharing its IOMMU group with
   a passed-through one while a host driver still holds it.

@@ -234,8 +234,10 @@ Source for everything below unless noted: the admin guide,
       /^lxc\.cgroup2\.devices\.allow:/p' "$f"
   done
   cat /etc/pve/ha/resources.cfg
-  pvesh get /cluster/mapping/pci --output-format json
-  pvesh get /cluster/mapping/usb --output-format json
+  if grep -qs 'mapping=' /etc/pve/qemu-server/*.conf; then
+    pvesh get /cluster/mapping/pci --output-format json
+    pvesh get /cluster/mapping/usb --output-format json
+  fi
   ```
 
   A VM's MAC is the value after its model (`virtio=`, `e1000=`)
@@ -245,15 +247,13 @@ Source for everything below unless noted: the admin guide,
   (`.agents/skills/hostwarden-housekeeping/references/passthrough.md`):
   a VM's `hostpci0:` names its device by PCI address
   (`01:00.0`; `01:00` is every function of it), `usb0:` by
-  `vendor:product` or a bus port, and either by `mapping=` instead:
-  a cluster-wide name the two `pvesh` lists resolve to a `path=`
-  and `id=` per node. They answer nothing on a release without
-  resource mappings, which then has none. A container's `dev0:`
-  is a device node. An `mp0:` is passthrough
-  only when its source is a host path: `/srv/media,mp=/media` is a
-  bind mount, a source under `/dev/` a device mount, and
-  `local-lvm:vm-101-disk-1,mp=/data` a volume on the container's
-  own storage, which is none of this. `resources.cfg` names the
+  `vendor:product` or a bus port, and either by `mapping=`
+  instead: a cluster-wide name the two `pvesh` lists resolve to a
+  `path=` and `id=` per node, read only where a guest uses one. A
+  container's `dev0:` is a device node. An `mp0:` is passthrough
+  when its source is a host path (`/srv/media,mp=/media`, or a
+  path under `/dev/`), not when it is a storage volume
+  (`local-lvm:vm-101-disk-1`). `resources.cfg` names the
   HA-managed guests (`vm: 101`, `ct: 102`); their entry says `HA`
   instead of autostart, since HA ignores `onboot`. The light
   listing is `qm list; pct list`.
