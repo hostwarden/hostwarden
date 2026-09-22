@@ -53,9 +53,13 @@ T=$(printf '\t')
 tailscale debug netmap 2>&1 \
   | sed -n "/^$T\"SSHPolicy\": null/p; /^$T\"SSHPolicy\": {/,/^$T}/p"
 # NetBird, SSH Server not "Disabled" — flags of every profile
-grep -rHoE --include='*.json' \
-  '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)": *(true|false)' \
-  /var/lib/netbird /var/db/netbird /etc/netbird 2>/dev/null
+for f in /var/lib/netbird/*.json /var/db/netbird/*.json \
+         /etc/netbird/*.json; do
+  [ -f "$f" ] || continue
+  echo "== $f"
+  grep -oE '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)": *(true|false)' \
+    "$f"
+done
 # Nebula — its admin console, the whole sshd mapping
 sed -n '/^sshd:/,/^[^[:space:]#]/p' /etc/nebula/config.yml \
   2>/dev/null
@@ -67,9 +71,10 @@ done
 
 Print only these fields: the same files hold private keys, and
 NetBird's JSON can sit on one line with them, which is why its
-grep prints the matches alone (`-o`). The environment holds
-Newt's secret, which is why that grep only counts
-(`rules/secrets.md`).
+grep prints the matches alone (`-o`), with the file name from the
+loop rather than a GNU-only `--include` (`rules/busybox.md`). The
+environment holds Newt's secret, which is why that grep only
+counts (`rules/secrets.md`).
 
 **Tailscale.** The netmap format is internal and may change; read
 it, do not build on it. Each rule has `principals` (`userLogin` a
