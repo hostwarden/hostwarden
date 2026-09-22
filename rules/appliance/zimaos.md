@@ -170,7 +170,13 @@ third party says so; check it on the live host before relying on it.
   Settings → Data Migration moves Docker images and app data to
   another storage space
   (<https://www.zimaspace.com/docs/zimaos/data-migration>).
-- Read, as root: `docker inspect` for one container,
+- Read, as root, one container's image, state, mounts and ports
+  with
+  ```
+  docker inspect --format '{{.Config.Image}} {{.State.Status}} {{json .Mounts}} {{json .HostConfig.PortBindings}}' <name>
+  ```
+  never a bare `docker inspect`: it prints `Config.Env`, where apps
+  keep their credentials (`rules/secrets.md`).
   `docker stats --no-stream` only when resource use is the
   question.
 - **Do not create, change or remove an app's container with
