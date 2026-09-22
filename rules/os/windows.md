@@ -592,6 +592,51 @@ try { Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = '<sour
   the newest message of that source.
 - Otherwise **INFO** with the counts.
 
+**USB devices and UPS.** The inventory of
+`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`,
+from Plug and Play here, and a UPS that Windows itself watches
+as a battery:
+
+```powershell
+try { Get-PnpDevice -PresentOnly -ErrorAction Stop | Where-Object { $_.InstanceId -match '^(USB|HID)\\VID_' -and $_.Class -notin 'USB', 'DiskDrive', 'Keyboard', 'Mouse', 'Printer', 'Media', 'Camera', 'Image' } | Format-Table Class, FriendlyName, InstanceId -AutoSize } catch { "failed: $_" }
+try { Get-CimInstance Win32_Battery -ErrorAction Stop | Format-List Name, BatteryStatus, EstimatedChargeRemaining, EstimatedRunTime, Status } catch { "failed: $_" }
+try { Get-CimInstance -Namespace root\wmi -ClassName BatteryStatus -ErrorAction Stop | Format-List InstanceName, PowerOnline, Discharging, Charging, Critical } catch { "failed: $_" }
+try { Get-Service -ErrorAction Stop | Where-Object { $_.Name -match 'apcpbe|powerchute|nut|upsmon' -or $_.DisplayName -match 'PowerChute|UPS' } | Format-Table Name, DisplayName, Status } catch { "failed: $_" }
+```
+
+`VID_xxxx&PID_yyyy` in the instance ID is the `vendor:product`
+that file reads; the pipeline already leaves out the classes it
+names, `USB` being hubs and controllers. Record and rate as it
+says, with these differences:
+
+- A UPS is watched when `Win32_Battery` lists it — Windows
+  treats a HID UPS as a battery — or when a PowerChute or NUT
+  service runs. A service alone says only that something
+  watches the UPS, never how it is: where no battery appears
+  and NUT's `upsc.exe` is not there either, report the state as
+  not readable, **WARN**, and name the service. NUT for Windows
+  installs `upsc.exe` under `C:\Program Files\NUT\bin` and its
+  `upsmon.conf` beside it under `etc`; every UPS the local
+  `upsd` serves and every `MONITOR` target is queried, since a
+  client-only host has no local list. Only the target is read
+  from that file, never the password field. It reads as the UPS
+  section of
+  `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+  says:
+
+  ```powershell
+  $u = 'C:\Program Files\NUT\bin\upsc.exe'; $c = 'C:\Program Files\NUT\etc\upsmon.conf'; if (Test-Path $u) { $t = @(& $u -l 2>$null); if (Test-Path $c) { $t += @(Select-String -Path $c -Pattern '^\s*MONITOR\s+(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }) }; foreach ($n in ($t | Sort-Object -Unique)) { "== $n"; & $u $n } } else { 'upsc: not installed' }
+  ```
+- The power state comes from the `root\wmi` class, whose
+  `PowerOnline`, `Discharging` and `Critical` are the battery
+  driver's own flags: `Discharging` true or `PowerOnline` false
+  is the UPS on battery, **CRITICAL**, and so is `Critical`
+  true. `Win32_Battery` carries the name, the charge and the
+  runtime; its `BatteryStatus` `4` (low) and `5` (critical) are
+  **CRITICAL** too, while `1` is the CIM schema's `Other` and
+  decides nothing on its own. A `Status` other than `OK`:
+  **WARN**.
+
 **Time sync:**
 
 ```powershell

@@ -40,6 +40,8 @@ unattended run cannot:
   `Alert email:` / `Email source:` lines in
   `memory/servers/<host>/memory.md`;
 - the backup-presence question from housekeeping;
+- which machines a UPS powers, when the host has one
+  (`references/usb-devices.md`);
 - any first-connection onboarding for a new host.
 
 Once memory holds the answers, unattended runs have

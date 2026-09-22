@@ -39,7 +39,8 @@ applies before any of this runs.
    → CasaOS. The backup-presence check from `references/backup-presence.md`
    runs on every host, independent of `memory.md` entries — on
    a host whose OS file is not `sh`, in the form that file's
-   `## Housekeeping and Audits` section gives.
+   `## Housekeeping and Audits` section gives. So does the USB
+   inventory from `references/usb-devices.md`.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report — where the OS file uses the
@@ -77,12 +78,16 @@ Read on demand, only when the relevant section applies:
 - `references/backup-presence.md` — generic "any backup at
   all?" probe, the provider-snapshot question, and the
   `Backup:` acknowledgment line in `memory.md`.
+- `references/usb-devices.md` — the USB devices a host depends
+  on (UPS, radio sticks, serial lines, dongles), the `USB:` line
+  in `memory.md`, and a UPS that nothing watches.
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
-  GPU, MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
+  GPU, MariaDB/MySQL, WireGuard, UPS (NUT, apcupsd), Pi-hole,
+  AdGuard Home. Only run the
   ones the server's `memory.md` mentions.
 - `references/containers.md` — Docker, Podman and containerd:
   the engine, containers that should run, restart loops, health,
