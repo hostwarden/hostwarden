@@ -205,17 +205,12 @@ finding.
   (`ip -o link`, `ifconfig -a`, `Get-NetAdapter`); the host
   reads them from the guest's configuration. Compare them in
   lowercase with colons.
-- **UUID**, for a VM whose `Virtualization:` type has a source:
-  - `kvm`, `qemu`, `bhyve`: `/sys/class/dmi/id/product_uuid`,
-    readable by root;
-  - `xen`: `/sys/hypervisor/uuid` (the DMI file is byte-swapped
-    there).
-
-  Every other type, `unknown (VM)` and containers included, links
-  by MAC alone: in a container, DMI and `/sys/hypervisor`
-  describe the machine underneath.
-- **Hyper-V** gives no usable UUID (the DMI GUID survives a copy
-  of the VM), but tells its guests the host's name:
+- **UUID**, from the source `rules/os-detection.md` →
+  Virtualization names for the `Virtualization:` type. A type
+  without one, `unknown (VM)` and containers included, links by
+  MAC alone.
+- **Hyper-V** gives no usable UUID, but tells its guests the
+  host's name:
   `PhysicalHostNameFullyQualified` in
   `/var/lib/hyperv/.kvp_pool_3` on Linux, under
   `HKLM:\SOFTWARE\Microsoft\Virtual Machine\Guest\Parameters` on

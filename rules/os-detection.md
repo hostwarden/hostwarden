@@ -372,19 +372,20 @@ case that matches decides:
 
 DMI vendor (`sys_vendor`) and product
 (`product_name`) that name a hypervisor, with the
-type to record:
+type to record and where a VM of that type reads its
+UUID:
 
-| Vendor                  | Product           | Type        |
-| ----------------------- | ----------------- | ----------- |
-| `QEMU`                  | any               | `kvm`       |
-| `VMware, Inc.`          | any               | `vmware`    |
-| `innotek GmbH`          | any               | `oracle`    |
-| `Xen`                   | any               | `xen`       |
-| `BHYVE`                 | any               | `bhyve`     |
-| `Parallels …`           | any               | `parallels` |
-| `Microsoft Corporation` | `Virtual Machine` | `microsoft` |
-| `Amazon EC2`            | not `*.metal`     | `amazon`    |
-| `Google`                | any               | `google`    |
+| Vendor                  | Product           | Type        | UUID |
+| ----------------------- | ----------------- | ----------- | ---- |
+| `QEMU`                  | any               | `kvm`       | DMI  |
+| `VMware, Inc.`          | any               | `vmware`    | none |
+| `innotek GmbH`          | any               | `oracle`    | none |
+| `Xen`                   | any               | `xen`       | Xen  |
+| `BHYVE`                 | any               | `bhyve`     | DMI  |
+| `Parallels …`           | any               | `parallels` | none |
+| `Microsoft Corporation` | `Virtual Machine` | `microsoft` | none |
+| `Amazon EC2`            | not `*.metal`     | `amazon`    | none |
+| `Google`                | any               | `google`    | none |
 
 A cloud vendor also sells bare-metal machines under
 its own name, so `Amazon EC2` and `Google` count only
@@ -412,6 +413,21 @@ no hardware vendor either: the host is `unknown`.
 On Windows the same strings come from `Manufacturer`
 and `Model` in the `@hardware` part of
 `rules/os/windows.md` → Version Detection.
+
+The UUID column says where a VM reads the key
+`rules/hypervisors.md` → Linking Guest and Host
+compares. It goes with the type, however the type
+was found. DMI is
+`/sys/class/dmi/id/product_uuid`, readable by root;
+Xen is `/sys/hypervisor/uuid`, because the DMI file
+is byte-swapped there. `qemu`, which
+`systemd-detect-virt` prints for QEMU without KVM,
+reads DMI like `kvm`. Every other type has none,
+`unknown (VM)` and every container included:
+Hyper-V's DMI GUID survives a copy of the VM,
+VMware's is byte-swapped from hardware version 13,
+and in a container DMI and `/sys/hypervisor`
+describe the machine underneath.
 
 On WSL record `wsl (container)`, whatever the lines
 say; `Platform:` carries what that means.
