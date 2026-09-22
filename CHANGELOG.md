@@ -50,11 +50,12 @@
   your local changelog for the time before.
 - **On Windows, Hostwarden runs in WSL 2 only.** Git Bash,
   PowerShell and `cmd.exe` are not supported:
-  `bin/hostwarden-doctor` says so at session start, and
-  Claude Code's PowerShell tool is denied, because the guard
-  hooks never see what it runs. `docs/install.md` →
-  Windows has the setup, including the desktop app's WSL
-  sessions.
+  `bin/hostwarden-doctor` says so at session start and names
+  `wsl --install`, and Claude Code's PowerShell tool is
+  denied, because the guard hooks never see what it runs.
+  `docs/install.md` → Windows walks through the setup with
+  Ubuntu, Microsoft's default distribution, including the
+  desktop app's WSL sessions.
 - **A checkout that cannot hold symbolic links is caught.**
   `bin/hostwarden-doctor` and `bin/hostwarden-adopt` test for
   links before relying on them, and `docs/install.md` →

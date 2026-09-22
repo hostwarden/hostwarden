@@ -67,13 +67,29 @@ distribution, never on Windows itself. Inside WSL it
 runs exactly as on Linux, with nothing extra to set
 up.
 
-1. Install WSL 2 and a distribution such as Ubuntu,
-   and `git` inside it. `bin/hostwarden-doctor`
-   names the rest once the clone is there.
-2. Clone into the distribution's own filesystem —
+1. Install WSL 2 with Ubuntu, Microsoft's default and
+   the distribution this page assumes. It needs
+   Windows 10 version 2004 or later, or Windows 11.
+   In a PowerShell run as administrator:
+   ```
+   wsl --install
+   ```
+   Then restart Windows. Where WSL is already
+   installed, this prints its help instead; install
+   the distribution with `wsl --install -d Ubuntu`
+   (`wsl --list --online` shows the names).
+2. Open Ubuntu, create the Linux user it asks for,
+   and install git and jq:
+   ```
+   sudo apt-get update
+   sudo apt-get install git jq
+   ```
+   `bin/hostwarden-doctor` names the rest once the
+   clone is there.
+3. Clone into the distribution's own filesystem —
    under `~`, not under `/mnt/c` — as the
    [README](../README.md#steps) describes.
-3. Start Claude Code or OpenCode inside the
+4. Start Claude Code or OpenCode inside the
    distribution. In the Claude desktop app, pick the
    distribution in the Code tab's environment picker
    ([Claude Code Desktop in WSL](https://code.claude.com/docs/en/desktop-wsl)).

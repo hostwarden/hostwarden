@@ -54,7 +54,9 @@ OS=$(uname -s 2>/dev/null)
 case "$OS" in
   MINGW*|MSYS*|CYGWIN*)
     echo "hostwarden: required, missing: a Unix workstation —" \
-      "on Windows, run Hostwarden in WSL 2 (docs/install.md → Windows)"
+      "on Windows, run Hostwarden in WSL 2 with Ubuntu:" \
+      "wsl --install in an administrator PowerShell, then restart" \
+      "(docs/install.md → Windows)"
     [ -n "$QUIET" ] && exit 0
     exit 1 ;;
 esac
