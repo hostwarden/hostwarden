@@ -9,7 +9,9 @@ file away.
 Hostwarden — administration of Linux servers, FreeBSD servers, and
 macOS machines via SSH or locally. Supports any Linux distribution
 (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, and others), FreeBSD,
-and macOS. Manual administration only — no Ansible, Puppet or Chef.
+and macOS, and reports on Windows Server over SSH
+(`rules/os/windows.md`). Manual administration only — no Ansible,
+Puppet or Chef.
 
 ## Development or Operations
 
@@ -148,7 +150,9 @@ user when it will visibly slow the answer.
   runtime (`python3 -c`, `node -e`, `perl -e`, `awk`,
   `powershell.exe`). Such a
   command line cannot be shown to be read-only, so it counts as a
-  write and is blocked.
+  write and is blocked. On Windows, `type`, `dir` and `icacls`
+  do that job, each in an SSH call of its own
+  (`rules/os/windows.md` → Notes).
   This list holds on its own. Some tools also run a mechanical
   guard behind it — `CLAUDE.md` says where, and where nothing does,
   this list is the whole of the protection. Being blocked by the

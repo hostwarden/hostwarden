@@ -77,6 +77,22 @@ skill says so where it needs it.
    over SSH: the same menus reboot the machine or reset
    it to factory defaults.
 
+   One exception: when no line reads `Linux`,
+   `FreeBSD` or `Darwin` and the reply holds an error
+   that names `uname` as a command the shell could not
+   find — in whatever language the host speaks — a
+   shell ran the line and knows no `uname`. That is
+   how `cmd.exe` and PowerShell answer; PowerShell
+   also runs the rest, so a bare hostname can come
+   first. Go on with Windows below.
+
+   A first line that starts with `MINGW`, `MSYS_NT` or
+   `CYGWIN_NT` is a POSIX layer — Git Bash, MSYS2,
+   Cygwin — that Windows OpenSSH starts as its default
+   shell. Go on with Windows too, but skip `cmd /c ver`,
+   whose `/c` such shells may rewrite as a path, and
+   run the PowerShell probe directly.
+
    **The second line is the shell** (compare its
    basename; macOS may print `-zsh` or a path). Record
    it per SSH user in server memory (`Shell: csh
@@ -110,6 +126,8 @@ skill says so where it needs it.
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
      line.
+   - **Windows:** `windows`, from the Windows probe
+     below; the lines after `@release` do not apply.
 
    Hardware comes from the lines after `@hardware`:
    the CPU count, the CPU model and `free` on Linux,
@@ -135,6 +153,35 @@ skill says so where it needs it.
    Roles below.
 
 6. Create a server memory file.
+
+## Windows
+
+When step 1 ends in the `uname` error, the second
+call asks cmd.exe, which every Windows host has
+whatever its SSH default shell is:
+
+```
+ssh … <host> 'cmd /c ver'
+```
+
+A line naming Windows and a version number means
+Windows; Microsoft does not document the exact
+format, so read it for those two things only.
+Anything else: stop and show the user both replies.
+
+Then read `rules/os/windows.md` and run its Version
+Detection probe through PowerShell as its Reaching
+PowerShell section describes.
+
+**`ProductType` decides whether to go on.** `2` is a
+domain controller and `3` a server: carry on. `1` is
+a Windows client, which is no managed target: say so,
+name the alternative — Hostwarden runs on a Windows
+client in WSL 2 (`docs/install.md` → Windows) — and
+stop. Record nothing.
+
+Windows has no appliance or platform markers: steps 3
+and 4 do not apply.
 
 ## Appliances
 
@@ -233,7 +280,9 @@ Two exist:
 A machine whose memory has no `Role:` line gets
 `workstation` when it is the local machine, runs
 macOS, or its platform file says so; anything else
-gets `server`. Record it with where it came from —
+gets `server`. Windows Server (`ProductType` 2 or 3)
+gets `Role: server (inferred: Windows Server)`.
+Record it with where it came from —
 `Role: workstation (inferred: macOS)` — and say it in
 one line when it is recorded: *"Recorded as a
 workstation (macOS) — say so if it serves others."*
@@ -284,9 +333,15 @@ still goes without stdin, in the shape of step 1:
 file's Version Detection section and, for an
 appliance, its own, then `echo @platform;
 cat /proc/version`. Its first line decides as in
-step 1. Update memory if a version changed, and
-settle the platform (step 4) when the `@platform`
-lines and `Platform:` disagree, and the role (step 5)
-when memory has no `Role:` line; if a command fails
-or the OS no longer matches memory, run the full
-probe from step 1.
+step 1. On Windows the first call is `cmd /c ver`,
+read as in Windows above — or, where memory records a
+POSIX layer as the shell, `uname -s` read as step 1
+does; the second is the Version Detection probe of
+`rules/os/windows.md` without its hardware part,
+joined with the activity read-back, and its
+`ProductType` decides as above. Update memory if a
+version changed, and settle the platform (step 4)
+when the `@platform` lines and `Platform:` disagree,
+and the role (step 5) when memory has no `Role:`
+line; if a command fails or the OS no longer matches
+memory, run the full probe from step 1.

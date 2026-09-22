@@ -10,8 +10,9 @@ and run shell commands — and with the Code tab of the
 Claude desktop app, which runs the same Claude Code
 ([what differs there](docs/ai-tools.md#claude-code-desktop)). It manages Linux, FreeBSD,
 and macOS targets — remote servers over SSH and the
-local machine alike — and runs on Linux, macOS and
-FreeBSD workstations, and on Windows inside WSL 2.
+local machine alike — reports on Windows Server over
+SSH, and runs on Linux, macOS and FreeBSD
+workstations, and on Windows inside WSL 2.
 
 Describe what you need in plain English, and Hostwarden
 figures out the right commands for your OS, proposes
@@ -52,7 +53,8 @@ Hostwarden session looks the same.
 - jq
 - Key-based SSH access to the target, without a
   password or passphrase prompt
-- Linux, FreeBSD or macOS on the target
+- Linux, FreeBSD or macOS on the target, or Windows
+  Server with PowerShell 7 for read-only reports
 - A checkout with working symbolic links
 - On Windows: WSL 2
 
@@ -170,6 +172,7 @@ off your servers, and how to read its logs:
 | Alpine  | Alpine Linux                      | `rules/os/alpine.md`  |
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
+| Windows | Windows Server, read-only         | `rules/os/windows.md` |
 
 Appliances run their own updater, configuration and
 firewall on top of that OS, so they get a file of their own
