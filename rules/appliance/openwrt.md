@@ -196,7 +196,9 @@ of the current release branch,
     (`uci commit network; service network reload` for the
     network).
   - **revert:** copy the backup of the config file back over it and
-    run the same reload.
+    run the same reload, or `service firewall stop` where no
+    `inet fw4` table was loaded before. Loaded rules against the
+    files: `nft list table inet fw4` and `fw4 print`.
 
   OpenWrt has no systemd and ships no `at`. The `at` package from
   the feed arms the revert (ask first: it takes flash, see Package
@@ -282,14 +284,30 @@ of the current release branch,
   cat /etc/openwrt_release; uptime; free; df -Ph /overlay /tmp
   grep -F "/ overlay ro," /proc/mounts; service; uci changes
   logread -l 50; owut check
+  nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
+  nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
+  awk '$2=="00000000" && $8=="00000000" {print $1}' /proc/net/route
+  awk '$1~/^0+$/ && $2=="00" && $10!="lo" {print $10}' /proc/net/ipv6_route
   ```
   Where `owut` does not exist, list upgradable packages instead
   (`apk list --upgradeable` or `opkg list-upgradable`, after
   refreshing the lists), reported and not applied (see Package
-  Manager). Findings: pending firmware update,
-  a release past its end of life, overlay nearly full or read-only,
+  Manager). Judge the firewall from the loaded ruleset, not from
+  UCI, which can hold a committed change fw4 has not loaded. No
+  `inet fw4` table is **CRITICAL** "No active firewall". The
+  uplinks are the devices of every IPv4 and IPv6 default route,
+  or, where there is none, the `wan` zone's devices. The `input` chain
+  sends each device to its zone with `iifname … jump input_<zone>`
+  (`*` is a wildcard); the `jump <verdict>_from_<zone>` that ends
+  the zone's chain is its policy, and a device no rule names gets
+  the `input` chain's own. `accept` for any uplink is **CRITICAL**
+  "WAN input open". fw4 ships `REJECT` in `@defaults` and on the
+  `wan` zone. Other findings: pending firmware update, a release
+  past its end of life, overlay nearly full or read-only,
   uncommitted UCI changes, a service disabled or stopped that should
-  run, errors in the log.
+  run, errors in the log. Sources:
+  <https://github.com/openwrt/firewall4/blob/master/root/usr/share/firewall4/templates/ruleset.uc>,
+  <https://github.com/openwrt/firewall4/blob/master/root/etc/config/firewall>.
 - A security audit reads, in one call, instead of the `sshd`
   checks:
   ```

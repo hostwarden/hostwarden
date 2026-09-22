@@ -265,7 +265,10 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   Check: `iptables-restore --test < /etc/sysconfig/iptables`
   (<https://man7.org/linux/man-pages/man8/iptables-restore.8.html>);
   apply: `systemctl restart iptables`; revert: the backed-up file
-  restored, then `systemctl restart iptables`. An IPv6 rule goes
+  restored, then `systemctl restart iptables` where the service ran
+  before, or `systemctl stop iptables` where it did not. Loaded
+  rules against the file: `iptables-save` and
+  `/etc/sysconfig/iptables`. An IPv6 rule goes
   the same way with `ip6tables-restore --test`,
   `/etc/sysconfig/ip6tables` and the `ip6tables` service.
 

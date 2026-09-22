@@ -232,5 +232,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 - Pending updates come from `pfSense-upgrade -d -c` (never without
   `-c`: it reboots); they are the finding. Check that the
   anti-lockout rule is on.
+  `pfctl -si` reporting `Status: Disabled` is **CRITICAL** "No
+  active firewall": `pfctl -d` leaves it off until the next
+  reload.
 - Report settings pfSense generates as web UI changes, not file
   edits.

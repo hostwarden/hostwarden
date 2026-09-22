@@ -165,11 +165,24 @@ service as shipped cuts the SSH session. Before
 2. Allow each of them in a file under `/etc/nftables.d/`. The
    packaged rule, `/usr/share/nftables.avail/50_sshd.nft` from
    `openssh-nftrules`, opens port 22 only.
-3. Test the ruleset: `rc-service nftables checkconfig`.
-4. Start it through `rules/ssh-safety-net.md`, with
-   `nft flush ruleset` as the revert. Alpine ships no
-   `at` and no systemd, so without `at` installed the
-   start is the user's, with console access ready.
+3. Start it, and make every later ruleset change, through
+   `rules/ssh-safety-net.md`:
+   - **check:** `rc-service nftables checkconfig`.
+   - **apply:** `rc-service nftables start`, or `reload` once it
+     runs.
+   - **revert:** the backups restored, then
+     `rc-service nftables reload || nft flush ruleset` where the
+     service ran before, or `nft flush ruleset; rc-service nftables
+     zap` where it did not. `zap` marks the service stopped without
+     running its `stop`, which can save the live ruleset over the
+     file (`save_on_stop` in `/etc/conf.d/nftables`).
+
+   `rc-update add` waits for the fresh login. Alpine ships no `at`
+   and no systemd, so without `at` installed the change is the
+   user's, with console access ready.
+   Sources:
+   <https://github.com/alpinelinux/aports/blob/master/main/nftables/nftables.initd>,
+   <https://github.com/OpenRC/openrc/blob/master/man/openrc-run.8>.
 
 Discuss all of it with the user first (`rules/firewall-changes.md`).
 
@@ -185,8 +198,10 @@ A runlevel that lists `nftables` means nftables; one that lists
 iptables rules otherwise. Judge default deny for nftables with
 `.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`,
 for iptables as root with `iptables -S INPUT` and
-`ip6tables -S INPUT` (`-P INPUT DROP`, or a final `DROP` or
-`REJECT` rule). The nftables service loads the rules and exits, so
+`ip6tables -S INPUT` (`-P INPUT DROP`, or an unconditional last rule
+`-A INPUT -j DROP` or `-j REJECT`;
+<https://man7.org/linux/man-pages/man8/iptables.8.html>).
+The nftables service loads the rules and exits, so
 `rc-status` may not show it as running: the runlevel entry and the
 ruleset count. Neither service in a runlevel and ufw inactive →
 **CRITICAL** "No active firewall".

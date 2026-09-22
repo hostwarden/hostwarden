@@ -385,7 +385,8 @@ The migration renames skill overrides in
   the new name. It asks first, and it says which old
   backups the retention cleanup would then delete.
   New config backups go to
-  `/var/backups/hostwarden/`.
+  `/var/backups/hostwarden/`, or the directory an
+  appliance's rules name.
 - SSH sockets live in `~/.cache/hostwarden`.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.

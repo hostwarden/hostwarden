@@ -261,7 +261,9 @@ https://manpages.ubuntu.com/manpages/noble/man5/sources.list.5.html
   `.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
   A change to it goes through `rules/ssh-safety-net.md`.
   Check: `nft -c -f /etc/nftables.conf`; revert: the
-  backed-up file restored, then `nft -f /etc/nftables.conf`.
+  backed-up file restored, then `nft -f /etc/nftables.conf`
+  where the unit ran before, or `systemctl stop nftables`
+  (its `ExecStop` is `nft flush ruleset`) where it did not.
 
 Sources: https://documentation.ubuntu.com/security/security-features/network/firewall/,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/standard?h=resolute
