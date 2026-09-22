@@ -21,6 +21,11 @@
   health line is reported as unknown, never as passing.
 - **Unraid counts a disk in SLEEP mode as asleep.** Housekeeping
   reported it as unknown, because only STANDBY was recognised.
+- **A reboot flag no longer lets a power-off through.** The taboo
+  guard denies `shutdown` with `-h`, `-H`, `-P`, `-p`, `--halt` or
+  `--poweroff` even when `-r` stands beside it: systemd and
+  sysvinit obey the last action flag, so `shutdown -r -h now`
+  powers the server off.
 - **Pending upgrades on Alpine 3.23 and later are listed
   again.** The Alpine rule now uses `apk list --upgradeable`,
   which apk 2 and apk 3 both accept; apk 3 rejects the

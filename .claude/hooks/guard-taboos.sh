@@ -685,18 +685,37 @@ if power && hit 'sysrq-trigger'; then
   deny "sysrq-trigger powers off or resets the server without \
 shutting anything down cleanly"
 fi
-# Windows' shutdown is judged below, so the Linux rule exempts it
-# rather than lending it its -r: shutdown.exe, or shutdown whose
-# every flag takes Windows' slash, as a Windows server reached
-# over SSH runs it. One dash flag keeps it Linux's, quoted or
-# escaped too: the shell and PowerShell drop " ' and ` before
-# the program sees its flag.
-if power && hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
-  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
-then
-  deny "shutdown without -r powers off the server (reboots \
+# Both Linux rules need the word itself, so a command without it
+# skips their greps, as the Windows rules do with WIN below.
+case "$CMD" in
+*shutdown*)
+  # Windows' shutdown is judged below, so the Linux rule exempts
+  # it rather than lending it its -r: shutdown.exe, or shutdown
+  # whose every flag takes Windows' slash, as a Windows server
+  # reached over SSH runs it. One dash flag keeps it Linux's,
+  # quoted or escaped too: the shell and PowerShell drop " ' and `
+  # before the program sees its flag.
+  if power && hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
+    '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
+  then
+    deny "shutdown without -r powers off the server (reboots \
 use shutdown -r; -c cancels)"
-fi
+  fi
+  # systemd and sysvinit let the last action flag win, so
+  # shutdown -r -h now powers off; FreeBSD and macOS refuse the
+  # pair. Order does not matter here: a flag that halts one
+  # implementation is not waved through because another reboots.
+  # Only a dash flag counts, so Windows' slash form is left to the
+  # rules below. The shell drops quotes and backslashes before the
+  # program sees '-h', "--poweroff" or \-P, so they may sit
+  # anywhere in the flag.
+  if power && hit '(^|[^[:alnum:]_-])shutdown[[:space:]]([^;&|]*[[:space:]])?["'\''`\\]*(-["'\''`\\[:alnum:]]*[hHPp]["'\''`\\[:alnum:]]*|-["'\''`\\]*-["'\''`\\]*(ha|p)[[:alpha:]]*)(["'\''`\\[:space:]]|$)'
+  then
+    deny "shutdown with -h, -H, -P, -p, --halt or --poweroff \
+halts or powers off the server even beside -r"
+  fi
+  ;;
+esac
 # Windows reads shutdown in any case and takes its flags with / or
 # -, the dash only where shutdown.exe cannot be Linux's. /s and
 # /sg shut down, /p powers off at once and /h hibernates, even
