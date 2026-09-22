@@ -435,10 +435,11 @@ host, not as documented behaviour.
   `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
   → Docker read the `docker ps` line.
 - Findings:
-  - an md array degraded (`[U_]` in `/proc/mdstat`, a `State :`
-    with `degraded` or `FAILED`), rebuilding or resyncing, or a
-    member `faulty` or `removed`; name the pool and hand the repair
-    to the Storage app;
+  - an md array degraded: an underscore anywhere in the member
+    bitmap `/proc/mdstat` prints (`[U_]`, `[UU_]`, `[U_UU]`), or a
+    `State :` with `degraded` or `FAILED`. Rebuilding or resyncing,
+    and a member `faulty` or `removed`, count too. Name the pool
+    and hand the repair to the Storage app;
   - a volume mounted read-only (`ro` in the options) or missing
     from `findmnt` while the Storage app lists it;
   - Btrfs device stats above 0;
@@ -447,12 +448,22 @@ host, not as documented behaviour.
   - no capacity warning set on a volume (article 313); how full
     it is comes from the baseline's Disk Usage;
   - a pending firmware update, or the update state unknown; a beta
-    build (`OS_IS_BETA`); the update policy on notify only;
+    build (`OS_IS_BETA`); an update policy that does not install on
+    its own. UGREEN's text does not say whether the two
+    automatic-download policies also install (see Updates), so
+    until the user confirms that one does, notify-only and both
+    download policies are reported the same way: automatic security
+    updates are not established;
   - a container app the App Center shows as needing repair;
   - no configuration backup: no `.ugb` download and no cloud
     backup of the configuration (article 110). Data backups are
     `references/backup-presence.md`'s.
-- A security audit reports instead: SSH on or off, its port, its
+- A security audit keeps the generic checks that read the system
+  underneath — `references/user-accounts.md`,
+  `references/listening-services.md`, `references/kernel-os.md` and
+  `references/file-permissions.md` — and replaces only what the
+  vendor owns: SSH, the firewall and intrusion prevention. In their
+  place it reports: SSH on or off, its port, its
   automatic disable time and access restriction, the encryption
   level (Low is a finding), and with SSH on the effective settings
   from `sshd -T` read the way the security skill's SSH reference
