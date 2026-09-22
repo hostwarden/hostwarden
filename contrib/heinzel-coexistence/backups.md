@@ -17,7 +17,7 @@ Keep writing your own backups to
 directory make the retention window ambiguous, and
 neither gains anything.
 
-## Add: An empty backup directory is not data loss
+## Add: A missing backup directory is not proof of loss
 
 Hostwarden offers, once per host, to adopt what
 Heinzel left behind. If the user accepted,
@@ -25,11 +25,26 @@ Heinzel left behind. If the user accepted,
 `/var/backups/hostwarden/` and the old directory
 removed.
 
-So a missing `/var/backups/heinzel/` has a harmless
-explanation. Check the new path before reporting
-anything as lost, and report it as adopted, with the
-file count you found. A false "your backups are gone"
-costs the user an hour of fear
+So a missing `/var/backups/heinzel/` may have a
+harmless explanation. Hostwarden logs the move:
+
+```
+journalctl -t hostwarden --no-pager | grep 'Adopted heinzel state'
+```
+
+Without a journal, grep syslog's file for the same text.
+
+A line naming `/var/backups/heinzel` means adopted,
+unless your own journal entries (`journalctl -t
+heinzel`) go on after it: then you may have made the
+directory again since, and the old line says nothing
+about it. Report an adoption with the file count of
+the new path. Otherwise the adoption is not shown:
+Hostwarden fills `/var/backups/hostwarden/` with its
+own backups too. Report the directory as missing, with
+what the new path holds, and let the user decide. A false
+"your backups are gone" costs the user an hour of fear,
+and a false "adopted" costs the backups
 (`rules/verify-before-reporting.md`).
 
 Recreate the directory as usual on the next backup —

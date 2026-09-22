@@ -454,6 +454,7 @@ list out of the report:
 ```bash
 grep -i '^Prompt' /etc/update-manager/release-upgrades \
   2>/dev/null
+if command -v pro >/dev/null 2>&1; then
 pro status --format json 2>/dev/null | python3 -c '
 import json, sys
 s = json.load(sys.stdin)
@@ -468,6 +469,9 @@ print(a["summary"])
 print(dict(collections.Counter(
     "%s/%s" % (u["provided_by"], u["status"])
     for u in a["updates"] if u["status"].startswith("pending_"))))'
+else
+  echo "pro=absent"
+fi
 canonical-livepatch status 2>/dev/null
 ```
 
@@ -475,7 +479,9 @@ canonical-livepatch status 2>/dev/null
   End-of-Life Awareness says, with the ESM date only when
   `esm-infra` is enabled.
 - **INFO** attached or not, and which of `esm-infra`,
-  `esm-apps` and `livepatch` are enabled.
+  `esm-apps` and `livepatch` are enabled. `pro=absent` means
+  the Pro client is not installed: report Pro coverage as
+  unknown, never as not attached.
 - **INFO** the number of installed `universe` packages
   when `esm-apps` is not enabled: they have no guaranteed
   security coverage.

@@ -378,10 +378,13 @@ hypervisor's.
 test -f /var/run/reboot-required && echo "pending=yes" \
   || echo "pending=no"
 uptime -s
-# needrestart: an uncommented restart mode, if any.
+# needrestart: the restart mode that wins — the last one set, in
+# needrestart's order: needrestart.conf, then conf.d/*.conf sorted.
 if command -v needrestart >/dev/null 2>&1; then
-  grep -rhs '^[[:space:]]*\$nrconf{restart}' /etc/needrestart/ \
-    || echo "needrestart=default"
+  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+    /etc/needrestart/needrestart.conf \
+    /etc/needrestart/conf.d/*.conf | tail -n 1)
+  echo "${M:-needrestart=default}"
 else
   echo "needrestart=absent"
 fi

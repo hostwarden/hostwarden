@@ -75,8 +75,15 @@ EOF
 **Verify it works:**
 
 ```
-ssh <options> user@host "mise --version; node --version"
+ssh <options> user@host "mise --version && <version-command>"
 ```
+
+`<version-command>` is the installed runtime's own:
+`node --version`, `ruby --version`, `python --version`,
+`go version`, `java -version`; for another, its `--help` says.
+`&&`, and only the runtime this request installed: with `;`, a
+system `node` that answers hides a `mise` the PATH does not
+reach.
 
 If neither file is sourced, fall back to:
 

@@ -114,8 +114,9 @@ the password hash line: `0` means the web interface and API take
 no password. Source: https://github.com/pi-hole/FTL,
 `src/config/config.c` and `src/api/auth.c`.
 
-**AdGuard Home** (as root; for a container, on the host side of
-its `conf` volume):
+**AdGuard Home** (as root; for the Snap, `C` is
+`/var/snap/adguard-home/current/AdGuardHome.yaml`, for a
+container the file on the host side of its `conf` volume):
 
 ```bash
 C=/opt/AdGuardHome/AdGuardHome.yaml

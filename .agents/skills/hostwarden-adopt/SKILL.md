@@ -172,8 +172,9 @@ summarizing it.
 - **No renaming on hosts.** A script keeps its name until every
   caller is known — see `rules/heinzel-adoption.md` § "An improvised
   script keeps its name".
-- **No scheduled runs.** Cron lines and timers on the workstation
-  that call `bin/heinzel-*` are reported by the legacy check in local
-  mode, and changed only with explicit approval.
+- **No scheduled runs.** Heinzel's cron lines and timers on the
+  workstation are reported under `rules/heinzel-adoption.md` § "On
+  the workstation (local mode)", and change only with explicit
+  approval.
 - **No secrets.** If the old tree holds key material or a file with
   credentials, report the path and leave it (`rules/secrets.md`).

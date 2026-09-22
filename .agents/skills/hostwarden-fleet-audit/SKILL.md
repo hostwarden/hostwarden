@@ -91,13 +91,11 @@ supported" list, decided from memory before any probe runs.
      hosts would otherwise carry the same 8 KB thirteen
      times — once here and once per prompt — for commands
      this session never runs;
-   - **the keys its row must come back with** — name them,
-     one per probe category, using the row keys
-     `references/probes.md` lists. Agents that are each
-     told "return the structured row" and nothing more
+   - **that its row comes back keyed** by the row keys
+     `references/probes.md` lists, which the agent reads
+     there. Agents told only "return the structured row"
      return four different shapes, and step 4 cannot build
-     a column out of that. `unknown(needs-root)` is a
-     value; a missing key is not;
+     a column out of that;
    - **anything the user restricted this run to.** "Without
      sudo", "no journal entries", "only the firewall
      section" reach the agent only if you put them there —

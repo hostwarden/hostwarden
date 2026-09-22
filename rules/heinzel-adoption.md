@@ -44,11 +44,13 @@ raise the window in
 
 ## Not while Heinzel is still in use
 
-If the activity check shows Heinzel entries from the
-last days, or the user says both tools are in use,
-adoption is premature — Heinzel recreates its backup
-directory on its next run. Report the find, say why
-it waits, and record a deferral.
+If the user says both tools are in use, adoption is
+premature — Heinzel recreates its backup directory on
+its next run. Report the find, say why it waits, and
+record a deferral. Recent Heinzel entries in the
+activity check do not settle it: hosts often move over
+right after their last Heinzel session, so ask whether
+Heinzel still runs before deferring.
 
 Point the user at `contrib/heinzel-coexistence/`:
 three rule overrides for their Heinzel checkout that
@@ -148,15 +150,18 @@ logger -t hostwarden "Adopted heinzel state: \
 The local machine may carry scheduled runs from
 Heinzel — a crontab line, a systemd timer, a
 `heinzel-housekeeping.service`, `~/heinzel-cron.log`,
-a lock in `/tmp` — pointing at `bin/heinzel-*`
-scripts that a Hostwarden clone does not have
-(the `hostwarden-housekeeping` skill, scheduled). They fail
-silently: nobody gets the report they believe they
-are getting.
+a lock in `/tmp` — that change into the Heinzel
+checkout and start `claude` there. Read the directory
+each one changes into before reporting it. If that
+checkout is gone, the job fails silently: nobody gets
+the report they believe they are getting. If it is
+still there, the job runs — on Heinzel's rules and
+Heinzel's memory, not this clone's.
 
-Report what points at the old paths and offer to fix
-it. A crontab or unit file is standing configuration,
-so each edit needs its own approval. Key material
+Report what points at the old checkout and offer to
+point it at this one (the `hostwarden-housekeeping`
+skill, scheduled). A crontab or unit file is standing
+configuration, so each edit needs its own approval. Key material
 under `~/heinzel-keys/` is reported, never touched,
 moved or re-permissioned (`AGENTS.md` → Critical
 Safety Rules).

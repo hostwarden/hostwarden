@@ -79,16 +79,23 @@ attachments.
      --predicate 'process == "smtpd" OR process == "smtp"'`.
    - Linux workstation local: `journalctl --since "1 minute
      ago" -t postfix` or `/var/log/mail.log`.
+   - nullmailer: `journalctl -u nullmailer --since "1 minute
+     ago"`; dma, which tags its lines `dma[<queue-id>]`:
+     `journalctl --since "1 minute ago" | grep 'dma\['`; or
+     the mail log. Both send from a queue a moment later, so
+     read once more after 30 seconds when nothing is there.
 
-   Look for `status=sent` (or msmtp's `delivery
-   successful`). Flag `deferred` / `bounced` as **CRITICAL**
-   and report verbatim instead of claiming success. Never
-   call a send successful on the basis of the command's exit
-   code alone.
+   Look for `status=sent` (msmtp and dma: `delivery
+   successful`; nullmailer: `Sent file.`). Flag `deferred` /
+   `bounced`, nullmailer's `Sending failed` and dma's
+   `Giving up` as **CRITICAL** and report verbatim instead
+   of claiming success. Never call a send successful on the
+   basis of the command's exit code alone.
 
-   On the remote path, confirm the log line's `from=<…>`
-   matches the chosen sender user (not root, unless 5R.4
-   fell to case 3). This is the *envelope* sender (the
-   Return-Path), which always reflects the submitter UID;
-   the visible `From:` header is `noreply@…` and is
-   independent — do not flag the mismatch as a problem.
+   On the remote path, where the log has a `from=<…>` —
+   nullmailer and dma log none — confirm it matches the
+   chosen sender user (not root, unless 5R.4 fell to case 3).
+   This is the *envelope* sender (the Return-Path), which
+   always reflects the submitter UID; the visible `From:`
+   header is `noreply@…` and is independent — do not flag
+   the mismatch as a problem.

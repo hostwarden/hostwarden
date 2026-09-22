@@ -75,11 +75,13 @@ The account should have no password set — `!` or `*` in
 
 When the request is to check an existing deploy user rather
 than create one, change nothing. Read the four things this
-skill sets up and report each as it is:
+skill sets up and report each as it is. The directory is the
+`Deploy target` in the host's `memory.md` (Server Memory below);
+without one, ask which application the account deploys:
 
 ```bash
 id deploy && getent passwd deploy
-ls -ld /srv/deploy 2>/dev/null
+ls -ld <deploy-target> 2>/dev/null
 sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
 ```
 
