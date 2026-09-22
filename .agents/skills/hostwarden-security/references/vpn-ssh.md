@@ -14,28 +14,55 @@ sshd's CA trust, fail2ban, the sshd log or `last`.
 
 ## Probe (no root)
 
-Only the lines for the agents found:
+The loop repeats the discovery of `references/ssh.md` and reads
+each agent from the process it belongs to, so two Newt
+connectors are judged apart and a tunnel is read from the
+configuration its own process names.
 
 ```bash
-# tailscaled
-tailscale debug prefs 2>&1 | grep -e '"RunSSH"' -e '"OperatorUser"'
-# netbird
-netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile'
-# newt
-{ ps ax -o args= 2>/dev/null || ps w; } \
-  | grep -cE -- '(^|[/[:space:]])newt( .*)? --?disable-ssh( |=|$)'
-# cloudflared
-{ ps ax -o args= 2>/dev/null || ps w; } \
-  | grep -cE -- '(^|[/[:space:]])cloudflared( .*)? --?token( |=|$)'
-grep -Hn 'ssh://' /etc/cloudflared/*.y*ml \
-  /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml 2>/dev/null
+A='tailscaled|netbird|newt|nebula|dnclient|cloudflared'
+args() { { tr '\0' ' ' < "/proc/$1/cmdline"; } 2>/dev/null \
+  || ps -o args= -p "$1" 2>/dev/null; }
+cfg() { args "$1" | sed -nE "s|.* --?$2[= ]([^ ]+).*|\\1|p"; }
+ps -Ao pid=,comm= 2>/dev/null \
+  | sed -E 's|^[[:space:]]+||; s|^([0-9]+)[[:space:]]+.*/|\1 |' \
+  | grep -E "^[0-9]+ ($A)$" \
+  | while read -r p prog; do
+    case $prog in
+      tailscaled)
+        tailscale debug prefs 2>&1 \
+          | grep -e '"RunSSH"' -e '"OperatorUser"' ;;
+      netbird)
+        netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile' ;;
+      newt)
+        printf 'newt %s disable-ssh=%s\n' "$p" \
+          "$(args "$p" | grep -cE -- ' --?disable-ssh( |=|$)')" ;;
+      cloudflared)
+        printf 'cloudflared %s token-arg=%s\n' "$p" \
+          "$(args "$p" | grep -cE -- ' --?token( |=)')"
+        c=$(cfg "$p" config)
+        grep -Hn 'ssh://' ${c:+"$c"} /etc/cloudflared/*.y*ml \
+          /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml \
+          2>/dev/null ;;
+      nebula|dnclient)
+        c=$(cfg "$p" config)
+        [ -n "$c" ] || c=/etc/nebula/config.yml
+        for f in "$c" "$c"/*.yml "$c"/*.yaml; do
+          [ -f "$f" ] || continue
+          echo "== $f"
+          sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f" 2>/dev/null
+        done ;;
+    esac
+  done
 ```
 
-The `grep -c` lines count, never print (`rules/secrets.md`); the
-program name is matched wherever the process list puts it, as in
-`references/ssh.md`, and never inside the probe's own command
-line. Both programs take a flag with one dash or two, and
-`--token-file`, the safe form, is not a match.
+The `grep -c` lines count, never print (`rules/secrets.md`);
+only a path is named, never an argument that could be a token,
+and a flag takes one dash or two, so `--token-file`, the safe
+form, is not a match. Where Nebula's file is unreadable without
+root, run its branch again under the root probe below;
+`dnclient` keeps its state in `/var/lib/defined` and may name
+that instead.
 
 An agent inside a container with its own network namespace shows
 its process but not its CLI; name the container and mark its SSH
@@ -44,10 +71,11 @@ server unchecked.
 ## Probe (root)
 
 Tailscale with `"RunSSH": true`, NetBird unless its `SSH Server`
-line says `Disabled`, Nebula whenever it runs, and Newt when the
-`--disable-ssh` count was 0:
+line says `Disabled`, Nebula where the loop above read nothing,
+and Newt for each PID whose `disable-ssh` count was 0:
 
 ```bash
+# args() as in the probe above.
 # Tailscale, "RunSSH": true — the rules compiled for this node
 T=$(printf '\t')
 tailscale debug netmap 2>&1 \
@@ -60,12 +88,21 @@ for f in /var/lib/netbird/*.json /var/db/netbird/*.json \
   grep -oE '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)": *(true|false)' \
     "$f"
 done
-# Nebula — its admin console, the whole sshd mapping
-sed -n '/^sshd:/,/^[^[:space:]#]/p' /etc/nebula/config.yml \
-  2>/dev/null
-# Newt on Linux, no --disable-ssh — DISABLE_SSH in its environment
-for p in $(pgrep -x newt); do
-  tr '\0' '\n' < "/proc/$p/environ" | grep -ciE '^DISABLE_SSH=(true|1)$'
+# Newt on Linux, per PID — DISABLE_SSH in its own environment
+for p in $(pgrep -x newt 2>/dev/null); do
+  printf 'newt %s env-disable-ssh=%s\n' "$p" \
+    "$({ tr '\0' '\n' < "/proc/$p/environ"; } 2>/dev/null \
+      | grep -ciE '^DISABLE_SSH=(true|1)$')"
+done
+# Nebula, where the unprivileged loop read nothing
+for p in $(pgrep -x nebula 2>/dev/null; pgrep -x dnclient 2>/dev/null); do
+  c=$(args "$p" | sed -nE 's|.* --?config[= ]([^ ]+).*|\1|p')
+  [ -n "$c" ] || c=/etc/nebula/config.yml
+  for f in "$c" "$c"/*.yml "$c"/*.yaml; do
+    [ -f "$f" ] || continue
+    echo "== $f"
+    sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f"
+  done
 done
 ```
 
@@ -108,21 +145,26 @@ One report line per agent found, as `VPN SSH`:
   `any: true` → **WARN**
 - NetBird: `EnableSSHRoot` and `DisableSSHAuth` both `true` →
   **CRITICAL**; either one alone → **WARN**
-- Cloudflare Tunnel token in `ps` arguments → **WARN**, readable
-  by every account (`rules/secrets.md`)
-- Newt SSH on → **INFO**, with the accounts and sudo files it
-  made. Without root, or with Newt in a container, it is
-  **INFO** "Newt SSH unchecked": the environment may turn it off
+- Cloudflare Tunnel `token-arg=1` on a PID → **WARN**, that
+  process's token is readable by every account
+  (`rules/secrets.md`)
+- Newt SSH on, judged per PID: `disable-ssh=0` and
+  `env-disable-ssh=0` → **INFO**, with the accounts and sudo
+  files that process made. `disable-ssh=0` without root, or a
+  Newt in a container, is **INFO** "Newt SSH unchecked" for that
+  PID: its environment may turn it off. Several connectors are
+  reported one by one, never as one verdict
 - Nebula `sshd.enabled: true` → **INFO**, name `listen` and
-  `authorized_users`. Try `/etc/nebula/config.yml` unprivileged
-  too; where it is unreadable, **INFO** "Nebula admin console
+  `authorized_users`. Where the file its own process names is
+  unreadable even with root, **INFO** "Nebula admin console
   unchecked" rather than OK
 - Cloudflare ingress to `ssh://` → **INFO**: sshd is reachable
-  through Cloudflare, and Cloudflare Access decides who. A
-  token-managed tunnel (the token count above 0) keeps its
-  ingress in the dashboard, not on the host: no local hit then
-  means **INFO** "Cloudflare ingress unchecked" — ask the user
-  what the tunnel publishes
+  through Cloudflare, and Cloudflare Access decides who. Where
+  the running process named a `config=` path, that file is the
+  only one that counts. A token-managed tunnel keeps its ingress
+  in the dashboard, not on the host: no hit in the file it uses
+  then means **INFO** "Cloudflare ingress unchecked" — ask the
+  user what the tunnel publishes
 - Tailscale `OperatorUser` set → **INFO**, name the account: it
   can turn SSH on without root
 - Policy not readable from the host (Tailscale without root,
@@ -130,6 +172,5 @@ One report line per agent found, as `VPN SSH`:
   for it
 - An agent found without an SSH server of its own → OK
 
-The policy that admits people lives with the VPN's control plane,
-never on the host; `rules/mesh-vpn.md` says where, and why
-Hostwarden does not change it.
+Where each agent's policy lives, and who may change it:
+`rules/mesh-vpn.md` → Per agent.

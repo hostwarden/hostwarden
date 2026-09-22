@@ -150,6 +150,12 @@ fi
 - `unknown(unreadable)`: neither root nor this user could read
   the reports. List the check under "Skipped".
 
+## Network
+
+Run `rules/network.md` → Quick check with its macOS lines, and
+judge a difference by the entries in `rules/network.md` →
+Findings, as `references/baseline-linux.md` → Network does.
+
 ## Time Machine Local Snapshots
 
 ```bash

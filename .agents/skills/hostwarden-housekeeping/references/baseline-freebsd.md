@@ -218,6 +218,12 @@ How to read `ntpq -pn`, and what to ask instead where `chronyd` or
 - **WARN** if no time daemon is enabled
 - **WARN** if the daemon runs but has no selected peer
 
+## Network
+
+Run `rules/network.md` → Quick check with its FreeBSD lines, and
+judge a difference by the entries in `rules/network.md` →
+Findings, as `references/baseline-linux.md` → Network does.
+
 ## Log Anomalies
 
 Read the logs the loaded OS file's Logs section names — on an

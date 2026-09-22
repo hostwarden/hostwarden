@@ -67,7 +67,7 @@ Read on demand, only when the relevant section applies:
 - `references/report-format.md` — required output format and
   severity rules (CRITICAL / WARN / INFO).
 - `references/baseline-linux.md` — disk, memory, load, uptime,
-  updates, firewall, NTP, logs, SSL certs, kernel.
+  updates, firewall, NTP, network, logs, SSL certs, kernel.
 - `references/baseline-freebsd.md` — disk and ZFS pools, memory
   with the ARC, load, base and package updates, pkg audit,
   release support, pf or ipfw, enabled services, NTP, logs, SSL

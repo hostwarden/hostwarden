@@ -162,17 +162,25 @@ Skip this check on macOS.
 
 Some VPN and tunnel agents let people in without sshd, where none
 of the checks above look. Find them in the same batch, no root
-needed. `ps w` is the fallback where BusyBox takes no BSD
-options (`rules/busybox.md`), and because its columns differ per
-implementation, the match takes the program name wherever it
-stands and keeps no argument, which could hold a token
-(`rules/secrets.md`):
+needed. `comm` is the program each PID runs, never a command
+line, so a `vim /etc/nebula` is not a hit, and no argument is
+printed, which could hold a token (`rules/secrets.md`). The
+names below are the agents that serve SSH themselves;
+`rules/mesh-vpn.md` keeps the full list, for the VPN itself:
 
 ```bash
-{ ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
-  | grep -oE '(^|[/[:space:]])(tailscaled|netbird|newt|nebula|cloudflared)([[:space:]]|$)' \
-  | tr -d ' /' | sort -u
+A='tailscaled|netbird|newt|nebula|dnclient|cloudflared'
+ps -Ao pid=,comm= 2>/dev/null \
+  | sed -E 's|^[[:space:]]+||; s|^([0-9]+)[[:space:]]+.*/|\1 |' \
+  | grep -E "^[0-9]+ ($A)$"
 ```
 
+`ps -Ao pid=,comm=` runs on Linux, Alpine's BusyBox, FreeBSD and
+macOS, where `comm` is a full path that the `sed` reduces to the
+program. Where `ps` takes neither `-A` nor `-o` — OpenWrt's
+BusyBox (`rules/busybox.md`) — run plain `ps w` instead and read
+the PID and the program out of its columns; the checks below
+need both.
+
 No output → OK, nothing more to check. Otherwise read
-`references/vpn-ssh.md` for the agents found.
+`references/vpn-ssh.md`, which works from the PIDs this printed.
