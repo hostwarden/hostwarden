@@ -143,8 +143,9 @@ it, reads fail with `Operation not permitted`, even as root.
 Find out on the first connection and whenever such a refusal
 turns up, and record it in server memory as
 `Full disk access: on`, `off` or `unknown`. While it reads `off`
-or `unknown`, check again on every connection: nothing else
-notices when the user turns the setting on.
+or `unknown`, or memory has no such line, check again on every
+connection: nothing else notices when the user turns the setting
+on.
 
 In local mode the same check measures the terminal app's own
 grant, under Privacy & Security → Full Disk Access, not Remote
