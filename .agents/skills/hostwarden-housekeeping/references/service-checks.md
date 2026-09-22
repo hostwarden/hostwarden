@@ -365,6 +365,85 @@ Check each peer's latest handshake timestamp.
   indicate connectivity issues)
 - Report interface names and peer handshake ages
 
+## UPS (NUT, apcupsd)
+
+Triggered when `memory.md` mentions a UPS, NUT or apcupsd — a
+`USB:` line from `references/usb-devices.md`, or a host that only
+watches a UPS on another machine. A UPS the inventory found in
+this run triggers it too, before the report: on a host whose
+memory has no `USB:` line yet, that is the only trigger there
+is.
+
+**NUT.** The configuration directory is the one of
+`/etc/nut`, `/etc/ups` and `/usr/local/etc/nut` that holds
+`upsmon.conf`. Its `MONITOR` lines carry a password in the fifth
+field, so print the other fields only. The file is readable by
+root and the `nut` group only, so `m()` reads it directly where
+the SSH user may and through `sudo -n` otherwise. Where neither
+works, report the line as not checked, never as no `MONITOR`:
+
+```sh
+d=<dir>
+m() { [ -r "$d/upsmon.conf" ] && awk "$1" "$d/upsmon.conf" \
+  || sudo -n awk "$1" "$d/upsmon.conf"; }
+for u in $( (upsc -l; m '$1 == "MONITOR" { print $2 }') 2>/dev/null | sort -u); do
+  echo "== $u"
+  if v=$(upsc "$u" 2>&1); then
+    echo "$v" | grep -E '^(ups\.status|battery\.charge|battery\.runtime|ups\.load|ups\.test\.result|device\.model):'
+  else
+    echo "query failed: $v"
+  fi
+  upsc -c "$u"
+done
+m '$1 == "MONITOR" { print $2, $3, $6 }'
+pgrep -x upsmon
+```
+
+`upsc -l` lists the UPSes this host's `upsd` serves; on a host
+that only watches one elsewhere it fails, and the `MONITOR`
+lines carry the target as `<name>@<server>`, which `upsc` reads
+the same way — the loop runs over both, so a client-only host
+still reports its UPS. In unprivileged mode, where `sudo -n`
+fails too, the loop covers the local UPSes alone and the remote
+one is reported as not checked. `upsc -c` lists the clients
+connected to a UPS — the machines that will hear of a power cut.
+`ups.status` holds NUT's status flags, space-separated; `OL` is
+on line power, `OB` on battery, `LB` low battery, `RB` replace
+battery.
+
+- **CRITICAL** if the status holds `OB` or `LB`.
+- **WARN** on a `query failed:` line, or a reply without
+  `ups.status` — `Data stale` is the usual reason, and a driver
+  that has lost its UPS answers the same whether the UPS is on
+  line power or on battery. Report it as the state being
+  unreadable, never as no finding.
+- **WARN** if it holds `RB`, if `ups.test.result` reports a
+  failure, or if `upsmon` is not running: then nothing shuts
+  this host down when the battery runs low.
+- Report model, status, charge, runtime and load, and the
+  clients. Compare the clients with `memory/network.md`; a
+  machine recorded as powered by this UPS that is not among them
+  goes down hard: **WARN**.
+
+**apcupsd:**
+
+```sh
+if v=$(apcaccess status 2>&1); then
+  echo "$v" | grep -E '^(MODEL|STATUS|BCHARGE|TIMELEFT|LOADPCT|SELFTEST|LASTXFER) '
+else
+  echo "query failed: $v"
+fi
+```
+
+- **CRITICAL** if `STATUS` holds `ONBATT` or `LOWBATT`.
+- **WARN** if it holds `REPLACEBATT` or `COMMLOST`.
+- **WARN** on a `query failed:` line or a reply without `STATUS`,
+  as in the NUT branch: `apcupsd` runs, so the USB inventory
+  counts the UPS as watched, and nothing else would say that its
+  state cannot be read.
+- Report model, status, charge, time left, load, the last
+  self-test and the reason of the last transfer to battery.
+
 ## Pi-hole and AdGuard Home
 
 Triggered when `memory.md` mentions Pi-hole or AdGuard Home. What

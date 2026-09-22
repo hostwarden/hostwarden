@@ -102,7 +102,8 @@ the file once everything is done.
 
 Facts that belong to no single host — a shared
 gateway, a VPN subnet, which machine holds the
-backup target — go in `memory/network.md`, created
+backup target, which UPS powers which machines — go
+in `memory/network.md`, created
 on first need. Current facts only; it is a picture
 of now, not a history.
 

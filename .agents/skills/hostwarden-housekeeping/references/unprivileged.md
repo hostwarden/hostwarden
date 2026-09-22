@@ -22,3 +22,10 @@ usually world-readable. The root crontab (`crontab -l` as
 root) and `/var/spool/cron` are not; report those as
 "skipped: needs root" and never escalate just for this
 check.
+
+USB inventory: the Linux and macOS probes need no root. FreeBSD's
+`usbconfig` does; report it as "skipped: needs root". NUT's
+`upsmon.conf` is readable for the `nut` group, so the UPS check
+tries the direct read first and `sudo -n` after it
+(`references/service-checks.md` → UPS); only when both fail is
+the file skipped.

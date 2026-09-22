@@ -267,6 +267,15 @@ Source for everything below unless noted: the admin guide,
 - Check quorum (`pvecm status`) and a pending reboot (see
   Updates).
 - A missing backup job for running guests is a finding.
+- USB passthrough for the USB inventory
+  (`.agents/skills/hostwarden-housekeeping/references/usb-devices.md`),
+  in the same call as its probe. A VM's line reads
+  `host=<vendor>:<product>` or a bus port:
+
+  ```sh
+  grep -H '^usb[0-9]*:' /etc/pve/qemu-server/*.conf
+  grep -HE '^dev[0-9]*:|lxc.mount.entry.*(ttyUSB|ttyACM|serial)' /etc/pve/lxc/*.conf
+  ```
 - Fleet audit: compare Proxmox VE nodes only with each other. Show
   `pve-firewall` in the firewall rows; a missing
   `unattended-upgrades` is not drift.
