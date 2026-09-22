@@ -13,6 +13,10 @@
   wizard published only on port 3000 is caught.
   The session register on a host is created with its final
   permissions in one step.
+- **Pending upgrades on Alpine 3.23 and later are listed
+  again.** The Alpine rule now uses `apk list --upgradeable`,
+  which apk 2 and apk 3 both accept; apk 3 rejects the
+  `--upgradable` spelling it named before.
 - **A blocked command says what is still allowed.** The
   guard's refusal forbids reaching the same effect any
   other way, and names the route for a command that only
@@ -98,7 +102,9 @@
   `/etc/unraid-version`; the rules cover the root-only login, an OS
   in RAM, the web UI owning the configuration, and array operations
   and updates left to you. Housekeeping reads array, parity, SMART
-  and boot device backup state instead of the Linux baseline.
+  (SAS disks included) and boot device backup state, and the plugin
+  and container updates Unraid's last check found, instead of the
+  Linux baseline.
 - **An empty activity check on a host that keeps its log in RAM
   says how far back it reached.** On Unraid, and on pfSense and
   OPNsense with `/var` on a RAM disk, the journal lines are gone
@@ -171,7 +177,9 @@
 - **TrueNAS is recognised as an appliance.** Detection finds it
   by `midclt`; Hostwarden changes settings, the network, pools and
   updates through the middleware instead of `/etc`, apt or `zfs`,
-  and housekeeping reads its alerts, pools, scrubs and tasks.
+  and housekeeping reads its alerts, pools, scrubs, failed
+  snapshot and replication tasks, and pending updates from 24.10
+  on.
   TrueNAS CORE is end of life and reported as such.
 - **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
   recognised as appliances.** Detection finds them by a marker,

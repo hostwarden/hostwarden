@@ -132,8 +132,12 @@ silent.
   midclt call update.status
   ```
   `status.new_version` is `null` when the system is current, and
-  `code` is `ERROR` with a reason when the check failed. 25.04 has
-  `update.check_available` instead.
+  `code` is `ERROR` with a reason when the check failed. 24.10 and
+  25.04 have `midclt call update.check_available` instead: `status`
+  is `AVAILABLE`, `UNAVAILABLE`, `REBOOT_REQUIRED` once an update is
+  applied and awaits the reboot, or `HA_UNAVAILABLE` when HA is
+  down and nothing was checked (`truenas/middleware`,
+  `plugins/update.py`).
 - Since 25.10 the user chooses an update profile (a risk tolerance)
   instead of a train. Keep it on a profile meant for production.
   Never switch to a newer major release or a BETA on your own
@@ -146,7 +150,8 @@ silent.
   The reboot is a separate question (`AGENTS.md`: ask before
   reboots); a reboot interrupts every share, app and VM.
 - `midclt call system.reboot.info` lists the reasons a reboot is
-  pending.
+  pending (25.04 and later; 24.10 has only the `REBOOT_REQUIRED`
+  above).
 - **Boot environments** are the rollback path: System > Boot lists
   them; `midclt call boot.environment.query` reads them. Activating
   an older one (`boot.environment.activate`) and rebooting rolls the
@@ -292,8 +297,8 @@ silent.
 ## Housekeeping and Audits
 
 - Read, in one call; `select` keeps the JSON to the fields the
-  findings need. On 25.04, `update.check_available` takes the place
-  of `update.status` (see Updates):
+  findings need. Before 25.10 the update and reboot calls differ
+  (see Updates):
   ```
   midclt call alert.list
   midclt call update.status
@@ -321,9 +326,10 @@ silent.
     through alerts. Read `smartctl -a /dev/<disk>` only when an
     alert names a disk.
   - **Pending update** and a pending reboot (see Updates).
-  - **Snapshot and replication tasks**: a task whose `state` is
-    `ERROR` is WARN. Pools with data and no snapshot task are a
-    finding to report, not to fix.
+  - **Snapshot and replication tasks**: `state` is an object; a
+    task whose `state.state` is `ERROR` is WARN, reported with
+    `state.error` and `state.datetime`. Pools with data and no
+    snapshot task are a finding to report, not to fix.
   - **Apps** with an update available.
 - A security audit also reports: the SSH service's settings
   (`midclt call ssh.config`: root login, password login), users with
