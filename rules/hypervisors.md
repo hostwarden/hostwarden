@@ -153,6 +153,9 @@ one line (*"Registering 7 guests of pve1.example.com through
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. The
    SSH user and the DNS check follow on its first SSH connection.
+   Never `Mode: via …`: that line says the guest has no SSH of
+   its own, and it would route every later session through the
+   host.
 5. Log a `read-only:` journal line inside the guest, in the same
    call, and a line in its local changelog (`rules/changelog.md`).
 
@@ -163,7 +166,10 @@ findings go into its memory and are reported in one line each.
 
 A guest does not see its host's name, and a host does not see
 the name its guest gives itself. Both sides record the same keys,
-and whichever side is connected second makes the link:
+and where both are in memory, whichever is connected second makes
+the link. Often only one side ever is — a VM at a provider, a
+hypervisor someone else runs — and that is normal, never a
+finding.
 
 - **MAC addresses** — the guest reads its own without privileges
   (`ip -o link`, `ifconfig -a`, `Get-NetAdapter`); the host
@@ -198,12 +204,15 @@ and whichever side is connected second makes the link:
 
 Look for them with one `grep -i` over
 `memory/servers/*/guests.md`. A match links both: `Runs on:`
-here, `→ <this directory>` in that entry. No match:
-`Runs on: unknown`, and ask the user once which host it is,
-offering the hypervisors in memory, "one Hostwarden does not
-manage" and "don't know"; record the answer with `(user)`. In
-via-host mode (`rules/first-connection.md`), the host is the one
-the session goes through.
+here, `→ <this directory>` in that entry. No match: ask the user
+once which host it is, offering the hypervisors in memory, "one
+Hostwarden does not manage" (with its name, if they want) and
+"don't know", and record the answer as `Runs on: <host> (user)`,
+`Runs on: <name> (user, not managed)` or `Runs on: unknown
+(user)`. It is never asked again; a later inventory that finds
+the keys replaces it. In via-host mode
+(`rules/first-connection.md`), the host is the one the session
+goes through.
 
 **On the host,** for the guests without a `→`, one `grep` over
 the `Guest identity:` lines of `memory/servers/*/memory.md`. A

@@ -9,8 +9,9 @@ Podman) are `rules/containers.md`.
 ## Reaching It
 
 **SSH first, always.** Via-host mode
-(`rules/first-connection.md` → Via-host mode) is the fallback,
-for three cases only:
+(`rules/first-connection.md` → Via-host mode) is the fallback
+for the first two cases below, and the third is one read-only
+first contact:
 
 - **SSH gives no answer:** only as `rules/ssh-unreachable.md` →
   A guest on a known host allows, for this session. Server memory
