@@ -32,8 +32,10 @@ replaced it.
 
 Per guest, record: ID, name, kind (VM, container or jail), state,
 whether it starts with the host, whether the hypervisor marks it
-as a template, its MAC addresses, and a VM's UUID where Linking
-below names a source for it. On a host with more than one
+as a template, its MAC addresses, a VM's UUID where Linking
+below names a source for it, and what the host passed to it —
+the passthrough inventory of the housekeeping skill
+(`references/passthrough.md`) reads those lines. On a host with more than one
 manager, an ID or a name is unique only within its manager: each
 entry then starts with its manager (`incus: prod/web`), and
 `Runs on:`, the link and a second directory of one hostname
@@ -46,15 +48,24 @@ applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.
   `list --all` is the light listing; `list --all --autostart` for
-  autostart, and per domain `domuuid` and `domiflist`.
+  autostart, and per domain `domuuid`, `domiflist`, and
+  `dumpxml <dom> | grep -E '<hostdev|<filesystem|<address|<source|<target dir'`
+  for what the host passed to it.
 - **Incus / LXD:** the listing from `rules/system-containers.md`
   → Reaching It, with `--format json`: it carries each
-  instance's project, and its `expanded_config` the
-  `volatile.<nic>.hwaddr` and `boot.autostart`, a profile's
-  included. Record the project with the name (`prod/web`); every
+  instance's project, its `expanded_config` the
+  `volatile.<nic>.hwaddr` and `boot.autostart`, and its
+  `expanded_devices` what the host passed to it — a profile's
+  included in each. Record the project with the name (`prod/web`); every
   later command carries it.
-- **LXC:** `lxc-ls -f` shows state and autostart;
-  `grep -H hwaddr /var/lib/lxc/*/config` the MACs.
+- **LXC:** `lxc-ls -f` shows state and autostart; this the MACs
+  and what the host passed to each, where `cgroup` without the `2`
+  is the older cgroup v1 form of the same device line:
+
+  ```sh
+  grep -H -E 'hwaddr|^lxc\.mount\.entry|^lxc\.cgroup2?\.devices\.allow' /var/lib/lxc/*/config
+  ```
+
 - **vm-bhyve:** `vm list` shows `AUTO` and `STATE`; `vm info`
   without a name gives every VM's MACs and UUID.
 - **Hyper-V:** `rules/os/windows.md` → Version Detection.

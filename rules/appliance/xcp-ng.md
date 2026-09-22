@@ -180,6 +180,14 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
 - List: `xe vm-list is-control-domain=false
   params=uuid,name-label,power-state,resident-on`. Dom0 itself
   appears as a VM with `is-control-domain=true`; never act on it.
+- **Devices passed through:** `xe pci-list params=all` names each
+  PCI device with every field this version has, dom0's access
+  among them, and
+  `xe vm-param-get uuid=<uuid> param-name=other-config
+  param-key=pci` the ones a VM holds. Read them with
+  `.agents/skills/hostwarden-housekeeping/references/passthrough.md`;
+  a dom0 that no longer reaches a device is that file's reserved
+  device.
 - **Stopping, destroying or uninstalling a VM** powers off or
   deletes a server: `rules/system-containers.md` → Changes. Its
   disks come from `xe vm-disk-list vm=<uuid>`, the newest backup

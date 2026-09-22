@@ -127,10 +127,9 @@ Name each remaining device by what it is:
   says the machine has an out-of-band console.
 - **Anything else** is recorded by its product string.
 
-On a hypervisor a device passed through to a guest is used by the
-guest, not by this host: name the guest in the `USB:` line
-(`… (1cf1:0030, passed to VM 101)`). The appliance file gives the
-command that shows it.
+On a host with guests a device may belong to one of them:
+`references/passthrough.md` says which, and records it. A device
+a VM holds answers nothing here.
 
 ## Memory
 
