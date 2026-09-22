@@ -128,14 +128,16 @@ echo "dns64=$(getent ahostsv6 ipv4only.arpa \
   | grep -v '^::ffff:' | head -1)"
 
 echo "### E egress"
-echo "proxy-env=$(env | grep -ciE '^(https?|all)_proxy=')"
-echo "proxy-apt=$(apt-config dump 2>/dev/null \
-  | grep -ciE '^Acquire::https?::Proxy ')"
-echo "proxy-dnf=$(grep -hciE '^proxy[[:space:]]*=' \
+pe=$(env | grep -ciE '^(https?|all)_proxy=')
+pa=$(apt-config dump 2>/dev/null \
+  | grep -ciE '^Acquire::https?::Proxy ')
+pd=$(grep -hciE '^proxy[[:space:]]*=' \
   /etc/dnf/dnf.conf /etc/yum.conf 2>/dev/null \
-  | grep -c '^[1-9]')"
-echo "proxy-suse=$(grep -c '^PROXY_ENABLED=\"yes\"' \
-  /etc/sysconfig/proxy 2>/dev/null)"
+  | grep -c '^[1-9]')
+pz=$(grep -c '^PROXY_ENABLED=\"yes\"' \
+  /etc/sysconfig/proxy 2>/dev/null)
+px=$((pe + pa + pd + ${pz:-0}))
+echo "proxy-env=$pe proxy-apt=$pa proxy-dnf=$pd proxy-suse=${pz:-0}"
 # Active lines only; drop user:password@ and :port.
 [ -n "$T" ] || T=$(grep -rhE '^[[:space:]]*[^#[:space:]]' \
   /etc/apt/sources.list /etc/apt/sources.list.d/ \
@@ -155,7 +157,8 @@ for t in $T; do
   for f in 4 6; do
     if [ "$f" = 4 ]; then [ -n "$d4" ] && continue; a=$v4
     else [ -n "$d6" ] && continue; a=$v6; fi
-    if [ -z "$a" ]; then
+    # A proxy resolves names itself, so try it without an address.
+    if [ -z "$a" ] && [ "$px" = 0 ]; then
       c=no-address
     elif command -v curl >/dev/null 2>&1; then
       c=$(curl -"$f" -sS -o /dev/null --connect-timeout 3 \
@@ -377,10 +380,13 @@ Reading the result:
   distro without apt, dnf, zypper or apk). Set `T` through
   the override and run again.
 - **A proxy is configured** (any `proxy-*` count
-  above 0): direct
-  egress may be blocked on purpose. Record
-  `Egress: via proxy` and do not report a failed
-  direct test as a finding.
+  above 0): direct egress may be blocked on
+  purpose. Record `Egress: via proxy` and do not
+  report a failed direct test as a finding. The
+  request then runs even where `getent` found no
+  address, because the proxy resolves the name, and
+  an empty `resolve` line is no resolution failure
+  on such a host.
 
 Finding out the public address behind NAT needs an
 external echo service. Do that only when the user

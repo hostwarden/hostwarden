@@ -26,11 +26,15 @@ a="$a|newt|cloudflared|wireguard-go|netclient|openvpn|charon"
 { ps ax -o args= 2>/dev/null || ps w 2>/dev/null; } \
   | grep -oE "(^|[/[:space:]])($a)(-systemd)?([[:space:]]|\$)" \
   | tr -d ' /' | sort -u
-ip -br link show type wireguard 2>/dev/null \
-  || ip link show 2>/dev/null \
-  || { ifconfig -g wg 2>/dev/null; ifconfig -l; }
-ip -br addr 2>/dev/null | grep -E '^(tailscale|zt|nebula|tun)' \
-  || ip addr show 2>/dev/null | grep -E ': (tailscale|zt|nebula|tun)'
+o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
+for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
+             || ifconfig -l 2>/dev/null; } \
+           | grep -oE "$o" | sort -u); do
+  echo "== $i"
+  { ip -br addr show dev "$i" 2>/dev/null \
+    || ip addr show dev "$i" 2>/dev/null \
+    || ifconfig "$i" 2>/dev/null; } | grep -E 'inet|flags|UP'
+done
 ls -d /Applications/Tailscale.app /Applications/WireGuard.app \
   2>/dev/null
 if command -v tailscale >/dev/null 2>&1; then
@@ -53,10 +57,12 @@ The match takes the program name wherever the process list puts
 it — BusyBox `ps` and `ip` take neither the BSD options nor
 `-br` (`rules/busybox.md`) — and keeps no argument, which can
 hold a token (`rules/secrets.md`). Kernel WireGuard has no
-process; `ip -br link show type wireguard` lists it whatever its
-name (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`),
-`ifconfig -g wg` on FreeBSD. On macOS the interface names say
-little (`utun*`); the `ls` finds the apps.
+process, so the second loop finds the overlay interfaces by name
+(wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`,
+Tailscale's `tailscale0`) and prints each one's addresses, which
+is what ties this session's `SSH_CONNECTION` address to a VPN.
+On macOS the names say little (`utun*`) and the `ls` finds the
+apps instead.
 
 An agent inside a container with its own network namespace shows
 its process but not its interface or CLI. Name the container
