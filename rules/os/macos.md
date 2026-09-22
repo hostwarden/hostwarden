@@ -52,10 +52,9 @@ Rules for macOS (Apple Silicon and Intel).
 - **`pf`** (packet filter) exists but is rarely needed
   on typical Macs. Only use `pf` if the user has
   specific port-level filtering requirements.
-- A disabled firewall on macOS is common and less
-  alarming than on a Linux server — Macs are usually
-  behind a NAT router. Flag it to the user but do not
-  treat it as urgent.
+- How serious a disabled firewall is depends on the
+  role: **WARN** on a server, and on a workstation what
+  `rules/role/workstation.md` says.
 
 ## Automatic Security Updates
 

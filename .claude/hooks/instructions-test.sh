@@ -828,6 +828,45 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
   END { done() }' "$ROOT"/rules/appliance/*.md)" \
   "an appliance file that fits its base"
 
+# --- platform files hold to theirs -------------------------------
+# A platform file applies to whichever family detection found
+# (rules/os-detection.md -> Platforms), so a `Replace:` or `Remove:`
+# may only name a section that every family file has; one only some
+# have takes nothing out on the others, silently.
+# The family list goes in through the environment: awk -v rejects a
+# value with a newline in it.
+report "$(FAMILIES="$(printf '%s\n' "$ROOT"/rules/os/*.md)" \
+  awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" "$LOAD_AWK"'
+  function done() {
+    if (rel == "") return
+    if (based) print rel ": a Base line, but it has no fixed base"
+    if (!ha) print rel ": no ## Housekeeping and Audits section"
+  }
+  BEGIN {
+    nfam = split(ENVIRON["FAMILIES"], F, "\n")
+    for (f = 1; f <= nfam; f++)
+      if (load(F[f])) for (i = 1; i <= NH[F[f]]; i++)
+        if (!((F[f], H[F[f], i]) in SEEN)) { SEEN[F[f], H[F[f], i]]; N[H[F[f], i]]++ }
+    while ((getline l < table) > 0) t = t "\n" l
+    close(table)
+  }
+  FNR == 1 {
+    done(); FM = ""; based = ha = 0
+    rel = substr(FILENAME, length(root) + 1)
+    if (!index(t, "`" rel "`"))
+      print rel ": not in the marker table of rules/os-detection.md"
+  }
+  fenced($0) { next }
+  /^Base: / { based = 1 }
+  $0 == "## Housekeeping and Audits" { ha = 1 }
+  /^## (Replace|Remove): / {
+    sec = $0; sub(/^## [A-Za-z]+: */, "", sec)
+    if ((i = index(sec, " > "))) sec = substr(sec, 1, i - 1)
+    if (N[sec] != nfam) print rel ": " sec " is not a section of every family file"
+  }
+  END { done() }' "$ROOT"/rules/platform/*.md)" \
+  "a platform file that fits every family"
+
 # --- the ignore rules keep personal files out, and only those -----
 # .gitignore ignores all of .claude/ but the shared configuration.
 # Both directions fail silently otherwise: a tracked file the rules

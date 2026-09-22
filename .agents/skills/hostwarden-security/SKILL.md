@@ -91,8 +91,8 @@ Read on demand, only when the relevant section applies:
   SUID/SGID audit, /tmp mount options, cron perms, unowned files.
 - `references/intrusion-prevention.md` — fail2ban status.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
-- On an appliance, its `## Housekeeping and Audits` section,
-  already loaded by the pipeline (`rules/os-detection.md` →
-  Appliances).
+- The `## Housekeeping and Audits` sections of the host's
+  appliance, platform and role files, already loaded by the
+  pipeline (`rules/os-detection.md` → Layers).
 - `references/unprivileged.md` — which checks work without root,
   which need it, and how to report skipped ones.

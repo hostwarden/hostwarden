@@ -73,9 +73,9 @@ Read on demand, only when the relevant section applies:
   ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
-- On an appliance, its `## Housekeeping and Audits` section,
-  already loaded by the pipeline (`rules/os-detection.md` →
-  Appliances).
+- The `## Housekeeping and Audits` sections of the host's
+  appliance, platform and role files, already loaded by the
+  pipeline (`rules/os-detection.md` → Layers).
 - `references/scheduled.md` — running this inspection from cron
   or a systemd timer with no human at the keyboard, and mailing
   the result. Only when the user asks to schedule it.

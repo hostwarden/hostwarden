@@ -188,6 +188,15 @@ that changes the base file where it would be wrong:
 | Unraid            | —       | `rules/appliance/unraid.md`         |
 | OpenWrt           | —       | `rules/appliance/openwrt.md`        |
 
+Two more layers sit on top. A platform is what the OS runs
+inside when something outside owns part of the machine:
+[WSL](rules/platform/wsl.md), where Windows owns the kernel and
+the firewall. A role says what the machine is expected to have:
+a [workstation](rules/role/workstation.md) — a Mac, a WSL
+instance, the machine Hostwarden runs on — is held to different
+expectations than a server. Hostwarden infers the role and tells
+you; say so when it is wrong.
+
 Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it
 detected.

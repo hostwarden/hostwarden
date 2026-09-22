@@ -3,13 +3,16 @@
 Before doing any work on a server, you **must** know
 its OS.
 
-Detection is what makes `rules/os/` and
-`rules/appliance/` reachable. Those files are not rules
+Detection is what makes `rules/os/`,
+`rules/appliance/`, `rules/platform/` and
+`rules/role/` reachable. Those files are not rules
 that fire on a situation — they are reference data
 addressed by a fact this procedure establishes.
 Detection reads **at most one** family file — the family
-it just established, and no other — and **at most one**
-appliance file on top of it. A distribution no family
+it just established, and no other — and on top of it
+**at most one** appliance file, **at most one**
+platform file and **at most one** role file, in that
+order (see Layers below). A distribution no family
 covers gets no family file; step 2 below says what to
 do instead. Never reach for the nearest file — a Debian
 reference on an Arch host prescribes the wrong
@@ -45,7 +48,8 @@ skill says so where it needs it.
      'which pveversion ha opnsense-version pfSense-upgrade' \
      'midclt; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
-     'midclt call system.version; dpkg -l openmediavault'
+     'midclt call system.version; dpkg -l openmediavault;' \
+     'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    `ssh` joins the quoted pieces with spaces into one
    command line. In local mode, run the same commands
@@ -124,7 +128,13 @@ skill says so where it needs it.
    the version comes from the probe; otherwise run
    that command.
 
-4. Create a server memory file.
+4. **Check for a platform** from the lines after
+   `@platform`. See Platforms below.
+
+5. **Settle the role**, server or workstation. See
+   Roles below.
+
+6. Create a server memory file.
 
 ## Appliances
 
@@ -174,18 +184,90 @@ format): `## Replace:` and `## Remove:` take a section
 of the base out, `## Add:` and a heading without a
 prefix add to it, and a section the appliance file
 does not name applies as the base wrote it.
-`Base: none` means no family file at all. The user's
-overrides of the family file come before those of the
-appliance file. Record `Appliance: …` in server
-memory, in the form the appliance file gives.
+`Base: none` means no family file at all. Record
+`Appliance: …` in server memory, in the form the
+appliance file gives.
 
-**On an appliance, the family file with the appliance
-file applied is the OS file.** Wherever an instruction
-names the loaded OS file or `rules/os/<family>.md`, it
-means that. The appliance file's
-`## Housekeeping and Audits` section adds checks for
-housekeeping and both audits on top, and a baseline
-it excludes is skipped.
+## Platforms
+
+A platform is what an ordinary OS runs inside when
+something outside it owns part of the machine — the
+kernel, the firewall, the network, the power switch.
+The distribution's own package manager and services
+still work as its family file says; what the outside
+owns does not. What the outside owns is read, never
+changed from inside: the platform file gives the
+command for the user to run there. An ordinary
+virtual machine is not a platform: the guest owns its
+kernel, its firewall and its reboot.
+
+| Marker                                    | Platform file           |
+| ----------------------------------------- | ----------------------- |
+| `microsoft` in `/proc/version`, any case  | `rules/platform/wsl.md` |
+
+The environment variable under `@platform` is a label
+for the memory directory (`rules/server-memory.md`),
+never a marker: whoever starts the shell sets it.
+
+A platform file has no `Base:` line. It applies on top
+of whatever family detection found, and on top of an
+appliance file if there is one, with the same prefixes,
+so a `Replace:` or `Remove:` names a section every
+family file has. Record `Platform: …` in server memory,
+in the form the platform file gives.
+
+## Roles
+
+The role is what the machine is for, and it decides
+what is expected of it, not how it is administered.
+Two exist:
+
+- **server** — the default, and what every rule and
+  skill is written for. It has no file.
+- **workstation** — a machine a person works at. It
+  sleeps, changes networks and reboots when its owner
+  decides, and its OS's own updater and firewall are
+  what count. `rules/role/workstation.md` says what
+  changes.
+
+A machine whose memory has no `Role:` line gets
+`workstation` when it is the local machine, runs
+macOS, or its platform file says so; anything else
+gets `server`. Record it with where it came from —
+`Role: workstation (inferred: macOS)` — and say it in
+one line when it is recorded: *"Recorded as a
+workstation (macOS) — say so if it serves others."*
+What the user says replaces it as
+`Role: server (user)`, and a role the user set is
+never inferred again. The purpose decides, never the
+OS: a Mac mini that runs builds for a team is a
+server.
+
+## Layers
+
+Later wins, and each layer is read against the result
+of the ones before it:
+
+1. the family file (`rules/os/`);
+2. the appliance file (`rules/appliance/`);
+3. the platform file (`rules/platform/`);
+4. the role file (`rules/role/`);
+5. the user's overrides, in the order
+   `rules/overrides.md` → Precedence gives.
+
+**The family file with the appliance and platform
+files applied is the OS file.** Wherever an
+instruction names the loaded OS file or
+`rules/os/<family>.md`, it means that. A role file is
+not part of it: it changes no command, only what is
+expected and how a finding is rated, and it names
+each rule, expectation or check it changes. What it
+does not name applies as written.
+
+The `## Housekeeping and Audits` section of the
+appliance, platform and role file applies to
+housekeeping and both audits: it adds checks, skips
+those it excludes and rates some differently.
 
 ## On subsequent connections
 
@@ -194,12 +276,17 @@ first (see `rules/first-connection.md`), including
 the blacklist and read-only checks. Specific to
 known servers: read the memory file, changelog, and
 `todo.md` (if present) before any work, read the
-family file and the appliance file from `Appliance:`.
+family file and the files that `Appliance:`,
+`Platform:` and `Role:` name.
 Shell and hardware come from memory. The first call
 still goes without stdin, in the shape of step 1:
 `uname -s`, then the version command from the OS
 file's Version Detection section and, for an
-appliance, its own. Its first line decides as in
-step 1. Update memory if a version changed; if a
-command fails or the OS no longer matches memory, run
-the full probe from step 1.
+appliance, its own, then `echo @platform;
+cat /proc/version`. Its first line decides as in
+step 1. Update memory if a version changed, and
+settle the platform (step 4) when the `@platform`
+lines and `Platform:` disagree, and the role (step 5)
+when memory has no `Role:` line; if a command fails
+or the OS no longer matches memory, run the full
+probe from step 1.
