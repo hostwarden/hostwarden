@@ -67,7 +67,10 @@ cat /proc/device-tree/model
 ls -d /sys/firmware/efi
 ```
 
-On FreeBSD, `kenv -q smbios.system.maker`,
+On macOS the machine is Apple's own hardware, so the refusal
+applies to every Mac: `sysctl -n hw.model` names the model for the
+record, and Hostwarden installs no other OS on it. On FreeBSD,
+`kenv -q smbios.system.maker`,
 `kenv -q smbios.system.product` — one name per call: a second
 argument sets the first name to it — and
 `sysctl machdep.bootmethod`. A missing file is no answer; where the
