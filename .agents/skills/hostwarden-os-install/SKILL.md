@@ -52,7 +52,7 @@ that, and it applies whether or not the guard is on.
 
 ## Vendor hardware is out of scope
 
-None of the workflows below runs on a device whose only OS is the
+No workflow below **writes** on a device whose only OS is the
 vendor's firmware: replacing or repartitioning it can leave the
 device unbootable. That is every host whose appliance file says
 `Hardware: vendor`, an `any` appliance on the vendor's own device
@@ -71,8 +71,15 @@ On FreeBSD, `kenv -q smbios.system.maker`,
 `kenv -q smbios.system.product` — one name per call: a second
 argument sets the first name to it — and
 `sysctl machdep.bootmethod`. A missing file is no answer; where the
-reads leave doubt, ask the user what the machine is. On a vendor
-device, say so and stop.
+reads leave doubt, ask the user what the machine is.
+
+On a vendor device, say so, and stop at the first step that would
+write: no replacement, no dual boot, no repartitioning, no image
+deployment, and no change to its boot configuration. Reading stays
+open as Reading is always allowed says — inspecting disks and EFI
+state, and working out why the machine no longer boots — and so
+does `references/efi-boot.md` for what a boot entry means, as long
+as nothing is written.
 
 ## The gate — before the first disk write
 
