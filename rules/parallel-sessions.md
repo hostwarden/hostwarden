@@ -108,15 +108,19 @@ again after the host comes back.
 ## Hosts without a register
 
 Where the loaded OS file says a host has no register, the
-journal stands in for it (`rules/changelog.md`). Before its
-first change there, a session writes the line
-`[<operator> as <unix-user>] starting: <task>`, and its usual
-line once the change is done. Right before each change, read
-the journal as the activity check does
-(`rules/activity-check.md`): a `starting:` entry from another
-operator in the last 30 minutes, with no later entry of theirs,
-is a live session — name it and ask, as for a live entry
-above. A finished change is not.
+journal stands in for it (`rules/changelog.md`), and the session
+token (The register above, made with the same command on the
+workstation where the host has no `sh`) tells one session from
+another, two windows of the same operator included. Right before each change
+there, read the journal as the activity check does
+(`rules/activity-check.md`), then write
+`[<operator> as <unix-user>] starting <token>: <task>`; once the
+change is done and logged, write
+`[<operator> as <unix-user>] done <token>: <task>`. Every
+change gets its own pair. A `starting` entry with another token
+from the last 30 minutes, and no `done` entry with that token
+after it, is a live session — name it and ask, as for a live
+entry above. A pair that is complete is a finished change.
 
 ## Talk to the other session
 

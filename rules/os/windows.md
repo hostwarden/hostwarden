@@ -95,7 +95,7 @@ through Microsoft Update.
 2. **Download, check, install and verify** in one call:
 
    ```powershell
-   $v = '<version>'; $a = '<arch>'; $sha = '<sha256>'; $f = Join-Path $env:TEMP "PowerShell-$v-win-$a.msi"; $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+   $v = '<version>'; $a = '<arch>'; $sha = '<sha256>'; $f = Join-Path $env:TEMP "PowerShell-$v-win-$a-$PID.msi"; $ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
    try { Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/PowerShell/PowerShell/releases/download/v$v/PowerShell-$v-win-$a.msi" -OutFile $f -ErrorAction Stop; if ((Get-FileHash $f).Hash -ne $sha) { throw 'hash mismatch, not installed' }; $c = (Start-Process msiexec.exe -ArgumentList '/package', "`"$f`"", '/quiet', 'ADD_PATH=1' -Wait -PassThru).ExitCode; "msiexec: $c"; if ($c -in 0, 3010) { "pwsh: $(& 'C:\Program Files\PowerShell\7\pwsh.exe' -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()')" } } catch { "failed: $_" } finally { Remove-Item $f -ErrorAction SilentlyContinue }
    ```
 
