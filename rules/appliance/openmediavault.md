@@ -348,12 +348,24 @@ under `deb/openmediavault/` there).
 - **RAID:** `cat /proc/mdstat`; for each array, `mdadm --detail`.
   Degraded, resyncing or with a failed member is a finding.
   ZFS: `zpool status -x`.
-- **SMART:** `smartctl -H -A` per disk. Whether
-  monitoring is on: `omv-confdbadm read --prettify
+- **SMART:** per disk,
+  ```
+  smartctl -n standby -H -A /dev/<disk> | grep -E "result:|Health Status:|STANDBY|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
+  ```
+  SMART health is the `result:` line on SATA and NVMe disks and
+  `SMART Health Status:` on SAS and other SCSI disks, which print
+  `OK` or the failure with its `asc`/`ascq` codes. A SAS disk has
+  no ATA attributes and reports `Elements in grown defect list:`
+  instead (smartmontools, `scsiprint.cpp`). `-n standby` leaves a
+  spun-down disk asleep; it prints `STANDBY` and is read on the
+  next run. A disk that prints neither health line nor `STANDBY`
+  has unknown health: report it as unknown, never as passing.
+  Whether monitoring is on: `omv-confdbadm read --prettify
   conf.service.smartmontools` and the device list
   (`conf.service.smartmontools.device`). A disk without monitoring
-  is a finding; so is a failed health check or a growing
-  reallocated or pending sector count.
+  is a finding; so is health that is not `PASSED` or `OK`, and a
+  growing reallocated, pending or uncorrectable sector count or
+  grown defect list.
 - **Pending updates:** `apt-get -s --auto-remove dist-upgrade`,
   and
   `conf.system.apt.updates` for unattended upgrades.
