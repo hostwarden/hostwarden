@@ -78,7 +78,13 @@ Layers).
    answers a question nobody asked.
 
 2. **Resolve SSH users.** Read `memory/user.md` for the
-   per-host SSH user. Hosts without a mapping go on a
+   per-host SSH user. A host with a `Reached as:` line is
+   looked up under that destination, never under its
+   directory name: a WSL instance's directory is a
+   synthetic key the user never typed
+   (`rules/server-memory.md`), and `rules/ssh-user.md`
+   stores the name under what they did type.
+   Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
    report).
 
