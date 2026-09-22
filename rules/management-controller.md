@@ -237,11 +237,12 @@ find it:
 - **1** — the address goes in `memory/network.md` as the
   controller's row, marked `(user)`; the `Management:` line is
   unchanged.
-- **2** and **3** — appended after a semicolon, as
-  `…; another way (user)` and `…; none (user)`. Which other way
-  is the user's to name when the rescue path asks them to
-  confirm it; recording a guess between a console and a person on
-  site would be a fact nobody gave.
+- **2** — ask in the same exchange which way it is, and append
+  it after a semicolon in the user's words:
+  `…; provider console (user)`, `…; physical access (user)`, or
+  whatever else they name. Never `another way` alone: after SSH
+  is gone that names nothing anyone can use.
+- **3** — appended after a semicolon, as `…; none (user)`.
 
 ## What to record
 
