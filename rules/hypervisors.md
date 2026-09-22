@@ -347,13 +347,15 @@ entry. No match: once the user's request is answered, ask once
 which host it is, offering the hypervisors in memory, "one
 Hostwarden does not manage" (with its name, if they want) and
 "don't know", and record the answer as `Runs on: <host> (user)`,
+with the guest's ID where the user gives one
+(`Runs on: pve1.example.com (container 105, user)`),
 `Runs on: <name> (user, not managed)` or `Runs on: unknown
 (user)`. It is never asked again; a later inventory that finds the
 keys replaces it. In via-host mode (`rules/first-connection.md`),
-the host is the one the session goes through. A guest Hostwarden
-just created: the host it was created on; `Runs on:` and
-`Guest identity:` come from the creation, with no lookup and no
-question (`hostwarden-new-guest`).
+the host is the one the session goes through, and the ID the one
+it enters. A guest Hostwarden just created: the host it was
+created on; `Runs on:` and `Guest identity:` come from the
+creation, with no lookup and no question (`hostwarden-new-guest`).
 
 **On the host,** for the guests without a `→`, one `grep` over
 the `Guest identity:` lines of `memory/servers/*/memory.md`. A
@@ -381,9 +383,11 @@ none:
   <jail>`, `iocage get -s <jail>`, or no `name=<jail>` line from
   `jail -f <file> -e '|'` for any file), remove its
   entry; a guest with memory of its own then gets
-  `Runs on: unknown (left <host> <date>)`, and if it turns up on
-  another host, the keys link it there. A guest the cluster
-  listing shows on another node moved: `Runs on:` names that node.
+  `Runs on: unknown (left <host> <date>)` and loses its
+  `Mode: via …` line, and if it turns up on another host, the keys
+  link it there. A guest the cluster listing shows on another node
+  moved: `Runs on:` names that node, and a `Mode: via …` line is
+  rewritten for it (`rules/server-memory.md`).
   Until the check settles it, the entry only gains
   `not listed <date>`.
 - **State changed:** update the entry.

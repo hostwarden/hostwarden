@@ -75,12 +75,26 @@ instead of backup directories
 A system container or VM reached through its
 hypervisor host's manager instead of its own SSH.
 When it applies: `rules/system-containers.md` →
-Reaching It. The connection to the host runs this
-pipeline for the host. For the guest, check the
-blacklist and the read-only list by its own name as
-well: the guest is read-only when it or its host is
-on the read-only list. Skip steps 3–4, and run the rest
-inside the guest, bundled into one call per step
+Reaching It. Where the guest's memory has a
+`Mode: via …` line, compare it with its `Runs on:`
+line before connecting: the host, an alias counting
+as its canonical host (`rules/dns-aliases.md`), and
+the ID. The ID is the whole of it: the Incus or LXD
+project and, on a host with more than one manager,
+the manager (`incus: prod/web`, `rules/hypervisors.md`
+→ Inventory). Where `Runs on:` is missing, carries no
+ID, or differs in either, do not enter the guest: ask
+the user which host and ID it has, and write both
+lines from the answer, `Runs on:` in the user's form
+with the ID (`rules/hypervisors.md` → Linking Guest
+and Host, `rules/server-memory.md`).
+
+The connection to the host runs this pipeline for
+the host. For the guest, check the blacklist and the
+read-only list by its own name as well: the guest is
+read-only when it or its host is on the read-only
+list. Skip steps 3–4, and run the rest inside the
+guest, bundled into one call per step
 (`rules/ssh-connections.md`):
 
 ```bash

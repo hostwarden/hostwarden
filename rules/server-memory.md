@@ -93,10 +93,16 @@ add `Mode: local` for localhost, or
 `Mode: via pve1.example.com (pct exec 105)` for a
 guest that has no sshd of its own, with the whole
 command it is reached by, the Incus project included
-(`rules/first-connection.md`). A guest whose SSH
-merely timed out never gets that line: via-host mode
-is this session's only, and the line would route
-every later session through the host
+(`rules/first-connection.md`). Its host and ID,
+project and manager included, are the ones
+`Runs on:` names, and the two change together: a
+guest that moved or got a new ID gets the line
+rewritten, one that left its host loses it. A stale
+line sends the next session into whatever guest
+holds that ID on the old host now.
+A guest whose SSH merely timed out never gets that
+line: via-host mode is this session's only, and the
+line would route every later session through the host
 (`rules/system-containers.md` → Reaching It);
 an OS file whose Version Detection names fields to
 record adds those. `Appliance:`,
