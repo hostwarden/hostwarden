@@ -161,6 +161,8 @@ rules/                 — Upstream rule files (git-tracked)
                          starting services
   service-class-check.md — One web server / database /
                          MTA per host unless approved
+  containers.md        — Docker, Podman and containerd:
+                         find, read and change a container
   secrets.md           — Secrets hygiene: never print
                          keys/passwords, metadata only
   service-reload.md    — Service reload/restart policy

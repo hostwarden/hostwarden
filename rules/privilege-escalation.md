@@ -38,6 +38,18 @@ command -v sudo && sudo -n true
 On subsequent connections, check server memory for
 the sudo flag.
 
+## Root-Equivalent Groups
+
+Membership in the `docker` group is root: the daemon
+behind the socket starts a container that mounts any
+host path on request
+(<https://docs.docker.com/engine/security/#docker-daemon-attack-surface>).
+A user in it needs no sudo for Docker. Record
+`- Root-equivalent group: docker` in server memory,
+not unprivileged mode, and use it only for the
+Docker work `rules/containers.md` describes. Never
+add a user to the group.
+
 ## Stand-ins for sudo
 
 The loaded OS file may have a `## Privileges` section
