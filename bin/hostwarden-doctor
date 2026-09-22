@@ -255,7 +255,11 @@ ssh_conf_key() {
 for t in ssh git awk sed grep tar mktemp; do
   probe need "$t" "$t" has "$t"
 done
-has ssh && probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
+# Sharing is how a session reaches servers, which a development
+# checkout never does. There the ssh on PATH is often the shim
+# (.claude/hooks/shim.sh), which refuses even -G.
+[ -n "$DEV" ] || ! has ssh \
+  || probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
 probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 
 if [ -n "$DEV" ]; then
