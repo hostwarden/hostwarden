@@ -37,7 +37,7 @@ audit-trail line was written (`rules/os/alpine.md` → Logs).
 **Privilege handling.** The sshd and firewall probes need
 root. Work out the prefix once, at the top of the bundle —
 never an interactive prompt, BatchMode allows none; `doas` is
-Alpine's default (`rules/privilege-escalation.md` → Doas):
+Alpine's default (`rules/os/alpine.md` → Privileges):
 
 ```bash
 if [ "$(id -u)" = "0" ]; then
