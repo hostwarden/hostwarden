@@ -204,6 +204,7 @@ else
     -e '^maxauthtries ' \
     -e '^logingracetime ' \
     -e '^usepam ' \
+    -e '^authenticationmethods ' \
     -e '^port '
 fi
 ```
@@ -221,7 +222,9 @@ be missing there: a missing line is `n/a (Alpine)`, not `no`.
 Highlight as drift:
 
 - Any host with `passwordauthentication yes` while others
-  have `no`.
+  have `no`. An `authenticationmethods` that requires
+  `publickey` in every one of its lists means the host
+  accepts no password alone, whatever the other lines say.
 - Any host with `permitrootlogin yes` while others use
   `prohibit-password` or `forced-commands-only`.
 - Mismatched `port` values across the fleet.
