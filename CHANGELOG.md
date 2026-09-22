@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The Windows taboos hold on Windows Server too.** Over
+  SSH, the taboo guard blocks what it blocks under WSL,
+  plus `bcdedit` edits (`/enum` and `/v` still read),
+  `cipher /w`, `shutdown /p` and `/h`, and
+  `Remove-VirtualDisk` and `Remove-StoragePool`, also
+  inside a `pwsh -Command -` heredoc. `shutdown /r`, `/g`
+  and `/a` pass, with or without `.exe`.
 - **The guards also cover Windows under WSL.** In a
   development checkout, the Windows programs that reach a
   server or administer the machine (`ssh.exe`, `wsl.exe`,

@@ -29,12 +29,13 @@
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
-#   - the same effects on a machine that carries Windows, as
-#     WSL reaches it: shutdown.exe /s, Stop-Computer, wsl
-#     --shutdown/--terminate (halt), wsl --unregister (the
+#   - the same effects on any Windows machine, reached over
+#     SSH or through WSL: shutdown /s /p /h, Stop-Computer,
+#     wsl --shutdown/--terminate (halt), wsl --unregister (the
 #     distribution's whole disk), the same through wslconfig,
-#     diskpart, mbr2gpt, format
-#     X:, the Storage cmdlets (Clear-Disk, Format-Volume ...),
+#     diskpart, mbr2gpt, format X:, cipher /w, bcdedit beyond
+#     /enum and /v, the Storage cmdlets (Clear-Disk,
+#     Format-Volume, Remove-VirtualDisk ...),
 #     \\.\PhysicalDriveN, sshd_config and host keys under
 #     ProgramData\ssh, and PowerShell or cmd.exe as a runtime
 #
@@ -397,15 +398,23 @@ WSL='(^|[^[:alnum:]_.-])wsl(config)?(\.exe)?["'"'"']?[[:space:]]'
 
 # The Windows rules below can only match a command that names
 # wsl, a .exe, PowerShell, or one of the words they look for.
+# A Windows server reached over SSH may see none of the first
+# three: it runs a bare shutdown /s as shutdown.exe.
 # Checking that once, without a process, keeps their greps off
-# every other call; the guard runs on each one.
+# every other call; the guard runs on each one. A Windows rule
+# whose word is missing here never runs, so a new rule adds its
+# word. Linux uses shutdown and ciphers too, so those two count
+# only in the form Windows gives them: a slash after shutdown,
+# a /w or -w after cipher.
 WIN=
 case "$CMD" in
 *[Ww][Ss][Ll]*|*.[Ee][Xx][Ee]*|*[Pp][Ww][Ss][Hh]*) WIN=1 ;;
 *[Pp][Oo][Ww][Ee][Rr][Ss][Hh][Ee][Ll][Ll]*|*[Dd][Ii][Ss][Kk]*) WIN=1 ;;
 *-[Cc][Oo][Mm][Pp][Uu][Tt][Ee][Rr]*|*-[Pp][Aa][Rr][Tt]*) WIN=1 ;;
 *-[Vv][Oo][Ll][Uu][Mm][Ee]*|*[Mm][Bb][Rr]2*) WIN=1 ;;
-*[Ff][Oo][Rr][Mm][Aa][Tt]*) WIN=1 ;;
+*[Ff][Oo][Rr][Mm][Aa][Tt]*|*-[Ss][Tt][Oo][Rr][Aa][Gg][Ee]*) WIN=1 ;;
+*[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]*/*|*[Bb][Cc][Dd][Ee][Dd]*) WIN=1 ;;
+*[Cc][Ii][Pp][Hh][Ee][Rr]*[/-][Ww]*) WIN=1 ;;
 esac
 
 # True when command $1 occurs somewhere WITHOUT its read-only
@@ -417,6 +426,14 @@ esac
 # were both waved through because a bare -l existed anywhere.
 # A third argument i matches without regard to case, as Windows
 # reads its commands; both patterns are then written in lowercase.
+# awk -v reads backslash escapes, so a new pattern spells a literal
+# dot [.] rather than \. .
+#
+# An exemption anchored with ^ lists what every argument may be
+# rather than naming one read-only flag. It sees the line from
+# the character before the command on, hence ^[^[:alnum:]]?, and
+# the whole unsplit command is one of the lines, hence its end at
+# the next ; & or |.
 hit_without() {
   segments | grep -Eq${3:-} "$1" || return 1
   # The command IS present. From here on the only question is
@@ -483,19 +500,33 @@ if hit 'sysrq-trigger'; then
   deny "sysrq-trigger powers off or resets the server without \
 shutting anything down cleanly"
 fi
-# shutdown.exe is Windows' own and is judged below, so the Linux
-# rule exempts it rather than lending it its -r.
+# Windows' shutdown is judged below, so the Linux rule exempts it
+# rather than lending it its -r: shutdown.exe, or shutdown whose
+# every flag takes Windows' slash, as a Windows server reached
+# over SSH runs it. One dash flag keeps it Linux's, quoted or
+# escaped too: the shell and PowerShell drop " ' and ` before
+# the program sees its flag.
 if hit_without '(^|[^[:alnum:]_-])shutdown([^[:alnum:]_-]|$)' \
-  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown\.exe'; then
+  '(^|[[:space:]])-(r|c)([[:space:]]|$)|^[^[:alnum:]]?shutdown[.]exe|^[^[:alnum:]]?shutdown[[:space:]]+/[^[:space:];&|]*([[:space:]]+["'\''`]*[^[:space:];&|"'\''`-][^[:space:];&|]*)*[[:space:]]*([;&|]|$)'
+then
   deny "shutdown without -r powers off the server (reboots \
 use shutdown -r; -c cancels)"
 fi
-# Windows reads shutdown.exe in any case and takes its flags with
-# / or -: /r restarts, /a aborts.
+# Windows reads shutdown in any case and takes its flags with / or
+# -, the dash only where shutdown.exe cannot be Linux's. /s and
+# /sg shut down, /p powers off at once and /h hibernates, even
+# beside a /r. Otherwise /r and /g restart and /a aborts. Both
+# rules must match every form the Linux rule hands over, and the
+# gate for WIN must let it through: widen all four together.
+WINSHUT='(^|[^[:alnum:]_-])shutdown(\.exe[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*[/-]|[[:space:]]+/([^;&|]*[[:space:]]["'\''`]*/)?)'
 if [ -n "$WIN" ] \
-  && hit_without '(^|[^[:alnum:]_-])shutdown\.exe([^[:alnum:]_.-]|$)' \
-  '(^|[[:space:]])[/-][ra]([[:space:]]|$)' i; then
-  deny "shutdown.exe without /r or /a powers off the machine"
+  && hit_i "${WINSHUT}(s|sg|p|h)([[:space:]\"'\`]|\$)"; then
+  deny "shutdown /s, /p and /h power off or hibernate the machine"
+fi
+if [ -n "$WIN" ] \
+  && hit_without '(^|[^[:alnum:]_-])shutdown(\.exe([^[:alnum:]_.-]|$)|[[:space:]]+/)' \
+  '(^|[[:space:]])[/-][rga]([[:space:]]|$)' i; then
+  deny "shutdown.exe without /r, /g or /a powers off the machine"
 fi
 # Windows, as WSL reaches it. Stop-Computer is PowerShell's
 # power-off. wsl --shutdown stops the virtual machine that every
@@ -610,10 +641,24 @@ its forms can be shown to be read-only - inspect with Get-Disk, \
 Get-Partition or Get-Volume"
 fi
 if [ -n "$WIN" ] \
-  && hit_i '(^|[^[:alnum:]_-])(clear-disk|initialize-disk|set-disk|new-partition|remove-partition|resize-partition|set-partition|format-volume|new-volume)([^[:alnum:]_-]|$)'
+  && hit_i '(^|[^[:alnum:]_-])(clear-disk|initialize-disk|set-disk|new-partition|remove-partition|resize-partition|set-partition|format-volume|new-volume|remove-virtualdisk|remove-storagepool)([^[:alnum:]_-]|$)'
 then
   deny "this Storage cmdlet erases a disk or changes its \
 partition table"
+fi
+# bcdedit only reads with /enum and /v, and bare or with /store
+# alone it lists too. Every other option edits the boot
+# configuration, so the exemption holds only while each argument
+# up to the next ; & or | is one of those or no option at all:
+# bcdedit /v /set ... still edits. A quote or backtick in front
+# of an option is dropped before bcdedit sees it, so "/set" is
+# still /set.
+if [ -n "$WIN" ] \
+  && hit_without '(^|[^[:alnum:]_.-])bcdedit([.]exe)?([^[:alnum:]_.-]|$)' \
+  "^[^[:alnum:]]?bcdedit([.]exe)?([[:space:]]+[\"'\`]*(/(enum|v|store|[?])[\"'\`]*|[^/[:space:];&|\"'\`-][^[:space:];&|]*))*[[:space:]]*([;&|]|\$)" i
+then
+  deny "bcdedit beyond /enum and /v rewrites the boot \
+configuration and can leave the machine unbootable"
 fi
 # mbr2gpt rewrites the partition table unless it only validates.
 if [ -n "$WIN" ] \
@@ -624,6 +669,13 @@ fi
 if [ -n "$WIN" ] \
   && hit_i '(^|[^[:alnum:]_.-])format(\.com)?["'"'"']?[[:space:]]+["'"'"']?[a-z]:'; then
   deny "format erases the volume on that drive letter"
+fi
+# cipher /w overwrites all free space on the volume that holds
+# its directory, so nothing deleted there can be recovered.
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_.-])cipher(\.exe)?[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*[/-]w(:|[[:space:]]|["'\''`]|$)'
+then
+  deny "cipher /w wipes the free space of a whole volume"
 fi
 # wsl --unregister (wslconfig /u) deletes a distribution together
 # with the virtual disk that holds its whole filesystem.
