@@ -216,8 +216,9 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   `xe host-management-reconfigure`, or in Xen Orchestra.
 - Changing the management interface or its address cuts SSH and
   the pool's connection to the host. The docs: do it "from a
-  console that won't be cut". Ask the user first, and make sure
-  they have console access (IPMI, physical) before running it.
+  console that won't be cut". There is no revert Hostwarden can
+  arm for it (`rules/ssh-safety-net.md`): the user makes the
+  change with console access (IPMI, physical) ready.
 
 ## High Availability
 
@@ -257,9 +258,12 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   (<https://docs.xcp-ng.org/management/monitoring/>); XCP-ng staff
   name `/etc/xapi.d/plugins/firewall-port {open|close} <port>
   <protocol>` and advise against changing the dom0 firewall at all
-  (<https://xcp-ng.org/forum/topic/9823/xcp-ng-firewall>). Keep a
-  second SSH session open: a mistake in the file takes effect on
-  the restart, SSH included.
+  (<https://xcp-ng.org/forum/topic/9823/xcp-ng-firewall>).
+- Over SSH the change goes through `rules/ssh-safety-net.md`.
+  Check: `iptables-restore --test < /etc/sysconfig/iptables`
+  (<https://man7.org/linux/man-pages/man8/iptables-restore.8.html>);
+  apply: `systemctl restart iptables`; revert: the backed-up file
+  restored, then `systemctl restart iptables`.
 
 ## SSH
 
