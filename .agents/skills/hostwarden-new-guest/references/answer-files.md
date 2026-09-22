@@ -84,10 +84,25 @@ cloud-init
   the documented pair.
 - `firewall --enabled --service=ssh` is the baseline's Firewall
   section, set before the first boot rather than after it.
-- The seed file goes in a `%post` section, which runs chrooted in
-  the installed system unless `--nochroot` says otherwise. Give it
-  `--erroronfail`, so an install that could not write the seed
-  stops visibly rather than producing a guest with no login.
+- The seed is written by a `%post` section, which runs chrooted in
+  the installed system unless `--nochroot` says otherwise. A file
+  injected into the installer's initrd is not visible from inside
+  that chroot, so the seed's content goes into the kickstart
+  itself, and `--erroronfail` stops an install that could not
+  write it rather than producing a guest with no login:
+
+  ```
+  %post --erroronfail
+  mkdir -p /etc/cloud/cloud.cfg.d
+  cat > /etc/cloud/cloud.cfg.d/90-hostwarden.cfg <<'EOF'
+  datasource_list: [NoCloud, None]
+  …
+  EOF
+  %end
+  ```
+
+  The quoted `'EOF'` keeps the shell from expanding anything in the
+  user-data.
 
 ## Preseed — Debian
 
@@ -119,13 +134,20 @@ d-i finish-install/reboot_in_progress note
   installer would download the same packages an hour earlier and
   can pull a reboot forward into the install.
 - `preseed/late_command` writes the seed. It runs in the
-  installer, with the installed system mounted at `/target`, so
-  the seed rides on the medium beside the preseed and is copied
-  in rather than written out on the command line:
+  installer, with the installed system mounted at `/target`. The
+  seed is a second file beside the preseed, injected into the
+  installer's root by a second `--initrd-inject` (libvirt below),
+  and copied from there:
 
   ```
-  d-i preseed/late_command string cp /cdrom/90-hostwarden.cfg /target/etc/cloud/cloud.cfg.d/90-hostwarden.cfg
+  d-i preseed/late_command string mkdir -p /target/etc/cloud/cloud.cfg.d; cp /90-hostwarden.cfg /target/etc/cloud/cloud.cfg.d/90-hostwarden.cfg
   ```
+
+  A host whose UI owns the guests cannot inject into the initrd,
+  and the installer does not mount a second drive by itself. That
+  combination is not covered here: say so, and offer the cloud
+  image with a seed ISO (`references/seed-iso.md`), which those
+  hosts take.
 - A network the installer needs before it reads the file cannot be
   preseeded; a static address is given as kernel arguments
   (`netcfg/…`) or the installer takes DHCP.
@@ -258,7 +280,9 @@ the two options that carry the answer file:
 
 - `--initrd-inject` "Add PATH to the root of the initrd fetched
   with `--location`", which is why the file is named at the root
-  in the kernel argument.
+  in the kernel argument. It may be given more than once; a
+  preseed needs it twice, for the preseed and for the seed its
+  `late_command` copies.
 - The kernel argument differs per installer:
   `inst.ks=file:/…` for anaconda,
   `auto=true priority=critical preseed/file=/…` for Debian,
@@ -276,8 +300,12 @@ The UI attaches the installer ISO; the answer file rides on a
 second ISO, built as `references/seed-iso.md` builds one. For
 Ubuntu that ISO is the `cidata` seed the installer already looks
 for, and the guest boots with `autoinstall` on its kernel
-command line. For the others the user adds the kernel argument
-from libvirt above in the boot menu, once.
+command line. For kickstart and AutoYaST the user adds, once, in
+the boot menu, the form that names a device instead of the initrd:
+`inst.ks=hd:<device>:<path>` and `autoyast=device://<device>/<file>`,
+with the answer ISO as the device. Both carry the seed inside
+them. Preseed does not, and is not offered on such a host (Preseed
+above).
 
 This is what turns "only its installer is left, and that sets a
 password the user types" into a guest that comes up with the

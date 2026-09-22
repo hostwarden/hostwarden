@@ -65,6 +65,16 @@ under pressure.
   `dontAsk`, an unattended `claude -p` run) it
   blocks the command, and you run it yourself
   (`rules/system-containers.md`).
+- **A new guest's SSH server is set up only on your
+  say** — writing sshd's configuration or keys into
+  a container that has never started, or into a disk
+  image through a libguestfs tool, is the one place
+  the taboo on sshd bends, and only for a guest that
+  never ran. The same hook puts the command and its
+  path to you in a permission prompt, and blocks it
+  where no prompt can reach you. The running host's
+  own `/etc/ssh`, and anything under `/mnt`, stay
+  blocked either way (`hostwarden-new-guest`).
 - **Verifies before it reports** — a finding that
   something is missing, broken, or "gone since the
   reboot" gets confirmed against the live system

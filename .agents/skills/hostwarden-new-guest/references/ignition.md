@@ -164,16 +164,22 @@ image is the platform's own build, not the generic one:
   (<https://www.flatcar.org/docs/latest/deploy/virt-options/proxmoxve/>).
 
 In the creation call of `references/proxmox.md` → A VM from a
-cloud image, one `qm set` replaces the one that carries the
-user-data snippet:
+cloud image, one `qm set` replaces the `--cicustom` that carries
+the user-data and meta-data snippets. For Fedora CoreOS:
 
 ```bash
 qm set <vmid> --cicustom vendor=local:snippets/<vmid>-config.ign --ciupgrade 0
 ```
 
-The storage, the snippets directory and everything else about the
-VM are unchanged. The one rule that is new: never give such a VM
-cloud-init data as well.
+For Flatcar the key is `user=` in place of `vendor=`, and
+`--ciupgrade` is left out. Two things there change with it:
+
+- The check after the call reads the `cicustom:` line for this one
+  snippet and compares its checksum with the workstation's copy.
+  Its rule about naming both snippets is for cloud-init: an
+  Ignition VM has no meta-data snippet, and none is added, since
+  Ignition runs once whatever the instance ID says.
+- Never give such a VM cloud-init data as well.
 "You cannot use both Ignition config and regular cloud-init"; the
 `--ciuser`, `--sshkeys` and `--cipassword` options do nothing here
 and are left out.

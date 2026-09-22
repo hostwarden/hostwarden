@@ -118,16 +118,17 @@ guest, not the format. A guest that has already started is a
 server, and every rule for a server applies to it.
 
 Which form it takes follows from what the guest reads at its
-first boot, not from the hypervisor:
+first boot, not from the hypervisor; the references are all under
+`references/`:
 
-| The guest reads          | From                  | Reference         |
-| ------------------------ | --------------------- | ----------------- |
-| user-data from the host  | a cloud image         | `user-data.md`    |
-| a seed in its filesystem | the container template | `proxmox-template.md` |
-| a seed in its filesystem | the LXC download image | `lxc.md`         |
-| a seed in its filesystem | a prepared disk image | `image-prep.md`   |
-| an Ignition config       | Fedora CoreOS, Flatcar | `ignition.md`    |
-| an installer's answers   | an installer ISO or tree | `answer-files.md` |
+| The guest reads          | From                     | Reference             |
+| ------------------------ | ------------------------ | --------------------- |
+| user-data from the host  | a cloud image            | `user-data.md`        |
+| a seed in its filesystem | the container template   | `proxmox-template.md` |
+| a seed in its filesystem | the LXC download image   | `lxc.md`              |
+| a seed in its filesystem | a prepared disk image    | `image-prep.md`       |
+| an Ignition config       | Fedora CoreOS, Flatcar   | `ignition.md`         |
+| an installer's answers   | an installer ISO or tree | `answer-files.md`     |
 
 All but Ignition carry the one rendered cloud-init file, handed
 over or seeded; Fedora CoreOS and Flatcar run no cloud-init and
