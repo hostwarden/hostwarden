@@ -41,6 +41,10 @@ block alive.
    before the next attempt, and never wrap SSH in an
    automatic retry.
 
+An `Access:` line in server memory that names a second
+path which worked (`rules/ssh-safety-net.md` → Which way
+in): try that path once too, then stop.
+
 ## Target or path?
 
 When Hostwarden runs in WSL, read From WSL below first.

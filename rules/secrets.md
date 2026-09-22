@@ -27,6 +27,14 @@ keys, weak permissions) is the job of the
 - Mail credentials (`msmtprc`, `sasl_passwd`)
 - Backup repository passwords (restic/borg env
   and password files)
+- Network and VPN configs that embed keys or
+  passwords: WireGuard configs and `.netdev` files
+  (`PrivateKey=`), NetworkManager keyfiles, netplan
+  YAML (Wi-Fi, WireGuard, 802.1X), VPN agent state
+  (`/var/lib/tailscale`, `/var/lib/netbird`,
+  ZeroTier's `identity.secret`), proxy URLs with
+  credentials. Grep only named keys with an
+  anchored pattern.
 
 When in doubt, treat it as a secret.
 

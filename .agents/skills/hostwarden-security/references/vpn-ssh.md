@@ -130,6 +130,6 @@ One report line per agent found, as `VPN SSH`:
   for it
 - An agent found without an SSH server of its own → OK
 
-The policy that admits people lives in the Tailscale admin
-console, Headscale, the NetBird dashboard or the Pangolin server.
-Never change it from here: it applies to every host at once.
+The policy that admits people lives with the VPN's control plane,
+never on the host; `rules/mesh-vpn.md` says where, and why
+Hostwarden does not change it.
