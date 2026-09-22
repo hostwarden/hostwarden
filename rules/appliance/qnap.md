@@ -521,6 +521,13 @@ is QNAP's own.
     health is not `ONLINE`, whose `scan:` line reports errors, a
     device with a non-zero `READ`, `WRITE` or `CKSUM` count, or an
     `errors:` line other than `No known data errors`;
+  - on QTS, a storage pool the user reads as `Read-Only`,
+    `Threshold Reached`, `Space Low` or anything but `Ready`:
+    `/proc/mdstat` shows the RAID state and the `df` loop each
+    volume's own usage, so a pool that thin volumes or snapshots
+    have filled still looks healthy from the shell. The pool
+    status comes from Storage & Snapshots (see the settings
+    below), and without it the pool state is named as unchecked;
   - no scrub in the last month (QNAP's recommendation above), or no
     scrub schedule. `/proc/mdstat` shows a scrub only while it
     runs, and QuTS hero's `scan:` line only the last one, so on QTS
@@ -551,7 +558,8 @@ is QNAP's own.
   not as a backup, since QNAP's ransomware guidance asks for one off
   the device; the autorun, Console
   Management and UPnP settings; myQNAPcloud published services; and
-  the snapshot schedule of every data volume or pool; and the last
+  the snapshot schedule and, on QTS, the status of every storage
+  pool; and the last
   Security Center and Malware Remover results.
 - **Exposure is the security audit's headline finding.** QNAP's
   advisory on DeadBolt (QSA-22-24,
