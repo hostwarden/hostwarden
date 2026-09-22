@@ -98,6 +98,7 @@ rules/                 — Upstream rule files (git-tracked)
     proxmox-ve.md      — Proxmox VE (on os/debian.md)
     opnsense.md        — OPNsense (on os/freebsd.md)
     pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
+    xcp-ng.md          — XCP-ng (on os/rhel.md)
     haos.md            — Home Assistant OS (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure

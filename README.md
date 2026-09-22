@@ -181,6 +181,7 @@ that changes the base file where it would be wrong:
 | Proxmox VE        | Debian  | `rules/appliance/proxmox-ve.md` |
 | OPNsense          | FreeBSD | `rules/appliance/opnsense.md`   |
 | pfSense           | FreeBSD | `rules/appliance/pfsense.md`    |
+| XCP-ng            | RHEL    | `rules/appliance/xcp-ng.md`     |
 | Home Assistant OS | —       | `rules/appliance/haos.md`       |
 
 Other distributions work too — Hostwarden will apply

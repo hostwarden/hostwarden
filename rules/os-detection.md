@@ -108,7 +108,9 @@ skill says so where it needs it.
    host with ZFS.
 
 3. **Check for an appliance** from the lines after
-   `@appliance`. See Appliances below. The same lines
+   `@appliance`, and for a marker of the form `ID=…`
+   from the os-release lines after `@release`. See
+   Appliances below. The `@appliance` lines
    carry the version of Proxmox VE, OPNsense and
    pfSense; any other appliance file says how to read
    its own.
@@ -134,6 +136,7 @@ prints for a missing one depends on the shell.
 | Debian  | `pveversion`       | `rules/appliance/proxmox-ve.md` |
 | FreeBSD | `opnsense-version` | `rules/appliance/opnsense.md`   |
 | FreeBSD | `pfSense-upgrade`  | `rules/appliance/pfsense.md`    |
+| RHEL    | `ID=xcp-ng`        | `rules/appliance/xcp-ng.md`     |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`       |
 
 `ha` counts only where `/homeassistant` exists too.
