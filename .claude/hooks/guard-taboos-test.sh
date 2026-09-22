@@ -670,6 +670,9 @@ corpus_files | grep '\.md$' | grep -v '/CHANGELOG\.md$' \
   !fenced($0)          { next }
   was == ""            { if (/[ \t](operator|guard-off)[ \t]*$/) next
                          f = FILENAME; gsub(/\//, "_", f); n++
+                         # A long checkout path would pass the
+                         # 255-byte limit on one file name.
+                         if (length(f) > 150) f = substr(f, length(f) - 149)
                          out = dir "/" f "." n; next }
   FM == ""             { if (out) close(out); out = ""; next }
   out                  { print > out }
@@ -867,6 +870,84 @@ check deny 'uci import # restore'
 check deny "ssh root@router.example.com 'uci import < /tmp/backup.uci'"
 check pass 'uci import firewall < /tmp/firewall.uci'
 check pass 'uci -m import network < /tmp/network.uci'
+# Configuration tools. A playbook's tasks are out of sight, so only
+# the forms that run none pass; ad-hoc calls are judged by module.
+check deny 'ansible-playbook -i inventory site.yml'
+check deny 'ansible-playbook --check --diff -l web1.example.com site.yml'
+check deny 'cd ~/ansible && ansible-playbook site.yml --limit web1.example.com'
+check deny "ssh root@server1.example.com 'ansible-playbook -c local /etc/site.yml'"
+check pass 'ansible-playbook --syntax-check site.yml'
+check pass 'ansible-playbook -i inventory --list-tasks site.yml'
+check pass 'ansible-playbook -i inventory site.yml --list-hosts'
+check deny 'ansible-playbook --list-hosts site.yml; ansible-playbook site.yml'
+check deny 'ansible-pull -U https://git.example.com/site.git'
+check deny 'ansible-console web'
+check pass 'ansible web1.example.com -m ping'
+check pass 'ansible all -m setup -a filter=ansible_distribution*'
+check pass 'ansible web1.example.com -a uptime'
+check pass 'ansible web1.example.com -m command -a "cat /etc/ssh/sshd_config"'
+check pass 'ansible web1.example.com -m stat -a path=/etc/ssh/sshd_config'
+check pass 'ansible web1.example.com -b -m apt -a "name=nginx state=present"'
+check pass 'ls -ld /etc/ansible/facts.d /root/.ansible 2>/dev/null || true'
+check deny 'ansible web1.example.com -b -m parted -a "device=/dev/sdb number=1 state=present"'
+check deny 'ansible web1.example.com -m community.general.parted -a "device=/dev/sdb"'
+check deny "ansible web1.example.com -m 'community.general.filesystem' -a 'fstype=ext4 dev=/dev/sdb1'"
+check deny 'ansible web1.example.com --module-name=community.general.shutdown'
+check deny 'ansible win1.example.com -m community.windows.win_format -a drive_letter=D'
+check deny 'ansible web1.example.com -m ansible.posix.authorized_key -a "user=root state=absent key=x"'
+check deny 'ansible web1.example.com -m community.crypto.openssh_keypair -a path=/tmp/k'
+check deny 'ansible web1.example.com -m script -a ./fix.sh'
+check deny 'ansible web1.example.com -m "$MOD" -a "dest=/etc/ssh/sshd_config src=x"'
+check pass 'ansible web1.example.com -m "$MOD" -a "name=nginx"'
+# By path or in backticks, with the flags run together, and with an
+# -m inside -a: every word that can name a module counts.
+check deny '/usr/bin/ansible web1.example.com -m parted -a device=/dev/sdb'
+check deny '/opt/homebrew/bin/ansible web1.example.com -m authorized_key -a user=root'
+check deny 'echo `ansible web1.example.com -m parted -a device=/dev/sdb`'
+check deny 'ansible web1.example.com -bm parted -a device=/dev/sdb'
+check deny 'ansible web1.example.com --module-na parted -a device=/dev/sdb'
+check deny 'ansible web1.example.com -m script -a "./setup.sh -m 700"'
+check deny 'ansible web1.example.com -b -m parted -a "device=/dev/sdb" --ssh-extra-args "-m hmac-sha2-512"'
+check deny 'ansible web1.example.com -m include_role -a name=disks'
+check deny 'ansible web1.example.com -m ansible.builtin.include_tasks -a file=wipe.yml'
+check deny 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=yes"'
+check deny 'ansible web1.example.com -m ansible.builtin.user -a "name=alice force=true generate_ssh_key=true"'
+check deny 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=TRUE"'
+check deny "ansible web1.example.com -m user -a '{\"name\": \"alice\", \"generate_ssh_key\": true, \"force\": \"YES\"}'"
+check deny 'ansible web1.example.com -m user -a "name=alice generate_ssh_key=1 force=y"'
+check pass 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes force=no"'
+check pass 'terraform output apply'
+check pass 'tofu -chdir=infra output destroy'
+check pass 'terraform state show aws_instance.apply'
+check pass 'ansible web1.example.com -b -m user -a "name=alice generate_ssh_key=yes"'
+check pass 'ansible web1.example.com -b -m user -a "name=alice state=present force=yes"'
+# Login options name a key without writing it, and the --*-args
+# values go to ssh, never to a module.
+check pass 'ansible web1.example.com -m apt -a "name=nginx" --ssh-common-args "-F ~/.ssh/config"'
+check pass 'ansible web1.example.com --ssh-extra-args="-i ~/.ssh/jump" -m apt -a name=nginx'
+check deny 'ansible web1.example.com --ssh-common-args "-F x" -m copy -a "src=k dest=/root/.ssh/authorized_keys"'
+check pass 'ansible web1.example.com --private-key ~/.ssh/deploy -b -m apt -a "name=nginx state=present"'
+check pass 'ansible web1.example.com -e ansible_ssh_private_key_file=~/.ssh/hw -m service -a "name=nginx state=reloaded"'
+check pass 'ansible web1.example.com -m apt -a name=nginx; cat /etc/ssh/sshd_config'
+check deny '/usr/local/bin/terraform apply'
+check deny 'echo $(terraform apply -auto-approve)'
+check deny '(tofu destroy)'
+check deny 'terraform -chdir="my infra" apply'
+check deny "ssh root@server1.example.com 'ansible localhost -c local -m parted -a device=/dev/sdb'"
+check deny 'bash -c "ansible web1.example.com -m authorized_key -a user=root"'
+check pass "ssh root@server1.example.com 'ansible localhost -c local -m ping'"
+check deny 'ansible web1.example.com -b -m lineinfile -a "path=/etc/ssh/sshd_config line=PermitRootLogin\ no"'
+check deny 'ansible web1.example.com -mcopy -a "src=k dest=/root/.ssh/authorized_keys"'
+check deny 'ansible web1.example.com -m ansible.builtin.file -a "path=/root/.ssh mode=0777"'
+check deny 'ansible web1.example.com -m shell -a "sed -i s/22/2222/ /etc/ssh/sshd_config"'
+check deny 'ansible web1.example.com -m shell -a "mkfs.ext4 /dev/sdb1"'
+check deny 'ansible web1.example.com -b -a "poweroff"'
+check deny 'terraform apply'
+check deny 'terraform -chdir=infra apply -auto-approve'
+check deny 'tofu destroy -target=hcloud_server.web1'
+check pass 'terraform plan'
+check pass 'tofu state list'
+check pass 'grep -rn "ansible[-]pull" /etc/cron.d/ 2>/dev/null || true'
 check deny "ssh root@router.example.com 'uci set dropbear.@dropbear[0].RootLogin=1; uci commit dropbear'"
 check deny "uci batch <<'EOF'
 set dropbear.@dropbear[0].Port=2222
@@ -1515,6 +1596,8 @@ if [ -n "$LOCAL_SCOPE" ]; then
   check_dev pass 'git commit -m "docs: explain why mkfs is blocked"'
   check_dev pass 'git commit -m "fix: guard misses sfdisk --delete"'
   check_dev pass 'git log --oneline --grep=wipefs'
+  check_dev pass 'git commit -m "feat(guard): refuse ansible-playbook and tofu apply"'
+  check_dev pass 'grep -rn "ansible web1 -m parted" .claude/hooks/'
   check_dev pass 'gh pr create --title "guard: catch parted mklabel" --body x'
   check_dev pass 'grep -n "dd if=" rules/os/debian.md'
   check_dev pass 'mkfs.ext4 -F /tmp/disk.img'
