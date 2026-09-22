@@ -897,6 +897,8 @@ check deny 'ansible win1.example.com -m community.windows.win_format -a drive_le
 check deny 'ansible web1.example.com -m ansible.posix.authorized_key -a "user=root state=absent key=x"'
 check deny 'ansible web1.example.com -m community.crypto.openssh_keypair -a path=/tmp/k'
 check deny 'ansible web1.example.com -m script -a ./fix.sh'
+check deny 'ansible web1.example.com -m "$MOD" -a "dest=/etc/ssh/sshd_config src=x"'
+check pass 'ansible web1.example.com -m "$MOD" -a "name=nginx"'
 check deny "ssh root@server1.example.com 'ansible localhost -c local -m parted -a device=/dev/sdb'"
 check deny 'bash -c "ansible web1.example.com -m authorized_key -a user=root"'
 check pass "ssh root@server1.example.com 'ansible localhost -c local -m ping'"

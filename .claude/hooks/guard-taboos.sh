@@ -1204,7 +1204,7 @@ fi
 # tools (the shim refuses them), and this repository names them in
 # rules, tests and commit messages all day.
 case "$CMD$CMDJ$CMDQ" in
-*ansible*|*terraform*|*tofu*)
+*ansible*)
   if full; then
     if hit_without '(^|[^[:alnum:]_.-])ansible-playbook([^[:alnum:]_.-]|$)' \
       '^[^[:alnum:]]?ansible-playbook[^;&|]*[[:space:]]--(syntax-check|list-(hosts|tasks|tags))([[:space:]=]|$)'
@@ -1220,48 +1220,50 @@ user (rules/config-management.md); --syntax-check and --list-tasks, \
 and ansible-console runs commands it never sees - the user runs \
 them"
     fi
-    # One line per ad-hoc ansible invocation, then its module.
-    # Quotes are dropped first: in ssh host 'ansible web -m parted'
-    # the quote is what stands before ansible.
+    # One word per ad-hoc ansible invocation: its module without the
+    # collection, command without a -m, unknown where the -m cannot
+    # be read. Quotes are dropped first: in ssh host 'ansible web
+    # -m parted' the quote is what stands before ansible.
     AMODS=$(printf '%s\n' "${CMDQ:-${CMDJ:-$CMD}}" | tr -d "\"'" \
-      | tr ';&|' '\n\n\n' \
-      | grep -E '(^|[[:space:](])ansible[[:space:]]' \
-      | while IFS= read -r al; do
-          am=$(printf '%s\n' "$al" | sed -nE \
-            's/.*[[:space:]](-m|--module-name)(=|[[:space:]]*)([[:alnum:]_.]+).*/\3/p')
-          printf '%s\n' "${am:-command}" | sed 's/.*\.//'
-        done)
-    if [ -n "$AMODS" ]; then
-      if printf '%s\n' "$AMODS" | grep -Eq \
-        '^(parted|filesystem|shutdown|win_partition|win_format|win_initialize_disk|win_shutdown)$'
-      then
+      | tr ';&|' '\n' | sed -nE '/(^|[[:space:](])ansible[[:space:]]/{
+          s/.*[[:space:]](-m|--module-name)(=|[[:space:]]*)([[:alnum:]_]+\.)*([[:alnum:]_]+).*/\4/p
+          t
+          s/.*[[:space:]](-m|--module-name).*/unknown/p
+          t
+          s/.*/command/p
+        }')
+    AWRITE=
+    for am in $AMODS; do
+      case $am in
+      parted|filesystem|shutdown|win_partition|win_format|win_initialize_disk|win_shutdown)
         deny "this Ansible module writes a partition table, makes a \
-filesystem or powers the host off"
-      fi
-      if printf '%s\n' "$AMODS" | grep -Eq '^(authorized_key|openssh_keypair)$'
-      then
+filesystem or powers the host off" ;;
+      authorized_key|openssh_keypair)
         deny "this Ansible module writes SSH keys or authorized_keys, \
-which is never allowed"
-      fi
-      if printf '%s\n' "$AMODS" | grep -Eq '^script$'; then
+which is never allowed" ;;
+      script)
         deny "the Ansible script module runs a local file this guard \
 cannot read - run the commands through the shell or command module, \
-where they are checked"
-      fi
-      if { hit "$KEY" || hit "$SSHD"; } && printf '%s\n' "$AMODS" \
-        | grep -Evq '^(command|shell|raw|stat|find|slurp|setup|ping|win_command|win_shell|win_stat)$'
-      then
-        deny "an Ansible module that writes files, pointed at an SSH \
+where they are checked" ;;
+      command|shell|raw|stat|find|slurp|setup|ping|win_command|win_shell|win_stat) ;;
+      *) AWRITE=1 ;;
+      esac
+    done
+    if [ -n "$AWRITE" ] && { [ "$HAS_KEY" -eq 1 ] || hit "$SSHD"; }; then
+      deny "an Ansible module that writes files, pointed at an SSH \
 key or sshd_config, can replace it - read it with -m command \
 and cat, or with -m stat"
-      fi
     fi
-    if hit '(^|[[:space:]])(terraform|tofu)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|$)'
-    then
-      deny "terraform and tofu apply and destroy can replace or \
+  fi
+  ;;
+esac
+case "$CMD$CMDJ$CMDQ" in
+*terraform*|*tofu*)
+  if full && hit '(^|[[:space:]])(terraform|tofu)([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|$)'
+  then
+    deny "terraform and tofu apply and destroy can replace or \
 delete the server itself - the user runs them \
 (rules/config-management.md)"
-    fi
   fi
   ;;
 esac

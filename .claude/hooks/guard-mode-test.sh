@@ -636,7 +636,13 @@ for f in "$HOOKS"/shim/*; do
   *) grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" ;;
   esac && ok || bad "shim/$t names a tool the guard does not"
 done
-[ "$n" -eq 23 ] && ok || bad "shim/ holds $n tools, the guard names 23"
+# And as many as the guard names, counted from its two lists.
+nt=$(sed -n 's/^ *T = "^(\([^)]*\))\$"$/\1/p' "$HOOKS/guard-mode.sh" \
+  | tr '|' '\n' | grep -c .)
+nw=$(sed -n 's/^ *W = "^(\([^)]*\))\[\.\]exe\$"$/\1/p' "$HOOKS/guard-mode.sh" \
+  | tr '|' '\n' | grep -c .)
+[ "$n" -eq $((nt + nw)) ] && [ "$nt" -gt 0 ] && [ "$nw" -gt 0 ] && ok \
+  || bad "shim/ holds $n tools, the guard names $nt and $nw .exe"
 # session <checkout> <env file> [VAR=value...] — session-mode.sh
 # as Claude Code runs it at session start.
 session() {
