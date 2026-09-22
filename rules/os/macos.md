@@ -178,6 +178,8 @@ say so.
 - Homebrew prefix: detect with `brew --prefix`
   (`/opt/homebrew/` on Apple Silicon,
   `/usr/local/` on Intel)
+- Home directories: `/Users/<name>`; a new account's primary
+  group is `staff` (GID 20), there is no per-user group
 - System-wide config: `/Library/`
 - Per-user config: `~/Library/`
 - System logs: `/var/log/` and unified log

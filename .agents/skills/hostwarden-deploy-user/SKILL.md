@@ -52,6 +52,42 @@ pw useradd deploy -d /home/deploy \
   -c "CI/CD deploy user"
 ```
 
+### macOS
+
+Accounts live in the directory service. Create the record with
+`dscl` as root: `sysadminctl` asks for an administrator's
+password, which a session cannot answer, and gives the account a
+password hash this one must not have. Pick a free UID from 501
+up in the search node, which includes a bound directory service
+as well as local accounts (`dscl /Search -list /Users UniqueID`);
+below 500 is where macOS updates add their own accounts, and
+`IsHidden` keeps it off the login window.
+
+`dscl -create` overwrites an account that already exists. Stop
+and ask when the first line finds one:
+
+```bash
+dscl /Search -read /Users/deploy RecordName 2>/dev/null && exit 1
+dscl . -create /Users/deploy
+dscl . -create /Users/deploy UniqueID <free-uid>
+dscl . -create /Users/deploy PrimaryGroupID 20
+dscl . -create /Users/deploy RealName "CI/CD deploy user"
+dscl . -create /Users/deploy UserShell /usr/bin/false
+dscl . -create /Users/deploy NFSHomeDirectory /Users/deploy
+dscl . -create /Users/deploy Password '*'
+dscl . -create /Users/deploy IsHidden 1
+createhomedir -c -u deploy
+```
+
+`Password '*'` means no password can log in, only the key.
+When Remote Login admits only some users, the group
+`com.apple.access_ssh` exists; add the account to it:
+`dseditgroup -o edit -a deploy -t user com.apple.access_ssh`.
+
+Throughout this skill, read `/Users/deploy` on macOS where it
+says `/home/deploy`, and `staff` where it names the group
+`deploy` (`rules/os/macos.md` → Directory Conventions).
+
 ### Verify
 
 One call, and it has to fail when the account does not
@@ -85,6 +121,16 @@ id deploy && awk -F: '$1 == "deploy" {
 `no password` is the expected result; anything else, fix with
 `pw usermod deploy -w no`.
 
+macOS has no `/etc/shadow` and no `getent`:
+
+```bash
+id deploy && dscl . -read /Users/deploy \
+  UserShell NFSHomeDirectory Password AuthenticationAuthority
+```
+
+`Password: *` and no `ShadowHash` entry is the expected result.
+The audit below reads the account the same way.
+
 ## Auditing one that already exists
 
 When the request is to check an existing deploy user rather
@@ -98,6 +144,8 @@ id deploy && getent passwd deploy
 ls -ld <deploy-target> 2>/dev/null
 sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
 ```
+
+On macOS the first line is the `dscl` read from Verify above.
 
 On FreeBSD, sudoers and web roots are where
 `rules/os/freebsd.md` → Directory Conventions puts them.

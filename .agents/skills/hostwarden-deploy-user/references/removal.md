@@ -13,6 +13,10 @@ When the user asks to remove a deployment setup:
 2. Remove the user and home directory:
    - Linux: `userdel -r deploy`
    - FreeBSD: `pw userdel deploy -r`
+   - macOS, in this order: `dseditgroup -o edit -d deploy -t
+     user com.apple.access_ssh` if it was added there, then
+     `dscl . -delete /Users/deploy`, then remove
+     `/Users/deploy`.
 3. Ask the user to remove the CI secret.
 4. Update server `memory.md` — remove deploy
    entries.
