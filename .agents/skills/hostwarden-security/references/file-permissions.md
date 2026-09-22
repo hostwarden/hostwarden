@@ -231,8 +231,8 @@ for p in /Library/LaunchDaemons/*.plist; do
   echo "--$p"
   { $PB -c 'Print :Program' "$p"
     $PB -c 'Print :ProgramArguments' "$p"; } 2>/dev/null \
-    | sed -n 's|^ *\(/[^ ]*\)$|\1|p' | sort -u \
-    | while read -r x; do
+    | sed -n 's|^ *\(/.*\)$|\1|p' | sort -u \
+    | while IFS= read -r x; do
         [ -e "$x" ] || continue
         d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) || continue
         ls -leL "$d/$(basename "$x")"
