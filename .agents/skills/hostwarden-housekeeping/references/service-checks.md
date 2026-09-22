@@ -140,8 +140,13 @@ itself at the URL `memory.md` records, `http://127.0.0.1:8123/`
 when it records none:
 
 ```bash
-curl -sk -m 5 <url>manifest.json | grep -c '"name": *"Home Assistant"'
+url='<url>'
+curl -sk -m 5 "${url%/}/manifest.json" | grep -c '"name": *"Home Assistant"'
 ```
+
+`${url%/}` drops one trailing slash, so a URL recorded with or
+without it, and one with a path such as `/homeassistant`, gets
+exactly one before `manifest.json`.
 
 `1` means Home Assistant answers and runs: live restore keeps
 containers up while the daemon is down
