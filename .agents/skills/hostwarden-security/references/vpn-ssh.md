@@ -22,9 +22,11 @@ tailscale debug prefs 2>&1 | grep -e '"RunSSH"' -e '"OperatorUser"'
 # netbird
 netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile'
 # newt
-ps ax -o args= | grep -cE -- '^[^ ]*newt( .*)? --?disable-ssh( |=|$)'
+{ ps ax -o args= 2>/dev/null || ps w; } \
+  | grep -cE -- '^[^ ]*newt( .*)? --?disable-ssh( |=|$)'
 # cloudflared
-ps ax -o args= | grep -cE -- '^[^ ]*cloudflared( .*)? --?token( |=|$)'
+{ ps ax -o args= 2>/dev/null || ps w; } \
+  | grep -cE -- '^[^ ]*cloudflared( .*)? --?token( |=|$)'
 grep -Hn 'ssh://' /etc/cloudflared/*.y*ml \
   /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml 2>/dev/null
 ```

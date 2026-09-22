@@ -161,10 +161,12 @@ Skip this check on macOS.
 
 Some VPN and tunnel agents let people in without sshd, where none
 of the checks above look. Find them in the same batch, no root
-needed; the `sed` keeps only the program, never its arguments:
+needed. The `sed` keeps only the program, never its arguments,
+and `ps w` is the fallback where BusyBox takes no BSD options
+(`rules/busybox.md`):
 
 ```bash
-ps ax -o args= \
+{ ps ax -o args= 2>/dev/null || ps w; } \
   | grep -E '^([^ ]*/)?(tailscaled|netbird|newt|nebula|cloudflared)( |$)' \
   | sed 's/ .*//' | sort -u
 ```
