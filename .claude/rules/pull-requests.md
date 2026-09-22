@@ -35,9 +35,12 @@ When auto mode blocks a step below — answering a thread,
   review.
 - No unresolved thread, CI green, not a draft, and GitHub reports
   the pull request CLEAN.
-- After a rebase without conflicts (check with `git range-diff`),
-  green CI is enough if Codex had completed on the pre-rebase head
-  with nothing open.
+- After any rebase, conflicts included, no new Codex review is
+  requested or awaited if Codex had completed on the pre-rebase
+  head with nothing open. The session checks its own conflict
+  resolution instead: `git range-diff` against the pre-rebase
+  head, the tests, and green CI. Only a new fix commit of its own
+  needs Codex again.
 - Once a pull request is reported ready, push no new commit without
   telling whoever merges, or an unreviewed head gets merged.
 - The merge is `gh pr merge --squash --match-head-commit <sha>`.
