@@ -611,7 +611,18 @@ says, with these differences:
 
 - A UPS is watched when `Win32_Battery` lists it — Windows
   treats a HID UPS as a battery — or when a PowerChute or NUT
-  service runs.
+  service runs. A service alone says only that something
+  watches the UPS, never how it is: where no battery appears
+  and NUT's `upsc.exe` is not there either, report the state as
+  not readable, **WARN**, and name the service. NUT for Windows
+  installs `upsc.exe` under `C:\Program Files\NUT\bin`, and it
+  reads as the UPS section of
+  `.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+  says:
+
+  ```powershell
+  $u = 'C:\Program Files\NUT\bin\upsc.exe'; if (Test-Path $u) { & $u -l; & $u (& $u -l | Select-Object -First 1) } else { 'upsc: not installed' }
+  ```
 - The power state comes from the `root\wmi` class, whose
   `PowerOnline`, `Discharging` and `Critical` are the battery
   driver's own flags: `Discharging` true or `PowerOnline` false

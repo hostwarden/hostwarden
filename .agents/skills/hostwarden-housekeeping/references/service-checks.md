@@ -374,6 +374,12 @@ this run triggers it too, before the report: on a host whose
 memory has no `USB:` line yet, that is the only trigger there
 is.
 
+Run only the branch of the backend this host has: NUT where
+`upsc -l` answered or a configuration directory exists, apcupsd
+where `apcaccess` exists. `apcaccess: not found` on a NUT host,
+and a missing `upsc` on an apcupsd host, are the other backend's
+absence, never a failed query and never a finding.
+
 **NUT.** The configuration directory is the one of
 `/etc/nut`, `/etc/ups` and `/usr/local/etc/nut` that holds
 `upsmon.conf`. Its `MONITOR` lines carry a password in the fifth
