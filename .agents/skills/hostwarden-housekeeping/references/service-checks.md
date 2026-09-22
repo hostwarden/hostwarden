@@ -364,7 +364,7 @@ $A/AdGuardHome --version
 sed -n -e '/^filtering:/,/^[^ ]/p' -e '/^filters:/,/^[^ ]/p' "$C" \
   | grep -E 'filters_update_interval|- enabled:|^ +id:'
 sed -n '/^dns:/,/^[^ ]/p' "$C" \
-  | grep -A3 -E '^  (bind_hosts|allowed_clients):'
+  | grep -A3 -E '^  (bind_hosts|port|allowed_clients):'
 ls -lt "$D/filters/"
 journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
   | grep 'updating filter' | grep -ci error
@@ -373,10 +373,13 @@ journalctl -u AdGuardHome --since -7d --no-pager 2>/dev/null \
 `-s status` applies to the `install.sh` service; for Snap and
 Docker use the state from detection. Then ask DNS itself, on the
 host, at an address from `bind_hosts` — `127.0.0.1` when that is
-`0.0.0.0` — and use `nslookup` where `dig` is missing:
+`0.0.0.0` — and on `port`, or for a container the host port
+`docker ps` shows published for it; use `nslookup` where `dig`
+is missing:
 
 ```bash
-dig +time=2 +tries=1 @<bind-host> healthcheck.adguardhome.test
+dig +time=2 +tries=1 -p <port> @<bind-host> \
+  healthcheck.adguardhome.test
 ```
 
 AdGuard Home answers that name with NOERROR and no records

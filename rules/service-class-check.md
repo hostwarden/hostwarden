@@ -227,7 +227,10 @@ docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' \
 
 Any hit is an installed DNS resolver. For Pi-hole,
 `pihole-FTL --config -q` on each of the three `ntp`
-keys above decides its time sync membership. When Pi-hole is the
+keys above decides its time sync membership — through
+`docker exec` for a container. When they cannot be
+read, a stopped container for one, count Pi-hole as a
+member: all three are on by default. When Pi-hole is the
 existing time sync member, option (b) below means
 setting `ntp.sync.active`, `ntp.ipv4.active` and
 `ntp.ipv6.active` to `false` — the first stops it
