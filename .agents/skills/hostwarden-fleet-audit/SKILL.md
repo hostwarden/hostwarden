@@ -102,11 +102,10 @@ Layers).
    report). A host with `Mode: via …` in its memory uses
    its hypervisor host's SSH user and runs the probes
    through that host (`rules/first-connection.md` →
-   Via-host mode). Where its `Runs on:` is missing or,
-   aliases followed as in step 1, names another host, the
-   guest may have moved, and its ID may belong to a
-   different guest on the old host: list it as "skipped:
-   `Mode: via` and `Runs on:` disagree".
+   Via-host mode). A guest that section would not enter,
+   because its `Mode: via` and `Runs on:` disagree, is
+   not asked about here: list it as "skipped: `Mode: via`
+   and `Runs on:` disagree".
 
 3. **Probe each host.** Hosts that time out or refuse the
    connection go on a "skipped: unreachable" list.
