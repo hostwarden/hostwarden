@@ -439,7 +439,7 @@ never replaces it.
   (`midclt call pool.dataset.query '[["id","=","<dataset>"]]'`,
   `midclt call pool.dataset.attachments <dataset>`).
 
-## Apps and Virtual Machines
+## Apps
 
 - **Apps are managed by TrueNAS** (Docker since 24.10), through
   Apps in the web UI or `app.*` methods. `midclt call app.query`
@@ -455,9 +455,86 @@ never replaces it.
   before recommending an update.
 - `rules/service-class-check.md` still applies: TrueNAS already
   brings Samba, NFS, an nginx for its UI and more.
-- Virtual machines are managed under Virtualization. Stopping or
-  deleting one powers off or destroys a server:
-  `rules/system-containers.md` → Changes.
+
+## Virtual Machines and Containers
+
+- Which managers a release has comes from the middleware's
+  plugins at each release tag (`truenas/middleware`,
+  `src/middlewared/middlewared/plugins/`):
+
+  | Release          | VMs  | Containers      |
+  | ---------------- | ---- | --------------- |
+  | 24.10            | `vm` | none            |
+  | 25.04.0, 25.04.1 | none | `virt.instance` |
+  | 25.04.2 to 25.10 | `vm` | `virt.instance` |
+  | 26               | `vm` | `container`     |
+
+  `vm` is the Virtual Machines screen (Virtualization on 24.10).
+  `virt.instance` is Incus, on the Containers screen (Instances
+  on 25.04.0 and 25.04.1), and holds VMs as well as containers:
+  `type` says which. A VM created under Instances stays there
+  after an update
+  (<https://www.truenas.com/docs/scale/25.04/gettingstarted/scalereleasenotes/>).
+  26's `container` is LXC through libvirt.
+- **Every change to a guest is the user's, in the web UI**:
+  creating, changing, starting, stopping, deleting. Stopping or
+  deleting one powers off or destroys a server
+  (`rules/system-containers.md` → Changes). Never `virsh`,
+  `incus` or `lxc-*`: the middleware keeps its own record of every
+  guest, and those tools go around it.
+- **Inventory** (`rules/hypervisors.md`): record
+  `Hypervisor: TrueNAS (<managers>)` with the managers the table
+  gives the release and a listing shows guests in, `vm`,
+  `virt.instance` or `container`; each entry in `guests.md` starts
+  with its manager (`vm: 3 web1`). The reads run the way
+  Housekeeping and Audits runs its reads, as the `API read:` user
+  where one is recorded, and only the calls the release has:
+
+  ```
+  midclt call vm.query '[]' '{"select": ["id", "name", "uuid", "autostart", "status.state"]}'
+  midclt call vm.device.query '[["attributes.dtype", "=", "NIC"]]' '{"select": ["vm", ["attributes.mac", "mac"]]}'
+  midclt call virt.global.config
+  midclt call virt.instance.query '[]' '{"select": ["id", "type", "status", "autostart", "aliases"]}'
+  midclt call container.query '[]' '{"select": ["id", "name", "autostart", "status.state"]}'
+  midclt call container.device.query '[["attributes.dtype", "=", "NIC"]]' '{"select": ["container", ["attributes.mac", "mac"]]}'
+  ```
+
+  The MAC is selected as `mac` because API → Reading's filter
+  drops every `attributes` key. On 24.10 `dtype` is a field of the
+  device itself: the filter there is `[["dtype", "=", "NIC"]]`
+  (`plugins/vm/vm_devices.py` on the 24.10 branch).
+  - A VM's `uuid` is its libvirt domain UUID
+    (`plugins/vm/supervisor/domain_xml.py`) and is recorded.
+  - `virt.instance.query` answers `[]` while `virt.global.config`
+    has a `state` other than `INITIALIZED`: that is Containers not
+    set up, never proof that none exist
+    (`plugins/virt/instance.py`, TS-25.10.7). Its instances are
+    then unreadable, not gone. Their MACs come from
+    `midclt call virt.instance.device_list <id>`, one per instance
+    in a second call, which shows a NIC's `mac` only where one was
+    set by hand; Incus generates the rest into the instance's
+    `raw` config, which carries its environment too and is never
+    read. An instance without one is recorded `mac unknown`.
+  - No release up to 26 has templates.
+  - The light listing is `vm.query`, `virt.global.config`,
+    `virt.instance.query` and `container.query`, with `"select"`
+    narrowed to `id` and the state field.
+  - A guest is gone once its manager's query filtered to its ID,
+    `midclt call vm.query '[["id", "=", <id>]]' '{"select": ["id"]}'`
+    and the same for `virt.instance` and `container`, answers `[]`
+    with `rc` 0, all of them in one call with
+    `virt.global.config`; for `virt.instance`, only while that
+    says `INITIALIZED`. Not `…get_instance`: its "does not exist"
+    is an error, which goes to stderr with `rc` 1 like every other
+    failure.
+- **Guest tools:** none. No release up to 26 has a read-only
+  method for a VM's guest agent. A `virt.instance` lists its
+  global addresses in `aliases`; a `container` from 26 on lists
+  none.
+- **Registering:** none. TrueNAS enters a guest only through the
+  web UI's shell (`virt.instance.get_shell` and `container.nsenter`
+  are private methods), so every guest stays in `guests.md` alone
+  until it is connected to by name.
 
 ## Logs
 

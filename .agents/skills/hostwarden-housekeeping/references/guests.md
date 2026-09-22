@@ -22,7 +22,7 @@ report its changes. Then rate:
 - a running guest that does not start with the host and is not
   HA-managed (`HA` in its entry): **INFO**, it stays down after
   the next reboot
-- a running VM without an agent: **INFO**
+- a running VM whose entry says `no agent`: **INFO**
 
 A guest's own health is its own housekeeping run, never part of
 this one.

@@ -290,10 +290,134 @@ system rather than trust it.
 - A Container Manager update touches every container: the release
   notes of 24.0.2-1606 ask for all of them to be restarted after
   it. Ask before it as before a restart.
-- **Virtual machines** run in Virtual Machine Manager
-  (<https://kb.synology.com/en-global/DSM/help/Virtualization/requirements_and_limitations?version=7>).
-  Read and change them there; stopping or deleting one powers off
-  or destroys a server, only on the user's explicit request.
+
+## Virtual Machine Manager
+
+Virtual Machine Manager (VMM, package `Virtualization`) runs
+virtual machines on QEMU and libvirt
+(<https://www.synology.com/en-global/dsm/packages/Virtualization>,
+release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
+`/var/packages/Virtualization` exists where it is installed.
+
+- **Every change to a VM is the user's, in VMM**: creating,
+  changing, powering on or off, deleting. Stopping or deleting one
+  powers off or destroys a server (`rules/system-containers.md` →
+  Changes). Never `virsh` or `synowebapi`, whatever the NAS
+  carries.
+- **The one documented read is VMM's Web API**:
+  `SYNO.Virtualization.API.Guest`, method `list`, version 1, after
+  a login with `SYNO.API.Auth`
+  (<https://global.download.synology.com/download/Document/Software/DeveloperGuide/Package/Virtualization/All/enu/Synology_Virtual_Machine_Manager_API_Guide.pdf>,
+  <https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf>).
+  The procedure is `rules/appliance-api.md`; this section names
+  where it differs.
+
+### Read access
+
+- **A DSM user `api-read`**, created by the user under Control
+  Panel → User & Group outside `administrators`, with a password
+  and no application it does not need: Synology documents no role
+  that limits the API to reading, and no list of the accounts that
+  may call it. When `list` answers error 105 ("The login session
+  does not have permission"), the user decides whether to add it
+  to `administrators`, where it could change anything DSM does
+  while Hostwarden still calls only `list`, or to leave VMM
+  uninventoried.
+- File `dsm-ro.pass`, one line: the password. Server memory:
+  ```
+  API read: api-read (<group>), ~/hostwarden-keys/<nas>/dsm-ro.pass
+  API write: none
+  API path: ssh
+  API port: 5443
+  ```
+  `API port:` only where the HTTPS port under Control Panel →
+  Login Portal is not 5001.
+- Enforced 2-factor authentication that covers the account stops
+  the login with error 403 ("2-step verification code required"),
+  and auto block counts its failed logins (Access and Privileges).
+
+### Reading
+
+Over SSH as the session's user, curl on the NAS against its own
+HTTPS port, `<port>`: 5001 unless memory records `API port:`. The
+password, the session ID and the token reach curl on stdin,
+through `read` and the builtin `printf`, never in `argv`; the
+login's answer is printed only when it failed, and then carries
+neither:
+
+```
+ssh … <user>@<nas> 'u=https://127.0.0.1:<port>/webapi/entry.cgi
+  IFS= read -r p
+  r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \
+    --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&session=hostwarden&format=sid&enable_syno_token=yes" \
+    "$u"); c=$?
+  s=$(printf %s "$r" | sed -n "s/.*\"sid\" *: *\"\([^\"]*\)\".*/\1/p")
+  t=$(printf %s "$r" | sed -n "s/.*\"synotoken\" *: *\"\([^\"]*\)\".*/\1/p")
+  [ -n "$s" ] || { printf %s "$r" | tr -d "\n"; echo; echo "{\"@\": \"login\", \"rc\": $c}"; exit 0; }
+  echo "{\"@\": \"login\", \"rc\": $c}"
+  for a in Host Guest; do
+    o=$(printf "api=SYNO.Virtualization.API.%s&version=1&method=list&_sid=%s&SynoToken=%s" \
+      "$a" "$s" "$t" | curl -sSk --data @- "$u"); c=$?
+    printf %s "$o" | tr -d "\n"; echo; echo "{\"@\": \"$a\", \"rc\": $c}"
+  done
+  printf "api=SYNO.API.Auth&version=6&method=logout&session=hostwarden&_sid=%s" "$s" |
+    curl -sSk -o /dev/null --data @- "$u"' \
+  < ~/hostwarden-keys/<nas>/dsm-ro.pass | jq …
+```
+
+- **Unlike `rules/appliance-api.md` → Reading, the HTTP code does
+  not decide**: DSM answers 200 with `"success": false` and an
+  `error.code` when a call fails (Login guide, Common Error
+  Codes), and the guides' answers span several lines, which the
+  line-by-line filter would drop. So each answer is put on one
+  line, and its marker carries curl's exit status. A response
+  whose `success` is not `true`, or an `rc` other than 0, is a
+  check that did not run, reported with its code; a login answer
+  before the `login` marker is the login failing: with `rc` 0,
+  the codes 400 to 404 the VMM guide lists for `SYNO.API.Auth`,
+  otherwise no connection, never a reason to ask for a new
+  password.
+- The workstation's filter is the one in `rules/secrets.md` → API
+  Credentials on the Workstation, unchanged.
+
+### Guests
+
+- **Inventory** (`rules/hypervisors.md`): `ls -d
+  /var/packages/Virtualization` decides whether VMM is installed.
+  Where it is and memory has no `API read:` line, say in one line
+  that its guests are not inventoried until the user sets up Read
+  access, and record nothing. Otherwise record
+  `Hypervisor: Synology VMM (Web API, read-only)` once the listing
+  shows a guest. Per entry of `data.guests`: `guest_id`, `guest_name`,
+  `status`, and `autorun`: `2` is autostart, `1` starts the VM in
+  the state it was in when the host went down, `0` is none. MACs
+  are `vnics[].mac`. The light listing is the same call with
+  `Host` left out of the loop.
+  - `guest_id` is VMM's own ID. The guide does not say that it
+    is the UUID the guest reads, so it is recorded as the ID, and
+    a VM links by MAC alone.
+  - VMM has no templates.
+  - More than one entry in `data.hosts` is a VMM cluster, and the
+    guest list names no host: its guests are the cluster's, not
+    this NAS's. `guests.md` carries
+    `- VMM cluster: <host_name>, <host_name>, …` under its
+    heading, and a guest linked from there gets
+    `Runs on: VMM cluster of <host_name>, … (node unknown)`,
+    never this NAS alone. The same guest in another member's
+    `guests.md` is the same VM.
+  - The guide names no error for a guest that does not exist, so
+    a guest missing from a successful `list` keeps
+    `not listed <date>` until the user confirms in VMM that it is
+    gone.
+- **Guest tools:** none. Synology Guest Tool and
+  `qemu-guest-agent` let VMM show a guest's addresses
+  (<https://kb.synology.com/en-global/DSM/tutorial/How_to_install_Synology_Guest_Agent_for_VMM_on_your_virtual_machine>),
+  but the documented API has no field for them.
+- **Registering:** none. VMM runs no command inside a guest; its
+  Connect opens the web console, or a Virtual DSM's login page
+  (<https://kb.synology.com/en-global/DSM/help/Virtualization/virtual_machine?version=7>).
+  Every guest stays in `guests.md` alone until it is connected to
+  by name.
 
 ## Storage
 

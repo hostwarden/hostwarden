@@ -73,7 +73,11 @@ libvirt's is `virsh -c qemu:///system guestinfo <dom>`; the
 appliance files and `rules/os/windows.md` name theirs.
 Containers need none: their manager lists the addresses.
 
-A running VM without an agent is recorded as `no agent`. A root
+A running VM without an agent is recorded as `no agent`. Where
+the appliance file says `Guest tools: none`, the manager has no
+read-only way to ask an agent: every running VM there is recorded
+as `agent not readable` instead, and its hostname, OS and
+addresses stay unknown until it is connected to. A root
 shell through the agent is via-host mode
 (`rules/system-containers.md` → Reaching It): never part of the
 inventory, and used right after it only for Registering Guests.
