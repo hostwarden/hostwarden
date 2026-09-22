@@ -6,10 +6,11 @@ description: Run a Hostwarden security audit on a server — SSH
   user account hygiene, listening services, kernel hardening
   (ASLR, IP forwarding), file permissions, SUID/SGID audit,
   fail2ban. Use when the user asks for a "security audit",
-  "security review", "hardening check", or to "audit security on
-  <host>". Do NOT auto-invoke on generic phrases like "check
-  server <host>". Covers Linux (Debian, Ubuntu, RHEL, CentOS,
-  Fedora, SUSE, Alpine) and macOS (SIP, FileVault, Gatekeeper).
+  "security review", "hardening check", "Sicherheitsaudit",
+  "prüf die Härtung", or to "audit security on <host>". Do NOT
+  auto-invoke on generic phrases like "check server <host>".
+  Covers Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE,
+  Alpine), FreeBSD and macOS (SIP, FileVault, Gatekeeper).
 ---
 
 # hostwarden-security
@@ -51,21 +52,16 @@ applies before any of this runs.
 
 ## Scope and limits
 
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine)
-  and macOS are fully covered by the references below.
-- FreeBSD baselines are not yet covered. On a FreeBSD host,
-  do not silently skip: run the closest equivalent checks
-  manually (`pkg audit -F` for known-vulnerable packages,
-  the loaded OS file's `## Firewall` section, `sshd -T`
-  for SSH hardening, `find / -perm -4000` for SUID, sysctl
-  `security.*` knobs) and state in the report that FreeBSD
-  has no baseline reference yet.
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
+  FreeBSD and macOS are covered by the references below; each
+  one has a section per family where the commands differ.
 
 ## Cross-references
 
 **Automatic security updates** are checked during housekeeping
-(see `hostwarden-housekeeping` skill). This audit does not duplicate
-that check.
+(see `hostwarden-housekeeping` skill), and so are known-vulnerable
+packages (`pkg audit` on FreeBSD). This audit does not duplicate
+those checks.
 
 ## References
 
@@ -74,9 +70,9 @@ Read on demand, only when the relevant section applies:
 - `references/report-format.md` — required output format and
   severity rules (CRITICAL / WARN / INFO).
 - `references/ssh.md` — SSH password auth, root login, weak
-  algorithms, MaxAuthTries, X11Forwarding (Linux and macOS).
-- `references/firewall.md` — Linux (ufw / firewalld) and macOS
-  (Application Firewall).
+  algorithms, MaxAuthTries, X11Forwarding.
+- `references/firewall.md` — Linux (ufw / firewalld), FreeBSD
+  (pf / ipfw) and macOS (Application Firewall).
 - `references/firewall-nftables-docker.md` — native nftables without
   ufw or firewalld, iptables-legacy rules next to nf_tables,
   Docker ports published past the firewall.
@@ -89,7 +85,8 @@ Read on demand, only when the relevant section applies:
   ICMP redirects, SUID core dumps.
 - `references/file-permissions.md` — world-writable system files,
   SUID/SGID audit, /tmp mount options, cron perms, unowned files.
-- `references/intrusion-prevention.md` — fail2ban status.
+- `references/intrusion-prevention.md` — fail2ban, and
+  blocklistd or sshguard on FreeBSD.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
 - The `## Housekeeping and Audits` sections of the host's
   appliance, platform and role files, already loaded by the

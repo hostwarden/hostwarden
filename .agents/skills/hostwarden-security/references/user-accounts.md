@@ -1,4 +1,4 @@
-# User Account Hygiene — Linux
+# User Account Hygiene — Linux and FreeBSD
 
 ## Empty Password Accounts
 
@@ -66,3 +66,37 @@ ships it with `/bin/bash`). Flag all others.
 - Any unexpected system account with a login shell → **WARN** per
   account
 - Only expected exceptions → OK
+
+## FreeBSD
+
+Where the hashes live and how a locked field reads is in
+`rules/os/freebsd.md` → Accounts. One pass as root covers empty
+passwords, UID 0 and `toor`, and prints only verdicts:
+
+```bash
+awk -F: 'NF > 1 {
+  if ($1 ~ /^[#+-]/) next
+  if ($2 == "") print "empty password: " $1
+  if ($3 == 0) print "uid 0: " $1
+  if ($1 == "toor") {
+    v = ($2 ~ /^[*]/) ? "locked" : "password set"
+    print "toor: " v
+  }
+}' /etc/master.passwd
+```
+
+Lines starting with `+` or `-` are NIS entries. Unprivileged, run
+the UID 0 check above on `/etc/passwd` and list empty passwords as
+skipped.
+
+- Empty password → **CRITICAL** per account, `root` included
+- UID 0 other than `root`, `toor` and an account the loaded OS
+  file names as expected → **CRITICAL**
+- `toor` with a password → **INFO**: a second root login
+- Otherwise OK
+
+The system-account check above runs on FreeBSD's `/etc/passwd`
+as it stands, except that names starting with `+` or `-` are NIS
+entries, not accounts: ignore them. Expected there besides
+`root`: `toor` (empty shell field) and `uucp`
+(`/usr/local/libexec/uucp/uucico`).

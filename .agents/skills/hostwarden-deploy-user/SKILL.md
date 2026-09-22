@@ -71,6 +71,20 @@ id deploy && { passwd -S deploy 2>/dev/null \
 The account should have no password set — `!` or `*` in
 `/etc/shadow`, or `L`/`NP` from `passwd -S`.
 
+FreeBSD has neither (`rules/os/freebsd.md` → Accounts); print
+the verdict, not the field:
+
+```bash
+id deploy && awk -F: '$1 == "deploy" {
+  if ($2 == "") print "deploy: empty password"
+  else if ($2 ~ /^[*]/) print "deploy: no password"
+  else print "deploy: password set"
+}' /etc/master.passwd
+```
+
+`no password` is the expected result; anything else, fix with
+`pw usermod deploy -w no`.
+
 ## Auditing one that already exists
 
 When the request is to check an existing deploy user rather
@@ -84,6 +98,9 @@ id deploy && getent passwd deploy
 ls -ld <deploy-target> 2>/dev/null
 sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
 ```
+
+On FreeBSD, sudoers and web roots are where
+`rules/os/freebsd.md` → Directory Conventions puts them.
 
 Then the account's authorized keys, with
 `ssh-keygen -lf` rather than by printing the file: it gives

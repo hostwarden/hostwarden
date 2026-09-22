@@ -186,6 +186,32 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 - `ifconfig`, `netstat -rn` and `pfSsh.php playback gatewaystatus`
   are fine for reading.
 
+## Replace: Accounts
+
+- Users, groups, passwords and SSH keys are managed in the User
+  Manager and written from `config.xml`; never `pw useradd`,
+  `usermod` or `userdel`. Reading `/etc/master.passwd` as root for
+  a verdict, as the base file describes, is fine.
+- `admin` has UID 0 by design: pfSense keeps it as root's twin and
+  sets root's password from it (`/etc/rc.initial.password`). A
+  second UID 0 account named `admin` is expected, not a finding.
+
+## Replace: sshd
+
+- sshd is the base system's `/usr/sbin/sshd`, its configuration
+  generated into `/etc/ssh/sshd_config` (Access and Shell).
+  Password and root login are settings in the web UI; report them
+  as such.
+
+## Replace: Mail and Time
+
+- Time sync is `ntpd`, configured in the web UI; `ntpq -pn` reads
+  it as on FreeBSD.
+- Mail notifications are configured in the web UI; a missing MTA
+  behind `mailwrapper` is not a finding.
+
+## Remove: Directory Conventions > sudo
+
 ## Add: Filesystem
 
 - Boot Environments on Plus belong to `pfSense-upgrade`, see

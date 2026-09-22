@@ -17,11 +17,41 @@ Rules for FreeBSD (all versions).
   installing, and stick to the branch the host
   already uses (AGENTS.md: stable release tracks).
 
+### Packaged base or distribution sets
+
+The base system is installed one of two ways, and
+the update tool follows from it. Check before any
+base update:
+
+```
+pkg -N 2>/dev/null && pkg which /usr/bin/uname
+```
+
+- `was installed by package FreeBSD-runtime-…` —
+  **packaged base** (pkgbase). The base system is a
+  set of packages from the `FreeBSD-base` repository
+  and updates with `pkg upgrade`; `freebsd-update`
+  refuses to run.
+- `was not found in the database`, or no pkg at
+  all — **distribution sets**, updated with
+  `freebsd-update`.
+
+A `freebsd-version -u` ending in `-STABLE` or
+`-CURRENT` means a system built from source:
+`freebsd-update` serves only releases, so base
+updates follow the owner's source build, and a
+check for pending base patches reports itself as
+not applicable there.
+
+Record which one in server memory.
+
 ## Version Detection
 
 - `freebsd-version` — base system version
   (e.g. `N.N-RELEASE`)
-- `freebsd-version -k` — running kernel version
+- `freebsd-version -k` — installed kernel version,
+  `-r` the running one, `-u` the userland;
+  `-kru` prints all three in that order
 - `uname -r` — kernel release string
 - `uname -m` — architecture (e.g. `amd64`,
   `aarch64`)
@@ -29,9 +59,27 @@ Rules for FreeBSD (all versions).
 
 ## Firewall
 
-- **Expected:** `pf` (Packet Filter)
+- **Expected:** `pf` (Packet Filter); `ipfw`
+  (`firewall_enable="YES"`) and IPFilter
+  (`ipfilter_enable="YES"`) count as well.
 - Config: `/etc/pf.conf`
-- Check if enabled: `pfctl -s info`
+- Which one runs, and whether it survives a reboot
+  (the `pfctl` line needs root):
+  ```
+  pfctl -s info 2>/dev/null | head -1
+  sysctl -n net.inet.ip.fw.enable 2>/dev/null
+  ipf -V 2>/dev/null | grep '^Running:'
+  sysrc -n -i pf_enable firewall_enable ipfilter_enable
+  ```
+  `Status: Enabled` means pf runs, `Running: yes`
+  IPFilter;
+  `net.inet.ip.fw.enable` exists only while the ipfw
+  module is loaded and is `1` while it filters. A
+  firewall that runs while its `_enable` variable is
+  not `YES` is gone after the next reboot. Without
+  root the `pfctl` and `ipf` lines print nothing:
+  those two are then unknown, not off, and no
+  firewall may be reported as missing.
 - Enable in `/etc/rc.conf`: `pf_enable="YES"`
 - Load rules: `pfctl -f /etc/pf.conf`
 - Show current rules: `pfctl -s rules`
@@ -74,17 +122,51 @@ Rules for FreeBSD (all versions).
   for the fresh login
   (<https://man.freebsd.org/cgi/man.cgi?query=pfctl&sektion=8>).
 - After enabling, verify the default policy blocks
-  incoming traffic.
+  incoming traffic. pf has no default of its own: a
+  packet no rule matches passes, and the last
+  matching rule wins unless an earlier one says
+  `quick`. `pfctl -s rules` prints the loaded rules
+  normalised, so a blocking default reads
+  `block drop in all`, `block return in all` or
+  `block drop all`, possibly with `log` or
+  `on <interface>` in between, and no later
+  `pass` — `in` or without a direction, which
+  matches both — without address, port, protocol or
+  interface undoes it. IPFilter reads the same way
+  (`ipfstat -i` lists its inbound rules): last match
+  wins unless `quick`, and an unmatched packet
+  passes.
+- **ipfw's default** is its rule 65535, which cannot
+  be deleted. ipfw applies the first matching rule,
+  so read the unconditional ones in `ipfw list`
+  (root) — `allow` or `deny`, with or without `log`,
+  `ip from any to any`, with or without `in` — by
+  number: incoming traffic is allowed by default when
+  the first of them is an `allow`, rule 65535
+  included. `firewall_type="open"` and the loader
+  tunable `net.inet.ip.fw.default_to_accept` are the
+  usual causes.
 - Start/stop: `service pf start`, `service pf stop`
 
 ## Automatic Security Updates
 
-- **Base system:** `freebsd-update fetch install`
-  (non-interactive:
+- **Base system, distribution sets:**
+  `freebsd-update fetch install` (non-interactive:
   `freebsd-update --not-running-from-cron fetch install`)
-- **Packages:** `pkg upgrade` (dry-run: `pkg upgrade -n`)
+- **Packages, and the base system on packaged
+  base:** `pkg upgrade` (dry-run: `pkg upgrade -n`)
 - There is no built-in equivalent of
   `unattended-upgrades`. Flag this to the user.
+- What is expected is that pending updates get
+  noticed. pkg ships a periodic job that runs
+  `pkg audit -F` daily; it is on unless
+  `/etc/periodic.conf` or, read after it,
+  `/etc/periodic.conf.local` sets
+  `security_status_pkgaudit_enable` or
+  `daily_status_security_enable` to `NO`. Its report
+  goes to root's mailbox, so it only reaches
+  someone when `/etc/mail/aliases` forwards `root:`
+  to a real address.
 - Unattended upgrades are a **decision for the
   user**, not a default. Prefer a notify-only cron
   job that audits pending updates without applying
@@ -123,7 +205,12 @@ Rules for FreeBSD (all versions).
   - `sysrc <name>_enable="YES"` (preferred)
   - Or manually in `/etc/rc.conf`
   - Check: `sysrc -a | grep <name>`
-- **List enabled services:** `sysrc -a | grep _enable`
+- **List enabled services:** `service -e` prints the
+  paths of the enabled rc scripts in boot order —
+  `/etc/rc.d/` for the base system,
+  `/usr/local/etc/rc.d/` for packages. It reads every
+  script, so run it once per session and reuse the
+  output.
 - `/etc/rc.conf` is the central service
   configuration file.
 
@@ -188,6 +275,14 @@ an uncompressed `messages.0` only where one exists.
 - **Third-party binaries:** `/usr/local/bin/`,
   `/usr/local/sbin/`
 - **Web roots:** `/usr/local/www/`
+- **Shells from packages:** `/usr/local/bin/`
+  (`bash`, `zsh`); there is no `/bin/bash`.
+- **cron:** `/etc/crontab`, `/etc/cron.d/` and
+  `/usr/local/etc/cron.d/`; users' crontabs in
+  `/var/cron/tabs/` (root only).
+- **sudo** (from packages): `/usr/local/etc/sudoers`
+  with drop-ins in `/usr/local/etc/sudoers.d/`,
+  edited with `visudo -f`.
 - **Logs:** `/var/log/`
 - **Ports tree:** `/usr/ports/` (if installed)
 - **Base system config:** `/etc/`
@@ -197,6 +292,10 @@ an uncompressed `messages.0` only where one exists.
 ## Networking
 
 - **Use `ifconfig`**, not `ip` (Linux-only).
+- Listening sockets: `sockstat -46l`, `*:<port>`
+  meaning every address. Without root, other users'
+  sockets are missing when
+  `security.bsd.see_other_uids` is `0`.
 - Interface list: `ifconfig`
 - Set static IP: edit `/etc/rc.conf`:
   ```
@@ -315,8 +414,50 @@ Lua scripts in `/boot/lua/`. The entry point is
   Use `tail`, `grep`, or `less`. The Hostwarden
   changelog uses `logger`, which writes to syslog.
 - **`sudo` is not installed by default** — install
-  with `pkg install sudo` and configure
-  `/usr/local/etc/sudoers`.
+  with `pkg install sudo`; its files are under
+  Directory Conventions.
+
+## Accounts
+
+- `pw useradd`, `pw usermod`, `pw userdel -r`
+  instead of `useradd`, `usermod`, `userdel`.
+- There is no `/etc/shadow` and no `passwd -S`. The
+  hashes are in `/etc/master.passwd`, readable by root
+  only; `pw usershow` replaces them with `*`. A field
+  starting with `*` is locked (`pw lock` prefixes
+  `*LOCKED*`), an empty one has no password. Print
+  only that verdict, never the field
+  (`rules/secrets.md`).
+- `toor` is a second UID 0 account the base system
+  ships locked, with an empty shell field, which
+  means `/bin/sh`.
+
+## sshd
+
+- The base system's sshd is `/usr/sbin/sshd` with
+  `/etc/ssh/sshd_config`, no `Include` by default.
+  The `openssh-portable` package runs
+  `/usr/local/sbin/sshd` with `/usr/local/etc/ssh`;
+  `service -e` lists `/usr/local/etc/rc.d/openssh`
+  when that one is enabled. Call the enabled one by
+  its full path.
+- FreeBSD ships `KbdInteractiveAuthentication yes`
+  and `UsePAM yes`, so passwords are accepted
+  although `PasswordAuthentication` is `no`.
+
+## Mail and Time
+
+- `/usr/sbin/sendmail` is `mailwrapper`;
+  `/etc/mail/mailer.conf` names the MTA behind it —
+  the base system's `dma` or `sendmail`, or one from
+  packages (`postfix`, OpenSMTPD's rc script
+  `smtpd`, `exim`).
+- Time sync is the base system's `ntpd`
+  (`ntpd_enable`); in `ntpq -pn` a line starting with
+  `*` is the selected peer. `chronyd` and `openntpd`
+  from packages answer `chronyc tracking` and
+  `ntpctl -s status`. `/var/db/zoneinfo` holds the
+  zone `tzsetup` installed.
 
 ## QEMU/UTM Emulated x86_64 Workarounds
 

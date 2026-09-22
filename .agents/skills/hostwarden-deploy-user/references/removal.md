@@ -8,7 +8,8 @@ Five steps, one of which only they can do.
 When the user asks to remove a deployment setup:
 
 1. Remove the sudoers file:
-   `rm /etc/sudoers.d/deploy`
+   `rm /etc/sudoers.d/deploy`, on FreeBSD
+   `rm /usr/local/etc/sudoers.d/deploy`
 2. Remove the user and home directory:
    - Linux: `userdel -r deploy`
    - FreeBSD: `pw userdel deploy -r`
