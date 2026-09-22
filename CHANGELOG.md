@@ -14,6 +14,65 @@
   the admin password or its hash. Both count as DNS
   resolvers when you install another one, and Pi-hole
   also counts as a time server.
+- **A firewall or network change undoes itself unless SSH
+  still works.** Before applying one, Hostwarden arms a
+  revert on the host that fires after five minutes, and
+  cancels it only once a new login succeeds — for ufw,
+  nftables, firewalld, pf and netplan alike. Where the
+  host has no way to schedule it, the change is yours to
+  make with console access ready.
+- **Ubuntu servers are covered in their own right.** The
+  Debian family file now knows what Ubuntu does
+  differently: an inactive ufw is how Ubuntu ships and
+  gets "enable it", not "install one"; Ubuntu Pro and ESM
+  coverage, Livepatch and snap refreshes are read and
+  reported; netplan changes go through `netplan try` or a
+  scheduled rollback; cloud-init's hold on network,
+  hostname and SSH settings is recognised; deb822 sources
+  and release upgrades are handled. Housekeeping reports
+  security fixes waiting on Pro and an LTS past standard
+  support without ESM, and the fleet audit compares Pro,
+  ESM and needrestart settings across Ubuntu hosts.
+- **apt runs never stop to ask, and never restart
+  services on their own.** Installs and upgrades on
+  Debian and Ubuntu run non-interactively, keep locally
+  changed config files, and leave the services that need
+  a restart to you — including on Ubuntu 24.04 and later,
+  where needrestart would otherwise restart them straight
+  away.
+- **Alpine Linux is a supported family.** Hostwarden
+  now knows apk and its stable branches, OpenRC,
+  busybox, doas and musl on Alpine hosts, and reads its
+  own log entries back from syslog. Housekeeping and the
+  security audit have Alpine variants of every check
+  that assumed systemd or GNU tools. Alpine's stock
+  nftables ruleset drops SSH, so Hostwarden opens every
+  sshd port before starting it. An Alpine Docker image
+  is recognised as a container, not a host to
+  administer.
+- **Proxmox VE, OPNsense, pfSense and Home Assistant OS are
+  recognised as appliances.** Detection finds them by a marker,
+  records `Appliance:` in server memory, and reads a file under
+  `rules/appliance/` on top of the family file that replaces what
+  would be wrong there — `dist-upgrade` on Proxmox, the web UI and
+  `configctl` instead of `sysrc` on the firewalls, the `ha` CLI on
+  Home Assistant, where Hostwarden also installs the ha-mcp app on
+  request so an AI client can work on the configuration.
+  Housekeeping, the audits and the activity check follow the merged
+  file, and an override can target an appliance file like any other.
+- **Detection is one SSH call.** OS, version, login shell, hardware
+  and appliance markers come back from a single probe that runs in
+  sh, bash, zsh, csh and tcsh alike; later connections send only a
+  short version check. It stops at a console menu
+  instead of answering it, and every later command goes through
+  `sh -s`, so a csh login works too.
+- **Housekeeping checks Home Assistant on a normal Linux
+  host.** It tells Container, Supervised and Core apart,
+  reports the running version and runs the config check
+  each install type has. Supervised and Core are reported
+  once as unsupported since 2025.12; migrating stays your
+  decision. A Home Assistant restart you ask for runs
+  that config check first and stops when it fails.
 - **The README is back to getting started.** Install,
   first steps, what Hostwarden does and how it keeps you
   safe fit on one page; everything deeper — native

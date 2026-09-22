@@ -9,7 +9,7 @@ description: Run a Hostwarden security audit on a server — SSH
   "security review", "hardening check", or to "audit security on
   <host>". Do NOT auto-invoke on generic phrases like "check
   server <host>". Covers Linux (Debian, Ubuntu, RHEL, CentOS,
-  Fedora, SUSE) and macOS (SIP, FileVault, Gatekeeper).
+  Fedora, SUSE, Alpine) and macOS (SIP, FileVault, Gatekeeper).
 ---
 
 # hostwarden-security
@@ -51,12 +51,12 @@ applies before any of this runs.
 
 ## Scope and limits
 
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
-  macOS are fully covered by the references below.
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine)
+  and macOS are fully covered by the references below.
 - FreeBSD baselines are not yet covered. On a FreeBSD host,
   do not silently skip: run the closest equivalent checks
   manually (`pkg audit -F` for known-vulnerable packages,
-  `pfctl -s info` / `pfctl -sr` for the firewall, `sshd -T`
+  the loaded OS file's `## Firewall` section, `sshd -T`
   for SSH hardening, `find / -perm -4000` for SUID, sysctl
   `security.*` knobs) and state in the report that FreeBSD
   has no baseline reference yet.
@@ -91,5 +91,8 @@ Read on demand, only when the relevant section applies:
   SUID/SGID audit, /tmp mount options, cron perms, unowned files.
 - `references/intrusion-prevention.md` — fail2ban status.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
+- On an appliance, its `## Housekeeping and Audits` section,
+  already loaded by the pipeline (`rules/os-detection.md` →
+  Appliances).
 - `references/unprivileged.md` — which checks work without root,
   which need it, and how to report skipped ones.

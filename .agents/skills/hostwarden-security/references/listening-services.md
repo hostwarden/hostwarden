@@ -16,6 +16,12 @@ unprivileged, omit `-p`:
 ss -tuln
 ```
 
+Alpine, without `iproute2-ss`:
+
+```bash
+netstat -tulnp 2>/dev/null
+```
+
 ## macOS
 
 ```bash
@@ -63,7 +69,7 @@ its operator gets the abuse reports.
 
 Take the port 53 rows from the listener table above — from
 housekeeping, run that probe first — and the host's addresses
-(`ifconfig` on macOS):
+(`ip addr` on Alpine without `iproute2`, `ifconfig` on macOS):
 
 ```bash
 ip -br addr

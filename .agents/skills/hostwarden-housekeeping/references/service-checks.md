@@ -108,6 +108,87 @@ docker ps --format \
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
+## Home Assistant
+
+Triggered when `memory.md` mentions Home Assistant. This section
+covers Home Assistant on a normal Linux host. On Home Assistant OS,
+where `memory.md` records `Appliance: Home Assistant OS`, skip it:
+`rules/appliance/haos.md` → Housekeeping and Audits covers that.
+
+`memory.md` records the install type and what the checks need:
+the container name, or for Core the systemd unit, the virtual
+environment, the config directory and the account it runs as.
+Detect only what is missing or no longer matches, and record it:
+
+```bash
+command -v docker && docker ps -a \
+  --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
+  | grep -i -E 'home-?assistant|hassio_supervisor'
+command -v ha
+systemctl list-unit-files --type=service --no-legend \
+  | grep -i -E 'home-?assistant|hass'
+```
+
+No `docker` on the host, or no Docker daemon running, means no
+containers: go on with the Core unit search. Permission denied on
+the Docker socket is different — the containers are there but
+unseen, so get the access through
+`rules/privilege-escalation.md` or report the check as skipped,
+never conclude Core from it.
+
+- **Container** — a container runs a Home Assistant image,
+  usually `ghcr.io/home-assistant/home-assistant`, and there is
+  no `hassio_supervisor` container. The container name varies;
+  take it from the output above, never assume `homeassistant`.
+  Another image, such as `lscr.io/linuxserver/homeassistant`, is
+  still a Container install; confirm the commands below work in
+  it before relying on them.
+- **Supervised** — a `hassio_supervisor` container runs, and the
+  host has the `ha` CLI. The grep also lists the Supervisor's
+  other containers and add-ons; Home Assistant itself is the one
+  named `homeassistant`.
+- **Core** — no Home Assistant container, and a unit the search
+  above found (`hassio-*` units belong to Supervised). Home
+  Assistant runs from a Python virtual environment under that
+  unit, with neither a Supervisor nor an `ha` CLI. The unit's
+  `ExecStart` holds the path to `hass` and its `-c` argument,
+  `User=` the account; without `-c`, the config directory is
+  `~/.homeassistant` of that account.
+
+Read the running version:
+
+```bash
+# Container
+docker exec <container> python -m homeassistant --version
+# Supervised
+ha core info
+# Core, as the unit's User=
+sudo -u <service-user> <venv>/bin/hass --version
+```
+
+`--version` is a flag of Home Assistant's entry point:
+https://github.com/home-assistant/core/blob/dev/homeassistant/__main__.py
+
+Run the config check for the install type from
+`rules/service-reload.md` → Config Test Before Reload, the same
+check that gates a restart the user asks for.
+
+- **CRITICAL** if Home Assistant is not running: its container
+  is not "Up" (on Supervised, `homeassistant` or
+  `hassio_supervisor`), or
+  `systemctl is-active <unit>` fails on Core. Report a stopped
+  container here, not again under Docker.
+- **WARN** if the config check reports errors; quote them
+- Report the running version, and on Container the image tag
+  (`stable`, a pinned version, `beta` or `dev`); a newer release
+  is named only through `rules/version-check.md`
+- **INFO**, once per report, on Supervised and Core: the install
+  type is unsupported since Home Assistant 2025.12,
+  https://www.home-assistant.io/blog/2025/05/22/deprecating-core-and-supervised-installation-methods-and-32-bit-systems/
+  The install method is unsupported, not the version, so this is
+  no EOL finding under `rules/version-check.md`. Migrating to
+  Home Assistant OS or Container is the user's decision.
+
 ## nginx
 
 Triggered when `memory.md` mentions nginx.

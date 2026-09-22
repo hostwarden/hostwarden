@@ -168,8 +168,20 @@ off your servers, and how to read its logs:
 | Debian  | Debian, Ubuntu                    | `rules/os/debian.md`  |
 | RHEL    | RHEL, CentOS, Fedora, Rocky, Alma | `rules/os/rhel.md`    |
 | SUSE    | openSUSE, SLES                    | `rules/os/suse.md`    |
+| Alpine  | Alpine Linux                      | `rules/os/alpine.md`  |
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
+
+Appliances run their own updater, configuration and
+firewall on top of that OS, so they get a file of their own
+that changes the base file where it would be wrong:
+
+| Appliance         | Base    | Appliance file                  |
+| ----------------- | ------- | ------------------------------- |
+| Proxmox VE        | Debian  | `rules/appliance/proxmox-ve.md` |
+| OPNsense          | FreeBSD | `rules/appliance/opnsense.md`   |
+| pfSense           | FreeBSD | `rules/appliance/pfsense.md`    |
+| Home Assistant OS | —       | `rules/appliance/haos.md`       |
 
 Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it

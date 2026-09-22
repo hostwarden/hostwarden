@@ -58,15 +58,11 @@ Rules for FreeBSD (all versions).
 - **Mandatory before any load:** the parse-only
   config test `pfctl -nf /etc/pf.conf` must pass
   first.
-- When changing pf rules over SSH, schedule a safety
-  net before loading, e.g.:
-  ```
-  echo "pfctl -d" | at now + 5 minutes
-  ```
-  If the new rules cut you off, pf disables itself
-  and you can get back in. After confirming the
-  session survived, cancel the job (`atq`, then
-  `atrm <job>`) — do not leave it behind.
+- Loading or enabling pf over SSH goes through
+  `rules/ssh-safety-net.md`. Check:
+  `pfctl -nf /etc/pf.conf`; apply:
+  `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:
+  `pfctl -d`.
 - After enabling, verify the default policy blocks
   incoming traffic.
 - Start/stop: `service pf start`, `service pf stop`
@@ -151,6 +147,25 @@ Rules for FreeBSD (all versions).
 - Older installations may use UFS.
 - Check: `mount` — UFS shows as `ufs`.
 - `fsck` for filesystem checks (not `e2fsck`).
+
+## Logs
+
+Hostwarden's journal entries (`rules/changelog.md`) go to syslog and
+are read back from `/var/log/messages`, both tags
+(`rules/activity-check.md`):
+
+```
+for f in /var/log/messages.0 /var/log/messages; do
+  [ -f "$f" ] && grep -hE "hostwarden|heinzel" "$f"
+done | tail -20
+```
+
+`messages.0` is missing until the first rotation, so it is read only
+where it exists.
+
+This shows the last 20 matches, not a strict 7-day window, and only
+reaches one rotation back (`messages.0`). Older rotated logs are
+usually compressed; mention the limitation if relevant.
 
 ## Directory Conventions
 

@@ -259,6 +259,8 @@ trigger — not a request from the user.
   second web server, database or MTA the host already has
 - Installing, removing or reconfiguring a network-facing service →
   `rules/firewall-changes.md`
+- Any firewall or network change that can cut SSH →
+  `rules/ssh-safety-net.md`, before applying it
 - Reloading or restarting a service → `rules/service-reload.md`
 - Any install, service, permission or exposure change the user asked
   for → `rules/best-practices.md` for the anti-pattern catalog
@@ -309,7 +311,8 @@ Every Linux host should have a firewall and automatic security
 updates — flag either one missing. Native nftables counts as a
 firewall; never add a second firewall manager on top
 (`rules/service-class-check.md`). On macOS a disabled Application
-Firewall is common and less critical (`rules/os/macos.md`).
+Firewall is common and less critical (`rules/os/macos.md`). An
+appliance's file in `rules/appliance/` says what counts instead.
 
 **Skills, and one file not to read**
 

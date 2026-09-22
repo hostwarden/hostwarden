@@ -61,9 +61,9 @@ Use the distribution's own firewall tool, never raw
 `iptables` on a host that runs ufw or firewalld — the two
 fight, and the surviving rule set is whichever wrote last.
 
-Verify after applying: re-read the rules, and confirm from
-a second connection that SSH still answers **before** the
-session that made the change ends.
+Apply a firewall change through `rules/ssh-safety-net.md`:
+the revert is armed before it and cancelled only by a
+working fresh login.
 
 Log the change (`rules/changelog.md`) and record the
 resulting exposure in the host's memory file

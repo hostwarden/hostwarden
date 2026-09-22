@@ -89,8 +89,16 @@ rules/                 — Upstream rule files (git-tracked)
     debian.md          — Debian & Ubuntu
     rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
     suse.md            — openSUSE & SLES
+    alpine.md          — Alpine Linux (apk, OpenRC, busybox)
     macos.md           — macOS
     freebsd.md         — FreeBSD
+  appliance/           — Reference data on top of one family
+                         file, or none. Detection reads at
+                         most one
+    proxmox-ve.md      — Proxmox VE (on os/debian.md)
+    opnsense.md        — OPNsense (on os/freebsd.md)
+    pfsense.md         — pfSense CE and Plus (on os/freebsd.md)
+    haos.md            — Home Assistant OS (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management
@@ -98,6 +106,8 @@ rules/                 — Upstream rule files (git-tracked)
                          avoiding failed logins
   ssh-unreachable.md   — No retry loops; blocked path vs
                          broken host
+  ssh-safety-net.md    — Timed revert armed before a
+                         firewall or network change
   server-memory.md     — Server memory file format
   changelog.md         — Session logging procedure
   activity-check.md    — Recent-activity summary on connect

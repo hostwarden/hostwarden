@@ -68,7 +68,7 @@ entry is a lead, not a fact
 (`rules/verify-before-reporting.md`).
 
 **Then probe the host in one call,** batched into
-the OS-detection call where possible
+the activity check's call where possible
 (`rules/ssh-connections.md` — one call per logical
 step):
 

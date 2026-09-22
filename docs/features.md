@@ -72,7 +72,8 @@ Compare key policies across every server Hostwarden knows about:
 ```
 
 Hostwarden probes unattended-upgrades, sshd effective config,
-firewall posture, MTA, time sync, and auto-reboot behaviour
+firewall posture, MTA, time sync, auto-reboot behaviour and,
+on Ubuntu, Pro/ESM coverage and needrestart's restart mode
 on each host in `memory/servers/`, then renders a
 side-by-side table that highlights where servers disagree.
 It makes no configuration changes on any host (it only

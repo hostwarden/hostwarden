@@ -17,6 +17,11 @@ systemctl is-enabled nftables netfilter-persistent
 nft list chains | grep -B1 -e ^table -e "hook input"
 ```
 
+On Alpine (OpenRC), replace the two `systemctl` lines with
+`rc-update show boot default | grep nftables`. The service loads
+the rules and exits, so a runlevel that lists it is what both
+*active* and `is-enabled` mean below.
+
 A packet has to pass every input chain of its family, so one
 chain that drops is enough — an `accept` policy in another
 table does not undo it. Default deny means one of:

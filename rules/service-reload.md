@@ -11,16 +11,22 @@ connections, lose state, or fail to come back up.
 ## Reload vs Restart
 
 - **Reload** (`systemctl reload <svc>`,
-  `nginx -s reload`, `service <name> reload`) tells a
+  `nginx -s reload`, `service <name> reload`,
+  `rc-service <svc> reload`) tells a
   running service to re-read its config without
   dropping active connections or worker state. When
   the service supports it, reload is effectively
   zero-downtime and reversible.
 - **Restart** (`systemctl restart <svc>`,
-  `service <name> restart`) stops and starts the
+  `service <name> restart`,
+  `rc-service <svc> restart`) stops and starts the
   service. Connections drop, in-memory state is lost,
   and the restart can fail halfway (config bug,
   missing dependency, port still bound).
+
+Where the loaded OS file's `## Service Manager` says
+how reload, restart or the config test differ there,
+it wins over this file.
 
 Prefer reload whenever the service supports it.
 
@@ -85,6 +91,11 @@ full instance (`nginx@default`). No wildcards in v1.
 
 On FreeBSD and macOS, match the `service` /
 `brew services` / `launchctl` service name.
+
+Home Assistant in a container has no unit of its
+own: match its container name — `homeassistant` on
+Supervised, whatever `memory.md` records on
+Container. On Core, match its unit as usual.
 
 ## Prompt Shape When Asking
 
@@ -155,6 +166,28 @@ show the test output if it fails.
 | sshd           | `sshd -t` (but sshd is "always ask" — see below) |
 | haproxy        | `haproxy -c -f <file>`             |
 | unbound        | `unbound-checkconf`                |
+| Home Assistant | per install type, below            |
+
+Home Assistant on a normal Linux host is restarted,
+not reloaded, and the same test gates the restart.
+The host's `memory.md` names the install type and
+the values for the placeholders; where it does not,
+ask the user rather than guess them:
+
+```bash
+# Container
+docker exec <container> python -m homeassistant \
+  --script check_config --config /config
+# Supervised
+ha core check
+# Core, as the unit's User=
+sudo -u <service-user> <venv>/bin/hass \
+  --script check_config --config <config-dir>
+```
+
+The Container check is the one the Home Assistant
+docs give:
+https://www.home-assistant.io/common-tasks/container/#configuration-check
 
 If no config test is known for the service, ask
 the user before reloading — auto-proceed requires
@@ -173,7 +206,8 @@ even when the service is not in `reload-always-ask`:
   after `sshd -t` passes.
 - **Firewall reloads** (`ufw reload`,
   `firewall-cmd --reload`, `pfctl -f`,
-  `service pf reload`). A rule error can drop SSH.
+  `service pf reload`, `rc-service nftables reload`,
+  `awall activate`). A rule error can drop SSH.
   Always ask. Covered by the "firewall changes"
   rule in `AGENTS.md`.
 - **Reload as part of a config change Hostwarden is

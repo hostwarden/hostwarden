@@ -60,6 +60,14 @@ Four mechanisms, one question each:
 A file keyed by a fact rather than a moment — the OS-family files
 — is reference data and lives in `rules/os/`.
 
+An appliance (`rules/os-detection.md` → Appliances) gets a file in
+`rules/appliance/` and a row in that section's marker table. The
+file opens with a `Base:` line naming its family file, or
+`Base: none`, and has a `## Housekeeping and Audits` section.
+Decide per section of the base with the override prefixes; "this
+file wins wherever the two disagree" leaves the reader to find the
+disagreement on a live firewall.
+
 ## For people and for the agent
 
 `docs/` and the README are written for the person running
