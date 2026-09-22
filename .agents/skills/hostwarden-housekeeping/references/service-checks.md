@@ -111,6 +111,83 @@ docker ps --format \
 - **WARN** for any container not in "Up" state
 - Report container names and status
 
+## CasaOS
+
+Triggered when `memory.md` mentions CasaOS, or when the selection
+step of the housekeeping skill finds `/etc/casaos` on a Linux host
+that is no appliance; record `CasaOS` in `memory.md` then. ZimaOS,
+which grew out of CasaOS, never counts: an os-release `ID` of
+`zimaos`, quoted or not, or an `Appliance:` line in memory. CasaOS
+is IceWhale's web UI and app store on top of an ordinary
+distribution, which keeps its family file, package manager,
+firewall and updater (https://github.com/IceWhaleTech/CasaOS). What
+CasaOS adds is below, in one call. `casaos -v`, the unit states and
+the listener list answer an ordinary account; the two `grep`s under
+`/etc/casaos` and the container list need root, and without it they
+are reported as skipped (`references/unprivileged.md`):
+
+```bash
+casaos -v
+systemctl is-active casaos casaos-gateway casaos-message-bus \
+  casaos-user-service casaos-local-storage casaos-app-management
+grep -E '^port *=' /etc/casaos/gateway.ini
+ss -tlnp 2>/dev/null || netstat -tln
+grep -E '^(AppsPath|appstore) *=' /etc/casaos/app-management.conf
+docker ps -a --format \
+  '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project.working_dir"}}'
+```
+
+The six units are the ones the installer starts
+(https://get.casaos.io).
+
+- **WARN** for each unit that is not active: without the gateway
+  the web UI is down, without app management the apps cannot be
+  changed from it.
+- **WARN** where the listener list shows the gateway's `port`, 80
+  by default in the installer, on every address **and names
+  `casaos-gateway` as the process**: the web UI answers plain HTTP
+  there. Another process on that port is that service's line, not
+  CasaOS's; where `ss` gives no process column, say which of the
+  two it is only after the user or an HTTP probe settles it. With
+  the gateway unit inactive and no such listener, report the
+  inactive unit alone, and that the UI would
+  answer that way once it runs. The gateway listens with an empty
+  host and no TLS
+  (https://github.com/IceWhaleTech/CasaOS-Gateway, `main.go`), and
+  the CasaOS units set no `User=`, so they run as root (`CasaOS`,
+  `build/sysroot/usr/lib/systemd/system/casaos.service`).
+  **CRITICAL** if the user says a port forward reaches it from the
+  internet.
+- **CRITICAL** for a version up to 0.4.15, as `rules/version-check.md`
+  rates a known vulnerability: CVE-2025-34171 lets anyone
+  who reaches the UI read files and debug data without logging in
+  (https://www.vulncheck.com/advisories/casaos-unauthenticated-file-and-debug-data-exposure).
+  Name the newest release from
+  https://github.com/IceWhaleTech/CasaOS/releases and its date only
+  through `rules/version-check.md`, its cooldown included; while no
+  release fixes the CVE, that is the finding.
+- **INFO** for each `appstore` source outside `IceWhaleTech`: a
+  third-party store whose apps run with whatever the compose file
+  grants them.
+- Report the apps: each App Store app is a compose project in its
+  own directory under `AppsPath`, `/var/lib/casaos/apps` by default
+  (https://github.com/IceWhaleTech/CasaOS-AppManagement,
+  `build/sysroot/etc/casaos/app-management.conf.sample`); the last
+  `docker ps` column shows it. Report a container that is not "Up"
+  once, here or under Docker.
+
+Hand any change to an app to the user as steps in the CasaOS web
+UI, never as `docker` or compose commands: the app service lists
+the compose projects Docker reports, and an update from the UI
+merges its settings into the store's compose file and applies it
+again, recreating the containers
+(https://github.com/IceWhaleTech/CasaOS-AppManagement). A change
+made beside the UI is lost at the next update or shown wrongly.
+Updating CasaOS itself is the UI's Settings → Update, or the
+README's script from
+`https://get.casaos.io/update` piped into a root shell: ask first,
+and name the script.
+
 ## Home Assistant
 
 Triggered when `memory.md` mentions Home Assistant. This section

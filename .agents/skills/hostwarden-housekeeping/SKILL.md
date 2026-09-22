@@ -32,8 +32,11 @@ applies before any of this runs.
    checks (free-form Markdown, gitignored by default).
 2. **Select checks.** Run all baseline checks for the detected OS
    plus any service-specific checks triggered by entries in the
-   server's `memory.md` (e.g. PostgreSQL, nginx, Docker). The
-   backup-presence check from `references/backup-presence.md`
+   server's `memory.md` (e.g. PostgreSQL, nginx, Docker). On a
+   Linux host without an `Appliance:` line, `ls -d /etc/casaos`
+   runs here too, because CasaOS is often on a host before memory
+   names it or Docker: a match selects `references/service-checks.md`
+   → CasaOS. The backup-presence check from `references/backup-presence.md`
    runs on every host, independent of `memory.md` entries — on
    a host whose OS file is not `sh`, in the form that file's
    `## Housekeeping and Audits` section gives.
@@ -78,8 +81,8 @@ Read on demand, only when the relevant section applies:
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
-  Docker, Home Assistant, Ollama, node_exporter, NVIDIA GPU,
-  MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
+  Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
+  GPU, MariaDB/MySQL, WireGuard, Pi-hole, AdGuard Home. Only run the
   ones the server's `memory.md` mentions.
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.

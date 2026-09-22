@@ -152,6 +152,14 @@ minimal privileges.
 → Create a service user.
 Cross-reference: the `hostwarden-deploy-user` skill
 
+**Changing a CasaOS app with `docker`**
+CasaOS applies its own compose file again on update,
+so a `docker` change is lost.
+→ Change the app in the CasaOS web UI.
+Cross-reference:
+`.agents/skills/hostwarden-housekeeping/references/service-checks.md`
+→ CasaOS
+
 ### Permissions & Security
 
 **chmod 777 / chmod -R 777**
