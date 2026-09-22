@@ -84,7 +84,9 @@ Bash calls as it does anywhere else.
 
 ## What you return
 
-Four things, in this order, and nothing else.
+Four things, in this order, and nothing else — except on
+`blocked:`, which leaves the row out: the status, then warnings
+and notices from what ran before it stopped.
 
 **The row**, in the keyed form your prompt gives. One `key: value`
 per line, every key the prompt names, and `unknown(needs-root)`

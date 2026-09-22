@@ -136,18 +136,20 @@ No `docker` on the host means no containers: go on with the Core
 unit search. A Docker daemon that does not answer is the Docker
 section's finding, not an empty list. Where `memory.md` records
 Container or Supervised, keep that type, and ask Home Assistant
-itself on its web port, 8123 unless `memory.md` says otherwise:
+itself at the URL `memory.md` records, `http://127.0.0.1:8123/`
+when it records none:
 
 ```bash
-curl -s -o /dev/null -m 5 -w '%{http_code}\n' http://127.0.0.1:8123/
+curl -sk -o /dev/null -m 5 -w '%{http_code}\n' <url>
 ```
 
 Any HTTP status means it runs: live restore keeps containers up
 while the daemon is down
 (https://docs.docker.com/engine/daemon/live-restore/). `000` is
-Home Assistant not running (below), with the daemon named. With
-nothing recorded, go on with the Core search and say Docker could
-not be asked.
+no answer, which a TLS mismatch or another bind address also
+gives: report Home Assistant's state as unknown, with the daemon
+named, never as stopped. With nothing recorded, go on with the
+Core search and say Docker could not be asked.
 Permission denied on the Docker socket is different — the
 containers are there but unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
