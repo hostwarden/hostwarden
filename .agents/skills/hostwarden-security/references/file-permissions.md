@@ -234,12 +234,17 @@ for p in /Library/LaunchDaemons/*.plist; do
         fi
         n=0
         while :; do
-          d=$(cd -P "$(dirname "$x")" 2>/dev/null && pwd -P) \
+          p=$(dirname "$x")
+          while [ "$p" != / ] && ls -d "$p" 2>&1 | grep -q 'No such file'
+          do p=$(dirname "$p"); done
+          d=$(cd -P "$p" 2>/dev/null && pwd -P) \
             || { echo "skipped: $x"; break; }
-          f=${d%/}/$(basename "$x")
-          ls -lde "$f"
+          f=
+          if [ "$p" = "$(dirname "$x")" ]; then
+            f=${d%/}/$(basename "$x"); ls -lde "$f"
+          fi
           while [ "$d" != / ]; do ls -lde "$d"; d=$(dirname "$d"); done
-          [ -L "$f" ] && [ "$n" -lt 16 ] || break
+          [ -n "$f" ] && [ -L "$f" ] && [ "$n" -lt 16 ] || break
           l=$(readlink "$f")
           case $l in /*) x=$l ;; *) x=${f%/*}/$l ;; esac
           n=$((n + 1))
@@ -256,5 +261,6 @@ done
   directory it may not enter, or one privacy protection (TCC)
   guards. List it under "Skipped" with its plist. A path that
   does not exist is an argument, not a file, and prints nothing;
-  a symlink whose target is missing is still walked, since
-  whoever can write where it points can create the target.
+  a symlink whose target is missing is still walked, up to the
+  nearest directory that exists, since whoever can write there
+  can create the target.
