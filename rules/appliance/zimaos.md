@@ -278,7 +278,7 @@ third party says so; check it on the live host before relying on it.
   command -v smartctl || echo "smartctl missing"
   command -v zpool && zpool status -x
   command -v virsh && virsh list --all
-  docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.project.working_dir"}}'
+  docker ps -a --format '{{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.project.working_dir"}}'
   ```
   Where `smartctl` exists, SMART runs with the probe in
   `.agents/skills/hostwarden-housekeeping/references/smart.md`; a
@@ -298,6 +298,10 @@ third party says so; check it on the live host before relying on it.
     (<https://www.zimaspace.com/docs/zimaos/docker-app-paths>);
     an App data location left on the system drive is worth one
     line;
+  - a published port (`->`) not bound to `127.0.0.1` or `[::1]`,
+    as the Docker part of the baseline's Firewall Status rates it:
+    with no host firewall, it answers on every network the NAS is
+    on, unless server memory records it as meant to be reachable;
   - a container not `Up` that the user expects to run, and an app
     from a third-party store.
 - A security audit reports instead: with SSH on, the effective
