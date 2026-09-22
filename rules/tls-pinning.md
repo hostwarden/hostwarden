@@ -20,8 +20,21 @@ openssl s_client -connect <host>:443 -servername <host> \
 ```
 
 Use the port the appliance's web UI listens on where it is not 443.
-Show the value to the user to compare with the certificate their
-browser shows for the same host, and record it in server memory as
+
+**What the user compares is not that value.** The pin hashes the
+public key; a browser's certificate viewer shows the hash of the
+whole certificate, and the two differ for the same certificate. So
+read the certificate's fingerprint in the same call and show that
+one for comparison:
+
+```
+openssl s_client -connect <host>:443 -servername <host> \
+    </dev/null \
+  | openssl x509 -noout -fingerprint -sha256
+```
+
+Once the user confirms that fingerprint against what their browser
+shows for the same host, record the pin in server memory as
 `API pin: sha256//<hash>`. The pin is a public key's hash, not a
 secret.
 

@@ -340,7 +340,7 @@ that the user writes, never in the conversation:
   drop every key that can carry a secret:
 
   ```
-  jq 'walk(if type == "object" then with_entries(select(.key | test("pass(word|phrase)|secret|preshared|psk|token|private|apikey"; "i") | not)) else . end)'
+  jq 'walk(if type == "object" then with_entries(select(.key | test("pass(word|phrase)|secret|preshared|psk|token|private|api[_. -]?key|credential"; "i") | not)) else . end)'
   ```
 
   The appliance file adds its own field names to the

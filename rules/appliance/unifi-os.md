@@ -205,9 +205,13 @@ included
   Only the login reads stdin, so each endpoint may have its own
   `curl -b "$j"`. A key-authenticated read is one `curl -H @-` with
   every URL after it (`rules/appliance-api.md` → Reading).
-  The login carries a marker like the reads: a `login` code that is
-  not 200 means the credential was rejected and nothing was read —
-  report that, and never read an empty stream as a clean result.
+  The login carries a marker like the reads, and a `login` code
+  other than 200 means nothing was read: never take the empty
+  stream that follows for a clean result. `401` and `403` are the
+  credential being rejected; `429`, a `5xx`, a `404` or curl's
+  `000` are a rate limit, the console, a wrong path or no
+  connection — report the code as it came, and do not ask for a new
+  password over one of those.
 
 - Secret fields: add `^x_` to the filter's pattern — the classic
   API keeps its secrets in `x_` fields (`x_passphrase`,

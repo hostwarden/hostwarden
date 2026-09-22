@@ -95,7 +95,10 @@ appliance file says so by name.
 
 - **Only with write access, only after asking**, and only for what
   the user asked for. Show the method, the path and the body, and
-  name everything the change reaches.
+  name everything the change reaches. A body that carries a
+  credential is shown through the filter in `rules/secrets.md` → API
+  Credentials on the Workstation, so the user sees which fields the
+  call sets and never their values.
 - Look the endpoint and its body up in the API reference for the
   installed version before the call (`AGENTS.md` → Verify Before
   Running).
