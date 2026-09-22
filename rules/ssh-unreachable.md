@@ -127,8 +127,9 @@ A system container or VM that gives no answer at all
 reached through its hypervisor host: ask the user
 first, then use via-host mode for this session
 (`rules/system-containers.md` → Reaching It). The
-host and the guest's ID come from its `Runs on:` line
-(`rules/hypervisors.md`); where it has none, or
-`Runs on: unknown`, ask for them too. Never use it to
-get around a rejected login or a block Hostwarden
-caused.
+host and the guest's ID come from its `Runs on:`
+line (`rules/hypervisors.md`); where it has none, or
+`Runs on: unknown`, ask for them too. A host marked
+`not managed` is no way in: tell the user. Never use
+it to get around a rejected login or a block
+Hostwarden caused.

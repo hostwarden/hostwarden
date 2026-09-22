@@ -67,8 +67,8 @@ Containers need none: their manager lists the addresses.
 
 A running VM without an agent is recorded as `no agent`. A root
 shell through the agent is via-host mode
-(`rules/system-containers.md` → Reaching It), never part of the
-inventory.
+(`rules/system-containers.md` → Reaching It): never part of the
+inventory, and used right after it only for Registering Guests.
 
 ## guests.md
 
@@ -136,14 +136,19 @@ Per guest, after the user's request is answered and announced in
 one line (*"Registering 7 guests of pve1.example.com through
 `pct exec` — read-only"*):
 
-1. Check the name the manager gives the guest against the
-   blacklist and the read-only list (`rules/access-control.md`).
-   A blacklisted guest is not entered: note `blacklisted` in its
-   entry.
-2. One bundled call inside the guest reads `hostname -f`, falling
-   back to `hostname`, and the lines of the step-1 probe
-   (`rules/os-detection.md`) and the link keys (Linking below).
-   Check that hostname against both lists too.
+1. Check the guest's names against the blacklist and the
+   read-only list (`rules/access-control.md`) before entering it:
+   the manager's name, and the hostname the inventory already
+   has (a container's config, the agent's `get-host-name`).
+   Compare the first label too, so `db1` meets a listed
+   `db1.example.com`. Where the inventory has no hostname, a
+   first call reads only `hostname -f`, falling back to
+   `hostname`, and it is checked before anything else runs. A
+   blacklisted guest is not entered further: note `blacklisted`
+   in its entry.
+2. One bundled call inside the guest runs the lines of the
+   step-1 probe (`rules/os-detection.md`) and reads the link keys
+   (Linking below).
 3. The hostname names the memory directory. Where one exists
    already, its `Guest identity:` or its `IP:` must match this
    guest: then it is the same server, and only `Runs on:` and the
@@ -152,7 +157,8 @@ one line (*"Registering 7 guests of pve1.example.com through
 4. Write `memory.md` as `rules/server-memory.md` says, with
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. The
-   SSH user and the DNS check follow on its first SSH connection.
+   SSH user and the DNS check follow on its first SSH connection,
+   which removes the line.
    Never `Mode: via …`: that line says the guest has no SSH of
    its own, and it would route every later session through the
    host.
@@ -203,14 +209,14 @@ finding.
 ```
 
 Look for them with one `grep -i` over
-`memory/servers/*/guests.md`. A match links both: `Runs on:`
-here, `→ <this directory>` in that entry. No match: ask the user
-once which host it is, offering the hypervisors in memory, "one
-Hostwarden does not manage" (with its name, if they want) and
-"don't know", and record the answer as `Runs on: <host> (user)`,
-`Runs on: <name> (user, not managed)` or `Runs on: unknown
-(user)`. It is never asked again; a later inventory that finds
-the keys replaces it. In via-host mode
+`memory/servers/*/guests.md`. A match links both: `Runs on:` here,
+`→ <this directory>` in that entry. No match: once the user's
+request is answered, ask once which host it is, offering the
+hypervisors in memory, "one Hostwarden does not manage" (with its
+name, if they want) and "don't know", and record the answer as
+`Runs on: <host> (user)`, `Runs on: <name> (user, not managed)` or
+`Runs on: unknown (user)`. It is never asked again; a later
+inventory that finds the keys replaces it. In via-host mode
 (`rules/first-connection.md`), the host is the one the session
 goes through.
 
@@ -234,8 +240,8 @@ none:
   on another host, the keys link it there.
 - **State changed:** update the entry.
 
-Update `Inventoried:` after a full inventory and whenever an
-entry changed.
+Update `Inventoried:` after every listing, full or light: it is
+what limits the light listing to once a day.
 
 Housekeeping rates the inventory
 (`.agents/skills/hostwarden-housekeeping/references/guests.md`).

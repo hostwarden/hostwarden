@@ -488,8 +488,8 @@ describes:
 - on a host with a `Hypervisor:` line, the guest
   listing (Inventory);
 - on a VM or container (Virtualization above) without
-  a `Guest identity:` line, the keys that link it to
-  its host (Linking Guest and Host).
+  a `Runs on:` line, the keys that link it to its host
+  (Linking Guest and Host).
 
 ## Roles
 
