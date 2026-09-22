@@ -10,7 +10,7 @@ Podman) are `rules/containers.md`.
 
 **SSH first, always.** Via-host mode
 (`rules/first-connection.md` → Via-host mode) is the fallback,
-for two cases only:
+for three cases only:
 
 - **SSH gives no answer:** only as `rules/ssh-unreachable.md` →
   A guest on a known host allows, for this session. Server memory
@@ -21,6 +21,9 @@ for two cases only:
   reaches Windows over OpenSSH only (`rules/os/windows.md`), and
   the pipeline's `sh -c` finds no shell there. Install OpenSSH,
   or leave the guest to its console.
+- **Registering a guest from its host's inventory:** read-only,
+  once per guest, as `rules/hypervisors.md` → Registering Guests
+  describes.
 
 Through the host's manager, as root inside:
 

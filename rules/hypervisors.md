@@ -1,163 +1,83 @@
 # Hypervisors and Their Guests
 
-A hypervisor is a host that runs virtual machines or system
-containers of its own: Proxmox VE and XCP-ng, but just as well
-libvirt/KVM, Incus, LXD or LXC on an ordinary distribution, bhyve
-on FreeBSD, Hyper-V on Windows Server, or VirtualBox. It can
-itself be a VM (nested virtualization): then its memory has both a
-`Virtualization: … (VM)` and a `Hypervisor:` line.
+Every guest on a hypervisor (`rules/os-detection.md` → Hypervisors)
+is inventoried without being asked for, running or not, and every
+guest with memory of its own records which host it runs on. The
+inventory comes from the hypervisor's manager, never from SSH into
+the guests: whether and how a guest can be reached is not known
+until it is in memory.
 
-Every guest on it is inventoried without being asked for, running
-or not, and every guest that has memory of its own records which
-host it runs on. The inventory comes from the hypervisor's own
-manager, never from SSH into the guests: whether and how a guest
-can be reached is not known until it is in memory.
-
-Application containers (Docker, Podman) are not guests; they are
-`rules/containers.md`. How a guest is reached and changed is
+Application containers (Docker, Podman) are not guests
+(`rules/containers.md`). Reaching and changing a guest is
 `rules/system-containers.md`.
-
-## Detect
-
-The lines after `@hypervisor` in the step-1 probe
-(`rules/os-detection.md`) name the candidates:
-
-| Marker                                   | Manager    |
-| ---------------------------------------- | ---------- |
-| `pveversion` under `@appliance`          | Proxmox VE |
-| `ID=xcp-ng` under `@release`             | xe         |
-| `virsh`, or `/run/libvirt` listed        | libvirt    |
-| `incus`                                  | Incus      |
-| `lxd`, or `/var/snap/lxd/common/lxd`     | LXD        |
-| `lxc-ls`, or `/var/lib/lxc` listed       | LXC        |
-| `vm` and `/dev/vmm` listed (FreeBSD)     | vm-bhyve   |
-| `VBoxManage`                             | VirtualBox |
-
-On Windows Server, `Get-Service vmms` joins the Version Detection
-call of `rules/os/windows.md`; a service by that name is Hyper-V.
-
-On Proxmox VE, `lxc-ls` and `/var/lib/lxc` are its own
-containers, and Proxmox VE is the manager for them.
-
-`/dev/kvm` or `/dev/vmm` alone says only that the machine could
-run guests. A candidate is a hypervisor once its inventory below
-lists at least one guest in any state, or its manager's service
-is enabled. Record the managers found:
-
-```
-- Hypervisor: Proxmox VE (qm, pct)
-- Hypervisor: libvirt, Incus
-```
-
-A candidate without guests and with no enabled service gets no
-line. Housekeeping looks at the markers again, and so does a
-session that installs a hypervisor.
 
 ## Inventory
 
-**When:** on the first connection to a hypervisor, the whole
-inventory; on every later connection, the listing only, joined
-to the activity-check call (`rules/first-connection.md`). Where
-the listing differs from `guests.md`, the full inventory runs for
-the guests that differ.
+**When:** the full inventory on the first connection and in
+housekeeping. On a later connection, the light listing (ID and
+state only), once a day at most: when `Inventoried:` is not
+today, or when the request is about guests. The full inventory
+then runs for the guests whose listing differs from `guests.md`.
 
 **Privileges:** each manager shows the system's guests to root
-only, or to members of its admin group (`libvirt`,
-`incus-admin`, Hyper-V Administrators). Reading them is a read:
-escalate as `rules/privilege-escalation.md` says. Where that is
-not possible, record
-`Hypervisor: libvirt (guests unreadable without root)` and say
-so in one line; never guess the guests.
+and to its root-equivalent group
+(`rules/privilege-escalation.md`). Where neither is available,
+record `Hypervisor: libvirt (guests unreadable without root)`
+and say so in one line; never guess the guests.
 
-**Read-only:** the inventory is a read and runs on a host on the
-read-only list too. It never starts, stops or changes a guest.
-In particular, **never start a stopped guest to look inside**:
-a retired server brought back can take the IP address or the
-jobs of the one that replaced it.
+**Never start a stopped guest to look inside.** A retired server
+brought back can take the IP address or the jobs of the one that
+replaced it.
 
 Per guest, record: ID, name, kind (VM or container), state,
 whether it starts with the host, whether the hypervisor marks it
-as a template, its MAC addresses, and for a VM its UUID. The
-commands, each one call for all guests:
+as a template, its MAC addresses, and a VM's UUID where Linking
+below names a source for it. Per-guest commands go into one
+bundled call (`rules/ssh-connections.md`). An appliance's guest
+section gives its own commands; elsewhere:
 
-- **Proxmox VE:** `pvesh get /cluster/resources --type vm
-  --output-format json`, filtered to this node's `node`; then, in
-  the same call, the head of every guest config up to its first
-  snapshot section:
-
-  ```bash
-  for f in /etc/pve/qemu-server/*.conf /etc/pve/lxc/*.conf; do
-    echo "@conf $f"
-    sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
-      /^template:/p; /^onboot:/p' "$f"
-  done
-  ```
-
-  A VM's MAC is the `virtio=`/`e1000=` value of its `netN:` line,
-  a container's the `hwaddr=` value; the UUID is `uuid=` in
-  `smbios1:`.
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.
-  `list --all` for the domains, `list --all --autostart` for
+  `list --all` is the light listing; `list --all --autostart` for
   autostart, and per domain `domuuid` and `domiflist`.
-- **XCP-ng:** `xe vm-list is-control-domain=false
-  params=uuid,name-label,power-state,is-a-template,other-config`,
-  and `xe vif-list params=vm-uuid,MAC`. A template with
-  `default_template: true` in `other-config` ships with XCP-ng
-  and is left out; any other template is the user's.
-- **Incus / LXD:** `incus list --all-projects`
-  (LXD: `lxc list --all-projects`) lists stopped instances too;
-  `incus config show <instance>` carries `volatile.<nic>.hwaddr`
-  and `boot.autostart`.
+- **Incus / LXD:** the listing from `rules/system-containers.md`
+  → Reaching It, with `--format json`: it carries
+  `volatile.<nic>.hwaddr` and `boot.autostart` for every
+  instance.
 - **LXC:** `lxc-ls -f` shows state and autostart;
-  `lxc.net.0.hwaddr` in `/var/lib/lxc/<name>/config`.
-- **vm-bhyve:** `vm list` shows every VM with `AUTO` and `STATE`;
-  `vm info <name>` its MACs and UUID.
-- **Hyper-V:** `Get-VM` (`Name`, `State`, `VMId`,
-  `AutomaticStartAction`) and `Get-VMNetworkAdapter -VMName *`
-  (`VMName`, `MacAddress`, `IPAddresses`). Hyper-V prints MACs
-  without separators.
+  `grep -H hwaddr /var/lib/lxc/*/config` the MACs.
+- **vm-bhyve:** `vm list` shows `AUTO` and `STATE`; `vm info`
+  without a name gives every VM's MACs and UUID.
+- **Hyper-V:** `rules/os/windows.md` → Version Detection.
 - **VirtualBox:** `VBoxManage list vms` lists the calling user's
   VMs only; ask whose account runs them before concluding there
   are none.
 
-An appliance file that names its own guest listing (Unraid,
-ZimaOS) wins over the list above.
-
 ### Guest tools
 
-Where a guest runs its agent, the hypervisor answers for it
-without SSH: hostname, OS and IP addresses. Ask it only for
-running guests, only read-only queries, and never for a guest
-on the blacklist (`rules/access-control.md`):
-
-- **Proxmox VE:** `qm guest cmd <vmid> get-host-name`,
-  `get-osinfo`, `network-get-interfaces`
-- **libvirt:** `virsh -c qemu:///system domifaddr <dom> --source
-  agent`, `guestinfo <dom>`
-- **XCP-ng:** the VM parameters `os-version` and `networks`,
-  which the guest tools fill
-- **Hyper-V:** `IPAddresses` above; integration services fill it
-- **Containers** (Incus, LXD, LXC, Proxmox `pct`) need no agent:
-  their manager lists the addresses itself.
+Where a running guest has an agent, the hypervisor answers for it
+without SSH: hostname, OS and IP addresses. Ask only for guests
+whose hostname or OS `guests.md` does not know yet, only
+read-only queries, each under `timeout 5` in the same call, and
+never for a guest on the blacklist (`rules/access-control.md`).
+libvirt's is `virsh -c qemu:///system guestinfo <dom>`; the
+appliance files and `rules/os/windows.md` name theirs.
+Containers need none: their manager lists the addresses.
 
 A running VM without an agent is recorded as `no agent`. A root
-shell through the agent (`qm guest exec`) is via-host mode and
-follows `rules/system-containers.md` → Reaching It, never the
+shell through the agent is via-host mode
+(`rules/system-containers.md` → Reaching It), never part of the
 inventory.
 
 ## guests.md
 
 The inventory lives in `memory/servers/<host>/guests.md`, one
-entry per guest, wrapped at 80 characters. A guest gets a memory
-directory of its own only when it is connected to itself
-(`rules/server-memory.md`); until then this entry is all there
-is.
+entry per guest, whether or not the guest has a memory directory
+of its own (Registering Guests below).
 
 ```markdown
 # Guests on pve1.example.com
 
-- Hypervisor: Proxmox VE (qm, pct)
 - Inventoried: 2026-09-22
 
 - 101 web1 (VM): running, autostart. Debian 13 (agent),
@@ -171,73 +91,103 @@ is.
 - 9000 debian13-tpl (VM): template (hypervisor).
 ```
 
-`→ <memory directory>` links a guest to its own memory; `→
-probably …` is a name or IP match that the guest has not yet
-confirmed (Linking below).
+`→ <memory directory>` links a guest to its own memory;
+`→ probably …` is a name or IP match the guest has not confirmed
+yet (Linking below).
 
 ## Stopped Guests
 
 A stopped guest the hypervisor marks as a template needs no
-question. For every other stopped guest without a reason in
-`guests.md`, ask the user once why it is off, up to four guests
-per question. Offer:
+question. Every other stopped guest without a reason in
+`guests.md` gets one, after the user's request is answered: one
+list of them all, in the picker form of
+`rules/service-reload.md` → Prompt Shape When Asking, where one
+answer can cover all or a single guest:
 
-    web1 is stopped on pve1.example.com. Why?
+    Stopped on pve1.example.com: web1, mail-old, test3. Why?
       [1] Off on purpose (standby, started when needed)
       [2] Retired, not deleted yet
       [3] Not in service yet
       [4] Template or clone source
 
-Use `AskUserQuestion` where the tool has it; otherwise print the
-ASCII form. A free answer is recorded as given. For `[2]`, ask
-until when it is kept; "no date" is an answer too. Record the
-reason in the guest's entry with `(user, <date>)`.
+A free answer is recorded as given. For `[2]`, ask until when it
+is kept; "no date" is an answer too. Record the reason in the
+guest's entry with `(user, <date>)`. A guest that starts loses
+its reason; one that stops again is asked again.
 
-The question comes back only when the state changes: a guest
-that starts loses its reason, and one that stops again is asked
-again. Never delete a guest, retired or not, because of an
-answer here: removal is the user's explicit request
-(`rules/system-containers.md` → Changes).
+Never delete a guest because of an answer here: removal is the
+user's explicit request (`rules/system-containers.md` →
+Changes).
+
+## Registering Guests
+
+A running guest the host's manager can enter gets a memory
+directory of its own right after the inventory, so the user never
+has to name each guest. This is the one read-only use of via-host
+mode that needs no failed SSH first
+(`rules/system-containers.md` → Reaching It). Which guests the
+manager can enter, and how, is listed there: containers always, a
+Proxmox VM only with a responding agent. A libvirt, Hyper-V,
+XCP-ng, bhyve or VirtualBox VM, and every stopped guest, stays in
+`guests.md` alone until it is connected to by name.
+
+Per guest, after the user's request is answered and announced in
+one line (*"Registering 7 guests of pve1.example.com through
+`pct exec` — read-only"*):
+
+1. Check the name the manager gives the guest against the
+   blacklist and the read-only list (`rules/access-control.md`).
+   A blacklisted guest is not entered: note `blacklisted` in its
+   entry.
+2. One bundled call inside the guest reads `hostname -f`, falling
+   back to `hostname`, and the lines of the step-1 probe
+   (`rules/os-detection.md`) and the link keys (Linking below).
+   Check that hostname against both lists too.
+3. The hostname names the memory directory. Where one exists
+   already, its `Guest identity:` or its `IP:` must match this
+   guest: then it is the same server, and only `Runs on:` and the
+   missing keys are added. Where it does not match, ask the user
+   before writing anything.
+4. Write `memory.md` as `rules/server-memory.md` says, with
+   `Runs on:`, `Guest identity:` and
+   `- SSH: untested (registered through pve1.example.com)`. The
+   SSH user and the DNS check follow on its first SSH connection.
+5. Log a `read-only:` journal line inside the guest, in the same
+   call, and a line in its local changelog (`rules/changelog.md`).
+
+Registration never changes a guest, whatever the probe finds:
+findings go into its memory and are reported in one line each.
 
 ## Linking Guest and Host
 
-Neither side can name the other by itself: a guest does not see
-its host's name, and a host does not see the name its guest
-gives itself. Both sides record the same keys, and whichever
-side is connected second makes the link:
+A guest does not see its host's name, and a host does not see
+the name its guest gives itself. Both sides record the same keys,
+and whichever side is connected second makes the link:
 
 - **MAC addresses** — the guest reads its own without privileges
   (`ip -o link`, `ifconfig -a`, `Get-NetAdapter`); the host
   reads them from the guest's configuration. Compare them in
   lowercase with colons.
-- **UUID**, VMs only, where the guest sees the one its host
-  records:
-  - KVM (Proxmox VE, libvirt), bhyve: the guest's
-    `/sys/class/dmi/id/product_uuid`, readable by root, is the
-    VM's UUID.
-  - VMware: the same file, but from virtual hardware 13 on with
-    the first three fields byte-swapped against the host's
-    `uuid.bios`; compare both orders.
-  - Xen (XCP-ng): `/sys/hypervisor/uuid` is the VM's UUID. The
-    DMI file is byte-swapped there; do not use it.
-  - Hyper-V: none. The DMI UUID is the VM's BIOS GUID, which a
-    copied VM keeps; MACs and the host name below link it.
+- **UUID**, for a VM whose `Virtualization:` type has a source:
+  - `kvm`, `qemu`, `bhyve`: `/sys/class/dmi/id/product_uuid`,
+    readable by root;
+  - `xen`: `/sys/hypervisor/uuid` (the DMI file is byte-swapped
+    there).
 
-  In a container, DMI and `/sys/hypervisor` describe the
-  machine underneath: never record a UUID there.
-- **Hyper-V** tells its Linux guests the host's name through the
-  KVP daemon (`PhysicalHostNameFullyQualified` in
-  `/var/lib/hyperv/.kvp_pool_3`) and its Windows guests under
-  `HKLM:\SOFTWARE\Microsoft\Virtual Machine\Guest\Parameters`.
+  Every other type, `unknown (VM)` and containers included, links
+  by MAC alone: in a container, DMI and `/sys/hypervisor`
+  describe the machine underneath.
+- **Hyper-V** gives no usable UUID (the DMI GUID survives a copy
+  of the VM), but tells its guests the host's name:
+  `PhysicalHostNameFullyQualified` in
+  `/var/lib/hyperv/.kvp_pool_3` on Linux, under
+  `HKLM:\SOFTWARE\Microsoft\Virtual Machine\Guest\Parameters` on
+  Windows.
 - **A cloud VM** (`Virtualization: amazon (VM)`, `google`, …)
   runs on its provider: `Runs on: Amazon EC2 (cloud)`, with no
   keys and no question.
 
-**On the guest.** When `rules/os-detection.md` → Virtualization
-settles a VM or a container and memory has no
-`Guest identity:` line, the next call reads the MACs, and the
-UUID where the session is root already. Record them, then look
-for them in every `memory/servers/*/guests.md`:
+**On the guest,** record the keys and the result:
 
 ```
 - Guest identity: mac bc:24:11:00:01:01,
@@ -245,54 +195,37 @@ for them in every `memory/servers/*/guests.md`:
 - Runs on: pve1.example.com (VM 101)
 ```
 
-- A match links both: `Runs on:` here, `→ <this directory>` in
-  that entry.
-- No match: `Runs on: unknown`. Ask the user once which host it
-  is, offering the hypervisors in memory, "one Hostwarden does
-  not manage" and "don't know"; record the answer with
-  `(user)`. The next inventory of that host confirms it or says
-  it was wrong.
-- In via-host mode (`rules/first-connection.md`), the host is
-  the one the session goes through: record `Runs on:` directly,
-  and read the keys all the same.
+Look for them with one `grep -i` over
+`memory/servers/*/guests.md`. A match links both: `Runs on:`
+here, `→ <this directory>` in that entry. No match:
+`Runs on: unknown`, and ask the user once which host it is,
+offering the hypervisors in memory, "one Hostwarden does not
+manage" and "don't know"; record the answer with `(user)`. In
+via-host mode (`rules/first-connection.md`), the host is the one
+the session goes through.
 
-**On the host.** For each guest in the inventory, look for its
-MAC or UUID in the `Guest identity:` lines of
-`memory/servers/*/memory.md`. A match links both. Without one,
-a guest whose agent-reported name or IP address matches a
-memory directory's hostname or `IP:` line is only a hint:
-`→ probably <directory>`, confirmed or dropped when that guest
-is next connected.
-
-A name alone never links: templates are cloned with their name,
-and a retired guest and its successor often share one.
+**On the host,** for the guests without a `→`, one `grep` over
+the `Guest identity:` lines of `memory/servers/*/memory.md`. A
+match links both. Without one, a guest whose agent-reported name
+or IP address matches a memory directory's hostname or `IP:` line
+is only a hint: `→ probably <directory>`, confirmed or dropped
+when that guest is next connected. A name alone never links:
+templates are cloned with their name, and a retired guest and its
+successor often share one.
 
 ## Changes Between Connections
 
 Report each difference in one line, and nothing when there is
 none:
 
-- **New guest:** its full entry; a stopped one gets the question
-  above.
+- **New guest:** its full entry.
 - **Gone guest:** remove its entry. A guest with memory of its
-  own gets `Runs on: unknown (left <host> <date>)`; if it
-  turns up on another host, the keys link it there.
-- **State changed:** update the entry; running to stopped asks
-  the question above.
+  own gets `Runs on: unknown (left <host> <date>)`; if it turns up
+  on another host, the keys link it there.
+- **State changed:** update the entry.
 
-Update `Inventoried:` on every listing.
+Update `Inventoried:` after a full inventory and whenever an
+entry changed.
 
-## Housekeeping
-
-On a host with a `Hypervisor:` line, housekeeping runs the full
-inventory and rates:
-
-- a stopped guest without a reason: **WARN**
-- a retired guest past its keep-until date: **INFO**, naming
-  the guest and the date; deleting it is the user's call
-- a running guest that does not start with the host: **INFO**,
-  it stays down after the next reboot
-- a running VM without an agent: **INFO**
-
-On a host without one, it looks at the markers under Detect
-again, in its first batch.
+Housekeeping rates the inventory
+(`.agents/skills/hostwarden-housekeeping/references/guests.md`).

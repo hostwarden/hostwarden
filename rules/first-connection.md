@@ -42,6 +42,7 @@ moment") — don't skip.
    says; so do a hypervisor's guest listing and a
    guest's link keys when `rules/os-detection.md` →
    Hypervisors says so.
+8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,
    a `heinzel legacy:` line or an unresolved
@@ -56,7 +57,7 @@ moment") — don't skip.
    unresolved inventory is there. One batched probe,
    folded into step 7 where possible, silent unless
    it finds something. See `rules/heinzel-legacy.md`.
-10. **Then** execute the user's request.
+9. **Then** execute the user's request.
 
 ## Local mode
 
@@ -64,9 +65,9 @@ In local mode (`localhost`, the user's own
 hostname), run step 0, then skip steps 1–4 — they
 are remote-only (see `AGENTS.md` → How It Works →
 Local mode). Still run OS detection, server memory,
-activity check, guests and hosts, and the Heinzel
-legacy check — on the workstation the latter looks
-at scheduled runs instead of backup directories
+activity check, and the Heinzel legacy check — on
+the workstation the latter looks at scheduled runs
+instead of backup directories
 (`rules/heinzel-adoption.md`).
 
 ## Via-host mode

@@ -217,6 +217,27 @@ Source for everything below unless noted: the admin guide,
   snapshots before a risky change: `rules/system-containers.md`.
 - Guests with `onboot: 1` start when the node boots. HA-managed
   guests ignore `onboot` and start order.
+- **Inventory** (`rules/hypervisors.md`): record
+  `Hypervisor: Proxmox VE (qm, pct)`. The full inventory is one
+  call: `pvesh get /cluster/resources --type vm --output-format
+  json`, filtered to this node's `node` (it carries `status` and
+  `template`), and the head of every guest config on this node up
+  to its first snapshot section:
+
+  ```bash
+  for f in /etc/pve/qemu-server/*.conf /etc/pve/lxc/*.conf; do
+    echo "@conf $f"
+    sed -n '/^\[/q; /^net[0-9]*:/p; /^smbios1:/p;
+      /^onboot:/p; /^agent:/p' "$f"
+  done
+  ```
+
+  A VM's MAC is the value after its model (`virtio=`, `e1000=`)
+  in `netN:`, a container's the `hwaddr=` value; the UUID is
+  `uuid=` in `smbios1:`. The light listing is `qm list; pct list`.
+- **Guest tools:** only for a VM whose `agent:` line enables it,
+  `qm guest cmd <vmid> get-host-name`, `get-osinfo` and
+  `network-get-interfaces`.
 
 ## Replace: Networking
 

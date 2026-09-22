@@ -41,9 +41,7 @@ applies before any of this runs.
    a host whose OS file is not `sh`, in the form that file's
    `## Housekeeping and Audits` section gives. So do the USB
    inventory from `references/usb-devices.md` and the guest
-   check from `rules/hypervisors.md` → Housekeeping: the full
-   inventory on a host with a `Hypervisor:` line, the
-   hypervisor markers on every other.
+   check from `references/guests.md`.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report — where the OS file uses the
@@ -84,6 +82,10 @@ Read on demand, only when the relevant section applies:
 - `references/usb-devices.md` — the USB devices a host depends
   on (UPS, radio sticks, serial lines, dongles), the `USB:` line
   in `memory.md`, and a UPS that nothing watches.
+- `references/guests.md` — whether the host became a
+  hypervisor, and on one its guest inventory: stopped guests
+  without a reason, retired ones past their date, guests that do
+  not start with the host.
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.

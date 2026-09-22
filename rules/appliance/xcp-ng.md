@@ -189,6 +189,19 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   `vdi-destroy` delete disks.
 - With HA on, a VM shut down from inside the guest is restarted by
   default (`ha-reboot-vm-on-internal-shutdown`).
+- **Inventory** (`rules/hypervisors.md`): record
+  `Hypervisor: XCP-ng (xe)`. The full inventory is one call:
+  `xe vm-list is-control-domain=false
+  params=uuid,name-label,power-state,resident-on,is-a-template,other-config`
+  and `xe vif-list params=vm-uuid,MAC`. This host's VMs are those
+  `resident-on` its UUID; a halted VM resides nowhere, so on a
+  pool the master's inventory carries it. A template with
+  `default_template: true` in `other-config` ships with XCP-ng
+  and is left out; `auto_poweron: true` there is autostart. The
+  light listing is `xe vm-list is-control-domain=false
+  params=uuid,power-state,resident-on`.
+- **Guest tools:** the VM parameters `os-version` and
+  `networks`, which the guest tools fill.
 
 ## Storage Repositories
 

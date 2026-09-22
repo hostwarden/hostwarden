@@ -101,11 +101,10 @@ filled from an example. A container engine is recorded as
 `- Container runtime: podman (rootless: alice)`, the form
 `rules/service-class-check.md` gives.
 
-`Virtualization:` and `Arch:` come from
-`rules/os-detection.md` → Virtualization and step 2.
-`Hypervisor:` on a host that runs guests, and
-`Guest identity:` and `Runs on:` on a guest, come from
-`rules/hypervisors.md`.
+`Virtualization:`, `Arch:` and `Hypervisor:` come
+from `rules/os-detection.md`; `Guest identity:`,
+`Runs on:` and, on a guest registered through its
+host, `SSH: untested`, from `rules/hypervisors.md`.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove

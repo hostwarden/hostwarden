@@ -159,7 +159,7 @@ skill says so where it needs it.
    own comes from the lines after `@virt`; see
    Virtualization below. Whether it runs guests of
    its own comes from the lines after `@hypervisor`;
-   see `rules/hypervisors.md` → Detect.
+   see Hypervisors below.
 
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`
@@ -434,6 +434,54 @@ What the user says replaces it with `user` last in
 the brackets — `Virtualization: none (bare metal,
 user)`, `kvm (VM, Hetzner, user)` — and is never
 probed again.
+
+## Hypervisors
+
+Whether the host runs virtual machines or system
+containers of its own. A hypervisor can itself be a
+VM; the two facts are independent.
+
+The lines after `@hypervisor` name the candidates on
+an ordinary system:
+
+| Marker                                | Manager    |
+| ------------------------------------- | ---------- |
+| `virsh`, or `/run/libvirt` listed     | libvirt    |
+| `incus`                               | Incus      |
+| `lxd`, or `/var/snap/lxd/common/lxd`  | LXD        |
+| `lxc-ls`, or `/var/lib/lxc` listed    | LXC        |
+| `vm` and `/dev/vmm` listed (FreeBSD)  | vm-bhyve   |
+| `VBoxManage`                          | VirtualBox |
+
+On Windows, a `vmms` line under `@hardware` is
+Hyper-V (`rules/os/windows.md` → Version Detection).
+An appliance that runs guests says in its guest
+section what to record and how to list them, and the
+markers its own guests leave (Proxmox VE's
+`/var/lib/lxc`) belong to it.
+
+A marker says only that the machine could run
+guests. A candidate is a hypervisor once its listing
+(`rules/hypervisors.md` → Inventory) shows at least
+one guest in any state, or its manager's service is
+enabled. Record the managers found:
+
+```
+- Hypervisor: libvirt, Incus
+```
+
+A candidate without guests and without an enabled
+service gets no line.
+
+The activity-check call (`rules/first-connection.md`,
+step 7) then carries, as `rules/hypervisors.md`
+describes:
+
+- on a host with a `Hypervisor:` line, the guest
+  listing (Inventory);
+- on a VM or container (Virtualization above) without
+  a `Guest identity:` line, the keys that link it to
+  its host (Linking Guest and Host).
 
 ## Roles
 
