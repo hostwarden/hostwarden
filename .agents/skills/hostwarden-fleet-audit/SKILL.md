@@ -192,9 +192,11 @@ Read on demand:
 
 ## Scope and limits
 
-- Linux (Debian family) is fully covered. RHEL/SUSE
-  probes share the same shape but use `dnf`/`firewalld`/
-  `zypper` equivalents. macOS hosts are skipped with a
+- Linux (Debian family) is fully covered, and Alpine
+  through the **Alpine** variants in
+  `references/probes.md`. RHEL/SUSE probes share the
+  same shape but use `dnf`/`firewalld`/`zypper`
+  equivalents. macOS hosts are skipped with a
   "macOS not yet supported" note — covering them is a
   separate effort.
 - The audit does not check that running services are
