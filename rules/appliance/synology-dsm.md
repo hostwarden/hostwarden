@@ -397,10 +397,14 @@ ssh … <user>@<nas> 'u=https://127.0.0.1:<port>/webapi/entry.cgi
     is the UUID the guest reads, so it is recorded as the ID, and
     a VM links by MAC alone.
   - VMM has no templates.
-  - More than one entry in the host list is a VMM cluster, and
-    the guest list names no host: `guests.md` says so under its
-    heading, and every guest is listed on the NAS Hostwarden
-    connected to.
+  - More than one entry in `data.hosts` is a VMM cluster, and the
+    guest list names no host: its guests are the cluster's, not
+    this NAS's. `guests.md` carries
+    `- VMM cluster: <host_name>, <host_name>, …` under its
+    heading, and a guest linked from there gets
+    `Runs on: VMM cluster of <host_name>, … (node unknown)`,
+    never this NAS alone. The same guest in another member's
+    `guests.md` is the same VM.
   - The guide names no error for a guest that does not exist, so
     a guest missing from a successful `list` keeps
     `not listed <date>` until the user confirms in VMM that it is
