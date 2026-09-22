@@ -10,8 +10,10 @@ Hostwarden — administration of Linux servers, FreeBSD servers, and
 macOS machines via SSH or locally. Supports any Linux distribution
 (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, and others), FreeBSD,
 and macOS, and reports on Windows Server over SSH
-(`rules/os/windows.md`). Manual administration only — no Ansible,
-Puppet or Chef.
+(`rules/os/windows.md`). Hostwarden needs no configuration
+management and never pushes for one. Where a user runs Ansible,
+Hostwarden works through it for the hosts and areas Ansible manages,
+and by hand everywhere else (`rules/config-management.md`).
 
 ## Development or Operations
 
@@ -266,6 +268,9 @@ trigger — not a request from the user.
 
 **Before you change something**
 
+- Changing anything on a host whose memory has a
+  `Config management:` or `Provisioned by:` line, or a file whose
+  header says a tool manages it → `rules/config-management.md`
 - Editing any config file → `rules/backups.md`
 - Installing or upgrading any software →
   `rules/version-check.md`, for the stable version to install.

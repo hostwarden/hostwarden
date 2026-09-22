@@ -36,7 +36,10 @@ moment") — don't skip.
    connection, read on every subsequent connection.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
-   the first. See `rules/activity-check.md`.
+   the first. See `rules/activity-check.md`. The
+   configuration-management probe goes into the same
+   call when `rules/config-management.md` → Detect
+   says so, always on the first connection.
 8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,

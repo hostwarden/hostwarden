@@ -133,6 +133,9 @@ rules/                 — Upstream rule files (git-tracked)
   server-memory.md     — Server memory file format
   changelog.md         — Session logging procedure
   activity-check.md    — Recent-activity summary on connect
+  config-management.md — Hosts managed by Ansible or
+                         another tool: detect, record,
+                         change through it or by hand
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
   session-start.md     — Preferences and overrides to

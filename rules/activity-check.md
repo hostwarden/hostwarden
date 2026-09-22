@@ -128,6 +128,72 @@ session only reads, so the user knows what an audit
 may catch mid-change; registering is still only for
 writers.
 
+## Ansible runs
+
+Read Ansible's module runs in the same call as the journal, with the
+same privileges. With systemd, Ansible logs them with the field
+`MODULE=basic.py`, or under the identifier `ansible-<module>` where
+the host lacks Python's systemd bindings; both are looked up in the
+journal's index, never by scanning it. Without systemd, the syslog
+fallback writes the identifier to `/var/log/messages` (FreeBSD,
+Alpine), or to busybox's ring buffer where Alpine's `syslogd` runs
+with `-C` (`rules/os/alpine.md` → Logs):
+
+```
+S='
+  { ts = "" }
+  $1 ~ /^[0-9][0-9][0-9][0-9]-/ { ts = $1; s = 3 }
+  $1 ~ /^[A-Z][a-z][a-z]$/ && $3 ~ /^[0-9][0-9]:/ { ts = $1 " " $2 " " $3; s = 5 }
+  ts != "" {
+    if (/ Invoked with /) for (i = s; i <= s + 2; i++) if ($i ~ /^ansible-/) {
+      m = $i; sub(/\[.*/, "", m); sub(/:$/, "", m)
+      n++; if (f == "") f = ts; l = ts; lm = m
+      break
+    }
+    next
+  }
+  /^[[:space:]]/ { next }
+  NF { bad++ }
+  END {
+    if (bad) print "check failed: " bad " lines were not log entries"
+    else if (n) print n " module runs, " f " to " l ", last " lm
+  }'
+if [ -d /run/systemd/system ]; then
+  ids=$(journalctl -F SYSLOG_IDENTIFIER 2>&1 \
+    | sed -n 's/^\(ansible-[A-Za-z0-9_.]*\)$/SYSLOG_IDENTIFIER=\1/p')
+  journalctl --since "7 days ago" --no-pager -q -o short-iso \
+    MODULE=basic.py ${ids:++} $ids 2>&1 | awk "$S"
+elif grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null; then
+  { logread 2>&1 || echo "logread failed"; } \
+    | grep -e " Invoked with " -e "logread failed" | awk "$S"
+elif [ -f /var/log/messages ]; then
+  for f in /var/log/messages.0 /var/log/messages; do
+    [ -f "$f" ] && grep -h " Invoked with " "$f"
+  done 2>&1 | awk "$S"
+else
+  echo "not read: no journal and no /var/log/messages"
+fi
+```
+
+It prints one line or nothing, never a log line itself: the
+arguments after `Invoked with` can carry values the module did not
+mark secret (`rules/secrets.md`), and so can the indented lines a
+multi-line message continues on, which are skipped. Any other line
+that is not an entry, an error included, is only counted. Only
+identifiers made of letters, digits, dots and underscores become
+matches, since any process can write an identifier and an unquoted
+one with spaces would turn into options.
+`+` joins the two kinds of match, so the entries come in time order.
+A `check failed:` line means the read did not run. `not read:` —
+macOS — is worth saying only when the host's
+memory has a `Config management: ansible` line.
+
+Report the line as activity. A last run inside the last 15 minutes
+may still be going on: treat it like a live Heinzel entry above
+before making a change. Runs on a host whose memory records no tool
+for them, or only a `none` line dated before them, send you to
+`rules/config-management.md`.
+
 ## What to show
 
 If there are entries, show a brief summary to the

@@ -136,6 +136,32 @@ it, and only when you approve does execution begin.
 > equivalent — simply ask Hostwarden to plan before
 > acting.
 
+## Configuration management
+
+Hostwarden needs no Ansible, Puppet or Chef and never
+suggests one. When a host carries signs of one —
+Ansible runs in the journal, `Ansible managed` headers,
+a Puppet or Salt agent — Hostwarden asks once whether
+it manages the host, wholly or in some areas, and
+remembers the answer in the host's memory:
+
+```markdown
+- Config management: ansible (scope: base, nginx)
+```
+
+Hosts can be mixed freely. Outside that scope Hostwarden
+works by hand as usual. Inside it, it tells you the
+tool would undo a hand change, and offers to make it in
+your Ansible playbooks instead; a hand change happens
+only when you insist, and stays noted in the host's
+memory until it is carried into the code. Ansible runs
+by anyone show up in the recent-activity summary on
+connect.
+
+Hosts built with Terraform or OpenTofu are noted when you
+say so; Hostwarden then leaves what that code owns, such
+as a cloud firewall or DNS record, to the code.
+
 ## Local administration
 
 Hostwarden also works on the local machine — no SSH
