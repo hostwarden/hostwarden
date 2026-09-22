@@ -5,10 +5,10 @@ its own accounts and its own firmware, and the audit judges it as
 one. Its traffic never passes through the host's firewall, so
 nothing checked on the host covers it.
 
-Settle the `Management:` line first where `memory.md` has none —
-on any host, guest included, as
-`rules/management-controller.md` → When it applies says, since an
-audit is a calm moment and the rescue path is not.
+Settle the `Management:` line first where `memory.md` has none,
+or has one `rules/management-controller.md` → When it applies
+names as unsettled — on any host, guest included, as that section
+says, since an audit is a calm moment and the rescue path is not.
 
 The **checks** below then follow the line: a BMC this host can
 reach runs all of them, a line naming Intel AMT runs only the AMT

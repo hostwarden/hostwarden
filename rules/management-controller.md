@@ -39,14 +39,32 @@ housekeeping run (`references/scheduled.md` in the
 `hostwarden-housekeeping` skill) records what the probe alone
 gives it and, where that is nothing, `unknown (not asked)`. It
 does not wait: an unanswered question idles until the job times
-out, and then the report and the mail do not arrive either. The
-line is named in the report as unsettled, and the next
+out, and then the report and the mail do not arrive either. A
+controller it finds without an address is recorded without one.
+Either is named in the report as unsettled, and the next
 interactive session asks.
 
 A host whose memory has a `Management:` line is settled; read it
-and go on. Two values are not settled and are taken up again:
-`unknown (no root)` by the first session that has root, and
-`unknown (not asked)` by the first that has a human to ask.
+and go on. Four cases are not, and the next moment that settles
+the line takes them up again:
+
+- `unknown (no root)`, once the session has root;
+- `unknown (not asked)`, once there is a human to ask;
+- a controller with neither a row in `memory/network.md` nor an
+  answer after its semicolon, once there is a human to ask, with
+  A controller without an address below;
+- `not reachable from the host`, with the `ls -d` and `lsmod`
+  lines of Detection alone, which need no root. Only where an
+  IPMI device node or `ipmi_si` has appeared since does Detection
+  run in full; `/dev/mei0` is not one. This goes before the
+  question above, which a loaded driver may answer.
+
+**A probe rewrites only what it reads.** Where `lan print` reads
+no address, or `0.0.0.0`, what the user answered stays: the part after the
+semicolon, and a row marked `(user)`. Where it reads one, the line
+and the row are rewritten from it and the part after the
+semicolon goes, since it answered for an address the host could
+not read.
 
 On an XCP-ng dom0, hardware health comes from the XAPI plugin
 `rules/appliance/xcp-ng.md` → Housekeeping and Audits names, not
@@ -145,8 +163,9 @@ reaches the conversation, a report or memory
 actually read rather than a `grep -v` of that one field: a
 deny-list would keep whatever the next firmware adds.
 An address of `0.0.0.0` or a source that never got one means the
-BMC has no network — it is then reachable from this host and from
-a crash cart, and from nowhere else.
+BMC has no network the host can read — it is then reachable from
+this host and from a crash cart, and from nowhere else the host
+knows of.
 
 **Intel AMT, only where there is no BMC.** `/dev/mei0` and a
 loaded `mei_me` are the Management Engine interface, which most
@@ -168,9 +187,11 @@ instead. Hostwarden never infers that from the hosting: a machine
 at a provider may have a full BMC, and a machine in a rack at
 home may have none.
 
-So where detection finds no controller, ask **once** per host and
-record the answer. Interview format as in `rules/ssh-user.md` →
-Interview format:
+So where detection finds no controller at all, or cannot run,
+ask **once** per host and record the answer. A controller that
+was found but has no address is a different case, with a
+question of its own below.
+Interview format as in `rules/ssh-user.md` → Interview format:
 
 ```
 No management controller found on <hostname>.
@@ -187,6 +208,39 @@ The three answers record as `provider console (user)`,
 `physical access (user)` and `none (user)`, and the question is
 never asked again.
 
+## A controller without an address
+
+Detection can find a controller and still read no address for it:
+DMI type 38 or a virtual USB device with no driver loaded, or a
+`lan print` whose `IP Address` is `0.0.0.0`. The controller is
+real and is recorded — only its address is unknown. Ask **once**,
+naming what was found, in the same interview format:
+
+```
+A management controller was found on <hostname> (<controller>),
+but its address could not be read from the host.
+How do you reach it when SSH is gone?
+
+  1. its address        (with its prefix length, if known)
+  2. another way        (a provider console, or someone on site)
+  3. nothing            (SSH is the only way in)
+
+[1/2/3]:
+```
+
+The answer never replaces the controller's line, so the
+controller stays in the inventory and a later probe can still
+find it:
+
+- **1** — the address goes in `memory/network.md` as the
+  controller's row, marked `(user)`; the `Management:` line is
+  unchanged.
+- **2** and **3** — appended after a semicolon, as
+  `…; another way (user)` and `…; none (user)`. Which other way
+  is the user's to name when the rescue path asks them to
+  confirm it; recording a guess between a console and a person on
+  site would be a fact nobody gave.
+
 ## What to record
 
 One line in `memory/servers/<hostname>/memory.md`
@@ -196,6 +250,7 @@ this host can reach it:
 ```
 - Management: iDRAC (BMC), reachable from the host
 - Management: BMC, not reachable from the host (driver not loaded)
+- Management: BMC, not reachable from the host; none (user)
 - Management: Intel AMT
 - Management: guest (Runs on)
 - Management: provider console (user)
@@ -221,7 +276,8 @@ reach has none, and neither has one whose `IP Address` is
 `0.0.0.0`. That a BMC exists is not evidence that its network is
 configured, routed, or reachable from where the user sits — the
 LAN channel may be switched off entirely. Record the controller,
-record no address, and let the rescue path ask.
+record no address, and ask A controller without an address
+above.
 
 The controller's **address goes in `memory/network.md`**, under a
 `## Management controllers` heading — one line per host, the
@@ -240,9 +296,10 @@ that the security audit can compare it with the host's own `IP:`
 without asking the BMC again. An AMT row is marked `(user)`,
 since nothing on the host reads that address.
 
-A host whose memory directory goes away, or whose `Management:`
-line is probed again, has its row here removed or rewritten in
-the same edit; a row nothing owns any more is worse than none.
+A host whose memory directory goes away has its row here removed
+in the same edit, and one whose `Management:` line is probed
+again has it rewritten as A probe rewrites only what it reads
+says; a row nothing owns any more is worse than none.
 
 Never record a BMC password, and never a password file's
 contents (`rules/secrets.md`). An account **name** from
@@ -271,19 +328,19 @@ them.
 ### Finding the way in
 
 Read the `Management:` line. A line that names a controller but
-has no row in `memory/network.md` — a BMC the host cannot reach,
-one whose `IP Address` was `0.0.0.0` — names no way in: treat it
-as Nothing settled it below. Where the host has no line at all,
-settle it first:
+has neither a row in `memory/network.md` nor an answer after its
+semicolon names no way in yet: ask A controller without an address
+above. Where the host has no line at all, settle it first:
 
 - **Bare metal** — run Detection above while SSH still works. It
   gives the controller, and `lan print` its current address. Where
-  a row already exists and SSH still works, read `lan print` again
-  rather than trusting the row: a DHCP lease or a network change
-  moves the address, and the old one may now belong to something
-  else. Where SSH is already gone, no probe can run, what memory
-  holds is all there is, and the user is told it may be out of
-  date.
+  the line says `reachable from the host`, a row already exists
+  and SSH still works, read `lan print` again rather than trusting
+  the row: a DHCP lease or a network change moves the address, and
+  the old one may now belong to something else. A `(user)` row is
+  named as the user's own. Where SSH is already gone, no probe
+  can run, what memory holds is all there is, and the user is
+  told it may be out of date.
 - **A virtual machine or a container** — the console belongs to
   the machine underneath, and `Runs on:` names it
   (`rules/hypervisors.md` → Linking Guest and Host). That rule
@@ -306,18 +363,20 @@ settle it first:
   (`rules/server-memory.md`), so taking it for the node names the
   guest as its own rescue console, which is no route at all once
   SSH is gone.
-- **Nothing settled it** — a bare-metal host with no address, or
-  a `Virtualization: unknown` machine. Ask the Provider console
-  question above and record the answer with `(user)`.
+- **Nothing settled it** — a bare-metal host where detection
+  found no controller at all, or a `Virtualization: unknown`
+  machine. Ask the Provider console question above and record the
+  answer with `(user)`.
 
 ### What to tell the user
 
 Name the way back in that the above gave — for bare metal the
 controller from `memory.md` with its address from
-`memory/network.md`, for a guest the node or provider from
+`memory/network.md`, or what follows its semicolon where the host
+could not read an address; for a guest the node or provider from
 `Runs on:` — and ask the user to confirm they can use it before
-the change goes ahead. Where the line is `none (user)`, say that
-there is no way back in, and let the user decide whether the
+the change goes ahead. Where the line ends in `none (user)`, say
+that there is no way back in, and let the user decide whether the
 change still happens.
 
 For a controller's address, reach for it once from the
