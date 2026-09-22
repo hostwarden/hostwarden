@@ -43,7 +43,7 @@ skill says so where it needs it.
      'sysctl hw.memsize; echo @appliance;' \
      'which pveversion ha opnsense-version pfSense-upgrade' \
      'midclt; ls -d /homeassistant; pveversion;' \
-     'opnsense-version; cat /etc/version;' \
+     'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version'
    ```
    `ssh` joins the quoted pieces with spaces into one
@@ -91,12 +91,13 @@ skill says so where it needs it.
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
      variants → `suse`; `alpine` → `alpine`); the
-     version from `VERSION_ID` and `PRETTY_NAME`. `ID=haos`, and
-     `ID=alpine` inside a Home Assistant app container,
-     have no family: see Appliances below. If no family
-     file matches (e.g. Arch, Gentoo), tell the user,
-     proceed cautiously with generic commands, and
-     apply extra verify-before-running care.
+     version from `VERSION_ID` and `PRETTY_NAME`. A
+     host that matches a marker with base `none` under
+     Appliances below has no family, whatever its
+     `ID`. If no family file matches (e.g. Arch,
+     Gentoo), tell the user, proceed cautiously
+     with generic commands, and apply extra
+     verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
@@ -111,10 +112,10 @@ skill says so where it needs it.
 3. **Check for an appliance** from the lines after
    `@appliance`, and for a marker of the form `ID=…`
    from the os-release lines after `@release`. See
-   Appliances below. The `@appliance` lines
-   carry the version of Proxmox VE, OPNsense, pfSense
-   and TrueNAS; any other appliance file says how to
-   read its own.
+   Appliances below. Where the probe already prints
+   what the appliance file's Version Detection reads,
+   the version comes from the probe; otherwise run
+   that command.
 
 4. Create a server memory file.
 
@@ -143,10 +144,14 @@ the row.
 | FreeBSD | `midclt`           | `rules/appliance/truenas-core.md` |
 | RHEL    | `ID=xcp-ng`        | `rules/appliance/xcp-ng.md`       |
 | none    | `ID=haos`, `ha`    | `rules/appliance/haos.md`         |
+| none    | `version="…"`      | `rules/appliance/unraid.md`       |
 
 `ha` counts only where `/homeassistant` exists too.
 `ID=haos` means the probe reached the HAOS host
 itself; its file says to stop there.
+`version="…"` is the content of `/etc/unraid-version`
+on a line of its own; an error that names the file is
+no match.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it, the way

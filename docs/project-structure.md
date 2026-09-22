@@ -102,6 +102,7 @@ rules/                 — Upstream rule files (git-tracked)
     truenas.md         — TrueNAS (on os/debian.md)
     truenas-core.md    — TrueNAS CORE, end of life (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
+    unraid.md          — Unraid (no base)
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management
