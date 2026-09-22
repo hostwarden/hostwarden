@@ -222,11 +222,13 @@ $PSVersionTable.PSVersion.ToString()
 whoami
 (New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 '@hardware'
-try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop; (Get-CimInstance Win32_Processor -ErrorAction Stop).Name; $cs.NumberOfLogicalProcessors; [math]::Round($cs.TotalPhysicalMemory / 1GB) } catch { "failed: $_" }
+try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop; $cs.Manufacturer; $cs.Model; $env:PROCESSOR_ARCHITECTURE; (Get-CimInstance Win32_Processor -ErrorAction Stop).Name; $cs.NumberOfLogicalProcessors; [math]::Round($cs.TotalPhysicalMemory / 1GB) } catch { "failed: $_" }
 try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | Format-Table DeviceID, Size, FreeSpace } catch { "failed: $_" }
 ```
 
-`@hardware` runs on the first connection only.
+`@hardware` runs on the first connection only;
+`rules/os-detection.md` → On subsequent connections
+says when it runs again.
 
 - `Caption` is the product name and can be localized; record
   it as it is. `Version` is `10.0.<build>`: Server 2016 is
@@ -235,6 +237,15 @@ try { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop 
 - `ProductType` decides as `rules/os-detection.md` → Windows
   says.
 - `InstallationType` is `Server Core` on Server Core.
+- `PROCESSOR_ARCHITECTURE` (`AMD64`, `ARM64`) is the first
+  part of `Arch:` (`rules/os-detection.md`, step 2).
+- `Manufacturer` and `Model` are read against the DMI
+  table in `rules/os-detection.md` → Virtualization.
+  Windows has no `hypervisor` count, so `Amazon EC2`
+  is a VM unless the model ends in `.metal`. A
+  hardware vendor's name and model is bare metal;
+  anything else is unknown. `HypervisorPresent`
+  settles nothing: it is also true on a Hyper-V host.
 
 Record, besides the usual fields: `OS: <Caption> (build
 <build>)`, `Installation: Server Core` or `Desktop Experience`,

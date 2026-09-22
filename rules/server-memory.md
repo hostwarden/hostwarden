@@ -47,8 +47,10 @@ directory, and where it is empty, ask which.
 - Role: server (inferred)
 - Shell: bash (root)
 - CPU: 4x Intel Xeon E-2236 @ 3.40GHz
+- Arch: x86_64, Intel
 - RAM: 16 GB
 - Disk: 80 GB (/ ext4, 45% used)
+- Virtualization: none (bare metal)
 - Last connected: 2026-02-25
 ```
 
@@ -73,6 +75,9 @@ the `port` line of `ssh -G <user>@<hostname>`, which the
 alias check in `rules/dns-aliases.md` compares. A
 field a probe could not read is written `unknown`, never
 filled from an example.
+
+`Virtualization:` comes from `rules/os-detection.md`
+→ Virtualization.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
