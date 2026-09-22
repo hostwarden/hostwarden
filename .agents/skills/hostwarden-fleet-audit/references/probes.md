@@ -444,24 +444,28 @@ Highlight as drift:
 - Different MTAs in use without a documented reason in
   the per-host `memory.md`.
 
-**macOS** ships Postfix, run by launchd on demand. `launchctl
-print` output is not a stable interface; take only the
-`state =` line.
+**macOS** ships Postfix, run by launchd on demand, so whether
+it is running at the moment says only whether mail went out
+recently. Compare whether its job is loaded instead:
+`launchctl print` succeeds for a loaded job, and its output is
+not a stable interface, so only the exit status counts.
 
 ```bash
 ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
 postconf -h relayhost 2>/dev/null | sed "s/^/relayhost=/"
 if [ "$SUDO" = "-" ]; then
-  echo "active=unknown(needs-root)"
+  echo "loaded=unknown(needs-root)"
+elif $SUDO launchctl print system/com.apple.postfix.master >/dev/null 2>&1; then
+  echo "loaded=yes"
 else
-  $SUDO launchctl print system/com.apple.postfix.master 2>&1 \
-    | grep -m1 -e 'state =' -e 'Could not find'
+  echo "loaded=no"
 fi
 hostname -f
 ```
 
-Installed MTA is `postfix` on every Mac; a relay host is what
-tells one that sends mail from one that cannot. Never propose
+Installed MTA is `postfix` on every Mac, and the loaded job is
+the active unit; a relay host is what tells one that sends
+mail from one that cannot. Never propose
 installing an MTA on a Mac
 (`.agents/skills/hostwarden-email/references/transport-remote.md`).
 
