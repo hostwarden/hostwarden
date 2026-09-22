@@ -496,12 +496,15 @@ grep -c '^nameserver' /etc/resolv.conf
 
 **FreeBSD** and **macOS** replace the first with
 `sysctl -n net.inet6.ip6.forwarding`. On macOS the nameservers
-are the distinct ones of the resolver in use, since `scutil
---dns` repeats each across its scoped blocks:
+are those of the resolver in use, the first one in the unscoped
+section whose `flags` do not say `Supplemental` — a VPN's scoped
+resolvers come before it and repeat their own servers:
 
 ```bash
-scutil --dns | grep 'nameserver\[' | awk '{print $3}' \
-  | sort -u | wc -l
+scutil --dns | awk '/^DNS configuration \(/ {exit}
+  /^resolver #/ {n = 0; s = 0} /nameserver\[/ {n++}
+  /flags.*Supplemental/ {s = 1}
+  /^$/ && n && !s {print n; exit}'
 ```
 
 Row keys:

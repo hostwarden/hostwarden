@@ -49,7 +49,7 @@ its own: the entries in Findings below do.
 ```bash
 c='docker|br-[0-9a-f]{12}|veth|cni|flannel|vnet|tap|lxc'
 c="$c|wg|tailscale|zt|nebula|tun|utun"
-ip -o -6 addr show scope global | grep -vE " ($c)[0-9a-z.-]* | f[cd]"
+ip -o -6 addr show scope global | grep -vE " ($c)[0-9a-z.-]* "
 ip -4 route show default | head -1
 ip -6 route show default | head -1
 ls -l /etc/resolv.conf; grep -m1 '^#' /etc/resolv.conf
@@ -57,7 +57,9 @@ ls -l /etc/resolv.conf; grep -m1 '^#' /etc/resolv.conf
 
 The first command lists the global IPv6 addresses that are the
 host's own: a container bridge or an overlay carries one too,
-and neither says the host has IPv6 (see Stack). On FreeBSD and
+and neither says the host has IPv6 (see Stack). A ULA
+(`fc00::/7`) on the uplink stays in the list; only such addresses
+make the stack `v4 + ULA`. On FreeBSD and
 macOS: `netstat -rn -f inet`, `netstat -rn -f inet6`,
 `ifconfig -a inet6` and the same `/etc/resolv.conf` lines. macOS
 resolves through `scutil --dns` instead of the file; the

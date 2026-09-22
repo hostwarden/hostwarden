@@ -41,16 +41,18 @@ ps -Ao pid=,comm= 2>/dev/null \
         printf 'cloudflared %s token-arg=%s\n' "$p" \
           "$(args "$p" | grep -cE -- ' --?token( |=)')"
         c=$(cfg "$p" config)
-        grep -Hn 'ssh://' ${c:+"$c"} /etc/cloudflared/*.y*ml \
-          /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml \
-          2>/dev/null ;;
+        if [ -n "$c" ]; then set -- "$c"
+        else set -- /etc/cloudflared/*.y*ml \
+          /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml; fi
+        grep -Hn 'ssh://' "$@" 2>/dev/null ;;
       nebula|dnclient)
         c=$(cfg "$p" config)
         [ -n "$c" ] || c=/etc/nebula/config.yml
         for f in "$c" "$c"/*.yml "$c"/*.yaml; do
           [ -f "$f" ] || continue
+          [ -r "$f" ] || { echo "== $f unreadable"; continue; }
           echo "== $f"
-          sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f" 2>/dev/null
+          sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f"
         done ;;
     esac
   done
@@ -59,8 +61,8 @@ ps -Ao pid=,comm= 2>/dev/null \
 The `grep -c` lines count, never print (`rules/secrets.md`);
 only a path is named, never an argument that could be a token,
 and a flag takes one dash or two, so `--token-file`, the safe
-form, is not a match. Where Nebula's file is unreadable without
-root, run its branch again under the root probe below;
+form, is not a match. A Nebula file marked `unreadable` is read
+again by the root probe below;
 `dnclient` keeps its state in `/var/lib/defined` and may name
 that instead.
 
@@ -71,7 +73,8 @@ server unchecked.
 ## Probe (root)
 
 Tailscale with `"RunSSH": true`, NetBird unless its `SSH Server`
-line says `Disabled`, Nebula where the loop above read nothing,
+line says `Disabled`, Nebula where the loop above printed
+`unreadable` or no file at all,
 and Newt for each PID whose `disable-ssh` count was 0:
 
 ```bash
@@ -94,7 +97,7 @@ for p in $(pgrep -x newt 2>/dev/null); do
     "$({ tr '\0' '\n' < "/proc/$p/environ"; } 2>/dev/null \
       | grep -ciE '^DISABLE_SSH=(true|1)$')"
 done
-# Nebula, where the unprivileged loop read nothing
+# Nebula, where the unprivileged loop could not read the file
 for p in $(pgrep -x nebula 2>/dev/null; pgrep -x dnclient 2>/dev/null); do
   c=$(args "$p" | sed -nE 's|.* --?config[= ]([^ ]+).*|\1|p')
   [ -n "$c" ] || c=/etc/nebula/config.yml
@@ -160,8 +163,8 @@ One report line per agent found, as `VPN SSH`:
   unchecked" rather than OK
 - Cloudflare ingress to `ssh://` → **INFO**: sshd is reachable
   through Cloudflare, and Cloudflare Access decides who. Where
-  the running process named a `config=` path, that file is the
-  only one that counts. A token-managed tunnel keeps its ingress
+  the running process named a `--config` path, that file is the
+  only one the probe reads. A token-managed tunnel keeps its ingress
   in the dashboard, not on the host: no hit in the file it uses
   then means **INFO** "Cloudflare ingress unchecked" — ask the
   user what the tunnel publishes
