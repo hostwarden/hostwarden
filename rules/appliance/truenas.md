@@ -207,8 +207,12 @@ outside the caller's role answers `Not authorized`.
 
   ```
   ssh … api-read@<host> sh -s <<'EOF' | jq …
-  echo '{"@": "alert.list"}'; midclt call alert.list | tr -d '\n'; echo
-  echo '{"@": "update.status"}'; midclt call update.status | tr -d '\n'; echo
+  o=$(midclt call alert.list); r=$?
+  printf '%s' "$o" | tr -d '\n'; echo
+  echo "{\"@\": \"alert.list\", \"rc\": $r}"
+  o=$(midclt call update.status); r=$?
+  printf '%s' "$o" | tr -d '\n'; echo
+  echo "{\"@\": \"update.status\", \"rc\": $r}"
   EOF
   ```
 
@@ -218,6 +222,12 @@ outside the caller's role answers `Not authorized`.
   dropped. `tr -d '\n'` puts each answer on one line of its own
   before it leaves the host, whatever the client does; a `midclt`
   that already answers on one line is unchanged by it.
+  **The marker follows its answer and carries `midclt`'s exit
+  status**, which `tr` and `echo` would otherwise hide: a marker
+  printed first would count a method that failed — unavailable on
+  that release, or refused to the read role — as a completed read.
+  An `rc` other than 0, or a missing marker, is a check that did
+  not run.
 
   On the workstation path, unlike `rules/appliance-api.md` →
   Reading, each method is its own `midclt` call and its own login,
