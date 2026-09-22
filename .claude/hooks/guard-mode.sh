@@ -52,9 +52,10 @@
 #     in one or copy to or from it. Reading their state passes.
 #     Creating one is denied: bin/hostwarden-lab vm up creates it
 #     without this machine's files mounted, which orb and Lima do
-#     by default, and records it for vm down. Deleting, stopping or
-#     changing a VM is denied, since it may not be the lab's, and
-#     bin/hostwarden-lab vm down deletes only the ones it created.
+#     by default, and records it for vm down. Starting, stopping,
+#     deleting or changing a VM is denied, since it may not be the
+#     lab's: vm up starts the VMs it creates, and vm down deletes
+#     only those. A bare orb start starts OrbStack itself and passes.
 #   operations — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
@@ -471,19 +472,21 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
     }
     if (b ~ /^(docker|podman|nerdctl)$/) return engine(b, j + 1)
     # orb runs anything that is not one of its subcommands in a VM;
-    # of those, only reading state passes.
+    # of those, only reading state passes, and a bare orb start,
+    # which starts OrbStack itself rather than a VM.
     if (b == "orb" || b == "orbctl") {
       if (a == "") return b == "orb" ? "vm orb, a shell in a lab VM" : ""
-      if (a ~ /^(-h|--help|list|ls|info|status|version|help|logs|doctor|start|docker|k8s)$/) return ""
+      if (a ~ /^(-h|--help|list|ls|info|status|version|help|logs|doctor|docker|k8s)$/) return ""
+      if (a == "start" && u[j + 2] == "") return ""
       if (a ~ /^(create|add|new)$/) return "vmnew " b " " a
-      if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|stop|top|update|usb)$/)
+      if (a ~ /^(clone|config|debug|default|delete|export|import|login|logout|rename|report|reset|restart|rm|serial|start|stop|top|update|usb)$/)
         return "vmchange " b " " a
       return "vm " b " " a ", a command in a lab VM"
     } else if (b == "limactl") {
       for (k = j + 1; k <= nw && u[k] ~ /^-/; k++) ;
       if (u[k] ~ /^(shell|copy|cp|tunnel)$/) return "vm limactl " u[k] ", in a lab VM"
       if (u[k] == "create") return "vmnew limactl create"
-      if (k <= nw && u[k] !~ /^(start|list|ls|info|help|validate|template|completion)$/)
+      if (k <= nw && u[k] !~ /^(list|ls|info|help|validate|template|completion)$/)
         return "vmchange limactl " u[k]
     } else if (b == "lima" && a != "-h" && a != "--help") {
       return "vm lima, a command in a lab VM"
@@ -621,9 +624,9 @@ which creates it without this machine's files mounted and records \
 it, so vm down can delete it: bin/hostwarden-lab vm up <family> \
 --ops <test clone>" ;;
 "vmchange "*)
-  deny "${FOUND#vmchange } deletes, stops or changes a VM that may \
-not be the lab's. bin/hostwarden-lab vm down deletes only the VMs \
-this worktree created" ;;
+  deny "${FOUND#vmchange } starts, stops, deletes or changes a VM that \
+may not be the lab's. bin/hostwarden-lab vm up starts the VMs this \
+worktree creates, and vm down deletes only those" ;;
 "change "*)
   deny "${FOUND#change } reaches or changes a container, image or \
 volume the lab may not own. A development session reads, pulls, \
