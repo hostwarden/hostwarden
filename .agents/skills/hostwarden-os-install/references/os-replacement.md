@@ -161,7 +161,11 @@ the user explicitly requests a cloud image).
 Choose installation method based on access:
 
 - **Console/IPMI/KVM:** boot from ISO, run
-  installer. Most reliable.
+  installer. Most reliable. Which console this host
+  has is the `Management:` line in its memory, with
+  the address in `memory/network.md`
+  (`rules/management-controller.md` → The rescue
+  path) — read it instead of asking.
 - **Cloud provider:** use provider's reinstall
   feature or deploy a new image.
 - **VM (UTM/QEMU/VMware):** boot from ISO, or use

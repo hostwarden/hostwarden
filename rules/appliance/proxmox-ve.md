@@ -257,8 +257,10 @@ Source for everything below unless noted: the admin guide,
   made in the meantime. Check for a pending `.new` file before
   editing by hand, and compare the two.
 - Network changes can cut SSH to the node. Ask the user first, and
-  make sure they have console access (IPMI, physical) before
-  `ifreload -a`.
+  before `ifreload -a` point them at the way back in that the
+  `Management:` line records, by name and address
+  (`rules/management-controller.md` → The rescue path). Where it
+  says there is none, say so and let them decide.
 - SDN config lives in `/etc/pve/sdn`. Changes stay pending until
   applied in the SDN panel, then apply cluster-wide.
 

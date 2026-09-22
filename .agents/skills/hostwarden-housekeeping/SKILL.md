@@ -89,6 +89,10 @@ Read on demand, only when the relevant section applies:
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, and its findings. Only when an
   appliance's section sends you there.
+- `rules/management-controller.md` → The event log — the BMC's
+  System Event Log, which carries power supply, fan, memory and
+  thermal failures the OS never sees. Only on a host whose
+  `memory.md` has a `Management:` line naming a BMC.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
   GPU, MariaDB/MySQL, WireGuard, UPS (NUT, apcupsd), Pi-hole,

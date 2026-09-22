@@ -65,6 +65,7 @@ directory, and where it is empty, ask which.
 - RAM: 16 GB
 - Disk: 80 GB (/ ext4, 45% used)
 - Virtualization: none (bare metal)
+- Management: iDRAC 9 (BMC, KCS), firmware 7.10
 - Last connected: 2026-02-25
 ```
 
@@ -105,6 +106,10 @@ filled from an example. A container engine is recorded as
 from `rules/os-detection.md`; `Guest identity:`,
 `Runs on:` and, on a guest registered through its
 host, `SSH: untested`, from `rules/hypervisors.md`.
+`Management:` comes from
+`rules/management-controller.md` and only a bare-metal
+host has one; its controller's address lives in
+`memory/network.md`, not here.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
@@ -145,6 +150,13 @@ backup target, which UPS powers which machines — go
 in `memory/network.md`, created
 on first need. Current facts only; it is a picture
 of now, not a history.
+
+Management controller addresses go there too, under
+`## Management controllers`, although each belongs to
+one host: they are one network, and whether it is
+separate from the production one is the question
+`rules/management-controller.md` → Security asks of
+all of them at once.
 
 ## Personal versus shared
 
