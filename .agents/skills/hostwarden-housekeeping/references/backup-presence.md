@@ -45,14 +45,15 @@ for t in restic borg borgmatic rsnapshot duplicity \
   command -v "$t" >/dev/null && echo "$t"
 done
 
-# Scheduled jobs that look like backups
+# Scheduled jobs that look like backups; commented-out lines are
+# not jobs
 systemctl list-timers --all 2>/dev/null \
   | grep -iE 'backup|borg|restic|rsnapshot|dump|rclone'
-grep -riE 'backup|restic|borg|pg_dump|mysqldump|rclone|rsync' \
-  /etc/cron.d /etc/cron.daily /etc/cron.weekly \
-  /etc/crontab /etc/periodic 2>/dev/null
-crontab -l 2>/dev/null \
-  | grep -iE 'backup|restic|borg|dump|rsync'
+KW='backup|restic|borg|dump|rclone|rsync'
+grep -riE "$KW" /etc/cron.d /etc/cron.daily /etc/cron.weekly \
+  /etc/crontab /etc/periodic 2>/dev/null \
+  | grep -vE '^[^:]*:[[:space:]]*#'
+crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -iE "$KW"
 
 # Filesystem snapshots
 zpool list 2>/dev/null && \
@@ -110,14 +111,13 @@ done
 # Scheduled jobs that look like backups: the keyword and the file,
 # never the line, which may carry a password or a token;
 # commented-out lines are not jobs
+KW='backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync'
 for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
-  [ -f "$f" ] || continue
-  grep -v '^[[:space:]]*#' "$f" \
-    | grep -oiE 'backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync' \
-    | sed "s|^|$f:|"
+  grep -v '^[[:space:]]*#' "$f" 2>/dev/null \
+    | grep -oiE "$KW" | sed "s|^|$f:|"
 done | sort | uniq -c
 crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
-  | grep -oiE 'backup|restic|borg|zfs|dump|rsync' | sort | uniq -c
+  | grep -oiE "$KW" | sort | uniq -c
 # periodic settings count only when set to YES
 grep -hiE "^[[:space:]]*[a-z0-9_]*(backup|snapshot)[a-z0-9_]*=[\"']?yes" \
   /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
