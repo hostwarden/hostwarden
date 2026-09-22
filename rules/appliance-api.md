@@ -63,21 +63,40 @@ appliance file says so by name.
   where the appliance needs one, and a cookie jar in a `mktemp` file
   under `umask 077` that the same call removes on exit.
 - **Every answer is followed by its own marker**, a JSON line naming
-  the request and how it went; a marker printed before the request
-  would count a read that never came back as done. curl writes it,
-  on a failed connection too, with the code `000`:
+  the request, how it went, and the call's nonce; a marker printed
+  before the request would count a read that never came back as
+  done. The workstation draws a new nonce for every call, just
+  before it:
 
   ```
-  -w '\n{"@": "<name>", "code": "%{http_code}"}\n'
+  nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
   ```
 
-  Inside the single-quoted SSH argument the same marker is
-  `-w "\n{\"@\": \"<name>\", \"code\": \"%{http_code}\"}\n"`. A
-  command on the host writes its own in a `sh -s` bundle, carrying
-  its exit status:
+  The nonce, the call and the filter below run in one shell
+  command: a nonce drawn in an earlier one is empty here, and the
+  filter stops on it. It goes into no URL, header or body the API
+  receives, so no answer can carry it, and the appliance cannot know
+  it before the call.
+  It is no secret: an appliance that reads it from its process list
+  to forge a marker could as well lie in its answers.
+  curl writes the marker, on a failed connection too, with the code
+  `000`. The same double-quoted form serves locally and inside the
+  single-quoted SSH argument:
 
   ```
-  <command>; printf '\n{"@": "%s", "code": "%s"}\n' <name> "$?"
+  -w "\n{\"@\": \"<name>\", \"code\": \"%{http_code}\", \"n\": \"$nonce\"}\n"
+  ```
+
+  Over SSH the nonce is set by an argument of its own in front of
+  the single-quoted command, which the remote shell runs joined to
+  it: `ssh … "nonce=$nonce;" '<command>'`. A command on the host
+  writes its own marker in a `sh -s` bundle, which takes the nonce
+  as its argument, `ssh … sh -s "$nonce" <<'EOF'`, and sets
+  `nonce=$1` in its first line; the marker carries the command's
+  exit status:
+
+  ```
+  <command>; printf '\n{"@": "%s", "code": "%s", "n": "%s"}\n' <name> "$?" "$nonce"
   ```
 
   `<command>` is the command itself, never a pipeline, whose `$?`
@@ -97,27 +116,26 @@ appliance file says so by name.
   from a globbed URL.
 - **The workstation frames the answers by their markers, not by
   lines**: everything between two markers is one answer, however
-  many lines it took, joined before it is parsed. `want` lists the
-  markers' names in the order the requests go out. A line is a
-  marker only when it holds exactly the keys `@` and `code`, the
-  code a string of digits, and names the next request on that list;
-  an answer that carries a line of the same shape stays an answer:
+  many lines it took, joined before it is parsed. A line is a
+  marker only when it is a JSON object whose `n` is this call's
+  nonce; a line an answer forges stays part of that answer. `want`
+  lists the markers' names in the order the requests go out:
 
   ```
-  jq -Rn --argjson want '["<name>", …]' '[inputs] as $l
-    | (reduce range($l | length) as $i ([]; length as $k
-        | if $k < ($want | length)
-             and ($l[$i] | startswith("{\"@\"")
-               and (fromjson? | objects | keys == ["@", "code"]
-                 and .["@"] == $want[$k]
-                 and (.code | strings | test("^[0-9]+$"))) // false)
-          then . + [$i] else . end)) as $m
+  jq -Rn --arg n "$nonce" --argjson want '["<name>", …]' '
+    if $n | test("^[0-9a-f]{16}$") then . else error("no nonce") end
+    | [inputs] as $l
+    | [range($l | length) as $i
+       | select($l[$i] | startswith("{\"@\"")
+           and ((fromjson? | objects | .n == $n) // false))
+       | $i] as $m
     | [range($m | length) as $i
        | ($l[(if $i == 0 then 0 else $m[$i-1] + 1 end):$m[$i]]
           | add // "") as $t
        | (if $t == "" then empty else $t | try fromjson
           catch {not_json: true, bytes: ($t | utf8bytelength)} end),
-         ($l[$m[$i]] | fromjson)]
+         ($l[$m[$i]] | fromjson
+          | if .["@"] == $want[$i] then . else . + {want: $want[$i]} end)]
       + [{missing: $want[$m | length:]} | select(.missing != [])]'
   ```
 
@@ -126,7 +144,9 @@ appliance file says so by name.
   an array in which every answer is followed by its marker, a
   request whose body was discarded contributes its marker alone,
   and a last `{"missing": [...]}` names every request whose marker
-  never came.
+  never came. A marker that carries `want` has another name than
+  the request expected in its place: the call was built wrong, and
+  the request `want` names counts as missing.
   Then, before anything reaches the conversation, the filter in
   `rules/secrets.md` → API Credentials on the Workstation, with the
   appliance's own secret fields added to its pattern, and a
@@ -139,9 +159,9 @@ appliance file says so by name.
   `jq` accepts an empty stream, so an SSH login that fails, a
   connection that drops or a shell that never starts would
   otherwise end in a clean-looking empty result. Every name under
-  `missing` is a check that did not run, and the local pipeline
-  runs under `set -o pipefail` so the transport's exit status is
-  not swallowed by `jq`.
+  `missing` or in a marker's `want` is a check that did not run,
+  and the local pipeline runs under `set -o pipefail` so the
+  transport's exit status is not swallowed by `jq`.
 - **A read that fails is a check that did not run**, never a clean
   result: a marker whose `code` is not 2xx, or not `0` for a
   command, is reported by name. A failed login means nothing after

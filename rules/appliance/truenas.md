@@ -206,9 +206,11 @@ outside the caller's role answers `Not authorized`.
   (`rules/ssh-connections.md` → Bundle commands):
 
   ```
-  ssh … api-read@<host> sh -s <<'EOF' | jq -Rn …
+  nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+  ssh … api-read@<host> sh -s "$nonce" <<'EOF' | jq -Rn --arg n "$nonce" …
+  nonce=$1
   for m in alert.list update.status; do
-    midclt call "$m"; printf '\n{"@": "%s", "code": "%s"}\n' "$m" "$?"
+    midclt call "$m"; printf '\n{"@": "%s", "code": "%s", "n": "%s"}\n' "$m" "$?" "$nonce"
   done
   EOF
   ```

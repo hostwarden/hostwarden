@@ -346,39 +346,40 @@ login's answer is printed only when it failed, and then carries
 neither:
 
 ```
-ssh … <user>@<nas> 'u=https://127.0.0.1:<port>/webapi/entry.cgi
+nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cgi
+  m() { printf "\n{\"@\": \"%s\", \"code\": \"%s\", \"n\": \"%s\"}\n" "$1" "$2" "$nonce"; }
   IFS= read -r p
   r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \
     --data "api=SYNO.API.Auth&version=6&method=login&account=api-read&session=hostwarden&format=sid&enable_syno_token=yes" \
     "$u"); c=$?
   s=$(printf %s "$r" | sed -n "s/.*\"sid\" *: *\"\([^\"]*\)\".*/\1/p")
   t=$(printf %s "$r" | sed -n "s/.*\"synotoken\" *: *\"\([^\"]*\)\".*/\1/p")
-  [ -n "$s" ] || { printf %s "$r" | tr -d "\n"; echo; echo "{\"@\": \"login\", \"rc\": $c}"; exit 0; }
-  echo "{\"@\": \"login\", \"rc\": $c}"
+  [ -n "$s" ] || { printf %s "$r"; m login "$c"; exit 0; }
+  m login "$c"
   for a in Host Guest; do
     o=$(printf "api=SYNO.Virtualization.API.%s&version=1&method=list&_sid=%s&SynoToken=%s" \
       "$a" "$s" "$t" | curl -sSk --data @- "$u"); c=$?
-    printf %s "$o" | tr -d "\n"; echo; echo "{\"@\": \"$a\", \"rc\": $c}"
+    printf %s "$o"; m "$a" "$c"
   done
   printf "api=SYNO.API.Auth&version=6&method=logout&session=hostwarden&_sid=%s" "$s" |
     curl -sSk -o /dev/null --data @- "$u"' \
-  < ~/hostwarden-keys/<nas>/dsm-ro.pass | jq …
+  < ~/hostwarden-keys/<nas>/dsm-ro.pass | jq -Rn --arg n "$nonce" …
 ```
 
 - **Unlike `rules/appliance-api.md` → Reading, the HTTP code does
   not decide**: DSM answers 200 with `"success": false` and an
   `error.code` when a call fails (Login guide, Common Error
-  Codes), and the guides' answers span several lines, which the
-  line-by-line filter would drop. So each answer is put on one
-  line, and its marker carries curl's exit status. A response
-  whose `success` is not `true`, or an `rc` other than 0, is a
-  check that did not run, reported with its code; a login answer
-  before the `login` marker is the login failing: with `rc` 0,
-  the codes 400 to 404 the VMM guide lists for `SYNO.API.Auth`,
-  otherwise no connection, never a reason to ask for a new
-  password.
-- The workstation's filter is the one in `rules/secrets.md` → API
-  Credentials on the Workstation, unchanged.
+  Codes). So each marker, written by `m`, carries curl's exit
+  status as a command's marker does. A response whose `success` is
+  not `true`, or a `code` other than `0`, is a check that did not
+  run, reported with its code; a login answer before the `login`
+  marker is the login failing: with `code` `0`, the codes 400 to
+  404 the VMM guide lists for `SYNO.API.Auth`, otherwise no
+  connection, never a reason to ask for a new password.
+- `want` is `login`, `Host`, `Guest`. The nonce, the framing and
+  the filters after it: `rules/appliance-api.md` → Reading. DSM
+  adds no fields to the secret filter's pattern.
 
 ### Guests
 
@@ -392,7 +393,7 @@ ssh … <user>@<nas> 'u=https://127.0.0.1:<port>/webapi/entry.cgi
   `status`, and `autorun`: `2` is autostart, `1` starts the VM in
   the state it was in when the host went down, `0` is none. MACs
   are `vnics[].mac`. The light listing is the same call with
-  `Host` left out of the loop.
+  `Host` left out of the loop and of `want`.
   - `guest_id` is VMM's own ID. The guide does not say that it
     is the UUID the guest reads, so it is recorded as the ID, and
     a VM links by MAC alone.
