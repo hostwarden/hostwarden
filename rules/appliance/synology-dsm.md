@@ -1,6 +1,7 @@
 # Synology DSM
 
 Base: none
+Hardware: vendor
 
 DiskStation Manager (DSM) is the Linux-based operating system of
 Synology's NAS models, and no family file applies: there is no
@@ -368,9 +369,10 @@ system rather than trust it.
   there since DSM 7.2 (release notes).
 - **Check that `logger -t hostwarden` lands** before relying on it
   (`rules/changelog.md`): after the first journal line on a host,
-  run the read-back below. When the line is not in it, log to the
-  local changelog only, and record `Journal: not written` in server
-  memory. The file is not documented as readable by
+  run the read-back below. When it ran and the line is not in it,
+  log to the local changelog only, and record `Journal: not
+  written` in server memory; a read-back that failed decides
+  nothing. The file is not documented as readable by
   administrators; read it with root where the session has it.
 - The activity check reads back, oldest file first so `tail` keeps
   the newest lines:
