@@ -187,10 +187,12 @@ instead. Hostwarden never infers that from the hosting: a machine
 at a provider may have a full BMC, and a machine in a rack at
 home may have none.
 
-So where detection finds no controller at all, or cannot run,
-ask **once** per host and record the answer. A controller that
-was found but has no address is a different case, with a
-question of its own below.
+So where detection finds no controller at all, or the platform
+has no probe to run (bare-metal Windows, above), ask **once** per
+host and record the answer. Missing root is not such a case: the
+line is then `unknown (no root)`, and the probe runs once a
+session has root. A controller that was found but has no address
+is a different case, with a question of its own below.
 Interview format as in `rules/ssh-user.md` → Interview format:
 
 ```
