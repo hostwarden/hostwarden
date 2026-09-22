@@ -78,13 +78,34 @@ Layers).
    user, and silently auditing the canonical host instead
    answers a question nobody asked.
 
+   **Group the guests under their host.** A host whose
+   `Runs on:` line (`rules/hypervisors.md` → Linking Guest
+   and Host) names a directory in `memory/servers/` — the
+   name before the brackets, an alias followed to its
+   canonical host — is a guest of that hypervisor,
+   whether it is reached over SSH or through the host. The
+   hypervisor and its guests are one group, for the
+   dispatch in step 3 and the columns in step 4; a guest
+   that is itself a hypervisor heads a group of its own
+   inside it. A cloud VM, a guest on a host `not managed`
+   and an `unknown` one are in no group: a group stands for
+   a machine Hostwarden probes, and two VMs at one provider
+   do not even share one. A group decides no comparison:
+   the appliance, role and platform limits above still do,
+   so a Proxmox VE node heads its guests' group without
+   being compared with them.
+
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
    report). A host with `Mode: via …` in its memory uses
    its hypervisor host's SSH user and runs the probes
    through that host (`rules/first-connection.md` →
-   Via-host mode).
+   Via-host mode). Where its `Runs on:` is missing or,
+   aliases followed as in step 1, names another host, the
+   guest may have moved, and its ID may belong to a
+   different guest on the old host: list it as "skipped:
+   `Mode: via` and `Runs on:` disagree".
 
 3. **Probe each host.** Hosts that time out or refuse the
    connection go on a "skipped: unreachable" list.
@@ -138,8 +159,9 @@ Layers).
    jump host, and without it `ssh -G` reports a different
    config than the connection will use. Group the targets
    that share a `proxyjump`, and run each group in
-   sequence. Via-host guests of one hypervisor host are
-   such a group too, together with the host itself.
+   sequence. A guest with `Mode: via …` logs in through
+   its host, so it runs in sequence with that host and its
+   group's other such guests.
 
    Elsewhere, and whenever a host needs a decision the
    agent cannot make alone, read `references/probes.md`

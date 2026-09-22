@@ -1,10 +1,10 @@
 # System Containers (LXC, Incus, LXD, Proxmox)
 
-A system container shares the host's kernel but boots its own
-init, package manager and journal. For Hostwarden it is a server,
-not a service, and so is a VM: each has its own memory directory
-and runs the whole pipeline. Application containers (Docker,
-Podman) are `rules/containers.md`.
+A system container shares the host's kernel and clock but boots
+its own init, package manager and journal. For Hostwarden it is a
+server, not a service, and so is a VM: each has its own memory
+directory and runs the whole pipeline. Application containers
+(Docker, Podman) are `rules/containers.md`.
 
 ## Reaching It
 

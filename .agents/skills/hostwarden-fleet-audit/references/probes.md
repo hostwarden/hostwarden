@@ -79,6 +79,17 @@ a degraded answer — an active ufw must never be reported as
 state. See `references/output-format.md` for how the sentinel
 is rendered and why it is excluded from drift detection.
 
+**Containers.** A system container or a FreeBSD jail —
+`Virtualization:` in memory names a container — runs on its
+host's kernel and clock (`rules/system-containers.md`). So
+the rows that describe those read `n/a (container)`, and
+none of them is a warning here: the active time service and
+`NTPSynchronized` (section 5), and a pending reboot read
+from the kernel and the boot time and uptime (section 6), so
+the uptime criteria do not apply there. The timezone and
+`/var/run/reboot-required`, which the container's own
+packages write, stay its own.
+
 ## 1. Unattended-upgrades (Debian/Ubuntu)
 
 ```bash
@@ -531,8 +542,7 @@ Row keys on an Alpine host:
   prints only when neither names the zone
 
 Judge on the host alone: no time service started is a warning,
-except in LXC (`openrc --sys` prints `LXC`), whose clock is the
-hypervisor's.
+except in a container (Containers above).
 
 **macOS** has no `timedatectl`. `systemsetup` needs an admin:
 
@@ -610,12 +620,12 @@ Highlight as drift / warning:
 `uptime` takes no options. A kernel upgrade removes the running
 kernel's modules, so a missing directory for `uname -r` is a
 kernel waiting for a reboot (`rules/os/alpine.md` → Common
-Pitfalls). In LXC the kernel is the hypervisor's, and the check
-does not apply:
+Pitfalls). In a container the check does not apply (Containers
+above):
 
 ```bash
 if [ "$(openrc --sys 2>/dev/null)" = "LXC" ]; then
-  echo "pending=n/a(container)"
+  echo "pending=n/a (container)"
 elif [ -d "/lib/modules/$(uname -r)" ]; then
   echo "pending=no"
 else
