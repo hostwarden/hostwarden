@@ -39,7 +39,7 @@ skill says so where it needs it.
    ```
    ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
      'echo @release; freebsd-version;' \
-     'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME)=" /etc/os-release;' \
+     'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME|OS_VERSION|OS_IS_BETA)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
      'nproc; grep -c "^processor" /proc/cpuinfo; free -h;' \
      'grep -m1 "model name" /proc/cpuinfo;' \
@@ -49,7 +49,7 @@ skill says so where it needs it.
      'midclt ubnt-device-info; ls -d /homeassistant; pveversion;' \
      'opnsense-version; cat /etc/version /etc/unraid-version;' \
      'midclt call system.version; dpkg -l openmediavault;' \
-     'cat /etc.defaults/VERSION;' \
+     'cat /etc.defaults/VERSION; ls -d /ugreen;' \
      'ubnt-device-info firmware; ubnt-device-info model;' \
      'echo @virt; uname -m; systemd-detect-virt; openrc --sys;' \
      'ls -d /.dockerenv /run/.containerenv;' \
@@ -229,6 +229,7 @@ the row.
 | RHEL    | `ID=xcp-ng`          | `rules/appliance/xcp-ng.md`         |
 | none    | `ID=haos`, `ha`      | `rules/appliance/haos.md`           |
 | none    | `os_name="DSM"`      | `rules/appliance/synology-dsm.md`   |
+| none    | `/ugreen` + `OS_…`   | `rules/appliance/ugos.md`           |
 | none    | `ubnt-device-info`   | `rules/appliance/unifi-os.md`       |
 | none    | `version="…"`        | `rules/appliance/unraid.md`         |
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
@@ -249,6 +250,13 @@ no match.
 from DSM 7.2 on; an error that names the file is no
 match. The file with another `os_name`, or none, as on
 DSM 7.1 and earlier: show the user its lines and ask
+what the host is.
+`/ugreen` is what `ls -d` prints where the directory
+exists: UGOS Pro keeps its own service files there.
+`OS_…` stands for the `OS_VERSION=` line UGOS Pro
+adds to `/etc/os-release`, printed under `@release`.
+Only both together are a match. One without the other
+is none: show the user what the probe printed and ask
 what the host is.
 
 On a match, read the family file its `Base:` line
