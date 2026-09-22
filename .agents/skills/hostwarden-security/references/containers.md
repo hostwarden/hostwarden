@@ -1,7 +1,13 @@
 # Containers
 
 Run whenever `command -v docker podman nerdctl` finds an engine, or
-`memory.md` has a `Container runtime:` line. How to reach the
+`memory.md` has a `Container runtime:` line. **Not on macOS**, where
+the engine is Docker Desktop or Podman Desktop in a virtual machine
+of its own: `systemctl`, `getent` and `ss` say nothing there, the
+engine belongs to the logged-in person rather than to root, and what
+a container may do is the VM's business. Report the engine and its
+version from `docker info`, name the desktop app as the place its
+settings live, and leave the rest out. How to reach the
 containers — privileges, rootless owners, containerd namespaces,
 what owns a container — is `rules/containers.md`; this file holds
 the audit. Published ports are
@@ -33,20 +39,33 @@ grep -oE '"(hosts|tls|tlsverify|userns-remap|no-new-privileges)" *: *[^,}]*' \
   /etc/docker/daemon.json 2>/dev/null
 grep -hoE -- '-H +[^ "'"'"']+' /etc/conf.d/docker /etc/default/docker \
   2>/dev/null
-ps -eo args | grep -E '[d]ockerd|[s]ystem service'
+ps -eo args | grep -oE '[d]ockerd([^ ]*)?|[s]ystem service[^ ]*|-H +[^ ]+|--host[= ][^ ]+|--tls[a-z]*([= ][^ ]+)?|tcp://[^ ]+'
+systemctl cat podman.socket 2>/dev/null | grep -E '^(ListenStream|ListenDatagram)='
+loginctl list-users --no-legend 2>/dev/null | awk '{print $2}' \
+  | while read -r u; do
+      systemctl --user -M "$u@" cat podman.socket 2>/dev/null \
+        | grep -E '^ListenStream='
+    done
 ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || netstat -tln
 getent group docker
 g=$(getent group docker | cut -d: -f3)
 [ -n "$g" ] && getent passwd | awk -F: -v g="$g" '$4 == g {print $1}'
 ```
 
-`ps -eo args` works with busybox too; the `grep` finds `dockerd` and
-a `podman system service`, whose API listens on TCP wherever its
-arguments name `tcp://`, on any port. The listeners are read for
+`ps -eo args` works with busybox too, and the `grep -o` keeps only
+the engine's name and its listen and TLS options, so a credential in
+a neighbouring argument — a proxy or registry URL — never reaches the
+output. It finds `dockerd` and a `podman system service`, whose API
+listens on TCP wherever its arguments name `tcp://`, on any port. A
+`podman.socket` unit with a TCP `ListenStream` exposes the same API
+with no process until it is activated, which is why the unit is read
+too, for root and for each logged-in owner. The listeners are read for
 those ports, not only 2375 and 2376. A listener counts as the
 engine's only where the process column names it, or where the
-engine's own arguments or configuration name that address; another
-service on 2375 is that service's finding, not the engine's. Where
+engine's own arguments, a `ListenStream` or its configuration name
+that address; another service on 2375 is that service's finding, not
+the engine's. A listener `ss` attributes to systemd that a
+`podman.socket` unit names is the engine's. Where
 neither `ss` nor
 `netstat` exists, name the listener check as not run.
 

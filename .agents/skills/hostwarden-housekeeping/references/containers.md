@@ -33,6 +33,8 @@ grep -oE '"(log-driver|max-size|max-file)" *: *"[^"]*"' \
 $d compose ls -a 2>/dev/null
 grep -rlE '(dock|podm)[a-z]+ +(run|start|compose)' /etc/systemd/system \
   2>/dev/null
+grep -rlE '(dock|podm)[a-z]+ +(run|start|compose)' \
+  "$HOME/.config/systemd/user" 2>/dev/null
 ```
 
 Podman, first; for a rootless owner, `systemctl --user` as that
@@ -103,7 +105,10 @@ appliance's app — is reported there, not again here.
 
 A restart policy other than `no` or empty, a Quadlet or own unit
 (`unit=` set, `rules/containers.md` → Find What Defines the
-Container), a unit the `grep` over `/etc/systemd/system` found — read
+Container), a unit the `grep` over `/etc/systemd/system` found — for
+a rootless owner the same `grep` runs as that owner over
+`~/.config/systemd/user`, where a rootless Docker container's unit
+lives and no Podman label names it — read
 it for the container's name, since only Podman labels its unit — or a
 compose project marks a container as meant to run;
 a compose one-off (`oneoff=True`, from `compose run`) never does.

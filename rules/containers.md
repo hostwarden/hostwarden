@@ -45,7 +45,8 @@ for rt in docker podman nerdctl; do
 done
 systemctl is-active docker podman.socket containerd 2>/dev/null
 ps -C conmon,rootlesskit -o user= 2>/dev/null | sort -u
-getent passwd | awk -F: '$3 >= 1000 {print $6}' | while read -r h; do
+getent passwd | awk -F: '$7 !~ /(nologin|false)$/ {print $6}' \
+  | sort -u | while read -r h; do
   ls -d "$h/.local/share/containers" "$h/.local/share/docker" \
     2>/dev/null
 done
@@ -63,8 +64,10 @@ and busybox `ps` has no `-C`: `ps -o user,comm | grep -E
   longer than eight characters: `getent passwd <uid>` gives the
   name that `sudo -u` needs.
 - The `ls` loop also finds the accounts whose containers have all
-  stopped. It reads each account's home from `passwd`, because a
-  home outside `/home` is as good a place for a store.
+  stopped. It reads the home of every account with a login shell
+  from `passwd`, whatever its UID: a service account below 1000 can
+  own a store as well, and a home outside `/home` is as good a place
+  for one.
 
 Query one rootless owner as root:
 
