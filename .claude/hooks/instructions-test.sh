@@ -544,15 +544,20 @@ report "$(printf '%s\n' "$POINTERS" \
 # ASCII only; the Latin-1 capitals (Ä, Ö, Ü, É …) are folded by
 # hand, and anything beyond them is a matter for review.
 #
-# A link shown in a fenced block is code, not a link, and a heading
-# that is a link slugs from its text alone: `## [Install](x.md)` is
-# #install. Inline HTML renders as nothing; an autolink renders as
-# its address.
+# A link shown in a fenced block is code, not a link, and one inside
+# an HTML comment renders as nothing, as load() reads its headings.
+# A heading that is a link slugs from its text alone:
+# `## [Install](x.md)` is #install. Inline HTML renders as nothing;
+# an autolink renders as its address.
 report "$(scan \
   | grep -E '^((README|CONTRIBUTING|SECURITY)\.md|docs/[^/]*\.md): ' \
   | awk "$FENCE_AWK"'
-    { f = $0; sub(/: .*/, "", f); if (f != last) { FM = ""; last = f }
-      t = $0; sub(/^[^ ]+: /, "", t); if (!fenced(t)) print }' \
+    { f = $0; sub(/: .*/, "", f)
+      if (f != last) { FM = ""; c = 0; last = f }
+      t = $0; sub(/^[^ ]+: /, "", t)
+      if (!c && FM == "" && t ~ /^(   |  | )?<!--/) c = 1
+      if (c) { if (t ~ /-->/) c = 0; next }
+      if (!fenced(t)) print }' \
   | tag '\]\([^):[:space:]]*#[^)[:space:]]+([[:space:]][^)]*)?\)' \
   | sed -E 's#^([^ ]+): \]\(([^#]*)\#([^)[:space:]]*).*$#\1|\2|\3#' \
   | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
