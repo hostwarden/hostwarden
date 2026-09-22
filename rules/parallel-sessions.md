@@ -113,9 +113,9 @@ token (The register above, made with the same command on the
 workstation where the host has no `sh`) tells one session from
 another, two windows of the same operator included. Right before
 each change there, write
-`[<operator> as <unix-user>] starting <token>: <task>` first,
-then read the journal as the activity check does
-(`rules/activity-check.md`); once the change is done and logged,
+`[<operator> as <unix-user>] starting <token>: <task>` and then
+read the journal as the activity check does
+(`rules/activity-check.md`), in one call; once the change is done and logged,
 write `[<operator> as <unix-user>] done <token>: <task>`. The
 marker goes first for the reason the register is made before it
 is listed: two sessions that both read before writing can each

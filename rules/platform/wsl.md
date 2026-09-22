@@ -102,10 +102,8 @@ wslinfo --version; wslinfo --networking-mode; cat /proc/1/comm
 - The third is `systemd` when systemd runs, and `init` when
   WSL's own init does.
 
-Record them next to the platform, each as detected:
+Record them next to the platform:
 `Platform: WSL <1|2> (<version>, <networking mode>, <PID 1>)`.
-A value a probe could not read is written `unknown`, never a
-default such as `nat` or `systemd`.
 
 ## Add: Package Manager
 
@@ -145,12 +143,10 @@ What reaches the instance depends on the networking mode
 (Version Detection above):
 
 - `nat` — the default. A port the instance listens on is
-  reachable from Windows as `localhost:<port>` while
-  `.wslconfig` leaves `localhostForwarding` on, which is the
-  default; `localhostForwarding=false` under `[wsl2]` takes
-  that path away. From nowhere else is it reachable unless
-  someone forwarded it with `netsh interface portproxy` on
-  Windows.
+  reachable from Windows as `localhost:<port>` unless
+  `.wslconfig` sets `localhostForwarding=false` under
+  `[wsl2]`, and from nowhere else unless someone forwarded
+  it with `netsh interface portproxy` on Windows.
 - `mirrored` — the instance shares Windows' interfaces, and a
   port it listens on is reachable from the network as far as
   the Hyper-V firewall lets it through.

@@ -152,9 +152,9 @@ user when it will visibly slow the answer.
   runtime (`python3 -c`, `node -e`, `perl -e`, `awk`,
   `powershell.exe`). Such a
   command line cannot be shown to be read-only, so it counts as a
-  write and is blocked. On Windows, `type`, `dir` and `icacls`
-  do that job, each in an SSH call of its own
-  (`rules/os/windows.md` → Notes).
+  write and is blocked. On Windows, the readers
+  `rules/os/windows.md` → Notes names do that job, each in an
+  SSH call of its own.
   This list holds on its own. Some tools also run a mechanical
   guard behind it — `CLAUDE.md` says where, and where nothing does,
   this list is the whole of the protection. Being blocked by the

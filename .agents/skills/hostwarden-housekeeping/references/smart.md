@@ -59,10 +59,8 @@ Severities as in `references/report-format.md`:
   media errors above 0, or NVMe `Percentage Used` at 90 or more.
 - **Named as unknown**, never as passing: a disk whose health line
   is `UNKNOWN!`, or that prints neither a health line nor
-  `Device is in`. A sleeping disk is named as asleep and its
-  health as not checked: it is read only by a run that finds it
-  awake, which for a disk that sleeps through every run is never.
-  Say so, and leave waking it to the user.
+  `Device is in`. A sleeping disk is named as asleep, its health
+  as not checked; waking it is the user's call.
 
 Record every WARN count in the host's `memory.md`, by disk, when it
 first appears and whenever it changes; a disk with no entry had
