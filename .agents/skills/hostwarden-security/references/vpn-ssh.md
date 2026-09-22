@@ -41,7 +41,8 @@ server unchecked.
 ## Probe (root)
 
 Tailscale with `"RunSSH": true`, NetBird unless its `SSH Server`
-line says `Disabled`, and Nebula whenever it runs:
+line says `Disabled`, Nebula whenever it runs, and Newt when the
+`--disable-ssh` count was 0:
 
 ```bash
 # Tailscale, "RunSSH": true — the rules compiled for this node
@@ -49,14 +50,21 @@ T=$(printf '\t')
 tailscale debug netmap 2>&1 \
   | sed -n "/^$T\"SSHPolicy\": null/p; /^$T\"SSHPolicy\": {/,/^$T}/p"
 # NetBird, SSH Server not "Disabled" — flags of every profile
-grep -rHE --include='*.json' \
-  '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)"' \
+grep -rHoE --include='*.json' \
+  '"(ServerSSHAllowed|EnableSSH[A-Za-z]*|DisableSSHAuth)": *(true|false)' \
   /var/lib/netbird /var/db/netbird /etc/netbird 2>/dev/null
 # Nebula — its admin console
 grep -A4 '^sshd:' /etc/nebula/config.yml 2>/dev/null
+# Newt on Linux, no --disable-ssh — DISABLE_SSH in its environment
+for p in $(pgrep -x newt); do
+  tr '\0' '\n' < "/proc/$p/environ" | grep -ciE '^DISABLE_SSH=(true|1)$'
+done
 ```
 
-Print only these fields: the same files hold private keys
+Print only these fields: the same files hold private keys, and
+NetBird's JSON can sit on one line with them, which is why its
+grep prints the matches alone (`-o`). The environment holds
+Newt's secret, which is why that grep only counts
 (`rules/secrets.md`).
 
 **Tailscale.** The netmap format is internal and may change; read
@@ -77,9 +85,9 @@ admits root; `DisableSSHAuth` drops the OIDC login, so any peer
 the network policy lets through gets in with no person behind the
 login.
 
-**Newt** runs SSH unless started with `--disable-ssh` (or
-`DISABLE_SSH`, which `ps` does not show). It creates the local
-accounts it admits, with sudo rules in
+**Newt** runs SSH unless started with `--disable-ssh` or with
+`DISABLE_SSH` in its environment, which only the root probe sees.
+It creates the local accounts it admits, with sudo rules in
 `/etc/sudoers.d/90-pangolin-<user>`: list both.
 
 ## Findings
@@ -93,7 +101,9 @@ One report line per agent found, as `VPN SSH`:
   **CRITICAL**; either one alone → **WARN**
 - Cloudflare Tunnel token in `ps` arguments → **WARN**, readable
   by every account (`rules/secrets.md`)
-- Newt SSH on → **INFO**, with the accounts and sudo files it made
+- Newt SSH on → **INFO**, with the accounts and sudo files it
+  made. Without root, or with Newt in a container, it is
+  **INFO** "Newt SSH unchecked": the environment may turn it off
 - Nebula `sshd.enabled: true` → **INFO**, name `listen` and
   `authorized_users`
 - Cloudflare ingress to `ssh://` → **INFO**: sshd is reachable
