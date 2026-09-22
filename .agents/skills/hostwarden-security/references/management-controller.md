@@ -102,11 +102,16 @@ Severities as in `references/report-format.md`. An address is
   one TCP connect per port against that address:
 
   ```
-  curl -s -o /dev/null -m 5 -w '%{http_code}\n' \
-    http://<amt-address>:16992/
-  curl -s -o /dev/null --connect-timeout 5 -m 5 \
+  curl -s -o /dev/null --noproxy '*' -m 5 \
+    -w '%{http_code}\n' http://<amt-address>:16992/
+  curl -s -o /dev/null --noproxy '*' --connect-timeout 5 -m 5 \
     -w 'connect=%{time_connect}\n' telnet://<amt-address>:16994
   ```
+
+  `--noproxy '*'` on both: with a proxy in the environment, curl
+  connects to the proxy, which answers with a status code of its
+  own and a nonzero `time_connect` — an AMT port that does not
+  exist would then read as exposed.
 
   **Both plaintext ports, because either can be on without the
   other.** 16992 is HTTP and answers `401` unauthenticated, so a

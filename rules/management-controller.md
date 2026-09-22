@@ -197,7 +197,7 @@ this host can reach it:
 - Management: iDRAC (BMC), reachable from the host
 - Management: BMC, not reachable from the host (driver not loaded)
 - Management: Intel AMT
-- Management: node1.example.com console (Proxmox VE guest)
+- Management: pve1.example.com console (Runs on)
 - Management: provider console (user)
 - Management: unknown (no root)
 - Management: unknown (not asked)
@@ -249,27 +249,37 @@ OS-replacement path in the `hostwarden-os-install` skill send you
 here when a change is about to cut SSH, or already has. Name the
 way back in; never ask the user whether they have one.
 
-Read the `Management:` line. Where the host has none, settle it
-first:
+Read the `Management:` line. A line that names a controller but
+has no row in `memory/network.md` — a BMC the host cannot reach,
+one whose `IP Address` was `0.0.0.0` — is settled and still names
+no way in: treat it as Nothing settled it below. Where the host
+has no line at all, settle it first:
 
 - **Bare metal** — run Detection above. It gives the controller,
   and `lan print` gives the address for `memory/network.md`.
 - **A virtual machine or a container** — the console belongs to
-  the machine underneath, and only an explicit guest-to-node fact
-  names it. `Virtualization:` gives the kind of hypervisor, never
-  which machine it is: `kvm` is not a host. `Reached as:` is no
-  use either — `rules/server-memory.md` defines it as the SSH
-  destination of that same instance, so taking it for the node
-  names the guest as its own rescue console, which is no route at
-  all once SSH is gone. What counts is a line that says which
-  node or provider runs this guest: a `## Management
-  controllers` row for it, or a note in `memory/network.md`.
-  Where there is none, ask.
-- **Nothing settled it** — a bare-metal host with no address, a
-  guest whose node nothing names, a `Virtualization: unknown`
-  machine. Ask the Provider console question above, adding the
-  host's own hypervisor or provider as an option where one is
-  known, and record the answer with `(user)`.
+  the machine underneath, and `Runs on:` names it
+  (`rules/hypervisors.md` → Linking Guest and Host). That rule
+  owns the question too: where the guest has no `Runs on:` line,
+  it settles one, and this file asks nothing of its own.
+  - `Runs on: pve1.example.com (VM 101)` — the node's console,
+    and behind it the node's own `Management:` line for when the
+    node is what went down;
+  - `Runs on: Hetzner (cloud)` — the provider's console;
+  - `Runs on: <name> (user, not managed)` — that machine, and
+    nothing more is known about reaching it;
+  - `Runs on: unknown (user)` — no way back in is known, which is
+    the same answer as `none (user)` below.
+
+  Never read the node off anything else. `Virtualization:` gives
+  the kind of hypervisor, never which machine it is: `kvm` is not
+  a host. `Reached as:` is the SSH destination of the guest itself
+  (`rules/server-memory.md`), so taking it for the node names the
+  guest as its own rescue console, which is no route at all once
+  SSH is gone.
+- **Nothing settled it** — a bare-metal host with no address, or
+  a `Virtualization: unknown` machine. Ask the Provider console
+  question above and record the answer with `(user)`.
 
 Then name the way back in: the controller from `memory.md`, its
 address from `memory/network.md`. Where the line is
@@ -283,15 +293,21 @@ user sits. So reach for it once from the workstation before
 calling it the way back in:
 
 ```
-curl -s -o /dev/null --connect-timeout 5 -m 5 \
+curl -s -o /dev/null --noproxy '*' --connect-timeout 5 -m 5 \
   -w 'connect=%{time_connect}\n' telnet://<bmc-address>:443
 ```
 
 `connect=` above zero means the workstation reached it, and
-`0.000000` that it did not. Report which: an address that answers
-is the rescue path, and one that does not is an address the user
-may still reach over a VPN or a jump host — say so and let them
-confirm, rather than presenting it as a way back in or writing it
-off. Never report a rescue path that nothing supports; one that
-turns out not to exist is found out after SSH is already gone
+`0.000000` that it did not. `--noproxy '*'` is what makes that
+true: with `ALL_PROXY` or `HTTP_PROXY` set, curl connects to the
+proxy instead, and `time_connect` then measures that — an
+unroutable documentation address reads as reachable, which is the
+one wrong answer that authorises a change with no way back.
+
+Report which: an address that answers is the rescue path, and one
+that does not is an address the user may still reach over a VPN
+or a jump host — say so and let them confirm, rather than
+presenting it as a way back in or writing it off. Never report a
+rescue path that nothing supports; one that turns out not to
+exist is found out after SSH is already gone
 (`rules/verify-before-reporting.md`).
