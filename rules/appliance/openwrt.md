@@ -91,7 +91,7 @@ of the current release branch,
   at the next reboot, unannounced.
 - `rules/backups.md` applies to `/etc/config/<name>` before any
   change: a copy with `cp`, or `uci export <config>` into a file.
-  The backup directory here is `/root/hostwarden-backups/`.
+  The backup directory is `/root/hostwarden-backups/`.
   `sysupgrade -b /tmp/backup-<date>.tar.gz` archives the whole
   configuration; copy it off the device with `scp -O` before a
   larger change.
