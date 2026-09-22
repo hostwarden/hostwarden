@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **OpenWrt is recognised as an appliance.** Hostwarden
+  changes settings through UCI instead of editing the
+  files it generates, uses apk or opkg, whichever the
+  release has, but never upgrades all packages, and
+  updates through sysupgrade or owut only after asking,
+  since the router is everyone's way out. Firewall
+  changes go through fw4 with `fw4 check` before the
+  commit, keep every dropbear port open, and arm the
+  timed revert where the `at` package is installed.
+  The activity check reads `logread`, and says that its
+  ring buffer forgets at every reboot. The taboo guard protects dropbear's
+  configuration and keys the way it protects sshd's, `uci`
+  changes included. `rules/busybox.md` lists the applets
+  and flags that break common checks, on OpenWrt and on
+  Alpine alike.
 - **OpenMediaVault is recognised as an appliance** on top of the
   Debian file. Settings go through the web UI, because OMV
   regenerates the files under `/etc` from its own database.

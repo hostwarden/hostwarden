@@ -311,29 +311,9 @@ no `-i` or `-E`.
 
 ### Busybox userland
 
-Most commands are busybox applets, with fewer flags than GNU.
-Verify with `<command> --help` before using a GNU flag
-(`AGENTS.md` → Verify Before Running). Differences that break
-common checks:
-
-- `df` has no `--output` or `-x`: use `df -Ph` and filter; without
-  `-P`, a long device name wraps onto its own line.
-- `uptime` takes no options, so no `uptime -s`.
-- `grep` has no `-P`.
-- `date -d` does not parse the `notAfter` format `openssl`
-  prints: use `openssl x509 -checkend <seconds>` instead.
-- `ps` takes `-o` but not `-p`.
-- No `ss`: use busybox `netstat -tulnp`.
-- No `lscpu`: use `nproc` and `/proc/cpuinfo`.
-- `last` takes no filter, so no `last reboot`.
-- No `timedatectl`, `journalctl` or `systemctl`.
-
-The GNU tools are packages (`coreutils`, `findutils`, `grep`,
-`procps-ng`, `iproute2-ss`). Do not install one just to run a
-check.
-
-The default shell is busybox `ash`: `sh`-compatible, with some
-bash extensions such as `[[` but no arrays. Write plain `sh`.
+Most commands are busybox applets, with fewer flags than GNU. Which
+ones break common checks, and what to use instead:
+`rules/busybox.md`.
 
 ### musl
 

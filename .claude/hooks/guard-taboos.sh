@@ -337,23 +337,28 @@ DEV='/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])'
 # and the rules must keep it that way instead of listing
 # prefixes.
 #
-# KEYDIR adds an appliance key store (OPNsense: /conf/sshd) to
-# .ssh; the rest of /conf is config and stays ordinary work.
+# KEYDIR adds the key stores of appliances to .ssh: OPNsense's
+# /conf/sshd, and OpenWrt's /etc/dropbear, which holds dropbear's
+# host keys and root's authorized_keys and nothing else. The rest
+# of /conf is config and stays ordinary work.
 # /etc/ssh itself is NOT a key store: it also holds ssh_config
 # and moduli, so rm -rf /etc/ssh or chmod -R on it is left open,
 # on the same terms as the home directory above.
-HOSTKEY='(/etc/ssh|/conf/sshd)/ssh_host_'
-KEYDIR='(\.ssh|/conf/sshd)'
+HOSTKEY='((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_)'
+KEYDIR='(\.ssh|/conf/sshd|/etc/dropbear)'
 KEY="($HOSTKEY|authorized_keys|$KEYDIR"'(/|[^[:alnum:]_.-]|$))'
 KEYFILE="($HOSTKEY"'[[:alnum:]_-]*key|\.ssh/id_[[:alnum:]_-]+|authorized_keys)'
 KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 
-# sshd's config: sshd_config, its drop-in directory, and a file
-# an appliance merges into it when it regenerates the config
-# (pfSense appends /etc/sshd_extra). The .d suffix is optional,
-# so a plain hit on SSHD also finds the bare file. Then the
-# editors that rewrite a file in place.
-SSHD='/etc/(ssh/sshd_config(\.d(/[[:alnum:]_.-]*)?)?|sshd_extra)'
+# sshd's config: sshd_config, its drop-in directory, a file an
+# appliance merges into it when it regenerates the config
+# (pfSense appends /etc/sshd_extra), and dropbear's config where
+# a system runs dropbear instead: OpenWrt's UCI file
+# /etc/config/dropbear, /etc/conf.d/dropbear under OpenRC,
+# /etc/default/dropbear on Debian. The .d suffix is optional, so
+# a plain hit on SSHD also finds the bare file. Then the editors
+# that rewrite a file in place.
+SSHD='/etc/(ssh/sshd_config(\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\.d|default)/dropbear)'
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
 # A general-purpose language runtime. See the interpreter section
@@ -662,6 +667,38 @@ if hit "$SSHD"; then
 never allowed (reading it is fine: cat, grep, sshd -T)"
   fi
 fi
+# OpenWrt changes /etc/config/dropbear through uci, which never
+# names the file: uci set dropbear.@dropbear[0].Port=2222, then
+# uci commit dropbear. A write verb followed by the config name
+# is the change, whether uci carries it on its command line or
+# reads it from a uci batch here-document. uci show, get, changes
+# and export only read.
+# A bare commit names no config and writes every staged one, a
+# dropbear change someone else left in /tmp/.uci included, so it
+# is denied too: as the last word of a uci invocation (a redirect
+# or a comment after it changes nothing), or as a batch line of
+# its own. uci commit <config> stays ordinary work.
+# The case is a builtin precheck: most commands never mention uci
+# and skip every grep.
+UCIW='(set|add|add_list|del_list|delete|rename|reorder|import|commit)'
+case "$CMD" in
+  *uci*)
+    if hit '(^|[^[:alnum:]_.-])uci([^[:alnum:]_.-]|$)'; then
+      if hit "(^|[[:space:]'\"])${UCIW}[[:space:]]+['\"]?dropbear([.=[:space:]'\"]|\$)"
+      then
+        deny "changing the dropbear configuration through uci modifies \
+the SSH server config, which is never allowed (reading it is fine: \
+uci show dropbear)"
+      fi
+      if hit '(^|[^[:alnum:]_.-])uci([[:space:]]+[^[:space:]]+)*[[:space:]]+commit[[:space:]]*([0-9]*[<>]|#|$)' \
+        || hit '^[[:space:]]*commit[[:space:]]*([0-9]*[<>]|#|$)'
+      then
+        deny "a bare uci commit writes every staged config, dropbear \
+included - name the config: uci commit firewall"
+      fi
+    fi
+    ;;
+esac
 
 # --- Writes INTO an SSH key -----------------------------------
 # Writing into a key file replaces it as surely as deleting it.

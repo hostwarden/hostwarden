@@ -58,7 +58,11 @@ Four mechanisms, one question each:
   sysadmin session never reads.
 
 A file keyed by a fact rather than a moment — the OS-family files
-— is reference data and lives in `rules/os/`.
+— is reference data and lives in `rules/os/`. Reference data that
+several OS files share, such as `rules/busybox.md`, lives in
+`rules/` beside them, named by what it describes. It is reached
+through the files that point to it, never by detection, so the
+one-family cap still holds.
 
 An appliance (`rules/os-detection.md` → Appliances) gets a file in
 `rules/appliance/` and a row in that section's marker table. The

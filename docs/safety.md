@@ -20,7 +20,8 @@ under pressure.
   PreToolUse hook (`.claude/hooks/guard-taboos.sh`)
   mechanically blocks the absolute taboos — halt/
   poweroff, `mkfs`, partition-table writers, deleting
-  or overwriting SSH keys, writes to `sshd_config` —
+  or overwriting SSH keys, writes to `sshd_config`
+  or to dropbear's configuration —
   in **every**
   permission mode, even
   `--dangerously-skip-permissions`, and even when the

@@ -104,6 +104,9 @@ rules/                 — Upstream rule files (git-tracked)
     truenas-core.md    — TrueNAS CORE, end of life (on os/freebsd.md)
     haos.md            — Home Assistant OS (no base)
     unraid.md          — Unraid (no base)
+    openwrt.md         — OpenWrt (no base)
+  busybox.md           — Busybox applets and flags on Alpine
+                         and OpenWrt
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
   os-detection.md      — OS detection procedure
   ssh-user.md          — SSH username & language management

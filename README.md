@@ -187,6 +187,7 @@ that changes the base file where it would be wrong:
 | XCP-ng            | RHEL    | `rules/appliance/xcp-ng.md`         |
 | Home Assistant OS | —       | `rules/appliance/haos.md`           |
 | Unraid            | —       | `rules/appliance/unraid.md`         |
+| OpenWrt           | —       | `rules/appliance/openwrt.md`        |
 
 Other distributions work too — Hostwarden will apply
 general best practices and let you know which OS it

@@ -131,7 +131,8 @@ user when it will visibly slow the answer.
   `fdisk -l`, `gpart show`, `diskutil list`, `nvme list`,
   `hdparm -I`) is always allowed. Never modify `sshd_config` or its
   `sshd_config.d/` drop-ins, wherever sshd keeps them (`/etc/ssh`,
-  `/usr/local/etc/ssh`, …). Never delete or overwrite SSH keys, and
+  `/usr/local/etc/ssh`, …), nor dropbear's configuration where
+  dropbear is the SSH server. Never delete or overwrite SSH keys, and
   that includes moving, truncating or re-permissioning them. Never
   halt or power off a server.
   Inspect `sshd_config`, SSH keys and disk devices with `cat`,
