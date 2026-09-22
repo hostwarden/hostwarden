@@ -185,10 +185,13 @@ of the current release branch,
   Configuration: UCI), never with `nft` directly: the next reload
   replaces the whole ruleset. Own nftables snippets go into
   `/etc/nftables.d/*.nft`, which fw4 includes.
-- Before applying: `fw4 check` renders the ruleset and tests it
-  with nftables without loading it. It must pass. Then
-  `service firewall reload`. There is no timed rollback; the check
-  is the only safety net before the change is live.
+- Order: stage the change with `uci`, run `fw4 check`, and only
+  when it passes `uci commit firewall`, then
+  `service firewall reload`. `fw4 check` renders the ruleset,
+  staged changes included, and tests it with nftables without
+  loading it; a failed check means `uci revert firewall`, so the
+  broken ruleset never reaches flash. There is no timed rollback;
+  the check is the only safety net before the change is live.
 - **Keep every SSH port open from where the user connects.** Read
   every dropbear instance's `Port` and `Interface`
   (`uci show dropbear`) and what actually listens
