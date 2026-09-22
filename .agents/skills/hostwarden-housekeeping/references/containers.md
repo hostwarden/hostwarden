@@ -9,18 +9,16 @@ container — is `rules/containers.md`; this file holds the checks and
 their findings. Everything here reads; nothing prunes, pulls,
 restarts or updates.
 
-**The appliance file wins.** Where the host's appliance file names
-the engine's binary (`/usr/local/bin/docker` on Synology DSM, the
-Container Station path on QNAP), says a UI owns the containers, or
-says a check does not apply, use its binary, keep to its limits and
-leave out what it excludes. On Home Assistant OS this file does not
-run: `ha` is the check (`rules/appliance/haos.md`). A remedy for a
-container a UI owns is a step in that UI, for the user.
+**The appliance file wins** (`rules/containers.md`): use the engine
+binary it names and leave out the checks it excludes. On Home
+Assistant OS this file does not run: `ha` is the check
+(`rules/appliance/haos.md`).
 
 ## Probe
 
-One read-only call per engine and per rootless owner. `d` is the
-engine's command: `docker`, `podman`, `nerdctl --namespace <ns>`,
+One read-only call per host: each engine and each rootless owner
+in turn, with a marker line before each. `d` is the engine's
+command: `docker`, `podman`, `nerdctl --namespace <ns>`,
 the appliance's path, or for a rootless owner the `sudo -u … env
 XDG_RUNTIME_DIR=…` form from `rules/containers.md` → Detect the
 Runtime. As root, or as that owner.
@@ -29,12 +27,9 @@ Docker, first:
 
 ```bash
 d=docker
-$d info --format '{{.ServerVersion}} root={{.DockerRootDir}} log={{.LoggingDriver}} {{json .SecurityOptions}}'
-$d info --format '{{range .Warnings}}{{println .}}{{end}}'
+$d info --format '{{.ServerVersion}} root={{.DockerRootDir}} log={{.LoggingDriver}} {{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
 grep -E '"log-(driver|opts)"|"max-(size|file)"' \
   /etc/docker/daemon.json 2>/dev/null
-$d ps -aq | xargs -r $d inspect --format '{{.LogPath}}' \
-  | grep . | xargs -r du -m 2>/dev/null | sort -rn | head -5
 $d compose ls -a 2>/dev/null
 ```
 
@@ -51,21 +46,19 @@ Then, for every engine:
 
 ```bash
 $d ps -a --format '{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}'
-$d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}}'
-$d ps -aq | xargs -r $d inspect --format '{{.Config.Image}} {{.Image}}' \
-  | sort -u | while read -r ref id; do
-      [ "$($d image inspect --format '{{.Id}}' "$ref" 2>/dev/null)" = "$id" ] \
-        || echo "not the image $ref names now: $id"
-    done
-$d images --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}'
+i=$($d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} image={{.Config.Image}} id={{.Image}} logpath={{.LogPath}}')
+printf '%s\n' "$i"
+printf '%s\n' "$i" | sed -n 's/.* logpath=\([^ ][^ ]*\).*/\1/p' \
+  | xargs -r du -m 2>/dev/null | sort -rn | head -5
+$d images --no-trunc --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}'
 $d system df
 $d images -qf dangling=true | wc -l
 $d volume ls -qf dangling=true | wc -l
 ```
 
-The format strings name every field: never a bare `inspect`, which
-prints the environment (`rules/secrets.md`). `nerdctl` has no
-`compose ls` and no dangling-volume filter
+The format strings name every field (`rules/containers.md` → List
+and Inspect). `nerdctl` has no `compose ls` and no dangling-volume
+filter
 (<https://github.com/containerd/nerdctl/blob/main/docs/command-reference.md>):
 name those two as not checked. Its `inspect` answers in Docker's
 format; where a template stops on a field it lacks, drop that field
@@ -165,9 +158,10 @@ system past its WARN threshold.
   whose UI tracks updates by tag, as Unraid's Docker tab and
   Synology's Container Manager do for `latest`, it is how the UI
   works: no finding.
-- **INFO** for each `not the image … names now` line: a newer image
-  was pulled and the container still runs the old one. The next
-  recreate brings it in, planned or not.
+- **INFO** for a container whose `id=` differs from the ID the
+  images list gives its `image=` (a `sha256:` prefix aside): a newer
+  image was pulled and the container still runs the old one. The
+  next recreate brings it in, planned or not.
 - **Pending image updates** are reported only from what the host
   already knows, and the report says which source it used:
   - the appliance's own record: Unraid's update status, TrueNAS's

@@ -8,27 +8,21 @@ the audit. Published ports are
 `references/firewall-nftables-docker.md` → Docker published ports:
 run them there, not here.
 
-**The appliance file wins.** Where the host's appliance file names
-the engine's binary, lists container checks under
-`## Housekeeping and Audits`, or says a check does not apply, use
-its binary, run its checks, and add the ones below that it does not
-exclude. A remedy for a container a UI owns is a step in that UI,
-for the user. On Home Assistant OS this file does not run
+**The appliance file wins** (`rules/containers.md`): run its
+container checks, then add the ones below that it does not exclude.
+On Home Assistant OS this file does not run
 (`rules/appliance/haos.md`).
 
 ## Probe
 
-One call per engine and per rootless owner; `d` as in the
-housekeeping skill's `references/containers.md` → Probe. The format
-strings name every field. The environment comes out as names only:
-`split` keeps each value inside the template (`rules/secrets.md`,
-`rules/containers.md` → List and Inspect).
+One call per host, `d` and the owners as in the housekeeping skill's
+`references/containers.md` → Probe. The environment comes out as
+names only: `split` keeps each value inside the template
+(`rules/containers.md` → List and Inspect).
 
 ```bash
 d=docker
-$d ps -aq | xargs -r $d inspect --format '{{.Name}} priv={{.HostConfig.Privileged}} user={{.Config.User}} capadd={{join .HostConfig.CapAdd ","}} net={{.HostConfig.NetworkMode}} pid={{.HostConfig.PidMode}} ipc={{.HostConfig.IpcMode}} secopt={{join .HostConfig.SecurityOpt ","}} apparmor={{.AppArmorProfile}} image={{.Config.Image}}'
-$d ps -aq | xargs -r $d inspect --format '{{.Name}}{{range .Mounts}} {{.Type}}:{{.Source}}:{{.RW}}{{end}}'
-$d ps -aq | xargs -r $d inspect --format '{{.Name}}{{range .Config.Env}} {{index (split . "=") 0}}{{end}}'
+$d ps -aq | xargs -r $d inspect --format '{{.Name}} priv={{.HostConfig.Privileged}} user={{.Config.User}} capadd={{join .HostConfig.CapAdd ","}} net={{.HostConfig.NetworkMode}} pid={{.HostConfig.PidMode}} ipc={{.HostConfig.IpcMode}} secopt={{join .HostConfig.SecurityOpt ","}} apparmor={{.AppArmorProfile}} image={{.Config.Image}}{{"\n"}}  mounts:{{range .Mounts}} {{.Type}}:{{.Source}}:{{.RW}}{{end}}{{"\n"}}  env:{{range .Config.Env}} {{index (split . "=") 0}}{{end}}'
 ```
 
 Docker's daemon, in the same call:

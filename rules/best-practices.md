@@ -147,17 +147,11 @@ crashes instead.
 systemd `Restart=on-failure`.
 
 **Changing a UI-managed container app with docker/podman**
-A container that an appliance's web UI, an app store
-or a compose file created is recreated from that
-source at the next update or redeploy, so a change
-made with `docker` or `podman` directly is lost, or
-leaves the UI out of step.
-→ Change it where it is defined: in the UI, as steps
-for the user, or in its compose or Quadlet file,
-backed up first and brought up again after asking.
-Cross-reference: `rules/containers.md` → Find What
-Defines the Container, and the host's appliance
-file or service check
+A UI, app store or compose file recreates the
+container from its own definition, so the change is
+lost.
+→ Change it where it is defined.
+Cross-reference: `rules/containers.md` → Changes
 
 **Application server running as root**
 Services should run as a dedicated user with

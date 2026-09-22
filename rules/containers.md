@@ -11,7 +11,8 @@ the containers.
 a web UI owns the containers, or says that a check does not apply,
 it wins over this file. Such a UI owns every container it created:
 Unraid's Docker tab, TrueNAS Apps, Home Assistant's Supervisor, and
-the container apps of the other NAS appliances.
+the container apps of the other NAS appliances. A remedy for a
+container a UI owns is a step in that UI, for the user.
 
 Out of scope here:
 
@@ -34,7 +35,9 @@ Out of scope here:
 
 ## Detect the Runtime
 
-In one call (`rules/ssh-connections.md` → Bundle commands):
+In one call (`rules/ssh-connections.md` → Bundle commands). Where
+server memory's `Container runtime:` line already names the engine,
+only the `ps` and `ls` lines run, to keep its owners current:
 
 ```bash
 for rt in docker podman nerdctl; do
@@ -204,7 +207,7 @@ Every change to a container follows `rules/service-reload.md`:
 - A reload signal (`docker kill -s HUP`) counts as a **reload** only
   when the service's config test inside passed.
 - `pull` on its own changes no running container, but it is an
-  update and reaches the registry: ask, and never in housekeeping.
+  update and reaches the registry: ask.
 - `rm`, `prune`, `volume rm` and `down -v` delete data: ask, naming
   every container, image and volume that goes. `docker system df`
   shows what a prune would reclaim without running it.
