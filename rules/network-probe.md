@@ -34,9 +34,10 @@ up=${up4:-$up6}
 [ -n "$up" ] || up=$(ip route get "${SSH_CONNECTION%% *}" \
   2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')
 echo "uplink=$up uplink4=$up4 uplink6=$up6"
-for i in $up $up4 $up6; do
+ups=$(printf '%s\n' "$up" $up4 $up6 | grep . | sort -u)
+for i in $ups; do
   [ -e "/sys/class/net/$i/device" ] && echo "physical=$i"
-done | sort -u
+done
 if [ "$(id -u)" = 0 ]; then S=""
 elif sudo -n true 2>/dev/null; then S="sudo -n"
 else S=-; fi
@@ -58,16 +59,21 @@ grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' \
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
     | grep -vE " ($n)"
-  networkctl status "$up" --no-pager -n0 2>/dev/null \
-    | grep -E 'Network File|State:|Address|Gateway|DNS'
+  for i in $ups; do
+    echo "== $i"
+    networkctl status "$i" --no-pager -n0 2>/dev/null \
+      | grep -E 'Network File|State:|Address|Gateway|DNS'
+  done
 fi
 if command -v nmcli >/dev/null 2>&1; then
   nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device \
     2>/dev/null | grep -vE "^($n)"
-  c=$(nmcli -g GENERAL.CONNECTION device show "$up" \
-    2>/dev/null)
-  [ -n "$c" ] && nmcli -g ipv4.method,ipv6.method \
-    connection show "$c"
+  for i in $ups; do
+    c=$(nmcli -g GENERAL.CONNECTION device show "$i" \
+      2>/dev/null)
+    [ -n "$c" ] && echo "== $i" && nmcli -g \
+      ipv4.method,ipv6.method connection show "$c"
+  done
 fi
 if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
   if [ "$S" = - ]; then echo "netplan=unknown(needs-root)"
@@ -101,7 +107,7 @@ ip -4 rule; ip -6 rule
 
 echo "### C sysctl"
 echo "ip_forward=$(cat /proc/sys/net/ipv4/ip_forward)"
-for i in $(printf '%s\n' all "$up" $up4 $up6 | grep . | sort -u); do
+for i in all $ups; do
   for k in disable_ipv6 accept_ra forwarding; do
     echo "$i/$k=$(cat "/proc/sys/net/ipv6/conf/$i/$k" \
       2>/dev/null)"

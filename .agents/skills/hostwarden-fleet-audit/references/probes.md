@@ -485,14 +485,22 @@ package and the symlink. An enabled rc script is the active unit only when its
 ## 5. Network
 
 The per-host profile stays with `rules/network.md`; this
-compares. Run its Quick check, in the family's form, and add the
-two lines a comparison needs beyond it:
+compares. Run its Quick check, in the family's form, and in the
+same call the lines a comparison needs beyond it:
 
 ```bash
 cat /proc/sys/net/ipv6/conf/all/forwarding 2>/dev/null \
   || echo "forwarding=n/a (no ipv6)"
-grep -c '^nameserver' /etc/resolv.conf
+if grep -q '^nameserver 127\.0\.0\.53$' /etc/resolv.conf; then
+  resolvectl dns 2>/dev/null | grep -vE "\(($c)[^)]*\)" \
+    | cut -d: -f2- | tr ' ' '\n' | grep . | sort -u | wc -l
+else grep -c '^nameserver' /etc/resolv.conf; fi
 ```
+
+Behind systemd-resolved's stub the file names only
+`127.0.0.53`, so the count comes from the servers resolved itself
+uses, global and per link, without the overlay links the Quick
+check's `c` excludes.
 
 **FreeBSD** and **macOS** replace the first with
 `sysctl -n net.inet6.ip6.forwarding`. On macOS the nameservers
