@@ -140,17 +140,19 @@ itself at the URL `memory.md` records, `http://127.0.0.1:8123/`
 when it records none:
 
 ```bash
-curl -sk -o /dev/null -m 5 -w '%{http_code}\n' <url>
+curl -sk -m 5 <url>manifest.json | grep -c '"name": *"Home Assistant"'
 ```
 
-Any HTTP status means it runs: live restore keeps containers up
-while the daemon is down
-(https://docs.docker.com/engine/daemon/live-restore/). `000` is
-no answer, which a TLS mismatch or another bind address also
-gives: report Home Assistant's state as unknown, with the daemon
-named, never as stopped. With nothing recorded, go on with the
-Core search and say Docker could not be asked.
-Permission denied on the Docker socket is different — the
+`1` means Home Assistant answers and runs: live restore keeps
+containers up while the daemon is down
+(https://docs.docker.com/engine/daemon/live-restore/); its
+frontend serves that manifest
+(https://github.com/home-assistant/core/blob/dev/homeassistant/components/frontend/__init__.py).
+Anything else — no answer, a proxy's 502, another service's page
+— proves nothing either way: report Home Assistant's state as
+unknown, with the daemon named, never as stopped or running. With
+nothing recorded, go on with the Core search and say Docker could
+not be asked. Permission denied on the Docker socket is different — the
 containers are there but unseen, so get the access through
 `rules/privilege-escalation.md` or report the check as skipped,
 never conclude Core from it.
