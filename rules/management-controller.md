@@ -256,43 +256,53 @@ OS-replacement path in the `hostwarden-os-install` skill send you
 here when a change is about to cut SSH, or already has. Name the
 way back in; never ask the user whether they have one.
 
+**Nothing here is ever called verified.** Every way back in is
+named to the user as theirs to confirm before the change, and
+nothing Hostwarden checks turns that into a green light. The
+checks below are what can be learnt from here, and each proves
+less than "this works": a port that answers says something is
+listening, not that it is the controller; a login to a node says
+the account can log in, not that it can open this guest's
+console; a provider console may be switched off for the account.
+What proves a way back in is the user using it, so the user is
+the one who confirms it, with what the checks found in front of
+them.
+
+### Finding the way in
+
 Read the `Management:` line. A line that names a controller but
 has no row in `memory/network.md` — a BMC the host cannot reach,
-one whose `IP Address` was `0.0.0.0` — is settled and still names
-no way in: treat it as Nothing settled it below. Where the host
-has no line at all, settle it first:
+one whose `IP Address` was `0.0.0.0` — names no way in: treat it
+as Nothing settled it below. Where the host has no line at all,
+settle it first:
 
-- **Bare metal** — run Detection above, while SSH still works. It
-  gives the controller, and `lan print` the address for
-  `memory/network.md`. Where SSH is already gone, no probe can
-  run: what memory holds is all there is, and without it this is
-  Nothing settled it.
+- **Bare metal** — run Detection above while SSH still works. It
+  gives the controller, and `lan print` its current address. Where
+  a row already exists and SSH still works, read `lan print` again
+  rather than trusting the row: a DHCP lease or a network change
+  moves the address, and the old one may now belong to something
+  else. Where SSH is already gone, no probe can run, what memory
+  holds is all there is, and the user is told it may be out of
+  date.
 - **A virtual machine or a container** — the console belongs to
   the machine underneath, and `Runs on:` names it
   (`rules/hypervisors.md` → Linking Guest and Host). That rule
   owns the question too: where the guest has no `Runs on:` line,
   it settles one, and this file asks nothing of its own.
   - `Runs on: pve1.example.com (VM 101)` — the node's console,
-    verified once a fresh login to the node succeeds in this
-    session (`rules/ssh-connections.md` → Fresh-login options):
-    that the node is in memory says it was reachable once, not
-    that it is now. Behind it is the node's own `Management:` line
-    for when the node is what went down;
-  - `Runs on: Hetzner (cloud)` — the provider's console, which
-    nothing here can verify: some providers switch it on per
-    account (the EC2 serial console is off until enabled);
-  - `Runs on: <name> (user, not managed)` — that machine, and
-    nothing more is known about reaching it;
+    and behind it the node's own `Management:` line for when the
+    node is what went down;
+  - `Runs on: Hetzner (cloud)` — the provider's console;
+  - `Runs on: <name> (user, not managed)` — that machine;
   - `Runs on: unknown (user)`, or `unknown (left <host> <date>)`
     for a guest that has disappeared from its host — no way back
     in is known, which is the same answer as `none (user)` below.
 
   Read `Runs on:` as it stands now, never a node remembered from
-  an earlier session: it moves when the guest does.
-
-  Never read the node off anything else. `Virtualization:` gives
-  the kind of hypervisor, never which machine it is: `kvm` is not
-  a host. `Reached as:` is the SSH destination of the guest itself
+  an earlier session: it moves when the guest does. And never
+  read the node off anything else. `Virtualization:` gives the
+  kind of hypervisor, never which machine it is: `kvm` is not a
+  host. `Reached as:` is the SSH destination of the guest itself
   (`rules/server-memory.md`), so taking it for the node names the
   guest as its own rescue console, which is no route at all once
   SSH is gone.
@@ -300,39 +310,31 @@ has no line at all, settle it first:
   a `Virtualization: unknown` machine. Ask the Provider console
   question above and record the answer with `(user)`.
 
-Then name the way back in that the above gave — for bare metal
-the controller from `memory.md` with its address from
+### What to tell the user
+
+Name the way back in that the above gave — for bare metal the
+controller from `memory.md` with its address from
 `memory/network.md`, for a guest the node or provider from
-`Runs on:`. Where the line is `none (user)`, say that there is no
-way back in, and let the user decide whether the change still
-happens.
+`Runs on:` — and ask the user to confirm they can use it before
+the change goes ahead. Where the line is `none (user)`, say that
+there is no way back in, and let the user decide whether the
+change still happens.
 
-**Only a verified way in is named as one.** Everything else is
-handed to the user as theirs to confirm — a provider console, an
-unmanaged host, a `(user)` answer, an address the check below
-could not reach — never presented as the way back in and never
-written off either. The difference matters only at this moment:
-a way in that turns out not to exist is found out after SSH is
-gone.
-
-**An address is not access**: a BMC on an unrouted management VLAN
-answers `lan print` on the host and nothing at all from where the
-user sits. So reach for a controller's address once from the
-workstation — port 443 for a BMC's web interface, 16993 for Intel
-AMT's:
+For a controller's address, reach for it once from the
+workstation first — port 443 for a BMC's web interface, 16993 for
+Intel AMT's — and put the result in front of the user as they
+confirm:
 
 ```
 curl -s -o /dev/null --noproxy '*' --connect-timeout 5 -m 5 \
   -w 'connect=%{time_connect}\n' telnet://<address>:<port>
 ```
 
-`connect=` above zero means the workstation reached it, and
-`0.000000` that it did not. `--noproxy '*'` is what makes that
-true: with `ALL_PROXY` or `HTTP_PROXY` set, curl connects to the
-proxy instead, and `time_connect` then measures that — an
-unroutable documentation address reads as reachable, which is the
-one wrong answer that authorises a change with no way back.
-
-An address that answers is verified. One that does not may still
-be reachable over a VPN or a jump host, and goes to the user to
-confirm like the rest (`rules/verify-before-reporting.md`).
+`connect=` above zero means something at that address answered
+from here, `0.000000` that nothing did. Say which, as a fact about
+the address, never as a verdict on the way back in: an answer does
+not show it is the controller, and no answer may only mean the
+user reaches it over a VPN or a jump host. `--noproxy '*'` keeps
+the fact honest — with `ALL_PROXY` or `HTTP_PROXY` set, curl
+connects to the proxy instead, and an unroutable address then
+reads as answering.
