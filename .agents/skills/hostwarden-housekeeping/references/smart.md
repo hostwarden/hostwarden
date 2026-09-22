@@ -51,12 +51,13 @@ The strings are smartmontools' own (`ataprint.cpp`,
 
 Severities as in `references/report-format.md`:
 
-- **CRITICAL:** health that is not `PASSED` or `OK`.
+- **CRITICAL:** health that is `FAILED!`, or on a SAS or SCSI disk
+  anything but `OK`.
 - **WARN:** reallocated, pending, offline-uncorrectable or
   reported-uncorrect sectors, a grown defect list above 0, NVMe
   media errors above 0, or NVMe `Percentage Used` at 90 or more.
-- **Named as unknown**, never as passing: a disk whose health the
-  probe could not read. A sleeping disk is named as asleep.
+- **Named as unknown**, never as passing: a disk whose health line
+  is `UNKNOWN!` or missing. A sleeping disk is named as asleep.
 
 Record each disk's counts in the host's `memory.md` on the first
 run and whenever they change, so the next run can say whether they
