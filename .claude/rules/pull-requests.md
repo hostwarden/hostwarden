@@ -64,6 +64,7 @@ When auto mode blocks a step below — answering a thread,
 
 ## After a merge
 
-Before deleting the merged branch, run `gh pr list --base <branch>`:
-GitHub closes a pull request whose base branch disappears. Retarget
-each one with `gh pr edit <number> --base main` first.
+Before deleting the merged branch, run
+`gh pr list --base <branch> --limit 1000`, since the default stops at
+30: GitHub closes a pull request whose base branch disappears.
+Retarget each one with `gh pr edit <number> --base main` first.
