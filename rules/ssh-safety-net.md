@@ -17,13 +17,59 @@ ready. A tool that arms its own timed revert when it
 applies names an **apply and arm** and a **confirm**
 instead; they stand in for steps 4, 5 and 7 below.
 
+## Which way in
+
+The fresh login in step 6 tests only the path this session
+took, so find that path first. An `- Access:` line in memory
+that names this session's path answers it; otherwise, and to
+confirm, the server address in `SSH_CONNECTION` says it. Print
+it in the backup call of step 2:
+
+```bash
+echo "SSH_CONNECTION=$SSH_CONNECTION"
+```
+
+The third field is the address the session reached. A jump
+host or `ProxyCommand` hides the path behind it; check on the
+workstation, without connecting:
+
+```bash
+ssh -G <user>@<hostname> | grep -i -e '^proxyjump ' -e '^proxycommand '
+```
+
+A value other than `none` is the path, through that jump host
+or command. Otherwise the server address is:
+
+- an address of a VPN agent on the host → **that VPN**
+  (`rules/mesh-vpn.md`);
+- `127.0.0.1` or `::1` → **a local tunnel**, such as Cloudflare
+  Tunnel or a port forward;
+- a private or unique local address → **LAN** or a site VPN,
+  but a gateway that forwards the SSH port from the internet
+  leaves the same address behind: say unknown unless the
+  workstation's own configuration, or the user, says which;
+- `100.64.0.0/10` with no agent found → carrier-grade NAT or an
+  unknown VPN: say unknown;
+- anything else → **WAN**.
+
+A change to that path — its interface, its VPN agent, the
+firewall on it, the jump host — is the one that cuts this
+session. When memory knows no other way in, say so in step 1.
+Another path is tested only when it matters, with one access
+test (`rules/ssh-connections.md` → Fresh-login options): to the
+`- IP:` from memory or an address the user gives, never one read
+from the host, which may sit behind NAT; to a VPN address only
+when the workstation is in that VPN. Record the path and the
+tests in the `- Access:` line (`rules/server-memory.md`).
+
 ## The steps
 
 1. **Agree on it.** The change is the user's decision
    (`AGENTS.md` → Critical Safety Rules), and so is the
    window: say that the change undoes itself after five
    minutes, five to ten on FreeBSD (step 4), unless a new
-   login succeeds.
+   login succeeds. Name the path this session came in on
+   when the change touches it (Which way in above).
 2. **Back up** everything the change overwrites
    (`rules/backups.md`), and read in the same call whether
    the tool runs now and whether its loaded rules match the

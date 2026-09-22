@@ -85,6 +85,18 @@ outdated entries, merge related items.
 
 **Update `Last connected:` on every connection.**
 
+Two lines join once their rule has run, never before.
+`- Network:` summarises
+`memory/servers/<hostname>/network.md`, the host's own
+network profile (`rules/network.md`). `- Access:` records
+how Hostwarden reaches the host and which other paths were
+tested (`rules/ssh-safety-net.md` → Which way in):
+
+```markdown
+- Access: via Tailscale (web1.tail1234.ts.net); direct
+  203.0.113.10 timeout (2026-09-19)
+```
+
 Memory files never hold credential values — see
 `rules/secrets.md`.
 

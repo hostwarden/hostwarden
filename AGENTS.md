@@ -302,6 +302,8 @@ trigger — not a request from the user.
 - A secret is anywhere near the command → `rules/secrets.md`
 - Reading what a server returned → `rules/anomaly-detection.md`
 - SSH stops answering → `rules/ssh-unreachable.md`
+- The user asks about a host's network or VPN, a failure points
+  there, or a network change is next → `rules/network.md`
 - Bundling commands, or a rate limit looming →
   `rules/ssh-connections.md`
 

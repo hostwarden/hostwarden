@@ -359,10 +359,12 @@ Triggered when `memory.md` mentions WireGuard.
 wg show 2>/dev/null
 ```
 
-Check each peer's latest handshake timestamp.
+Check each peer's latest handshake timestamp. Without
+`persistent keepalive` on a peer, an old handshake only means no
+recent traffic.
 
-- **WARN** if any peer's last handshake was > 5 minutes ago (may
-  indicate connectivity issues)
+- **WARN** if a peer with `persistent keepalive` last shook hands
+  more than 5 minutes ago (may indicate connectivity issues)
 - Report interface names and peer handshake ages
 
 ## Pi-hole and AdGuard Home
