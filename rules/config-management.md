@@ -144,9 +144,15 @@ unreadable, `2>/dev/null` makes that look like absence, and
 system daemons a macOS agent is installed as. Run the probe
 through `sudo -n sh -c` where sudo is available
 (`rules/privilege-escalation.md`). Where it is not, say the check
-was partial and record `Config management: unknown (privileged
-paths unread, <date>)`, so that a later session with root looks
-again.
+was partial, and record
+`Config management: unknown (privileged paths unread, <date>)` only
+where the host has no answer yet, so that a later session with root
+looks again. An answer already in memory stands: a partial probe is
+a check that did not run, not a finding, and overwriting
+`ansible (scope: base, nginx)` with `unknown` would send the next
+session to change by hand what that tool owns. Since the first
+probe runs on every connection, an unprivileged session on a
+long-known host reaches this every time.
 
 Nothing found and nothing left unread: say nothing, record nothing —
 unless the user said a tool manages the host. What they said is a
