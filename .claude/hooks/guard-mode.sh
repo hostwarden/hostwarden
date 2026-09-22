@@ -359,7 +359,7 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
   # xargs -Is ssh s runs ssh. flock -c hands over the command as
   # its value; time takes a whole pipeline, negated too: time !
   # ssh. env -S puts the command it carries in its own place.
-  function cmdpos(a, n,   i, c, p, x) {
+  function cmdpos(a, n,   i, k, c, p, x) {
     i = 1
     while (i <= n && (a[i] == "" || a[i] ~ /^(!|do|then|else|elif|if|while|until)$/ || a[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) i++
     while (i <= n) {
@@ -385,6 +385,12 @@ FOUND=$(printf '%s' "$CMD" | awk -v tool="$TOOL" '
         else if (p-- < 1) break
       }
     }
+    # find runs the word after its first -exec.
+    c = a[i]
+    gsub(/^["\047]+|["\047]+$/, "", c)
+    if (i <= n && base(c) == "find")
+      for (k = i + 1; k <= n; k++)
+        if (a[k] ~ /^-(exec|execdir|ok|okdir)$/) return k + 1
     return i
   }
   function priv(w) { return w ~ /^--privileged/ && w != "--privileged=false" }
