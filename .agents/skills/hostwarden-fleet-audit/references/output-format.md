@@ -10,13 +10,22 @@ scannable.
 ## Fleet Audit
 
 Date: YYYY-MM-DD HH:MM
-Hosts in scope: host1, host2, host3
+Hosts in scope: host1, host2, host3, pve1, web1, db1
+On pve1: web1, db1 (via host)
 Skipped: host4.example.com (no SSH user known)
 ```
 
+One `On <host>:` line per group from the skill's step 1,
+naming its guests in scope and marking those reached through
+the host. A group whose host is skipped or outside this run
+keeps its line.
+
 ## One table per category
 
-Hosts are columns (sorted alphabetically). Settings are
+Hosts are columns, sorted alphabetically, except that each
+group's guests follow their host in alphabetical order, with
+`↳` in front of the name. They stand where their host would,
+whether or not it has a column in this table. Settings are
 rows. Use the literal value where short enough; otherwise
 abbreviate to `(see drift below)` and detail it in the drift
 section.
@@ -53,10 +62,20 @@ Two sentinels mark a cell that holds nothing to compare:
   `references/probes.md`). Render it as `needs root`.
 - `n/a (<reason>)` — the host's OS family has no such setting,
   such as the unattended-upgrades keys on Alpine, or a row only
-  another family has. Render it as `n/a`.
+  another family has, or a value a container takes from its
+  host (see "Containers" in `references/probes.md`). Render it
+  as `n/a`.
 
 ```
+| Setting             | host1             | host2      |
+|---------------------|-------------------|------------|
 | PermitRootLogin     | prohibit-password | needs root |
+```
+
+```
+| Setting              | host1  | pve1    | ↳ db1   |
+|----------------------|--------|---------|---------|
+| Active timesync unit | chrony | chrony  | n/a     |
 ```
 
 Both are **excluded from drift detection**: an unreadable or
