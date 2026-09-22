@@ -257,8 +257,10 @@ third party says so; check it on the live host before relying on it.
   Automatic Security Updates, Firewall Status, Kernel: Running vs
   Installed, Ubuntu Release and Support, and Critical Services:
   Running Binary vs Installed Package, which do not apply (see
-  What Does Not Apply and Updates). Housekeeping adds, as root, in
-  one call:
+  What Does Not Apply and Updates). Disk Usage runs with
+  `-x squashfs` added: a read-only root image is always full, and
+  its 100 % is no finding. Housekeeping adds, as root, in one
+  call:
   ```
   rauc status
   for p in / /etc /var /var/log /var/lib/casaos /DATA; do
@@ -274,7 +276,9 @@ third party says so; check it on the live host before relying on it.
   `.agents/skills/hostwarden-housekeeping/references/smart.md`; a
   missing `smartctl` is named, never read as healthy disks. The
   last column of the `docker ps` line is the apps directory in
-  use.
+  use. In unprivileged mode (see Access and Privileges) the call
+  runs as the user: `rauc status` and `docker ps` then fail, and
+  the report names them as not checked, never as clean.
 - Findings:
   - a pending OS update, or a host on a beta;
   - a slot that `rauc status` reports as bad;
