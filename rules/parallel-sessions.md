@@ -108,11 +108,15 @@ again after the host comes back.
 ## Hosts without a register
 
 Where the loaded OS file says a host has no register, the
-activity check's journal read (`rules/activity-check.md`) stands
-in for it: repeat it right before the first change. A Hostwarden
-entry from another operator in the last 30 minutes is a live
-session — name it and ask, as for a live entry above. One read
-covers every change the session then makes on that host.
+journal stands in for it (`rules/changelog.md`). Before its
+first change there, a session writes the line
+`[<operator> as <unix-user>] starting: <task>`, and its usual
+line once the change is done. Right before each change, read
+the journal as the activity check does
+(`rules/activity-check.md`): a `starting:` entry from another
+operator in the last 30 minutes, with no later entry of theirs,
+is a live session — name it and ask, as for a live entry
+above. A finished change is not.
 
 ## Talk to the other session
 

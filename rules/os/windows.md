@@ -149,7 +149,9 @@ through `rules/ssh-safety-net.md`. Its commands here:
   `DefaultShell` where there was none.
 - **Arm** (step 4): Windows has neither `systemd-run` nor `at`;
   a scheduled task run as SYSTEM five minutes from now stands
-  in for them. `$prev` is the `previous:` value. First read
+  in for them. The arm call reads the previous value itself —
+  it runs before Apply — and hands the revert to the task
+  encoded, so no value can break its quoting. First read
   whether a revert task is already there:
 
   ```powershell
@@ -161,11 +163,11 @@ through `rules/ssh-safety-net.md`. Its commands here:
   and ask — the journal shows nothing of that session until it
   is done. A task that already ran is left from a revert that
   fired: report when, and remove it with the cancel block before
-  arming.
+  arming. The arm call prints the revert command it armed
+  (`revert:`) and `armed:`; without both, stop before Apply.
 
   ```powershell
-  $prev = '<previous>'; $cmd = if ($prev) { "Set-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value '$prev'" } else { "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell" }
-  try { $sys = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-18').Translate([System.Security.Principal.NTAccount]).Value; Register-ScheduledTask -TaskName 'hostwarden-revert' -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -Command `"$cmd`"") -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5)) -Principal (New-ScheduledTaskPrincipal -UserId $sys -LogonType ServiceAccount -RunLevel Highest) -ErrorAction Stop | Out-Null; "armed: $((Get-ScheduledTask -TaskName 'hostwarden-revert' -ErrorAction Stop).State)" } catch { "failed: $_" }
+  try { $prev = (Get-ItemProperty 'HKLM:\SOFTWARE\OpenSSH' -ErrorAction Stop).DefaultShell; $cmd = if ($prev) { "Set-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value '" + ($prev -replace "'", "''") + "'" } else { "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell" }; "revert: $cmd"; $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd)); $sys = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-18').Translate([System.Security.Principal.NTAccount]).Value; Register-ScheduledTask -TaskName 'hostwarden-revert' -Action (New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -EncodedCommand $enc") -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5)) -Principal (New-ScheduledTaskPrincipal -UserId $sys -LogonType ServiceAccount -RunLevel Highest) -ErrorAction Stop | Out-Null; "armed: $((Get-ScheduledTask -TaskName 'hostwarden-revert' -ErrorAction Stop).State)" } catch { "failed: $_" }
   ```
 
 - **Apply** (step 5), as Microsoft's example does:
@@ -182,8 +184,11 @@ through `rules/ssh-safety-net.md`. Its commands here:
   leave the revert armed and let it fire, then report it. A
   restart of `sshd` needs the user's yes
   (`rules/service-reload.md`), and then the whole change runs
-  again with `; Restart-Service sshd` appended to `$cmd`, so the
-  revert brings the old shell back as well.
+  again with `; Restart-Service sshd` added twice: to `$cmd`
+  before it is encoded, so the revert brings the old shell back
+  as well, and to the Apply line, so the new value takes effect
+  before the fresh login tests it. The Apply call may end when
+  `sshd` restarts; the fresh login is what counts.
 - **Cancel** (step 7):
 
   ```powershell
