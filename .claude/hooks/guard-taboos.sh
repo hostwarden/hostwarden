@@ -401,7 +401,11 @@ WSL='(^|[^[:alnum:]_.-])wsl(config)?(\.exe)?["'"'"']?[[:space:]]'
 # A Windows server reached over SSH may see none of the first
 # three: it runs a bare shutdown /s as shutdown.exe.
 # Checking that once, without a process, keeps their greps off
-# every other call; the guard runs on each one.
+# every other call; the guard runs on each one. A Windows rule
+# whose word is missing here never runs, so a new rule adds its
+# word. Linux uses shutdown and ciphers too, so those two count
+# only in the form Windows gives them: a slash after shutdown,
+# a /w or -w after cipher.
 WIN=
 case "$CMD" in
 *[Ww][Ss][Ll]*|*.[Ee][Xx][Ee]*|*[Pp][Ww][Ss][Hh]*) WIN=1 ;;
@@ -409,8 +413,8 @@ case "$CMD" in
 *-[Cc][Oo][Mm][Pp][Uu][Tt][Ee][Rr]*|*-[Pp][Aa][Rr][Tt]*) WIN=1 ;;
 *-[Vv][Oo][Ll][Uu][Mm][Ee]*|*[Mm][Bb][Rr]2*) WIN=1 ;;
 *[Ff][Oo][Rr][Mm][Aa][Tt]*|*-[Ss][Tt][Oo][Rr][Aa][Gg][Ee]*) WIN=1 ;;
-*[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]*|*[Bb][Cc][Dd][Ee][Dd]*) WIN=1 ;;
-*[Cc][Ii][Pp][Hh][Ee][Rr]*) WIN=1 ;;
+*[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]*/*|*[Bb][Cc][Dd][Ee][Dd]*) WIN=1 ;;
+*[Cc][Ii][Pp][Hh][Ee][Rr]*[/-][Ww]*) WIN=1 ;;
 esac
 
 # True when command $1 occurs somewhere WITHOUT its read-only
@@ -422,6 +426,14 @@ esac
 # were both waved through because a bare -l existed anywhere.
 # A third argument i matches without regard to case, as Windows
 # reads its commands; both patterns are then written in lowercase.
+# awk -v reads backslash escapes, so a new pattern spells a literal
+# dot [.] rather than \. .
+#
+# An exemption anchored with ^ lists what every argument may be
+# rather than naming one read-only flag. It sees the line from
+# the character before the command on, hence ^[^[:alnum:]]?, and
+# the whole unsplit command is one of the lines, hence its end at
+# the next ; & or |.
 hit_without() {
   segments | grep -Eq${3:-} "$1" || return 1
   # The command IS present. From here on the only question is
@@ -501,7 +513,9 @@ fi
 # Windows reads shutdown in any case and takes its flags with / or
 # -, the dash only where shutdown.exe cannot be Linux's. /s and
 # /sg shut down, /p powers off at once and /h hibernates, even
-# beside a /r. Otherwise /r and /g restart and /a aborts.
+# beside a /r. Otherwise /r and /g restart and /a aborts. Both
+# rules must match every form the Linux rule hands over, and the
+# gate for WIN must let it through: widen all four together.
 WINSHUT='(^|[^[:alnum:]_-])shutdown(\.exe[[:space:]]+([^;&|]*[[:space:]])?[/-]|[[:space:]]+/([^;&|]*[[:space:]]/)?)'
 if [ -n "$WIN" ] \
   && hit_i "${WINSHUT}(s|sg|p|h)([[:space:]]|\$)"; then
@@ -635,10 +649,9 @@ fi
 # configuration, so the exemption holds only while each argument
 # up to the next ; & or | is one of those or no option at all:
 # bcdedit /v /set ... still edits.
-Q="'"
 if [ -n "$WIN" ] \
   && hit_without '(^|[^[:alnum:]_.-])bcdedit([.]exe)?([^[:alnum:]_.-]|$)' \
-  "^[^[:alnum:]]?bcdedit([.]exe)?([[:space:]]+(/(enum|v|store|[?])[\"$Q]*|[^/[:space:];&|-][^[:space:];&|]*))*[[:space:]]*([;&|]|\$)" i
+  "^[^[:alnum:]]?bcdedit([.]exe)?([[:space:]]+(/(enum|v|store|[?])[\"']*|[^/[:space:];&|-][^[:space:];&|]*))*[[:space:]]*([;&|]|\$)" i
 then
   deny "bcdedit beyond /enum and /v rewrites the boot \
 configuration and can leave the machine unbootable"
