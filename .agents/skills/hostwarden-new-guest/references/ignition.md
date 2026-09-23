@@ -102,10 +102,16 @@ there is exactly one per guest:
   (<https://github.com/coreos/fedora-coreos-docs/blob/main/modules/ROOT/pages/provisioning-proxmoxve.adoc>).
   Nothing goes into the Butane file.
 - **Proxmox VE, Flatcar:** its page says Ignition and regular
-  cloud-init cannot be combined, so `--ipconfig0` stays `ip=dhcp`
-  as that page has it, and the address is the networkd unit below.
-  The MAC is `macaddr=` on `--net0`, checked against the `net0:`
-  lines `references/proxmox.md` → Before the creation reads.
+  cloud-init cannot be combined, so the address is the networkd
+  unit below, and the creation call leaves `--ipconfig0` out
+  altogether. Even `ip=dhcp` is network configuration Proxmox VE
+  writes onto the cloud-init drive, and "writes no network
+  configuration for a NIC without one"
+  (`references/proxmox.md` → Creating it), so without it the unit
+  is the only one. The MAC is `macaddr=` on `--net0`, checked
+  against the `net0:` lines `references/proxmox.md` → Before the
+  creation reads. A Flatcar guest on DHCP keeps `ip=dhcp` as its
+  page has it.
 - **libvirt, both:** Ignition has no network key, and
   `network-config=` belongs to `--cloud-init`, which this path does
   not use. The address is the file below; the MAC is `mac=` on
