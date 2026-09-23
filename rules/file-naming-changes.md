@@ -243,6 +243,13 @@ re-pointed. A user's crontab is rewritten through
 which cron may not reread. A comment that merely
 mentions the old name stays.
 
+A file with a `deployed.md` entry changes in its
+master first (`rules/deployed-files.md`): the master
+moves to the new path under `files/` and takes the
+same rewrites, and the host is checked against it as
+Deploying, step 4, says before its entry takes the
+new path and hash.
+
 A systemd unit comes back in the state it had, never
 in a better one: a timer someone disabled on purpose
 stays disabled, so the rename cannot start a job

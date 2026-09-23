@@ -3,7 +3,8 @@ name: hostwarden-adopt
 argument-hint: "[path to the old Heinzel checkout]"
 description: Take over an existing Heinzel installation — copy its
   memory, access lists, overrides and trusted host keys into this
-  Hostwarden clone, rename what is found by name, build a per-host
+  Hostwarden clone, rename what is found by name, rebuild the copies
+  Heinzel kept of files on the servers into masters, build a per-host
   inventory of the scripts, configs, units and cron jobs Heinzel left
   on the servers, ask whether those should get Hostwarden's names on
   the hosts too, then onboard each host read-only as on its first
@@ -143,7 +144,10 @@ leads, the host confirms them.
    by target, and ask once; the user moves items between groups or
    drops them in the answer. A later run lists the same entries
    again, since the old checkout never changes: an item whose content
-   its target already holds is not proposed again.
+   its target already holds is not proposed again. A copy of a file
+   on a host, what renders one, a workstation script, an open plan
+   or evidence is not in the list either: step 6 places it without
+   a question (`references/masters.md`).
 
    - **A standard every server should meet** — packages, updates,
      time zone, mail route, what a new host always gets:
@@ -179,7 +183,7 @@ leads, the host confirms them.
    - **A lesson that belongs in the shipped rules**: a proposal for
      Hostwarden itself, named in the report for a pull request from a
      development checkout. Nothing is written here.
-   - **Anything else** — history, a finished or estate-wide plan,
+   - **Anything else** — history, a finished plan,
      anything about Heinzel itself, and whatever is no memory at all,
      such as brand assets: it stays in the old checkout and the
      report names it.
@@ -242,11 +246,20 @@ leads, the host confirms them.
    whenever this clone kept its own — the leads live in the records
    that were not copied.
 
+   **Rebuild Heinzel's copies** for every host of that set, one
+   skipped above included, always:
+   whatever Heinzel kept of the files its sessions wrote onto hosts
+   — in a host's directory or at the top of its `memory/` — moves
+   onto the layout of `rules/deployed-files.md`, each master with a
+   `deployed.md` entry the host confirms on its first connection.
+   `references/masters.md` has the mapping per kind of file.
+
    Then commit what the copy and the inventory wrote, as
    `rules/parallel-sessions.md` → The workspace says, with the
    message `Adopted <n> hosts from Heinzel (<path>)`. Name the
-   copied files that are not personal (`rules/server-memory.md` →
-   Personal versus shared) and each copied host's directory.
+   copied and rebuilt files that are not personal
+   (`rules/server-memory.md` → Personal versus shared) and each
+   copied host's directory.
 
 7. **Offer the coexistence rules.** Ask whether Heinzel stays in use
    during the transition. If it does, offer to copy the three files
@@ -406,8 +419,10 @@ leads, the host confirms them.
     A watcher the activity check found on a session tag gets a line
     under its host, as for web1 (`rules/heinzel-adoption.md`).
 
-    Add a line for each file an override needs and this clone lacks,
-    each `user.md` key the two checkouts set differently, what was
+    Add the lines for Heinzel's rebuilt copies
+    (`references/masters.md` → Report), a line for each file an
+    override needs and this clone lacks, each `user.md` key the two
+    checkouts set differently, what was
     left in the old checkout and each proposal for Hostwarden itself
     (step 4), and for each host still in the old checkout after a
     partial run. Say which of the two states the installation is in:

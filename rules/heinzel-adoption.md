@@ -212,7 +212,9 @@ Then one line for the outcome of the check:
 ```
 
 The first three settle it and the check does not run
-again; a renamed job's first run is followed up in
+again, but for an `unverified` entry still in
+`deployed.md` (Heinzel's copies, below); a renamed
+job's first run is followed up in
 `todo.md` (`rules/file-naming-changes.md` →
 Renaming scripts, units and cron files). A deferral
 does not: while that line reads
@@ -359,6 +361,77 @@ Two kinds of fact have another place:
   Cross-server facts) once this connection or the
   user confirms them; an unconfirmed one is named in
   the report and not recorded.
+
+## Heinzel's copies
+
+The adoption rebuilds the copies Heinzel kept of
+files on its hosts into masters, each recorded as an
+unverified entry (`rules/deployed-files.md` →
+Unverified entries; `hostwarden-adopt`,
+`references/masters.md`). The Heinzel check settles
+them from the host (`rules/heinzel-legacy.md` →
+Detect); nothing on the host changes for that. Per
+entry:
+
+- **Owned by a configuration management tool** —
+  its path lies in the scope of this host's
+  `Config management:` line, or this connection's
+  marker probe found the file
+  (`rules/config-management-changes.md`). The tool's
+  repository is its master, and a second one here
+  would be a second truth (`rules/deployed-files.md`
+  → What gets a master): the entry is removed, and
+  Heinzel's copy moves to the host's `notes/` as a
+  superseded copy, as below. This is checked first.
+- **Same hash as the master.** The entry gets the
+  host's mode, owner and hash, and the date of the
+  Heinzel changelog entry that deployed it, or
+  today's where none does.
+- **Another hash.** The host's file becomes the
+  master, and the entry is recorded from it as
+  above. For a fleet master other hosts list, that
+  is this host's variant under its own `files/`
+  (`rules/deployed-files.md` → Where the master
+  lives), and the fleet master stays. Otherwise
+  Heinzel's copy first moves to the host's `notes/`
+  as `<file name>.heinzel-superseded-<date>`, with
+  `-2` and on where that is taken, never dropped: it
+  may hold an intent the host lost. Then read every
+  such host file in one call, as root or through
+  `sudo -n` where needed, into its master's place
+  without printing it, and hash each against the
+  probe.
+  This is no drift resolution in the sense of
+  `rules/deployed-files.md` → Drift, which never
+  settles a difference on its own: Heinzel's copy
+  was never recorded as deployed, so there is no
+  deployed state for the host to have drifted from,
+  and the host's file is the only one known to run.
+  A host file `rules/secrets.md` counts as a secret
+  is not read: its entry is removed, and so is
+  Heinzel's copy, which holds the same credential and
+  never goes into `notes/` or anywhere else in the
+  workspace; the old checkout keeps it, untouched.
+  `memory.md` gets `- Note: not copied: <old
+  checkout>/memory/<path> (holds a credential)`, and
+  the report names the file as one to rebuild under
+  `rules/deployed-files.md` → Secrets.
+- **Missing on the host.** The entry is removed, and
+  the master moves to the host's `notes/` with the
+  date in its name — a fleet or cluster master only
+  once no entry lists it. Its absence is a lead the
+  host did not confirm (Record, above).
+- **Unread.** The entry stays unverified, and the
+  check records the deferral for privileged paths
+  (`rules/heinzel-legacy.md` → Detect).
+
+This connection's changelog entry names each note
+these write, which keeps it (`rules/server-memory.md`
+→ Notes and evidence).
+
+A file Heinzel wrote carries no marker; it gets one,
+like its own log tag, the next time its master
+changes and is deployed.
 
 ## On the workstation (local mode)
 

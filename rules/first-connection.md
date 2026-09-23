@@ -67,8 +67,11 @@ skip it.
    skip the step and read nothing.
 
    When it does apply: first connection, plus every
-   connection while a `deferred` line or an
-   unresolved inventory is there, and whenever the
+   connection while a `deferred` line, an unresolved
+   inventory or an unverified entry in the host's or
+   its cluster's `deployed.md`
+   (`rules/deployed-files.md` → Unverified entries) is
+   there, and whenever the
    user asks for it. One batched probe, silent unless
    it finds something, in step 7's call where possible
    (`rules/activity-check.md` → What rides in this
