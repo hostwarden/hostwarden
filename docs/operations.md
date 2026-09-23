@@ -331,7 +331,23 @@ that keeps updating.
    (e.g. `/servers/my-laptop/`). Alone on several
    machines, you may want your SSH usernames on all
    of them: delete the `/user.md` line.
-5. Every workspace commit is scanned for secrets by
+5. Hostwarden asks each of you once for a short
+   handle, such as `alice`, and keeps it as
+   `Operator:` in your `user.md`. It names you in
+   every journal entry (`[alice as root] …`) and
+   every decision you record, so the team can tell
+   whose work is whose, even when you all log in
+   as `root`. The handles in use are listed in the
+   shared `operators.md`, and one a teammate has
+   already taken is turned down. It lands
+   in the servers' journals, which keep it as long
+   as their logs are retained and wherever they are
+   shipped, so choose what you are comfortable
+   with there: initials or a code serve as well as
+   a name, and changing it later does not rewrite
+   old entries. Your full name, `Operator name:`,
+   stays for the email signature.
+6. Every workspace commit is scanned for secrets by
    [betterleaks](https://github.com/betterleaks/betterleaks),
    and every push scans the whole history again. A
    push without it is refused, and so is a commit once
@@ -365,9 +381,11 @@ the backup.
 
 ### What lives in `memory/`
 
-- `user.md` — SSH usernames and language
-  preference
+- `user.md` — SSH usernames, language preference,
+  your handle (`Operator:`) and full name
+  (`Operator name:`)
 - `blacklist.md`, `readonly.md` — access policies
+- `operators.md` — the team's handles in use
 - `service-policy.md` — per-service opt-out /
   opt-in for auto-reload and auto-restart
 - `servers/<hostname>/` — per-server memory,

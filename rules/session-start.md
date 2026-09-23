@@ -22,7 +22,8 @@ session left behind.
 
 Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`, and
-`memory/custom-rules/all.md` (if present), and glance at
+`memory/custom-rules/all.md` (if present), `memory/operators.md`
+where the workspace has a remote, and glance at
 `memory/servers/` and `memory/custom-rules/` to see what's there.
 
 **How:** read each file on its own, with whatever your harness
@@ -60,12 +61,43 @@ nothing when there are none. An override path that names nothing
 shipped is not an override in force: `rules/overrides.md` says
 what to do with it, and it is not "carry on".
 
+## The operator handle
+
+Where `rules/ssh-user.md` → Operator requires the `Operator:` line
+and `memory/user.md` has none, ask for it once the reads are in,
+before anything else, in one question of its own and in that
+file's interview format:
+*"Which short handle should Hostwarden record as yours? It goes
+into the journal of every server you change and into the shared
+workspace, so initials or a code will do."* Offer the current OS
+user where it fits the handle's format, and `Other…`.
+
+`memory/operators.md` is the team's shared list of handles in use,
+one `- <handle>` line each. Where the answer is on it, ask whether
+it is theirs; if not, it is taken, and ask again. A new handle is
+reserved before it is used: add its line, commit that file alone
+(`bin/hostwarden-sync commit "Operator: <handle>"
+memory/operators.md`) and push it (`rules/changelog.md` → The
+Workspace). A push the remote turns down means someone else pushed
+first: pull, check the list again, and push again.
+
+Only once a push has carried the reservation to the remote, write
+`Operator: <handle>` under `# Preferences` in `memory/user.md`,
+creating the file or the heading where it lacks them. Where the
+user declines the push or it cannot get through, write nothing
+there and say so: the session records `user` until then, and the
+next one asks again. A handle the list already holds as theirs,
+their own unpushed reservation included, still needs the list on
+the remote to carry it before it is written. An `Operator:` line
+the user wrote themselves that the list lacks is reserved the same
+way, without a question.
+
 ## What not to ask
 
-**Do not improvise setup questions.** If `memory/user.md` is
-missing *and* the session is about to reach a machine, follow the
-three-option interview in `rules/ssh-user.md` exactly, one question
-at a time.
+**Do not improvise setup questions.** If `memory/user.md` has no
+`Default:` line *and* the session is about to reach a machine,
+follow the three-option interview in `rules/ssh-user.md` exactly,
+one question at a time.
 
 An operations session that only reads or discusses the instruction
 set reaches no machine, so it gets no interview.

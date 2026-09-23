@@ -1,7 +1,10 @@
 # Preferences
 
 # Language: English
+# Operator: your-handle
+#   short; names you in journal entries and decisions
 # Operator name: Your Full Name
+#   for the email signature only
 # Greeting: Viele Grüße\nHostwarden   # default; override with your own close
 
 # SSH Users

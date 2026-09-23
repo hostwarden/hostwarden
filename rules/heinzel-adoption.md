@@ -297,10 +297,11 @@ these:
    this host, under the same test as the standing
    facts of 2; a decision there goes the way of the
    decisions below. An open plan becomes
-   `- Planned: <what> (user, <date>)`, removed once
-   it is done or the user drops it. Once written,
-   the section leaves the inventory, which is then
-   empty when no lead is left.
+   `- Planned: <what> (<operator>, <date>)`
+   (`rules/ssh-user.md` → Operator), removed once it
+   is done or the user drops it. Once written, the
+   section leaves the inventory, which is then empty
+   when no lead is left.
 
 Two kinds of standing text are not facts and never
 go into `memory.md`. Collect them from

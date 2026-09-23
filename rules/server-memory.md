@@ -311,7 +311,8 @@ default: it has no remote. A team gives it a private
 one, and then the split matters.
 
 **Always personal, never shared:** `memory/user.md`
-(SSH usernames and language), `memory/blacklist.md`,
+(SSH usernames, language, operator handle),
+`memory/blacklist.md`,
 `memory/readonly.md`, and the memory directory of
 anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname
@@ -322,7 +323,8 @@ directory has to be added there by hand.
 its masters and `decisions.md`, `memory/clusters/*/`,
 `memory/decisions/`, `memory/fleet/`, `memory/tools/`,
 `memory/plans/`, `memory/known_hosts`
-(`rules/host-keys.md`),
+(`rules/host-keys.md`), `memory/operators.md` (the
+handles in use, `rules/session-start.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 

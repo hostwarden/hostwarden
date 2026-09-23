@@ -4,10 +4,13 @@ All SSH usernames are stored in `memory/user.md` —
 never in server memory files. Read this file at the
 start of every session.
 
-The file has two parts:
+The file has two parts for SSH users:
 - **Default** — the fallback username.
 - **Per-server overrides** — `- hostname: username`
   entries.
+
+Beside them, under `# Preferences`, it holds the
+language and the operator handle (both below).
 
 ## Interview format
 
@@ -28,8 +31,8 @@ Detect the current OS user with `whoami`
 
 ### Case A — fresh install, server already specified
 
-`memory/user.md` does not exist **and** the user
-has already named a specific server
+`memory/user.md` has no `Default:` line **and** the
+user has already named a specific server
 (`<hostname>`). Ask **one** combined question so
 the user doesn't get two near-identical pickers
 in a row. Make it explicit in the question text
@@ -58,7 +61,7 @@ Which SSH username should hostwarden use for <hostname>?
 [1/2/3]:
 ```
 
-Write `memory/user.md` with the chosen name as
+Write the chosen name into `memory/user.md` as
 **both** `Default:` and the `- <hostname>:` entry,
 in a single file write.
 
@@ -70,8 +73,8 @@ write both in a single file write.
 
 ### Case B — fresh install, no server specified yet
 
-`memory/user.md` does not exist and the user ran
-`claude` / `opencode` with no target in mind.
+`memory/user.md` has no `Default:` line and the user
+ran `claude` / `opencode` with no target in mind.
 Ask only for the default:
 *"Which SSH username should Hostwarden use by
 default?"* with the same three options. Write
@@ -80,8 +83,8 @@ invent a per-server entry.
 
 ### Case C — default exists, first connection to a new server
 
-`memory/user.md` exists but has no entry for
-`<hostname>`. Ask the per-server question:
+`memory/user.md` has a `Default:` line but no
+entry for `<hostname>`. Ask the per-server question:
 *"Which SSH username should Hostwarden use for
 `<hostname>`?"* with:
 
@@ -145,3 +148,40 @@ files, log entries, config files, rule files.
 
 **When the user writes in a specific language:**
 respond in that language regardless of the setting.
+
+## Operator
+
+`Operator:` under `# Preferences` is a short handle
+for the person running Hostwarden — one word, lower
+case letters, digits and hyphens: `Operator: alice`.
+It is what `<operator>` stands for wherever
+Hostwarden records who did something: the journal
+prefix, a decision's `Decided:`, a `Planned:` line.
+
+- **Team mode** — the workspace has a remote
+  (`rules/server-memory.md` → Personal versus
+  shared): the line is required, one handle per
+  teammate, reserved in the shared
+  `memory/operators.md`. Where teammates share a
+  login such as `root`, `<unix-user>` cannot tell
+  them apart; the handle does. Where it is missing,
+  `rules/session-start.md` asks for it and reserves
+  it; until the reservation reaches the remote,
+  `<operator>` is `user`.
+- **Solo** — no remote: the line is optional. Where
+  it is missing, `<operator>` is `user`.
+
+The handle leaves the workstation: it is written
+into the journal of every host a session changes,
+which keeps it for as long as the host retains its
+logs and wherever they are shipped, and into the
+shared workspace. It is personal data wherever it
+identifies someone, so it is the person's own pick:
+initials or a code are as good as a name. Never
+propose a full name or derive the handle from
+`Operator name:`. A handle changed later does not
+reach entries already written.
+
+`Operator name:` is the full name for the email
+signature (`hostwarden-email`) and nothing else.
+Neither line stands in for the other.
