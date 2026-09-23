@@ -869,7 +869,8 @@ Row keys:
   says.
 - mkhomedir: on or off.
 - Rules with `ALL` as the command, per user or `%group`, with
-  `NOPASSWD` marked.
+  their run-as and `NOPASSWD` marked, root rules apart
+  (`rules/accounts-probe.md` → The Sudo Model).
 - Rules with `NOPASSWD` on selected commands.
 - Members of each `%group` a rule names, and whether the group
   is `local` or from the `directory`.
@@ -877,7 +878,8 @@ Row keys:
 - Local accounts, `name:uid`; which of them have keys is a
   per-host question for `hostwarden-security`, not a cell here.
 - `Defaults` of `!authenticate`, `targetpw` or `rootpw`, which
-  change whose password sudo asks for, if any.
+  change whose password sudo asks for, if any, and
+  `runas_default`.
 - Model: the `Accounts:` line from each host's `memory.md`,
   `(unset)` where it has none.
 
@@ -888,8 +890,9 @@ Highlight as drift:
 - A directory host whose daemon is not active, or that admits all
   directory users (realm, SSSD, nslcd or winbind access rule)
   while the others restrict them.
-- `NOPASSWD: ALL` on some hosts but not others, or granted to
-  different groups.
+- `NOPASSWD: ALL` as root on some hosts but not others, or granted
+  to different groups. A rule with another run-as target is
+  compared apart.
 - A local sudo rule for a named user on one directory host: a
   hand-made exception the directory does not control.
 - mkhomedir on some directory hosts but not others.

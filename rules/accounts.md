@@ -89,11 +89,11 @@ One line in `memory/servers/<hostname>/memory.md`:
 
 ```markdown
 - Accounts: directory (SSSD, AD example.com, access
-  simple:%linux-admins), sudo from sss + %linux-admins ALL in
-  /etc/sudoers.d/admins, mkhomedir on; local: deploy, rescue
+  simple:%linux-admins), sudo from sss + %linux-admins ALL (root)
+  in /etc/sudoers.d/admins, mkhomedir on; local: deploy, rescue
 - Accounts: role (root via principals), sudo unused
 - Accounts: local (team roster, certificates), sudo %sudo
-  NOPASSWD
+  NOPASSWD ALL (root)
 ```
 
 Three hosts, one line each. `local:` lists the local accounts

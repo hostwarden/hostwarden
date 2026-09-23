@@ -34,9 +34,18 @@ Always one line, such as `OK — local files` or
 cloud-init's default user, Hostwarden's own account, or accounts
 without a password.
 
-- `ALL ALL=(ALL) ALL` without `Defaults targetpw` or `rootpw` →
-  **CRITICAL**: every account becomes root with its own password.
-  With `targetpw` → **INFO**.
+The ratings below that speak of root apply to root rules only, as
+`rules/accounts-probe.md` → The Sudo Model defines them by their
+run-as. The same rule with another run-as target → **INFO**,
+naming the target: it gives what that account can do, and is rated
+again as that account's access where it is a service's. Name the
+run-as on every line: `deploy NOPASSWD ALL (root)`.
+
+- Every account may run `ALL` as root — `ALL ALL=(ALL) ALL`, or
+  any other run-as that names root: `(ALL:ALL)`, `(root)`, `(#0)`,
+  a group root belongs to, no run-as — without `Defaults targetpw`
+  or `rootpw` → **CRITICAL**: every account becomes root with its
+  own password. With `targetpw` → **INFO**.
 - `NOPASSWD: ALL` for people who log in with a key or certificate,
   one account or an admin group → **INFO**, with the names: a
   deliberate trade, whose key is a root key.
@@ -51,7 +60,9 @@ without a password.
   ask included, runs without a password.
 - A `NOPASSWD` command that can start a shell or write any file —
   an editor, a pager, a shell, an interpreter, `find`, `tar`, `cp`,
-  `tee` → **WARN**: the rule is as good as `ALL`.
+  `tee` → **WARN** in a root rule: the rule is as good as `ALL`.
+  With another run-as target it is as good as `ALL` as that
+  account, rated as above.
 - A parse error `visudo -c` reports → **WARN**: the part of the
   line with the error is not in effect, and a sudo older than
   1.9.3 refuses to run at all. A `skipped:` file → **WARN**: none
@@ -75,7 +86,8 @@ members are rated in `references/user-accounts.md` → macOS. AD
 groups with local admin rights (`dsconfigad -show`) → **INFO**,
 with their names. The same ratings apply to `doas` rules, on
 Alpine and wherever the probe prints `@doas`: `permit nopass` is
-`NOPASSWD`, a rule without `cmd` is `ALL`.
+`NOPASSWD`, a rule without `cmd` is `ALL`, and `as <target>` is the
+run-as, root where it is missing.
 
 ## Local Accounts
 

@@ -111,6 +111,7 @@ elif command -v visudo >/dev/null 2>&1; then
   [ -n "$F" ] && R=$($SUDO grep -HvE '^[[:space:]]*($|#([^0-9]|$))' $F)
   printf '%s\n' "$R"
   echo "@groups"
+  echo "root groups: $(id -Gn root | tr ' ' ,)"
   command -v getent >/dev/null 2>&1 && D= || D=dscl
   printf '%s\n' "$R" | sed -nE \
     's/^[^:]*:[[:space:]]*("%([^"]*)"|%(([^[:space:],\\]|\\.)+)).*/\2\3/p' \
@@ -385,17 +386,33 @@ which the files alone never show: `sudo -l -U <user>` as root;
 `sudo -n -l` as the account itself, which answers without a
 password only where some rule has `NOPASSWD`.
 
+**Run-as.** A rule makes its holder root only where its run-as
+list can name root: `ALL`, `root`, `#0`, a `%group` whose members
+include root (FreeBSD's `wheel` and macOS's `admin` do; the
+probe's `root groups:` line lists them all), a `Runas_Alias`
+holding any of these, or no run-as at all while `Defaults runas_default` is
+unset or root. `(backup)`, a list or alias of other accounts and
+groups without root, and `(:group)`, which sets only the group and
+runs as the calling user, do not; such a rule gives what its
+targets can do. A
+run-as applies to every command after it on the same line, up to
+the next one: `deploy ALL=(backup) NOPASSWD: /x, (root) ALL`
+holds both. For doas, a rule without `as`, or `as root`, is root.
+A rule that runs as root is a root rule below and in the ratings.
+
 **What to note per user or group:**
 
-- `ALL` or a list of commands, and a run-as other than root.
+- `ALL` or a list of commands, and the run-as of each.
 - `NOPASSWD` on `ALL`, on some commands, or none.
 - A password rule for people who log in only with a certificate:
   it works only where PAM checks a password they have, such as
   the directory's through SSSD. Otherwise the user chooses:
   `NOPASSWD` for that group only, which makes a certificate root
-  for its lifetime, or a password for each person.
+  for its lifetime where the rule is a root rule, or a password
+  for each person.
 - `Defaults !authenticate` (no password for anyone), `targetpw`
-  or `rootpw` (the target's or root's password). openSUSE ships
+  or `rootpw` (the target's or root's password), `runas_default`
+  (what a rule without a run-as runs as). openSUSE ships
   `ALL ALL=(ALL) ALL` together with `targetpw`.
 
 ## Local Accounts
