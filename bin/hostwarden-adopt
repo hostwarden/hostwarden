@@ -524,18 +524,21 @@ done
 # point ssh at memory/known_hosts (UserKnownHostsFile);
 # without the file, every login under it fails, or it
 # trusts whatever key the next connection is shown.
-# Only public lines come across — comments, host keys,
-# and @cert-authority and @revoked lines, the last so
-# that a key revoked there stays revoked here — and a
-# file holding a private key is not copied at all
-# (rules/secrets.md). grep, because it reads the file
-# without running anything it contains.
+# Only the records come across — host keys, and
+# @cert-authority and @revoked lines, the last so that
+# a key revoked there stays revoked here — cut after the
+# key: a comment, on its own line or after a key, can
+# hold anything, a password included, and this file is
+# shared. A file holding a private key is not copied at
+# all (rules/secrets.md). grep and sed, because they
+# read the file without running anything it contains.
 KH_SRC="$OLD/memory/known_hosts"
 KH_DST="memory/known_hosts"
 KH_KEY='[[:space:]]+(ssh-|ecdsa-|sk-)'
-KH_KEEP="^[[:space:]]*(#.*)?\$|^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+$KH_KEY|^[^@#[:space:]][^[:space:]]*$KH_KEY"
+KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+$KH_KEY|^[^@#[:space:]][^[:space:]]*$KH_KEY"
+KH_CUT='s/^((@[^[:space:]]+[[:space:]]+)?[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[^[:space:]]+).*/\1/'
 if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
-  # The public lines, read once; empty when there is
+  # The records, read once; empty when there is
   # nothing to copy.
   KH_PUB=''
   if [ ! -f "$KH_SRC" ]; then
@@ -543,8 +546,7 @@ if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
   elif grep -q 'PRIVATE KEY' "$KH_SRC"; then
     echo "skipped memory/known_hosts — it holds a private key; left in the old checkout" >&2
   else
-    KH_PUB=$(grep -E "$KH_KEEP" "$KH_SRC" || :)
-    printf '%s\n' "$KH_PUB" | grep -qE "$KH_KEY" || KH_PUB=''
+    KH_PUB=$(grep -E "$KH_KEEP" "$KH_SRC" | sed -E "$KH_CUT" || :)
     [ -n "$KH_PUB" ] || echo "skipped memory/known_hosts — no host key line in it" >&2
   fi
   if [ -z "$KH_PUB" ]; then
@@ -557,7 +559,7 @@ if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
   else
     KH_OUT=$(( $(grep -c '' "$KH_SRC") - $(printf '%s\n' "$KH_PUB" | grep -c '') ))
     KH_NOTE=''
-    [ "$KH_OUT" -le 0 ] || KH_NOTE=" (public lines only, $KH_OUT left out)"
+    [ "$KH_OUT" -le 0 ] || KH_NOTE=" (host keys only, $KH_OUT lines left out)"
     plan "known_hosts$KH_NOTE"
     if [ -z "$LIST" ]; then
       rm -rf "$KH_DST"
