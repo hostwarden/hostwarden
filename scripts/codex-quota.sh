@@ -6,7 +6,8 @@
 #
 # Exit status 3 is a usage error.
 #
-# Prints one line, one part per limit the CLI's account has. Exit
+# Prints one line: the account's single-bucket view first, whose
+# fields the fallback reads, then every other limit it lists. Exit
 # status: 0 when the backend allows ordinary usage, 1 when it does
 # not, 2 when that cannot be told (no CLI, not signed in with
 # ChatGPT, no or an unreadable answer, no verdict in it). Where the
@@ -139,17 +140,25 @@ try:
         err = answer["error"] if isinstance(answer["error"], dict) else {}
         done("unknown (%s)" % err.get("message", "error"), 2)
     result = answer.get("result") or {}
-    # rateLimits is the shared limit reviews run on; the others are
-    # model-specific and only reported.
+    # rateLimits is the single-bucket view whose fields the fallback
+    # below reads, so it is always printed, first; the other limits
+    # are only reported, under the name the backend gives them.
     shared = result.get("rateLimits")
-    buckets = result.get("rateLimitsByLimitId") or {"codex": shared}
-    buckets = {k: v for k, v in buckets.items() if isinstance(v, dict)}
-    if not isinstance(shared, dict) or not buckets:
+    if not isinstance(shared, dict):
         done("unknown (no limit in the answer; signed in with ChatGPT?)", 2)
-    summary = " | ".join(
-        "%s: %s" % (name, "; ".join(window(w) for w in windows(snap))
-                    or "no window reported")
-        for name, snap in sorted(buckets.items()))
+    others = result.get("rateLimitsByLimitId") or {}
+    others = {k: v for k, v in others.items()
+              if isinstance(v, dict) and v != shared}
+
+    def part(key, snap):
+        name = snap.get("limitName") or snap.get("limitId") or key
+        slug = snap.get("normalModelSlug")
+        return "%s%s: %s" % (name, " (%s)" % slug if slug else "",
+                             "; ".join(window(w) for w in windows(snap))
+                             or "no window reported")
+
+    summary = " | ".join([part("shared", shared)]
+                         + [part(k, v) for k, v in sorted(others.items())])
     # Redeeming a reset credit is the person's decision; this only
     # says that one exists.
     free = (result.get("rateLimitResetCredits") or {}).get("availableCount")
@@ -164,13 +173,17 @@ try:
     # count only where it gives none, and then only towards
     # "reached".
     allowed = result.get("ordinaryUsageAllowed")
+    reason = [r for r in (shared.get("rateLimitReachedType"),
+                          shared.get("spendControlReached") and "spend control")
+              if r]
     if allowed is True:
         done(summary, 0)
     if allowed is False:
-        done("limit reached: " + summary, 1)
-    if shared.get("rateLimitReachedType") or shared.get("spendControlReached") \
-            or any((used(w) or 0) >= 100 for w in windows(shared)):
-        done("limit reached: " + summary, 1)
+        done("limit reached (%s): %s"
+             % (", ".join(reason) or "usage not allowed", summary), 1)
+    if reason or any((used(w) or 0) >= 100 for w in windows(shared)):
+        done("limit reached (%s): %s"
+             % (", ".join(reason) or "a window at 100%", summary), 1)
     done("unknown (no verdict from the backend): " + summary, 2)
 except Exception as e:
     done("unknown (%s: %s)" % (type(e).__name__, e), 2)

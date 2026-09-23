@@ -141,10 +141,10 @@ Passes, here and on a fix commit, run like this:
   not complete. A run that is still writing is working, however
   long it takes.
 - **A question about a finding** — why that priority, whether a
-  sibling is affected — goes to the same session afterwards where
-  the reviewer's subsection says how, before the answers are
-  given. It draws on the same limit, so it is asked only when the
-  answer changes what gets fixed. A question that gets no answer
+  sibling is affected — goes to the reviewer afterwards where its
+  subsection says how, before the answers are given. It draws on
+  the same limit, so it is asked only when the answer changes what
+  gets fixed. A question that gets no answer
   changes nothing: the finding is answered without it, and a usage
   limit goes to a person as under Capacity.
 - **On GitHub otherwise,** asked as the reviewer's subsection says.
@@ -175,10 +175,15 @@ Passes, here and on a fix commit, run like this:
 
 - **Model:** `<model>` is `gpt-6-sol`, `<effort>` is `medium`.
   This line is the only place to change them. The commands below
-  use the placeholders and set both on every call, since a
-  `review_model` or `model` in a user's Codex configuration would
-  otherwise win. A review only finds; the newest frontier model is
-  not needed for it.
+  use the placeholders and set them, and the provider `openai`, on
+  every call, since a user's Codex configuration — `model`,
+  `review_model`, `model_provider` — would otherwise win. The rest
+  of that configuration stays, the sign-in's store included. A
+  run's log header must show `provider: openai`, `model: <model>`
+  and `reasoning effort: <effort>`; a run whose header shows other
+  values is stopped and is no round. The `## Review` line takes
+  model and effort from that header. A review only finds; the
+  newest frontier model is not needed for it.
 - **Capacity:** `sh scripts/codex-quota.sh --model <model>` reads
   the limits of the account the CLI is signed in to, at no cost:
   what is used of each window, when it resets, and any reset
@@ -196,19 +201,24 @@ Passes, here and on a fix commit, run like this:
 
       git worktree add --detach <scratch>/codex-<run> <head sha> &&
         codex exec -C <scratch>/codex-<run> review \
-        --base hostwarden/<base> -c review_model=<model> \
+        -c model_provider=openai \
+        --base hostwarden/<base> -m <model> -c review_model=<model> \
         -c model_reasoning_effort=<effort> \
         -o <scratch>/codex-<run>.md \
         > <scratch>/codex-<run>.log 2>&1
 
   The run completed only when it exited 0 and left `<run>.md` not
   empty; otherwise `<run>.log` says why. The log's header names the
-  `session id`. A question about a finding is written to a file,
-  since finding text carries quotes, and resumes it; it has an
-  answer only when the command exits 0 and leaves the answer file
-  not empty:
+  `session id`. That session holds the review's output, not the
+  reviewer's own thread, which ran apart from it: a question
+  resumed there is answered by a model that reads the finding and
+  the code again, not by the one that found it. The question is
+  written to a file, since finding text carries quotes; it has an
+  answer only when the command exits 0, leaves the answer file not
+  empty, and its log header shows the same three values:
 
       codex exec -C <scratch>/codex-<run> resume <session id> - \
+        -c model_provider=openai \
         -c model=<model> -c model_reasoning_effort=<effort> \
         -o <scratch>/codex-<run>-a<k>.md \
         < <scratch>/codex-<run>-q<k>.md \
