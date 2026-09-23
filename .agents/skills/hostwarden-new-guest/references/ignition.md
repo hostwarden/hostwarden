@@ -33,17 +33,15 @@ documentation at the time of the creation
 ## The rendered file
 
 `rules/baseline.md` → Rendered Versions names it; `<family>` is
-`fcos` or `flatcar`. Render, number
-and compare it as `references/user-data.md` → Rendering it says;
-only the keys differ, and the guest's own hostname and address go
-on the copy there. The transpiled `.ign` is a build product of
-that copy and is not kept.
+`fcos` or `flatcar`. Render, number, compare, write and copy it as
+`references/user-data.md` → Rendering it says; only the keys
+differ. The guest's own hostname — `/etc/hostname` under
+`storage.files` — and a static address (A static address, below)
+go on the copy, not into the numbered file. The transpiled `.ign`
+is a build product of that copy and is not kept.
 
-It is written and copied as `references/user-data.md` → Rendering
-it says, for the same reason.
-
-An example carrying the baseline's Admin Keys, SSH Login and
-Journal sections:
+An example of the numbered file, carrying the baseline's Admin
+Keys, SSH Login and Journal sections:
 
 ```yaml
 variant: fcos
@@ -68,10 +66,6 @@ storage:
         inline: |
           [Journal]
           Storage=persistent
-    - path: /etc/hostname
-      mode: 0644
-      contents:
-        inline: web1.example.com
 ```
 
 - `passwd.users` with `ssh_authorized_keys` is the login
@@ -94,7 +88,75 @@ storage:
   first key login. Say that in one line when the question comes
   up, rather than hashing anything.
 - A service the baseline needs goes under `systemd.units` with
-  `enabled: true`; a file under `storage.files`.
+  `enabled: true`, a file under `storage.files`, a symbolic link
+  under `storage.links`.
+
+## A static address
+
+Only for a static address; DHCP needs none of this. Which way the
+address reaches the guest depends on the platform and the OS, and
+there is exactly one per guest:
+
+- **Proxmox VE, Fedora CoreOS:** `--ipconfig0 ip=192.0.2.23/24,gw=192.0.2.1`
+  in the creation call, as its Proxmox VE page does
+  (<https://github.com/coreos/fedora-coreos-docs/blob/main/modules/ROOT/pages/provisioning-proxmoxve.adoc>).
+  Nothing goes into the Butane file.
+- **Proxmox VE, Flatcar:** its page says Ignition and regular
+  cloud-init cannot be combined, so `--ipconfig0` stays `ip=dhcp`
+  as that page has it, and the address is the networkd unit below.
+  The MAC is `macaddr=` on `--net0`, checked against the `net0:`
+  lines `references/proxmox.md` → Before the creation reads.
+- **libvirt, both:** Ignition has no network key, and
+  `network-config=` belongs to `--cloud-init`, which this path does
+  not use. The address is the file below; the MAC is `mac=` on
+  `--network`, picked and checked as `references/libvirt.md` →
+  Creating it says.
+
+The file goes under `storage.files` on this guest's copy, and it
+matches the interface by that MAC: the predictable name is not
+known before the first boot.
+
+Fedora CoreOS: a NetworkManager keyfile, mode `0600`
+(<https://docs.fedoraproject.org/en-US/fedora-coreos/sysconfig-network-configuration/>,
+<https://networkmanager.dev/docs/api/latest/nm-settings-keyfile.html>):
+
+```yaml
+storage:
+  files:
+    - path: /etc/NetworkManager/system-connections/hostwarden.nmconnection
+      mode: 0600
+      contents:
+        inline: |
+          [connection]
+          id=hostwarden
+          type=ethernet
+          [ethernet]
+          mac-address=52:54:00:12:34:56
+          [ipv4]
+          address1=192.0.2.23/24,192.0.2.1
+          dns=192.0.2.53;
+          may-fail=false
+          method=manual
+```
+
+Flatcar: a systemd-networkd unit
+(<https://www.flatcar.org/docs/latest/os-config/network/network-config-with-networkd/>,
+`systemd.network(5)`):
+
+```yaml
+storage:
+  files:
+    - path: /etc/systemd/network/10-hostwarden.network
+      mode: 0644
+      contents:
+        inline: |
+          [Match]
+          MACAddress=52:54:00:12:34:56
+          [Network]
+          Address=192.0.2.23/24
+          Gateway=192.0.2.1
+          DNS=192.0.2.53
+```
 
 ## Transpiling and checking it
 
@@ -231,8 +293,16 @@ finding of this run.
   (<https://www.flatcar.org/docs/latest/>). Add none. At After
   creation, `timedatectl` on the guest says which service runs and
   whether the clock is synchronized, and that is what is recorded.
-- **Timezone:** a `/etc/localtime` link under `storage.files`,
-  only where the override names one.
+- **Timezone:** only where the override names one, a link under
+  `storage.links`
+  (<https://docs.fedoraproject.org/en-US/fedora-coreos/time-zone/>):
+
+  ```yaml
+  storage:
+    links:
+      - path: /etc/localtime
+        target: ../usr/share/zoneinfo/Europe/Berlin
+  ```
 - **Journal:** the drop-in above.
 - **Guest Agent:** not in either image. On Fedora CoreOS it is an
   OS extension, installed by a systemd unit that runs `rpm-ostree`
@@ -246,23 +316,36 @@ finding of this run.
 
 `SKILL.md` → After creation, with two differences.
 
-There is no `cloud-init status --wait`. Ignition runs before the
-root filesystem is handed to systemd, so the guest is done when it
-answers on SSH with the keys from the config. The wait is one call
-on the host, not an SSH retry:
+There is no `cloud-init status --wait`, and no guest agent to ask.
+Ignition runs before the root filesystem is handed to systemd, so
+the guest is done when a login with the config's keys succeeds.
+Never loop on the SSH port to find out: fail2ban and sshd's
+`PerSourcePenalties` count a connection that does not log in
+(`rules/ssh-unreachable.md`). Wait two minutes on the host, in one
+call:
 
 ```bash
-timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
+sleep 120
 ```
 
-Run it again where it ends first, then report. A guest that never
-answers has an Ignition failure on its console, which the
+Then log in, as `SKILL.md` → After creation step 2 says. A slow
+guest may still be booting, so keep going within the same first-boot
+window the other paths wait, about ten minutes in all:
+
+- a refused or timed-out connection reached no sshd and counts for
+  nothing — try again a minute later;
+- a login sshd rejects is the one outcome never retried: it counts
+  towards fail2ban, and a wrong key stays wrong. Stop and read why.
+
+When the window is over without a login, report it. A guest that
+never answers has an Ignition failure on its console, which the
 hypervisor shows: read it there rather than guessing, then fix the
 Butane file and create the guest again.
 
 Hostwarden has no family file for an image-based CoreOS. Detection
 knows that and stops at its no-family path
-(`rules/os-detection.md`, step 2): generic commands, extra
+(`rules/first-detection.md` → On first connection, step 2): generic
+commands, extra
 verify-before-running care, and the user told. Record
 `- Origin: <image file>` and `- Baseline: <version> (created
 <date>)` as usual, and say in one line at the hand-over that the

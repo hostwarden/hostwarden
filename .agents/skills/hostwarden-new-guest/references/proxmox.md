@@ -27,7 +27,8 @@ grep -hE '^(net0|scsi0|rootfs):' /etc/pve/qemu-server/*.conf \
   inventory.
 - `pvesm status --content <type> --enabled 1` lists the storages
   for one content type: `images` for a VM disk, `rootdir` for a
-  container, `vztmpl` for templates, `snippets` for user-data.
+  container, `vztmpl` for templates, `snippets` for user-data,
+  `iso` for an installer and its answer ISO.
 - The config lines name the bridge and storage the other guests
   use: the defaults.
 
@@ -38,6 +39,34 @@ grep -hE '^(net0|scsi0|rootfs):' /etc/pve/qemu-server/*.conf \
 Download it on the node into `/var/lib/vz/import/`, the directory
 of `local`'s `import` content, creating it where that content is
 not enabled, and verify it (`references/images.md`).
+
+An image prepared before its first boot (`references/image-prep.md`)
+is copied first, in the same call as the first `virt-customize`
+(`virt-sysprep` stays alone in a call of its own), so the verified
+original stays as it was:
+
+```bash
+cp /var/lib/vz/import/<image> /var/lib/vz/import/<vmid>-<image>
+```
+
+That copy is what `import-from` takes. In the creation call below,
+its `--scsi0` line becomes this one, and the copy goes as soon as
+the import has succeeded, since `import-from` leaves its source in
+place and each prepared guest would otherwise keep a second full
+image on the node:
+
+```bash
+qm set <vmid> --scsi0 <storage>:0,import-from=/var/lib/vz/import/<vmid>-<image> && rm /var/lib/vz/import/<vmid>-<image>
+```
+
+Such an image carries its own seed, so its VM gets no cloud-init
+drive, no `--cicustom` and no `--ipconfig0`. In the creation call
+below, the `--ide2` line keeps only `--boot order=scsi0`, the
+`--ipconfig0` and `--cicustom` lines go, and so do the `grep` and
+`sha256sum` of the snippet check. A second NoCloud source would
+compete with the one inside the image. It takes its address by
+DHCP: where the user asked for a static one, say in the plan that
+this path cannot give it.
 
 ### The user-data snippet
 
@@ -132,13 +161,70 @@ code, `out-data` its output. Judge cloud-init by the first
 object's `exitcode`, not by the call's exit status, and use the
 key only when that is 0.
 
-### A VM that reads something other than cloud-init
+### A VM that reads Ignition
 
-Fedora CoreOS and Flatcar read an Ignition config
-(`references/ignition.md` → Proxmox VE), and a VM installed from
-an installer ISO reads an answer file
-(`references/answer-files.md` → Proxmox VE and Incus). Each names
-the options it changes; everything else above is unchanged.
+Fedora CoreOS and Flatcar read an Ignition config: one `qm set`
+changes, named in `references/ignition.md` → Proxmox VE, and
+everything else above is unchanged.
+
+## A VM from an installer ISO
+
+A guest installed rather than imported gets a creation of its own:
+an empty disk, no cloud-init drive, no `import-from`, no
+`--cicustom` and no `--ipconfig0`. Its network comes from the
+answer file (`references/answer-files.md`). Before the creation
+above still gives the ID, the capacity and the defaults.
+
+Both ISOs go on one storage with `iso` content, `<iso storage>`
+below: `local`, with `/var/lib/vz/template/iso/`, by default, or
+the one `pvesm status --content iso --enabled 1` names. It is
+chosen apart from `<storage>`, the VM disk's. Copy the answer ISO there
+first with `scp`, built on the workstation as
+`references/seed-iso.md` says. Then one call downloads the
+installer ISO there, verifies it with a keyring of its own as
+`references/images.md` → Keys on the host says, and creates the
+VM, each step joined to the next with `&&`, so a failed check or a
+failed step creates nothing further:
+
+```bash
+qm create <vmid> --name web1 --memory 2048 --cores 2 \
+  --cpu x86-64-v2-AES --scsihw virtio-scsi-pci --ostype l26 \
+  --net0 virtio,bridge=vmbr0 --agent enabled=1 --onboot 1 &&
+qm set <vmid> --scsi0 <storage>:20 &&
+qm set <vmid> --ide2 <iso storage>:iso/<installer iso>,media=cdrom &&
+qm set <vmid> --ide3 <iso storage>:iso/<answer iso>,media=cdrom &&
+qm set <vmid> --boot 'order=scsi0;ide2'
+```
+
+- `<storage>:20` allocates a new, empty 20 GiB disk
+  (<https://pve.proxmox.com/pve-docs/qm.1.html>).
+- `order=scsi0;ide2`: the empty disk boots nothing, so the first
+  start falls through to the installer; after the install the disk
+  boots, and the installer never runs twice.
+- No `--vga serial0`: the user needs the web UI's console for the
+  installer's boot menu.
+
+The installer reads the answer ISO only once its kernel command
+line names it, and Hostwarden cannot edit the installer ISO's boot
+menu. So the user adds that argument once, at the VM's console in
+the web UI, as `references/answer-files.md` → A host whose UI owns
+the guests says. Say so in the plan, and start the VM only once the
+user is at the console. Every answer file installs
+`qemu-guest-agent` and the baseline starts it, so the wait is the
+agent's, as in Waiting for the first boot above, never a loop on
+the SSH port. The start, the wait and the cleanup are one call;
+`<iso dir>` is the ISO directory of the storage the ISOs went to:
+
+```bash
+qm start <vmid> && timeout 570 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null; do sleep 15; done' && qm set <vmid> --delete ide2,ide3 && rm <iso dir>/<answer iso>
+```
+
+An install often outlasts one call. When the wait ends first, the
+next call repeats it without `qm start`; the cleanup still runs
+only after it succeeds. The answer ISO names the guest and is read
+once, so it goes with the drives. Then cloud-init's status and the
+host key come from `qm guest exec`, as Waiting for the first boot
+says.
 
 ## A container from the baseline template
 

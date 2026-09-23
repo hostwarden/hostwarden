@@ -196,8 +196,11 @@ for preseed, `<family>-autoinstall-<n>.yaml` for Ubuntu's
 autoinstall and `<family>-ay-<n>.xml` for AutoYaST.
 
 Where a manager holds a rendering as a named object of its own, an
-Incus profile for instance, the name is
-`hostwarden-baseline-<family>-<n>` and the object is never edited
+Incus profile for instance, it is named after the rendering it
+holds, `hostwarden-baseline-<rendering>` with that file's name
+without its extension: `hostwarden-baseline-debian-3` for a VM,
+`hostwarden-baseline-debian-ct-3` for a container. The two differ
+in content, so they never share a name. The object is never edited
 afterwards: a new version is a new object.
 
 A host's `# baseline` block is not part of any of it: the guest

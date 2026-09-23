@@ -17,11 +17,12 @@ the disk of a guest that exists.
 
 ## Which image, and the copy
 
-Work on the copy the platform's reference already makes for this
-guest — `references/libvirt.md` → The disk, and the `import-from`
-of `references/proxmox.md`. The verified original stays untouched,
+Work on a copy made for this guest, never on the verified original,
 so the next guest starts from a file whose checksum still matches
-the list.
+the list: `references/libvirt.md` → The disk, or
+`references/proxmox.md` → The image, which says what changes in
+the creation there. The commands below name the libvirt copy; on
+Proxmox VE they take that copy's path.
 
 A checksum recorded in memory afterwards is the original's, not the
 copy's, so the guest's memory records

@@ -24,7 +24,7 @@ are there.
    ```
    ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
      'echo @release; freebsd-version;' \
-     'grep -E "^(ID|ID_LIKE|VERSION_ID|PRETTY_NAME|OS_VERSION|OS_IS_BETA)=" /etc/os-release;' \
+     'grep -E "^(ID|ID_LIKE|VARIANT_ID|VERSION_ID|PRETTY_NAME|OS_VERSION|OS_IS_BETA)=" /etc/os-release;' \
      'sw_vers -productVersion; echo @hardware; df -h /;' \
      'nproc; grep -c "^processor" /proc/cpuinfo; free -h;' \
      'grep -m1 "model name" /proc/cpuinfo;' \

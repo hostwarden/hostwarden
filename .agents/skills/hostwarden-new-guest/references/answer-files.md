@@ -47,9 +47,6 @@ names — the hostname in the installer's network line, the
 `instance-id` in the seed — go on a copy at hand-off and are never
 numbered.
 
-They are written and copied as `references/user-data.md` →
-Rendering it says, for the same reason.
-
 ## Kickstart — RHEL, Rocky, AlmaLinux, Fedora
 
 Syntax: <https://pykickstart.readthedocs.io/en/latest/>.
@@ -362,18 +359,11 @@ that dead end stands: say so, and let them decide.
 
 ### Proxmox VE and Incus
 
-A Proxmox VE VM takes the installer ISO as `--ide2 <storage>:iso/…`
-and the answer ISO as a second CD drive. Attaching the ISO is not
-enough: the installer reads it only when the kernel command line
-names it, and Proxmox VE boots the installer ISO's own menu, which
-Hostwarden cannot edit. So this is the route of a host whose UI
-owns the guests, above: the user opens the VM's console
-(`qm terminal <vmid>` or the web UI's), adds the argument there
-once — `autoinstall` for Ubuntu, `inst.ks=hd:<device>:<path>` or
-`autoyast=device://<device>/<file>` for the others — and preseed
-is not offered, for the same reason as there. Say this in the plan,
-and start the VM only once the user is at the console. The rest of
-`references/proxmox.md` is unchanged.
+A Proxmox VE VM installed from an ISO has a creation of its own,
+with the answer ISO on its second CD drive:
+`references/proxmox.md` → A VM from an installer ISO. The boot
+argument is the user's, as on a host whose UI owns the guests
+above, and preseed is not offered there either.
 
 Incus and LXD create from images, not installers, and have no path
 here: use `references/incus.md`.
@@ -402,17 +392,17 @@ check is the wrapper's: `cloud-init schema` reads the body under
 
 ## After creation
 
-`SKILL.md` → After creation, with one difference: no manager
-command enters the guest, and an install outlasts a call. The wait
-is for the guest's SSH port, from the host:
+`SKILL.md` → After creation, with one difference: an install
+outlasts a call. Every answer file here installs
+`qemu-guest-agent`, and the baseline starts it at the first boot,
+so the wait is the platform's own agent loop:
+`references/libvirt.md` → Waiting for the first boot, or
+`references/proxmox.md` → A VM from an installer ISO. Never a loop
+on the SSH port: fail2ban and sshd's `PerSourcePenalties` count a
+connection that does not log in (`rules/ssh-unreachable.md`).
 
-```bash
-timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
-```
-
-Run it again where it ends first, then report; then go on at step
-2 with `-o StrictHostKeyChecking=accept-new` and
-`cloud-init status --wait --long` over SSH.
+Run the wait again where it ends first, then report; then go on at
+step 2 as the platform's reference says.
 
 The guest's memory gets `- Origin: <installer image>` beside the
 baseline line, so the next session knows it was installed rather
