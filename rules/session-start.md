@@ -60,12 +60,24 @@ nothing when there are none. An override path that names nothing
 shipped is not an override in force: `rules/overrides.md` says
 what to do with it, and it is not "carry on".
 
+## The operator handle
+
+When the workspace has a remote and `memory/user.md` has no
+`Operator:` line, ask for it once the reads are in, before anything
+else, in one question of its own:
+*"Which short handle should Hostwarden record as yours in journal
+entries and decisions?"* Offer the workstation's login (`id -un`)
+and `Other…`. Write the answer as `Operator: <handle>` under
+`# Preferences` in `memory/user.md`, creating the file or the
+heading where it lacks them, and ask no more about it
+(`rules/ssh-user.md` → Operator). Without a remote, ask nothing.
+
 ## What not to ask
 
-**Do not improvise setup questions.** If `memory/user.md` is
-missing *and* the session is about to reach a machine, follow the
-three-option interview in `rules/ssh-user.md` exactly, one question
-at a time.
+**Do not improvise setup questions.** If `memory/user.md` has no
+`Default:` line *and* the session is about to reach a machine,
+follow the three-option interview in `rules/ssh-user.md` exactly,
+one question at a time.
 
 An operations session that only reads or discusses the instruction
 set reaches no machine, so it gets no interview.

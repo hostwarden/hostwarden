@@ -96,10 +96,12 @@ Applies to: Appliance: Proxmox VE
 - **The heading** names the decision and is its identifier, with
   the file's path below `memory/` after it:
   `No local firewall (servers/pve1.example.com/decisions.md)`.
-- **`Decided:`** who and when. Who is the operator name from
-  `memory/user.md`, `user` where it has none. A decision carried
-  over from Heinzel keeps the date of Heinzel's record:
-  `user, 2026-09-18, from Heinzel`.
+- **`Decided:`** who and when. Who is `<operator>`, the
+  `Operator:` handle from `memory/user.md`, or `user` where a
+  workspace without a remote has none (`rules/ssh-user.md` →
+  Operator). A decision carried over from Heinzel names the
+  operator who carries it over and keeps the date of Heinzel's
+  record: `alice, 2026-09-18, from Heinzel`.
 - **`Why:`** the user's reason, in their words, one or two lines.
   Never invent one; where the user gives none, write
   `Why: not given`.

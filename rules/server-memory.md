@@ -311,7 +311,9 @@ default: it has no remote. A team gives it a private
 one, and then the split matters.
 
 **Always personal, never shared:** `memory/user.md`
-(SSH usernames and language), `memory/blacklist.md`,
+(SSH usernames, language and the operator handle
+each teammate is recorded by, `rules/ssh-user.md` →
+Operator), `memory/blacklist.md`,
 `memory/readonly.md`, and the memory directory of
 anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname

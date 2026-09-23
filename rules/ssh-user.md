@@ -4,10 +4,13 @@ All SSH usernames are stored in `memory/user.md` —
 never in server memory files. Read this file at the
 start of every session.
 
-The file has two parts:
+The file has two parts for SSH users:
 - **Default** — the fallback username.
 - **Per-server overrides** — `- hostname: username`
   entries.
+
+Beside them, under `# Preferences`, it holds the
+language and the operator handle (both below).
 
 ## Interview format
 
@@ -28,8 +31,8 @@ Detect the current OS user with `whoami`
 
 ### Case A — fresh install, server already specified
 
-`memory/user.md` does not exist **and** the user
-has already named a specific server
+`memory/user.md` has no `Default:` line — or does
+not exist — **and** the user has already named a specific server
 (`<hostname>`). Ask **one** combined question so
 the user doesn't get two near-identical pickers
 in a row. Make it explicit in the question text
@@ -58,7 +61,7 @@ Which SSH username should hostwarden use for <hostname>?
 [1/2/3]:
 ```
 
-Write `memory/user.md` with the chosen name as
+Write the chosen name into `memory/user.md` as
 **both** `Default:` and the `- <hostname>:` entry,
 in a single file write.
 
@@ -70,7 +73,8 @@ write both in a single file write.
 
 ### Case B — fresh install, no server specified yet
 
-`memory/user.md` does not exist and the user ran
+`memory/user.md` has no `Default:` line and the
+user ran
 `claude` / `opencode` with no target in mind.
 Ask only for the default:
 *"Which SSH username should Hostwarden use by
@@ -80,8 +84,8 @@ invent a per-server entry.
 
 ### Case C — default exists, first connection to a new server
 
-`memory/user.md` exists but has no entry for
-`<hostname>`. Ask the per-server question:
+`memory/user.md` has a `Default:` line but no
+entry for `<hostname>`. Ask the per-server question:
 *"Which SSH username should Hostwarden use for
 `<hostname>`?"* with:
 
@@ -145,3 +149,31 @@ files, log entries, config files, rule files.
 
 **When the user writes in a specific language:**
 respond in that language regardless of the setting.
+
+## Operator
+
+`Operator:` under `# Preferences` is a short handle
+for the person running Hostwarden — one word, lower
+case letters, digits and hyphens: `Operator: alice`.
+It is what `<operator>` stands for wherever
+Hostwarden records who did something: the journal
+prefix `[<operator> as <unix-user>]` and its mirror
+in `changelog.log` (`rules/changelog.md`), a
+decision's `Decided:` (`rules/decisions.md`), and a
+`Planned:` line (`rules/heinzel-adoption.md` →
+Heinzel's memory).
+
+- **Team mode** — the workspace has a remote
+  (`rules/server-memory.md` → Personal versus
+  shared): the line is required, and each teammate's
+  `user.md`, which is personal, carries a handle of
+  their own. Where it is missing,
+  `rules/session-start.md` asks for it.
+- **Solo** — no remote: the line is optional. Where
+  it is missing, `<operator>` is `user`.
+
+`Operator name:` is a different line: the full name
+the email signature carries (`hostwarden-email`),
+and nothing else uses it. Never stand one in for the
+other — neither the full name as `<operator>` nor
+the handle in a signature.

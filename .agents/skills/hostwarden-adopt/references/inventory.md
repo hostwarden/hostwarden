@@ -57,7 +57,7 @@ hostwarden-adopt. Not verified against the host.
 ## Facts
 - Maintenance window Sunday 02:00–04:00, from Heinzel's
   auto-memory (maintenance-windows.md, 2026-08-17)
-- Planned: move the database to db2 (user, 2026-08-20)
+- Planned: move the database to db2 (alice, 2026-08-20)
 ```
 
 `## Facts` holds what the adoption sorted out of Heinzel's other

@@ -96,7 +96,8 @@ leads, the host confirms them.
    keeps this clone's version of anything that already holds user
    data and says so; `--list` shows the plan without copying. A
    `user.md` of this clone's own is the exception: it gains the lines
-   it lacks — language, operator name, per-server SSH users — and a
+   it lacks — language, operator name and handle, per-server SSH
+   users — and a
    key the two set differently is kept here and reported. Put each
    of those to the user in the report; change `user.md` only on
    their answer.
@@ -170,9 +171,12 @@ leads, the host confirms them.
      break-glass access, a firewall between sites, which host backs
      up which: `memory/network.md` (`rules/server-memory.md` →
      Cross-server facts).
-   - **About the operator** — language, name, how they want to be
-     written to: `memory/user.md`, under `# Preferences`, where
-     `rules/session-start.md` reads it; the rest is dropped.
+   - **About the operator** — language, full name as
+     `Operator name:`, how they want to be written to:
+     `memory/user.md`, under `# Preferences`, where
+     `rules/session-start.md` reads it; the rest is dropped. The
+     handle, `Operator:`, is the operator's own pick, never derived
+     from a name (`rules/ssh-user.md` → Operator).
    - **A lesson that belongs in the shipped rules**: a proposal for
      Hostwarden itself, named in the report for a pull request from a
      development checkout. Nothing is written here.

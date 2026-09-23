@@ -51,8 +51,10 @@ dropping requests — because deploys used to restart \
 the app and interrupt visitors"
 ```
 
-- `<operator>` is the operator name from
-  `memory/user.md`; `<unix-user>` is the account the
+- `<operator>` is the `Operator:` handle from
+  `memory/user.md`, `user` where a workspace
+  without a remote has none (`rules/ssh-user.md` →
+  Operator); `<unix-user>` is the account the
   commands ran as (`root`, `alice`, …). Always
   include both, even when they are identical — the
   prefix is what lets admins tell each other's work
