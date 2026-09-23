@@ -41,8 +41,9 @@ of `local`'s `import` content, creating it where that content is
 not enabled, and verify it (`references/images.md`).
 
 An image prepared before its first boot (`references/image-prep.md`)
-is copied first, in the same call as its preparation, so the
-verified original stays as it was:
+is copied first, in the same call as the first `virt-customize`
+(`virt-sysprep` stays alone in a call of its own), so the verified
+original stays as it was:
 
 ```bash
 cp /var/lib/vz/import/<image> /var/lib/vz/import/<vmid>-<image>
@@ -53,7 +54,8 @@ call that imports it. Such an image carries its own seed, so
 its VM gets no cloud-init drive, no `--cicustom` and no
 `--ipconfig0`, and the snippet check after Creating it does not
 apply: a second NoCloud source would compete with the one inside
-the image. It takes its address by DHCP.
+the image. It takes its address by DHCP: where the user asked for
+a static one, say in the plan that this path cannot give it.
 
 ### The user-data snippet
 
@@ -168,16 +170,16 @@ first with `scp`, built on the workstation as
 `references/seed-iso.md` says. Then one call downloads the
 installer ISO there, verifies it with a keyring of its own as
 `references/images.md` → Keys on the host says, and creates the
-VM, each step joined to the next with `&&`, so a failed check
-creates nothing:
+VM, each step joined to the next with `&&`, so a failed check or a
+failed step creates nothing further:
 
 ```bash
 qm create <vmid> --name web1 --memory 2048 --cores 2 \
   --cpu x86-64-v2-AES --scsihw virtio-scsi-pci --ostype l26 \
-  --net0 virtio,bridge=vmbr0 --agent enabled=1 --onboot 1
-qm set <vmid> --scsi0 <storage>:20
-qm set <vmid> --ide2 local:iso/<installer iso>,media=cdrom
-qm set <vmid> --ide3 local:iso/<answer iso>,media=cdrom
+  --net0 virtio,bridge=vmbr0 --agent enabled=1 --onboot 1 &&
+qm set <vmid> --scsi0 <storage>:20 &&
+qm set <vmid> --ide2 local:iso/<installer iso>,media=cdrom &&
+qm set <vmid> --ide3 local:iso/<answer iso>,media=cdrom &&
 qm set <vmid> --boot 'order=scsi0;ide2'
 ```
 
@@ -194,17 +196,22 @@ line names it, and Hostwarden cannot edit the installer ISO's boot
 menu. So the user adds that argument once, at the VM's console in
 the web UI, as `references/answer-files.md` → A host whose UI owns
 the guests says. Say so in the plan, and start the VM only once the
-user is at the console. The start, the wait for the guest's SSH
-port and the cleanup are one call:
+user is at the console. Every answer file installs
+`qemu-guest-agent` and the baseline starts it, so the wait is the
+agent's, as in Waiting for the first boot above, never a loop on
+the SSH port. The start, the wait and the cleanup are one call;
+`<iso dir>` is the ISO directory of the storage the ISOs went to:
 
 ```bash
-qm start <vmid> && timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done' && qm set <vmid> --delete ide2,ide3 && rm /var/lib/vz/template/iso/<answer iso>
+qm start <vmid> && timeout 570 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null; do sleep 15; done' && qm set <vmid> --delete ide2,ide3 && rm <iso dir>/<answer iso>
 ```
 
 An install often outlasts one call. When the wait ends first, the
 next call repeats it without `qm start`; the cleanup still runs
 only after it succeeds. The answer ISO names the guest and is read
-once, so it goes with the drives.
+once, so it goes with the drives. Then cloud-init's status and the
+host key come from `qm guest exec`, as Waiting for the first boot
+says.
 
 ## A container from the baseline template
 

@@ -146,15 +146,17 @@ guest has no such mechanism, the files are the user's to place
 1. **Wait for the first boot** in one call on the host, as the
    reference shows: a loop there, not an SSH retry
    (`rules/ssh-unreachable.md`). What that call waits for is the
-   form's own signal — cloud-init reporting done, Ignition the
-   guest answering on SSH with the config's keys, an installer the
-   reboot at the end of the install. Where the manager can enter
-   the guest — `pct exec`, `qm guest exec`, `incus exec` — the
-   same call waits for `cloud-init status --wait --long` and reads
-   the public host key; read-only, and only on the guest this run
-   created. A call that ends before the signal — out of time, or
-   cut by the reboot `package_reboot_if_required` may cause — is
-   run once more, then reported.
+   form's own signal — cloud-init reporting done, the guest agent
+   answering after an install, and for Ignition, which has neither,
+   a fixed wait before the first login. Never a loop on the SSH
+   port, which fail2ban and sshd's `PerSourcePenalties` count.
+   Where the manager can enter the guest — `pct exec`,
+   `qm guest exec`, `incus exec` — the same call waits for
+   `cloud-init status --wait --long` and reads the public host key;
+   read-only, and only on the guest this run created. A call that
+   ends before the signal — out of time, or cut by the reboot
+   `package_reboot_if_required` may cause — is run once more, then
+   reported.
 2. **The first login.** Add the host key to `~/.ssh/known_hosts`
    for the name and the address, then log in as usual. Where the
    manager cannot read the key (libvirt), the first login accepts

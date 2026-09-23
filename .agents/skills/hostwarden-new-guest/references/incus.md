@@ -86,7 +86,11 @@ One profile per rendered version, named as
 afterwards. The launch above makes a container, so it takes the
 container rendering's profile; with `--vm` it takes the VM
 rendering's. It is created in the same call as the launch, which
-gains `-p default -p hostwarden-baseline-debian-ct-3`:
+gains `-p default -p hostwarden-baseline-debian-ct-3`, and whose
+`cloud-init.user-data` then carries only this guest's copy — its
+hostname and network — never the rendered baseline a second time:
+the two are merged, and a key in both is replaced rather than
+added to:
 
 ```bash
 incus profile create hostwarden-baseline-debian-ct-3 --project <project>

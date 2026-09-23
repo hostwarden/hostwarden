@@ -316,17 +316,22 @@ finding of this run.
 
 `SKILL.md` → After creation, with two differences.
 
-There is no `cloud-init status --wait`. Ignition runs before the
-root filesystem is handed to systemd, so the guest is done when it
-answers on SSH with the keys from the config. The wait is one call
-on the host, not an SSH retry:
+There is no `cloud-init status --wait`, and no guest agent to ask.
+Ignition runs before the root filesystem is handed to systemd, so
+the guest is done when a login with the config's keys succeeds.
+Never loop on the SSH port to find out: fail2ban and sshd's
+`PerSourcePenalties` count a connection that does not log in
+(`rules/ssh-unreachable.md`). Wait two minutes on the host, in one
+call:
 
 ```bash
-timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
+sleep 120
 ```
 
-Run it again where it ends first, then report. A guest that never
-answers has an Ignition failure on its console, which the
+Then log in once, as `SKILL.md` → After creation step 2 says. A
+refused or timed-out connection reached no sshd and counts for
+nothing; try once more after a minute, then report. A guest that
+never answers has an Ignition failure on its console, which the
 hypervisor shows: read it there rather than guessing, then fix the
 Butane file and create the guest again.
 

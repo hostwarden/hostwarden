@@ -392,17 +392,17 @@ check is the wrapper's: `cloud-init schema` reads the body under
 
 ## After creation
 
-`SKILL.md` → After creation, with one difference: no manager
-command enters the guest, and an install outlasts a call. The wait
-is for the guest's SSH port, from the host:
+`SKILL.md` → After creation, with one difference: an install
+outlasts a call. Every answer file here installs
+`qemu-guest-agent`, and the baseline starts it at the first boot,
+so the wait is the platform's own agent loop:
+`references/libvirt.md` → Waiting for the first boot, or
+`references/proxmox.md` → A VM from an installer ISO. Never a loop
+on the SSH port: fail2ban and sshd's `PerSourcePenalties` count a
+connection that does not log in (`rules/ssh-unreachable.md`).
 
-```bash
-timeout 570 sh -c 'until nc -z 192.0.2.21 22; do sleep 15; done'
-```
-
-Run it again where it ends first, then report; then go on at step
-2 with `-o StrictHostKeyChecking=accept-new` and
-`cloud-init status --wait --long` over SSH.
+Run the wait again where it ends first, then report; then go on at
+step 2 as the platform's reference says.
 
 The guest's memory gets `- Origin: <installer image>` beside the
 baseline line, so the next session knows it was installed rather
