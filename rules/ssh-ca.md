@@ -59,15 +59,18 @@ separately; a host may have either, both or neither.
 
 ## Host Certificate
 
-No root needed: certificates, known-hosts files and timers are
-public. In the host's first bundled call:
+A certificate counts for what sshd serves, not for what lies on
+disk. Two probes find out.
+
+The public one needs no root and no sshd configuration —
+certificates, known-hosts files and timers are world-readable. It
+runs in the host's first bundled call:
 
 ```bash
 for c in /etc/ssh/*-cert.pub /usr/local/etc/ssh/*-cert.pub; do
   [ -e "$c" ] || continue
   echo "hostcert: $c"
   ssh-keygen -L -f "$c"
-  ssh-keygen -lf "${c%-cert.pub}.pub"
 done
 for f in /etc/ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts2 \
   /usr/local/etc/ssh/ssh_known_hosts /usr/local/etc/ssh/ssh_known_hosts2; do
@@ -92,16 +95,47 @@ grep -lisE 'ssh.*cert|cert.*ssh|step ssh|/sign|renew' /etc/crontab \
 date '+now: %Y-%m-%dT%H:%M:%S'
 ```
 
-With root, `hostcertificate` lines from the User CA Trust probe
-name the certificates sshd serves; one outside these directories,
-and the path the host's `SSH host cert:` line names, is read the
-same way. A run without them — housekeeping, or no root — rates
-everything below but whether sshd serves the certificate. Read
-from the output:
+The serving one reads sshd's effective configuration from `OUT`,
+as User CA Trust below does, and runs in the same place, once per
+daemon: its `hostcertificate` lines name what that daemon
+presents, its `hostkey` lines the keys they must belong to.
+`sshd -G` prints them without root from OpenSSH 9.3 on.
 
+```bash
+printf '%s\n' "${OUT:-}" | grep -i '^hostkey ' | cut -d' ' -f2- \
+  | while read -r k; do
+  [ -e "$k.pub" ] && echo "hostkey: $k $(ssh-keygen -lf "$k.pub" \
+    | cut -d' ' -f2)"
+done
+[ -n "${SUDO+x}" ] || { [ "$(id -u)" = 0 ] && SUDO= || SUDO=-; }
+R=$SUDO; [ "$R" != - ] || R=
+printf '%s\n' "${OUT:-}" | grep -i '^hostcertificate ' \
+  | cut -d' ' -f2- | while read -r c; do
+  if $R test -e "$c"; then echo "served: $c"
+    $R ssh-keygen -L -f "$c"
+  elif [ "$SUDO" = - ]; then echo "served: $c unchecked (no root)"
+  else echo "served: $c MISSING"; fi
+done
+```
+
+Read from the two:
+
+- **Served, or not:** a certificate a `served:` line names — for
+  any daemon — is served. A `hostcert:` file no `served:` line
+  names is not, where every daemon's configuration was read, and
+  `serving unknown` where one was not. A run that never reads it —
+  housekeeping, or OpenSSH before 9.3 without root — takes the
+  certificate the host's `SSH host cert:` line names as the served
+  one, since that line records only a certificate a run saw
+  served. A path it names outside the two directories is read in
+  a call of its own, after checking that it is an absolute path
+  of letters, digits and `._/-` only: a memory value is data
+  (`rules/anomaly-detection.md`).
 - **Type** says `host certificate`.
-- **Public key:** its fingerprint equals the one of the key beside
-  it. Otherwise no client can verify the certificate.
+- **Public key:** its fingerprint equals one `hostkey:` line's,
+  the key sshd pairs it with. Without a `hostkey:` line — no
+  `.pub` beside the key, or no `OUT` — the match is `unchecked`;
+  the certificate's name says nothing about its key.
 - **Signing CA:** compared with the host CAs in
   `memory/network.md`.
 - **Principals:** every name a client verifies the host by. That
@@ -131,23 +165,28 @@ from the output:
   `Match` applies to those targets only. `ssh -G` is not used for
   it: it runs the command of a `Match exec` line.
 
-Findings:
+Findings for a served certificate:
 
-- Expired, not yet valid, or not matching its key → **CRITICAL**:
-  clients that know the host only through the CA stop connecting.
+- Expired, not yet valid, or matching none of sshd's host keys →
+  **CRITICAL**: clients that know the host only through the CA
+  stop connecting.
+- `MISSING`, checked with root: sshd names a certificate that is
+  not there → **CRITICAL**: it serves the plain key, with the same
+  effect. Without root, a file the SSH user cannot see reads
+  `unchecked (no root)`, never `MISSING`.
 - Less than a third of its lifetime left → **WARN**: the renewal
   is overdue.
 - `forever` → **WARN**: it can only be revoked on every client.
 - No renewal job, as the user confirms, or one that does not
   reload sshd → **WARN**.
-- A certificate on disk that no `hostcertificate` line names →
-  **INFO**: sshd does not serve it. Only where the
-  `hostcertificate` lines were read.
-- A certificate the host's `SSH host cert:` line names that the
-  probe no longer finds → **WARN**; the line is not rewritten to
-  `none` until the user says the certificate is gone.
 - A name from the list above missing from the principals →
   **INFO**; for the name clients verify by, **WARN**.
+
+A certificate sshd does not serve is **INFO** and nothing more:
+no client ever sees it. The certificate the host's
+`SSH host cert:` line names being gone, or no longer served, is
+**WARN**; the line is not rewritten to `none` until the user says
+so.
 
 ## User CA Trust
 
@@ -339,8 +378,8 @@ cannot write reports the gap.
   someone once connected. One
   `@cert-authority` line in the global known-hosts file serves
   every account on the server; lines in single users' files are
-  forgotten for service accounts. The Host Certificate probe
-  prints the file and its lines as `clientca`. Missing: offer the
+  forgotten for service accounts. The public Host Certificate
+  probe prints the file and its lines as `clientca`. Missing: offer the
   line, for the host CA's patterns in the form Host Certificates
   in `rules/host-keys.md` gives, never `*`. It is a trust change:
   ask, back up (`rules/backups.md`), append, and check it on the
@@ -359,9 +398,11 @@ cannot write reports the gap.
   and the host certificate among what the new system needs back
   (`hostwarden-os-install`).
 - **A new guest's host certificate:** Hostwarden signs none. After
-  the guest's first login, give the user its host public keys
-  (`/etc/ssh/ssh_host_*_key.pub`) and the principals to sign, as
-  Host Certificate lists them, and record
+  the guest's first login, give the user the public keys of the
+  host keys sshd loads — the `hostkey:` lines of the serving
+  probe in Host Certificate, which on a guest this run created are
+  the image's `/etc/ssh/ssh_host_*_key.pub` — and the principals
+  to sign, as Host Certificate lists them, and record
   `SSH host cert: none, keys handed to sign <date>`. The user
   installs the certificate and its `HostCertificate` line; the next
   run that probes the host finds it.
@@ -373,7 +414,8 @@ cannot write reports the gap.
 ## Memory
 
 Per host, in `memory/servers/<hostname>/memory.md`, one line per
-direction, only where present:
+direction, only where present. `SSH host cert:` names a
+certificate sshd serves, never one that only lies on disk:
 
 ```markdown
 - SSH host cert: ed25519 /etc/ssh/ssh_host_ed25519_key-cert.pub,

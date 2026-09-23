@@ -18,7 +18,8 @@ Many checks in this audit work without root:
   checks, world-writable system files, SUID/SGID audit, mount
   options, unowned files, fail2ban status (`systemctl`,
   `rc-service`), macOS checks (SIP, FileVault, Gatekeeper), host
-  certificates (`*-cert.pub` is public).
+  certificates (`*-cert.pub` is public; which one sshd serves
+  comes with `sshd -G`).
 - **Needs root:** `sshd -T`, evaluating sshd's `Match` blocks
   (`sshd -T -C`), the user CA's key file, principals files and
   revocation list where only root reads them, other accounts' SSH

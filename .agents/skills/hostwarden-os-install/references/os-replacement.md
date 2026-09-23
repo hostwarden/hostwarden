@@ -75,9 +75,11 @@ system before it is wiped. Store it in
 - SSL/TLS certificates and keys
   (`/etc/letsencrypt/`, `/usr/local/etc/ssl/`)
 - SSH host keys (`/etc/ssh/ssh_host_*`) — save if
-  you want to avoid host key change warnings. A host
-  certificate (`*-cert.pub`) goes with its key; a new
-  key needs a newly signed one
+  you want to avoid host key change warnings. The host
+  certificate sshd serves goes with the key it belongs
+  to, paired by fingerprint as `rules/ssh-ca.md` →
+  Host Certificate does, not by file name; a new key
+  needs a newly signed one
 - SSH CA trust: run the Host Certificate and User CA
   Trust probes of `rules/ssh-ca.md` now, whatever the
   host's memory says — a missing `SSH user CA:` line

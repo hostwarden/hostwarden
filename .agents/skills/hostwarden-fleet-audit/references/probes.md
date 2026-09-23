@@ -217,18 +217,21 @@ printf '%s\n' "$OUT" | grep -i \
     -e '^port '
 ```
 
-After it, in the same section, run the Host Certificate probe
-of `rules/ssh-ca.md`, its User CA Trust probe, which reuses
-`OUT`, and, in a call of its own, since
+After it, in the same section, run the two probes of
+`rules/ssh-ca.md` → Host Certificate, public and serving, its
+User CA Trust probe, which reuses `OUT`, and, in a call of its
+own, since
 the bundle runs `awk`, its `cert-authority` grep, whose keys are
 fingerprinted on the workstation as that file says. Their
 `hostcert`, `clientca`, `userca`, `krl` and `cert-authority`
 lines, and the
 `trustedusercakeys`, `authorizedprincipals…` and `revokedkeys`
-values, are rows of the same table; for a host certificate, its
-signing CA and the end of its `Valid:` line. The host certificate
-and client CA rows need no root and are filled on a host whose
-sshd column is `unknown(needs-root)`; after
+values, are rows of the same table; for a host certificate sshd
+serves, its signing CA and the end of its `Valid:` line, and a
+certificate that is not served is a note, not a row. With
+`sshd -G`, the host certificate rows need no root; the client CA
+rows never do, and are filled on a host whose sshd column is
+`unknown(needs-root)`; after
 `unknown(sshd-failed)` the CA rows read the same, never
 "defaults" or "no user CA". What these rows find stays in the
 report: the fleet audit writes no memory.
@@ -283,8 +286,8 @@ Highlight as drift:
   **CRITICAL**.
   Hosts that trust a user CA without `revokedkeys`
   cannot revoke at all; list them too.
-- Host certificates on some hosts but not others, or
-  signed by different CAs. One that ends much earlier
+- Served host certificates on some hosts but not others,
+  or signed by different CAs. One that ends much earlier
   than the rest usually has a renewal job that stopped.
 - A different `clientca`, or none, on hosts whose memory
   says they open SSH connections to others.

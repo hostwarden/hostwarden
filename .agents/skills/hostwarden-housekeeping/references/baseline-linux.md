@@ -530,9 +530,14 @@ echo | openssl s_client -connect localhost:443 \
 
 Only where the host's memory has an `SSH host cert:` line, or a
 host CA of the user's covers the host (`rules/ssh-ca.md` →
-Terms). Run the Host Certificate probe of
-`rules/ssh-ca.md`, which needs no root, in the same call as the
-TLS check above, and rate it with the findings listed there.
+Terms). Run the public probe of `rules/ssh-ca.md` → Host
+Certificate, which needs no root, in the same call as the TLS
+check above. Without sshd's configuration it rates the certificate
+the memory line names, which a security audit or onboarding saw
+served, with the findings listed there, reading a path outside the
+probe's two directories as that section says; any other
+certificate it finds is `serving unknown` until the next of those
+runs.
 
 ## Kernel: Running vs Installed
 
