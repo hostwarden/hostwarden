@@ -43,7 +43,10 @@ What only a full VM can answer goes to a test clone
 sh scripts/check.sh
 ```
 
-That is what CI runs.
+That is what CI runs. An agent session runs only its secret scan,
+`sh scripts/check.sh --pre-commit`, and not the hooks above: it
+pushes and reads CI
+([pull-requests.md](.claude/rules/pull-requests.md#checks)).
 
 ## What goes where
 
@@ -57,7 +60,7 @@ files it governs. Read the one that covers what you change:
 - [repo-release.md](.claude/rules/repo-release.md) for releases,
   CI and the checks;
 - [pull-requests.md](.claude/rules/pull-requests.md) for taking a
-  pull request from open to merged.
+  pull request from open to merged, checks included.
 
 Claude Code loads them on its own; every other tool has to be
 pointed at them.

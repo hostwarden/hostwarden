@@ -2,9 +2,9 @@
 # release-test.sh — dev-only fixture matrix for how a copy of
 # Hostwarden gets its releases: bin/hostwarden-mirror,
 # bin/hostwarden-update and check-updates.sh, with follow.sh
-# between them. Run before committing a change to any of them:
-#   sh .claude/hooks/release-test.sh
-# Not invoked by Claude Code at runtime.
+# between them. CI runs it through scripts/check.sh; an agent
+# session leaves it to CI (.claude/rules/pull-requests.md →
+# Checks). Not invoked by Claude Code at runtime.
 #
 # Everything runs against throwaway repositories under a temp
 # directory: an upstream, a bare mirror of it, and a production

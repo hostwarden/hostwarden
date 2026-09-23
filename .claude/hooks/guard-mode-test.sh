@@ -1,10 +1,11 @@
 #!/bin/sh
 # guard-mode-test.sh — dev-only fixture matrix for mode.sh,
 # guard-mode.sh, session-mode.sh, bin/hostwarden-init,
-# bin/hostwarden-sync and bin/hostwarden-lab. Run before committing
-# a change to any of them:
-#   sh .claude/hooks/guard-mode-test.sh
-# Not invoked by Claude Code at runtime.
+# bin/hostwarden-sync and bin/hostwarden-lab. CI runs it through
+# scripts/check.sh; an agent session leaves it to CI
+# (.claude/rules/pull-requests.md → Checks), except while building a
+# guard patch in a scratch clone. Not invoked by Claude Code at
+# runtime.
 #
 # Each mode gets a throwaway checkout of its own under a temp
 # directory, because the mode is a property of the tree the hook

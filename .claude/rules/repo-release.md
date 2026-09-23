@@ -85,19 +85,8 @@ layer, and they stay.
 
 `.github/workflows/ci.yml` runs `scripts/check.sh` and nothing
 else; its `step` lines are the list of checks. Add a new check
-there, never to the workflow alone. Run it once per push, right
-before it, not after every commit:
-
-    sh scripts/check.sh
-
-With the git hooks from `CONTRIBUTING.md` set up, the push runs it
-itself, narrowed to what the push carries; then do not run it by
-hand as well. A single matrix — `guard-taboos-test.sh`,
-`guard-mode-test.sh` — runs by hand only while its own hook is
-being changed. One run of the guard matrix starts tens of
-thousands of processes, and endpoint protection on the workstation
-inspects each of them: parallel sessions each running it twice
-slow the whole machine down.
+there, never to the workflow alone. An agent session runs only its
+secret scan on the workstation: `pull-requests.md` → Checks.
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
 Renovate. Setup, including the git hooks, is in
