@@ -80,9 +80,10 @@ On macOS the drop-in path is the same, and the command is
 launchd's; `brew services` never runs under sudo
 (`rules/os/macos.md` → Package Manager). The domain depends on
 who started the job: a LaunchDaemon in `/Library/LaunchDaemons`
-is `system/<label>` (`sudo launchctl list`), a service started
-with `brew services` belongs to the admin who started it,
-`gui/<uid>/<label>` with that admin's numeric UID:
+is `system/<label>`, a service started with `brew services`
+belongs to the admin who started it, `gui/<uid>/<label>` with that
+admin's numeric UID. `launchctl print <domain>/<label>` succeeds
+in the right one (`rules/os/macos.md` → Service Manager):
 
 ```
 deploy ALL=(root) NOPASSWD: /bin/launchctl kickstart -k system/<label>

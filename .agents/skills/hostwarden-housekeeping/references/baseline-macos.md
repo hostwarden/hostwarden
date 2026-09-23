@@ -116,23 +116,31 @@ sntp -t 1 time.apple.com 2>&1
 
 ## Failed launchd Jobs
 
-Column 2 of `launchctl list` is a job's last exit status. Skip
-jobs with a PID in column 1, which launchd has restarted and are
-running, and `com.apple.` jobs, which exit non-zero routinely:
+Read the Enabled services listing (`rules/os/macos.md` → Service
+Manager) of the `system` domain and of the SSH user's `gui/<uid>`.
+Column 2 is a job's last exit status. Skip jobs with a PID other
+than `0` in column 1, which launchd has restarted and are running,
+jobs that have not exited yet (`-`), and `com.apple.` jobs, which
+exit non-zero routinely:
 
 ```bash
-F='NR == 1 || $1 ~ /^[0-9]/ || $2 == 0 || $3 ~ /^com\.apple\./ {next} {print}'
-echo "--system"
-if L=$(sudo -n launchctl list 2>/dev/null); then
-  printf '%s\n' "$L" | awk "$F"
-else
-  echo "unknown(needs-root)"
-fi
-echo "--user"
-launchctl list | awk "$F"
+S='/^\tservices = \{/ {s = 1; next} /^\t\}/ {s = 0}
+s {n++; print} END {exit !n}'
+F='$1 != 0 || $2 == "-" || $2 == 0 || $3 ~ /^com\.apple\./ {next} {print}'
+for D in system "gui/$(id -u)"; do
+  echo "--$D"
+  if L=$(launchctl print "$D" 2>/dev/null | awk "$S"); then
+    printf '%s\n' "$L" | awk "$F"
+  else
+    echo "unread"
+  fi
+done
 ```
 
 - **WARN** for each job with a non-zero status, by label
+- `unread` for `system` → the check could not be performed. For
+  `gui/<uid>` it means that user has no login session, so no agent
+  of theirs is loaded: nothing to report
 
 ## Kernel Panics
 
