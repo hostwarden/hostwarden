@@ -100,8 +100,8 @@ tmutil latestbackup 2>/dev/null
 tmutil listbackups 2>/dev/null | tail -1
 P='backup|arq|restic|ccc'
 for D in system "gui/$(id -u)"; do
-  { <Enabled services listing of "$D">; } 2>/dev/null | grep -iE "$P"
-done
+  <Enabled services listing of "$D"> | grep -iE "$P"
+done 2>/dev/null
 ls /Applications 2>/dev/null \
   | grep -iE 'arq|carbon copy|backblaze'
 ```
@@ -109,9 +109,8 @@ ls /Applications 2>/dev/null \
 `<Enabled services listing of "$D">` is `rules/os/macos.md` →
 Service Manager → Enabled services, with `"$D"` as its domain: the
 system daemons, then the SSH user's agents, where a backup tool
-can run as a LaunchAgent. The user half lists nothing when that
-user has no login session, as over a root login; the
-`/Applications` line still finds such a tool.
+can run as a LaunchAgent. An agent the user half cannot read, as
+over a root login, the `/Applications` line still finds.
 
 With `Full disk access: off` in memory, the `tmutil`
 lines are skipped (`rules/os/macos.md` → Privacy
