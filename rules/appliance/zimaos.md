@@ -61,9 +61,9 @@ third party says so; check it on the live host before relying on it.
   (<https://www.zimaspace.com/docs/developer/ssh-setup>). A user
   account reaches root with `sudo -i`, which asks for the user's
   password
-  (<https://www.zimaspace.com/docs/zimaos/app-store/azuracast-install>),
-  so the `sudo -n true` probe of `rules/privilege-escalation.md`
-  records `Sudo: requires password (unusable)`. Root's password is
+  (<https://www.zimaspace.com/docs/zimaos/app-store/azuracast-install>);
+  that leaves sudo unusable for Hostwarden
+  (`rules/privilege-escalation.md`). Root's password is
   set at the console; older docs name the `passwd-root` tool for it
   (<https://www.zimaspace.com/docs/zimaos/app-store/cli-guide>).
   Setting or changing it is a credential rotation: ask first.

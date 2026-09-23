@@ -69,7 +69,8 @@ Always with `-d` and the distribution from memory, the name
 without it, `wsl.exe` starts the default distribution, which
 need not be this one.
 
-Probe it once, when sudo is unusable:
+Probe it once, when `rules/privilege-escalation.md` → Stand-ins
+for sudo calls for a stand-in:
 
 ```
 wsl.exe -d <distribution> -u root -e true && echo wslroot=ok

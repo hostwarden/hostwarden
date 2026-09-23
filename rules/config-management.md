@@ -91,9 +91,9 @@ when:
 
 As a non-root user, `/root`, root's crontab and parts of `/etc` are
 unreadable, and `2>/dev/null` makes that look like absence. Run the
-probe through `sudo -n sh -c` where sudo is available
-(`rules/privilege-escalation.md`). Where it is not, say the check
-was partial, and record
+probe through `sudo -n sh -c` where sudo covers `sh`
+(`rules/privilege-escalation.md` → Mixed Mode). Where it does not, say
+the check was partial, and record
 `Config management: unknown (privileged paths unread, <date>)` only
 where the host has no answer yet, so that a later session with root
 looks again. An answer already in memory stands: a partial probe is

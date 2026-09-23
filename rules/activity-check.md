@@ -125,8 +125,9 @@ else
 fi
 ```
 
-Where server memory's `Sudo:` line records sudo as
-unavailable or unusable, run the `else` branch alone.
+Where server memory has a `Sudo:` line and it does not
+cover `journalctl` (`rules/privilege-escalation.md` →
+Mixed Mode), run the `else` branch alone.
 After `no sudo`, watch for the "not seeing messages
 from other users" hint that the missing `-q` lets
 through, and tell the user the check may be

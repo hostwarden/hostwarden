@@ -68,10 +68,10 @@ system rather than trust it.
   Root is reached with `sudo -i` and the same account's password**
   (Control Panel → Terminal & SNMP → Terminal,
   <https://kb.synology.com/en-global/DSM/help/DSM/AdminCenter/system_terminal?version=7>).
-  `sudo` therefore asks for a password, and the probe in
-  `rules/privilege-escalation.md` records
-  `Sudo: requires password (unusable)`. A third-party report adds
-  that DSM's `sudoers` requires a terminal, so that `sudo -n` fails
+  `sudo` therefore asks for a password, which leaves it unusable
+  for Hostwarden (`rules/privilege-escalation.md`). A third-party
+  report adds that DSM's `sudoers` requires a terminal, so that
+  `sudo -n` fails
   over SSH even where a rule allows it without a password
   (<https://github.com/usethedata/system_utils>, `DESIGN.md`); read
   the error the probe prints.
@@ -86,8 +86,8 @@ system rather than trust it.
 - Passwordless `sudo` for the SSH account is the user's decision
   and the user's change, made at their own root shell; Hostwarden
   does not write `sudoers` here. Third-party reports say a DSM
-  update can reset `/etc/sudoers.d/`, so after a DSM update probe
-  `sudo -n true` again instead of trusting server memory.
+  update can reset `/etc/sudoers.d/`, so after a DSM update run
+  the sudo probe again instead of trusting server memory.
 - The `PATH` of a non-root login is not documented. Call Synology's
   tools by their full path: `/usr/syno/bin/synopkg`,
   `/usr/syno/bin/synogetkeyvalue` and `/usr/syno/sbin/synoupgrade`,

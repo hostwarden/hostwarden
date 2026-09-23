@@ -50,9 +50,10 @@ silent.
   logins "never recommended". Connect as the admin user and use
   `sudo`; do not ask the user to enable root login.
 - **sudo** is set per user under Credentials > Users: "Allow all
-  sudo commands", the same "with no password", or a list of
-  allowed commands. Only the no-password variant lets `sudo -n`
-  succeed. Probe as usual (`rules/privilege-escalation.md`).
+  sudo commands", the same "with no password", a list of allowed
+  commands, or a list allowed with no password. TrueNAS writes
+  group rules after user rules, and sudo applies the last that
+  matches. Probe as usual (`rules/privilege-escalation.md`).
 
 ## Configuration Model
 

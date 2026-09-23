@@ -100,7 +100,8 @@ and notices from what ran before it stopped.
 `references/probes.md` lists for the categories you ran, spelled
 as there, and `unknown(needs-root)`, or the other `unknown(…)`
 sentinel a probe prints, rather than a guess where a probe could
-not read what it needed.
+not read what it needed, after the reruns sudo covers
+(`rules/privilege-escalation.md` → Stand-ins for sudo).
 
 **One status:**
 
