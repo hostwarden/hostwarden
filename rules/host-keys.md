@@ -28,9 +28,10 @@ one has to log in by hand first.
   locking the host out, or from trusting the wrong one. Every
   write goes through a file in `~/.cache/hostwarden/`, named
   `hostkey.<name>`, and reaches `memory/known_hosts` only after
-  `ssh-keygen -lf` has parsed it, with an `@revoked` marker taken
-  off for the check only: `-lf` rejects a marked line. Delete it
-  once it has been appended.
+  `ssh-keygen -lf` has parsed it, with a leading `@` marker
+  (`@revoked`, `@cert-authority`) taken off for the check only:
+  `-lf` rejects a marked line. Delete it once it has been
+  appended.
 - **Committed like every workspace file**, by its path
   `memory/known_hosts` (`rules/parallel-sessions.md` → The
   workspace). Another session may have appended lines of its own.
@@ -41,15 +42,18 @@ does.
 
 ## Before the First Connection
 
-The end of step 4 of `rules/first-connection.md`, once per host
-and session, with no connection to the host.
+The end of step 4 of `rules/first-connection.md`, once per remote
+user, host and session, with no connection to the host.
 `ssh -F "/srv/hostwarden/memory/ssh_config" -G <user>@<host>`
 prints the name ssh looks the key up by: its `hostkeyalias` line
 where there is one, else its `hostname` line. Off port 22, the
 name is `[<name>]:<port>`, with the port from the same output. A
 `proxyjump` line other than `none` names jump hosts, and each
 needs its key first, looked up the same way (Jump Hosts below).
-Look it up:
+Another user on the same host, such as root for
+`rules/privilege-escalation.md`, is looked up again: a
+`Match user` block can give that user another endpoint, which
+that file treats as another machine. Look it up:
 
 ```bash
 ssh-keygen -F web1.example.com -f "/srv/hostwarden/memory/known_hosts"
@@ -96,7 +100,7 @@ refuses):
 
 ```bash
 f=~/.cache/hostwarden/hostkey.web2.example.com
-[ -s "$f" ] && sed 's/^@revoked //' "$f" | ssh-keygen -lf - &&
+[ -s "$f" ] && sed 's/^@[^ ]* //' "$f" | ssh-keygen -lf - &&
   { echo "# $(date +%F) web2.example.com: pct exec 105 on pve1.example.com"
     cat "$f"; } >> "/srv/hostwarden/memory/known_hosts"
 rm -f "$f"
@@ -177,16 +181,35 @@ ssh -F "/srv/hostwarden/memory/ssh_config" \
   -o ControlMaster=no -o ControlPath=none \
   -o 'UserKnownHostsFile=~/.cache/hostwarden/hostkey.web1.example.com "/srv/hostwarden/memory/known_hosts"' \
   -o StrictHostKeyChecking=accept-new -o HashKnownHosts=no \
+  -o PreferredAuthentications=none -o ForwardAgent=no \
+  -o ClearAllForwardings=yes \
   root@web1.example.com true
 ssh-keygen -lf ~/.cache/hostwarden/hostkey.web1.example.com
 ```
 
+This is option 2's call: until the fingerprints match, the host
+gets no key, no agent and no forwarding, and the call ends in
+`Permission denied`, as it should. That is one failed login
+(`rules/ssh-connections.md` → Avoid failed logins): once per host,
+never in a loop. For option 1, leave out the last three options:
+the call is the first login, and the choice already trusts the
+key.
+
+ssh records the key under the one name it connected by. Before
+appending, give the line every name Getting a Key lists:
+
+```bash
+f=~/.cache/hostwarden/hostkey.web1.example.com
+sed -E 's/^[^ ]+ /web1.example.com,192.0.2.10 /' "$f" > "$f.n" &&
+  mv "$f.n" "$f"
+```
+
 For option 2, compare the printed fingerprint with the user's. A
 mismatch writes nothing: delete the cache file, tell the user
-both fingerprints, and connect to nothing.
-Otherwise append as in source 1, with `first use` or
-`console (user)` as the source, and report the fingerprint in one
-line.
+both fingerprints, and connect to nothing. Otherwise append as in
+source 1, with `first use` or `console (user)` as the source,
+report the fingerprint in one line, and, for option 2, only then
+log in as usual.
 
 An override may remove option 1 (`rules/overrides.md`).
 
@@ -212,8 +235,8 @@ An override may remove option 1 (`rules/overrides.md`).
 
 ## Removing Names
 
-For a replaced key, a removed DNS alias, and a host whose memory
-directory is removed, with its aliases:
+For a replaced key, and a host whose memory directory is removed,
+with its aliases:
 
 ```bash
 ssh-keygen -R web1.example.com -f "/srv/hostwarden/memory/known_hosts" &&
@@ -221,10 +244,27 @@ ssh-keygen -R web1.example.com -f "/srv/hostwarden/memory/known_hosts" &&
 ```
 
 `-R` removes each whole line that names the host, other names on
-it included, and leaves `@cert-authority` lines alone. For an
-alias, check with `ssh-keygen -F` first: a line that also names
-the canonical host stays, so run `-R` only where the alias has
-lines of its own.
+it included, and leaves `@cert-authority` lines alone.
+
+A removed DNS alias takes only its own name: `-R` would take the
+canonical host's names on a shared line with it. Rewrite the
+names field instead, leaving out that name and a line that
+names nothing else, then put the result in place:
+
+```bash
+f=/srv/hostwarden/memory/known_hosts
+awk -v a=www.example.com '
+  /^#/ || NF < 3 { print; next }
+  { i = ($1 ~ /^@/) ? 2 : 1; n = split($i, h, ","); o = ""
+    for (j = 1; j <= n; j++) if (h[j] != a) o = o (o == "" ? "" : ",") h[j]
+    if (o == "") next
+    $i = o; print }' "$f" > "$f.new" && mv "$f.new" "$f"
+```
+
+A hashed name is not in clear and cannot be matched this way;
+`ssh-keygen -F www.example.com` afterwards must print nothing
+but a `CA` line. Where it prints a hashed line, remove that one
+with `-R`: a hashed line names one host only.
 
 ## Host Certificates
 

@@ -104,6 +104,10 @@ ssh -F "<checkout>/memory/ssh_config" \
   -o ControlMaster=no -o ControlPath=none root@hostname "id" 2>&1
 ```
 
+Run `rules/host-keys.md` → Before the First Connection for
+`root@hostname` first: a key missing for root's endpoint fails
+the probe before it logs in, and says nothing about root login.
+
 - **Works:** record `- Root SSH: available`.
 - **Fails:** keep the recorded sudo line, add the
   following, and enter unprivileged mode:

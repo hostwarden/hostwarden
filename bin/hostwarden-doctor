@@ -179,6 +179,14 @@ ssh_shares() {
     ssh -F /dev/stdin -G "$@" example.invalid
 }
 
+# KnownHostsCommand came with OpenSSH 8.5. An older ssh rejects the
+# option and fails every call, so rules/ssh-connections.md leaves
+# it out there; this names the case instead of letting it read as
+# a broken host.
+ssh_khc() {
+  ssh -F /dev/null -G -o KnownHostsCommand=none example.invalid
+}
+
 # .claude/skills and every DNS alias are links, and git writes a
 # text file where it cannot link (docs/install.md → Symbolic
 # links). Probed in the clone: a temporary directory can sit on a
@@ -290,6 +298,9 @@ else
   probe want "hostname resolver" python3 any getent dscacheutil python3 dig
 
   [ -n "$QUIET" ] || echo "Per feature"
+  # rules/ssh-connections.md → Why these values
+  ! real_ssh || probe feat "KnownHostsCommand=none in the SSH \
+options (OpenSSH 8.5+; leave it out)" "" ssh_khc
   # rules/ssh-connections.md, rules/directory-copy.md
   probe feat "file transfer to and from servers" rsync any rsync scp
   # hostwarden-email: transport-local.md step 5L.1, send-verify.md
