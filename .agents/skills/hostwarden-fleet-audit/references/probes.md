@@ -782,4 +782,5 @@ The audit records nothing: the report names the host for a
 security audit, which asks the user and records the answer.
 
 Who may be admitted, and what it takes to fix, is the security
-audit's (`vpn-ssh.md` → Findings); this table compares.
+audit's (`.agents/skills/hostwarden-security/references/vpn-ssh.md`
+→ Findings); this table compares.

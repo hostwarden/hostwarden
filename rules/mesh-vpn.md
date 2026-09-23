@@ -243,7 +243,6 @@ if [ "$SUDO" = - ]; then
     >/dev/null 2>&1 && echo "agent SSH logins not read: no root"
 else
   if command -v tailscale >/dev/null 2>&1; then
-    t=/var/log/tailscaled.log
     if [ -d /run/systemd/system ]; then
       { $SUDO journalctl _COMM=tailscaled --since "7 days ago" \
           --no-pager -q -o short-iso \
@@ -253,20 +252,36 @@ else
             n[k]++; w[k] = $1 }
           END { for (k in n) print w[k], n[k] "x", k }'
     else
-      { $SUDO awk 'NR == 1 { a = $1 } /access granted to/ { print }
-          END { print "tailscaled.log spans " a " to " $1 }' "$t" \
-          || echo "tailscale logins not read: no journal, no $t"; } \
-        2>/dev/null | keep 20
+      tsp=$(pgrep -x tailscaled 2>/dev/null | head -n 1)
+      tsl=$($SUDO readlink "/proc/$tsp/fd/2" 2>/dev/null)
+      [ -n "$tsl" ] || for tsc in /opt/homebrew/var/log/tailscaled.log \
+                               /usr/local/var/log/tailscaled.log; do
+        [ -e "$tsc" ] && { tsl=$tsc; break; }
+      done
+      case $tsl in
+        ''|/dev/null)
+          echo "tailscale logins not read: no journal, no log file" ;;
+        *' (deleted)'|/*' '*|[!/]*)
+          echo "tailscale logins not read: output goes to $tsl" ;;
+        *)
+          { $SUDO awk -v f="$tsl" 'NR == 1 { a = $1 }
+              /access granted to/ { print }
+              END { if (NR) print "log " f " spans " a " to " $1
+                    else print "tailscale logins not read: empty " f }' \
+              "$tsl" || echo "tailscale logins not read: $tsl"; } \
+            2>/dev/null | keep 20 ;;
+      esac
     fi
   fi
   if command -v netbird >/dev/null 2>&1; then
     netbird status -d 2>&1 | awk '/^SSH Server:/ { p = 1; print; next }
       p && /^  \[/ { sub(/\] .*/, "]"); print; next }
       p && /^    / { next } { p = 0 }'
-    f=/var/log/netbird/client.log
+    nbl=/var/log/netbird/client.log
     { $SUDO awk 'NR == 1 { a = $1 }
         /S(SH|FTP) session started|SSH auth denied/ { print }
-        END { print "client.log spans " a " to " $1 }' "$f" \
+        END { if (NR) print "client.log spans " a " to " $1
+              else print "netbird client.log not read: empty" }' "$nbl" \
         || echo "netbird client.log not read"; } 2>/dev/null | keep 20
   fi
   pgrep -x newt >/dev/null 2>&1 && echo "newt SSH logins not read"
@@ -282,15 +297,24 @@ fi
   the block prints one line per tailnet login and local account:
   the last time, how many sessions, and
   `alice@example.com as ssh-user "root"`. `_COMM` finds
-  tailscaled's lines whatever unit runs it. Without systemd,
-  Alpine's service writes them to `/var/log/tailscaled.log`, and
-  the block prints its lines as NetBird's below, with a `spans`
-  line: logrotate turns the file over weekly into compressed
-  files that are not read, and without logrotate it holds months.
-  Report only the lines of the last 7 days, and a start inside
-  the week as logins not checked before it. A volatile journal
+  tailscaled's lines whatever unit runs it. A volatile journal
   reaches back only to the boot; the read-back's own first-entry
   line says how far.
+- Without systemd, the block reads the file tailscaled writes
+  its output to: on Linux the one its standard error is open on
+  (Alpine's service, Unraid's plugin), on macOS Homebrew's
+  service log (the App Store and standalone apps serve no SSH).
+  It prints its lines as NetBird's below, with a `spans` line
+  that names the file: a rotated file keeps older logins in
+  backups that are not read, and one never rotated holds months.
+  Report only the lines of the last 7 days, and a start inside
+  the week as logins not checked before it. An end long before
+  today, while tailscaled runs, means it writes elsewhere: `not
+  read`. A file that is empty or deleted is `not read` too: on
+  Alpine, logrotate replaces the file while tailscaled keeps
+  writing to the old one until it restarts. Output that goes
+  nowhere, to a pipe or to syslog — FreeBSD and the appliances
+  built on it, OpenWrt — is `not read` as well.
 - `netbird status -d` lists the sessions open now under
   `SSH Server:`, one line each: `[<login>@<address> -> <account>]`,
   or `[<account>@<address>]` without an OIDC login. The `awk`
