@@ -321,13 +321,14 @@ Every auto-proceeded action still goes to the
 changelog per `rules/changelog.md`:
 
 ```bash
-logger -t hostwarden "Reloaded <svc> (auto, policy)"
-logger -t hostwarden "Restarted <svc> (auto, policy)"
+logger -t hostwarden "[<operator> as <unix-user>] Reloaded <svc> (auto, policy)"
+logger -t hostwarden "[<operator> as <unix-user>] Restarted <svc> (auto, policy)"
 ```
 
 For asked actions, log the user's answer too:
 
 ```bash
-logger -t hostwarden "Restarted <svc> (user: once)"
-logger -t hostwarden "Restarted <svc> (user: always, added to restart-auto)"
+logger -t hostwarden "[<operator> as <unix-user>] Restarted <svc> (user: once)"
+logger -t hostwarden "[<operator> as <unix-user>] Restarted <svc> \
+(user: always, added to restart-auto)"
 ```

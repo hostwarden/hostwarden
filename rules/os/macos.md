@@ -245,10 +245,14 @@ from the unified log, both tags (`rules/activity-check.md`):
 ```
 /usr/bin/log show --last 7d \
   --predicate 'process == "logger"' --info 2>&1 \
-  | grep -E "hostwarden|heinzel"
+  | grep -E "hostwarden|heinzel" | awk "$C"
 stat -f '%SB %N' -t '%F %T' \
   /private/var/db/diagnostics/Persist/*.tracev3 | sort | head -1
 ```
+
+`$C` is the classifier (`rules/activity-check.md` → Sessions and
+watchers); where it puts every line under `other:`, that section
+says what to do.
 
 Two details that are not optional here:
 

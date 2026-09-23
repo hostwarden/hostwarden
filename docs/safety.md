@@ -199,7 +199,16 @@ of it at every step.
 ## Accessing logs
 
 Hostwarden logs every action to the system journal on
-each server. To query the log:
+each server, one line per change, under the tag
+`hostwarden` and opening with who did it:
+`[alice as root] …`. A script Hostwarden deploys logs
+under its own name instead (`backup-usb-watch`), so
+the tag stays a record of sessions. A script that
+still logs under `hostwarden` or `heinzel` — often
+one an old Heinzel session wrote — is reported as a
+watcher when Hostwarden connects, never as somebody
+at work, and housekeeping lists it until it has a tag
+of its own. To query the log:
 
 ```bash
 # All entries

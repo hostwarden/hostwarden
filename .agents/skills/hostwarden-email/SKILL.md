@@ -125,8 +125,8 @@ reading a workflow that will not run.
 10. **Log to changelog** per `rules/changelog.md`:
 
     ```
-    logger -t hostwarden "Email to <recipient> from \
-        <local|remote/<user>>: <subject>"
+    logger -t hostwarden "[<operator> as <unix-user>] Email to \
+        <recipient> from <local|remote/<user>>: <subject>"
     ```
 
 ## Per-server memory

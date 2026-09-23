@@ -57,7 +57,8 @@ applies before any of this runs.
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
 
-       logger -t hostwarden "Security audit: 1 WARN, 1 INFO"
+       logger -t hostwarden "[<operator> as <unix-user>] \
+       Security audit: 1 WARN, 1 INFO"
 
 ## Scope and limits
 

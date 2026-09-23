@@ -506,7 +506,10 @@ The migration renames skill overrides in
   rather than a fact, and leaves Hostwarden's files
   alone. Hostwarden warns in the other direction when
   a Heinzel journal entry is minutes old, and leaves
-  a host alone that Heinzel still uses.
+  a host alone that Heinzel still uses. A script your
+  Heinzel sessions left that logs under `heinzel`
+  counts as neither: it is reported as a watcher and
+  offered a tag of its own.
 - On the first connection to a host, Hostwarden
   reports what Heinzel left there — config backups,
   scratch directories, and the scripts, units, cron

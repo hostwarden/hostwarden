@@ -79,10 +79,15 @@ the app and interrupt visitors"
   deserves its own headline, not a subordinate
   clause buried in another entry.
 
-Other rule files and skills show example message
-*bodies* (e.g. `Reloaded <svc> (auto, policy)`); the
-envelope above — identity prefix and `— because` —
-always applies on top of them.
+Other rule files and skills show example headlines
+with the prefix as a placeholder; `— because` applies
+on top of them wherever the reason is known.
+
+Every entry a session writes opens with the prefix,
+exactly `[<operator> as <unix-user>] ` with no `]`
+inside: it is what marks the entry as a session's
+and not a script's (`rules/activity-check.md` →
+Sessions and watchers).
 
 ### What stays out of the journal
 

@@ -16,14 +16,30 @@ when the command succeeded":
 - systemd: add `-t hostwarden` to the `journalctl`
   call, and to the `sudo -n journalctl` fallback —
   `-t` may be given more than once.
-- macOS and FreeBSD: grep for
-  `-E "heinzel|hostwarden"` instead of `heinzel`.
+- macOS: grep for `-E "heinzel|hostwarden"` instead
+  of `heinzel`.
+- FreeBSD and Alpine: grep for this instead of
+  `heinzel`, before any `tail`:
+
+  ```
+  grep -E 'heinzel|[[:space:]]hostwarden(\[[0-9]+\])?: \[[^]]+ as [^]]+\] '
+  ```
+
+  It keeps Hostwarden's session entries and leaves
+  out scripts that log under its tag, which would
+  otherwise fill the last 20 lines and push a
+  session's entry out.
 
 ## Add: A fresh Hostwarden entry means a live session
 
 An entry tagged `hostwarden` from the last 15 minutes
 means a Hostwarden session is probably working on
-this host right now.
+this host right now — when it opens with
+`[<operator> as <unix-user>] ` and, where the journal
+names a unit, comes from a login's
+(`session-<n>.scope`). Without the prefix, or from
+any other service, it is a script on the host that
+logs under the tag, not a session.
 
 Say so before making any change, and let the user
 decide whether to go ahead, wait, or switch tools for

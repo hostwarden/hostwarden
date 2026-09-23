@@ -51,6 +51,12 @@ Versions   2 updates available (see below)
   Rating findings) reads `DECIDED — <heading> (<who>, <date>)`
   on its line, never under Issues:
   `Firewall   DECIDED — No local firewall (user, 2026-09-18)`.
+- **A watcher on a session tag**, a `watcher:` line of this
+  connection's activity check that the check still reports
+  (`rules/activity-check.md` → What to do with a watcher), is one
+  line under Issues:
+  `WARN      Watcher on the session tag heinzel:
+  heinzel-backup.service, 2016 entries from 2026-09-16 to 2026-09-23`.
 - Severity levels:
   - `CRITICAL` — needs immediate attention
   - `WARN` — should be addressed soon

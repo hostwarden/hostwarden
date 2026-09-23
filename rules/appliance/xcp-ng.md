@@ -372,10 +372,9 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   ```
   syslog_stream() { L=$(ls -tr /var/log/user.log*) && zcat -f $L; }
   ```
-  The activity check reads it back, so that the last matches are
-  the newest:
+  The activity check reads it back, oldest file first:
   ```
-  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
   syslog_stream | head -1
   date
   ```

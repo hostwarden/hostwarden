@@ -74,8 +74,8 @@ applies before any of this runs.
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
 
-       logger -t hostwarden "Housekeeping: 1 CRITICAL, 2 WARN, \
-       all services OK"
+       logger -t hostwarden "[<operator> as <unix-user>] \
+       Housekeeping: 1 CRITICAL, 2 WARN, all services OK"
 
 ## References
 

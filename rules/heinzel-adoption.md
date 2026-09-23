@@ -11,13 +11,17 @@ One line per find. For a directory of backups or
 scratch output: path, file count, age of the oldest
 entry. For a script, unit, cron file or config
 directory a session created: path, and what calls it
-as far as the inventory and the probe show:
+as far as the inventory and the probe show. A script
+the activity check found logging under a session tag
+says so (`rules/activity-check.md` → Sessions and
+watchers):
 
 ```
 heinzel state on this host:
   /var/backups/heinzel/ — 24 files, oldest 61 days
   /usr/local/bin/heinzel-backup.sh — called by
-    /etc/cron.d/heinzel-backup, 03:00 daily
+    /etc/cron.d/heinzel-backup, 03:00 daily; logs
+    under the session tag heinzel
 ```
 
 Four answers:
@@ -75,7 +79,10 @@ its next run. Report the find, say why it waits, and
 record a deferral. Recent Heinzel entries in the
 activity check do not settle it: hosts often move over
 right after their last Heinzel session, so ask whether
-Heinzel still runs before deferring.
+Heinzel still runs before deferring. A `watcher:`
+line under `heinzel` settles nothing either: it is a
+script Heinzel left, which runs whether Heinzel does
+or not.
 
 Point the user at `contrib/heinzel-coexistence/`:
 three rule overrides for their Heinzel checkout that
@@ -174,8 +181,11 @@ journal history and changelog entries.
 A script that logs with `logger -t heinzel` gets its
 own name as the tag (`hostwarden-backup`), never the
 bare `hostwarden`: the activity check reads that tag
-as a session's work (`rules/activity-check.md`), and
-a nightly job would pass for one.
+as a session's work (`rules/activity-check.md` →
+Sessions and watchers), and a nightly job would pass
+for one wherever its unit and its text do not give
+it away. A `watcher:` line under `heinzel` is a lead
+to such a script like any other.
 
 Afterwards the host's memory names the new paths —
 they are what is true now.
@@ -224,10 +234,10 @@ is a worklist and gets deleted once it is empty.
 Log the change like any other (`rules/changelog.md`):
 
 ```
-logger -t hostwarden "Adopted heinzel state: \
+logger -t hostwarden "[<operator> as <unix-user>] Adopted heinzel state: \
   /var/backups/heinzel -> /var/backups/hostwarden \
   (24 files)"
-logger -t hostwarden "Renamed heinzel artifacts: \
+logger -t hostwarden "[<operator> as <unix-user>] Renamed heinzel artifacts: \
   3 names, 2 references; map in \
   /var/backups/hostwarden/heinzel-rename-map-20260920-1412.txt"
 ```
