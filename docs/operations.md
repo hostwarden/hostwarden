@@ -562,7 +562,8 @@ The migration renames skill overrides in
   checkout together with it, if you say so. It ends
   with what each host lacks against the baseline and
   asks which to take on first. With "only copy", the
-  first connection to each host does the same later.
+  first connection to each host does the same later,
+  or `/hostwarden-onboard <host>` when you choose.
 - Keeping Heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your Heinzel checkout so it reads both

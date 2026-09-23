@@ -66,6 +66,12 @@ An `- IP:` that no longer matches stays with
 - **On the first connection to a host adopted from Heinzel:** the
   full profile, which gives Heinzel's notes on the network a place
   (`rules/heinzel-adoption.md` → Heinzel's memory).
+- **On an onboarding the user asked for** (`hostwarden-onboard`),
+  a first connection or a full re-probe (`rules/os-detection.md` →
+  On subsequent connections): the full profile, its probe of the
+  host in the activity-check call in place of any part On connecting
+  would run there. A family or appliance On connecting probes nothing
+  on gets nothing here either.
 - **Before a change** to addresses, routes, interfaces, DNS
   resolution or the network manager: only who owns it. That is
   the Linux probe up to the end of section A, plus the first four

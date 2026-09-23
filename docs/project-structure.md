@@ -121,6 +121,8 @@ contrib/
     hostwarden-new-guest/     — Create a VM or container on a
                          hypervisor, with the baseline
                          (SKILL.md + references/)
+    hostwarden-onboard/   — Onboard a host explicitly: its
+                         first connection, read-only (SKILL.md)
     hostwarden-baseline/  — Bring an existing server up to
                          the baseline (SKILL.md)
     hostwarden-adopt/     — Take over a heinzel installation
