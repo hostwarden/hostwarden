@@ -1,0 +1,99 @@
+#!/bin/sh
+# Master copy: Hostwarden workspace,
+# fleet/fleet-read/files/usr/local/sbin/fleet-read.
+# Edits here are kept and reported, not overwritten.
+#
+# fleet-read — the forced command of an operations host's key.
+# The operator adds the key to root's authorized_keys as one line,
+# the operations host's name as the one argument:
+#
+#   from="<address>",restrict,command="/usr/local/sbin/fleet-read <name>" <key>
+#
+# The key then reaches exactly two verbs, sent as the SSH command:
+#
+#   collect  stdin: an armored SSH signature, directly followed by
+#            the bundle it signs. The bundle runs as this account
+#            only when a key in $SIGNERS signed it for the namespace
+#            $NS and its "# valid-until: YYYY-MM-DD" line is not
+#            past. It runs from a private copy: the file that was
+#            verified is the file that runs.
+#   log      stdin: one line. It goes to the journal under the tag
+#            hostwarden, behind a prefix this file sets:
+#            "[<name> as <user>] read-only: <line>".
+#
+# Anything else is refused before anything runs. No shell, no
+# other command, no argument to either verb.
+#
+# Why a signature and not a list of allowed commands: the checks a
+# host needs change with every housekeeping reference, and a list
+# that could carry them would carry a shell. The signature moves
+# the decision to the operator, whose signing key never lies on the
+# operations host. Whoever takes that host over can replay a bundle
+# the operator signed, until its date, and write read-only journal
+# lines. Nothing else. Why not unsigned input: then this key would
+# be root on every host that carries it.
+
+set -eu
+umask 077
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+SIGNERS=/etc/fleet-read/allowed_signers
+NS=fleet-read
+MAX=262144
+END='-----END SSH SIGNATURE-----'
+
+fail() {
+  echo "fleet-read: $1" >&2
+  exit 1
+}
+
+[ "$#" -eq 1 ] || fail "the key's command must name the operations host"
+NAME=$1
+case $NAME in
+  '' | *[!A-Za-z0-9._@-]*) fail "bad name in the key's command" ;;
+esac
+[ "${#NAME}" -le 64 ] || fail "bad name in the key's command"
+
+case ${SSH_ORIGINAL_COMMAND:-} in
+collect)
+  [ -r "$SIGNERS" ] || fail "no $SIGNERS"
+  DIR=$(mktemp -d) || fail "no temporary directory"
+  trap 'rm -rf "$DIR"' EXIT
+  trap 'exit 1' HUP INT TERM
+  head -c $((MAX + 1)) >"$DIR/in"
+  [ "$(wc -c <"$DIR/in" | tr -d ' ')" -le "$MAX" ] \
+    || fail "input larger than $MAX bytes"
+  [ "$(head -n 1 "$DIR/in")" = '-----BEGIN SSH SIGNATURE-----' ] \
+    || fail "input does not start with a signature"
+  grep -qx -- "$END" "$DIR/in" || fail "signature is not terminated"
+  sed -n "1,/^$END\$/p" "$DIR/in" >"$DIR/sig"
+  sed "1,/^$END\$/d" "$DIR/in" >"$DIR/bundle"
+  [ -s "$DIR/bundle" ] || fail "no bundle after the signature"
+  if ! ssh-keygen -Y verify -f "$SIGNERS" -I "$NS" -n "$NS" \
+    -s "$DIR/sig" <"$DIR/bundle" >/dev/null 2>"$DIR/err"; then
+    # OpenSSH before 8.1 has no -Y and says so as an option error.
+    grep -qi 'option' "$DIR/err" \
+      && fail "ssh-keygen here cannot verify signatures (needs OpenSSH 8.1)"
+    fail "signature not valid"
+  fi
+  UNTIL=$(sed -n 's/^# valid-until: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)$/\1/p' \
+    "$DIR/bundle" | head -n 1)
+  [ -n "$UNTIL" ] || fail "bundle has no valid-until line"
+  [ "$(date -u +%Y%m%d)" -le "$(echo "$UNTIL" | tr -d -)" ] \
+    || fail "bundle expired on $UNTIL"
+  cd /
+  RC=0
+  sh "$DIR/bundle" </dev/null || RC=$?
+  exit "$RC"
+  ;;
+log)
+  LINE=$(head -c 1024 | head -n 1 | LC_ALL=C tr -cd '[:print:]' \
+    | cut -c 1-250)
+  [ -n "$LINE" ] || fail "empty line"
+  exec logger -t hostwarden -- "[$NAME as $(id -un)] read-only: $LINE"
+  ;;
+*)
+  fail "only collect and log are allowed"
+  ;;
+esac
