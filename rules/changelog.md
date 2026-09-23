@@ -126,6 +126,37 @@ applicable — skip empty ones.
 
 Trim entries older than 2 years when writing.
 
+### Standing lines
+
+A `Flags:` that constrains later work on the host,
+and a `Rollback:` for a change that stays in place,
+also go into the host's `memory.md` when the entry
+is written: as its last lines, one per entry, with
+the entry's timestamp to find the full entry by:
+
+    - Flags: migrations must stay backward-compatible
+      (2026-06-11 09:50)
+    - Rollback: blue/green deploys — re-enable
+      app.service, restore the vhost backup
+      (2026-06-11 09:50)
+
+Remove the line once it no longer holds: the
+constraint is lifted, or a later change replaces or
+undoes what the rollback restores. A `Flags:` or
+`Rollback:` about this session alone stays in the
+log.
+
+### Reading it
+
+Every connection reads the entries of the activity
+check's seven-day window
+(`rules/activity-check.md` → How far back it
+reached); what still binds from older entries is in
+`memory.md` as standing lines. Read the whole log
+only when history matters: the user asks what
+changed or when, a fault may trace back to an older
+change, or a rollback needs its full entry.
+
 ## The Workspace
 
 As soon as this session is done with a host and this

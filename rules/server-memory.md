@@ -14,13 +14,13 @@ Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
 The second one's directory then takes what tells them apart,
 lowercase — the hypervisor host and the project or ID,
-`web-pve1-prod`, `web-pve1-105` — while the first keeps the plain
-name. Its `memory.md` says which guest it is,
-`- Guest: prod/web on pve1.example.com`, and the `Mode: via …`
-line carries the exact command
-(`rules/system-containers.md` → Reaching It). Without that, the
-second guest's onboarding writes over the first one's memory and
-a later session acts on the wrong server.
+`web-incus1-prod`, `web-pve1-105` — while the first keeps the plain
+name. Its `Runs on:` line says which guest it is, the
+project included: `- Runs on: incus1.example.com (container
+prod/web)` (`rules/hypervisors.md` → Linking Guest and Host).
+Without that, the second guest's onboarding writes over the
+first one's memory and a later session acts on the wrong
+server.
 
 On WSL the directory is
 `<windows-hostname>-wsl-<distribution>`, lowercase:
@@ -71,62 +71,23 @@ directory, and where it is empty, ask which.
 - Last connected: 2026-02-25
 ```
 
-A host that Heinzel administered gains a
-`heinzel legacy:` line once that state has been dealt
-with; `rules/heinzel-adoption.md` owns its wording.
-Hosts without one never had Heinzel state, which is
-the normal case.
+A field a probe could not read is written `unknown`, never
+filled from an example.
 
-Every host gains a `Management:` line saying how it
-is reached when SSH is gone —
-`Management: iDRAC (BMC), reachable from the host`.
-`rules/management-controller.md` owns its wording and
-settles it at first need, not on the first
-connection above; a controller's address lives in
-`memory/network.md`.
+`Mode: local` marks the local machine. `Mode: via` marks a
+guest that has no sshd of its own and is reached through its
+host's manager (`rules/first-connection.md` → Via-host mode).
+The line holds the mode and nothing else: the host and the ID
+are the ones `Runs on:` names, and the command is that
+manager's line in `rules/system-containers.md` → Reaching It,
+so a guest that moves or leaves its host changes its `Runs on:`
+alone. A guest whose SSH merely timed out never gets the line:
+via-host mode is then this session's only, and the line would
+route every later session through the host.
 
-A host that a configuration management tool manages,
-wholly or in some areas, gains a `Config management:`
-line, and one that Terraform or OpenTofu provisioned
-a `Provisioned by:` line;
-`rules/config-management-leads.md` owns their
-wording. Most hosts have neither.
-
-Adapt fields to OS (add Homebrew for macOS;
-add `Mode: local` for localhost, or
-`Mode: via pve1.example.com (pct exec 105)` for a
-guest that has no sshd of its own, with the whole
-command it is reached by, the Incus project included
-(`rules/first-connection.md`). Its host and ID,
-project and manager included, are the ones
-`Runs on:` names, and the two change together: a
-guest that moved or got a new ID gets the line
-rewritten, one that left its host loses it. A stale
-line sends the next session into whatever guest
-holds that ID on the old host now.
-A guest whose SSH merely timed out never gets that
-line: via-host mode is this session's only, and the
-line would route every later session through the host
-(`rules/system-containers.md` → Reaching It);
-an OS file whose Version Detection names fields to
-record adds those. `Appliance:`,
-`Platform:`, `Role:` and `Shell:` come from
-`rules/first-detection.md`; `SSH port:`, remote mode only, is
-the `port` line of `ssh -G <user>@<hostname>`, which the
-alias check in `rules/dns-aliases.md` compares. A
-field a probe could not read is written `unknown`, never
-filled from an example. A container engine is recorded as
-`- Container runtime: podman (rootless: alice)`, the form
-`rules/service-class-check.md` gives.
-
-`Virtualization:`, `Arch:` and `Hypervisor:` come
-from `rules/first-detection.md`; `Cluster:`,
-`Guest identity:`, `Runs on:` and, on a guest
-registered through its host, `SSH: untested`, from
-`rules/hypervisors.md`. `Baseline:` comes from
-`rules/baseline.md` → Rendered Versions, and on a
-Proxmox VE node `Baseline template:` from
-`rules/appliance/proxmox-ve.md` → Guests.
+`SSH port:`, remote mode only, is the `port` line of
+`ssh -G <user>@<hostname>`, which the alias check in
+`rules/dns-aliases.md` compares.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
@@ -134,20 +95,98 @@ outdated entries, merge related items.
 
 **Update `Last connected:` on every connection.**
 
-Two lines join once their rule has run, never before.
-`- Network:` summarises
-`memory/servers/<hostname>/network.md`, the host's own
-network profile (`rules/network.md`). `- Access:` records
-how Hostwarden reaches the host and which other paths were
-tested (`rules/ssh-safety-net.md` → Which way in):
+Memory files never hold credential values — see
+`rules/secrets.md`.
+
+## Who writes which line
+
+Each line has one owner, which gives its wording and says when
+it changes; every other rule and skill only reads it. A line
+joins when its moment comes, never before, and most hosts never
+get most of them. An owner ending in `.md` is a file under
+`rules/`; the others are skills. An OS file whose Version
+Detection names further fields to record owns those. The
+`guests.md` and `cluster.md` of a hypervisor keep lines of their
+own, `Inventoried:` among them (`rules/hypervisors.md`), and
+so does a host's `network.md` (`rules/network.md`).
+
+| Field                    | Owner                       | Written          |
+|--------------------------|-----------------------------|------------------|
+| `IP:`                    | `dns-aliases.md`            | first connection |
+| `SSH port:`              | this file                   | first connection |
+| `Reached as:`            | this file                   | first connection |
+| `Mode:`                  | this file                   | mode chosen      |
+| `Last connected:`        | this file                   | every connection |
+| `OS:`, `Distro family:`  | `os-detection.md`           | every connection |
+| `Appliance:`             | `first-detection.md`        | first connection |
+| `Platform:`, `Role:`     | `first-detection.md`        | first connection |
+| `Shell:`, `CPU:`         | `first-detection.md`        | first connection |
+| `Arch:`, `RAM:`, `Disk:` | `first-detection.md`        | first connection |
+| `Virtualization:`        | `first-detection.md`        | first connection |
+| `Hypervisor:`            | `first-detection.md`        | first connection |
+| `Installation:`          | `os/windows.md`             | first connection |
+| `PowerShell:`, `Admin:`  | `os/windows.md`             | first connection |
+| `Full disk access:`      | `os/macos.md`               | first connection |
+| `Model:`                 | the appliance file          | first connection |
+| `SSH server:`            | `appliance/unifi-os.md`     | first connection |
+| `Boot scripts:`          | `appliance/unifi-os.md`     | first connection |
+| `API key reads:`         | `appliance/unifi-os.md`     | user's answer    |
+| `Journal:`, `API port:`  | `appliance/synology-dsm.md` | first use        |
+| `Sudo:`, `Root SSH:`     | `privilege-escalation.md`   | privileged use   |
+| `Privilege mode:`        | `privilege-escalation.md`   | privileged use   |
+| `Doas:`                  | `os/alpine.md`              | privileged use   |
+| `WSL root:`              | `platform/wsl.md`           | privileged use   |
+| `Management:`            | `management-controller.md`  | first need       |
+| `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |
+| `heinzel legacy:`        | `heinzel-adoption.md`       | legacy settled   |
+| `Config management:`     | `config-management-leads.md`| tool found       |
+| `Provisioned by:`        | `config-management-leads.md`| tool found       |
+| `Web server:`            | `service-class-check.md`    | service found    |
+| `Database:`, `MTA:`      | `service-class-check.md`    | service found    |
+| `Time sync:`             | `service-class-check.md`    | service found    |
+| `DNS resolver:`          | `service-class-check.md`    | service found    |
+| `Firewall manager:`      | `service-class-check.md`    | service found    |
+| `Container runtime:`     | `service-class-check.md`    | runtime found    |
+| `Container: privileged`  | `system-containers.md`      | container found  |
+| `Cluster:`               | `hypervisors.md`            | member found     |
+| `Runs on:`               | `hypervisors.md`            | guest linked     |
+| `Guest identity:`        | `hypervisors.md`            | guest linked     |
+| `SSH: untested`          | `hypervisors.md`            | guest registered |
+| `Baseline:`              | `baseline.md`               | baseline applied |
+| `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
+| `Network:`               | `network.md`                | profile probed   |
+| `Access:`                | `ssh-safety-net.md`         | paths tested     |
+| `API read:`              | `appliance-api.md`          | access set up    |
+| `API write:`             | `appliance-api.md`          | access set up    |
+| `API path:`              | `appliance-api.md`          | access set up    |
+| `API pin:`               | `tls-pinning.md`            | pin confirmed    |
+| `Flags:`, `Rollback:`    | `changelog.md`              | entry logged     |
+| `USB:`, `Passthrough:`   | `hostwarden-housekeeping`   | housekeeping     |
+| `Backup:`                | `hostwarden-housekeeping`   | user's answer    |
+| `Container registries:`  | `hostwarden-security`       | security audit   |
+| `Deploy user:`           | `hostwarden-deploy-user`    | account set up   |
+| `Deploy target:`         | `hostwarden-deploy-user`    | account set up   |
+| `Deploy sudo:`           | `hostwarden-deploy-user`    | account set up   |
+| `Origin:`                | `hostwarden-new-guest`      | guest created    |
+| `Origin:`                | `hostwarden-os-install`     | OS installed     |
+| `Device:`                | `hostwarden-os-install`     | before a write   |
+| `Mail:`, `Alert email:`  | `hostwarden-email`          | first email      |
+| `Email source:`          | `hostwarden-email`          | user's answer    |
+| `Email sender:`          | `hostwarden-email`          | first email      |
+| `Email send policy:`     | `hostwarden-email`          | user's answer    |
+| `MTA install policy:`    | `hostwarden-email`          | user's answer    |
+| `Operator name:`         | `hostwarden-email`          | user's answer    |
+| `Greeting:`, `From:`     | `hostwarden-email`          | user's answer    |
+| `Reply-To:`              | `hostwarden-email`          | user's answer    |
+
+`Flags:` and `Rollback:` lines stand last in the file, one per
+changelog entry they come from (`rules/changelog.md` → Standing
+lines). An `Access:` line reads:
 
 ```markdown
 - Access: via Tailscale (web1.tail1234.ts.net); direct
   203.0.113.10 timeout (2026-09-19)
 ```
-
-Memory files never hold credential values — see
-`rules/secrets.md`.
 
 ## Session to-do list
 

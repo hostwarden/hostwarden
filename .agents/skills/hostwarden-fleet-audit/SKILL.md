@@ -60,7 +60,7 @@ Layers).
 
 1. **Discover hosts.** List directories under
    `memory/servers/` whose name resolves to a real host,
-   whose `memory.md` has a `Mode: via …` line (reached
+   whose `memory.md` has a `Mode: via` line (reached
    through that host, step 2), or a `Reached as:` line, which
    is then the destination, for the user lookup too, with `-p` and the
    `SSH port:` line where there is one (skip placeholders like
@@ -99,13 +99,13 @@ Layers).
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
-   report). A host with `Mode: via …` in its memory uses
-   its hypervisor host's SSH user and runs the probes
-   through that host (`rules/first-connection.md` →
-   Via-host mode). A guest that section would not enter,
-   because its `Mode: via` and `Runs on:` disagree, is
-   not asked about here: list it as "skipped: `Mode: via`
-   and `Runs on:` disagree".
+   report). A host with `Mode: via` in its memory uses the
+   SSH user of the host its `Runs on:` names and runs the
+   probes through that host (`rules/first-connection.md` →
+   Via-host mode). One whose `Runs on:` names no managed
+   host and ID, which that section would ask about, is not
+   asked about here: list it as "skipped: no host in
+   `Runs on:`".
 
 3. **Probe each host.** Hosts that time out or refuse the
    connection go on a "skipped: unreachable" list.
@@ -121,7 +121,7 @@ Layers).
    Each task prompt carries four things:
 
    - the hostname and the SSH user, and for a via-host
-     guest its `Mode: via …` line;
+     guest its `Mode: via` and `Runs on:` lines;
    - which probe categories to run, and the journal line
      from step 6. Not the probe commands: the agent reads
      `references/probes.md` itself, and a fleet of a dozen
@@ -159,7 +159,7 @@ Layers).
    jump host, and without it `ssh -G` reports a different
    config than the connection will use. Group the targets
    that share a `proxyjump`, and run each group in
-   sequence. A guest with `Mode: via …` logs in through
+   sequence. A guest with `Mode: via` logs in through
    its host, so it runs in sequence with that host and its
    group's other such guests.
 
