@@ -215,7 +215,9 @@ floors() {
         elif [ "$a" -gt 85 ]; then finding "$2" WARN disk-high "$b at $a%"
         fi ;;
       cert)
-        if [ "$a" -lt 7 ]; then
+        if [ "$a" -lt 0 ]; then
+          finding "$2" CRITICAL cert-expiry "certificate $b has expired"
+        elif [ "$a" -lt 7 ]; then
           finding "$2" CRITICAL cert-expiry "certificate $b expires in $a days"
         elif [ "$a" -lt 30 ]; then
           finding "$2" WARN cert-expiry-soon "certificate $b expires in $a days"
@@ -347,9 +349,9 @@ run_host() {
             then .severity else "INFO" end)
         | .code = ((.code // "other") | tostring | .[0:40])
         | .text = ((.text // "") | tostring | .[0:200])
+        | ((.quote // "") | tostring | norm) as $q
         | if (.class == "known" or .class == "expected")
-             and (((.quote // "") | norm | length) >= 30)
-             and ($m | contains((.quote // "") | norm))
+             and ($q | length) >= 30 and ($m | contains($q))
           then . else .class = "new" | .quote = null end
         | ($min[.code] // null) as $f
         | if $f != null and (.severity | rank) > ($f | rank)
