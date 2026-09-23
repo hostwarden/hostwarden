@@ -489,6 +489,29 @@ for ITEM in $SHARED; do
   fi
 done
 
+# What the old memory/ holds beyond the shared state,
+# the servers and known_hosts — Claude's auto-memory,
+# notes, a brand directory — named before anything can
+# stop the run, so a dry run shows it too. None
+# of it has a place of its own here, and copying it
+# whole would put a second, unread memory beside this
+# one. The skill sorts it item by item.
+set +f
+for E in "$OLD"/memory/* "$OLD"/memory/.[!.]*; do
+  { [ -e "$E" ] || [ -L "$E" ]; } || continue
+  N=${E##*/}
+  case "$N" in
+    servers|known_hosts|MEMORY.md|*.example|.git|.gitignore|.gitkeep|.DS_Store|.heinzel*) continue ;;
+  esac
+  case "$NL$SHARED$NL" in *"$NL$N$NL"*) continue ;; esac
+  if [ -d "$E" ]; then
+    echo "not copied: memory/$N/"
+  else
+    echo "not copied: memory/$N"
+  fi
+done
+set -f
+
 # The invariant from the header: a host may not come
 # across while the lists that say whether it may be
 # touched stayed behind. A kept blacklist or
@@ -573,12 +596,15 @@ if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
   fi
 fi
 
+CR=$(printf '\r')
+
 # user_line <key> <file>: the first line of <file>
 # that sets <key>, without a leading "- ", or nothing.
 # A commented line sets nothing: the template ships its
 # preferences as comments.
 user_line() {
   while IFS= read -r ul_line || [ -n "$ul_line" ]; do
+    ul_line=${ul_line%"$CR"}
     case "$ul_line" in '#'*|'') continue ;; esac
     ul_item=${ul_line#- }
     if [ "${ul_item%%: *}" = "$1" ]; then
@@ -591,37 +617,64 @@ user_line() {
 # A user.md of this clone's own is merged rather than
 # kept whole: the old one's language, operator name and
 # per-server SSH users would otherwise stay behind
-# unnoticed. Only lines this clone lacks are added, a
-# preference under "# Preferences" and a per-server
-# user at the end, where "## Per-server overrides" is;
-# a key both set differently is reported, never chosen.
+# unnoticed. Only what the template knows comes across
+# — Language, Operator name and Greeting under
+# "# Preferences", Default under "# SSH Users", and the
+# entries under "## Per-server overrides" — and only
+# where this clone sets nothing. A key both set
+# differently is reported, never chosen, and so is a
+# greeting that signs as Heinzel.
 UM_SRC="$OLD/memory/user.md"
 UM_DST="memory/user.md"
 case " $SHARED_PENDING " in
   *" user.md "*)
     if [ -f "$UM_SRC" ] && [ -f "$UM_DST" ] && [ ! -L "$UM_DST" ]; then
-      UM_PREF='' UM_HOST='' UM_DIFF='' UM_N=0
+      UM_PREF='' UM_DEF='' UM_HOST='' UM_DIFF='' UM_SEEN="$NL" UM_N=0
+      UM_SEC=''
       while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
-        case "$UM_LINE" in '#'*|'') continue ;; esac
+        UM_LINE=${UM_LINE%"$CR"}
+        case "$UM_LINE" in
+          '## Per-server overrides'*) UM_SEC=host; continue ;;
+          '# '*|'## '*) UM_SEC=''; continue ;;
+          '#'*|'') continue ;;
+        esac
         UM_ITEM=${UM_LINE#- }
         case "$UM_ITEM" in *': '*) ;; *) continue ;; esac
         UM_KEY=${UM_ITEM%%: *}
-        # This script writes that line itself.
-        [ "$UM_KEY" = "Adopted from heinzel" ] && continue
-        UM_HAVE=$(user_line "$UM_KEY" "$UM_DST")
-        if [ -z "$UM_HAVE" ]; then
-          UM_N=$((UM_N + 1))
-          if [ "$UM_ITEM" = "$UM_LINE" ]; then
-            UM_PREF="$UM_PREF$UM_LINE$NL"
-          else
-            UM_HOST="$UM_HOST$UM_LINE$NL"
-          fi
-        elif [ "$UM_HAVE" != "$UM_ITEM" ]; then
-          UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+        if [ "$UM_SEC" = host ]; then
+          UM_KIND=host
+        else
+          case "$UM_KEY" in
+            Language|'Operator name'|Greeting) UM_KIND=pref ;;
+            Default) UM_KIND=default ;;
+            *) continue ;;
+          esac
         fi
+        # The first line for a key decides, as for the
+        # agent that reads the file.
+        case "$UM_SEEN" in *"$NL$UM_KEY$NL"*) continue ;; esac
+        UM_SEEN="$UM_SEEN$UM_KEY$NL"
+        UM_HAVE=$(user_line "$UM_KEY" "$UM_DST")
+        if [ -n "$UM_HAVE" ]; then
+          [ "$UM_HAVE" = "$UM_ITEM" ] \
+            || UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+          continue
+        fi
+        case "$UM_KIND:$UM_ITEM" in
+          pref:Greeting:*[Hh]einzel*)
+            UM_DIFF="$UM_DIFF  Greeting: the old checkout's signs as Heinzel, not taken$NL"
+            continue ;;
+        esac
+        UM_N=$((UM_N + 1))
+        case "$UM_KIND" in
+          pref) UM_PREF="$UM_PREF$UM_ITEM$NL" ;;
+          default) UM_DEF="$UM_DEF$UM_ITEM$NL" ;;
+          host) UM_HOST="$UM_HOST- $UM_ITEM$NL" ;;
+        esac
       done < "$UM_SRC"
-      SHARED_PENDING=$(printf '%s' " $SHARED_PENDING " \
-        | sed 's/ user\.md / /; s/ *$//')
+      # user.md is the first shared item, so it leads the
+      # list when it is pending.
+      SHARED_PENDING=${SHARED_PENDING# user.md}
       if [ -n "$UM_DIFF" ]; then
         printf 'kept memory/user.md where it differs from the old checkout:\n%s' \
           "$UM_DIFF" >&2
@@ -632,25 +685,32 @@ case " $SHARED_PENDING " in
         plan "user.md (merged: $UM_N lines added)"
         if [ -z "$LIST" ]; then
           UM_TMP=$(mktemp "$UM_DST.XXXXXX")
-          UM_DONE=''
-          while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
-            printf '%s\n' "$UM_LINE"
-            if [ -z "$UM_DONE" ] && [ "$UM_LINE" = "# Preferences" ]; then
-              printf '\n%s' "$UM_PREF"
-              UM_DONE=yes
+          UM_P='' UM_D='' UM_H=''
+          {
+            while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
+              UM_LINE=${UM_LINE%"$CR"}
+              printf '%s\n' "$UM_LINE"
+              case "$UM_LINE" in
+                '# Preferences') [ -z "$UM_PREF" ] || printf '\n%s' "$UM_PREF"; UM_P=yes ;;
+                '# SSH Users') [ -z "$UM_DEF" ] || printf '\n%s' "$UM_DEF"; UM_D=yes ;;
+                '## Per-server overrides'*) UM_H=yes ;;
+              esac
+            done < "$UM_DST"
+            if [ -z "$UM_P" ] && [ -n "$UM_PREF" ]; then
+              printf '\n# Preferences\n\n%s' "$UM_PREF"
             fi
-          done < "$UM_DST" > "$UM_TMP"
-          if [ -z "$UM_DONE" ] && [ -n "$UM_PREF" ]; then
-            { printf '# Preferences\n\n%s\n' "$UM_PREF"; cat "$UM_TMP"; } \
-              > "$UM_TMP.2"
-            mv "$UM_TMP.2" "$UM_TMP"
-          fi
-          if [ -n "$UM_HOST" ]; then
-            grep -qx '## Per-server overrides' "$UM_TMP" \
-              || printf '\n## Per-server overrides\n' >> "$UM_TMP"
-            printf '%s' "$UM_HOST" >> "$UM_TMP"
-          fi
-          mv "$UM_TMP" "$UM_DST"
+            if [ -z "$UM_D" ] && [ -n "$UM_DEF" ]; then
+              printf '\n# SSH Users\n\n%s' "$UM_DEF"
+            fi
+            if [ -n "$UM_HOST" ]; then
+              [ -n "$UM_H" ] || printf '\n## Per-server overrides\n'
+              printf '%s' "$UM_HOST"
+            fi
+          } > "$UM_TMP"
+          # Through cat, not mv: the file keeps its own
+          # mode, and mktemp's is 0600.
+          cat "$UM_TMP" > "$UM_DST"
+          rm -f "$UM_TMP"
         fi
       fi
     fi ;;
@@ -841,27 +901,6 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     fi
   done
 fi
-
-# What the old memory/ holds beyond the lists above:
-# Claude's auto-memory, notes, a brand directory. None
-# of it has a place of its own here, and copying it
-# whole would put a second, unread memory beside this
-# one. The skill sorts it item by item.
-set +f
-for E in "$OLD"/memory/* "$OLD"/memory/.[!.]*; do
-  { [ -e "$E" ] || [ -L "$E" ]; } || continue
-  N=${E##*/}
-  case "$N" in
-    servers|known_hosts|MEMORY.md|*.example|.git|.gitignore|.gitkeep|.DS_Store) continue ;;
-  esac
-  case "$NL$SHARED$NL" in *"$NL$N$NL"*) continue ;; esac
-  if [ -d "$E" ]; then
-    echo "not copied: memory/$N/"
-  else
-    echo "not copied: memory/$N"
-  fi
-done
-set -f
 
 if [ -n "$SHARED_PENDING" ]; then
   echo "kept this clone's version of:$SHARED_PENDING" >&2

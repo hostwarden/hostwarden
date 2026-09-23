@@ -131,7 +131,9 @@ leads, the host confirms them.
    only where those do not say what it is. An item that holds two
    kinds is split. Propose every item's target in one list, grouped
    by target, and ask once; the user moves items between groups or
-   drops them in the answer.
+   drops them in the answer. A later run lists the same entries
+   again, since the old checkout never changes: an item whose content
+   its target already holds is not proposed again.
 
    - **A standard every server should meet** — packages, updates,
      time zone, mail route, what a new host always gets:
@@ -188,9 +190,10 @@ leads, the host confirms them.
    the canonical host it points at (`rules/dns-aliases.md`): take
    that one, drop the alias. Never every host under
    `memory/servers/`, or a `--shared` run builds inventories for
-   hosts nothing was adopted for. Skip a host that already has an
-   inventory file or a `heinzel legacy:` line: its leads were
-   checked.
+   hosts nothing was adopted for. Skip a host whose inventory already
+   holds leads, or that has a `heinzel legacy:` line: its leads were
+   collected or checked. `## Facts` from step 4 alone is no reason to
+   skip.
 
    For each host in that set, read `heinzel-memory.md` and
    `changelog.log` and collect every path, unit, cron job or script
