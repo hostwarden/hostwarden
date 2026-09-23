@@ -39,10 +39,59 @@ workstation to.
 Enabled, with incoming traffic denied or dropped by default, and
 every port sshd listens on kept open (`AGENTS.md` → Critical
 Safety Rules). The family file names the tool; native nftables
-counts. One firewall manager, never a second on top
-(`rules/service-class-check.md`). In a container, the firewall
+counts, and so does iptables on the legacy backend that a
+service or hook restores. One firewall manager, never a second on
+top (`rules/service-class-check.md`). In a container, the firewall
 inside it counts; the host's does not. Checked by housekeeping's
 Firewall Status and the security audit's `references/firewall.md`.
+
+### Filtering in front of the host
+
+A firewall the host cannot see — the provider's, a cloud
+security group, a router — is recorded in the host's `memory.md`
+as the user describes it, per family:
+
+```markdown
+- Upstream firewall: provider, in front of 203.0.113.10 and
+  2001:db8:5::10; v4 and v6 inbound: all allowed except tcp/22,
+  tcp/8006 (admin addresses only) (user, 2026-09-23)
+```
+
+The line names what it stands in front of: the addresses, or the
+interface. Without that, ask; a line that does not say covers
+nothing.
+
+`none (user, <date>)` records that nothing filters in front.
+Hostwarden cannot read that firewall and never calls the line
+verified: it is what the user said, on that date.
+
+Every finding that the host does not filter a family — no
+firewall, a firewall off, the IPv6 gap — is weighed here, on
+every platform, whichever check reports it:
+
+- **No line.** An interactive session asks the user once what
+  filters in front of the host and what it lets in per family,
+  and records the answer, `none` included. A scheduled run does
+  not ask and adds "no upstream firewall recorded" to the
+  finding.
+- **`none`.** The finding stands.
+- **A line.** Work out which ports still reach the host in that
+  family: the ports it listens on publicly (the security skill's
+  `references/listening-services.md`), minus those a DNAT hands
+  to a guest first (the `Inbound` lines of a current Traffic
+  flow profile, `rules/network.md`), minus what the line blocks.
+  The line blocks a port only where it stands in front of every
+  way to it: a port bound to an address it does not cover, or
+  bound to all addresses on a host with another interface
+  carrying an address — a second NIC, the LAN, a VPN or
+  overlay — is still reachable that way, and stays.
+  Under "all denied except P" everything but P is blocked, under
+  "all allowed except P" only P, and a port limited to named
+  sources counts as blocked. No port left → **INFO** "Host does
+  not filter <family>; filtered in front: <the line>", in place
+  of the finding. Ports left → the finding keeps its severity
+  and names them: **CRITICAL** "No active firewall: tcp/111,
+  tcp/3128 reachable over IPv6". The line never lowers it.
 
 ## Automatic Security Updates
 
