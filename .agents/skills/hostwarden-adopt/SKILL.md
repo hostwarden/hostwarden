@@ -149,12 +149,18 @@ leads, the host confirms them.
      time zone, mail route, what a new host always gets:
      `memory/custom-rules/baseline.md`, which `hostwarden-baseline`
      measures against (`rules/baseline.md`).
-   - **How the agent should work** — a correction, a preference, a
-     "never propose this again": an override
-     (`rules/overrides.md`), in the file of the rule or skill it
-     changes, `memory/custom-rules/all.md` where it changes none.
-   - **A fact about one host**, a decision about it or an open plan
-     for it: under `## Facts` in that host's `heinzel-inventory.md`
+   - **How the agent should work** — a correction, a preference:
+     an override (`rules/overrides.md`), in the file of the rule or
+     skill it changes, `memory/custom-rules/all.md` where it changes
+     none.
+   - **A decision the user made**, with its reason — "no SNAT
+     anywhere", "do not propose SSO for the UniFi devices again": an
+     entry in the place and form `rules/decisions.md` gives, carried
+     over from Heinzel, its longer reasoning in the entry's
+     `Details:` file. A host still in the old checkout gets nothing
+     yet: its decisions are sorted again when it is adopted.
+   - **A fact about one host** or an open plan for it: under
+     `## Facts` in that host's `heinzel-inventory.md`
      (`references/inventory.md`), which its first connection checks
      and carries into `memory.md`, a plan as `- Planned: …`, and then
      removes; it is no lead. A host that already has a `memory.md`
@@ -293,10 +299,11 @@ leads, the host confirms them.
    hypervisor adds step 10, and every host ends with step 11.
 
    Nothing on the host changes. A question whose answers only get
-   recorded — stopped guests, an override offered from Heinzel's
-   decisions, Heinzel's finds answered "leave" or "later" — is asked
-   once that host's steps have run, in the order its rules give, so
-   the answers are in its memory before the next host starts. Moving
+   recorded — stopped guests, Heinzel's decisions and the overrides
+   offered with them, Heinzel's finds answered "leave" or "later" —
+   is asked once that host's steps have run, in the order its rules
+   give, so the answers are in its memory before the next host
+   starts. Moving
    or renaming Heinzel's state is a change: an answer that adopts is
    recorded as `heinzel legacy: deferred <date> (answered at
    onboarding: <answer>)` and asked again after the report. Then
@@ -350,7 +357,10 @@ leads, the host confirms them.
 
 11. **Where the host stands.** For each host onboarded over SSH, run
     `hostwarden-baseline` steps 1 and 2 — its overrides and the
-    measurement, read-only — and not its question. What this
+    measurement, read-only — and not its question. Heinzel's
+    decisions for the host are asked before this measurement, ahead
+    of step 9's other questions, so a section one settles is not
+    listed as missing. What this
     connection's probes already read counts there like a housekeeping
     run's findings and is not probed again. A guest registered through
     its host is measured on its first SSH connection or by

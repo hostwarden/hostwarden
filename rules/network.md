@@ -277,7 +277,8 @@ Address ranges that are easy to misread:
 
 The one list for the profile's `## Findings` section and for any
 workflow that reports on a host's network. Severities follow the
-housekeeping report format.
+housekeeping report format. A finding one of the user's decisions
+settles is none (`rules/decisions.md` → Rating findings).
 
 **CRITICAL**
 

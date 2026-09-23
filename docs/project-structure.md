@@ -216,6 +216,9 @@ rules/                 — Upstream rule files (git-tracked)
                          reporting or escalating it
   overrides.md         — How overrides layer over what
                          Hostwarden ships
+  decisions.md         — Your standing decisions: where
+                         they go, how audits rate what
+                         they settle
   firewall-changes.md  — Exposure review when a service is
                          installed, removed or reconfigured
   dns-aliases.md       — DNS alias detection & management
@@ -286,11 +289,17 @@ memory/                — The workspace: all your user
   opencode.json        — Your local OpenCode config
   custom-rules/        — Your rule overrides that layer on
                          top of rules/*.md
+  decisions/           — Your decisions about a group of
+                         hosts or all of them, and beside
+                         each file a directory of the same
+                         name with their longer reasoning
   servers/<hostname>/
     memory.md          — Server state snapshot
     changelog.log      — Local change history
     todo.md            — Session task list
     rules.md           — Per-server rule overrides
+    decisions.md       — Your decisions about this host
+    decisions/         — Their longer reasoning
     guests.md          — A hypervisor's guest inventory
     storage.md         — ZFS pool and btrfs settings,
                          compared by housekeeping
@@ -305,6 +314,7 @@ memory/                — The workspace: all your user
     cluster.md         — Members, quorum, HA, pool master
     guests.md          — The cluster's guest inventory
     files/             — Masters every member carries
+    decisions.md       — Your decisions about the cluster
   fleet/<name>/        — One artifact deployed to several
                          hosts, and its README.md
   tools/               — Scripts you run from the

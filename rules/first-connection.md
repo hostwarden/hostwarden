@@ -31,7 +31,19 @@ skip it.
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Server memory file.** Create on first
    connection, read on every subsequent connection.
-   See `rules/server-memory.md`. A first connection
+   See `rules/server-memory.md`. With it, read the
+   user's decisions that apply to the host: its
+   `decisions.md`, its cluster's, and each file under
+   `memory/decisions/` whose `Applies to:` line
+   selects it by the `memory.md` just read or written
+   (`grep -sH '^Applies to:' memory/decisions/*.md
+   || true` runs beside the `memory.md` read, and
+   succeeds silently where there is no such file; the
+   cluster file and the matching group files follow in
+   one read). Most hosts have none, and their absence
+   is never worth a line. Where one applies, read
+   `rules/decisions.md` before proposing anything or
+   rating a finding. A first connection
    is one to a host with no `memory.md` yet. That
    includes a host adopted from Heinzel, whose
    directory holds Heinzel's `heinzel-memory.md`

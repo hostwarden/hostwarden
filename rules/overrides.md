@@ -198,6 +198,20 @@ first connection.
 Missing override files are the normal case. Their absence
 is never an error and never worth a line to the user.
 
+## An override for a decision
+
+A block whose body opens with `Decision: <heading> (<file>)`
+— the first line under its `##` heading, the file's path below
+`memory/` — enforces a decision the user recorded
+(`rules/decisions.md`). It applies only on the hosts
+that decision applies to, and nowhere else, whichever file it
+sits in; its place in the precedence above is that file's. The
+reason for it is in the decision, never repeated in the block.
+
+A pointer whose decision no longer exists means the block
+outlived it: name both and ask whether the block goes too,
+before acting on the file it overrides.
+
 ## Skills are different in one way
 
 A skill's body and its references override exactly like a

@@ -36,6 +36,10 @@ fail2ban            INFO — not running
 - **Issues section** only appears if problems exist. Sort by
   severity: CRITICAL first, then WARN, then INFO.
 - **One line per item.** Keep it scannable.
+- **A finding a decision settles** (`rules/decisions.md` →
+  Rating findings) reads `DECIDED — <heading> (<who>, <date>)`
+  on its line, never under Issues:
+  `Firewall   DECIDED — No local firewall (user, 2026-09-18)`.
 - Severity levels:
   - `CRITICAL` — needs immediate attention
   - `WARN` — should be addressed soon

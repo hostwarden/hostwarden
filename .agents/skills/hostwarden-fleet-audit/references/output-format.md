@@ -114,8 +114,8 @@ disagree, what the setting means, suggested fix.
 
 3. **Firewall tool**: host1 uses ufw, host2 has no
    firewall installed. Suggested fix: install ufw on
-   host2 or document the exception in
-   memory/servers/<host2-fqdn>/memory.md.
+   host2, or record why it has none as a decision
+   (`rules/decisions.md`).
 ```
 
 ## Empty drift
@@ -160,6 +160,23 @@ and the reader cannot tell it from one nobody rendered:
 
 None.
 ```
+
+## Decided
+
+After Warnings, only when a decision settled a disagreement or a
+warning: one line per decision, its heading, who and when, and the
+hosts it covered in this run.
+
+```
+### Decided
+
+- **host2**: no firewall — No local firewall (user, 2026-09-18)
+- **host1, host3**: needrestart restarts services itself —
+  Needrestart stays automatic (user, 2026-08-19)
+```
+
+A decision whose `Revisit:` date has passed gets `— revisit due`
+at the end of its line.
 
 ## Skipped hosts
 

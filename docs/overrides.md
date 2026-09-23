@@ -108,6 +108,56 @@ in an upgrade, it asks which part you meant. A `Replace`
 or `Remove` whose section matches nothing makes it stop
 and ask; an `Add` becomes a new section.
 
+## Decisions
+
+A decision is not an override. It records a choice you made
+about your servers, with the reason: pve1 gets no local
+firewall, a key stays unrotated, the UniFi devices get no SSO.
+Hostwarden then stops proposing what the decision rules out,
+and an audit reports what it settles as `DECIDED` instead of
+as an issue. It never records one on its own: it offers to
+when you turn a proposal down with a reason, and writes on
+your yes. `rules/decisions.md` has the rest.
+
+| For | File |
+| --- | --- |
+| One host | `memory/servers/<hostname>/decisions.md` |
+| A cluster | `memory/clusters/<name>/decisions.md` |
+| A group, or all hosts | `memory/decisions/<name>.md` |
+
+```markdown
+# Decisions — pve1.example.com
+
+## No local firewall
+- Decided: alice, 2026-09-18
+- Why: the router guest filters everything; rules on the
+  bridges broke guest traffic.
+- Settles: baseline → Firewall; proposals to enable one
+```
+
+Where the reasoning is longer — the options you weighed, the
+numbers behind it — it goes into a file beside the decision
+file, in a directory of the same name without `.md`
+(`servers/<hostname>/decisions/<name>.md` under `memory/` for
+a host), and the entry names that file in a `Details:` line.
+Hostwarden reads it only when the decision is in question.
+
+A group file says which hosts it covers in its second line, never
+wrapped however long it gets:
+`Applies to: all`, a line from the hosts' memory
+(`Applies to: Appliance: Proxmox VE`), or a list
+(`Applies to: hosts web1.example.com, web2.example.com`).
+
+Where a decision also has to change what Hostwarden does, it
+gets an override too, whose first line points back at it:
+`Decision: Reboots by hand only (decisions/databases.md)`. The
+reason then stays in the decision. To retire a decision, say
+so; Hostwarden deletes it and the override with it. The
+workspace history keeps the old text.
+
+The Critical Safety Rules cannot be decided away, just as they
+cannot be overridden.
+
 ## Your own skills
 
 A workflow Hostwarden does not ship goes into

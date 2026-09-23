@@ -157,6 +157,9 @@ undoes what the rollback restores. A `Flags:` or
 `Rollback:` about this session alone stays in the
 log.
 
+A choice the user made is not a `Flags:` line but a
+decision (`rules/decisions.md`).
+
 ### Reading it
 
 Every connection reads the entries of the activity

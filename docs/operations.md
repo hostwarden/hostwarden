@@ -371,12 +371,16 @@ the backup.
 - `service-policy.md` — per-service opt-out /
   opt-in for auto-reload and auto-restart
 - `servers/<hostname>/` — per-server memory,
-  changelog, todo, and per-server rule overrides
+  changelog, todo, per-server rule overrides and
+  decisions
 - `clusters/<name>/` — a hypervisor cluster or pool:
-  its members, HA state and guest inventory
+  its members, HA state, guest inventory and
+  decisions
 - `known_hosts` — the SSH host keys of your servers
   ([Features → Host keys](features.md#host-keys))
 - `custom-rules/` — your global rule overrides
+- `decisions/` — your decisions about a group of
+  hosts, or all of them
 - `opencode.json` — your OpenCode config
 - `network.md`, `housekeeping.md` — cross-server
   facts and custom checks
@@ -449,8 +453,9 @@ The migration renames skill overrides in
   and a value the two set differently is shown to you,
   not chosen. Whatever else your old `memory/` holds —
   Claude's auto-memory from Heinzel sessions, notes —
-  is sorted item by item into overrides, the network
-  notes or a host's memory, with one question. The skill
+  is sorted item by item into overrides, decisions,
+  the network notes or a host's memory, with one
+  question. The skill
   then reads it and the changelogs into a per-host
   list of leads: the scripts, configs, units and cron
   jobs your sessions improvised, and asks whether
@@ -461,7 +466,8 @@ The migration renames skill overrides in
   onboards each host the way a first connection would
   have: read-only, host by host. It writes the host's
   memory in Hostwarden's form from what it finds, with
-  your earlier decisions and notes carried over, runs
+  your notes carried over, offers your earlier
+  decisions as decision records, runs
   the network profile, checks the leads, and on a
   hypervisor inventories and registers the guests —
   and adopts the guests still in your Heinzel

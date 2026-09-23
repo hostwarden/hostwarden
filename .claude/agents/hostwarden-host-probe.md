@@ -116,6 +116,16 @@ carries the same bad value produces no drift at all, so a warning
 that stays with you is one the report will say nothing about while
 reporting the fleet consistent.
 
+A criterion one of the host's decisions settles, read at pipeline
+step 6, is no warning: write it `decided: <setting> — <heading>
+(<who>, <date>)`, with `— revisit due` where its date is past
+(`rules/decisions.md` → Rating findings). A host that no
+longer matches what a decision says stays a `warnings:` line,
+ending in `— contradicts decision <heading>`. After them, one
+`decision: <heading> — Settles: <…>` line per decision that
+applies to this host, so the report builder can rate drift
+without reading memory.
+
 **`notices:`**, when the pipeline turned something up that the main
 session has to put in front of the user — one line each, no prose
 around them:
