@@ -117,6 +117,9 @@ The prompt names one of two jobs.
      tool document it as the protocol, or only as where the answer
      arrived, and can the query be forced to the one source
      instead?
+   - A keyword matched on a whole config line: does it mean the
+     same in every field it can occur in — a URL, a key file, a
+     component — or only in the one field the rule is about?
    - A test written for one use — a memory label, a mail header —
      that another rule now cites: do its exclusions hold for that
      rule's question, or does it turn a healthy state into a
@@ -136,7 +139,10 @@ The prompt names one of two jobs.
    with a narrower grant report as unread what it could have read?
    A step that lets a narrower privilege fill what a bundle
    skipped says "must" wherever the rule it serves does, and each
-   consumer that ends on a sentinel reaches it.
+   consumer that ends on a sentinel reaches it. A variable or
+   pattern a step uses: is it set in the same call on every branch
+   that reaches the step, or does the step count on another file's
+   block having run first, and what does the tool do with it unset?
 4. **A contradiction with another file, or a lost safeguard.**
    Another rule, skill, hook or doc says the opposite now, or the
    diff removes a check an earlier change put there on purpose. A
@@ -175,7 +181,16 @@ The prompt names one of two jobs.
    validated, `--` before them, `grep -F` for a literal
    (`rules/anomaly-detection.md` → No Unsanitized Interpolation). A
    printed line must not carry a password, token or URL userinfo
-   (`rules/secrets.md`).
+   (`rules/secrets.md`). Then ask:
+   - An allowlist that prints a trusted tool's arguments whole:
+     can one of them hold free text — a comment, a log prefix, a
+     description, a quoted string — and what guards that text once
+     no keyword filter does?
+   - A redaction that keeps part of a URL, or a pattern that pulls
+     paths out of a command line: can what it keeps carry a secret
+     itself — userinfo, a path segment or query, an option value
+     that only looks like a path — and is a path tested on the host
+     before it is printed?
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
