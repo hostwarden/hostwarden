@@ -7,23 +7,48 @@ question.
 
 ## Report, then ask
 
-One line per find — path, file count, age of the
-oldest entry:
+One line per find. For a directory of backups or
+scratch output: path, file count, age of the oldest
+entry. For a script, unit, cron file or config
+directory a session created: path, and what calls it
+as far as the inventory and the probe show:
 
 ```
 heinzel state on this host:
   /var/backups/heinzel/ — 24 files, oldest 61 days
-Adopt into /var/backups/hostwarden/, or leave it?
+  /usr/local/bin/heinzel-backup.sh — called by
+    /etc/cron.d/heinzel-backup, 03:00 daily
 ```
 
-Three answers:
+Four answers:
 
-1. **Adopt** — move the files, keep the content.
-2. **Leave** — nothing moves; Hostwarden keeps
+1. **Adopt and rename** — move Heinzel's fixed paths
+   (below) and give every artifact whose name says
+   `heinzel` its Hostwarden name, with every
+   reference to it (§ Rename to Hostwarden's name).
+2. **Adopt, keep the names** — move the fixed paths;
+   scripts, units, cron files and config directories
+   keep their names and are recorded as they are.
+3. **Leave** — nothing moves; Hostwarden keeps
    reading the old paths (`rules/backups.md`).
-3. **Later** — record a dated deferral (below) so
+4. **Later** — record a dated deferral (below) so
    the question comes back on request, not on every
    connection.
+
+When only fixed paths turned up, the first two are
+the same answer: offer three. Before offering the
+rename, say in one line how many names change, that
+every reference to them is searched for and
+rewritten first, and that a job that still points at
+an old name would fail on its next run, which the
+next connection checks.
+
+`memory/user.md` may carry the user's answer from the
+takeover (`hostwarden-adopt` skill):
+`Heinzel names on hosts: rename` makes answer 1 the
+recommended one, `keep` answer 2; without the line,
+neither is. Ask all the same: every host is its own
+change.
 
 Before asking about config backups, say how many are
 past the retention window: `mv` keeps mtime, so those
@@ -84,14 +109,17 @@ once the same way. Each machine's memory records its
 own outcome line (Record, below).
 
 Leaving and waiting are recorded in each machine
-now. Adopting runs now on the host only: registration
-never changes a guest, so a guest keeps that answer
-as a deferral. Its next connection that may change
-it asks again, for that guest alone, with the
-recorded answer as the recommended one:
+now. Adopting, with the names renamed or kept, runs
+now on the host only: registration never changes a
+guest, so a guest keeps that answer as a deferral
+that says which of the two it was. Its next
+connection that may change it asks again, for that
+guest alone, with the recorded answer as the
+recommended one:
 
 ```markdown
 - heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)
+- heinzel legacy: deferred 2026-09-20 (answered at registration: rename)
 ```
 
 ## Move the fixed paths
@@ -123,19 +151,34 @@ shred it (`rules/secrets.md`).
 Verify afterwards — destination count, source gone or
 listed as leftover — and report it in one line.
 
-## An improvised script keeps its name
+## Rename to Hostwarden's name
 
-Adopting a script, unit, cron file or config
-directory means recording it, not renaming it. A
-cron file calls that script tonight; renaming it
-breaks the job silently, and the failure surfaces
-weeks later as a missing backup.
+On answer 1, or when the user asks for it on a host
+already settled. The rename follows
+`rules/file-naming-changes.md` → Renaming scripts,
+units and cron files, with `heinzel` as both the old
+stem and the rename map's scheme.
 
-Rename only if the user asks, and then under
-`rules/file-naming-changes.md` in full — every
-consumer found first and fixed in the same change. A
-rename whose callers were not enumerated is not
-offered.
+The name part `heinzel` becomes `hostwarden` and
+nothing else changes:
+`/usr/local/bin/heinzel-backup.sh` →
+`/usr/local/bin/hostwarden-backup.sh`,
+`/etc/heinzel/` → `/etc/hostwarden/`,
+`heinzel-backup.timer` → `hostwarden-backup.timer`.
+An artifact whose name does not say `heinzel` keeps
+it; there is no old name to shed. Also never renamed:
+what neither the inventory nor the changelog claims
+(`rules/heinzel-legacy.md` → What is not ours), and
+journal history and changelog entries.
+
+A script that logs with `logger -t heinzel` gets its
+own name as the tag (`hostwarden-backup`), never the
+bare `hostwarden`: the activity check reads that tag
+as a session's work (`rules/activity-check.md`), and
+a nightly job would pass for one.
+
+Afterwards the host's memory names the new paths —
+they are what is true now.
 
 ## Record
 
@@ -152,13 +195,17 @@ Then one line for the outcome of the check:
 
 ```markdown
 - heinzel legacy: adopted 2026-09-20 (24 backups, 0 left)
+- heinzel legacy: renamed 2026-09-20 (24 backups, 3 names)
 - heinzel legacy: left in place (/var/backups/heinzel/)
 - heinzel legacy: deferred 2026-09-20 (heinzel still in use)
 - heinzel legacy: deferred 2026-09-20 (privileged paths unread)
 ```
 
-The first two settle it and the check does not run
-again. A deferral does not: while that line reads
+The first three settle it and the check does not run
+again; a renamed job's first run is followed up in
+`todo.md` (`rules/file-naming-changes.md` →
+Renaming scripts, units and cron files). A deferral
+does not: while that line reads
 `deferred`, the check runs on every connection — but
 it only speaks up when the deferral's own reason has
 changed. `rules/heinzel-legacy.md` lists those
@@ -180,6 +227,9 @@ Log the change like any other (`rules/changelog.md`):
 logger -t hostwarden "Adopted heinzel state: \
   /var/backups/heinzel -> /var/backups/hostwarden \
   (24 files)"
+logger -t hostwarden "Renamed heinzel artifacts: \
+  3 names, 2 references; map in \
+  /var/backups/hostwarden/heinzel-rename-map-20260920-1412.txt"
 ```
 
 ## On the workstation (local mode)

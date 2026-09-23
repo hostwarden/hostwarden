@@ -440,7 +440,9 @@ The migration renames skill overrides in
   The skill then reads your memory files and
   changelogs into a per-host list of leads: the
   scripts, configs, units and cron jobs your sessions
-  improvised. Neither contacts a server.
+  improvised, and asks whether those should get
+  Hostwarden's names on the servers too: rename, keep,
+  or decide per host. Neither contacts a server.
 - Keeping Heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your Heinzel checkout so it reads both
@@ -451,16 +453,22 @@ The migration renames skill overrides in
   a host alone that Heinzel still uses.
 - On the first connection to a host, Hostwarden
   reports what Heinzel left there — config backups,
-  scratch directories — and offers to move it under
-  the new name. It asks first, and it says which old
-  backups the retention cleanup would then delete. On
-  a hypervisor whose guests it registers, it asks once
-  for the host and the guests together; a guest
-  answered with "adopt" is moved on its next connection
-  that may change it, after one more question.
-  New config backups go to
-  `/var/backups/hostwarden/`, or the directory an
+  scratch directories, and the scripts, units, cron
+  files and config directories your sessions created
+  — and offers to move it under the new name. It asks
+  first, and it says which old backups the retention
+  cleanup would then delete. On a hypervisor whose
+  guests it registers, it asks once for the host and
+  the guests together; a guest answered with "adopt"
+  is moved on its next connection that may change
+  it, after one more question. New config backups go
+  to `/var/backups/hostwarden/`, or the directory an
   appliance's rules name.
+- Renaming a script or unit also rewrites every
+  reference to it on that host. Hostwarden keeps a
+  rename map and backups to go back by, and checks
+  on a later connection that each job ran under its
+  new name.
 - SSH sockets live in `~/.cache/hostwarden`.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.

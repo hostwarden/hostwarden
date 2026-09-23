@@ -15,8 +15,9 @@ nothing said — that is the normal case.
 
 The transition is over once no host memory carries a
 `heinzel legacy:` line, no `heinzel-inventory.md` is
-left, and `memory/user.md` has no
-`Adopted from heinzel:` line. At that point delete
+left, and `memory/user.md` has neither an
+`Adopted from heinzel:` nor a
+`Heinzel names on hosts:` line. At that point delete
 this file and `rules/heinzel-adoption.md`, drop step
 8 from `rules/first-connection.md`, the `heinzel` tag
 from `rules/activity-check.md`, the old backup paths
@@ -121,7 +122,8 @@ unread: say nothing, record nothing, continue. The
 check runs on the first connection, and after that
 only while the host's memory carries a
 `heinzel legacy: deferred` line or an unresolved
-`heinzel-inventory.md`.
+`heinzel-inventory.md`, and whenever the user asks
+for it, whatever the line says.
 
 On a deferred host the probe runs but the question
 does not come back by itself. Check the deferral's
@@ -157,6 +159,7 @@ the changelog claims it, report it and leave it.
 ## On a hit
 
 Read `rules/heinzel-adoption.md`. It covers the
-report, the question, moving the fixed paths, why an
-improvised script keeps its name, and what gets
-recorded in server memory.
+report, the question, moving the fixed paths,
+giving what a session created Hostwarden's name when
+the user chooses it, and what gets recorded in
+server memory.

@@ -64,3 +64,12 @@ Heinzel left there, which moves
 `/var/backups/heinzel/` into
 `/var/backups/hostwarden/`. Nothing is deleted by
 that — `backups.md` in this directory has the rule.
+
+Where the user chose it, Hostwarden also renames the
+scripts, units, cron files and config directories
+Heinzel sessions created — `heinzel-backup.sh`
+becomes `hostwarden-backup.sh`, `/etc/heinzel/`
+becomes `/etc/hostwarden/` — and rewrites every
+reference to them. A path in this checkout's memory
+that is gone from a host may simply carry the new
+name now: look for it before reporting it missing.

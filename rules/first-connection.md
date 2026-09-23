@@ -46,10 +46,11 @@ skip it.
 
    When it does apply: first connection, plus every
    connection while a `deferred` line or an
-   unresolved inventory is there. One batched probe,
-   silent unless it finds something, in step 7's call
-   where possible (`rules/activity-check.md` → What
-   rides in this call). See `rules/heinzel-legacy.md`.
+   unresolved inventory is there, and whenever the
+   user asks for it. One batched probe, silent unless
+   it finds something, in step 7's call where possible
+   (`rules/activity-check.md` → What rides in this
+   call). See `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 
 ## Local mode

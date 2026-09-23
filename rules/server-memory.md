@@ -196,7 +196,8 @@ For a session of two steps or more, create
 `[x]` the moment it is done, not at the end — a
 session that is interrupted has to leave behind
 what was actually finished. On reconnection, show
-the pending items before starting new work. Delete
+the pending items before starting new work; an item
+with a `due` time waits silently until then. Delete
 the file once everything is done.
 
 ## Cross-server facts
