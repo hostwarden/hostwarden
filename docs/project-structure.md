@@ -198,6 +198,15 @@ rules/                 — Upstream rule files (git-tracked)
   baseline.md          — What every server is expected to
                          have
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
+  accounts.md          — A host's account model, team
+                         accounts, certificate logins and
+                         account or sudo changes
+  accounts-probe.md    — The read-only probe behind
+                         accounts.md: account source, sudo
+                         rules, local accounts
+  accounts-on-demand.md — Accounts for people who come
+                         through an identity provider and
+                         short-lived certificates
   borrowed-rights.md   — No other session, job or token for
                          what this session may not do
   os-detection.md      — OS detection on every connection:

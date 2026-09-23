@@ -4,7 +4,8 @@ argument-hint: "[hostname]"
 description: Run a Hostwarden security audit on a server — SSH
   hardening (password auth, weak algos, root login, host
   certificates, user CA trust), firewall,
-  user account hygiene, listening services, kernel hardening
+  user account hygiene, where accounts and sudo rules come from
+  and who holds them, listening services, kernel hardening
   (ASLR, IP forwarding), file permissions, SUID/SGID audit,
   fail2ban. Use when the user asks for a "security audit",
   "security review", "hardening check", "Sicherheitsaudit",
@@ -47,7 +48,7 @@ applies before any of this runs.
    method otherwise.
 5. **Emit the report** using the format in
    `references/report-format.md`.
-6. **Do NOT update memory**, with three exceptions. These are
+6. **Do NOT update memory**, with four exceptions. These are
    config observations, not state changes: memory tracks what is
    installed and running, not security posture details. The
    exceptions are inventory rather than posture:
@@ -59,7 +60,9 @@ applies before any of this runs.
      agent, and the SSH state this audit read, in `network.md` as
      `rules/mesh-vpn.md` → Memory says. It is the only flow that
      reads Newt's;
-   - the SSH CA lines (`rules/ssh-ca.md` → Memory).
+   - the SSH CA lines (`rules/ssh-ca.md` → Memory);
+   - the `Accounts:` line, written or rewritten wherever the probe
+     finds something else, as `rules/accounts.md` → Memory says.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
@@ -114,6 +117,9 @@ Read on demand, only when the relevant section applies:
   names, registries. Whenever an engine is present.
 - `references/user-accounts.md` — empty passwords, multiple UID
   0, system accounts with login shells.
+- `references/accounts-sudo.md` — where accounts and sudo rules
+  come from, who holds `ALL` or `NOPASSWD`, local accounts.
+  Linux, FreeBSD and macOS.
 - `references/listening-services.md` — audit `ss` / `lsof`
   output, flag databases on 0.0.0.0, open DNS resolvers and
   exposed Pi-hole or AdGuard Home web interfaces.

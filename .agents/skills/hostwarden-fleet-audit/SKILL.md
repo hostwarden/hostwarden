@@ -6,8 +6,9 @@ description: Compare key policies across all servers in
   changes; writes one audit-trail line to each host's journal.
   Probes unattended-upgrades, sshd effective config and SSH CA
   trust, firewall posture, MTA, network stack and resolver, time
-  sync, auto-reboot behaviour, mesh VPNs and their SSH servers, and
-  Ubuntu Pro/ESM coverage and needrestart mode. Use when
+  sync, auto-reboot behaviour, mesh VPNs and their SSH servers,
+  accounts and sudo rules, and Ubuntu Pro/ESM coverage and
+  needrestart mode. Use when
   the user asks to "fleet audit", "vergleiche alle server",
   "policy drift check", "are my servers configured the same?",
   or after a fix on one host to find which others carry the
@@ -236,7 +237,7 @@ Read on demand:
 
 - `references/probes.md` — the exact commands to run per
   category (UA, sshd, firewall, MTA, network, time,
-  auto-reboot, mesh VPNs).
+  auto-reboot, mesh VPNs, accounts and sudo).
 - `references/output-format.md` — table layout and the
   "Drift detected" section format.
 
