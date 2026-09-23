@@ -89,14 +89,12 @@ host path with the same hash is the same artifact, and the host gets
 an entry for that master instead of a second copy. Equal bytes at
 another host path are a different file.
 
-Never follow a link out of the old checkout. It may point anywhere,
-at a credential too, and a `cp` that follows it puts the target into
-the committed workspace. Before each copy, `find <source> -type l`
-lists the source itself when it is a link and every link below it;
-a source with anything listed is not copied at all, stays where it
-is, and is named in the report. The host directories the copy
-brought in hold no links: `bin/hostwarden-adopt` skips a host that
-has one.
+A link in the old checkout is never followed (step 2). Before the
+first copy, one `find <source>… -type l` over every source lists
+each source that is a link and every link below one; a source with
+anything listed is not copied and is named in the report.
+`bin/hostwarden-adopt` does the same for whole host directories: it
+skips a host that has a link.
 
 A master already at the target stays, with its entry. Of two
 Heinzel copies of one host path that differ, the one the latest

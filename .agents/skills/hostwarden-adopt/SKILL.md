@@ -75,7 +75,10 @@ leads, the host confirms them.
 2. **Never write into the old tree.** The old checkout is the user's
    fallback. Read from it, copy out of it, change nothing in it. Say
    this once, so the user knows the original stays intact. The single
-   exception is step 7, which the user approves explicitly.
+   exception is step 7, which the user approves explicitly. Read and
+   copy nothing through a link in it: a link may point anywhere, at a
+   credential too. A link stays where it is and is named in the
+   report.
 
 3. **Ask once, before the copy.** Name the hosts the run takes and
    what follows the copy:
