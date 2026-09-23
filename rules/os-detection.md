@@ -211,3 +211,16 @@ part, which holds both. Virtualization and step 2 of
 On first connection settle them. If a command fails
 or the OS no longer matches memory, run On first
 connection from step 1.
+
+That is a **full re-probe**, and the user can ask for
+one on a known host (`hostwarden-onboard`). It
+rewrites the lines detection owns
+(`rules/server-memory.md` → Who writes which line:
+this file's, `rules/first-detection.md`'s, and those
+a Version Detection section names) where the probe
+reads something else, and says each difference in one
+line: `OS: Debian 12 in memory, Debian 13 now`. Every
+other line stays. One the user asked for also runs
+the full network profile (`rules/network.md` → When)
+and, on a hypervisor, the full inventory
+(`rules/hypervisors.md` → Inventory).

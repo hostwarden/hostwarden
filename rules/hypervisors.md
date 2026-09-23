@@ -13,10 +13,13 @@ Application containers (Docker, Podman) are not guests
 
 ## Inventory
 
-**When:** the full inventory on the first connection and in
-housekeeping. On a later connection, the light listing (ID and
-state only), once a day at most: when `Inventoried:` is not
-today, or when the request is about guests. The full inventory
+**When:** the full inventory on the first connection, in
+housekeeping, and on a full re-probe the user asked for
+(`rules/os-detection.md` → On subsequent connections), there in the
+activity check's call in place of the light listing. On a later
+connection, the light listing (ID and state only), once a day at
+most: when `Inventoried:` is not today, or when the request is
+about guests. The full inventory
 then runs for the guests whose listing differs from `guests.md`.
 The listing on a connection, like a guest's link keys (Linking
 below), rides in the activity check's call
@@ -381,7 +384,7 @@ guests, before entering any. Where the path holds no Heinzel
 checkout any more, nothing is left out.
 
 The `hostwarden-adopt` skill adopts such guests with their host
-(its step 10). Outside it, `not registered` lists each as `in the
+(its step 9). Outside it, `not registered` lists each as `in the
 Heinzel checkout`, and one question after the report offers to
 adopt them, which is the explicit request that skill needs. A no
 is recorded in each entry of `guests.md`, `in the Heinzel

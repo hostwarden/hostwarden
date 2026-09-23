@@ -24,16 +24,16 @@ the gaps the user picks. The pipeline in
 
 1. **Overrides:** keys `hostwarden-baseline` and `baseline`, per
    `rules/overrides.md`, the host's `# baseline` block included.
-2. **Measure.** Take what a housekeeping or security run in this
-   session already found. For the rest, run the check each section
-   of `rules/baseline.md` names, reading only that section of its
-   reference, in as few bundled calls as they allow, and list what
-   is missing, one line per section. A section the host's
-   appliance, platform or role file replaces is measured by that
-   file, and a section one of the host's decisions settles is
-   listed as decided, with the decision's heading. Record the
-   result in the `Baseline check:` line (`rules/baseline.md` →
-   Rendered Versions).
+2. **Measure.** Take what this session's probes already found — a
+   housekeeping or security run, an onboarding. For the rest, run
+   the check each section of `rules/baseline.md` names, reading
+   only that section of its reference, in as few bundled calls as
+   they allow, and list what is missing, one line per section. A
+   section the host's appliance, platform or role file replaces is
+   measured by that file, and a section one of the host's
+   decisions settles is listed as decided, with the decision's
+   heading. Record the result in the `Baseline check:` line
+   (`rules/baseline.md` → Rendered Versions).
 3. **Ask** which to apply, in one question. A section the user
    turns down with a reason is the moment to offer recording it as
    a decision (`rules/decisions.md` → Writing one).

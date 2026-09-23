@@ -27,8 +27,8 @@ onboarding by Hostwarden would have left it. Two phases:
 
 1. **Copy** (steps 1–8) — this clone and the old checkout, nothing
    else. No server is contacted.
-2. **Onboard** (steps 9–12) — each adopted host in turn, through
-   `rules/first-connection.md` as its first Hostwarden connection:
+2. **Onboard** (steps 9–10) — each adopted host in turn, through
+   `hostwarden-onboard` as its first Hostwarden connection:
    read-only, one `read-only:` journal line per host. This is the
    default; the user does not have to ask for it.
 
@@ -86,7 +86,7 @@ leads, the host confirms them.
 
    `[2]` defers onboarding, it does not skip it: a copied host has no
    `memory.md`, so whichever session reaches it first onboards it the
-   same way.
+   same way, as does `hostwarden-onboard` on request.
 
 4. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
    state — access lists, service policy, overrides, network and
@@ -295,58 +295,17 @@ leads, the host confirms them.
    already there is shown, and replaced only when the user changes
    the answer.
 
-9. **Onboard, host by host.** After `[1]` in step 3. The hosts are
-   those of the run that have no `memory.md` after the copy — a kept
-   host is already this clone's own, and an alias is its canonical
-   host. Take the hypervisors
-   step 6 noted first: a guest they register is onboarded by that
-   and has a `memory.md` when its own turn comes, which then skips
-   it.
+9. **Onboard.** After `[1]` in step 3, run `hostwarden-onboard` for
+   the hosts of the run that have no `memory.md` after the copy — a
+   kept host is already this clone's own, and an alias is its
+   canonical host — naming the hypervisors step 6 noted. For adopted
+   hosts it adds:
 
-   Announce each host in one line before its first command:
-
-       Onboarding 3/11: pve1.example.com — first connection, read-only
-
-   Then run `rules/first-connection.md` for it in full, as its first
-   connection: the full probe of `rules/first-detection.md`, never the
-   short form of a known host, and `memory.md` and the address check
-   as `rules/heinzel-adoption.md` → Heinzel's memory says. A
-   blacklisted host is not reached; its report line says so. A
-   hypervisor adds step 10, and every host ends with step 11.
-
-   Nothing on the host changes. A question whose answers only get
-   recorded — stopped guests, Heinzel's decisions and the overrides
-   offered with them, Heinzel's finds answered "leave" or "later" —
-   is asked once that host's steps have run, in the order its rules
-   give, so the answers are in its memory before the next host
-   starts. Moving
-   or renaming Heinzel's state is a change: an answer that adopts is
-   recorded as `heinzel legacy: deferred <date> (answered at
-   onboarding: <answer>)` and asked again after the report. Then
-   write its `read-only:` journal line and changelog entry and commit
-   its files
-   (`rules/changelog.md`); the journal line names the adoption:
-   `read-only: onboarded after adoption from Heinzel`.
-
-   A host that cannot be reached gets what
-   `rules/ssh-unreachable.md` allows and no more, keeps its
-   `heinzel-memory.md` without a `memory.md`, and the run moves on to
-   the next one: its first connection onboards it later.
-
-10. **A hypervisor gets the hypervisor onboarding.** Where OS
-   detection finds one (`rules/first-detection.md` → Hypervisors, and
-   the appliance file, `rules/appliance/proxmox-ve.md` for Proxmox
-   VE), its first connection is a hypervisor's first connection:
-
-   - **The full inventory** into `guests.md`
-     (`rules/hypervisors.md` → Inventory), or on a member of a
-     cluster or pool into `memory/clusters/<name>/`, found or named
-     as `rules/hypervisors.md` → Clusters and Pools says — a second
-     adopted member finds the one the first created.
-   - **Guests still in the old checkout.** Match the inventory
-     against the old checkout's `memory/servers/`, as
-     `rules/hypervisors.md` → Registering Guests says. Those with a
-     directory there and none here are adopted with their host, in
+   - **Guests still in the old checkout**, on a hypervisor, before
+     Registering Guests. Match the inventory against the old
+     checkout's `memory/servers/`, as `rules/hypervisors.md` →
+     Registering Guests says, which then uses this match. Those with
+     a directory there and none here are adopted with their host, in
      one question:
 
          7 guests of pve1.example.com have Heinzel memory in
@@ -355,36 +314,23 @@ leads, the host confirms them.
            [2] Leave them in the Heinzel checkout
 
      `[1]` runs `bin/hostwarden-adopt <path>` once with a
-     `--server` for each and builds their inventory as above;
+     `--server` for each and builds their inventory as in step 6;
      registration then onboards them through the host. `[2]` leaves
-     them unregistered, as Registering Guests says.
-   - **Registering Guests** (`rules/hypervisors.md`), with its
-     report. An adopted guest's `memory.md` is written there as
-     `rules/heinzel-adoption.md` → Heinzel's memory says. An adopted
-     guest the manager cannot enter — a VM without an agent — keeps
-     its `heinzel-memory.md` alone and is onboarded on its first SSH
+     them unregistered, as Registering Guests says. An adopted guest
+     the manager cannot enter — a VM without an agent — keeps its
+     `heinzel-memory.md` alone and is onboarded on its first SSH
      connection.
-   - **Stopped Guests** (`rules/hypervisors.md`), asked once.
-   - **On Proxmox VE, the baseline template.** An adopted node has
-     no `Baseline template:` line (`rules/appliance/proxmox-ve.md` →
-     Guests): Heinzel built none. The report names that on the
-     node's line, since a container created there would start without
-     the baseline until `hostwarden-new-guest` builds one.
+   - **Heinzel's finds** answered "leave" or "later" are among the
+     questions that only get recorded. Moving or renaming Heinzel's
+     state is a change: an answer that adopts is recorded as
+     `heinzel legacy: deferred <date> (answered at onboarding:
+     <answer>)` and asked again after the report.
+   - **The journal line** names the adoption:
+     `read-only: onboarded after adoption from Heinzel`.
 
-11. **Where the host stands.** For each host onboarded over SSH, run
-    `hostwarden-baseline` steps 1 and 2 — its overrides and the
-    measurement, read-only — and not its question. Heinzel's
-    decisions for the host are asked before this measurement, ahead
-    of step 9's other questions, so a section one settles is not
-    listed as missing. What this
-    connection's probes already read counts there like a housekeeping
-    run's findings and is not probed again. A guest registered through
-    its host is measured on its first SSH connection or by
-    housekeeping.
-
-12. **Report.** One block for the run, then the questions.
-
-    After onboarding:
+10. **Report.** The report of `hostwarden-onboard`, headed with the
+    adoption, with each host's leads on its line and Heinzel's state
+    after the hosts. After onboarding:
 
     ```
     Adopted 7 hosts from /Users/alice/heinzel, onboarded 6, read-only
@@ -436,28 +382,20 @@ leads, the host confirms them.
     host's own journal line, and its `heinzel legacy:` line is
     rewritten.
 
-    Then, where a host has gaps, ask which to take on first: one option
-    per host with gaps, one per node without a baseline template,
-    and "not now". A host starts `hostwarden-baseline` for it, whose
-    own question decides what is applied; a node starts building its
-    template (`hostwarden-new-guest`).
+    Then `hostwarden-onboard`'s question.
 
 ## Who owns what
 
 Taking over Heinzel is one feature split across mechanisms, because
 its halves are triggered by different things:
 
-- **This skill** — the old checkout, and the order in which the
-  adopted hosts are onboarded. The user asks for it by name, and
-  again for each further piece: a migration moved host by host is
-  several requests, one per run. It copies memory, access lists,
-  overrides and host keys into this clone, writes down what Heinzel
-  appears to have left on each host, and walks each host through its
-  first connection.
-- **`rules/first-connection.md`** and the files it names — what a
-  first connection does on any host, adopted or not. Onboarding here
-  adds no step of its own; it runs them early, while the user is
-  there, rather than whenever the host is next needed.
+- **This skill** — the old checkout and what Heinzel left. The user
+  asks for it by name, and again for each further piece: a migration
+  moved host by host is several requests, one per run. It copies
+  memory, access lists, overrides and host keys into this clone,
+  writes down what Heinzel appears to have left on each host, and
+  hands each host to `hostwarden-onboard`, adding only Heinzel's
+  part (step 9).
 - **`rules/heinzel-legacy.md`** — detection on the host. Step 8 of
   the first-connection pipeline, so it fires without anyone asking:
   on the first connection to a machine, while anything is still
@@ -480,12 +418,10 @@ than summarizing it.
 
 ## What this skill does not do
 
-- **No server contact in the copy phase.** Onboarding reads, and
-  writes one `read-only:` line into each host's journal.
+- **No server contact in the copy phase.**
 - **Nothing in a development checkout.** Not the copy either.
-- **No change on a host.** Moving or renaming Heinzel's state,
-  closing a baseline gap, starting a stopped guest — each is its own
-  question under its own rule, after the report.
+- **No change on a host.** Moving or renaming Heinzel's state is its
+  own question under its own rule, after the report.
 - **No renaming on hosts from here.** Step 8 only records which way
   the user leans. The rename runs on each host after its own
   question — `rules/heinzel-adoption.md` § "Rename to Hostwarden's

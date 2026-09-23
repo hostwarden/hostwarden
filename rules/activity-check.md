@@ -26,7 +26,7 @@ condition, and what to do with the result.
 | Agent directories and services | every | `rules/config-management.md` |
 | Cron and marker probe | first; conditional | `rules/config-management.md` |
 | Heinzel's leftovers | conditional | `rules/heinzel-legacy.md` |
-| The guest listing | first; daily | `rules/hypervisors.md` |
+| The guest listing | first; daily; re-probe | `rules/hypervisors.md` |
 | A guest's link keys | conditional | `rules/hypervisors.md` |
 | The storage inventory | first | `rules/storage-inventory.md` |
 | Windows Version Detection | every but the first | `rules/os-detection.md` |
@@ -45,8 +45,9 @@ Where each condition is:
   `rules/first-connection.md` step 8 names, and only where possible
   (`rules/heinzel-legacy.md` → Detect).
 - **The guest listing:** on a host with a `Hypervisor:` line — the
-  full inventory on the first connection, the light listing at most
-  once a day or when the request is about guests
+  full inventory on the first connection and on a full re-probe the
+  user asked for, the light listing at most once a day or when the
+  request is about guests
   (`rules/hypervisors.md` → Inventory), and on a cluster member once
   for the whole cluster (`rules/hypervisors.md` → Clusters and
   Pools).
@@ -58,6 +59,7 @@ Where each condition is:
   first probe found ZFS or btrfs (`rules/storage-inventory.md` →
   When); the disks and every later connection are housekeeping's.
 - **Who manages the network:** on a host whose memory lacks it,
+  and the full profile's probe on an onboarding the user asked for,
   as `rules/network.md` → When defines.
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line

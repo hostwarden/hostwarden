@@ -123,7 +123,7 @@ run joins a fleet artifact whose copy came in with another host.
 
 ## Report
 
-One line in the step 12 block per host, and one for what left the
+One line in the step 10 block per host, and one for what left the
 workspace:
 
 ```
