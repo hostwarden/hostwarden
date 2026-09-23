@@ -116,20 +116,18 @@ sntp -t 1 time.apple.com 2>&1
 
 ## Failed launchd Jobs
 
-Read the Enabled services listing (`rules/os/macos.md` → Service
-Manager) of the `system` domain and of the SSH user's `gui/<uid>`.
-Column 2 is a job's last exit status. Skip jobs with a PID other
-than `0` in column 1, which launchd has restarted and are running,
-jobs that have not exited yet (`-`), and `com.apple.` jobs, which
-exit non-zero routinely:
+`<Enabled services listing of "$D">` is `rules/os/macos.md` →
+Service Manager → Enabled services, with `"$D"` as its domain: the
+system daemons, then the SSH user's agents. Skip jobs that run
+(PID not `0`), which launchd has restarted, jobs that have not
+exited yet (`-`), and `com.apple.` jobs, which exit non-zero
+routinely:
 
 ```bash
-S='/^\tservices = \{/ {s = 1; next} /^\t\}/ {s = 0}
-s {n++; print} END {exit !n}'
-F='$1 != 0 || $2 == "-" || $2 == 0 || $3 ~ /^com\.apple\./ {next} {print}'
+F='$1 == 0 && $2 != "-" && $2 != 0 && $3 !~ /^com\.apple\./'
 for D in system "gui/$(id -u)"; do
   echo "--$D"
-  if L=$(launchctl print "$D" 2>/dev/null | awk "$S"); then
+  if L=$({ <Enabled services listing of "$D">; } 2>/dev/null); then
     printf '%s\n' "$L" | awk "$F"
   else
     echo "unread"
@@ -139,8 +137,7 @@ done
 
 - **WARN** for each job with a non-zero status, by label
 - `unread` for `system` → the check could not be performed. For
-  `gui/<uid>` it means that user has no login session, so no agent
-  of theirs is loaded: nothing to report
+  `gui/<uid>` → nothing to report: that user has no login session
 
 ## Kernel Panics
 

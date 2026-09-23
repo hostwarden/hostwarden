@@ -105,19 +105,22 @@ Rules for macOS (Apple Silicon and Intel).
 
 - macOS uses `launchd` / `launchctl`, not systemd.
 - **Enabled services:** the services block of
-  `launchctl print system`, the system daemons, one job per line:
-  PID (`0` when not running), last exit status (`-` before its
-  first exit), label. `gui/<uid>` in place of `system` lists that
-  user's agents. The output is not a stable format, so the listing
-  fails when it finds no block rather than printing nothing:
+  `launchctl print <domain>`, one job per line: PID (`0` when not
+  running), last exit status (`-` before its first exit), label.
+  `<domain>` is `system`, the system daemons, unless the caller
+  names `gui/<uid>` for a user's agents. The output is not a
+  stable format, so the listing fails when it finds no block
+  rather than printing nothing. It fails for `gui/<uid>` as well
+  when that user has no login session, and then no agent of
+  theirs is loaded:
   ```
   launchctl print system | awk '/^\tservices = \{/ {s = 1; next}
-    /^\t\}/ {s = 0} s {n++; print} END {exit !n}'
+    s && /^\t\}/ {exit} s {n++; print} END {exit !n}'
   ```
 - **Service status:** `launchctl print <domain>/<label>` exits 0
-  while the job is loaded, and its output has `state = running`
-  while it runs; the domain is the one the bullet on non-Homebrew
-  services below names. A Homebrew service also answers
+  while the job is loaded, and prints `state = running` while it
+  runs: `| awk '$1 == "state" {print $3; exit}'` keeps the word.
+  A bare name is a `system` label. A Homebrew service also answers
   `brew services info <name>`.
 - Plist locations:
   - System daemons: `/Library/LaunchDaemons/`
