@@ -21,7 +21,8 @@ A host named without a dot goes through
 Than One Server before step 1.
 
 1. **Blacklist check.** Refuse if the host or one of
-   its jump hosts is listed. See
+   its jump hosts is listed; ask first where its jump
+   path cannot be read. See
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
    listed. See `rules/access-control.md`.

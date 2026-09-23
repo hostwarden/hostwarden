@@ -124,10 +124,12 @@ Any other `proxycommand` hides its path: another
 program, a tunnel client, a `connect` whose proxy
 comes from the environment, a `$`, a command
 substitution, a `ProxyCommand` of its own. So does a
-chain longer than five hops. That counts as a listed
-hop: name the program alone, never the line, and ask
+chain longer than five hops. An unreadable path is
+not a match, and this is the one question the check
+asks: name the program alone, never the line, and ask
 the user whether its path passes a host on the
-blacklist. Connect only when they say it does not.
+blacklist. Connect only when they say it does not;
+otherwise refuse as for a listed hop.
 The answer holds for this session and is never
 recorded: the blacklist and the ProxyCommand are the
 user's own, and either can change. A hop whose
