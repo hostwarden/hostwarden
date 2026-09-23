@@ -113,6 +113,15 @@ Instruction files describe how things are, never how they came
 to be. `.claude/rules/repo-release.md` states the rule and owns
 its one exception, `CHANGELOG.md`.
 
+## Claims
+
+"Read-only", "every", "never", "only", "verified" and "whole" are
+promises every step of the flow has to keep, on every platform the
+file covers. Write one only where you have checked each step
+against it; otherwise say what the step does and leave the
+guarantee out. A claim that a review has broken twice is dropped,
+not narrowed.
+
 ## Layout
 
 - Wrap every `.md` at 80 characters. A URL or a command line that
