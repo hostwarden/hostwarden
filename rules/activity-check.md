@@ -32,6 +32,7 @@ condition, and what to do with the result.
 | Windows Version Detection | every but the first | `rules/os-detection.md` |
 | Who manages the network | first; conditional | `rules/network.md` |
 | The FQDN | first; conditional | `rules/dns-aliases.md` |
+| Logins through VPN agents' SSH servers | every | `rules/mesh-vpn.md` |
 
 Where each condition is:
 
@@ -65,6 +66,11 @@ Where each condition is:
 - **The FQDN:** on a host whose memory has no `- FQDN:` line or
   `unknown` in it, and on a full re-probe (`rules/dns-aliases.md`
   → The FQDN).
+- **Logins through VPN agents' SSH servers:** on every family but
+  Windows; the block checks for Tailscale, NetBird and Newt itself
+  (`rules/mesh-vpn.md` → Logins past sshd). Windows gets no block:
+  where a Windows host's memory records NetBird, say that its SSH
+  logins were not read.
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line
   (`rules/os-detection.md` → On subsequent connections).
@@ -475,7 +481,8 @@ The heading is neutral and every line names its
 journal tag, so no Heinzel entry is credited to
 Hostwarden. Only `session:` lines are listed; each
 watcher follows as one line of its own (What to do
-with a watcher).
+with a watcher), and each login through a VPN agent's
+SSH server as one line after them.
 
 - Group related entries when possible.
 - Keep it concise — summarize, don't dump raw logs.

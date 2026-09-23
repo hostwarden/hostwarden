@@ -24,6 +24,12 @@ For too many keys the fix is on the client:
 host in `~/.ssh/config`; check with
 `ssh -F "<checkout>/memory/ssh_config" -G <host> | grep -i identit`.
 
+Where the `- Access:` line says `via Tailscale SSH` or
+`via NetBird SSH`, the key plays no part: the VPN's
+policy refused the login, unless the line is stale
+(`rules/mesh-vpn.md` → This session came in through
+one).
+
 A refused login ends before OS detection, which
 loads the appliance file. When server memory has an
 `Appliance:` line, read that file's section on access
@@ -121,6 +127,17 @@ points to a per-family filter. A firewall or IPS
 exception covers only the family written in it:
 after adding one, test both with a fresh login
 (`ssh -4 …`, `ssh -6 …`).
+
+An exception for the workstation's own address rarely
+holds. Its IPv6 source is usually a temporary address
+that changes daily, a consumer ISP hands out a new
+IPv6 prefix and a dynamic IPv4 on reconnect or on a
+schedule, and a CGNAT or DS-Lite IPv4 is shared with
+other customers, so allowing it exempts strangers.
+Where the exception has to hold, put it on the
+servers' side, for a source that stays put — an
+address of the server network, a VPN, a jump host —
+or raise the rate limit or the IPS threshold there.
 
 Do not probe with `nc -z` or `ssh-keyscan`: fail2ban
 (modes `ddos` and `aggressive`) and sshd's

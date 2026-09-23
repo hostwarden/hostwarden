@@ -46,13 +46,18 @@ applies before any of this runs.
    method otherwise.
 5. **Emit the report** using the format in
    `references/report-format.md`.
-6. **Do NOT update `memory.md`**, with one exception. These are
+6. **Do NOT update memory**, with two exceptions. These are
    config observations, not state changes: memory tracks what is
    installed and running, not security posture details. The
-   exception is the `Management:` line and its address, which are
-   inventory rather than posture — where this audit is what first
-   settled them, record them as
-   `rules/management-controller.md` → What to record says.
+   exceptions are inventory rather than posture:
+   - the `Management:` line and its address — where this audit is
+     what first settled them, record them as
+     `rules/management-controller.md` → What to record says;
+   - a way in the user has confirmed after
+     `references/vpn-ssh.md` → Unrecorded ways in — record the
+     agent, and the SSH state this audit read, in `network.md` as
+     `rules/mesh-vpn.md` → Memory says. It is the only flow that
+     reads Newt's.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
@@ -93,9 +98,9 @@ Read on demand, only when the relevant section applies:
 - `references/firewall-nftables-docker.md` — native nftables without
   ufw or firewalld, iptables-legacy rules next to nf_tables,
   Docker ports published past the firewall.
-- `references/vpn-ssh.md` — only when `references/ssh.md` → SSH
-  servers past sshd finds an agent: Tailscale, NetBird, Newt,
-  Nebula or Cloudflare Tunnel.
+- `references/vpn-ssh.md` — Unrecorded ways in on every host;
+  the rest only when `references/ssh.md` → SSH servers past sshd
+  finds Tailscale, NetBird, Newt, Nebula or Cloudflare Tunnel.
 - `references/containers.md` — Docker, Podman and containerd:
   the API on TCP, root-equivalent groups, privileged containers,
   capabilities, host namespaces, the engine socket and host paths

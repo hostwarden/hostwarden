@@ -22,6 +22,7 @@ SSH root login      INFO — PermitRootLogin yes
 SSH client          OK — none in ssh_config, 2 ~/.ssh/config, cron
 Firewall            OK — ufw active, default deny
 VPN SSH             WARN — Tailscale SSH admits root by accept
+VPN recorded        OK — Tailscale in network.md, SSH on
 Empty passwords     OK — no accounts with empty password
 UID 0 accounts      OK — only root
 Listening services  OK — no databases on 0.0.0.0

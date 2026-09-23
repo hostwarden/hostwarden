@@ -4,9 +4,7 @@ Servers spread over sites, clouds and home offices are often
 joined by a mesh VPN rather than a company network: people reach
 them through it, and they reach each other. This file says how to
 tell which VPN or tunnel a host is in, whether it is connected,
-when its login expires, and what cuts a host off it. The SSH
-servers some agents bring are the security audit's
-(`.agents/skills/hostwarden-security/references/vpn-ssh.md`).
+when its login expires, and what cuts a host off it.
 
 ## When
 
@@ -16,14 +14,19 @@ servers some agents bring are the security audit's
   on (`rules/ssh-safety-net.md` → Which way in).
 - Before stopping, restarting, upgrading or reconfiguring an
   agent, or changing the firewall on its interface.
+- The activity check, on every connection, for the logins past
+  sshd (SSH servers in agents below).
+- A login refused on a path that goes through an agent's SSH
+  server.
 - The user asks about the VPN.
 
 ## Probe (no root)
 
 The agents first, one `<pid> <program>` line each. The security
-audit runs this block alone for the agents that serve SSH
-themselves (`.agents/skills/hostwarden-security/references/ssh.md`
-→ SSH servers past sshd):
+audit runs this block again inside its own loop, to read each
+agent from its process
+(`.agents/skills/hostwarden-security/references/vpn-ssh.md` →
+Probe (no root)):
 
 ```bash
 a='tailscaled|headscale|netbird|zerotier-one|nebula|dnclient'
@@ -48,6 +51,11 @@ Then, in the same call, the overlay interfaces and what the
 agents' own CLIs report:
 
 ```bash
+if [ "$(id -u)" != 0 ]; then
+  grep -o 'hidepid=[a-z0-9]*' /proc/mounts 2>/dev/null
+  [ "$(sysctl -n security.bsd.see_other_uids 2>/dev/null)" = 0 ] \
+    && echo "see_other_uids=0"
+fi
 o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
 for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
              || ifconfig -l 2>/dev/null; } \
@@ -64,17 +72,20 @@ if command -v tailscale >/dev/null 2>&1; then
   tailscale status --json --peers=false 2>&1 \
     | grep -e '"BackendState"' -e '"Online"' -e '"KeyExpiry"' \
       -e '"Expired"'
-  tailscale debug prefs 2>&1 | sed -n '/"ControlURL"/p;
+  tailscale debug prefs 2>&1 | sed -n '/"ControlURL"/p; /"RunSSH"/p;
     /"AdvertiseRoutes": null/p; /"AdvertiseRoutes": \[\]/p;
     /"AdvertiseRoutes": \[$/,/]/p'
 fi
 if command -v netbird >/dev/null 2>&1; then
   netbird status 2>&1 | grep -e '^Daemon' -e '^Management' \
     -e '^Signal' -e '^NetBird IP' -e '^Session expires' \
-    -e '^Peers count'
+    -e '^Peers count' -e '^SSH Server'
 fi
 ```
 
+A `hidepid=` line other than `hidepid=0` or `hidepid=off`, or
+FreeBSD's `see_other_uids=0`, means `ps` showed this user only
+its own processes: the agent list is `unchecked`, never empty.
 BusyBox `ip` has no `-br`, hence the fallbacks. Kernel WireGuard
 has no process, so the loop finds the overlay interfaces by name
 (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`,
@@ -102,10 +113,13 @@ name it, and tell the user when it falls within 7 days.
   `login.tailscale.com` is self-hosted, usually Headscale; ask
   the user rather than guess. An `AdvertiseRoutes` list makes the
   host a subnet router, with `0.0.0.0/0` and `::/0` an exit node.
+  Its SSH server is on with `"RunSSH": true`.
 - **NetBird:** connected with `Management: Connected` and
   `Signal: Connected`; `Daemon status` `NeedsLogin`,
   `LoginFailed` or `SessionExpired` is not. Expiry:
-  `Session expires`.
+  `Session expires`. Its SSH server is on unless the `SSH Server`
+  line says `Disabled`; a client too old to print the line counts
+  as on.
 - **WireGuard** (wg-quick, systemd-networkd, NetworkManager,
   wg-easy, Netmaker): no connected state and no expiry. With
   root, plain `wg show` prints peers, endpoints, allowed IPs and
@@ -120,8 +134,15 @@ name it, and tell the user when it falls within 7 days.
   `AUTHENTICATION_REQUIRED` are not connected.
 - **Nebula** and Defined Networking's `dnclient`: no status
   command; the logs show whether handshakes succeed. Expiry: the
-  host certificate's `notAfter`, root:
-  `nebula-cert print -path /etc/nebula/host.crt`.
+  `notAfter` of the certificate the configuration's `pki` block
+  names, root: `grep -E '^[[:space:]]+cert:' <config>` for the
+  path, then `nebula-cert print -path <that file>`. The
+  configuration is the one the process's `-config` names
+  (`ps -o args= -p <pid>`), `/etc/nebula/config.yml` by default;
+  where it names a directory, its `*.yml` and `*.yaml` files are
+  read. `dnclient` keeps its own in `/var/lib/defined`. A
+  certificate inline in the configuration (`cert: |`), or no
+  `nebula-cert`, leaves the expiry `unchecked`.
 - **Newt** (Pangolin) and **Cloudflare Tunnel** (`cloudflared`):
   no status command; their logs say.
 - **OpenVPN, strongSwan:** usually site-to-site or
@@ -151,24 +172,181 @@ an expiry. Where this session or other hosts
 depend on the VPN — a subnet router, a WireGuard hub, a Nebula
 lighthouse, a Headscale server — say so before the change, and
 handle it as a change that can cut SSH
-(`rules/ssh-safety-net.md`).
+(`rules/ssh-safety-net.md`). A host whose `- Access:` line
+records no working path but the VPN drops out of Hostwarden's
+reach with it.
+
+## SSH servers in agents
+
+Tailscale, NetBird and Pangolin's Newt serve SSH themselves,
+past sshd. The security audit judges them
+(`.agents/skills/hostwarden-security/references/vpn-ssh.md`);
+two moments are this file's.
+
+### This session came in through one
+
+`SSH_CONNECTION` names the address and port this session reached
+(`rules/ssh-safety-net.md` → Which way in). The session went to
+the agent's own server, not to sshd, when that is the host's
+Tailscale address with port `22` while `"RunSSH": true`, since
+Tailscale then answers port 22 there itself, or the NetBird
+address with port `22022`, where NetBird redirects port 22.
+Record the path as `via Tailscale SSH` or `via NetBird SSH` in the
+`- Access:` line. A path through Newt's server is not told apart
+from sshd this way.
+
+On that path, keys, certificates and `sshd_config` play no part
+in the login:
+
+- `Permission denied` means the VPN's policy admits no login to
+  this account for this identity, not a wrong key. Try no other
+  key, user or root (`rules/ssh-unreachable.md` → Login
+  rejected); tell the user where the policy lives (Per agent
+  above). The `- Access:` line can be stale, since the agent's
+  SSH server may have been turned off since, and the refusal is
+  then sshd's. Tailscale sends its refusal as a banner before
+  it, `tailscale: access denied` or the policy's own message,
+  which settles it where it shows; a `LogLevel` below `INFO` in
+  the user's own configuration hides it. Without it, name both
+  causes to the user.
+- Tailscale's check mode prints a URL and waits until the person
+  confirms in a browser, and NetBird's OIDC login needs a browser
+  login too. An unattended run can do neither and fails there.
+- sshd still answers on that address on any other port, and on
+  the host's other addresses.
+
+### Logins past sshd
+
+A login through an agent's SSH server is missing from `last` and
+from sshd's log. The activity check reads them in its call
+(`rules/activity-check.md` → What rides in this call), with the
+privilege prefix of `rules/privilege-escalation.md` → Stand-ins
+for sudo at its top. Where memory's `Sudo:` line records sudo as
+unavailable or unusable, that prefix leaves out its `sudo` line,
+as the read-back does. Without root the journal would show only
+the user's own entries and read as silence, so `$SUDO` `-`
+prints one `not read` line instead:
+
+```bash
+keep() { awk -v m="$1" '{ l[NR % m] = $0 } END {
+  if (NR > m) print "earlier: " NR - m
+  for (i = NR - m + 1; i <= NR; i++) if (i > 0) print l[i % m] }'; }
+if command -v tailscale >/dev/null 2>&1 \
+   || command -v netbird >/dev/null 2>&1; then
+  echo "SSH_CONNECTION=$SSH_CONNECTION"
+  if command -v tailscale >/dev/null 2>&1; then
+    tailscale ip 2>&1; tailscale debug prefs 2>&1 | grep '"RunSSH"'
+  fi
+fi
+if [ "$SUDO" = - ]; then
+  { command -v tailscale || command -v netbird || pgrep -x newt; } \
+    >/dev/null 2>&1 && echo "agent SSH logins not read: no root"
+else
+  if command -v tailscale >/dev/null 2>&1; then
+    t=/var/log/tailscaled.log
+    if [ -d /run/systemd/system ]; then
+      { $SUDO journalctl _COMM=tailscaled --since "7 days ago" \
+          --no-pager -q -o short-iso \
+          || echo "tailscaled journal not read"; } 2>&1 \
+        | awk '/not read$/ { print; next }
+          /access granted to/ { k = $0; sub(/.*access granted to /, "", k)
+            n[k]++; w[k] = $1 }
+          END { for (k in n) print w[k], n[k] "x", k }'
+    else
+      { $SUDO awk 'NR == 1 { a = $1 } /access granted to/ { print }
+          END { print "tailscaled.log spans " a " to " $1 }' "$t" \
+          || echo "tailscale logins not read: no journal, no $t"; } \
+        2>/dev/null | keep 20
+    fi
+  fi
+  if command -v netbird >/dev/null 2>&1; then
+    netbird status -d 2>&1 | awk '/^SSH Server:/ { p = 1; print; next }
+      p && /^  \[/ { sub(/\] .*/, "]"); print; next }
+      p && /^    / { next } { p = 0 }'
+    f=/var/log/netbird/client.log
+    { $SUDO awk 'NR == 1 { a = $1 }
+        /S(SH|FTP) session started|SSH auth denied/ { print }
+        END { print "client.log spans " a " to " $1 }' "$f" \
+        || echo "netbird client.log not read"; } 2>/dev/null | keep 20
+  fi
+  pgrep -x newt >/dev/null 2>&1 && echo "newt SSH logins not read"
+fi
+```
+
+- Where `SSH_CONNECTION` and the `- Access:` line disagree on
+  whether this session came in through an agent's SSH server
+  (This session came in through one), correct the line, in
+  either direction.
+- Tailscale writes one line per SSH session, and every call
+  over a shared connection is one, Hostwarden's own included, so
+  the block prints one line per tailnet login and local account:
+  the last time, how many sessions, and
+  `alice@example.com as ssh-user "root"`. `_COMM` finds
+  tailscaled's lines whatever unit runs it. Without systemd,
+  Alpine's service writes them to `/var/log/tailscaled.log`, and
+  the block prints its lines as NetBird's below, with a `spans`
+  line: logrotate turns the file over weekly into compressed
+  files that are not read, and without logrotate it holds months.
+  Report only the lines of the last 7 days, and a start inside
+  the week as logins not checked before it. A volatile journal
+  reaches back only to the boot; the read-back's own first-entry
+  line says how far.
+- `netbird status -d` lists the sessions open now under
+  `SSH Server:`, one line each: `[<login>@<address> -> <account>]`,
+  or `[<account>@<address>]` without an OIDC login. The `awk`
+  cuts each line after the `] ` that closes it: the rest is the
+  session's command line, which can carry a secret
+  (`rules/secrets.md`), and its port forwards are left out with
+  it.
+- In `client.log`, `SSH session started` and `SFTP session
+  started` are logins, with `jwt_user` naming the OIDC login
+  where there was one, and `SSH auth denied` a refused one, one
+  line per session as with Tailscale. `keep` prints the last 20
+  and counts the rest on an `earlier:` line. Report only the
+  lines whose timestamp falls in the last 7 days. The `spans`
+  line says what the file covers: NetBird rotates it at 15 MB
+  into compressed backups that are not read, so a start inside
+  the week means older logins were not checked, and an end long
+  before today means the service logs elsewhere, a `--log-file`
+  on its command line.
+- Newt leaves its logins in its own output, which no probe
+  reads.
+- A `not read` line is no result: say that these logins were not
+  checked, never that there were none.
+
+They are reported as `rules/activity-check.md` → What to show
+says. This session's own login is among them when it came in
+that way.
 
 ## Memory
 
 Per host, a `## Mesh VPN` section in
 `memory/servers/<hostname>/network.md`, created with this section
 alone when the host has no profile yet. One line per agent, also
-when it is down, so a change shows:
+when it is down, and for Tailscale, NetBird and Newt whether its
+SSH server is on or off, so a change shows. Newt's state comes
+from the security audit's probe; before one ran, it is
+`unchecked`:
 
 ```markdown
 ## Mesh VPN
 - Tailscale 1.102.4, 100.101.102.103, connected, control
-  Headscale hs.example.com, no key expiry, routes 10.0.0.0/24
+  Headscale hs.example.com, no key expiry, routes 10.0.0.0/24;
+  SSH off
 - WireGuard wg0 10.8.0.5, hub vpn.example.com
-- NetBird 100.92.1.7, not connected (SessionExpired)
+- NetBird 100.92.1.7, not connected (SessionExpired); SSH on
 ```
 
-Mark what needed root and was not read as `unchecked`. The
+Mark what needed root and was not read as `unchecked`.
+
+A way in nobody recorded is an agent that runs or an overlay
+interface that is up, from either block of the probe, or an
+agent's SSH server that is on, while this section has no line
+for it or records it off or `unchecked`. A Headscale server is none: it is a
+control server, recorded in `memory/network.md`. On macOS the
+`utun` interfaces the system makes itself are none either; only
+the apps the `ls` finds count there. Ask the user whether it
+belongs, and record it once they say it does. The
 `- Network:` line in `memory.md` names the agents
 (`rules/network.md` → Where it goes).
 

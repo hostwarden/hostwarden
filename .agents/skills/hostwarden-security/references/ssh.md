@@ -262,9 +262,12 @@ root), which prints one `<pid> <program>` line per VPN agent. Of
 those, `tailscaled`, `netbird`, `newt`, `nebula`, `dnclient` and
 `cloudflared` serve SSH themselves.
 
-No line for one of these six → OK, nothing more to check.
-Otherwise read `references/vpn-ssh.md`, which reads each of those
-agents from its own process.
+Run the second block of that probe in the same call too: kernel
+WireGuard has no process, only an interface. What both blocks
+found is held against the host's `network.md` on every host, as
+`references/vpn-ssh.md` → Unrecorded ways in says. The rest of
+that file applies only where there is a line for one of these
+six: it reads each of those agents from its own process.
 
 ## SSH Client on the Server — Linux, FreeBSD and macOS
 

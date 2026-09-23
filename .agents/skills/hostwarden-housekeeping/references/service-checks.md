@@ -339,21 +339,37 @@ mysqladmin status 2>/dev/null \
 - **CRITICAL** if the database is not responding
 - Report uptime and thread count
 
-## WireGuard
+## Mesh VPNs and WireGuard
 
-Triggered when `memory.md` mentions WireGuard.
+Triggered when `memory.md` mentions WireGuard, or its
+`- Network:` line names a mesh VPN agent (`rules/network.md` →
+Where it goes). Run `rules/mesh-vpn.md` → Probe (no root), and
+with root the per-agent reads `rules/mesh-vpn.md` → Per agent
+names for this host's agents: `wg show` for WireGuard,
+`zerotier-cli`, the certificate Nebula's configuration names.
+Connected and expiry mean what that section says.
 
-```bash
-wg show 2>/dev/null
-```
+For WireGuard, check each peer's latest handshake timestamp.
+Without `persistent keepalive` on a peer, an old handshake only
+means no recent traffic.
 
-Check each peer's latest handshake timestamp. Without
-`persistent keepalive` on a peer, an old handshake only means no
-recent traffic.
-
-- **WARN** if a peer with `persistent keepalive` last shook hands
-  more than 5 minutes ago (may indicate connectivity issues)
-- Report interface names and peer handshake ages
+- **WARN** if an agent is not connected, or its login or
+  certificate expires within 7 days or has expired
+- **CRITICAL** instead where the `- Access:` line records no
+  working path but that VPN (`rules/mesh-vpn.md` → What cuts a
+  host off)
+- **WARN** if a WireGuard peer with `persistent keepalive` last
+  shook hands more than 5 minutes ago (may indicate connectivity
+  issues)
+- Only Tailscale, NetBird and ZeroTier have a connected state
+  this check reads. Nebula, `dnclient`, Newt and `cloudflared`
+  are reported as running, and WireGuard by its handshakes, never
+  as connected
+- **unchecked**, never OK: an agent inside a container, ZeroTier
+  without root, and a Nebula expiry that `rules/mesh-vpn.md` →
+  Per agent leaves `unchecked`
+- Report each agent's state in one line, and WireGuard's
+  interface names and peer handshake ages
 
 ## UPS (NUT, apcupsd)
 

@@ -14,6 +14,7 @@ echo "###mta###"; <mta probe>
 echo "###net###"; <network probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
+echo "###meshvpn###"; <mesh VPN probe>
 '
 ```
 
@@ -35,15 +36,15 @@ runlevels from it rather than calling OpenRC again. It also
 answers whether a syslog daemon runs, which decides whether the
 audit-trail line was written (`rules/os/alpine.md` → Logs).
 
-On macOS, every probe below has a **macOS** variant that
-replaces it. The privilege prefix applies unchanged, but
+On macOS, every probe below but section 8 has a **macOS**
+variant that replaces it. The privilege prefix applies unchanged, but
 the root account is disabled on a Mac and sudo usually asks for
 a password, so `$SUDO` is often `-`: expect
 `unknown(needs-root)` cells rather than a partial row. A key
 only the other families have is `n/a (macOS)`.
 
-On FreeBSD, every probe below has a **FreeBSD** variant that
-replaces it, and `rules/os/freebsd.md` is the reference for what
+On FreeBSD, every probe below but section 8 has a **FreeBSD**
+variant that replaces it, and `rules/os/freebsd.md` is the reference for what
 the commands print. Open the FreeBSD bundle with the privilege
 prefix, so `$SUDO` is set for every probe, and with the loaded OS
 file's Service Manager → Enabled services, kept for the variants to
@@ -726,3 +727,59 @@ sysctl -n kern.boottime
 
 An installed kernel that differs from the running one counts as
 `pending=yes` (`rules/os/freebsd.md` → Version Detection).
+
+## 8. Mesh VPNs and tunnels
+
+Which hosts are in which mesh VPN, whether each is connected,
+when its login expires, and the SSH servers Tailscale and NetBird
+bring, a way in the sshd rows do not show. Run both blocks of
+`rules/mesh-vpn.md` → Probe (no root) unchanged, on every family.
+Where they printed `"RunSSH": true`, or NetBird runs without an
+`SSH Server` line that says `Disabled` (an older client prints
+none, and counts as on), add the Tailscale or NetBird part of
+`.agents/skills/hostwarden-security/references/vpn-ssh.md` →
+Probe (root), unchanged and as root: a quoted here-document fed
+to `$SUDO sh -s`, since NetBird's file globs expand only for
+root. Where `$SUDO` is `-`, print `tailscale-root:
+unknown(needs-root)` or `netbird-flags: unknown(needs-root)`
+instead. Read what they print as that file's Tailscale and
+NetBird paragraphs say.
+
+No output: no agent on the host, unless a `hidepid=` or
+`see_other_uids=0` line says `ps` saw only the user's own
+processes, which makes the row `unchecked (hidden processes)`. An
+agent inside a container shows only its process; its row reads
+`unchecked (container)`.
+
+Row keys:
+
+- Agents running and overlay interfaces
+- Per agent: connected (`BackendState` and `Online`, `Daemon
+  status` and `Management`) and login expiry (`KeyExpiry`,
+  `Session expires`), as `rules/mesh-vpn.md` → Per agent reads
+  them
+- SSH server on or off (`RunSSH`, `SSH Server`); Newt's reads
+  `unchecked`, since only the security audit reads it
+- Tailscale control server (`ControlURL`)
+- Root admitted by the agent's SSH server, and by accept or by
+  check (Tailscale); `EnableSSHRoot` and `DisableSSHAuth`
+  (NetBird)
+
+Highlight as drift:
+
+- A host outside the VPN the others are in.
+- An SSH server on some hosts only.
+- Different Tailscale control servers.
+- A login expiry on some hosts only: those drop out of the VPN
+  when it runs out (`rules/mesh-vpn.md` → What cuts a host off).
+- Root admitted on some hosts only, by accept on some and by
+  check on others, or `EnableSSHRoot` or `DisableSSHAuth`
+  differing across hosts.
+
+Judge on the host alone, a warning: a way in its `network.md`
+does not record, as `rules/mesh-vpn.md` → Memory defines it.
+The audit records nothing: the report names the host for a
+security audit, which asks the user and records the answer.
+
+Who may be admitted, and what it takes to fix, is the security
+audit's (`vpn-ssh.md` → Findings); this table compares.
