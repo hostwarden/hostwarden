@@ -21,7 +21,8 @@ A host named without a dot goes through
 Than One Server before step 1.
 
 1. **Blacklist check.** Refuse if the host or one of
-   its jump hosts is listed. See
+   its jump hosts is listed; ask first where its jump
+   path cannot be read. See
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
    listed. See `rules/access-control.md`.
@@ -32,17 +33,15 @@ Than One Server before step 1.
    goes into `memory/ssh_hosts` first
    (`rules/ssh-config.md` → A Port the User Names),
    so this step's `ssh -G` shows it. Once the user is
-   chosen, compare the
-   `hostname` and `proxyjump` lines of its `ssh -G`
-   output with the output steps 1–2 read, never with
-   a default this step has just written, and the
-   `proxyjump` line with its tokens expanded
-   (`rules/access-control.md` → Server Blacklist):
-   `%r` alone makes it differ. Where one differs,
-   rerun the blacklist check for the target as the
-   chosen user and for each hop as its own login user
-   (`rules/access-control.md` → Server Blacklist), and
-   the read-only check for the target, before any SSH
+   chosen, compare the `hostname` line of its
+   `ssh -G` output and the jump hosts it gives
+   (`rules/access-control.md` → Server Blacklist)
+   with those steps 1–2 read, never with a default
+   this step has just written: `%r` alone can change
+   a jump host. Where one differs, rerun the
+   blacklist check for the target as the chosen user
+   and for each hop as its own login user, and the
+   read-only check for the target, before any SSH
    call. A port that differs is step 4's.
 4. **DNS check.** New hostname (no
    `memory/servers/<hostname>/` yet): run alias

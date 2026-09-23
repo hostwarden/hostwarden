@@ -263,20 +263,21 @@ ssh -F "<checkout>/memory/ssh_config" \
 
 First compare `ssh -F "<checkout>/memory/ssh_config" -G
 root@hostname` with the same output for the SSH user, on the
-`hostname`, `port`, `hostkeyalias` and `proxyjump` lines, the
-last with its tokens expanded (`rules/access-control.md` →
-Server Blacklist): a `%r` in it names root's hop login. Where
-one differs, a `Match user root` block sends root another way:
-run steps 1–4 of `rules/first-connection.md` for root's endpoint,
-blacklist, read-only list, DNS check and host key, and for each
-jump host root's `proxyjump` line names, as
+`hostname`, `port` and `hostkeyalias` lines and on the jump hosts
+each gives (`rules/access-control.md` → Server Blacklist): a `%r`
+there names root's hop login. Where one differs, a
+`Match user root` block sends root another way: run steps 1–4 of
+`rules/first-connection.md` for root's endpoint, blacklist,
+read-only list, DNS check and host key, and for each of root's
+jump hosts, as
 `rules/access-control.md` → Server Blacklist and
 `rules/host-keys.md` → Before the First Connection say. A
 different port is another machine until the user says otherwise
 (`rules/dns-aliases.md` → IP Verification): stop and ask. Either
 way, a host key missing for root's endpoint or a hop fails the
 probe before it logs in and says nothing about root login: get it
-first.
+first, or for a `ProxyCommand` hop tell the user
+(`rules/host-keys.md` → Jump Hosts).
 
 - **Works:** record `- Root SSH: available`.
 - **Fails:** keep the recorded sudo line, add the

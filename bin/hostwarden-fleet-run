@@ -235,45 +235,241 @@ if [ -f "$M/blacklist.md" ]; then
     BLACK="$BLACK $e $(resolve4 "$e" | tr '\n' ' ')"
   done
 fi
-# blacklisted <host> <depth> [<user>] — the host, the name ssh maps
-# it to for that login user, its recorded IP or an address it
+# blacklisted <host> <depth> [<user>] [<config>] — the host, the name
+# ssh maps it to for that login user, its recorded IP or an address it
 # resolves to is on the blacklist, or so is a jump host the
-# connection would pass through: a blacklisted host is never
-# reached, not even as a hop (rules/access-control.md → Server
-# Blacklist).
-# bl_line <key> — that line of the ssh -G output blacklisted() holds.
-bl_line() { printf '%s\n' "$bl_g" | sed -n "s/^$1 //p" | head -n 1; }
+# connection would pass through, named by ProxyJump or by what
+# ProxyCommand runs; or the path cannot be read, which counts the
+# same: a blacklisted host is never reached, not even as a hop
+# (rules/access-control.md → Server Blacklist). BL_WHY says which.
+# <config> is the file ssh -G reads: - for the standard options,
+# empty for the user's own, which is what a ProxyCommand's ssh reads
+# without -F; = for a host reached another way than an ssh from here
+# (a proxy, what a jump host goes on to), looked up by name and
+# address alone.
 blacklisted() {
   [ -n "$BLACK" ] || return 1
-  bl_g=$(ssh -F "$SSHCFG" -G ${3:+-l "$3"} "$1" 2>/dev/null)
-  for x in "$1" "$(bl_line hostname)" $(mem_line "$1" IP) $(resolve4 "$1"); do
+  [ "$2" -gt 0 ] || BL_SEEN=
+  BL_WHY=blacklisted
+  if [ "${4-}" = = ]; then
+    for x in "$1" $(mem_line "$1" IP) $(resolve4 "$1"); do
+      case " $BLACK " in *" $x "*) return 0 ;; esac
+    done
+    return 1
+  fi
+  bl_c=$SSHCFG
+  [ "${4--}" = - ] || bl_c=$4
+  if ! bl_g=$(ssh ${bl_c:+-F "$bl_c"} -G ${3:+-l "$3"} "$1" </dev/null 2>/dev/null); then
+    BL_WHY="configuration not readable"
+    note "$1: ssh -G could not read its configuration${bl_c:+ ($bl_c)}"
+    return 0
+  fi
+  for x in "$1" "$(printf '%s\n' "$bl_g" | sed -n 's/^hostname //p')" \
+      $(mem_line "$1" IP) $(resolve4 "$1"); do
+    [ -n "$x" ] || continue
     case " $BLACK " in *" $x "*) return 0 ;; esac
   done
-  [ "$2" -lt 5 ] || return 1
-  # ssh -G prints the proxyjump line with its tokens unexpanded; ssh
-  # expands them from the target's own lines when it connects.
-  hops=$(bl_line proxyjump | R=$(bl_line user) H=$(bl_line hostname) \
-    P=$(bl_line port) N=$1 awk '{
-      o = ""; s = $0
+  # The hops, each as <config>|<user>|<host>, and !|| where the path
+  # cannot be read. ssh -G prints the proxyjump and proxycommand lines
+  # with their tokens unexpanded; ssh expands them from the target's
+  # own lines when it connects.
+  hops=$(printf '%s\n' "$bl_g" | N=$1 C=${4--} awk '
+    function expand(s,  o, i, c) {
+      o = ""
       while ((i = index(s, "%")) > 0) {
         o = o substr(s, 1, i - 1); c = substr(s, i + 1, 1)
-        if (c == "r") o = o ENVIRON["R"]; else if (c == "h") o = o ENVIRON["H"]
-        else if (c == "p") o = o ENVIRON["P"]; else if (c == "n") o = o ENVIRON["N"]
+        if (c == "r") o = o v["user"]; else if (c == "h") o = o v["hostname"]
+        else if (c == "p") o = o v["port"]; else if (c == "n") o = o ENVIRON["N"]
         else if (c == "%") o = o "%"; else o = o "%" c
         s = substr(s, i + 2)
       }
-      print o s }' | tr ',' ' ')
-  for j in $hops; do
-    [ "$j" = none ] && continue
-    j=${j#ssh://}
-    # The hop's own login user: the one its [user@]host names, else
-    # the user line of its own ssh -G.
-    case $j in
-      *@*) ju=${j%%@*}; j=${j#*@} ;;
-      *) ju=$(ssh -F "$SSHCFG" -G "${j%:*}" 2>/dev/null | sed -n 's/^user //p') ;;
-    esac
-    j=${j%:*}
-    blacklisted "$j" $(($2 + 1)) "$ju" && return 0
+      return o s
+    }
+    # tok(s) — the words the shell makes of s, into w[]: quotes and
+    # backslashes undone, a leading ~ expanded. A $, a backquote or an
+    # operator the shell would act on first makes the path opaque.
+    function tok(s,  n, i, c, q, cur, inw) {
+      n = 0; cur = ""; inw = 0; q = ""
+      for (i = 1; i <= length(s); i++) {
+        c = substr(s, i, 1)
+        if (q == "\047") { if (c == "\047") q = ""; else cur = cur c; continue }
+        if (q == "\"") {
+          if (c == "\"") q = ""
+          else if (c == "\\" && i < length(s)) cur = cur substr(s, ++i, 1)
+          else { if (c == "$" || c == "`") opaque = 1; cur = cur c }
+          continue
+        }
+        if (c == " " || c == "\t") { if (inw) w[++n] = cur; cur = ""; inw = 0; continue }
+        if (c == "~" && !inw && (i == length(s) || substr(s, i + 1, 1) == "/")) {
+          cur = ENVIRON["HOME"]; inw = 1; continue
+        }
+        inw = 1
+        if (c == "\047" || c == "\"") q = c
+        else if (c == "\\" && i < length(s)) cur = cur substr(s, ++i, 1)
+        else { if (index("$`;|&<>()", c)) opaque = 1; cur = cur c }
+      }
+      if (inw) w[++n] = cur
+      return n
+    }
+    # host(spec) — the host of [ssh://][user@]host[:port], a v6
+    # address bare or as [v6]:port, without the port.
+    function host(s) {
+      sub(/^ssh:\/\//, "", s); sub(/.*@/, "", s)
+      if (s ~ /^\[/) { sub(/^\[/, "", s); sub(/\].*/, "", s) }
+      else if (s !~ /:.*:/) sub(/:[^:]*$/, "", s)
+      return s
+    }
+    # hop(cfg, spec, user) — prints the hop; its user is the one named
+    # first, that of the spec where none was.
+    function hop(cfg, s, u,  h) {
+      h = host(s); sub(/^ssh:\/\//, "", s)
+      if (u == "" && s ~ /@/) { u = s; sub(/@[^@]*$/, "", u) }
+      if (h == "" || h == "none") return
+      if (h ~ /^[A-Za-z0-9_.:-]+$/) print cfg "|" u "|" h; else opaque = 1
+    }
+    # far(spec) — a host the stream goes on to or through by other
+    # means than an ssh from here: a hop by name, unless it is the
+    # target.
+    function far(s,  h) {
+      h = host(s)
+      if (h != v["hostname"] && h != ENVIRON["N"]) hop("=", s, "")
+    }
+    function jumps(cfg, s,  a, n, i) {
+      n = split(s, a, ",")
+      for (i = 1; i <= n; i++) hop(cfg, a[i], "")
+    }
+    # opt(o) — a -o option of an ssh: where it goes, and as whom.
+    function opt(o,  k, val) {
+      k = o; val = ""
+      if (match(o, /[ \t=]/)) {
+        k = substr(o, 1, RSTART - 1); val = substr(o, RSTART + 1)
+        sub(/^[ \t=]+/, "", val)
+      }
+      k = tolower(k)
+      if (k == "proxyjump") ojump = ojump "," val
+      else if (k == "hostname") ohost = val
+      else if (k == "user" && user == "" && dest !~ /@/) user = val
+      else if (k == "proxycommand") opaque = 1
+    }
+    # cmd(s) — the hops of one command line: an ssh, a proxy client
+    # (nc, ncat, socat, connect) or nothing readable.
+    function cmd(s,  n, i, p, a, c, o, cfg, r, k, f, x) {
+      n = tok(s); i = 1
+      if (w[i] == "exec") i++
+      prog = w[i]; sub(/.*\//, "", prog)
+      if (prog == "ssh") {
+        # Its destination, the address -o HostName gives it, its -J or
+        # -o ProxyJump hops, read with the file its -F names, else the
+        # user configuration; a host its -W names; its remote command,
+        # read the same way. The user is the one -l, -o User or user@
+        # names first; options end at the first argument after the
+        # destination that is not one.
+        cfg = ""; user = ""; dest = ""; ojump = ""; ohost = ""
+        for (i++; i <= n; i++) {
+          a = w[i]
+          if (a == "--") { if (dest == "") dest = w[++i]; i++; break }
+          if (a !~ /^-./) { if (dest != "") break; dest = a; continue }
+          for (p = 2; p <= length(a); p++) {
+            c = substr(a, p, 1)
+            if (!index("BbcDEeFIiJLlmOoPpQRSWw", c)) continue
+            o = substr(a, p + 1); if (o == "") o = w[++i]
+            if (c == "F") cfg = o
+            else if (c == "l" && user == "" && dest !~ /@/) user = o
+            else if (c == "J") ojump = ojump "," o
+            else if (c == "o") opt(o)
+            else if (c == "W") far(o)
+            break
+          }
+        }
+        if (dest == "") { opaque = 1; return }
+        # An ssh a jump host runs reads its own configuration there.
+        if (j > 1) cfg = "="
+        sub(/^ssh:\/\//, "", dest)
+        if (user == "" && dest ~ /@/) { user = dest; sub(/@[^@]*$/, "", user) }
+        hop(cfg, dest, user)
+        if (ohost != "") hop(cfg, ohost, user)
+        jumps(cfg, ojump)
+        if (i <= n) {
+          r = w[i]; for (i++; i <= n; i++) r = r " " w[i]
+          if (nq < 4) q[++nq] = r; else opaque = 1
+        }
+        return
+      }
+      if (prog == "nc" || prog == "ncat" || prog == "netcat" || prog == "connect") {
+        # The proxy its -x or --proxy, or for connect -S, -H or -T,
+        # names, and the host of its closing host and port. Short
+        # options are read as getopt does: in a cluster, a letter that
+        # takes a value takes the rest of the word, or the next one. A
+        # connect without a proxy option takes one from the
+        # environment, which is not here to read.
+        vf = prog == "connect" ? "pSHTwRP" : "IiMmOPpqsTVwxX"
+        pf = prog == "connect" ? "SHT" : "x"; px = 0
+        for (i++; i <= n; i++) {
+          a = w[i]
+          if (a == "--proxy") { far(w[++i]); px = 1; continue }
+          if (a ~ /^--proxy=/) { far(substr(a, 9)); px = 1; continue }
+          if (a !~ /^-[^-]/) continue
+          for (p = 2; p <= length(a); p++) {
+            c = substr(a, p, 1)
+            if (!index(vf, c)) continue
+            o = substr(a, p + 1); if (o == "") o = w[++i]
+            if (index(pf, c)) { far(o); px = 1 }
+            break
+          }
+        }
+        if (prog == "connect" && !px) opaque = 1
+        if (n > 2 && w[n] ~ /^[0-9]+$/ && w[n - 1] !~ /^-/) far(w[n - 1])
+        else opaque = 1
+        return
+      }
+      if (prog == "socat") {
+        # Each address: a proxy and the host behind it, or a host.
+        for (i++; i <= n; i++) {
+          a = w[i]
+          if (a ~ /^-/ || a ~ /^[0-9]+$/) continue
+          f = a; sub(/,.*/, "", f); k = f; sub(/:.*/, "", k); k = toupper(k)
+          if (k == "STDIO" || k == "STDIN" || k == "STDOUT") continue
+          if (f ~ /\[/) { opaque = 1; continue }
+          split(f, x, ":")
+          if (k ~ /^(PROXY|SOCKS4A?|SOCKS5)$/) { far(x[2]); far(x[3]) }
+          else if (k ~ /^(TCP[46]?|OPENSSL|SSL)$/) far(x[2])
+          else opaque = 1
+        }
+        return
+      }
+      opaque = 1
+    }
+    { k = $1; v[k] = substr($0, length(k) + 2) }
+    END {
+      C = ENVIRON["C"]
+      jumps(C, expand(v["proxyjump"]))
+      s = expand(v["proxycommand"])
+      if (s != "" && s != "none") {
+        nq = 1; q[1] = s
+        for (j = 1; j <= nq; j++) cmd(q[j])
+      }
+      if (opaque) print "!||"
+    }')
+  # A path that cannot be read counts as blacklisted, and so does a
+  # chain longer than five hops: no one is here to answer for it. The
+  # program alone is named: the rest of the line can hold a password.
+  case $hops in *'!||'*)
+    BL_WHY="jump path not readable"
+    note "$1: the blacklist check cannot read the path its ProxyCommand ($(printf '%s\n' \
+      "$bl_g" | sed -n 's/^proxycommand //p' | awk '{ print ($1 == "exec" ? $2 : $1) }')) takes"
+    return 0 ;;
+  esac
+  if [ "$2" -ge 5 ] && [ -n "$(printf '%s' "$hops" | grep -v '^!||')" ]; then
+    BL_WHY="jump path not readable"
+    note "$1: its jump path is longer than five hops"
+    return 0
+  fi
+  for e in $hops; do
+    # A hop checked once in this lookup is not checked again.
+    case " !|| $BL_SEEN " in *" $e "*) continue ;; esac
+    BL_SEEN="$BL_SEEN $e"
+    ju=${e#*|}
+    blacklisted "${e##*|}" $(($2 + 1)) "${ju%|*}" "${e%%|*}" && return 0
   done
   return 1
 }
@@ -297,7 +493,7 @@ for f in "$M"/servers/*/memory.md; do
     *'key line present'*) ;;
     *) SKIPPED="$SKIPPED $h(waiting for the key line)"; continue ;;
   esac
-  if blacklisted "$h" 0 root; then SKIPPED="$SKIPPED $h(blacklisted)"; continue; fi
+  if blacklisted "$h" 0 root; then SKIPPED="$SKIPPED $h($BL_WHY)"; continue; fi
   mkdir "$WORK/hosts/$h"
   echo "$line" | sed -n 's/.*(bundle \([A-Za-z0-9._-]*\),.*/\1/p' \
     >"$WORK/hosts/$h/bundle"

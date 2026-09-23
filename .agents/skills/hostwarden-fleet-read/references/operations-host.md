@@ -60,8 +60,10 @@ the checkout. A run, in order:
    (`check-updates.sh`, pins and opt-outs included), pulls the
    workspace, and starts again as the updated script;
 2. for each host whose memory has a `Fleet read:` line naming this
-   machine, with the key line present and not blacklisted, sends
-   the signed bundle and collects its output, four hosts at a time;
+   machine, with the key line present, not blacklisted and with a
+   jump path it can read (`rules/access-control.md` → Server
+   Blacklist), sends the signed bundle and collects its output,
+   four hosts at a time;
 3. has a model judge each output with no tools, no MCP server and
    an empty directory, and holds the verdict to the bundle's floors,
    the host's memory and the decisions that apply to it

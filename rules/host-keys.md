@@ -2,9 +2,10 @@
 
 Every SSH, scp and rsync call checks the host's key against
 `memory/known_hosts` in the workspace and against nothing else
-(`AGENTS.md` → SSH Options). This file says how a key gets
-there, what a changed key means, and how the file is kept. No
-one has to log in by hand first.
+(`AGENTS.md` → SSH Options), and so does every jump host but one
+a `ProxyCommand` reaches (Jump Hosts). This file says how a key
+gets there, what a changed key means, and how the file is kept.
+No one has to log in by hand first.
 
 ## The File
 
@@ -51,7 +52,7 @@ name is `[<name>]:<port>`, with the port from the same output. A
 `proxyjump` line other than `none` names jump hosts, and each
 needs its key first, looked up the same way as its own login
 user (`rules/access-control.md` → Server Blacklist, Jump Hosts
-below).
+below); those of a `proxycommand` line need none here.
 Another user on the same host, such as root for
 `rules/privilege-escalation.md`, is looked up again: a
 `Match user` block can give that user another endpoint, which
@@ -338,3 +339,10 @@ target's is, whether `memory/ssh_hosts` or the user's own
 configuration names it. One missing from the file fails the call
 with `Host key verification failed` before the target is reached:
 get its key first, as for any host.
+
+A `ProxyCommand` hop is the exception: its ssh checks the key
+against the user's own known_hosts, or the file its command names
+(`rules/ssh-config.md` → Jump Hosts). A key missing or changed
+there is the user's own: nothing above applies to it. Name the hop
+and that file to the user, and write nothing to
+`memory/known_hosts` for it.
