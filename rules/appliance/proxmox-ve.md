@@ -143,6 +143,18 @@ Source for everything below unless noted: the admin guide,
   rule in `cluster.fw` locks you out of every node at once.
 - `pve-firewall stop` removes all Proxmox rules and leaves the host
   unprotected. It is not a harmless test step.
+- **Bridged traffic.** Whenever `pve-firewall` applies its rules,
+  it writes `1` to `bridge-nf-call-iptables` and
+  `bridge-nf-call-ip6tables`
+  (<https://github.com/proxmox/pve-firewall/blob/master/src/PVE/Firewall.pm>,
+  `enable_bridge_firewall`). From then on every NAT rule on the
+  node also sees the guests' traffic across its bridges, and a
+  hand-written DNAT that matches a bridge without the node's
+  address as destination rewrites that traffic too
+  (`rules/network.md` → Findings). Before enabling it, build the
+  profile's Traffic flow section (`rules/network.md` → When) and
+  report every such rule; adding the destination is a change of
+  its own, asked like any other.
 - The nftables-based `proxmox-firewall` is a tech preview, "not
   suited for production use". Do not switch to it on your own.
 
@@ -316,6 +328,12 @@ Source for everything below unless noted: the admin guide,
 - `/etc/network/interfaces` with `ifupdown2`. Guests hang off
   bridges (`vmbr0`, …); the node's own IP usually sits on a bridge
   too.
+- NAT, forwarding and policy routing live in `post-up` and
+  `post-down` lines of that file, or in scripts they call: the
+  admin guide's own masquerading example is written that way
+  (<https://pve.proxmox.com/wiki/Network_Configuration>,
+  Masquerading (NAT) with iptables). The hook lines of the
+  network probe's section A show them (`rules/network-probe.md`).
 - Apply changes with `ifreload -a`. Never `ifdown`/`ifup` a bridge:
   `ifdown vmbrX` cuts every guest on it, and `ifup` does not
   reconnect them.

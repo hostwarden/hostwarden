@@ -4,10 +4,17 @@ The read-only probes behind `rules/network.md`, one call per
 family, and how to read what they print. Load this file only
 when that rule says to build or refresh a profile.
 
-Nothing needs root except the netplan grep. Its `S` stands for
-the privilege path `rules/privilege-escalation.md` found (`sudo
--n`, or the stand-in that file names); without one it prints
+Nothing needs root except the netplan grep, the hook scripts and
+the netfilter reads in section F. Their `S` stands for the
+privilege path `rules/privilege-escalation.md` found (`sudo -n`,
+or the stand-in that file names); without one they print
 `unknown(needs-root)`.
+
+The probe reads hook scripts and never runs them, and it prints
+only the lines of a script that change routes, rules, filters or
+kernel settings: a line that names a key, a password, a token or
+`ip xfrm` stays out, since such a script can carry a secret
+(`rules/secrets.md`).
 
 BusyBox `ip` has no `-br`, and Alpine ships no `ss` or `curl`
 by default: where a section comes back empty for that reason,
@@ -56,6 +63,45 @@ ls -d /etc/netplan/*.yaml /etc/network/interfaces \
 grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' \
   /etc/network/interfaces \
   /etc/network/interfaces.d/* 2>/dev/null
+# Hooks: the stanza lines, the scripts they name, and the
+# dispatcher scripts no package installed. Read, never run.
+h='^[[:space:]]*(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]'
+x='xfrm|key|pass|secret|token|psk'
+echo "## hooks"
+grep -HnE "$h" /etc/network/interfaces \
+  /etc/network/interfaces.d/* 2>/dev/null | grep -viE "$x"
+hs=$(grep -hE "$h" /etc/network/interfaces \
+  /etc/network/interfaces.d/* 2>/dev/null \
+  | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' \
+  | tr -d ' \t;&|' | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
+for d in /etc/network/if-pre-up.d /etc/network/if-up.d \
+  /etc/network/if-down.d /etc/network/if-post-down.d \
+  /etc/NetworkManager/dispatcher.d \
+  /etc/NetworkManager/dispatcher.d/pre-up.d \
+  /etc/NetworkManager/dispatcher.d/pre-down.d \
+  /etc/networkd-dispatcher/*.d \
+  /etc/sysconfig/network/if-up.d \
+  /etc/sysconfig/network/if-down.d; do
+  for f in "$d"/*; do
+    [ -f "$f" ] || continue
+    dpkg -S "$f" >/dev/null 2>&1 || rpm -qf "$f" >/dev/null 2>&1 \
+      || apk info -qW "$f" >/dev/null 2>&1 || hs="$hs $f"
+  done
+done
+for f in /sbin/ifup-local /sbin/ifdown-local; do
+  [ -f "$f" ] && hs="$hs $f"
+done
+p='^[[:space:]]*([a-z/]*/)?(iptables|ip6tables|iptables-legacy'
+p="$p|ip6tables-legacy|iptables-restore|ip6tables-restore|nft|ip"
+p="$p|sysctl|ebtables|bridge|brctl|tc)[[:space:]]"
+p="$p|^[[:space:]]*\"?\\\$\{?[A-Za-z_]+\}?\"?[[:space:]]+-[tAIDNPF]"
+p="$p|^[[:space:]]*[A-Za-z_]+=[\"']?([a-z/]*/)?(ip6?tables|nft)"
+p="$p|/proc/sys/|-j (DNAT|SNAT|MASQUERADE|REDIRECT|NETMAP)"
+for f in $(printf '%s\n' $hs | sort -u); do
+  echo "== $f"
+  if [ "$S" = - ]; then echo "unknown(needs-root)"
+  else $S grep -nE "$p" "$f" 2>/dev/null | grep -viE "$x"; fi
+done
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
     | grep -vE " ($n)"
@@ -104,6 +150,14 @@ done
 ip -o addr show | grep -vE " (lo|$n)[^ ]* "
 ip -4 route show default; ip -6 route show default
 ip -4 rule; ip -6 rule
+# Routes outside main and local, and the table names behind them.
+for f in 4 6; do
+  ip -$f route show table all 2>/dev/null | grep ' table ' \
+    | grep -vE ' table (local|main)( |$)'
+done
+grep -hsvE '^[[:space:]]*(#|$)' /etc/iproute2/rt_tables \
+  /etc/iproute2/rt_tables.d/*.conf \
+  | grep -vwE 'local|main|default|unspec'
 
 echo "### C sysctl"
 echo "ip_forward=$(cat /proc/sys/net/ipv4/ip_forward)"
@@ -189,6 +243,70 @@ for t in $T; do
   done
   [ -n "$d4" ] && [ -n "$d6" ] && break
 done
+
+echo "### F bridges and netfilter"
+for b in /sys/class/net/*/bridge; do
+  [ -d "$b" ] || continue
+  b=${b%/bridge}; b=${b##*/}
+  printf '%s\n' "$b" | grep -qE "^($n)" && continue
+  m=$(ls "/sys/class/net/$b/brif" 2>/dev/null)
+  echo "bridge $b: ports=$(printf '%s\n' $m | grep -vE "^($n)" \
+    | tr '\n' ' ')guests=$(printf '%s\n' $m | grep -E "^($n)" \
+    | tr '\n' ' ')"
+done
+for k in iptables ip6tables; do
+  v=$(cat /proc/sys/net/bridge/bridge-nf-call-$k 2>/dev/null)
+  echo "bridge-nf-call-$k=${v:-absent}"
+done
+echo "iptables=$(iptables -V 2>/dev/null || echo none)"
+nf=
+if [ "$S" = - ]; then echo "netfilter=unknown(needs-root)"
+else
+  if ! command -v nft >/dev/null 2>&1; then echo "nft=none"
+  elif t=$($S nft list tables 2>/dev/null); then
+    echo "nft-tables=$(printf '%s\n' "$t" | grep -c .)"
+    nf=$($S nft list ruleset 2>/dev/null | grep -E \
+      '^table|^[[:space:]]*chain |hook |[^a-z_](dnat|snat|masquerade|redirect)([^a-z_]|$)')
+  else echo "nft=unread"; fi
+  # Legacy tables are read only where they exist: the legacy
+  # tools load the kernel modules that would create them.
+  case $(iptables -V 2>/dev/null) in
+    *nf_tables*) L=-legacy ;; *) L= ;;
+  esac
+  for t in ip ip6; do
+    tn=$($S cat /proc/net/${t}_tables_names 2>/dev/null)
+    [ -n "$tn" ] || continue
+    b=${t}tables$L-save
+    command -v "$b" >/dev/null 2>&1 \
+      || { echo "$b=missing"; continue; }
+    for tb in $tn; do
+      case $tb in
+        nat) r='^(:|\[[0-9]+:[0-9]+\] -A )' ;;
+        filter) r='^(:|\[[0-9]+:[0-9]+\] -A FORWARD )' ;;
+        *) continue ;;
+      esac
+      if o=$($S $b -t $tb -c 2>/dev/null); then
+        c=; [ "$tb" = filter ] && c=", input-rules=$(printf \
+          '%s\n' "$o" | grep -c ' -A INPUT ')"
+        nf="$nf
+== $b -t $tb$c
+$(printf '%s\n' "$o" | grep -E "$r")"
+      else nf="$nf
+== $b -t $tb unread"; fi
+    done
+  done
+fi
+printf '%s\n' "$nf"
+# The route to each NAT target.
+for a in $(printf '%s\n' "$nf" \
+  | grep -oE '(--to-destination|dnat( ip6?)? to) [^ ]+' \
+  | awk '{ a = $NF
+      if (a ~ /^\[/) { sub(/^\[/, "", a); sub(/\].*/, "", a) }
+      else if (a !~ /:.*:/) sub(/:.*/, "", a)
+      sub(/-.*/, "", a); print a }' | sort -u); do
+  case $a in *:*) f=6 ;; *) f=4 ;; esac
+  echo "route-to $a: $(ip -$f route get "$a" 2>/dev/null | head -1)"
+done
 ```
 
 Reading **A (manager)**:
@@ -215,6 +333,18 @@ Reading **A (manager)**:
   interface as managed (networkctl `configured` and
   nmcli `connected`, or an ifupdown `iface` stanza
   plus either).
+- **Hooks** are part of the configuration, and often the
+  part that matters most: NAT, policy routing and sysctls
+  set in a `post-up` line or a script it calls are
+  applied with the interface and appear in no manager's
+  view. `== <path>` lists a script a hook line names, or a
+  dispatcher script no package installed, with the lines
+  that change something. A rule that takes its interface
+  or address from a variable (`$WAN`) needs the
+  assignment: read it with an anchored grep on that name,
+  `grep -nE '^[[:space:]]*WAN=' <path>`, never the whole
+  script. A script with no printed lines changes nothing
+  the profile records.
 
 Reading **B (links, addresses, routes)**:
 
@@ -242,7 +372,14 @@ Reading **B (links, addresses, routes)**:
 - `ip rule` beyond the defaults (local, main and
   default for IPv4; local and main for IPv6) is
   policy routing. `wg-quick` and Tailscale add their
-  own rules; name the owner.
+  own rules; name the owner. The routes after the rules
+  are what each extra table holds, and the lines after
+  them the names `rt_tables` gives the table numbers.
+  Record a rule with its selector and where its table
+  sends the traffic: `from 192.0.2.10 to 10.0.0.0/8 →
+  table fw, via 10.0.0.2`. A rule or table that no
+  manager and no hook line sets was added by hand and is
+  gone after the next reboot: say so.
 - A default route with `proto ra` and `expires`
   lives only as long as Router Advertisements keep
   arriving.
@@ -303,6 +440,55 @@ Also:
   `/etc/hosts`: Debian's default, not a finding. It
   matters only for a service that must announce its
   public name (an MTA, for instance).
+
+Reading **F (bridges and netfilter)** — the input for the
+profile's `## Traffic flow` section (`rules/network.md`):
+
+- `bridge <name>` lists the bridge's ports: `ports=` the
+  physical NICs, bonds and VLANs, `guests=` the guest
+  interfaces. Proxmox VE names these after the guest's ID
+  (`tap105i0`, `veth105i0`, `fwpr105p0` for guest 105);
+  elsewhere the hypervisor's listing ties a `vnet` or
+  `veth` to its guest. Whether the host itself has an
+  address on the bridge is in section B.
+- `bridge-nf-call-iptables` and `-ip6tables`: `1` sends
+  frames crossing a bridge through the IPv4 or IPv6
+  netfilter hooks, so every PREROUTING, FORWARD and
+  POSTROUTING rule on the host also sees traffic between
+  guests and the outside, iptables and nftables `ip`
+  tables alike. `absent` means the `br_netfilter` module
+  is not loaded, and loading it sets both to `1`, their
+  default (<https://docs.kernel.org/networking/ip-sysctl.html>,
+  `/proc/sys/net/bridge/*`). Read `0` and `absent` as the
+  same state that can flip.
+- `iptables=` names the backend of the `iptables` command:
+  `(nf_tables)` or `(legacy)`, where a version without
+  either is legacy. `nft-tables=0` together with legacy
+  tables below means the whole rule set lives in
+  iptables-legacy, and a check that reads only `nft`
+  sees nothing. `unread` is a failed read, never an empty
+  rule set.
+- NAT rules come as `[packets:bytes] -A …` from the
+  legacy tables, or with `counter packets …` from
+  nftables, where a rule without `counter` has none. The
+  counters start when the rule is loaded, so `0` means
+  no match since then: compare with the uptime and the
+  time the hook ran. iptables-nft rules show up in nft
+  syntax with `xt` where nft cannot translate a match;
+  read that table with `iptables-save -t <table>` instead.
+- **A jump** (`-A PREROUTING -i vmbr2 -j FWD`) carries its
+  conditions into the chain it calls: read a DNAT in
+  `FWD` together with the `-i` and `-d` of the jump.
+- `route-to <address>` is the route to each NAT target.
+  A DNAT target reached through the interface the rule
+  matched on sends the packet back where it came from:
+  the rule is dead, and so is every FORWARD rule written
+  for it (`-o <other interface>`).
+- The filter lines give each family's `INPUT` and
+  `FORWARD` policy, the FORWARD rules and the number of
+  INPUT rules. Whether they form a firewall is the
+  security audit's call; the profile records per family
+  whether inbound traffic to the host is filtered at all.
 
 ## Probe — FreeBSD
 
