@@ -21,6 +21,8 @@ state, and none writes there.
 A hypervisor cluster or pool keeps its members, state
 and guest inventory in `memory/clusters/<name>/`
 instead (`rules/hypervisors.md` → Clusters and Pools).
+A host may also have `files/`, `src/`, `deployed.md`
+and `notes/` (below).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
@@ -181,6 +183,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `API path:`              | `appliance-api.md`          | access set up    |
 | `API pin:`               | `tls-pinning.md`            | pin confirmed    |
 | `Flags:`, `Rollback:`    | `changelog.md`              | entry logged     |
+| `Plan:`                  | this file                   | plan started     |
 | `USB:`, `Passthrough:`   | `hostwarden-housekeeping`   | housekeeping     |
 | `Backup:`                | `hostwarden-housekeeping`   | user's answer    |
 | `Container registries:`  | `hostwarden-security`       | security audit   |
@@ -219,6 +222,69 @@ the pending items before starting new work; an item
 with a `due` time waits silently until then. Delete
 the file once everything is done.
 
+## Plans that outlive a session
+
+Work that spans sessions — a migration in phases, a
+rollout across sites, a design with decisions still
+open — gets `memory/plans/<slug>.md`, whether it
+touches one host or many. `todo.md` stays what it is:
+one session's steps, deleted when they are done. A
+plan holds what a checklist cannot: the goal, the
+decisions taken and why, the phases, and what is next.
+It opens with the hosts it touches and where it
+stands:
+
+```markdown
+# Syslog collector for all sites
+- Hosts: log1.example.com, fw1.example.com,
+  pve1.example.com
+- Status: phase 2 of 4 — collector runs, forwarders
+  pending
+- Updated: 2026-09-17
+```
+
+Each host it names gets a line in `memory.md`:
+`- Plan: syslog-collector (memory/plans/syslog-collector.md)`.
+Read the plan when the work on a host touches what it
+plans, and never start its next phase unasked. Update
+`Status:` and `Updated:` whenever a phase moves. Once
+the plan is done, its facts go into the hosts'
+`memory.md`, a decision that still binds becomes a
+`Flags:` line there (`rules/changelog.md` → Standing
+lines), and the plan and its `Plan:` lines are
+deleted.
+
+## Deployed files
+
+A file a session wrote onto a host as a whole keeps
+its master in the workspace, beside the memory it
+belongs to:
+
+```
+memory/servers/<host>/files/<path on the host>
+memory/servers/<host>/src/<name>/
+memory/servers/<host>/deployed.md
+memory/fleet/<name>/files/<path on the host>
+memory/clusters/<name>/files/<path on the host>
+memory/tools/<name>
+```
+
+What each holds, the format of `deployed.md` and how a
+file is deployed: `rules/deployed-files.md`.
+
+## Notes and evidence
+
+What a session needs to keep but nobody deploys — a
+list of files quarantined before a cleanup, an export
+of a device inventory, a snapshot of a config for
+comparison — goes to
+`memory/servers/<host>/notes/`, named with its date:
+`smb-leftovers-quarantine-2026-08-27.tsv`. The
+changelog entry that produced it names the file. A
+note that no entry and no memory line points to any
+more is deleted. Secrets never go in a note
+(`rules/secrets.md`).
+
 ## Cross-server facts
 
 Facts that belong to no single host — a shared
@@ -247,8 +313,9 @@ anyone's local machine. The workspace's own
 directory has to be added there by hand.
 
 **Shared in team mode:** everything else —
-`memory/servers/*/` with each host's `rules.md`,
-`memory/clusters/*/`, `memory/known_hosts`
+`memory/servers/*/` with each host's `rules.md` and
+its masters, `memory/clusters/*/`, `memory/fleet/`,
+`memory/tools/`, `memory/plans/`, `memory/known_hosts`
 (`rules/host-keys.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.

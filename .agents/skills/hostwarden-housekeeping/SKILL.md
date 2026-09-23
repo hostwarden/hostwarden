@@ -47,7 +47,9 @@ applies before any of this runs.
    line on every host and reads the event log where there is a
    BMC. The `@storage` lines of the step-1 probe run in the
    first batch; where they find ZFS or btrfs, or memory has a
-   `Storage:` line, `references/zfs-btrfs.md` runs too. An
+   `Storage:` line, `references/zfs-btrfs.md` runs too. A host
+   with a `deployed.md`, or a member of a cluster with one, gets
+   the drift check from `references/deployed-files.md`. An
    override of `rules/baseline.md` changes what the checks
    that measure it expect, and where one fills the sections left
    empty there, `rules/baseline.md` → The Sections an Override
@@ -109,6 +111,9 @@ Read on demand, only when the relevant section applies:
   host, and on a bare-metal one the BMC's System Event Log, which
   carries power supply, fan, memory and thermal failures the OS
   never sees.
+- `references/deployed-files.md` — whether the files sessions
+  wrote onto the host still match what was deployed, and
+  whether their masters changed since.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
   GPU, MariaDB/MySQL, WireGuard, UPS (NUT, apcupsd), Pi-hole,

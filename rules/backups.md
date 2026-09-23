@@ -18,6 +18,25 @@ replace the block above.
 The cleanup uses `-exec rm` rather than `-delete`, which
 some busybox builds leave out (`rules/busybox.md`).
 
+A file with a master in the workspace
+(`rules/deployed-files.md`) needs no backup only when
+the workspace history really holds the version on the
+host: its host copy matches the hash in `deployed.md`,
+and the master committed at `HEAD` has that same hash,
+checked before the new master is written (`sha256sum`
+where the workstation has no `shasum`):
+
+```
+git -C memory ls-files --error-unmatch <path-in-memory> &&
+git -C memory show HEAD:<path-in-memory> | shasum -a 256
+```
+
+Everything else is backed up as above: a host copy that
+no longer matches, a master not yet committed, and every
+file on the local machine, whose memory directory the
+workspace never commits (`rules/server-memory.md` →
+Personal versus shared).
+
 In unprivileged mode, use `~/.hostwarden-backups/` for
 user-owned files. System config files cannot be
 edited — defer those to the sysadmin report.
