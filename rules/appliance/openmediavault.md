@@ -373,11 +373,13 @@ under `deb/openmediavault/` there).
   `conf.system.apt.updates` for unattended upgrades. They replace
   the Linux baseline's Pending Security Updates and Automatic
   Security Updates.
-- **Notifications:** check whether mail is set up without printing
-  the SMTP password:
+- **Notifications:** check whether mail is set up, reading only
+  the fields that answer it, never the SMTP password (fields:
+  <https://github.com/openmediavault/openmediavault/blob/master/deb/openmediavault/usr/share/openmediavault/datamodels/conf.system.notification.email.json>):
   ```
-  omv-confdbadm read conf.system.notification.email | \
-    jq 'walk(if type == "object" then del(.password) else . end)'
+  omv-confdbadm read conf.system.notification.email | jq '{enable,
+    server, port, tls, sender, primaryemail, secondaryemail,
+    authentication: .authentication.enable}'
   omv-confdbadm read conf.system.notification.notification
   ```
   Mail goes out through postfix in satellite mode

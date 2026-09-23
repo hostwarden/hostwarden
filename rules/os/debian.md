@@ -171,11 +171,15 @@ user override: stable had no option)"
 During housekeeping, verify the sources list:
 
 ```
-grep -r "testing\|unstable\|sid\|experimental" \
-  /etc/apt/sources.list /etc/apt/sources.list.d/
+for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+  grep -v '^[[:space:]]*#' "$f" 2>/dev/null \
+    | grep -owE "testing|unstable|sid|experimental" | sed "s|^|$f:|"
+done | sort | uniq -c
 ```
 
-If non-stable sources are found without pinning,
+The file and the suite are enough, never the line, whose URL can
+hold a token (`rules/secrets.md` → Commands That Leak). If
+non-stable sources are found without pinning,
 flag as **WARN** in the housekeeping report.
 
 ### Ubuntu Equivalent
@@ -184,10 +188,13 @@ On Ubuntu, the same principle applies: use the
 release the server was installed with. Do not mix
 in packages from a newer Ubuntu release. Prefer
 PPAs from the upstream project over random
-third-party PPAs. The check above becomes a grep
-for any codename other than the host's own
+third-party PPAs. The check above becomes one for
+any codename other than the host's own
 (`VERSION_CODENAME` in `/etc/os-release`) in the
-`Suites:` and `deb` lines.
+`Suites:` and `deb` lines, printing the suites
+alone, never the URL: the one-line format's third
+word (`sed -E 's/\[[^]]*\]//' <file> | awk '$1 ~
+/^deb/ {print $3}'`) and what follows `Suites:`.
 
 ## Package Sources
 

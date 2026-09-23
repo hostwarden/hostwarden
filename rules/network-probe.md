@@ -13,10 +13,14 @@ the netfilter reads in section F. Where the probe says
 
 The probe reads hook scripts and never runs them, and it prints
 only the lines of a script that change routes, rules, filters or
-kernel settings. Such a line can carry a secret
-(`rules/secrets.md`), so a command other than a network tool is
-cut to its name (`curl ...`), and a line that names a key, a
-password, a token or `ip xfrm` stays out altogether.
+kernel settings. Such a line can carry a secret, so it keeps
+only the arguments the reading needs (`rules/secrets.md` →
+Commands That Leak): a command other than a network tool is cut
+to its name (`curl ...`), `ip` on anything but an address, a
+route, a rule, a neighbour, a link or a next hop to its object
+(`ip x ...` for an IPsec key), and an assignment whose value is
+not an address, a netfilter tool or one of the host's interfaces
+to its name.
 
 BusyBox `ip` has no `-br`, and Alpine ships no `ss` or `curl`
 by default: where a section comes back empty for that reason,
@@ -71,17 +75,20 @@ grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' $ifs 2>/dev/null
 # Hooks: the stanza lines, the scripts they name, and the
 # dispatcher scripts no package installed.
 h='^[[:space:]]*(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]'
-x='xfrm|key|pass|secret|token|psk'
-# A command is printed whole only when it is a network tool, a
-# netfilter call through a variable, an assignment of an address,
-# interface or tool, or a write to /proc/sys; any other keeps its
-# name alone, since its arguments can carry a credential.
-t='^(ip|ip6?tables(-legacy)?(-restore)?|nft|sysctl|ebtables|arptables'
+# What of a hook line is printed: the top of this file. The rest
+# is cut, since it can carry a credential (`ip x s add ... 0x<key>`).
+t='^(ip6?tables(-legacy)?(-restore)?|nft|sysctl|ebtables|arptables'
 t="$t|bridge|brctl|tc|ipset|route|firewall-cmd|ufw|conntrack)\$"
-v='(ip6?tables|nft)[^[:space:]]*|[0-9.]+(/[0-9]+)?|[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?'
+# An assignment's value printed whole: an address or a netfilter
+# tool ($vs), or an interface this host has ($il); $v also selects
+# numbers and names that look like an interface, shown withheld.
+vs='[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+(/[0-9]+)?|(ip6?tables|nft)(-[a-z]+)*'
+vs="$vs|[0-9a-f]*:[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?"
+v="$vs|[0-9]+|0x[0-9a-f]+(/0x[0-9a-f]+)?"
 v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
-va="^[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?\$"
-rd='{ pre = ""; l = $0
+il=$(ls /sys/class/net 2>/dev/null | tr '\n' ' ')
+rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]] }
+{ pre = ""; l = $0
   if (match(l, /^[^:]*:[0-9]+:/)) {
     pre = substr(l, 1, RLENGTH); l = substr(l, RLENGTH + 1) }
   sub(/^[[:space:]]+/, "", l); hk = ""
@@ -91,17 +98,31 @@ rd='{ pre = ""; l = $0
   n = split(l, sg, /[[:space:]]*(;|&&|\|\|?)[[:space:]]*/); o = ""
   for (i = 1; i <= n; i++) {
     c = sg[i]; w = c; sub(/[[:space:]].*/, "", w)
-    sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b)
-    if (!(b ~ t || c ~ va \
+    sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b); ok = 0
+    if (b == "ip") {
+      k = split(c, tk, /[[:space:]]+/); j = 2
+      while (j < k && tk[j] ~ /^-/) {
+        # ip reads options by prefix; these four take an argument
+        op = tk[j]; sub(/^--?/, "", op)
+        if (op != "" && (index("family", op) == 1 || index("netns", op) == 1 \
+          || index("loops", op) == 1 \
+          || (index("rcvbuf", op) == 1 && length(op) > 1))) w = w " " tk[j++]
+        w = w " " tk[j++] }
+      if (j <= k) { w = w " " tk[j]; ok = tk[j] != "" && index(\
+        " address route rule neighbor neighbour link nexthop", " " tk[j]) }
+    } else if (w ~ /=$/) {
+      a = c; sub(/^[^=]*=/, "", a); gsub(/["\047]/, "", a)
+      ok = a ~ ("^(" vs ")$") || (a in isif)
+    } else ok = b ~ t \
       || c ~ /^"?\$\{?[A-Za-z_]+\}?"?[[:space:]]+-[tAIDNPF]/ \
-      || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)))
-      c = w " ..."
+      || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)
+    if (!ok || c ~ /[$<>]\(|`/) c = w " ..."
     o = o (i > 1 ? "; " : "") c }
   print pre hk o }'
 hl=$(grep -HnE "$h" $ifs 2>/dev/null)
 echo "## hooks"
-[ -n "$hl" ] && printf '%s\n' "$hl" | grep -viE "$x" \
-  | awk -v t="$t" -v va="$va" "$rd"
+[ -n "$hl" ] && printf '%s\n' "$hl" \
+  | awk -v t="$t" -v vs="$vs" -v il="$il" "$rd"
 hs=$(printf '%s\n' "$hl" | cut -d: -f3- \
   | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' | sed 's|^[^/]*||' \
   | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
@@ -128,7 +149,7 @@ done
 hs=$(printf '%s\n' $hs | sort -u)
 echo "scripts: $(printf '%s ' $hs)"
 # Commands that change something, and assignments whose value is
-# a netfilter tool, an address or an interface name ($va).
+# a netfilter tool, an address, a number or an interface name ($v).
 p='^[[:space:]]*([a-z/]*/)?(ip6?tables(-legacy)?(-restore)?|nft|ip'
 p="$p|sysctl|ebtables|arptables|bridge|brctl|tc|ipset|route"
 p="$p|firewall-cmd|ufw|conntrack|wg|wg-quick)[[:space:]]"
@@ -155,8 +176,8 @@ else
     echo "$f:$w (other: $o)"
   done'
   $SUDO sh -c "$q" sh $hs
-  $SUDO grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x" \
-    | awk -v t="$t" -v va="$va" "$rd"
+  $SUDO grep -HnE "$p" $hs 2>/dev/null \
+    | awk -v t="$t" -v vs="$vs" -v il="$il" "$rd"
 fi
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
@@ -465,12 +486,19 @@ Reading **A (manager)**:
   for a script a hook line names that does not exist: that
   hook fails when it runs. The lines after that are the ones
   that change something, with the assignments that name a
-  tool, an address or an interface. A command among the
+  tool, an address, a number or an interface, cut as the
+  top of this file says. A command among the
   first words whose lines are not printed — another tool,
   a function, a program the pattern does not know — is
   read with an anchored grep on that word, and so is a
-  variable whose assignment is missing
-  (`rules/secrets.md`), never by printing the script.
+  variable whose assignment is missing; that grep prints
+  what the reading needs of the line, an option name, a
+  path or a count, never the line itself
+  (`rules/secrets.md`), and never the script. A withheld
+  assignment the reading needs (`TABLE= ...`, a `DEV=`
+  naming an interface the hook creates) is read by its name with an
+  anchored grep, as `rules/secrets.md` reads a key's
+  value: only where the name holds no credential.
   Only a script whose words are all accounted for is
   fully read.
 

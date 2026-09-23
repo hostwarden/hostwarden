@@ -13,9 +13,18 @@ the host for code that identifies those files by
 pattern rather than by name:
 
 ```
-grep -rn '<old-path-or-stem>' /etc /usr/local \
-  /root /home/*/bin 2>/dev/null
+w="([A-Za-z_][A-Za-z0-9_]*=)?[^[:space:]\"'=]*"
+grep -rnoE "$w<old-path-or-stem>[^[:space:]\"';?]*" \
+  /etc /usr/local /root /home/*/bin 2>/dev/null \
+  | sed -E 's#[a-z][a-z0-9+.-]*://.*/#<url>/#'
 ```
+
+`-o` prints the word that holds the name and the
+variable it is assigned to, not the line, which can
+carry a password; a URL keeps only its last part
+(`rules/secrets.md` → Commands That Leak). A variable
+the search names (`LOG=`) is searched for in turn, as
+`$LOG` and `${LOG}`, the same way.
 
 Check at least: cleanup and deletion scripts, cron
 jobs and systemd units, log shippers and parsers,
@@ -196,7 +205,10 @@ does not follow a link, so a link — in a user's
 found only by the `find`.
 
 `-l` prints file names only. Read the hits that can
-be consumers, in one call. Never read a hit in key
+be consumers, in one call, first by the words that
+hold the name (the `-o` search of step 1, on those
+files); a crontab or a unit never whole
+(`rules/secrets.md` → Commands That Leak). Never read a hit in key
 material, a file `rules/secrets.md` names, a config
 backup or a scratch directory — none of them runs
 anything; the name is enough.

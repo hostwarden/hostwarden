@@ -109,11 +109,21 @@ and log it with `logger -t hostwarden`.
 ### What to Check on Existing Servers
 
 ```
-cat /etc/alpine-release /etc/apk/repositories
+cat /etc/alpine-release
+# per line its tag and branch, never the URL, whose user info or
+# path can hold a token
+t='(@[^[:space:]]+[[:space:]]+)?'; br='edge|latest-stable|v[0-9.]+'
+b="s#^[[:space:]]*$t.*/(($br)/[a-z]+)/*[[:space:]]*\$#\\1\\2#p"
+sed -nE -e '/^[[:space:]]*(#|$)/d' -e "$b" -e t -e 's/.*/(other)/p' \
+  /etc/apk/repositories
 ```
 
 - An untagged `edge` line, or one naming a different `vX.Y` than
   the release → **WARN**.
+- A `latest-stable` line → flag it and ask (Stable Branch
+  Only).
+- `(other)`: a repository whose path names no branch, a local
+  or a vendor's one → **INFO**, for the user to name.
 - A tagged `edge` or `testing` line → **INFO**, with the packages
   that use the tag (`grep @ /etc/apk/world`).
 - `apk list --orphaned` lists installed packages that no
@@ -215,13 +225,44 @@ or a crontab line that runs `apk upgrade`, which busybox `crond`
 runs only while its service does:
 
 ```
-grep -l "apk.*upgrade" /etc/periodic/*/* 2>/dev/null
-crontab -l | grep "apk.*upgrade"
+# apk's own options that make it only simulate
+sm="[[:space:]](-[A-Za-z]*s[A-Za-z]*|--simulate(=yes)?)([[:space:]\"']|\$)"
+# per periodic script that names it: how many of its apk lines
+# simulate, never the lines
+for f in $(grep -l "apk.*upgrade" /etc/periodic/*/* 2>/dev/null); do
+  a=$(grep 'apk.*upgrade' "$f" | sed -nE 's/.*apk[[:space:]]/ /p')
+  echo "$f: $(printf '%s\n' "$a" | grep -cE "$sm") of \
+$(printf '%s\n' "$a" | grep -c .) simulate"
+done
+# per crontab line: the schedule and each command's first word,
+# "[apk -s]" after one whose apk only simulates, never the
+# arguments
+crontab -l | awk -v sm="$sm" '/^[[:space:]]*#/ || !/apk.*upgrade/ { next }
+  { l = $0; sub(/^[[:space:]]+/, "", l); k = l ~ /^@/ ? 1 : 5; s = ""
+    for (i = 1; i <= k; i++) { match(l, /^[^[:space:]]+[[:space:]]*/)
+      s = s substr(l, 1, RLENGTH); l = substr(l, RLENGTH + 1) }
+    gsub(/[0-9]*>&[0-9-]*/, "", l); n = split(l, g, /[;&|]+/); c = ""
+    for (i = 1; i <= n; i++) { w = g[i]; sub(/^[[:space:](]+/, "", w)
+      a = " " w; m = ""
+      if (sub(/.*[[:space:]\/"\047]apk[[:space:]]/, " ", a) && a ~ sm)
+        m = " [apk -s]"
+      sub(/[[:space:]=].*/, "", w)
+      if (w != "") c = c (c == "" ? "" : "; ") w m }
+    print s c }'
 rc-service crond status
 ```
 
 A script name says nothing; only a script or crontab line that
-runs `apk upgrade` counts.
+runs `apk upgrade` counts, and `-s` (`--simulate`) only reports:
+`[apk -s]` after a crontab command, a script whose every apk line
+simulates.
+A crontab line that names it shows as its schedule and the first
+word of each command, since the rest can carry a token, such as
+a monitoring ping's URL (`rules/secrets.md` → Commands That
+Leak). `apk`, or a wrapper that runs one (`nice`, `chronic`,
+`timeout`, `sh`), counts; a line whose commands are only others,
+such as `logger` or a notifier, may only mention it: ask the
+user.
 
 - No such job, or `crond` not started → the finding the standing
   expectation in `AGENTS.md` asks for. Present it as a gap Alpine

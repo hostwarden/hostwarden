@@ -500,8 +500,24 @@ The local machine may carry scheduled runs from
 Heinzel — a crontab line, a systemd timer, a
 `heinzel-housekeeping.service`, `~/heinzel-cron.log`,
 a lock in `/tmp` — that change into the Heinzel
-checkout and start `claude` there. Read the directory
-each one changes into before reporting it. If that
+checkout and start `claude` there. Read what each one
+starts and the directory it changes into before
+reporting it, never the command whole:
+
+- a crontab line: `##cron` of `rules/heinzel-legacy.md`
+  without its `grep -i heinzel`, since the checkout
+  can have any name;
+- a unit, with `--user` for one under
+  `~/.config/systemd/user/`: `systemctl show -p LoadState
+  -p WorkingDirectory <unit>`, the program from
+  `systemctl show -p ExecStart <unit> | grep -oE
+  'path=[^ ;]+'`, and each `cd` its command runs from
+  `systemctl cat <unit> | grep -oE "$cdir"`;
+- a launchd job: `plutil -extract WorkingDirectory raw
+  <plist>`, and the same grep on `plutil -convert xml1
+  -o - <plist>`.
+
+If that
 checkout is gone, the job fails silently: nobody gets
 the report they believe they are getting. If it is
 still there, the job runs — on Heinzel's rules and
@@ -529,7 +545,9 @@ file under `/etc/heinzel/`, and daily journal lines under the tag
 Report it; change nothing unasked:
 
 - **On that machine,** each unit or cron job, what it starts and
-  when. It is Heinzel still in use, so the machine's
+  when, read as the workstation's jobs are above, a timer's
+  schedule from `systemctl list-timers`. It is
+  Heinzel still in use, so the machine's
   `heinzel legacy:` line is a deferral,
   `(heinzel still in use, runs from this host)`. Stopping or
   disabling a job is a service change, and the operator's call.

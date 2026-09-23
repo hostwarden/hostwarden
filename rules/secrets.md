@@ -81,14 +81,48 @@ openssl pkey -pubout -in example.key | sha256sum
 
 - Never `cat`, `head`, `tail`, `less`, or `grep`
   (without `-c`/`-l`) a file from the list above.
+- A probe that reads a config, a crontab, a hook or
+  a unit prints what the judgement needs — a count,
+  a file, a keyword, a schedule, a command's first
+  word, a key name, a URL's host — and withholds the
+  arguments and values, never the whole line: a URL's
+  user info, path and query can each hold a token. A crontab line shows
+  as its schedule and first word, an environment
+  line as its name:
+
+  ```
+  cs='(@[a-z]+|[^@[:space:]]+([[:space:]]+[^[:space:]]+){4})'
+  crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | sed -nE \
+    -e 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=.*/\1= .../p' \
+    -e t -e "s/^[[:space:]]*($cs[[:space:]]+[^[:space:]=]+).*/\\1 .../p"
+  ```
+
+  `/etc/crontab` and `/etc/cron.d/` put the user after
+  the schedule: `{5}` for `{4}` and
+  `@[a-z]+[[:space:]]+[^[:space:]]+` for `@[a-z]+` keep
+  it and the first word.
+
+  A keyword filter is a backstop, never the
+  redaction: `db_pass`, `token` and `secret_key` get
+  past one that knows `password`.
 - When a config that embeds credentials must be
-  shown, redact on the fly:
+  shown, show its structure: section headers and
+  key names, every value withheld. Any other line
+  stays out, since a comment, a bare list item or a
+  base64 line can hold a secret too, and so does a
+  line that ends in `=`, such as a PEM block's last:
 
   ```
-  sed 's/\(password[ =:]*\).*/\1REDACTED/I' \
-    /etc/app/config.ini
+  s='[[:space:]]*(- |export )?[A-Za-z0-9_.-]+[[:space:]]*[=:]'
+  sed -nE -e '/=[[:space:]]*$/d' \
+    -e 's/^[[:space:]]*(\[[^]]*\])[[:space:]]*$/\1/p' \
+    -e "s/^($s).*/\\1 <withheld>/p" /etc/app/config.ini
   ```
 
+  A value the task needs is read by its key alone,
+  with an anchored pattern (`grep -E
+  '^[[:space:]]*port[[:space:]]*='`), and only for a
+  key that holds no credential.
 - Watch for accidental leaks: `ps aux` can show
   passwords in argv, `env` output can contain
   tokens, debug logs can echo credentials. If
@@ -348,7 +382,8 @@ that the user writes, never in the conversation:
   the user's step, after asking.
 - **Every response passes a filter on the workstation**
   before any of it reaches the conversation. For JSON,
-  drop every key that can carry a secret:
+  project it to what the question needs, then drop
+  every key that can carry a secret, as the backstop:
 
   ```
   jq 'walk(if type == "object" then with_entries(select(.key | test("pass(word|phrase)|secret|preshared|psk|token|private|api[_. -]?key|credential"; "i") | not)) else . end)'

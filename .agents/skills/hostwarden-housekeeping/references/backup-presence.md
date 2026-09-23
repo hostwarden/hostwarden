@@ -45,15 +45,21 @@ for t in restic borg borgmatic rsnapshot duplicity \
   command -v "$t" >/dev/null && echo "$t"
 done
 
-# Scheduled jobs that look like backups; commented-out lines are
-# not jobs
+# Scheduled jobs that look like backups: the keyword and the file,
+# and the absolute paths those lines name, for the run evidence
+# below, never the line (rules/secrets.md → Commands That Leak);
+# commented-out lines are not jobs
 systemctl list-timers --all 2>/dev/null \
   | grep -iE 'backup|borg|restic|rsnapshot|dump|rclone'
 KW='backup|restic|borg|dump|rclone|rsync'
-grep -riE "$KW" /etc/cron.d /etc/cron.daily /etc/cron.weekly \
-  /etc/crontab /etc/periodic 2>/dev/null \
-  | grep -vE '^[^:]*:[[:space:]]*#'
-crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -iE "$KW"
+PA="(^|[[:space:]>=])/[^[:space:]\"';|&<>]+"
+for f in /etc/crontab /etc/cron.d/* /etc/cron.daily/* \
+  /etc/cron.weekly/* /etc/periodic/*/*; do
+  grep -v '^[[:space:]]*#' "$f" 2>/dev/null | grep -iE "$KW" \
+    | grep -oiE "$KW|$PA" | sed "s|^[[:space:]>=]*|$f:|"
+done | sort | uniq -c
+crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -iE "$KW" \
+  | grep -oiE "$KW|$PA" | sed 's|^[[:space:]>=]*||' | sort | uniq -c
 
 # Filesystem snapshots (no zpool without /dev/zfs: it would load
 # the module, rules/storage-inventory.md → Detection)
@@ -71,8 +77,8 @@ ls -lt /var/backups/ 2>/dev/null | head -5
 
 **Recent-run evidence:** the `LAST` column of
 `list-timers`, mtimes of backup logs and repo
-directories, the creation date of the newest
-snapshot.
+directories, which the cron lines name, the
+creation date of the newest snapshot.
 
 Two caveats to carry into the report:
 
@@ -136,15 +142,18 @@ for t in restic borg borgmatic rsnapshot duplicity \
 done
 
 # Scheduled jobs that look like backups: the keyword and the file,
-# never the line, which may carry a password or a token;
-# commented-out lines are not jobs
+# and the absolute paths those lines name, never the line
+# (rules/secrets.md → Commands That Leak); commented-out lines
+# are not jobs
 KW='backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync'
+PA="(^|[[:space:]>=])/[^[:space:]\"';|&<>]+"
 for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
-  grep -v '^[[:space:]]*#' "$f" 2>/dev/null \
-    | grep -oiE "$KW" | sed "s|^|$f:|"
+  grep -v '^[[:space:]]*#' "$f" 2>/dev/null | grep -iE "$KW" \
+    | grep -oiE "$KW|$PA" | sed "s|^[[:space:]>=]*|$f:|"
 done | sort | uniq -c
 crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
-  | grep -oiE "$KW" | sort | uniq -c
+  | grep -iE "$KW" | grep -oiE "$KW|$PA" | sed 's|^[[:space:]>=]*||' \
+  | sort | uniq -c
 # periodic settings count only when their last value, the local
 # file's where it sets one, is YES
 cat /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
@@ -165,7 +174,7 @@ Manager → Enabled services, with `P` set first.
 
 **Recent-run evidence:** the creation date of the
 newest snapshot, the mtimes of backup logs and repo
-directories. `zrepl status` and a sanoid/syncoid log
+directories, which the cron lines name. `zrepl status` and a sanoid/syncoid log
 name the last replication where one is set up.
 
 The same-disk caveat under Linux applies: a snapshot

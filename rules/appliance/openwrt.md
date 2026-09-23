@@ -321,7 +321,10 @@ of the current release branch,
   checks:
   ```
   uci show dropbear; uci show firewall; netstat -tlnp
-  cat /etc/apk/repositories.d/*.list /etc/opkg/*.conf
+  h='s#^([^:]*[[:space:]])?[a-z]+://([^/@]*@)?([^/:[:space:]]+).*#\1\3#'
+  o='s/^([[:space:]]*option[[:space:]]+[^[:space:]]+).*/\1 .../'
+  sed -E -e "$h" -e "$o" /etc/apk/repositories.d/*.list \
+    /etc/opkg/*.conf
   ```
   and reports:
   - dropbear's `PasswordAuth`, `RootPasswordAuth` and `Interface`
