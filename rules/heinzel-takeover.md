@@ -1,9 +1,10 @@
 # Taking Over What Heinzel Left Behind
 
 Read this when `rules/heinzel-legacy.md` found
-something on a host. Moving files on a live server is
-a change, not a read, so all of it ends in a
-question.
+something on a host, and where another rule sends you
+to one of its sections for a host taken over from
+Heinzel. Moving files on a live server is a change,
+not a read, so every move ends in a question.
 
 ## Report, then ask
 
@@ -95,7 +96,11 @@ When a hypervisor host registers its guests in the
 same session, the host's finds and every registered
 guest's make one report and one question, asked where
 `rules/hypervisors.md` → Registering Guests places
-it. A machine without finds is not listed:
+it. A machine without finds is not listed. A
+registered guest's finds go here, not under the
+registration report's `findings`; a guest step 3 of
+Registering Guests left out, which has no memory to
+record them, has them under `findings`:
 
 ```
 heinzel state on pve1.example.com and 3 of its guests:
@@ -362,6 +367,61 @@ Two kinds of fact have another place:
   Cross-server facts) once this connection or the
   user confirms them; an unconfirmed one is named in
   the report and not recorded.
+
+## Before its first connection
+
+Until its first connection writes `memory.md`, a host's
+`heinzel-memory.md` stands in for one line only, its
+`- IP:`, where an address check looks for a known host.
+Where it has none, the address is unknown. No other rule
+reads that file as the host's state, and none writes
+there.
+
+- **The DNS check and alias detection**
+  (`rules/dns-aliases.md`): compare the `- IP:` of every
+  directory with `heinzel-memory.md` and no `memory.md`
+  too, by address alone — that file is never edited, so
+  it gets no `SSH port:` — and never link on it:
+  Heinzel's address may be out of date, and the same
+  address may be another port's machine. On a match, ask
+  the user whether this is that host. A yes makes this
+  name its alias, and this connection that host's first
+  one, OS detection included; a no makes it a new
+  server.
+- **A guest's registration** (`rules/hypervisors.md` →
+  Registering Guests): in step 3, such a directory's
+  `- IP:` counts, and a directory the takeover just copied
+  for this guest is this guest. Step 4 writes its
+  `memory.md` as Heinzel's memory above says.
+
+## Guests in the Heinzel checkout
+
+Where `memory/user.md` has a
+`Taken over from heinzel: <date> (<path>)` line,
+registration (`rules/hypervisors.md` → Registering
+Guests) leaves out a guest with no memory directory here
+but one in that checkout's `memory/servers/`: a
+directory registration created would make a later
+`bin/hostwarden-heinzel-takeover --server` for it keep
+this clone's version and copy nothing, and the guest's
+Heinzel memory and changelog would never come across.
+Match with what step 1 there matches against the access
+lists — the names, their first labels and the IP
+addresses — against the directory names there and one
+`grep -H '^- IP:'` over their `memory.md` files, read
+once for all guests, before entering any. Where the path
+holds no Heinzel checkout any more, nothing is left out.
+
+The `hostwarden-heinzel-takeover` skill takes such
+guests over with their host (its step 9). Outside it,
+the registration report's `not registered` line lists
+each as `in the Heinzel checkout`
+(`140 wiki (in the Heinzel checkout)`), and one question
+after the report offers to take them over, which is the
+explicit request that skill needs. A no is recorded in
+each entry of `guests.md`,
+`in the Heinzel checkout, not taken over (user, <date>)`,
+and not asked again.
 
 ## Heinzel's copies
 

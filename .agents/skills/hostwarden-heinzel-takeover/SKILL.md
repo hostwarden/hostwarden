@@ -314,10 +314,10 @@ leads, the host confirms them.
 
    - **Guests still in the old checkout**, on a hypervisor, before
      Registering Guests. Match the inventory against the old
-     checkout's `memory/servers/`, as `rules/hypervisors.md` →
-     Registering Guests says, which then uses this match. Those with
-     a directory there and none here are taken over with their host,
-     in one question:
+     checkout's `memory/servers/`, as `rules/heinzel-takeover.md` →
+     Guests in the Heinzel checkout says, which registration then
+     uses. Those with a directory there and none here are taken over
+     with their host, in one question:
 
          7 guests of pve1.example.com have Heinzel memory in
          /Users/alice/heinzel: web1.example.com, db1.example.com, …
@@ -327,10 +327,10 @@ leads, the host confirms them.
      `[1]` runs `bin/hostwarden-heinzel-takeover <path>` once with a
      `--server` for each and builds their inventory as in step 6;
      registration then onboards them through the host. `[2]` leaves
-     them unregistered, as Registering Guests says. A guest taken
-     over with it that the manager cannot enter — a VM without an
-     agent — keeps its `heinzel-memory.md` alone and is onboarded on
-     its first SSH connection.
+     them unregistered, as that section says. A guest taken over
+     with it that the manager cannot enter — a VM without an agent —
+     keeps its `heinzel-memory.md` alone and is onboarded on its
+     first SSH connection.
    - **Heinzel's finds** answered "leave" or "later" are among the
      questions that only get recorded. Moving or renaming Heinzel's
      state is a change: an answer to take it over is recorded as
@@ -414,14 +414,15 @@ its halves are triggered by different things:
   entries — which is what catches Heinzel touching a host again
   after the question was settled. It detects; it never moves.
 - **`rules/heinzel-takeover.md`** — what to do about a detection,
-  and how Heinzel's memory becomes a Hostwarden `memory.md`. Also a
+  how Heinzel's memory becomes a Hostwarden `memory.md`, and how a
+  host taken over is matched before its first connection. Also a
   reflex. Every path that would *move* something ends in a question,
   because moving files on a live server is a change. The path that
   moves nothing does not ask: while Heinzel is still in use,
   a takeover is premature, and that one reports and records a
   deferral instead.
-- **`rules/hypervisors.md`** → Registering Guests — which guests are
-  registered, and why one still in the Heinzel checkout is not.
+- **`rules/heinzel-takeover.md`** → Guests in the Heinzel checkout —
+  why a guest still in the Heinzel checkout is not registered.
 
 Nothing is stated twice: this file describes the checkout and the
 run, the rules describe the hosts, and each names the other rather

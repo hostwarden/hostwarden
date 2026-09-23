@@ -84,18 +84,9 @@ symlink):
    on one Windows host: no alias.
 
    A directory with `heinzel-memory.md` and no
-   `memory.md` is a host taken over from Heinzel
-   that nothing has connected to yet
-   (`rules/heinzel-takeover.md` → Heinzel's memory).
-   Compare its `- IP:` line too, by address alone
-   — that file is never edited, so it gets no
-   `SSH port:` — and never link on it: Heinzel's
-   address may be out of date, and the same address
-   may be another port's machine. On a match, ask
-   the user whether this is that
-   host. A yes makes this name its alias, and this
-   connection that host's first one, OS detection
-   included; a no makes it a new server.
+   `memory.md` is compared as
+   `rules/heinzel-takeover.md` → Before its first
+   connection says.
 
 3. **Match found -> alias.**
    - First verify its host key against the canonical

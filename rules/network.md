@@ -63,9 +63,6 @@ An `- IP:` that no longer matches stays with
   `curl` or a DNS lookup that times out, or a stall in one address
   family only. Where `Probed:` names a part, it runs the whole
   probe, whatever the date.
-- **On the first connection to a host taken over from Heinzel:** the
-  full profile, which gives Heinzel's notes on the network a place
-  (`rules/heinzel-takeover.md` → Heinzel's memory).
 - **On an onboarding the user asked for** (`hostwarden-onboard`),
   a first connection or a full re-probe (`rules/os-detection.md` →
   On subsequent connections): the full profile, its probe of the

@@ -281,7 +281,8 @@ rules/                 — Upstream rule files (git-tracked)
                          changes: find what matches on them
   heinzel-legacy.md    — Finding the state Heinzel left on a
                          host
-  heinzel-takeover.md  — Taking over what that check found
+  heinzel-takeover.md  — Taking over what that check found,
+                         and hosts taken over from Heinzel
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 templates/workspace/   — What bin/hostwarden-init puts
