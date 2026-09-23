@@ -45,6 +45,8 @@ block alive.
 2. If that fails too, stop. Wait several minutes
    before the next attempt, and never wrap SSH in an
    automatic retry.
+3. Never try another port in its place
+   (`rules/ssh-config.md` → Finding the Port).
 
 An `Access:` line in server memory that names a second
 path which worked (`rules/ssh-safety-net.md` → Which way

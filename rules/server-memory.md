@@ -98,7 +98,9 @@ route every later session through the host.
 `SSH port:`, remote mode only, is the `port` line of
 `ssh -G <user>@<hostname>` with the standard options
 (`AGENTS.md` → SSH Options), which the alias check in
-`rules/dns-aliases.md` compares.
+`rules/dns-aliases.md` compares. It is written again when the
+user confirms that the host's sshd moved
+(`rules/ssh-config.md` → Adding a Block).
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
@@ -126,7 +128,7 @@ so does a host's `network.md` (`rules/network.md`).
 | Field                    | Owner                       | Written          |
 |--------------------------|-----------------------------|------------------|
 | `IP:`                    | `dns-aliases.md`            | first connection |
-| `SSH port:`              | this file                   | first connection |
+| `SSH port:`              | this file                   | first, on a move |
 | `Reached as:`            | this file                   | first connection |
 | `Mode:`                  | this file                   | mode chosen      |
 | `Last connected:`        | this file                   | every connection |

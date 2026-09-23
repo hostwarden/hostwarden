@@ -435,8 +435,9 @@ the backup.
 
 ### What lives in `memory/`
 
-- `user.md` — SSH usernames, language preference,
-  your handle (`Operator:`) and full name
+- `user.md` — SSH usernames, the SSH ports you use
+  instead of 22 (`Alternative SSH ports:`), language
+  preference, your handle (`Operator:`) and full name
   (`Operator name:`)
 - `blacklist.md`, `readonly.md` — access policies
 - `operators.md` — the team's handles in use

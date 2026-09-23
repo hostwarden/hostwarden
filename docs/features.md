@@ -87,6 +87,15 @@ in `memory/user.md`, which is personal. A jump host
 gets the same host-key check and shared connection as
 the server behind it.
 
+A port you give with the host — `web1.example.com:2222`,
+`ssh://alice@web1.example.com:2222` or `-p 2222` —
+becomes such a block. When port 22 of a new server
+refuses the connection, Hostwarden tries the ports you
+list as `Alternative SSH ports:` in `memory/user.md`,
+and 2222 where your known_hosts has a key for it,
+those with a key first; then it asks. It never scans for a port, and after a
+timeout it tries no other port on its own.
+
 Port forwardings are never stored. A session that
 needs one opens it on its own connection and closes it
 when it is done.

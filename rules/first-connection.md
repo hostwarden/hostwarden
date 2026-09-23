@@ -10,6 +10,10 @@ one-liner, say so up front ("first-contact
 onboarding on this host — one moment") rather than
 skip it.
 
+The host is the name without a port, a user or a
+scheme written with it (`rules/ssh-config.md` → A
+Port the User Names).
+
 ## Order
 
 1. **Blacklist check.** Refuse if the host or one of
@@ -20,7 +24,11 @@ skip it.
 3. **SSH user lookup** (first connection only). See
    `rules/ssh-user.md`. It comes before the DNS check
    because the alias comparison reads the port for
-   this user. Once the user is chosen, compare the
+   this user. A port the user named for a new host
+   goes into `memory/ssh_hosts` first
+   (`rules/ssh-config.md` → A Port the User Names),
+   so this step's `ssh -G` shows it. Once the user is
+   chosen, compare the
    `hostname` and `proxyjump` lines of its `ssh -G`
    output with the output steps 1–2 read, never with
    a default this step has just written, and the
@@ -39,7 +47,9 @@ skip it.
    See `rules/dns-aliases.md` for both. Then, before
    the session's first SSH call to the host, look its
    key up in `memory/known_hosts`, and get it first
-   where it is missing: `rules/host-keys.md`.
+   where it is missing: `rules/host-keys.md`. A new
+   host whose first call fails without an answer from
+   sshd: `rules/ssh-config.md` → Finding the Port.
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Server memory file.** Create on first
    connection, read on every subsequent connection.
@@ -89,7 +99,9 @@ skip it.
 ## Local mode
 
 In local mode (`localhost`, the user's own
-hostname), skip steps 1–4 — blacklist, read-only
+hostname, and never with a port written after
+either: `rules/ssh-config.md` → A Port the User
+Names), skip steps 1–4 — blacklist, read-only
 list, SSH user, DNS check and host key are
 remote-only. Still
 run OS detection, server memory, activity check, and

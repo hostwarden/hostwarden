@@ -209,7 +209,8 @@ rules/                 — Upstream rule files (git-tracked)
   host-keys.md         — memory/known_hosts: getting a key,
                          a changed key, certificates
   ssh-config.md        — memory/ssh_hosts: other ports,
-                         addresses, jump hosts; port
+                         addresses, jump hosts; finding
+                         a new host's port; port
                          forwardings per session
   ssh-safety-net.md    — Timed revert armed before a
                          firewall or network change
