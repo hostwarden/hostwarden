@@ -72,6 +72,25 @@ for `sudo -n` wherever an instruction names it, for the
 whole session. It comes before the root SSH fallback,
 and in local mode before unprivileged mode.
 
+A probe that runs as one non-interactive call works
+out its privilege prefix once, at its top, and never
+asks for a password:
+
+```bash
+if [ "$(id -u)" = 0 ]; then SUDO=""
+elif sudo -n true 2>/dev/null; then SUDO="sudo -n"
+elif doas -n true 2>/dev/null; then SUDO="doas -n"
+else SUDO=-; fi
+```
+
+`$SUDO` goes unquoted in front of a command, so an
+empty value disappears. `-` means there is no
+privilege path: the probe then prints
+`unknown(needs-root)` in place of the answer, never a
+degraded one. `wsl.exe -u root` is not a prefix — it
+takes the bundle on stdin (`rules/platform/wsl.md`) —
+so the snippet leaves it out.
+
 ## Root SSH Fallback
 
 When sudo is unusable and a privileged action is

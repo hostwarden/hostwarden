@@ -179,15 +179,19 @@ echo "$uu" \
 #    uses Allowed-Origins ("<distro>:<codename>-security").
 codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
 pattern="(codename=|archive=|[an]=|:)(\\\$\{distro_codename\}|${codename})-security"
-echo "$uu" \
-  | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::" \
-  | grep -qE "$pattern" \
+origins=$(echo "$uu" \
+  | grep -E "^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins)::")
+echo "origins.count=$(printf '%s\n' "$origins" | grep -c .)"
+printf '%s\n' "$origins" | grep -qE "$pattern" \
   && echo "origins=ok" \
   || echo "origins=MISSING ${codename}-security pattern"
 
-# 5. Notification destination set (else failures are silent).
-echo "$uu" \
-  | grep -E "Unattended-Upgrade::(Mail |MailReport)"
+# 5. Notification destination set (else failures are silent),
+#    and the reboot and kernel clean-up policy.
+echo "$uu" | grep -E \
+  -e "^Unattended-Upgrade::(Mail|MailReport|MailOnlyOnError) " \
+  -e "^Unattended-Upgrade::Automatic-Reboot(-WithUsers|-Time)? " \
+  -e "^Unattended-Upgrade::Remove-Unused-Kernel-Packages "
 
 # 6. Recent real activity: did a Debian package upgrade run
 #    in the last 30 days, not just no-op runs?

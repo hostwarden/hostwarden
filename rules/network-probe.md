@@ -5,9 +5,10 @@ family, and how to read what they print. Load this file only
 when that rule says to build or refresh a profile.
 
 Nothing needs root except the netplan grep, the hook scripts and
-the netfilter reads in section F. Their `S` stands for the
-privilege path `rules/privilege-escalation.md` found (`sudo -n`,
-or the stand-in that file names); without one they print
+the netfilter reads in section F. Where the probe says
+`<privilege prefix>`, put the snippet from
+`rules/privilege-escalation.md` → Stand-ins for sudo: it sets
+`$SUDO`, and without a privilege path those reads print
 `unknown(needs-root)`.
 
 The probe reads hook scripts and never runs them, and it prints
@@ -46,9 +47,7 @@ ups=$(printf '%s\n' "$up" $up4 $up6 | grep . | sort -u)
 for i in $ups; do
   [ -e "/sys/class/net/$i/device" ] && echo "physical=$i"
 done
-if [ "$(id -u)" = 0 ]; then S=""
-elif sudo -n true 2>/dev/null; then S="sudo -n"
-else S=-; fi
+<privilege prefix>
 
 echo "### A manager"
 for u in systemd-networkd NetworkManager networking \
@@ -132,7 +131,7 @@ p="$p|^[[:space:]]*\"?\\\$\{?[A-Za-z_]+\}?\"?[[:space:]]+-[tAIDNPF]"
 p="$p|^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?[[:space:]]*\$"
 p="$p|/proc/sys/|-j (DNAT|SNAT|MASQUERADE|REDIRECT|NETMAP)"
 if [ -z "$hs" ]; then :
-elif [ "$S" = - ]; then echo "scripts=unknown(needs-root)"
+elif [ "$SUDO" = - ]; then echo "scripts=unknown(needs-root)"
 else
   # Per script, the first word of every line that is a command,
   # a path or a variable; any other word is counted, not shown.
@@ -149,8 +148,8 @@ else
     done
     echo "$f:$w (other: $o)"
   done'
-  $S sh -c "$q" sh $hs
-  $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x" \
+  $SUDO sh -c "$q" sh $hs
+  $SUDO grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x" \
     | awk -v t="$t" -v va="$va" "$rd"
 fi
 if command -v networkctl >/dev/null 2>&1; then
@@ -173,8 +172,8 @@ if command -v nmcli >/dev/null 2>&1; then
   done
 fi
 if ls /etc/netplan/*.yaml >/dev/null 2>&1; then
-  if [ "$S" = - ]; then echo "netplan=unknown(needs-root)"
-  else $S grep -HE \
+  if [ "$SUDO" = - ]; then echo "netplan=unknown(needs-root)"
+  else $SUDO grep -HE \
     '^[[:space:]]*([a-z0-9_.@-]+:[[:space:]]*$|(renderer|dhcp4|dhcp6|accept-ra):)' \
     /etc/netplan/*.yaml
   fi
@@ -217,8 +216,8 @@ grep -HsE '^[[:space:]]*(\[RoutingPolicyRule\]|Table=)' \
   /etc/systemd/network/*.network /run/systemd/network/*.network
 ls /etc/sysconfig/network-scripts/rule*-* \
   /etc/sysconfig/network/ifrule-* 2>/dev/null
-if ls /etc/netplan/*.yaml >/dev/null 2>&1 && [ "$S" != - ]; then
-  $S grep -HnE '^[[:space:]]*(routing-policy|table):' /etc/netplan/*.yaml
+if ls /etc/netplan/*.yaml >/dev/null 2>&1 && [ "$SUDO" != - ]; then
+  $SUDO grep -HnE '^[[:space:]]*(routing-policy|table):' /etc/netplan/*.yaml
 fi
 if command -v nmcli >/dev/null 2>&1; then
   nmcli -g NAME connection show 2>/dev/null | while IFS= read -r c; do
@@ -345,10 +344,10 @@ ls /etc/iptables/rules* /etc/sysconfig/ip*tables \
 # Chains a container engine or Kubernetes writes are counted.
 e='^(DOCKER|KUBE-|CNI-|cali-)'
 nf=
-if [ "$S" = - ]; then echo "netfilter=unknown(needs-root)"
+if [ "$SUDO" = - ]; then echo "netfilter=unknown(needs-root)"
 else
   if ! command -v nft >/dev/null 2>&1; then echo "nft=none"
-  elif r=$($S nft list ruleset 2>/dev/null); then
+  elif r=$($SUDO nft list ruleset 2>/dev/null); then
     echo "nft-tables=$(printf '%s\n' "$r" | grep -c '^table')"
     # A table with NAT comes in full, any other with its hooks.
     nf=$(printf '%s\n' "$r" | awk -v e="$e" '
@@ -370,7 +369,7 @@ else
   # security skill's references/firewall-nftables-docker.md).
   case $iv in *nf_tables*) L=-legacy ;; *) L= ;; esac
   for t in ip ip6; do
-    tn=$($S cat /proc/net/${t}_tables_names 2>/dev/null)
+    tn=$($SUDO cat /proc/net/${t}_tables_names 2>/dev/null)
     [ -n "$tn" ] || continue
     b=${t}tables$L-save
     command -v "$b" >/dev/null 2>&1 \
@@ -381,7 +380,7 @@ else
         filter) r='^(:[A-Z]+ (ACCEPT|DROP)|\[[0-9:]+\] -A FORWARD )' ;;
         *) continue ;;
       esac
-      if o=$($S $b -t $tb -c 2>/dev/null); then
+      if o=$($SUDO $b -t $tb -c 2>/dev/null); then
         c=; [ "$tb" = filter ] && c=", input-rules=$(printf \
           '%s\n' "$o" | grep -c ' -A INPUT ')"
         nf="$nf
@@ -397,10 +396,10 @@ $(printf '%s\n' "$o" | grep -E "$r" | awk -v e="$e" '
 fi
 printf '%s\n' "$nf"
 # The ipsets NAT rules match on.
-if [ "$S" != - ]; then
+if [ "$SUDO" != - ]; then
   for m in $(printf '%s\n' "$nf" | grep -oE -- '--match-set [^ ]+' \
     | cut -d' ' -f2 | sort -u); do
-    echo "== ipset $m"; $S ipset list "$m" 2>&1 | head -20
+    echo "== ipset $m"; $SUDO ipset list "$m" 2>&1 | head -20
   done
 fi
 # The route to each NAT target.
