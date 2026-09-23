@@ -70,7 +70,11 @@ the checkout. A run, in order:
    or nears its date, and a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
-host's memory, so a unit can be told to alert on it.
+host's memory, and `1` when the run failed or a host got no
+verdict — the `claude` login expired, say. A host without a verdict
+is a WARN in the report as well, and checks the model could not
+make are listed under "Not checked" and counted in the subject. A
+unit can be told to alert on either status.
 
 ```ini
 # /etc/systemd/system/hostwarden-fleet-run.service

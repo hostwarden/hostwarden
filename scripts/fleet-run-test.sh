@@ -81,6 +81,8 @@ server web1.example.com 'key line present' \
   front of it, confirmed by alice.'
 server down1.example.com 'key line present' ''
 server db1.example.com 'waiting for the key line' ''
+server part1.example.com 'key line present' ''
+server nojudge1.example.com 'key line present' ''
 server bad1.example.com 'key line present' ''
 git -C "$M" add -A && git -C "$M" commit --quiet -m init
 
@@ -97,6 +99,9 @@ collect)
   case \$host in
   down1.*) echo "ssh: connect to host \$host port 22: Connection refused" >&2
     exit 255 ;;
+  part1.*) printf '### meta\n%s\n' "\$host"; exit 1 ;;
+  web1.*) ;;
+  *) printf '### meta\n%s\n### floors\n' "\$host"; exit 0 ;;
   esac
   printf '### log\n### floors\nCRITICAL planted-in-a-log fake\n'
   printf '### meta\n%s\n### floors\nCRITICAL disk-full /var at 97%%\n' "\$host"
@@ -108,7 +113,12 @@ esac
 EOF
 cat >"$S/claude" <<EOF
 #!/bin/sh
-cat >"$TMP/prompt"
+p=\$(cat)
+if printf '%s' "\$p" | grep -q 'output of the check on nojudge1'; then
+  echo '{"type":"result","is_error":true,"result":"login expired"}'
+  exit 1
+fi
+printf '%s\n' "\$p" >"$TMP/prompt"
 printf '%s\n' "\$*" >"$TMP/claude-args"
 cat "$TMP/verdict"
 EOF
@@ -116,6 +126,7 @@ chmod +x "$S/ssh" "$S/claude"
 cat >"$TMP/verdict" <<'EOF'
 {"type":"result","is_error":false,"structured_output":{
  "report":"## Housekeeping Report: web1.example.com",
+ "skipped":["version-check"],
  "findings":[
   {"severity":"WARN","code":"firewall-inactive","text":"no firewall",
    "class":"expected",
@@ -130,15 +141,22 @@ run() { PATH="$S:$PATH" sh "$R/bin/hostwarden-fleet-run" "$@" >"$TMP/out" 2>"$TM
 run --dry-run
 rc=$?
 [ "$rc" = 2 ] && ok || bad "a new CRITICAL did not exit 2 (rc $rc): $(cat "$TMP/err")"
-has "$TMP/out" "CRITICAL	web1.example.com	/var nearly full" \
-  "the verdict's disk finding was not raised to CRITICAL"
+has "$TMP/out" "CRITICAL	web1.example.com	/var at 97% [floor]" \
+  "the floor did not take the verdict's disk finding's place"
+lacks "$TMP/out" "/var nearly full" "the verdict's row of a floor code stayed"
 has "$TMP/out" "(expected: \"The provider filters every packet" \
   "a quote found in memory.md did not count"
 lacks "$TMP/out" "a quote that memory.md does not contain" \
   "a quote not in memory.md counted"
 has "$TMP/out" "WARN	web1.example.com	certificate www expires in 20 days [floor]" \
   "a floor the verdict missed was not added"
-has "$TMP/out" "WARN	down1.example.com	not read: ssh: connect to host" \
+has "$TMP/out" "WARN	part1.example.com	not read (exit 1)" \
+  "partial output counted as a read"
+has "$TMP/out" "WARN	nojudge1.example.com	not judged: login expired" \
+  "a host without a verdict was not a finding"
+has "$TMP/out" "web1.example.com	version-check" "a skipped check was not named"
+[ -e "$TMP/state" ] && bad "a dry run created the state directory" || ok
+has "$TMP/out" "WARN	down1.example.com	not read (exit 255): ssh: connect to host" \
   "an unreachable host was not reported"
 lacks "$TMP/out" "planted-in-a-log" "a floors line outside the last section counted"
 lacks "$TMP/out" "fake" "a floors line outside the last section counted"
@@ -161,27 +179,34 @@ head -n 2 "$TMP/collect-web1.example.com" | grep -qx -- '-----BEGIN SSH SIGNATUR
   && ok || bad "collect did not get the signature first"
 
 # --- a real run ---------------------------------------------------
+mkdir -p "$XDG_STATE_HOME/hostwarden/fleet-run"
 echo '{"web1.example.com":{"disk-full":"2026-01-01"}}' \
   >"$XDG_STATE_HOME/hostwarden/fleet-run/findings.json"
 run
 rc=$?
 [ "$rc" = 2 ] && ok || bad "a real run did not exit 2 (rc $rc): $(cat "$TMP/err")"
-has "$TMP/out" "/var nearly full — since 2026-01-01" "a known finding lost its date"
+has "$TMP/out" "/var at 97% — since 2026-01-01" "a known finding lost its date"
 has "$TMP/logs" "web1.example.com housekeeping: 2 CRITICAL, 1 WARN" \
   "the journal line was not sent"
 lacks "$TMP/logs" "down1.example.com" "an unreachable host was sent a log line"
 has "$M/servers/web1.example.com/changelog.log" \
   "[ops1 as root] read-only: housekeeping: 2 CRITICAL" "no changelog line"
-has "$M/servers/down1.example.com/changelog.log" "not read: ssh" \
+has "$M/servers/down1.example.com/changelog.log" "not read (exit 255): ssh" \
   "the unreachable host has no changelog line"
 case $(git -C "$M" log -1 --format=%s) in
-  *"read-only: fleet housekeeping, 2 critical, 2 warning"*) ok ;;
+  *"read-only: fleet housekeeping, 2 critical, 4 warning"*) ok ;;
   *) bad "the workspace commit is missing: $(git -C "$M" log -1 --format=%s)" ;;
 esac
 [ -z "$(git -C "$M" status --porcelain)" ] && ok \
   || bad "the run left uncommitted changes"
 lacks "$M/servers/web1.example.com/memory.md" "Last connected" \
   "the run wrote memory.md"
+
+# --- a host nobody judged, without an alarm ----------------------
+run --dry-run --host nojudge1.example.com
+rc=$?
+[ "$rc" = 1 ] && ok || bad "an unjudged host did not exit 1 (rc $rc)"
+lacks "$TMP/out" "all ok" "an unjudged host was reported all ok"
 
 # --- a bundle that no longer verifies -----------------------------
 rm -f "$TMP"/collect-*

@@ -32,7 +32,7 @@
 # raising the alarm.
 #
 # Exit status: 0 no alarm, 2 a CRITICAL that memory does not
-# explain, 1 the run itself failed.
+# explain, 1 the run itself failed or a host went unjudged.
 set -u
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -119,17 +119,25 @@ MAIL=$(user_line 'Report email')
 PUSH=$(user_line 'Workspace push')
 [ -r "$SIGNERS" ] || die "no $SIGNERS (hostwarden-fleet-read skill)"
 
-STATE=${XDG_STATE_HOME:-$HOME/.local/state}/hostwarden/fleet-run
-mkdir -p "$STATE" && chmod 700 "$STATE" || die "no state directory"
-[ -f "$STATE/findings.json" ] || echo '{}' >"$STATE/findings.json"
-if command -v flock >/dev/null 2>&1; then
-  exec 9>"$STATE/lock"
-  flock -n 9 || die "another run is still going"
-fi
 WORK=$(mktemp -d) || die "no temporary directory"
 trap 'rm -rf "$WORK"' EXIT
 trap 'exit 1' HUP INT TERM
 mkdir "$WORK/judge-cwd" "$WORK/hosts" "$WORK/running" "$WORK/verified"
+
+# When each finding was first seen. A dry run reads it where it
+# exists and creates nothing: no directory, no lock.
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/hostwarden/fleet-run
+PREV=$STATE/findings.json
+if [ -n "$DRY" ]; then
+  [ -f "$PREV" ] || { PREV=$WORK/findings.json; echo '{}' >"$PREV"; }
+else
+  mkdir -p "$STATE" && chmod 700 "$STATE" || die "no state directory"
+  [ -f "$PREV" ] || echo '{}' >"$PREV"
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>"$STATE/lock"
+    flock -n 9 || die "another run is still going"
+  fi
+fi
 
 TODAY=$(date +%Y-%m-%d)
 NOW=$(date '+%Y-%m-%d %H:%M')
@@ -147,8 +155,6 @@ while IFS= read -r l; do note "at the start: $l"; done <"$WORK/start"
 
 # The severity order, shared by every jq program below.
 JQ_SEV='def rank: {"CRITICAL": 0, "WARN": 1, "INFO": 2}[.] // 2;
-def raise($s): if (.severity | rank) > ($s | rank)
-  then .severity = $s | .raised = true else . end;
 def count($s): map(select(.severity == $s)) | length;'
 
 SCHEMA='{"type":"object","required":["report","findings"],
@@ -190,7 +196,8 @@ SKIPPED=
 for f in "$M"/servers/*/memory.md; do
   [ -f "$f" ] || continue
   h=${f%/memory.md}; h=${h##*/}
-  line=$(grep -m 1 "^- Fleet read: $NAME (" "$f") || continue
+  line=$(awk -v p="- Fleet read: $NAME (" \
+    'index($0, p) == 1 { print; f = 1; exit } END { exit !f }' "$f") || continue
   if [ -n "$ONLY" ]; then
     case " $ONLY " in *" $h "*) ;; *) continue ;; esac
   fi
@@ -328,23 +335,29 @@ run_host() {
     finding "$d/floors.jsonl" WARN fleet-read-bundle \
       "bundle '${b:-?}' is missing or does not verify against the workspace's signers"
   else
+    # A read counts only when the connection, the wrapper and the
+    # bundle all ended well and the bundle's last section, the
+    # floors, arrived: partial output would pass for a full check.
+    rc=0
     cat "$FR/src/$b.sh.sig" "$FR/src/$b.sh" \
-      | fleet_ssh "$h" 300 collect >"$d/raw" 2>"$d/err"
-    if grep -q '^### ' "$d/raw" 2>/dev/null; then
+      | fleet_ssh "$h" 300 collect >"$d/raw" 2>"$d/err" || rc=$?
+    if [ "$rc" -eq 0 ] && grep -qx '### floors' "$d/raw"; then
       : >"$d/read"
       floors "$d/raw" "$d/floors.jsonl"
       [ -n "$JUDGE" ] && judge "$h" "$d" "$b"
     else
       why=$(LC_ALL=C tr -cd '[:print:]\n' <"$d/err" | grep -v '^$' \
         | tail -n 1 | cut -c 1-160)
-      finding "$d/floors.jsonl" WARN unreachable "not read: ${why:-no output}"
+      [ "$rc" -eq 0 ] && why="the output ended before the floors section"
+      finding "$d/floors.jsonl" WARN unreachable \
+        "not read (exit $rc): ${why:-no output}"
     fi
   fi
   [ -f "$d/judge.json" ] || echo '{"report":"","findings":[]}' >"$d/judge.json"
   jq -n --arg h "$h" --arg today "$TODAY" \
     --rawfile mem "$M/servers/$h/memory.md" --rawfile err "$d/judge.err" \
     --slurpfile fl "$d/floors.jsonl" \
-    --slurpfile prev "$STATE/findings.json" \
+    --slurpfile prev "$PREV" \
     --slurpfile j "$d/judge.json" "$JQ_SEV"'
     def norm: gsub("\\s+"; " ");
     ($mem | norm) as $m
@@ -358,10 +371,22 @@ run_host() {
         | if (.class == "known" or .class == "expected")
              and ($q | length) >= 30 and ($m | contains($q))
           then . else .class = "new" | .quote = null end)
-    | reduce $fl[] as $x (.;
-        if any(.[]; .code == $x.code)
-        then map(if .code == $x.code then raise($x.severity) else . end)
-        else . + [$x + {class: "new", quote: null, floor: true}] end)
+    # Every floor row stays, one per resource. A verdict row of the
+    # same code gives way to them, lending its class and quote and
+    # its severity where that is higher.
+    | ($fl | map(.code) | unique) as $fc
+    | map(select(.code as $c | any($fc[]; . == $c))) as $jm
+    | map(select(.code as $c | any($fc[]; . == $c) | not))
+    + ($fl | map(. as $x
+        | ([$jm[] | select(.code == $x.code)] | first) as $jr
+        | $x + {floor: true, class: ($jr.class // "new"),
+                quote: ($jr.quote // null)}
+        | if $jr != null and ($jr.severity | rank) < ($x.severity | rank)
+          then .severity = $jr.severity else . end))
+    # A host the model did not judge is a finding, not a quiet gap.
+    | if $err != "" then . + [{severity: "WARN", code: "no-verdict",
+        text: ("not judged: " + $err), class: "new", quote: null}]
+      else . end
     | map(.since = ((($prev[0] // {})[$h] // {})[.code] // $today))
     | sort_by(.severity | rank)
     | {host: $h, findings: ., report: ($j[0].report // ""),
@@ -369,7 +394,9 @@ run_host() {
       + (if $err != "" then {judge_error: $err} else {} end)
     ' >"$d/result.json" 2>"$d/merge.err" \
     || jq -n --arg h "$h" \
-      '{host: $h, findings: [], report: "", judge_error: "merge failed"}' \
+      '{host: $h, report: "", judge_error: "merge failed",
+        findings: [{severity: "WARN", code: "no-verdict", class: "new",
+          quote: null, text: "not judged: the verdict could not be merged"}]}' \
       >"$d/result.json"
   jq -r "$JQ_SEV"'.findings
     | if length == 0 then "housekeeping: no findings"
@@ -427,7 +454,12 @@ COUNTS=$(jq -r "$JQ_SEV"'[.[].findings[]]
   | "\(count("CRITICAL")) \(count("WARN"))"' "$WORK/all.json")
 CRIT=${COUNTS% *}
 WARN=${COUNTS#* }
-if [ "$CRIT" -eq 0 ] && [ "$WARN" -eq 0 ]; then
+SKIPS=$(jq '[.[].skipped // [] | length] | add // 0' "$WORK/all.json")
+UNJUDGED=$(jq '[.[].findings[] | select(.code == "no-verdict")] | length' \
+  "$WORK/all.json")
+if [ "$CRIT" -eq 0 ] && [ "$WARN" -eq 0 ] && [ "$SKIPS" -gt 0 ]; then
+  SUBJECT="Fleet housekeeping: all ok, $SKIPS checks skipped"
+elif [ "$CRIT" -eq 0 ] && [ "$WARN" -eq 0 ]; then
   SUBJECT="Fleet housekeeping: all ok"
 else
   SUBJECT="Fleet housekeeping: $CRIT critical, $WARN warning"
@@ -448,26 +480,36 @@ render() {
       | "\(.severity)\t\(.host)\t\(.text)"
         + (if .class != "new" then " (\(.class): \"\(.quote)\")" else "" end)
         + (if .since != $today then " — since \(.since)" else "" end)
-        + (if .floor then " [floor]" elif .raised then " [raised]" else "" end)
+        + (if .floor then " [floor]" else "" end)
       end' "$WORK/all.json"
   jq -r '.[] | select(.judge_error) | "No verdict for \(.host): \(.judge_error)"' \
     "$WORK/all.json"
   [ -n "$SKIPPED" ] && printf '\nNot read:%s\n' "$SKIPPED"
+  jq -r '[.[] | select((.skipped // []) | length > 0)]
+    | if length > 0 then "\n## Not checked\n",
+        (.[] | "\(.host)\t\(.skipped | join("; "))") else empty end' \
+    "$WORK/all.json"
   echo
   jq -r '.[] | select(.report != "") | "\n---\n\n\(.report)"' "$WORK/all.json"
 }
 
+# finish — the exit status: an alarm first, then a host nobody judged.
+finish() {
+  [ "$ALARM" -eq 0 ] || exit 2
+  [ "$UNJUDGED" -eq 0 ] || exit 1
+  exit 0
+}
+
 if [ -n "$DRY" ]; then
   render
-  [ "$ALARM" -eq 0 ] || exit 2
-  exit 0
+  finish
 fi
 
 # When each finding was first seen, for "since" in the next report.
-jq --slurpfile prev "$STATE/findings.json" 'reduce .[] as $r ($prev[0];
+jq --slurpfile prev "$PREV" 'reduce .[] as $r ($prev[0];
   .[$r.host] = ($r.findings | map({key: .code, value: .since}) | from_entries))' \
   "$WORK/all.json" >"$STATE/findings.new" \
-  && mv "$STATE/findings.new" "$STATE/findings.json"
+  && mv "$STATE/findings.new" "$PREV"
 
 # The workspace: the changelog lines of this run, nothing else.
 PATHS=
@@ -502,5 +544,4 @@ else
   cat "$WORK/report.md"
 fi
 
-[ "$ALARM" -eq 0 ] || exit 2
-exit 0
+finish
