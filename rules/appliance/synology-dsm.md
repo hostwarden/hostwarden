@@ -170,8 +170,11 @@ system rather than trust it.
 - **Services.** DSM starts its services and packages itself; turn a
   service on or off on its settings page, and a package in Package
   Center. `/usr/syno/bin/synopkg status <package>` reads a
-  package's state. `rules/service-reload.md` still decides when to
-  ask.
+  package's state. DSM 7 runs systemd
+  (<https://help.synology.com/developer-guide/resource_acquisition/systemd_user_unit.html>),
+  so the Enabled services and Service status forms of
+  `rules/os/debian.md` → Service Manager read it.
+  `rules/service-reload.md` still decides when to ask.
 - **Network changes over SSH.** Addresses, bonds and routes are set
   under Control Panel → Network (no revert:
   `rules/ssh-safety-net.md`). Never run `synonet`.

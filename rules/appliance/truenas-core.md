@@ -37,9 +37,12 @@ Configuration Model).
 
 ## Replace: Service Manager
 
-- **Enabled services:** `midclt call service.query` lists the
-  services the middleware manages, with `enable` for the start at
-  boot and `state`.
+- **Enabled services:** FreeBSD's listing (`rules/os/freebsd.md`
+  → Service Manager, `P` included), which shows what was enabled in
+  `rc.conf` by hand, such as a configuration management agent, and
+  then `midclt call service.query`, which lists the services the
+  middleware manages, with `enable` for the start at boot and
+  `state`.
 - **Service status:** `service <name> status`, as on FreeBSD.
 - Services are started, stopped and enabled in the web UI
   (Services), never with `service`, `sysrc` or `/etc/rc.conf`: the

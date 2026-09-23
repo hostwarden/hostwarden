@@ -241,7 +241,9 @@ runs `apk upgrade` counts.
   `rc-status` is not, since it writes a dependency cache on the way.
 - **Service status:** `rc-service <service> status` prints
   `status: started` and exits 0 while the service runs, 3 when it is
-  stopped, and 1 with `does not exist` for an unknown name. A script
+  stopped, and 1 with `does not exist` for an unknown name.
+  `status: crashed`, `inactive`, `starting` and `stopping` go to
+  stderr, with exit codes 32, 16, 8 and 4, so read both. A script
   that only loads something and exits, such as `nftables`, reads
   `started` once it has run.
 - Overview of the current runlevel: `rc-status`. Services that

@@ -47,9 +47,12 @@ finding. See `rules/version-check.md`.
 
 - `systemctl` (systemd)
 - **Enabled services:** `systemctl list-unit-files --no-legend`
-  prints every unit file with its state; `enabled` marks one that
-  starts at boot. It reads unit files, not services, and is cheap
-  enough for every connection.
+  prints every unit file with its state in the second column;
+  `enabled` there marks one that starts at boot. The third column,
+  where systemd prints one, is the vendor preset, which says what
+  the distribution would choose and nothing about this host:
+  `nftables.service disabled enabled` is off. It reads unit files,
+  not services, and is cheap enough for every connection.
 - **Service status:** `systemctl is-active <unit>` prints `active`
   and exits 0 while the unit runs.
 - Check service: `systemctl status <service>`

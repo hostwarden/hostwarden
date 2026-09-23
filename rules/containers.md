@@ -44,7 +44,7 @@ for rt in docker podman nerdctl; do
   command -v "$rt" >/dev/null 2>&1 && "$rt" --version 2>&1
 done
 for s in docker podman.socket containerd; do
-  echo "$s: $(<Service status> "$s" 2>/dev/null)"
+  echo "$s: $(<Service status> "$s" 2>&1)"
 done
 ps -C conmon,rootlesskit -o user= 2>/dev/null | sort -u
 getent passwd | awk -F: '{print $6}' | sort -u | while read -r h; do
@@ -54,7 +54,9 @@ done
 ```
 
 `<Service status>` is the loaded OS file's Service Manager →
-Service status. On Alpine, busybox `ps` has no `-C`:
+Service status; where the OS file names none, the loop is left
+out. Its stderr is kept, since OpenRC prints `status: crashed`
+there. On Alpine, busybox `ps` has no `-C`:
 `ps -o user,comm | grep -E 'conmon|rootlesskit'` reads the same
 (`rules/busybox.md`).
 

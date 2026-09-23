@@ -214,6 +214,7 @@ S='
   { ts = "" }
   $1 ~ /^[0-9][0-9][0-9][0-9]-/ { ts = $1; s = 3 }
   $1 ~ /^[A-Z][a-z][a-z]$/ && $3 ~ /^[0-9][0-9]:/ { ts = $1 " " $2 " " $3; s = 5 }
+  $1 ~ /^<[0-9]+>1$/ && $2 ~ /^[0-9][0-9][0-9][0-9]-/ { ts = $2; s = 4 }
   ts != "" {
     if (/ Invoked with /) for (i = s; i <= s + 2; i++) if ($i ~ /^ansible-/) {
       m = $i; sub(/\[.*/, "", m); sub(/:$/, "", m)
@@ -250,6 +251,11 @@ identifiers made of letters, digits, dots and underscores become
 matches, since any process can write an identifier and an unquoted
 one with spaces would turn into options.
 `+` joins the two kinds of match, so the entries come in time order.
+The three timestamp rules are the journal's ISO lines, the BSD
+syslog format, and RFC 5424 (`<14>1 2026-09-22T14:32:07+02:00 host
+ansible-… …`), which OPNsense's log files and pfSense's optional
+format write; without the last, every run there would be counted as
+a line that is no entry.
 A stream that could not be read adds `syslog stream not read`,
 which is counted the same way, since its own error lines are
 filtered out with every other line that is not a run. A
