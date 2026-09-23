@@ -492,7 +492,8 @@ than summarizing it.
   name".
 - **No scheduled runs.** Heinzel's cron lines and timers on the
   workstation are reported under `rules/heinzel-adoption.md` § "On
-  the workstation (local mode)", and change only with explicit
-  approval.
+  the workstation (local mode)", those of a machine that runs
+  Heinzel headless under § "On an operations host", and they change
+  only with explicit approval.
 - **No secrets.** If the old tree holds key material or a file with
   credentials, report the path and leave it (`rules/secrets.md`).

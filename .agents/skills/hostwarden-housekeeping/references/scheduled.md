@@ -8,10 +8,17 @@ check", or "email me a weekly report automatically".
 
 ## Where the Scheduler Lives
 
-On the workstation or ops box that has the Hostwarden
-repo, the `claude` CLI, and the SSH keys — **never
-on the managed server itself**. The managed server
-needs no Hostwarden installation.
+On the workstation that has the Hostwarden repo, the
+`claude` CLI, and the SSH keys — **never on the
+managed server itself**. The managed server needs no
+Hostwarden installation.
+
+An always-on machine that runs the fleet's
+housekeeping while the workstation sleeps is an
+operations host, and it does not use the command
+below: it reaches the fleet only through fleet read,
+with `bin/hostwarden-fleet-run`
+(`.agents/skills/hostwarden-fleet-read/references/operations-host.md`).
 
 ## The Command
 

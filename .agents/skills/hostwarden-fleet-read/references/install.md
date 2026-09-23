@@ -54,9 +54,10 @@ land in the host's `deployed.md` with the source `fleet/fleet-read`.
 
 The key line carries two facts about the operations host:
 
-- **Its name** — the operator name it logs under, from its own
-  `memory/user.md`. The wrapper puts it in front of every journal
-  line, so a nightly run is told apart from anyone's session.
+- **Its name** — the `Fleet name:` of its own `memory/user.md`
+  (`references/operations-host.md`). The wrapper puts it in front
+  of every journal line, so a nightly run is told apart from
+  anyone's session.
 - **Its address as this host sees it** — for `from=`. Read it from
   the operations host's memory, and mind NAT, a VPN or a mesh: the
   address that arrives can be another than the one it has. When in
@@ -109,7 +110,12 @@ means the signers file on the host and the one the bundle was
 signed against differ, `expired` that the bundle needs rebuilding.
 
 The run through the real key, from the operations host, is that
-host's to make — its first scheduled run shows it. A login refused
+host's to make — its first scheduled run shows it. It connects with
+the SSH options of `AGENTS.md` → SSH Options and checks the host's
+key against the workspace's `memory/known_hosts`, which this
+session's pipeline filled (`rules/host-keys.md`) and the workspace
+carries to the operations host: commit and push it before that
+run, or the host is not read. A login refused
 there, with this check passed, is the `from=` address or the key
 line.
 

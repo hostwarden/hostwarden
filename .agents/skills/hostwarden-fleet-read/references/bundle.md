@@ -87,6 +87,14 @@ cat /etc/os-release
 
 sec 'baseline-linux.md: Disk Usage'
 df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
+
+sec 'floors'
+df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | awk 'NR > 1 {
+  p = $5; sub(/%/, "", p); p += 0
+  if (p > 95) print "CRITICAL disk-full", $6, "at", p "%"
+  else if (p > 85) print "WARN disk-high", $6, "at", p "%" }'
+
+exit 0
 ```
 
 - `valid-until` is at most a year ahead; the operator may choose
@@ -96,6 +104,36 @@ df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
 - Every section opens with `sec`, naming the reference and its
   heading exactly, so whoever reads the output can find the
   thresholds that apply.
+
+The last section is `floors`: one line per finding that no verdict
+may lower, as `<SEVERITY> <code> <text>`. The fleet run adds each
+to the host's findings and holds a finding of the same code to at
+least that severity, whatever the model says
+(`bin/hostwarden-fleet-run`). The bundle rates them itself, with
+the thresholds of the references it was built from and the
+overrides that change them, so the signature covers the numbers
+too. At least:
+
+- `disk-full` and `disk-high`, for file systems over the disk
+  check's thresholds;
+- `cert-expiry` and `cert-expiry-soon`, for certificates the
+  certificate check finds expired or near their end;
+- `firewall-inactive`, only where no packet filter of any kind is
+  active — none of ufw, firewalld, nftables with a table, iptables
+  rules, pf or the appliance's own. Where that is not certain, no
+  line: the verdict decides;
+- `auto-updates-off`, where the reference's check is a plain one —
+  a configuration file missing, a timer disabled;
+- any other CRITICAL of the references that a command, not a
+  judgement, decides.
+
+The floors section is the last one, and only the last one counts:
+the fleet run ignores a `### floors` line that a check earlier in
+the output printed, such as a log excerpt. It is also how the fleet
+run knows the output is whole: a run counts as read only when the
+section arrived and the bundle ended with the `exit 0` that is its
+last line. Whatever fails on the way — a lost connection, a check
+the wrapper cut short — leaves the host "not read".
 
 The bundle and its signature together must stay under 256 KiB, the
 wrapper's input limit.

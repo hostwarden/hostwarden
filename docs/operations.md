@@ -331,7 +331,9 @@ that keeps updating.
    Add your own machine's hostname directory there
    (e.g. `/servers/my-laptop/`). Alone on several
    machines, you may want your SSH usernames on all
-   of them: delete the `/user.md` line.
+   of them: delete the `/user.md` line — unless one
+   of them is an operations host, which needs a
+   `user.md` of its own.
 5. Hostwarden asks each of you once for a short
    handle, such as `alice`, and keeps it as
    `Operator:` in your `user.md`. It names you in
@@ -354,6 +356,53 @@ that keeps updating.
    push without it is refused, and so is a commit once
    the workspace has a remote; without one, a commit
    only says it was not scanned.
+
+## An operations host
+
+An always-on machine — a small container or VM — can
+run the fleet's housekeeping every night while your
+workstation sleeps, and mail you one report. It is an
+operations checkout of its own that joined the shared
+workspace, and it reaches your servers only through
+fleet read (`hostwarden-fleet-read` skill): its key
+runs a bundle of read-only checks you signed and
+writes one journal line, nothing else. Not a shell,
+let alone root.
+
+What it needs from you:
+
+- an account without `sudo`, the `claude` CLI logged
+  in, and a mail transport;
+- `bin/hostwarden-init --clone <workspace remote>`,
+  with a key that may push there;
+- its own `memory/user.md`:
+  ```
+  Fleet name: ops1
+  Report email: ops@example.com
+  Workspace push: always
+  ```
+  `ops1` is the name every journal line of the
+  nightly run carries — `[ops1 as root] read-only:
+  housekeeping: …` — so your colleagues can tell it
+  from your own sessions;
+- `*` in its `memory/readonly.md`, so no session there
+  changes anything, and a copy of your blacklist;
+- the fleet key, made by you, and the key line on each
+  server, added by you from what the skill writes out.
+
+Then run `bin/hostwarden-fleet-run --no-judge` and
+`--dry-run` by hand, and put it on a timer; the units
+are in the `hostwarden-fleet-read` skill. Each night it
+updates Hostwarden, pulls the workspace, reads every
+server, has Claude judge each output without any tools,
+checks the hard thresholds itself, logs one line per
+server, commits those changelog lines and pushes, and
+mails the report. Its exit status is 2 when a
+CRITICAL is not explained by the server's memory.
+
+Anything else you run on that machine — a mailbox
+triage, a bot — is yours, not Hostwarden's, and never
+gets the fleet key.
 
 ## Parallel sessions
 
@@ -552,5 +601,13 @@ The migration renames skill overrides in
   first connection.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.
+- Heinzel running headless on a machine of its own,
+  reading your servers through a forced-command
+  wrapper, is reported as such and left running.
+  Hostwarden offers to set up its own operations host
+  and fleet read beside it, one asked step at a time;
+  you stop Heinzel's timers and remove its key lines
+  when the new run has proved itself, and only then is
+  the old wrapper removed from your servers.
 - Heinzel's version tags are not carried over.
   `--pin` only knows Hostwarden releases.

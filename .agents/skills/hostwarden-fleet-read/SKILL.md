@@ -1,17 +1,19 @@
 ---
 name: hostwarden-fleet-read
 argument-hint: "[hostname | bundle]"
-description: Set up, check or remove fleet read — the least-privilege
-  way an operations host reads the fleet unattended. Each host gets
-  a forced-command wrapper that runs only a bundle of read-only
-  checks the operator signed, and writes one read-only journal
-  line; the bundle is built from the housekeeping references and
-  signed by the operator, never by Hostwarden. Use when the user
-  asks to "set up fleet read on <host>", "let the operations host
-  read <host>", "build the fleet-read bundle", "rebuild the bundle",
-  "the bundle expires", "remove fleet read from <host>",
-  "Fleet-Read auf <host> einrichten", "bau das Bündel neu",
-  "das Bündel läuft ab", or "nimm <host> aus dem Fleet-Read".
+description: Set up an operations host that runs the fleet's
+  housekeeping unattended, and fleet read — the least-privilege way
+  it reads each host. Each host gets a forced-command wrapper that
+  runs only a bundle of read-only checks the operator signed, and
+  writes one read-only journal line; the bundle is built from the
+  housekeeping references and signed by the operator, never by
+  Hostwarden. Use when the user asks to "set up an operations host",
+  "run the nightly housekeeping from <machine>", "set up fleet read
+  on <host>", "let the operations host read <host>", "build the
+  fleet-read bundle", "rebuild the bundle", "the bundle expires",
+  "remove fleet read from <host>", "richte einen Ops-Host ein",
+  "Fleet-Read auf <host> einrichten", "bau das Bündel neu", "das
+  Bündel läuft ab", or "nimm <host> aus dem Fleet-Read".
 ---
 
 # hostwarden-fleet-read
@@ -19,10 +21,12 @@ description: Set up, check or remove fleet read — the least-privilege
 **Overrides.** Load them before anything else, key
 `hostwarden-fleet-read`, per `rules/overrides.md`.
 
-An operations host — an always-on machine that runs Hostwarden
-without anyone at the keyboard — reaches each host with one key of
-its own. On the host, that key is forced to `fleet-read`, a wrapper
-that accepts exactly two requests:
+An operations host (`references/operations-host.md`) — an always-on
+machine that runs Hostwarden without anyone at the keyboard —
+reaches each host with one key of its own, and its fleet run
+(`bin/hostwarden-fleet-run`) uses nothing else. On the host, that
+key is forced to `fleet-read`, a wrapper that accepts exactly two
+requests:
 
 - **collect** — run a bundle of read-only checks, but only one the
   operator signed for the namespace `fleet-read` and whose
@@ -86,6 +90,11 @@ diff whenever this skill runs, and offer to take it into the
 master; the hosts then show "master changed, not deployed"
 (`rules/deployed-files.md` → Drift) and each is updated when the
 user agrees.
+
+## The operations host
+
+`references/operations-host.md`: what it holds, what it runs, the
+workspace, and setting one up.
 
 ## Setting up a host
 

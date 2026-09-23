@@ -21,6 +21,8 @@ bin/
                             its remote
   hostwarden-ssh-config   — Write memory/ssh_config, the file
                             every SSH call passes with -F
+  hostwarden-fleet-run    — An operations host's nightly
+                            housekeeping through fleet read
   hostwarden-mirror       — Keep a mirror of hostwarden current
                             (for CI or cron)
   hostwarden-adopt        — Take over a heinzel checkout's state
@@ -35,6 +37,9 @@ scripts/
   check.sh             — Everything CI checks, runnable locally
   fleet-read-test.sh   — Fixture matrix for the fleet-read
                          wrapper (run by scripts/check.sh)
+  fleet-run-test.sh    — Fixture matrix for
+                         bin/hostwarden-fleet-run (run by
+                         scripts/check.sh)
 .githooks/             — Opt-in: secret scan on commit, check.sh
                          on push
 mise.dev.toml          — Pinned versions of the tools check.sh
@@ -124,10 +129,10 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
-    hostwarden-fleet-read/    — Least-privilege access for an
-                         operations host: a forced command
-                         that runs operator-signed bundles
-                         (SKILL.md + references/)
+    hostwarden-fleet-read/    — An operations host and its
+                         least-privilege access: a forced
+                         command that runs operator-signed
+                         bundles (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   os/                  — Reference data. Detection reads at
                          most one — none for a distro no
