@@ -35,8 +35,11 @@ checkout) and stop.
 
 1. **The hosts.** Take them from the argument, or ask. With several,
    the hosts whose memory, or the caller, names a hypervisor go
-   first, the rest in the order given: a guest one of them registers
-   is onboarded by that, and its report line says so.
+   first, the rest in the order given. A guest of the run that one of
+   them registers keeps its turn, now as a known host: its own
+   connection adds what registration leaves out, the baseline
+   measurement among it. Where nothing but its host reaches it, its
+   report line says `registered through <host>, not measured`.
 
 2. **Announce each host** in one line before its first command:
 
@@ -95,8 +98,12 @@ checkout) and stop.
 
    Then, where a host has gaps, ask which to take on first: one option
    per host with gaps, one per node without a baseline template, and
-   "not now". A host starts `hostwarden-baseline` at its step 3, with
-   this measurement; a node starts building its template
+   "not now". A host in read-only mode — on the read-only list,
+   through a read-only host, or by its family, as Windows is
+   (`rules/access-control.md` → Read-Only Servers) — gets no option:
+   its gaps go into the modification report that section gives. A
+   host picked starts `hostwarden-baseline` at its step 3, with this
+   measurement; a node starts building its template
    (`hostwarden-new-guest`).
 
 `hostwarden-adopt` runs this skill for the hosts it takes over from
