@@ -153,7 +153,7 @@ absence means "ask next time".
                                      # (global default in memory/user.md;
                                      # absent = "Viele Grüße / Hostwarden")
 - From: <mailbox>                    # per-host From override
-                                     # (default: noreply@<host>)
+                                     # (default: noreply@<sending-host-fqdn>)
 - Reply-To: <addr>                   # per-host Reply-To override
                                      # (global default in memory/user.md)
 ```

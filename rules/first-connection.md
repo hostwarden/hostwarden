@@ -16,6 +16,10 @@ Port the User Names).
 
 ## Order
 
+A host named without a dot goes through
+`rules/dns-aliases.md` → Short Names Matching More
+Than One Server before step 1.
+
 1. **Blacklist check.** Refuse if the host or one of
    its jump hosts is listed. See
    `rules/access-control.md`.

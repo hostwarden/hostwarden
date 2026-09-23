@@ -153,9 +153,10 @@ the remote path converge here.
    `From: noreply@<sending-host-fqdn>` so recipients see at
    a glance that the mailbox is not monitored:
 
-   - Remote path: `<sending-host-fqdn>` is the per-server
-     hostname (the directory name under
-     `memory/servers/<host>/`).
+   - Remote path: `<sending-host-fqdn>` is the `- FQDN:`
+     line of the server's `memory.md`; where that holds no
+     name (missing, `none`, `unknown`), the directory name
+     under `memory/servers/<host>/`.
    - Local path: `<sending-host-fqdn>` is the workstation's
      FQDN (`hostname -f`, fall back to `hostname`).
 

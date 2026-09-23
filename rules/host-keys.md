@@ -72,10 +72,11 @@ Aliases for a name the DNS check has just found to be an alias.
 Take the first source that applies. Each one writes a comment
 line and the key lines, as The File says. The names are every
 name the host is reached by, each as ssh looks it up: the name
-from Before the First Connection, and the FQDN and the `- IP:`
-addresses in its memory. Leave out a name that already has a key
-or falls under a `@cert-authority` line. A name whose recorded
-key differs is A Changed Key, and nothing is written for it.
+from Before the First Connection and the `- IP:` addresses in
+its memory; its `- FQDN:` adds none (`rules/dns-aliases.md` →
+The FQDN). Leave out a name that already has a key or falls
+under a `@cert-authority` line. A name whose recorded key
+differs is A Changed Key, and nothing is written for it.
 
 ### 1. Through a host that is already verified
 

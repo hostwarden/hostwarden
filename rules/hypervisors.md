@@ -397,8 +397,9 @@ one line (*"Registering 7 guests of pve1.example.com through
    `rules/first-connection.md` → Via-host mode gives it, one
    bundled call per step: OS detection with the link keys
    (Linking below), the activity check with its
-   configuration-management probe, and the Heinzel check where it
-   applies. What they find is recorded as they say.
+   configuration-management probe and the FQDN
+   (`rules/dns-aliases.md` → The FQDN), and the Heinzel check
+   where it applies. What they find is recorded as they say.
 
    A step whose probe is the same for several guests of one
    manager runs for all of them in one call to the host: a loop
@@ -436,9 +437,10 @@ one line (*"Registering 7 guests of pve1.example.com through
    gets the step again on its own.
 3. The hostname names the memory directory. Where one exists
    already and its `Guest identity:` or its `IP:` matches this
-   guest, it is the same server: add only `Runs on:` and the
-   missing keys. Where its keys differ, this is a second server
-   of that name, and its directory is named as
+   guest, it is the same server: add only `Runs on:`, the
+   missing keys and a `- FQDN:` it lacks. Where its keys
+   differ, this is a second server of that name, and its
+   directory is named as
    `rules/server-memory.md` says for two guests of one hostname
    (`web-pve1-105`). Where the existing directory has neither
    keys nor a matching `IP:`, ask the user before writing

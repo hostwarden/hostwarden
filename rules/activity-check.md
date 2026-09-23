@@ -31,6 +31,7 @@ condition, and what to do with the result.
 | The storage inventory | first | `rules/storage-inventory.md` |
 | Windows Version Detection | every but the first | `rules/os-detection.md` |
 | Who manages the network | first; conditional | `rules/network.md` |
+| The FQDN | first; conditional | `rules/dns-aliases.md` |
 
 Where each condition is:
 
@@ -61,6 +62,9 @@ Where each condition is:
 - **Who manages the network:** on a host whose memory lacks it,
   and the full profile's probe on an onboarding the user asked for,
   as `rules/network.md` → When defines.
+- **The FQDN:** on a host whose memory has no `- FQDN:` line or
+  `unknown` in it, and on a full re-probe (`rules/dns-aliases.md`
+  → The FQDN).
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line
   (`rules/os-detection.md` → On subsequent connections).
