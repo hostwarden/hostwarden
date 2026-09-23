@@ -58,9 +58,10 @@
 #     managers and their verbs in GUESTMGRS: pct/qm stop, shutdown
 #     or destroy, incus/lxc stop or delete, virsh destroy,
 #     shutdown or undefine, xe vm-shutdown, vm-destroy or
-#     vm-uninstall, bastille/iocage stop or destroy; and lxc-stop,
-#     lxc-destroy, jail -r, service jail stop and its bastille and
-#     iocage twins, and TrueNAS' midclt call vm.stop / vm.delete
+#     vm-uninstall, bastille/iocage stop, restart or destroy; and
+#     lxc-stop, lxc-destroy, jail -r, service jail stop or restart
+#     and its bastille and iocage twins, and TrueNAS' midclt call
+#     vm.stop / vm.delete
 #     and its virt.instance twins; that API's own poweroff method
 #     spells the word the rule above denies in every mode, which
 #     is stricter than this tier and stays that way)
@@ -823,15 +824,17 @@ esac
 # power-off rules and the guest rule below both need them.
 GOPTS='([[:space:]]+(-c|--connect|--project|-s|--server|-u|--user|-p|--port|-pw|-pwf|--password)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
 # The guest managers, written once: each as name:verbs, the verbs
-# that stop or delete one of its guests as an ERE alternation. REACH
+# that stop or delete one of its guests as an ERE alternation. A
+# jail's restart counts as its stop, which it begins with; pct and
+# qm reboot are not on the list and stay the model's. REACH
 # takes the names, the host shutdown rules the managers whose verb
 # is a bare shutdown, and the guest rule at the end all of it. A
 # manager whose stop has another shape is a form of its own there
 # (GUESTFORMS).
 GUESTMGRS='pct:stop|shutdown|destroy qm:stop|shutdown|destroy
 virsh:destroy|shutdown|undefine incus:stop|delete lxc:stop|delete
-xe:vm-shutdown|vm-destroy|vm-uninstall bastille:stop|destroy
-iocage:stop|destroy'
+xe:vm-shutdown|vm-destroy|vm-uninstall bastille:stop|restart|destroy
+iocage:stop|restart|destroy'
 GMNAMES='' GMWORDS='' GMSTOP='' GMSHUT='' GMSHUTWORDS=''
 for gm in $GUESTMGRS; do
   GMNAMES="$GMNAMES|${gm%%:*}" GMWORDS="$GMWORDS ${gm%%:*}"
@@ -2017,12 +2020,12 @@ fi
 # Beside the managers in GUESTMGRS, the forms of another shape:
 # lxc-destroy; jail(8) with -r or -R among its
 # options, which removes a running jail, -rc included (the restart
-# is a stop first); and the rc scripts that stop every jail of
-# jail.conf, Bastille or iocage (service jail stop, onestop and the
-# rest, or /etc/rc.d/jail stop). lxc-stop has an exemption of its
+# is a stop first); and the rc scripts that stop or restart every
+# jail of jail.conf, Bastille or iocage (service jail stop,
+# onerestart and the rest, or /etc/rc.d/jail stop). lxc-stop has an exemption of its
 # own below, and TrueNAS' API is read through MIDCLT, which carries
 # its own leading boundary.
-GUESTFORMS='lxc-destroy|jail[[:space:]]+(-[[:alpha:]]+[[:space:]]+([^-[:space:];&|][^[:space:];&|]*[[:space:]]+)?)*-[[:alpha:]]*[rR][[:alpha:]]*|(service[[:space:]]+|rc[.]d/)(jail|bastille|iocage)[[:space:]]+(one|fast|force|quiet)?stop'
+GUESTFORMS='lxc-destroy|jail[[:space:]]+(-[[:alpha:]]+[[:space:]]+([^-[:space:];&|][^[:space:];&|]*[[:space:]]+)?)*-[[:alpha:]]*[rR][[:alpha:]]*|(service[[:space:]]+|rc[.]d/)(jail|bastille|iocage)[[:space:]]+(one|fast|force|quiet)?(stop|restart)'
 guest_ask() {
   ask_for "stopping or deleting a system container or VM" "powers \
 off or destroys that server (rules/system-containers.md)" "Check the \
