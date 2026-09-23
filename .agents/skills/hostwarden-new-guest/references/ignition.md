@@ -96,6 +96,65 @@ storage:
 - A service the baseline needs goes under `systemd.units` with
   `enabled: true`; a file under `storage.files`.
 
+## A static address
+
+Ignition has no network key of its own, and nothing else hands the
+guest one: libvirt's `network-config=` belongs to `--cloud-init`,
+which this path does not use. A static address is therefore a file
+the guest's own network service reads, written under
+`storage.files` on the copy for this guest. Match the interface by
+the MAC address the platform gives it rather than by name: the
+predictable name is not known before the first boot.
+
+Fedora CoreOS runs NetworkManager and reads a keyfile, which must
+be mode `0600`
+(<https://docs.fedoraproject.org/en-US/fedora-coreos/sysconfig-network-configuration/>,
+<https://networkmanager.dev/docs/api/latest/nm-settings-keyfile.html>):
+
+```yaml
+storage:
+  files:
+    - path: /etc/NetworkManager/system-connections/hostwarden.nmconnection
+      mode: 0600
+      contents:
+        inline: |
+          [connection]
+          id=hostwarden
+          type=ethernet
+          [ethernet]
+          mac-address=52:54:00:12:34:56
+          [ipv4]
+          address1=192.0.2.23/24,192.0.2.1
+          dns=192.0.2.53;
+          may-fail=false
+          method=manual
+```
+
+Flatcar runs systemd-networkd and reads a `.network` unit, whose
+`[Match]` takes `MACAddress=`
+(<https://www.flatcar.org/docs/latest/os-config/network/network-config-with-networkd/>,
+`systemd.network(5)`):
+
+```yaml
+storage:
+  files:
+    - path: /etc/systemd/network/10-hostwarden.network
+      mode: 0644
+      contents:
+        inline: |
+          [Match]
+          MACAddress=52:54:00:12:34:56
+          [Network]
+          Address=192.0.2.23/24
+          Gateway=192.0.2.1
+          DNS=192.0.2.53
+```
+
+The MAC is the one given to the VM — `mac=` on libvirt's
+`--network`, `macaddr=` in Proxmox VE's `--net0` — picked and
+checked as `references/libvirt.md` → Creating it says. For DHCP,
+leave both files out.
+
 ## Transpiling and checking it
 
 `--strict` makes a warning an error, so nothing reaches a guest on
@@ -231,8 +290,16 @@ finding of this run.
   (<https://www.flatcar.org/docs/latest/>). Add none. At After
   creation, `timedatectl` on the guest says which service runs and
   whether the clock is synchronized, and that is what is recorded.
-- **Timezone:** a `/etc/localtime` link under `storage.files`,
-  only where the override names one.
+- **Timezone:** only where the override names one, a symbolic link
+  under `storage.links`, not `storage.files`, which cannot hold one
+  (<https://docs.fedoraproject.org/en-US/fedora-coreos/time-zone/>):
+
+  ```yaml
+  storage:
+    links:
+      - path: /etc/localtime
+        target: ../usr/share/zoneinfo/Europe/Berlin
+  ```
 - **Journal:** the drop-in above.
 - **Guest Agent:** not in either image. On Fedora CoreOS it is an
   OS extension, installed by a systemd unit that runs `rpm-ostree`

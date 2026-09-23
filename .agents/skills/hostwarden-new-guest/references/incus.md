@@ -83,12 +83,14 @@ where a key would appear in both, it is in the profile only
 
 One profile per rendered version, named as
 `rules/baseline.md` → Rendered Versions says, and never edited
-afterwards. It is created in the same call as the launch above,
-which gains `-p default -p hostwarden-baseline-<family>-<n>`:
+afterwards. The launch above makes a container, so it takes the
+container rendering's profile; with `--vm` it takes the VM
+rendering's. It is created in the same call as the launch, which
+gains `-p default -p hostwarden-baseline-debian-ct-3`:
 
 ```bash
-incus profile create hostwarden-baseline-debian-3 --project <project>
-incus profile edit hostwarden-baseline-debian-3 --project <project> < <file>
+incus profile create hostwarden-baseline-debian-ct-3 --project <project>
+incus profile edit hostwarden-baseline-debian-ct-3 --project <project> < <file>
 ```
 
 The YAML given to `incus profile edit` is the profile's own
@@ -99,9 +101,9 @@ literal style:
 config:
   cloud-init.vendor-data: |
     #cloud-config
-    # hostwarden-baseline debian-3 (2026-09-22)
+    # hostwarden-baseline debian-ct-3 (2026-09-22)
     …
-description: hostwarden baseline debian-3
+description: hostwarden baseline debian-ct-3
 devices: {}
 ```
 
