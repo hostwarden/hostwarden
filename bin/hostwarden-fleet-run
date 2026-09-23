@@ -48,7 +48,27 @@ usage() {
     "$SCRIPT_DIR/${0##*/}"
 }
 
-case " $* " in *' --help '* | *' -h '*) usage; exit 0 ;; esac
+# Every argument is checked before the update below runs anything,
+# so a misspelt --dry-run cannot start a real run's update. A
+# function, so "$@" stays whole for the re-exec.
+DRY=
+JUDGE=1
+ONLY=
+parse_args() {
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      -h | --help) usage; exit 0 ;;
+      --dry-run) DRY=1 ;;
+      --no-judge) JUDGE=''; DRY=1 ;;
+      --host)
+        case ${2:-} in '' | -* | *[[:space:]]*) usage >&2; exit 1 ;; esac
+        ONLY="$ONLY $2"; shift ;;
+      *) usage >&2; exit 1 ;;
+    esac
+    shift
+  done
+}
+parse_args "$@"
 
 die() { echo "hostwarden-fleet-run: $*" >&2; exit 1; }
 
@@ -60,8 +80,7 @@ hostwarden_mode "$REPO_DIR"
 # session start does, then starts again as whatever the update
 # brought. What the two said goes into the report. A dry run
 # changes neither checkout.
-case " $* " in *' --dry-run '* | *' --no-judge '*) HOSTWARDEN_FLEET_RUN_FRESH=1 ;; esac
-if [ -z "${HOSTWARDEN_FLEET_RUN_FRESH:-}" ]; then
+if [ -z "$DRY" ] && [ -z "${HOSTWARDEN_FLEET_RUN_FRESH:-}" ]; then
   HOSTWARDEN_FLEET_RUN_START=$({
     sh .claude/hooks/check-updates.sh
     sh bin/hostwarden-sync pull
@@ -69,20 +88,6 @@ if [ -z "${HOSTWARDEN_FLEET_RUN_FRESH:-}" ]; then
   export HOSTWARDEN_FLEET_RUN_START
   HOSTWARDEN_FLEET_RUN_FRESH=1 exec sh "$REPO_DIR/bin/hostwarden-fleet-run" "$@"
 fi
-
-DRY=
-JUDGE=1
-ONLY=
-while [ "$#" -gt 0 ]; do
-  case $1 in
-    --dry-run) DRY=1 ;;
-    --no-judge) JUDGE=''; DRY=1 ;;
-    --host) [ "$#" -ge 2 ] || { usage >&2; exit 1; }
-      ONLY="$ONLY $2"; shift ;;
-    *) usage >&2; exit 1 ;;
-  esac
-  shift
-done
 
 for t in jq ssh ssh-keygen; do
   command -v "$t" >/dev/null 2>&1 || die "$t is missing"
