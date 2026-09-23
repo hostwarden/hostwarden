@@ -872,8 +872,9 @@ Row keys:
   their run-as and `NOPASSWD` marked, root rules apart
   (`rules/accounts-probe.md` → The Sudo Model).
 - Rules with `NOPASSWD` on selected commands.
-- Members of each `%group` a rule names, and whether the group
-  is `local` or from the `directory`.
+- Members of each `%group` a sudoers rule names and each `:group`
+  a doas rule names, and whether the group is `local` or from the
+  `directory`.
 - `skipped:` sudoers files.
 - Local accounts, `name:uid`; which of them have keys is a
   per-host question for `hostwarden-security`, not a cell here.

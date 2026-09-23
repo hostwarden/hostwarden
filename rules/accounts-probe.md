@@ -74,6 +74,8 @@ else
   fi
 fi
 echo "@sudoers"
+R=
+O=
 if [ "$SUDO" = "-" ]; then
   echo "unknown(needs-root)"
 elif command -v visudo >/dev/null 2>&1; then
@@ -107,40 +109,48 @@ elif command -v visudo >/dev/null 2>&1; then
     done
   done
   for x in $S; do echo "skipped: $x"; done
-  R=
   [ -n "$F" ] && R=$($SUDO grep -HvE '^[[:space:]]*($|#([^0-9]|$))' $F)
   printf '%s\n' "$R"
-  echo "@groups"
-  echo "root groups: $(id -Gn root | tr ' ' ,)"
-  command -v getent >/dev/null 2>&1 && D= || D=dscl
-  printf '%s\n' "$R" | sed -nE \
-    's/^[^:]*:[[:space:]]*("%([^"]*)"|%(([^[:space:],\\]|\\.)+)).*/\2\3/p' \
-    | sed 's/\\\(.\)/\1/g' | sort -u | while IFS= read -r g; do
-    if [ -n "$D" ]; then
-      echo "group $g: $(dscl . -read "/Groups/$g" GroupMembership 2>&1)"
-      continue
-    fi
-    e=$(getent group "${g#\#}") || { echo "group $g: not found"; continue; }
-    src=directory
-    cut -d: -f1 /etc/group | grep -Fxq "${e%%:*}" && src=local
-    r=${e#*:*:}
-    p=
-    while IFS=: read -r u _ _ pg _; do
-      [ "$pg" = "${r%%:*}" ] && p="$p$u,"
-    done < /etc/passwd
-    echo "group $g ($src): ${r#*:} primary: $p"
-  done
 else
   echo "sudoers=none"
 fi
-if command -v doas >/dev/null 2>&1 && [ "$SUDO" != "-" ]; then
+if command -v doas >/dev/null 2>&1 && [ "$SUDO" = "-" ]; then
+  echo "@doas"
+  echo "unknown(needs-root)"
+elif command -v doas >/dev/null 2>&1; then
   echo "@doas"
   C=$($SUDO ls -A /etc/doas.d 2>/dev/null \
     | sed -n 's|.*\.conf$|/etc/doas.d/&|p')
   for f in /etc/doas.conf /usr/local/etc/doas.conf $C; do
-    $SUDO grep -HvE '^[[:space:]]*(#|$)' "$f" 2>/dev/null
+    O="$O
+$($SUDO grep -HvE '^[[:space:]]*(#|$)' "$f" 2>/dev/null)"
   done
+  printf '%s\n' "$O" | grep .
 fi
+echo "@groups"
+echo "root groups: $(id -Gn root | tr ' ' ,)"
+command -v getent >/dev/null 2>&1 && D= || D=dscl
+{ printf '%s\n' "$R" | sed -nE \
+    's/^[^:]*:[[:space:]]*("%([^"]*)"|%(([^[:space:],\\]|\\.)+)).*/\2\3/p' \
+    | sed 's/\\\(.\)/\1/g'
+  printf '%s\n' "$O" | sed -E 's/setenv[[:space:]]*\{[^}]*\}//' \
+    | sed -nE \
+    's/^[^:]*:[[:space:]]*permit[[:space:]]+([a-z]+[[:space:]]+)*:([^[:space:]]+).*/\2/p'
+} | sort -u | while IFS= read -r g; do
+  if [ -n "$D" ]; then
+    echo "group $g: $(dscl . -read "/Groups/$g" GroupMembership 2>&1)"
+    continue
+  fi
+  e=$(getent group "${g#\#}") || { echo "group $g: not found"; continue; }
+  src=directory
+  cut -d: -f1 /etc/group | grep -Fxq "${e%%:*}" && src=local
+  r=${e#*:*:}
+  p=
+  while IFS=: read -r u _ _ pg _; do
+    [ "$pg" = "${r%%:*}" ] && p="$p$u,"
+  done < /etc/passwd
+  echo "group $g ($src): ${r#*:} primary: $p"
+done
 echo "@local"
 min=$(sed -n 's/^UID_MIN[[:space:]]*//p' /etc/login.defs \
   /usr/etc/login.defs 2>/dev/null | head -n 1)
@@ -179,8 +189,8 @@ normal user's `PATH` over SSH lacks `/usr/sbin` on Debian, where
 family file answers `sshd -T` (FreeBSD: `rules/os/freebsd.md` →
 sshd).
 
-macOS keeps the `@sudoers` part, whose group lookup uses `dscl`
-there, and replaces the rest:
+macOS keeps the `@sudoers` and `@groups` parts, whose group lookup
+uses `dscl` there, and replaces the rest:
 
 ```bash
 echo "@ds"
@@ -362,9 +372,12 @@ The files are mode `0440`, so this needs root or `sudo -n`.
   directory, a name that contains a `.` or ends in `~`. `visudo
   -c` does not list it and its rules are not in effect; the probe
   prints it as `skipped:`.
-- **Alpine** with `doas` instead (`rules/os/alpine.md` →
-  Privileges): one rule a line,
-  `permit [nopass] <user>|:<group> [as <target>] [cmd <command>]`.
+- **doas**, on Alpine instead of sudo (`rules/os/alpine.md` →
+  Privileges) and from ports on FreeBSD: one rule a line,
+  `permit [<options>] <user>|:<group> [as <target>] [cmd <command>]`
+  with options such as `nopass` or `setenv { … }`,
+  printed under `@doas`; a `:group` is resolved under `@groups`
+  like a sudoers `%group`.
 
 **Who is in the groups.** Most sudo rights come through a
 `%group` rule: `%sudo` on Debian and Ubuntu, `%wheel` on RHEL,
@@ -376,10 +389,12 @@ whether the group is `local` (in `/etc/group`) or comes from the
 `"%domain admins"` or `%domain\ admins`; a rule may also name a
 user by UID, `#1001`, and a group by GID, `%#27`. A directory
 group may list no members through `getent`, since SSSD does not
-enumerate by default.
-`id -Gn <user>` lists one person's groups, directory groups
-included. A group inside a `User_Alias`, or after a comma, is not
-in the probe's list: read those rule lines.
+enumerate by default. `id -Gn <user>` lists one person's groups,
+directory groups included. The probe's list misses a group inside
+a `User_Alias`, after a comma or on a line continued with `\`, and
+shows a non-Unix group (`%:"Domain Users"`, from sudo's
+`group_plugin`) as not found: read those rule lines, and look such
+a group up with `getent group <name>` or in the directory.
 
 **Effective rules for one account**, directory rules included,
 which the files alone never show: `sudo -l -U <user>` as root;
