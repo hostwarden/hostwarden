@@ -192,15 +192,11 @@ SCHEMA='{"type":"object","required":["report","findings"],
 # resolve4 <name> — every IPv4 address the system resolver gives
 # the name, the way rules/dns-aliases.md → Detection step 1 asks for
 # them: getent on Linux, dscacheutil on macOS, getaddrinfo through
-# python3 elsewhere, and dig only where none of those is.
-RESOLVER=
-for t in getent dscacheutil python3 dig; do
-  command -v "$t" >/dev/null 2>&1 && { RESOLVER=$t; break; }
-done
-[ -n "$RESOLVER" ] \
-  || note "no resolver tool here: names were compared, addresses were not"
+# python3 elsewhere, and dig only where none of those answers. A
+# tool counts only once it has resolved localhost: FreeBSD has a
+# getent without glibc's ahostsv4 database.
 resolve4() {
-  case $RESOLVER in
+  case ${2:-$RESOLVER} in
     getent) getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }' | sort -u ;;
     dscacheutil) dscacheutil -q host -a name "$1" 2>/dev/null \
       | awk '$1 == "ip_address:" { print $2 }' | sort -u ;;
@@ -211,6 +207,19 @@ for a in sorted({i[4][0] for i in socket.getaddrinfo(
     dig) dig +short +time=2 +tries=1 A "$1" | grep -E '^[0-9.]+$' ;;
   esac
 }
+case $(uname -s) in
+  Linux) TRY='getent python3' ;;
+  Darwin) TRY='dscacheutil python3' ;;
+  *) TRY='python3' ;;
+esac
+RESOLVER=
+for t in $TRY; do
+  command -v "$t" >/dev/null 2>&1 || continue
+  [ -n "$(resolve4 localhost "$t")" ] && { RESOLVER=$t; break; }
+done
+[ -n "$RESOLVER" ] || ! command -v dig >/dev/null 2>&1 || RESOLVER=dig
+[ -n "$RESOLVER" ] \
+  || note "no resolver tool here: names were compared, addresses were not"
 
 # The blacklist (rules/access-control.md → Shared Lookup Logic),
 # every entry and what it resolves to, worked out once.
@@ -221,22 +230,45 @@ if [ -f "$M/blacklist.md" ]; then
     BLACK="$BLACK $e $(resolve4 "$e" | tr '\n' ' ')"
   done
 fi
-# blacklisted <host> [<depth>] — the host, the name ssh maps it to,
-# its recorded IP or an address it resolves to is on the blacklist,
-# or so is a jump host the connection would pass through: a
-# blacklisted host is never reached, not even as a hop.
+# blacklisted <host> <depth> [<user>] — the host, the name ssh maps
+# it to for that login user, its recorded IP or an address it
+# resolves to is on the blacklist, or so is a jump host the
+# connection would pass through: a blacklisted host is never
+# reached, not even as a hop (rules/access-control.md → Server
+# Blacklist).
+# bl_line <key> — that line of the ssh -G output blacklisted() holds.
+bl_line() { printf '%s\n' "$bl_g" | sed -n "s/^$1 //p" | head -n 1; }
 blacklisted() {
   [ -n "$BLACK" ] || return 1
-  bl_g=$(ssh -F "$SSHCFG" -G "$1" 2>/dev/null)
-  for x in "$1" $(printf '%s\n' "$bl_g" | sed -n 's/^hostname //p') \
-      $(mem_line "$1" IP) $(resolve4 "$1"); do
+  bl_g=$(ssh -F "$SSHCFG" -G ${3:+-l "$3"} "$1" 2>/dev/null)
+  for x in "$1" "$(bl_line hostname)" $(mem_line "$1" IP) $(resolve4 "$1"); do
     case " $BLACK " in *" $x "*) return 0 ;; esac
   done
-  [ "${2:-0}" -lt 5 ] || return 1
-  for j in $(printf '%s\n' "$bl_g" | sed -n 's/^proxyjump //p' | tr ',' ' '); do
+  [ "$2" -lt 5 ] || return 1
+  # ssh -G prints the proxyjump line with its tokens unexpanded; ssh
+  # expands them from the target's own lines when it connects.
+  hops=$(bl_line proxyjump | R=$(bl_line user) H=$(bl_line hostname) \
+    P=$(bl_line port) N=$1 awk '{
+      o = ""; s = $0
+      while ((i = index(s, "%")) > 0) {
+        o = o substr(s, 1, i - 1); c = substr(s, i + 1, 1)
+        if (c == "r") o = o ENVIRON["R"]; else if (c == "h") o = o ENVIRON["H"]
+        else if (c == "p") o = o ENVIRON["P"]; else if (c == "n") o = o ENVIRON["N"]
+        else if (c == "%") o = o "%"; else o = o "%" c
+        s = substr(s, i + 2)
+      }
+      print o s }' | tr ',' ' ')
+  for j in $hops; do
     [ "$j" = none ] && continue
-    j=${j#*@}; j=${j%:*}
-    blacklisted "$j" $((${2:-0} + 1)) && return 0
+    j=${j#ssh://}
+    # The hop's own login user: the one its [user@]host names, else
+    # the user line of its own ssh -G.
+    case $j in
+      *@*) ju=${j%%@*}; j=${j#*@} ;;
+      *) ju=$(ssh -F "$SSHCFG" -G "${j%:*}" 2>/dev/null | sed -n 's/^user //p') ;;
+    esac
+    j=${j%:*}
+    blacklisted "$j" $(($2 + 1)) "$ju" && return 0
   done
   return 1
 }
@@ -260,7 +292,7 @@ for f in "$M"/servers/*/memory.md; do
     *'key line present'*) ;;
     *) SKIPPED="$SKIPPED $h(waiting for the key line)"; continue ;;
   esac
-  if blacklisted "$h"; then SKIPPED="$SKIPPED $h(blacklisted)"; continue; fi
+  if blacklisted "$h" 0 root; then SKIPPED="$SKIPPED $h(blacklisted)"; continue; fi
   mkdir "$WORK/hosts/$h"
   echo "$line" | sed -n 's/.*(bundle \([A-Za-z0-9._-]*\),.*/\1/p' \
     >"$WORK/hosts/$h/bundle"
@@ -315,25 +347,33 @@ floors() {
 }
 
 # decisions <host> — the decisions that apply to the host
-# (rules/decisions.md → Where it goes): its own, its cluster's, and
-# every group file whose Applies to: line selects it.
+# (rules/decisions.md → Where it goes), narrowest scope first, each
+# file under a line naming its scope: the host's own, its
+# cluster's, the group files whose Applies to: line selects it, then
+# those that apply to all. The narrower scope wins a contradiction
+# (rules/decisions.md → When it is read), which the judge is told.
 decisions() {
-  [ -f "$M/servers/$1/decisions.md" ] && cat "$M/servers/$1/decisions.md"
+  # scoped <scope> <file> — the file under its scope line.
+  scoped() { printf '\n----- scope: %s (%s)\n' "$1" "${2#"$M"/}"; cat "$2"; }
+  [ -f "$M/servers/$1/decisions.md" ] \
+    && scoped host "$M/servers/$1/decisions.md"
   c=$(mem_line "$1" Cluster)
   [ -n "$c" ] && [ -f "$M/clusters/$c/decisions.md" ] \
-    && cat "$M/clusters/$c/decisions.md"
+    && scoped cluster "$M/clusters/$c/decisions.md"
+  all=
   for df in "$M"/decisions/*.md; do
     [ -f "$df" ] || continue
     a=$(sed -n '2s/^Applies to:[[:space:]]*//p' "$df")
     case $a in
-      all) cat "$df" ;;
-      'hosts '*) case ", ${a#hosts }," in *", $1,"*) cat "$df" ;; esac ;;
+      all) all="$all $df" ;;
+      'hosts '*) case ", ${a#hosts }," in *", $1,"*) scoped group "$df" ;; esac ;;
       *:*)
         want=$(printf '%s' "${a#*:}" | sed 's/^[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
         have=$(mem_value "$1" "${a%%:*}" | tr '[:upper:]' '[:lower:]')
-        case $have in "$want"*) [ -n "$want" ] && cat "$df" ;; esac ;;
+        case $have in "$want"*) [ -n "$want" ] && scoped group "$df" ;; esac ;;
     esac
   done
+  for df in $all; do scoped all "$df"; done
   return 0
 }
 
@@ -367,7 +407,12 @@ findings: one per problem, nothing for what is fine.
 - class: "decided" when one of the decisions that apply to the host
   settles exactly this finding; quote is then that decision's
   heading, the text after "## ", word for word. A decision settles
-  only what it names: a finding that goes further stays open.
+  only what it names: a finding that goes further stays open. The
+  decisions come narrowest scope first — host, cluster, group, all
+  — and where two contradict each other, the narrower one wins.
+  Two of the same scope that contradict each other for this host
+  settle nothing: the finding stays "new", and one more finding,
+  code "decision-conflict", severity WARN, names both headings.
   Otherwise "new", unless the host's memory.md says this is known
   or intended; then "known" or "expected", and quote MUST be a
   passage of at least 30 characters copied word for word from
@@ -481,6 +526,11 @@ run_host() {
     --slurpfile j "$d/judge.json" "$JQ_SEV"'
     def norm: gsub("\\s+"; " ");
     ($mem | norm) as $m
+    # Headings the verdict names as contradicting each other settle
+    # nothing (rules/decisions.md: ask before relying on either).
+    | ([($j[0].findings // [])[] | objects
+        | select(.code == "decision-conflict") | .text // "" | tostring]
+       | join("\n")) as $conf
     | ($j[0].findings // [])
     | map(select(type == "object")
         | .severity = (if (.severity | IN("CRITICAL", "WARN", "INFO"))
@@ -490,7 +540,7 @@ run_host() {
         | ((.quote // "") | tostring | norm) as $q
         | if .class == "decided" then
             ([$dh[0][] | select((.h | norm) == $q)] | first) as $hit
-            | if $hit != null
+            | if $hit != null and ($conf | contains($hit.h) | not)
               then .quote = $hit.h
                 | .revisit_due = ($hit.r != "" and $hit.r < $today)
               else .class = "new" | .quote = null end
