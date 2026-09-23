@@ -68,3 +68,6 @@ came from when you use it.
   through the operations session.
 - Start a session in the operations checkout yourself: that is
   the developer's click or command.
+- Ask the operations session for a change, or relay to it a
+  question from another session that lacks the host's access
+  (`rules/borrowed-rights.md`).

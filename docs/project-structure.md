@@ -171,6 +171,8 @@ rules/                 — Upstream rule files (git-tracked)
   baseline.md          — What every server is expected to
                          have
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
+  borrowed-rights.md   — No other session, job or token for
+                         what this session may not do
   os-detection.md      — OS detection on every connection:
                          the first call, Windows, layers
   first-detection.md   — What detection settles once:

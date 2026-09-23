@@ -123,6 +123,12 @@ under pressure.
   is available, works in unprivileged mode and
   produces a sysadmin report for tasks that need
   root.
+- **No borrowed rights** — what a session may not
+  do or see, no other session, subagent, scheduled
+  job or someone else's token does for it. Hostwarden
+  tells you what is missing and exactly what it would
+  do; you run that yourself or give *that* session
+  the access. See `rules/borrowed-rights.md`.
 - **Server blacklist** — add hostnames or IPs to
   `memory/blacklist.md` to permanently block
   connection. Hostwarden refuses to connect and won't
