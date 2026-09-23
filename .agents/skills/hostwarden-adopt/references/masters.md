@@ -48,9 +48,35 @@ comments and the file itself.
   and a probe. Place a copy there only when the path is absolute
   and every component is a plain name: no empty component, no `.`
   or `..`, and no control character or newline. Any other path
-  is reported, and the copy is evidence. A `<name>` or `<slug>`
-  this pass derives is one component too, reduced to lowercase
-  letters, digits, `_` and `-`.
+  is reported, and the copy is evidence. A name this pass puts
+  into a workspace path — `<name>`, `<slug>`, a tool's file name —
+  is one such component too, and one it makes up is reduced to
+  lowercase letters, digits, `_` and `-`.
+
+- **What renders a master**: `src/<name>/`, with its `README.md`
+  from the records, or saying that they do not tell.
+- **A script run from the workstation against hosts** — it calls
+  `ssh` or `scp`, or the records say it was run from the checkout:
+  `memory/tools/<name>`, its name kept, with the opening comment
+  `rules/deployed-files.md` → Workstation tools asks for added
+  from the records where it lacks one. A path into the old
+  checkout or `~/heinzel-keys/` in it is reported, never
+  rewritten.
+- **An open plan that spans sessions** — a document with phases
+  or decisions, not the one-line note step 4 sorts:
+  `memory/plans/<slug>.md` (`rules/server-memory.md` → Plans that
+  outlive a session). A host not onboarded yet carries its
+  `- Plan:` line under `## Facts` in its inventory
+  (`references/inventory.md`).
+- **Evidence** — an export, a snapshot, probe output kept on
+  purpose: the host's `notes/` (`rules/server-memory.md` → Notes
+  and evidence), dated by the changelog entry that made it, else
+  by the old file's modification date.
+- **History, credentials and anything else** — an incident
+  write-up, a finished plan, notes about Heinzel itself, and any
+  file `rules/secrets.md` counts as a secret, found by its name or
+  a `grep -l` and never read: removed from this workspace before
+  the commit and named in the report; the old checkout keeps it.
 
 ## Moving
 

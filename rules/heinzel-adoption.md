@@ -373,6 +373,16 @@ them from the host (`rules/heinzel-legacy.md` →
 Detect); nothing on the host changes for that. Per
 entry:
 
+- **Owned by a configuration management tool** —
+  its path lies in the scope of this host's
+  `Config management:` line, or this connection's
+  marker probe found the file
+  (`rules/config-management-changes.md`). The tool's
+  repository is its master, and a second one here
+  would be a second truth (`rules/deployed-files.md`
+  → What gets a master): the entry is removed, and
+  Heinzel's copy moves to the host's `notes/` as a
+  superseded copy, as below. This is checked first.
 - **Same hash as the master.** The entry gets the
   host's mode, owner and hash, and the date of the
   Heinzel changelog entry that deployed it, or
@@ -398,8 +408,10 @@ entry:
   deployed state for the host to have drifted from,
   and the host's file is the only one known to run.
   A host file `rules/secrets.md` counts as a secret
-  is not read: its entry is removed, Heinzel's copy
-  moves to `notes/` the same way, and the report
+  is not read: its entry is removed, and so is
+  Heinzel's copy, which holds the same credential and
+  never goes into `notes/` or anywhere else in the
+  workspace; the old checkout keeps it. The report
   names the file as one to rebuild under
   `rules/deployed-files.md` → Secrets.
 - **Missing on the host.** The entry is removed, and

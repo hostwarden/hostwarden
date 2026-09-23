@@ -304,6 +304,11 @@ cluster's shared file system — `/etc/pve/` on Proxmox VE — moves
 to `memory/clusters/<name>/files/`, with its `deployed.md` entry,
 once the member is found in the cluster: that file exists once for
 all members (`rules/deployed-files.md` → Where the master lives).
+The cluster's `deployed.md` then holds the one entry for that path,
+and every member's entry for it is removed, whichever master it
+named; a member's master that differs from the one moved goes to
+that member's `notes/`, named in the changelog entry of the move
+(`rules/server-memory.md` → Notes and evidence).
 
 **Once per cluster.** Inventory → When applies to the cluster,
 not the member: the first connection is the first to any member,
