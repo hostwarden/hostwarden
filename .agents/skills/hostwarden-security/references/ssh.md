@@ -1,39 +1,122 @@
 # SSH — Password Authentication & Hardening
 
-**Note:** Reading `sshd_config` is safe. The AGENTS.md taboo is
-about *modifying* `/etc/ssh/sshd_config`, not reading it.
+**Note:** Reading sshd's configuration is safe. The AGENTS.md
+taboo is about *modifying* it, not reading it: read it with `cat`,
+`grep`, `sshd -G` or `sshd -T`, never through a language runtime.
+
+## sshd's Effective Configuration
+
+Every sshd check in this file judges the values sshd really uses,
+read once per host with the probe below; on macOS, only once
+Remote Login is on (→ SSH Password Authentication — macOS).
+`sshd_config` and `sshd_config.d/*.conf` in `/etc/ssh` are not all
+there is: an `Include` can name any file (RHEL's crypto policy in
+`/etc/crypto-policies`, macOS's `/etc/ssh/crypto.conf`), openSUSE
+keeps its configuration in `/usr/etc/ssh`, FreeBSD's package in
+`/usr/local/etc/ssh`, and a daemon started with `-f` reads another
+file entirely.
+
+- `sshd -G` prints the effective configuration without loading the
+  host keys (OpenSSH 9.3 and newer), so it needs no root wherever
+  the configuration files are readable. Debian's and Ubuntu's are;
+  RHEL's (mode 0600) and openSUSE's (0640) are not.
+- `sshd -T` prints the same after loading the host keys, so it
+  needs root. The probe falls back to it for older OpenSSH.
+- `-dd` adds a debug line for every file read, includes followed:
+  `load_server_config: filename <path>`. Debug lines end in `\r`,
+  hence the `tr`.
+- A `-f` on a running daemon's command line is carried over, one
+  run per file. Without one, sshd reads its default file. The
+  `daemon:` lines show that command line whole: a `-o` or `-p`
+  there overrides the file for its keyword, and neither run shows
+  it.
+- Since OpenSSH 10.4 both print keywords in mixed case
+  (`PasswordAuthentication`), so always filter with `grep -i`.
+
+The grep takes every keyword this file and the blocklistd check in
+`references/intrusion-prevention.md` judge:
+
+```bash
+PATH=$PATH:/usr/sbin:/usr/local/sbin
+D=$(ps ax -o args= | grep '^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-[[:alpha:]]')
+printf '%s\n' "$D" | sed 's/^/daemon: /'
+FS=$(printf '%s\n' "$D" \
+  | sed -e 's/^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-f \([^ ]*\).*/\2/' \
+    -e t -e 's/.*/default/' | sort -u)
+for F in $FS; do
+  set --
+  [ "$F" = default ] || set -- -f "$F"
+  echo "== sshd config: $F"
+  OUT=$(sshd "$@" -dd -G 2>&1) || OUT=$(sshd "$@" -dd -T 2>&1) || {
+    printf '%s\n' "$OUT" | tr -d '\r' | grep -v '^debug' | tail -n 2
+    continue
+  }
+  printf '%s\n' "$OUT" | tr -d '\r' \
+    | sed -n 's/.*load_server_config: filename /reads: /p' | sort -u
+  printf '%s\n' "$OUT" | grep -iE \
+    -e '^(passwordauthentication|kbdinteractiveauthentication) ' \
+    -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
+    -e '^(permitrootlogin|ciphers|macs|kexalgorithms) ' \
+    -e '^(maxauthtries|x11forwarding|use(block|black)list) '
+done
+```
+
+The `reads:` lines are what the rest of this file calls the files
+sshd reads. Where no sshd runs yet — launchd on macOS starts one
+per connection, a socket unit on the first — a `-f` sits in the
+service definition instead; `rules/os/<family>.md` → sshd says
+where, and names the tool that checksums a file sshd reads when it
+has to be compared with a backup or another host's copy.
+
+When both runs fail, the probe prints sshd's own reason, such as
+`Permission denied` or `no hostkeys available`. Read the files then
+(→ Fallback below) and say in the report that the values come from
+the files, not from sshd.
+
+### Which sshd — FreeBSD
+
+Base system or package: `rules/os/freebsd.md` → sshd says which
+one is enabled and where its configuration lives. Replace `sshd`
+in the probe by the enabled one's full path, and in the fallback
+read the files in its configuration directory, not `/etc/ssh`.
+
+### Match blocks
+
+The probe prints the values outside every `Match` block. A block
+changes them for the users, groups or addresses its condition
+names, so a `Match Address` that allows passwords from one network
+is exactly what the probe leaves out. List the blocks in the files
+sshd reads:
+
+```bash
+grep -Hin '^[[:space:]]*match[[:space:]]' <files sshd reads>
+```
+
+For each block, ask sshd for the values a connection it matches
+gets: a user, group member or address its condition names, with
+the probe's `-f` where it had one. `-C` works only with `-T`, so
+this needs root; without it, list the blocks under Skipped
+(`references/unprivileged.md`).
+
+```bash
+sshd -T -C user=<user>,host=<name>,addr=<address> | grep -iE \
+  -e '^(passwordauthentication|kbdinteractiveauthentication) ' \
+  -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
+  -e '^(permitrootlogin|x11forwarding) '
+```
+
+OpenSSH 8.1 and newer accept any of the three. Older releases
+refuse a `-C` that lacks an attribute a `Match` line tests, and
+releases before 7.7 want `user`, `host` and `addr` every time, so
+give all three there. A block whose values fail a check below is
+reported under that check, the block named:
+`WARN SSH accepts passwords (Match Address 192.0.2.0/24)`.
 
 ## SSH Password Authentication — Linux and FreeBSD
 
 Check whether sshd allows password-based logins. Key-based
 authentication should be required; password auth should be
-disabled.
-
-### Which sshd — FreeBSD
-
-Base system or package: `rules/os/freebsd.md` → sshd says which
-one is enabled and where its configuration lives. Call that one by
-its full path in every `sshd -T` below, and in the fallback read
-the files in its configuration directory, not `/etc/ssh`.
-
-### Preferred method (needs root)
-
-Use `sshd -T` to query the effective compiled configuration.
-This resolves Include directives, Match blocks, and defaults —
-much more reliable than parsing config files manually. Since
-OpenSSH 10.4 it prints keywords in mixed case
-(`PasswordAuthentication`), so always filter with `grep -i`.
-One call serves every check in this file and the blocklistd
-check in `references/intrusion-prevention.md`; the grep below
-takes them all.
-
-```bash
-sshd -T 2>/dev/null | grep -iE \
-  -e '^(passwordauthentication|kbdinteractiveauthentication) ' \
-  -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
-  -e '^(permitrootlogin|ciphers|macs|kexalgorithms) ' \
-  -e '^(maxauthtries|x11forwarding|use(block|black)list) '
-```
+disabled. The values come from the probe above.
 
 With `UsePAM yes`, PAM asks for the Unix password over
 keyboard-interactive, so `KbdInteractiveAuthentication yes`
@@ -50,10 +133,13 @@ INFO instead of the warning below.
 - **CRITICAL** if `permitemptypasswords` is `yes`
 - Otherwise OK
 
-### Fallback method (unprivileged)
+### Fallback (config files)
 
-If `sshd -T` is unavailable or requires root, read the config
-files directly. They are usually world-readable.
+When the probe gets no values, read the files directly: the main
+file — the one a `-f` names, `/etc/ssh/sshd_config`, or on
+openSUSE `/usr/etc/ssh/sshd_config` where the first does not
+exist — and every file its `Include` lines name. Without root,
+RHEL's and openSUSE's are unreadable too.
 
 ```bash
 # Main config
@@ -63,15 +149,14 @@ cat /etc/ssh/sshd_config 2>/dev/null
 cat /etc/ssh/sshd_config.d/*.conf 2>/dev/null
 ```
 
-Follow every `Include` line, not just `sshd_config.d/` (macOS
-also includes `/etc/ssh/crypto.conf`). Parse the files for
-`PasswordAuthentication`, `KbdInteractiveAuthentication` (or its
-older spelling `ChallengeResponseAuthentication`) and
-`UsePAM`. FreeBSD lists its
+Parse the files for `PasswordAuthentication`,
+`KbdInteractiveAuthentication` (or its older spelling
+`ChallengeResponseAuthentication`) and `UsePAM`. FreeBSD lists its
 compiled defaults as comments, so a keyword that is only commented
 out there keeps the default: both of the latter `yes`. The first
 obtained value wins (`sshd_config(5)`), so a drop-in included
-at the top overrides the main file; `sshd -T` is authoritative.
+at the top overrides the main file; sshd's own output is
+authoritative.
 
 **Important:** On OpenSSH 8.8+, some distros default
 `PasswordAuthentication` to `no` via drop-in files in
@@ -99,27 +184,23 @@ launchctl print system/com.openssh.sshd >/dev/null 2>&1
 
 - If Remote Login is **off** → **INFO** "Remote Login (SSH) is
   disabled — sshd checks skipped." Skip the sshd checks in this
-  file, but still run SSH servers past sshd below: an agent
-  serves its own SSH whether or not Remote Login is on.
-- If Remote Login is **on** → proceed with the same `sshd -T`
-  / config file approach as Linux.
-
-macOS sshd config is at `/etc/ssh/sshd_config` (same path as
-Linux).
+  file, but still run SSH servers past sshd and the SSH client
+  check below: an agent serves its own SSH whether or not Remote
+  Login is on, and the client connects out either way.
+- If Remote Login is **on** → run the probe above and judge its
+  values as on Linux.
 
 ## SSH Hardening
 
-These checks read the `sshd -T` output above, or the config
-files as fallback, on every family.
+These checks read the probe's output above, or the config files as
+fallback, on every family.
 
 ### PermitRootLogin
 
-Fallback:
+Fallback, over the files the fallback read:
 
 ```bash
-grep -i "^PermitRootLogin" \
-  /etc/ssh/sshd_config \
-  /etc/ssh/sshd_config.d/*.conf 2>/dev/null
+grep -i '^[[:space:]]*PermitRootLogin' <files sshd reads> 2>/dev/null
 ```
 
 - `yes` or `prohibit-password` → **INFO** (root SSH is normal in
@@ -171,3 +252,58 @@ those, `tailscaled`, `netbird`, `newt`, `nebula`, `dnclient` and
 No line for one of these six → OK, nothing more to check.
 Otherwise read `references/vpn-ssh.md`, which reads each of those
 agents from its own process.
+
+## SSH Client on the Server — Linux, FreeBSD and macOS
+
+An account that connects out from the server — root, a backup or
+deploy account, the users of a jump host — trusts whatever host key
+its SSH client accepts. `StrictHostKeyChecking no` accepts any key,
+and `UserKnownHostsFile /dev/null` forgets each one it saw, so the
+check that would notice a man in the middle is off for every
+target in that scope.
+
+Read the system configuration and each account's own, and the
+same options given on a command line in a crontab. As root this
+covers every account; without root, the session user's file and
+what else is readable (`references/unprivileged.md`). On macOS,
+the homes come from
+`dscl . -list /Users NFSHomeDirectory | sed 's/^[^ ]* *//'`
+instead of the `getent` line.
+
+```bash
+U=$(getent passwd | cut -d: -f6 | sort -u | while read -r h; do
+  [ -f "$h/.ssh/config" ] && echo "$h/.ssh/config"
+done)
+grep -Hin -e '^[[:space:]]*\(host\|match\|include\)[[:space:]]' \
+  -e '^[[:space:]]*\(stricthostkeychecking\|userknownhostsfile\)' \
+  /etc/ssh/ssh_config /etc/ssh/ssh_config.d/*.conf \
+  /usr/etc/ssh/ssh_config /usr/etc/ssh/ssh_config.d/*.conf \
+  /usr/local/etc/ssh/ssh_config $U 2>/dev/null
+grep -rIin -e 'stricthostkeychecking[= ]*\(no\|off\)' \
+  -e 'userknownhostsfile[= ]*/dev/null' \
+  /etc/crontab /etc/cron.d /var/spool/cron /var/cron/tabs \
+  /etc/crontabs 2>/dev/null
+```
+
+An option belongs to the nearest `Host` or `Match` line above it
+in the same file; above the first, it applies to every target. An
+`Include` names more files, relative to `~/.ssh` in an account's
+file and to `/etc/ssh` in the system one: grep them the same way.
+The first value obtained wins, the account's file before the
+system one. Where that leaves the effect unclear,
+`ssh -G <target>`, run as that account, prints the effective
+values for a target without connecting (`false` for `no`). It runs
+the command of a `Match exec` line, though, so use it only where
+the files have none.
+
+- `StrictHostKeyChecking no` or `off` in any scope, or the same
+  on a crontab's command line → **WARN** "SSH client accepts any
+  host key", naming the account, the file and the `Host` or `Match`
+  line: `WARN SSH client accepts any host key (root, Host
+  backup.example.com)`
+- `UserKnownHostsFile /dev/null` in a scope where
+  `StrictHostKeyChecking` is not `yes`, or on a crontab's command
+  line → **WARN**, the same way
+- `StrictHostKeyChecking accept-new` → **INFO**: the first
+  connection to each target is not checked
+- Otherwise OK

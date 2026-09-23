@@ -267,6 +267,18 @@ runs `apk upgrade` counts.
   `rules/service-reload.md` names them. `rc-service --debug`
   shows why a service fails to start.
 
+## sshd
+
+- OpenRC service `sshd`, from `openssh-server-common-openrc`.
+  `/etc/conf.d/sshd` can set `cfgfile`, which the script passes as
+  `-f`, and `command_args` (`-o`, `-p`); `SSHD_CONFIG` and
+  `SSHD_OPTS` are their older names.
+- Configuration: `/etc/ssh/sshd_config`, readable by every account,
+  which includes `sshd_config.d/*.conf` near its top.
+- Auth log: syslog, as Logs below describes — `/var/log/messages`,
+  or `/var/log/auth.log` under syslog-ng.
+- Checksum of a file: `sha256sum <file>`, which busybox provides.
+
 ## Logs
 
 Alpine logs through syslog, to `/var/log/messages`:

@@ -60,6 +60,20 @@ Enterprise Server (SLES).
   policy and `memory/service-policy.md` opt-out /
   opt-in lists.
 
+## sshd
+
+- Unit `sshd.service`. Its `ExecStart` adds `$SSHD_OPTS` from
+  `/etc/sysconfig/ssh`, where a `-f`, `-o` or `-p` can sit.
+- Configuration: without an `/etc/ssh/sshd_config`, as openSUSE
+  Leap 16 and Tumbleweed ship, sshd reads
+  `/usr/etc/ssh/sshd_config`, mode 0640, so reading it needs root,
+  `sshd -G` included. That file includes
+  `/etc/ssh/sshd_config.d/*.conf` and then
+  `/usr/etc/ssh/sshd_config.d/*.conf`, the crypto policy among
+  them.
+- Auth log: the journal, `journalctl -u sshd`.
+- Checksum of a file: `sha256sum <file>`.
+
 ## YaST
 
 - SUSE uses YaST for system configuration. Prefer command-

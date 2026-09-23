@@ -508,9 +508,14 @@ Lua scripts in `/boot/lua/`. The entry point is
   Enabled services (Service Manager) shows
   `openssh_enable="YES"` when that one is enabled.
   Call the enabled one by its full path.
+- rc service `sshd`, or `openssh` for the package.
+  `sshd_flags` (`openssh_flags`) in `rc.conf` adds
+  options, where a `-f`, `-o` or `-p` can sit.
 - FreeBSD ships `KbdInteractiveAuthentication yes`
   and `UsePAM yes`, so passwords are accepted
   although `PasswordAuthentication` is `no`.
+- Auth log: `/var/log/auth.log`.
+- Checksum of a file: `sha256 -q <file>`.
 
 ## Mail and Time
 

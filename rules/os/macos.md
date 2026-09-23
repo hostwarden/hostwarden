@@ -184,6 +184,20 @@ Rules for macOS (Apple Silicon and Intel).
   - Unload: `sudo launchctl bootout <domain> <plist>`
   - Disable: `sudo launchctl disable <domain>/<label>`
 
+## sshd
+
+- launchd job `com.openssh.sshd`, on while Remote Login is. launchd
+  starts one sshd per connection, so none waits in `ps`, and a
+  changed file takes effect at the next login. Its command line,
+  a `-f` included, is under `arguments` in
+  `launchctl print system/com.openssh.sshd`.
+- Configuration: `/etc/ssh/sshd_config`, whose `Include` lines name
+  the rest.
+- Auth log: the unified log, `/usr/bin/log show --last 1d
+  --predicate 'process BEGINSWITH "sshd"'`, which takes in
+  `sshd-session` as well.
+- Checksum of a file: `shasum -a 256 <file>`.
+
 ## SIP and Gatekeeper
 
 - **System Integrity Protection (SIP):**
