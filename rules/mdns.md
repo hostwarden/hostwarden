@@ -10,62 +10,115 @@ line of `ssh -G` — in one call.
 
 ## Asking Each Source
 
-On macOS, where mDNSResponder always runs. `dns-sd` never exits on
-its own, so it gets two seconds:
+Unicast DNS is asked at the server this workstation uses for the
+name, split DNS included — a VPN can send a whole domain, a
+`corp.local` among them, to a server of its own — whether or not
+the system resolver would reach DNS for it before mDNS.
+
+On macOS, where mDNSResponder always runs, the resolver that
+`scutil --dns` lists for the longest domain the name ends in
+answers for DNS, and `dig` asks the primary one where none does.
+`dns-sd` never exits on its own, so it gets two seconds:
 
 ```
-dig +short +time=2 +tries=1 A <name>; echo "dig-exit=$?"
+set -- $(scutil --dns | awk -v n='<name>' '
+  function pick() {
+    if (a != "" && d != "" && length(d) > b &&
+        (n == d || substr(n, length(n) - length(d)) == "." d)) {
+      b = length(d); s = a " " p }
+    d = a = p = "" }
+  /^DNS configuration \(for scoped/ { pick(); exit }
+  /^resolver/ { pick() }
+  $1 == "domain" { d = $3; sub(/\.$/, "", d) }
+  $1 == "nameserver[0]" { a = $3 }
+  $1 == "port" { p = $3 }
+  END { pick(); print s }')
+echo "== dns ${1:-primary}"
+dig +short +time=2 +tries=1 ${1:+@$1} ${2:+-p} $2 A <name>
+echo "dns-exit=$?"
+echo "== mdns"
 dns-sd -G v4 <name> & sleep 2; kill $!
 ```
 
-The address lines from `dig` are unicast DNS. A `dns-sd` `Add`
-line with a non-zero `IF` column came from the link; `IF` 0 is
-unicast DNS again.
+The address lines under `== dns` are unicast DNS. A `dns-sd`
+`Add` line with a non-zero `IF` column came from the link; `IF` 0
+is unicast DNS again, and a line ending `No Such Record` is no
+answer.
 
 On Linux, the system resolver asks mDNS only through a module on
-the `hosts:` line of `/etc/nsswitch.conf`: an `mdns` one
-(`mdns4_minimal`, `mdns4`, …) asks avahi-daemon, and `resolve`
-asks systemd-resolved on the links where `resolvectl mdns` says
-`yes` or `resolve`, as long as its `Global` line does not say
-`no`. systemd-resolved's own stub, `127.0.0.53`, would answer
-`dig` over mDNS too, so `dig` asks the first upstream server
-resolved lists, where it runs:
+the `hosts:` line of `/etc/nsswitch.conf` or through resolved's
+full stub: an `mdns` module (`mdns4_minimal`, `mdns4`, …) asks
+avahi-daemon, and `resolve` on that line, or `127.0.0.53` in
+`/etc/resolv.conf`, asks systemd-resolved on the links where
+`resolvectl mdns` says `yes` or `resolve`, as long as its
+`Global` line does not say `no`. Its proxy stub `127.0.0.54`
+asks DNS only. Where the system resolver goes through a running
+systemd-resolved — `resolve` on that line, or its stub
+`127.0.0.53` or `127.0.0.54` in `/etc/resolv.conf` — resolved's
+own routing picks the DNS server, and `dig` at the stub would get
+mDNS answers too, so `resolvectl` asks DNS alone, without
+`/etc/hosts` or its cache. Elsewhere `dig` asks the servers of
+`/etc/resolv.conf`:
 
 ```
 n='<name>'
-s=$(awk '$1=="nameserver"{print $2; exit}' \
-  /run/systemd/resolve/resolv.conf 2>/dev/null)
-d=$(dig +short +time=2 +tries=1 ${s:+@$s} A "$n")
-echo "dig-exit=$?"
-printf '%s\n' "$d" | grep -E '^[0-9.]+$' | sed 's/^/dns /'
 h=$(grep '^hosts:' /etc/nsswitch.conf); echo "$h"
+st=; grep -qE '^nameserver 127\.0\.0\.5[34]$' /etc/resolv.conf && st=1
+q=; case $h in *resolve*) q=1 ;; esac
+grep -qE '^nameserver 127\.0\.0\.53$' /etc/resolv.conf && q=1
+r=$st$q
+m=$(resolvectl mdns 2>/dev/null) || r= q=
+if [ -n "$r" ]; then
+  echo "== dns resolved"
+  resolvectl query -4 -p dns --synthesize=no --cache=no "$n"
+elif [ -n "$st" ]; then
+  echo "== dns unread: resolved's stub, no resolvectl"
+else
+  echo "== dns dig"
+  dig +short +time=2 +tries=1 A "$n"
+fi
+echo "dns-exit=$?"
 case $h in *mdns*)
+  echo "== mdns avahi"
   avahi-resolve -4 -n "$n"; echo "avahi-exit=$?" ;;
 esac
-case $h in *resolve*)
-  m=$(resolvectl mdns 2>/dev/null); echo "$m"
+if [ -n "$q" ]; then
+  echo "$m"
   if printf '%s\n' "$m" | grep -qE '^Link .*: (yes|resolve)$' &&
      ! printf '%s\n' "$m" | grep -qE '^Global: no$'; then
-    resolvectl query -4 -p mdns "$n"; echo "resolvectl-exit=$?"
-  fi ;;
-esac
+    echo "== mdns resolved"
+    resolvectl query -4 -p mdns --synthesize=no --cache=no "$n"
+    echo "resolvectl-exit=$?"
+  fi
+fi
 grep -m1 '^#' /etc/resolv.conf
 ```
 
-The `dns` lines are unicast DNS; the `avahi-resolve` and
-`resolvectl` lines are mDNS. Where neither module asks it, ssh
-never gets an mDNS answer on this workstation, and no mDNS line
-appears. Under WSL, where the last line names WSL as the author
-of `/etc/resolv.conf`, `dig` asks Windows, which can answer a
-`.local` name over mDNS itself: the `dns` lines are then no
+Where no mDNS block appears, ssh never gets an mDNS answer on
+this workstation. Under WSL, where the last line names WSL as the
+author of `/etc/resolv.conf`, `dig` asks Windows, which can answer
+a `.local` name over mDNS itself: the `dns` answers are then no
 proof of unicast DNS.
 
 A source is unread, not silent, when its tool is missing (exit
-127) or `dig-exit` is not 0. On any other workstation both sides
-are unread. `Daemon not running` from `avahi-resolve` is no
-failure to read: with avahi-daemon stopped, the system resolver
-cannot ask mDNS either and falls through to DNS, so mDNS is not
-asked here.
+127), when `dig` fails (`dns-exit` not 0), and under
+`== dns unread`. Of `resolvectl`'s failures, some are answers.
+For both sources, `'<name>' does not have any RR of the requested
+type` is an answer with no IPv4 address. For DNS:
+`Name '<name>' not found`, DNS answering with nothing, and
+`No appropriate name servers or networks for name found`,
+this workstation having no DNS server for the name because no
+routing domain covers it. For mDNS, which has no negative answer:
+`All attempts to contact name servers or networks failed`, no
+responder on the link, and `No appropriate name servers or
+networks for name found`, no link that can ask, so mDNS is not
+asked here. Any other failure, a timeout or an option
+an older systemd does not know included, leaves the source
+unread. `Daemon not running` from
+`avahi-resolve` is no failure to read either: with avahi-daemon
+stopped, the system resolver cannot ask mDNS and falls through to
+DNS, so mDNS is not asked here. On any other workstation both
+sides are unread.
 
 ## Comparing
 

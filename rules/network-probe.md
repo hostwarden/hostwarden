@@ -828,7 +828,21 @@ return a CNAME target):
 dig +short A <hostname> | grep -E '^[0-9.]+$'
 dig +short AAAA <hostname> | grep ':'
 dig +short -x <each public address>
+grep '^nameserver' /etc/resolv.conf
+resolvectl domain 2>/dev/null
 ```
+
+`dig` asks the server the `nameserver` line names; on
+macOS that is the primary resolver alone, whatever
+`scutil --dns` lists for a domain. Where it is
+resolved's stub (`127.0.0.53` or `127.0.0.54`),
+resolved sends a name under a domain the last line
+lists, routing (`~`) or search, to that link's
+server, and a local forwarder such as dnsmasq, or a
+mesh VPN's resolver such as `100.100.100.100`, can
+split the same way. An answer that came through such
+a route is that network's view, not the public one:
+record it as such.
 
 Resolve each PTR name the same way to confirm it
 points back. The check of the A record against
