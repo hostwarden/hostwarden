@@ -110,6 +110,10 @@ run inside reads the host's state as if it were the guest's:
   `security.jail.vnet` is `1`, the `net.inet*` keys.
 - **The USB bus:** a container sees the host's devices.
 - **CPU microcode**, which the host kernel loads.
+- **Kernel memory state:** zswap, zram, the ZFS ARC, memory
+  pressure, and `/proc/swaps` unless lxcfs stands in for it. The
+  container's own memory and swap are what lxcfs shows in its
+  `/proc/meminfo`.
 
 A check of one of these does not run in a container. Its line
 reads `n/a (container)` and is never a finding; the USB inventory

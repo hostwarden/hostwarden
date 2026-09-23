@@ -17,7 +17,10 @@ call: failed services and time sync read from that output.
 **Containers.** In a container, NTP / Time Sync, Kernel: Running
 vs Installed, Livepatch, needrestart's kernel lines and CPU
 Microcode check what the host owns
-(`rules/system-containers.md` → What the Host Owns).
+(`rules/system-containers.md` → What the Host Owns). Memory and
+Swap runs only its `/proc/meminfo` line there, and swap is
+`SwapTotal` − `SwapFree`, judged against `SwapTotal` by the disk
+swap limit.
 
 ## Backup Presence
 
@@ -44,13 +47,78 @@ df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ## Memory and Swap
 
 ```bash
-free -h
+grep -E '^(MemTotal|MemAvailable|SwapTotal|SwapFree|Zswap|Zswapped):' \
+  /proc/meminfo
+grep -sE '^(size|c_min) ' /proc/spl/kstat/zfs/arcstats
+cat /proc/swaps
+grep -sH . /sys/module/zswap/parameters/enabled \
+  /sys/block/zram*/comp_algorithm /sys/block/zram*/mm_stat
+cat /proc/pressure/memory 2>/dev/null || true
 ```
 
-Report total, used, and available memory.
+None of it needs root. `/proc/meminfo` and `/proc/swaps` count in
+KiB, `mm_stat` in bytes. A file that is missing prints nothing and
+is an answer, not a failed check: no `enabled` line, a kernel
+without zswap; no `Zswapped:` line, one older than that counter; no
+pressure lines, one without pressure stall information or booted
+with it off; no ARC lines, no ZFS.
+
+Available memory is `MemAvailable:`, plus, on ZFS, the ARC above
+its minimum (`size` − `c_min`, in bytes, 0 when negative). The
+kernel does not count the ARC as available, though ZFS gives that
+part back under pressure, so a ZFS host with a large ARC and
+little available memory is normal, not short. Report the ARC's
+size beside it.
+
+Report total and available memory, then what swap is made of:
+
+- **Disk swap** — a partition or file in `/proc/swaps`. Pages
+  there are on disk, and a task that needs one back waits for it.
+- **zram** — a `/dev/zram<n>` line in `/proc/swaps`: a compressed
+  block device in RAM. Its `Used` counts pages at their original
+  size. The first three `mm_stat` fields are the data stored, its
+  compressed size and the RAM the device takes in all; the first
+  two give the compression ratio, and the third is already part of
+  the used memory above. A zram device missing from `/proc/swaps`
+  is unused when its `mm_stat` reads all 0, and otherwise a RAM
+  disk for `/tmp` or logs, whose memory is used memory. Neither is
+  reported as swap.
+- **zswap** — `enabled` reads `Y`: a compressed cache in RAM in
+  front of the swap devices. A page it holds still reserves its
+  slot on the device behind it. `Zswapped:` is what zswap holds at
+  original size, `Zswap:` the RAM that costs. With no swap device,
+  zswap does nothing.
+
+Swap in use on disk is the `Used` column of the disk swap devices,
+less `Zswapped:`, which also counts pages zswap still holds after
+it was turned off. The share on disk is unknown where zswap is on
+and the kernel has no `Zswapped:` line, and where zswap is on while
+a zram device is swap too, since then `Zswapped:` mixes pages bound
+for both: the report says so and raises no disk swap finding.
 
 - **WARN** if available memory < 10% of total
-- **WARN** if swap usage > 50% of total swap
+- **WARN** if swap in use on disk > 50% of the disk swap devices'
+  size. Never judge the total swap figure: zram and zswap both
+  fill it with pages that are still in RAM.
+- **WARN** if a zram swap device is > 90% full — `Used` against
+  its `Size`, or, where the fourth `mm_stat` field (`mem_limit`)
+  is not 0, the third field against it. Its next pages go to a
+  disk swap device of lower priority or to the OOM killer.
+- **WARN** if zswap is on while a zram device is swap: zswap
+  compresses pages on their way into zram, which compresses them
+  again. The fix is `zswap.enabled=0` on the kernel command line.
+- **WARN** if `/proc/pressure/memory` shows `some avg300` > 10 or
+  `full avg300` > 1: tasks waited on memory for that share of the
+  last five minutes.
+- **INFO** if a disk swap device has a priority (last column of
+  `/proc/swaps`) equal to or above a zram swap device's: the kernel
+  fills the higher one first and alternates between equal ones, so
+  pages go to disk while zram still has room.
+
+The report's `Swap` line names each kind the host has, used against
+size: zram with its algorithm and compression ratio, disk swap with
+only what is on disk, and zswap `off` or `on` with what it holds
+and the RAM that costs (`zswap 900 MB in 250 MB`).
 
 ## System Load
 

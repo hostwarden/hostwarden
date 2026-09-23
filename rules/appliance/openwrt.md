@@ -282,7 +282,7 @@ of the current release branch,
 - The Linux baseline does not apply: no systemd, no journal, no
   `apt`. Housekeeping reads, in one call:
   ```
-  cat /etc/openwrt_release; uptime; free; df -Ph /overlay /tmp
+  cat /etc/openwrt_release; uptime; df -Ph /overlay /tmp
   grep -F "/ overlay ro," /proc/mounts; service; uci changes
   logread -l 50; owut check
   nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"

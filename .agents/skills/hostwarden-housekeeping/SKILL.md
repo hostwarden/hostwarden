@@ -131,7 +131,10 @@ Read on demand, only when the relevant section applies:
   probes but not the baseline thresholds: disk use, memory and
   load are judged by Disk Usage, Memory and Swap, and System
   Load in `references/baseline-linux.md`, unless the appliance
-  file gives a number of its own.
+  file gives a number of its own. The Memory and Swap probe is
+  the one baseline probe that still runs, appended to the
+  appliance's first call: its limits read what swap is made of,
+  which no appliance probe prints.
 - A reference written for `sh` — the baselines, the version
   check, `references/service-checks.md` — runs only where the
   loaded OS file uses the `sh -s` bundle

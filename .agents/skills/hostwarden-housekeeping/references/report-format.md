@@ -24,6 +24,7 @@ Backups       OK — latest 6 hours ago
 
 Disk       / 58% (1.0 TB / 1.8 TB)
 Memory     8.2 GB / 64 GB available
+Swap       zram 1.2 / 8 GB (zstd, 3.1:1), disk 0 / 4 GB, zswap off
 Load       0.42 / 0.38 / 0.35 (4 cores)
 Firewall   ufw active, deny incoming
 NTP        synchronized
@@ -43,6 +44,9 @@ Versions   2 updates available (see below)
   always present (from the backup-presence check), even when
   `memory.md` lists no backup service.
 - **One line per item.** Keep it scannable.
+- The **Swap** line is what the family baseline's Memory and Swap
+  check reports, by kind; a host without swap reads
+  `Swap       none`.
 - Severity levels:
   - `CRITICAL` — needs immediate attention
   - `WARN` — should be addressed soon

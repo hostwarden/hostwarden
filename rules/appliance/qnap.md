@@ -454,7 +454,6 @@ is QNAP's own.
   c=/etc/config/uLinux.conf
   echo "$(/sbin/getcfg System Version -f $c).$(/sbin/getcfg System Number -f $c) build $(/sbin/getcfg System 'Build Number' -f $c)"
   uptime
-  grep -E "^(MemTotal|MemAvailable|SwapTotal|SwapFree):" /proc/meminfo
   dmesg | grep -i -o -E "out of memory|oom-killer|I/O error" | sort | uniq -c
   grep -c zfs /proc/filesystems
   cat /proc/mdstat

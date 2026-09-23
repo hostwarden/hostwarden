@@ -522,7 +522,6 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   Housekeeping reads, in one call; the first part needs no root:
   ```
   cat /proc/uptime /proc/loadavg
-  grep -E "^(MemTotal|MemAvailable|SwapTotal|SwapFree):" /proc/meminfo
   cat /proc/mdstat
   df -h / /volume[0-9]*
   grep -H -E "^(version|maintainer)=" /var/packages/*/INFO
@@ -559,7 +558,8 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
     Detection);
   - a pending DSM update, and an update setting that only notifies;
   - load above the CPU count in server memory, memory and swap
-    nearly exhausted;
+    past the Memory and Swap limits of
+    `.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`;
   - an md array degraded (`_` in its `[UU…]` map), resyncing or
     recovering;
   - a volume or the system partition (`/`) past the Disk Usage
