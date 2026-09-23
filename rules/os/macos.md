@@ -114,7 +114,7 @@ Rules for macOS (Apple Silicon and Intel).
   when that user has no login session, and then no agent of
   theirs is loaded:
   ```
-  launchctl print system | awk '/^\tservices = \{/ {s = 1; next}
+  launchctl print <domain> | awk '/^\tservices = \{/ {s = 1; next}
     s && /^\t\}/ {exit} s {n++; print} END {exit !n}'
   ```
 - **Service status:** `launchctl print <domain>/<label>` exits 0

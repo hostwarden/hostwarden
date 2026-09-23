@@ -137,7 +137,9 @@ done
 
 - **WARN** for each job with a non-zero status, by label
 - `unread` for `system` → the check could not be performed. For
-  `gui/<uid>` → nothing to report: that user has no login session
+  `gui/<uid>`, when `system` was read, that user has no login
+  session: nothing to report. Over a root login it is `gui/0`,
+  which never has one: list the user half under "Skipped"
 
 ## Kernel Panics
 
