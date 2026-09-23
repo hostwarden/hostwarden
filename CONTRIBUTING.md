@@ -77,3 +77,10 @@ pointed at them.
 for commit messages and pull request titles. Pull requests are
 squash-merged, so the title is what lands on `main`. Update a
 branch by rebasing it on `main`, never by merging `main` into it.
+
+An agent opens its pull request as a draft and keeps it one
+through its reviews, the fixes and CI. Lifting the draft hands it
+to whoever merges, who reviews it and decides whether it is merged
+([pull-requests.md](.claude/rules/pull-requests.md#lifting-the-draft)).
+A stacked pull request is lifted after its base and merged after
+it.

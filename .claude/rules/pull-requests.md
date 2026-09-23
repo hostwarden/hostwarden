@@ -62,7 +62,9 @@ whose blind spots differ.
 - **Required:** on every pull request. The other value is "on
   request": only where whoever merges asks for it, in the session
   or on the pull request, whose comments the session reads for
-  such a request before it reports the pull request merge-ready.
+  such a request before it lifts the draft. A request after the
+  lift puts the pull request back into draft until the second
+  review is through (→ Lifting the draft).
 
 `<base>` below is the pull request's base branch as
 `gh pr view <n> -R jpawlowski/hostwarden --json baseRefName`
@@ -84,8 +86,8 @@ well.
 2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`. Its
    findings already name their class and siblings: fix them all,
    then give it the branch again, in passes as below.
-3. Push, lift the draft status, and request the second review
-   where it is required.
+3. Push. The pull request stays a draft; the second review
+   follows where it is required.
 
 The results stay in the session; nothing of them is posted but
 the deferred list below.
@@ -169,7 +171,8 @@ Passes, here and on a fix commit, run like this:
   missing environment, an option the CLI rejects — goes to whoever
   merges with the reviewer's own message.
 - Stacked pull requests are each reviewed against their own base,
-  so their rounds run in parallel.
+  so their rounds run in parallel; each lifts its draft as
+  → Lifting the draft says.
 
 ### Codex
 
@@ -280,7 +283,7 @@ findings.
 A second-review finding is one the own review missed unless it is
 answered "not a bug" or the own review had already reported it, as
 far as the session knows.
-When the session reports the pull request merge-ready, it adds
+Before the session lifts the draft, it adds
 each missed finding to the one open issue titled "Sharpen
 hostwarden-reviewer": a checklist line with the pull request's
 number, the finding's title, its class from the answer, and the
@@ -290,6 +293,38 @@ unchecked lines, it proposes to the person a pull request that
 sharpens the reviewer and closes the issue, as a task chip where
 the tool has them. A new class is the exception; a question added
 to an existing one is the rule.
+
+## Lifting the draft
+
+A pull request is opened as a draft (`gh pr create --draft`) and
+stays one while agents carry it; one they carry that is out of
+draft goes back with
+`gh pr ready <n> -R jpawlowski/hostwarden --undo`, and whoever
+merges is told. Lifting the draft hands it to whoever merges: a
+person, who reviews it and decides whether it is merged; agents
+never merge. So it is the last step, taken once everything an
+agent can do is done:
+
+- the own review is through, and the second review, where it is
+  required, has completed on the current head as → Merge-ready
+  counts it, a rebase included, or was skipped as under Capacity;
+- every finding is answered, in its thread or its round's line, no
+  thread is unresolved, the deferred list is written, and the
+  missed findings are in the reviewer's issue (→ Sharpening the
+  reviewer);
+- a P0 or P1 left for whoever merges, from round 4 or the own
+  review's deferred list, has already been put to them;
+- CI is green on the current head, and
+  `gh pr view <n> -R jpawlowski/hostwarden --json mergeable` shows
+  `MERGEABLE`;
+- a stacked pull request's base is out of draft already, since
+  whoever merges takes a stack from the bottom.
+
+The lift is `gh pr ready <n> -R jpawlowski/hostwarden`.
+
+Once the draft is lifted, the session tells whoever merges before
+any push, a commit or a rebase, or a head the agents have not
+finished with gets merged.
 
 ## Merge-ready
 
@@ -306,8 +341,6 @@ to an existing one is the rule.
   resolution instead: `git range-diff` against the pre-rebase
   head and green CI. Only a new fix commit of its own needs the
   second review again.
-- Once a pull request is reported ready, push no new commit without
-  telling whoever merges, or an unreviewed head gets merged.
 - The merge is
   `gh pr merge <n> -R jpawlowski/hostwarden --squash --match-head-commit <sha>`.
   The squash message carries the why, not only the what: before
