@@ -31,6 +31,8 @@ bin/
                          for a test clone
 scripts/
   check.sh             — Everything CI checks, runnable locally
+  fleet-read-test.sh   — Fixture matrix for the fleet-read
+                         wrapper (run by scripts/check.sh)
 .githooks/             — Opt-in: secret scan on commit, check.sh
                          on push
 mise.dev.toml          — Pinned versions of the tools check.sh
@@ -119,6 +121,10 @@ contrib/
     hostwarden-runtimes/  — Install language runtimes via mise
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
+                         (SKILL.md + references/)
+    hostwarden-fleet-read/    — Least-privilege access for an
+                         operations host: a forced command
+                         that runs operator-signed bundles
                          (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   os/                  — Reference data. Detection reads at
@@ -265,6 +271,9 @@ templates/workspace/   — What bin/hostwarden-init puts
                          into a new workspace
                          (.gitattributes, .gitignore,
                          .hostwarden-workspace)
+templates/fleet-read/  — fleet-read, the forced command an
+                         operations host's key runs on each
+                         host
 templates/memory/      — Templates to copy into memory/
   MEMORY.md            — Index for server memory
   user.md.example      — SSH username template (copy to

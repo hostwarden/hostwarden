@@ -121,12 +121,12 @@ json_valid() {
   return $rc
 }
 
-# Every shell file the repository ships: the bin/ scripts and the
-# shim's stand-ins carry no extension, the hooks and this directory
-# do.
+# Every shell file the repository ships: the bin/ scripts, the
+# shim's stand-ins and the fleet-read wrapper carry no extension,
+# the hooks and this directory do.
 shell_files() {
   git ls-files 'bin/*' '.claude/hooks/*.sh' '.claude/hooks/shim/*' \
-    'scripts/*.sh' '.githooks/*'
+    'scripts/*.sh' '.githooks/*' 'templates/fleet-read/*'
 }
 
 sh_syntax() {
@@ -158,6 +158,7 @@ else
   step "release matrix" sh .claude/hooks/release-test.sh
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
+step "fleet-read wrapper" sh scripts/fleet-read-test.sh
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point
