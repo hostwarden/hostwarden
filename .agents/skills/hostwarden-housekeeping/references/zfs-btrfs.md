@@ -54,6 +54,13 @@ btrfs scrub status "$m"
 Never `btrfs device stats -z`: it resets the counters, and they
 are the only record of past errors.
 
+- **CRITICAL** if `Device missing` in `btrfs filesystem usage`
+  is not `0`, or the inventory's `findmnt` shows the filesystem
+  mounted with `degraded`: a device is gone and the filesystem
+  runs without the redundancy its profile promises. A missing
+  device has no `btrfs device stats` counters, so only this line
+  shows it
+  ([btrfs-filesystem(8)](https://btrfs.readthedocs.io/en/latest/btrfs-filesystem.html)).
 - **WARN** for each counter `btrfs device stats` still prints —
   only those above `0` are left — with the device.
 - **WARN** if `Device unallocated` in `btrfs filesystem usage` is
