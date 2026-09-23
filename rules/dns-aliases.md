@@ -115,13 +115,7 @@ its own SSH user.
 ## IP Verification
 
 On every connection to a known server, verify the
-current IP matches `- IP:` in memory. Where the
-directory holds `heinzel-memory.md` and no
-`memory.md`, a host adopted from Heinzel that nothing
-has connected to yet, that file's `- IP:` is the one
-compared; where it names none, there is nothing to
-verify, and the address resolved now is recorded
-when `memory.md` is written. Resolve as in
+current IP matches `- IP:` in memory. Resolve as in
 Detection step 1 and compare against the full set
 of resolved IPs: round-robin DNS gives a host
 multiple A records, and any overlap with the stored
@@ -133,10 +127,7 @@ alias now points elsewhere (detach it).
 
 The port is part of the identity too. Compare the
 `port` line of `ssh -G <user>@<hostname>` with
-`- SSH port:`, and record it where memory has none —
-in `memory.md` only: a `heinzel-memory.md` is never
-edited, and gets its port when `memory.md` is
-written.
+`- SSH port:`, and record it where memory has none.
 A different port is a different machine until the
 user says otherwise, even on a matching IP: **stop
 and tell the user**, whatever the role file says

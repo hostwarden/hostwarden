@@ -670,7 +670,7 @@ case " $SHARED_PENDING " in
         UM_HAVE=$(user_line "$UM_ID" "$UM_DST")
         if [ -n "$UM_HAVE" ]; then
           [ "$UM_HAVE" = "$UM_LINE" ] \
-            || UM_DIFF="$UM_DIFF  $UM_ID: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+            || UM_DIFF="$UM_DIFF  $UM_ID: \"${UM_HAVE#*: }\" here, \"${UM_LINE#*: }\" in the old checkout$NL"
           continue
         fi
         case "$UM_ITEM" in

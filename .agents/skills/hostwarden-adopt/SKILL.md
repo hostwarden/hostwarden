@@ -196,7 +196,7 @@ leads, the host confirms them.
    `memory/servers/`, or a `--shared` run builds inventories for
    hosts nothing was adopted for. Skip a host whose inventory already
    holds leads, or whose `heinzel legacy:` line settles the question
-   — adopted, renamed or left in place: its leads were collected or
+   (`rules/heinzel-adoption.md` → Record): its leads were collected or
    checked. `## Facts` from step 4 alone is no reason to skip, and
    neither is a deferral: the check that deferred it knew only the
    fixed paths, not the leads in the records adopted now.
