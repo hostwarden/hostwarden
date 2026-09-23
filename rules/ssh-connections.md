@@ -83,9 +83,10 @@ which are never shared.
   cover a call over an existing connection.
 - **The known_hosts lines:** `memory/known_hosts`
   alone decides (`rules/host-keys.md`).
-  `GlobalKnownHostsFile /dev/null` and
-  `KnownHostsCommand none` switch off the other
-  sources an `ssh_config` can add, and
+  `GlobalKnownHostsFile /dev/null`,
+  `KnownHostsCommand none` and `VerifyHostKeyDNS no`
+  switch off the other sources an `ssh_config` can
+  add, SSHFP records in DNS among them, and
   `UpdateHostKeys no` keeps ssh from rewriting the
   shared file behind the rule's back. An ssh older
   than OpenSSH 8.5 has no `KnownHostsCommand` and

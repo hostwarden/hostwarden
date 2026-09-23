@@ -201,6 +201,7 @@ trap 'rm -f "$TMP"' EXIT
   cat <<EOF
   UserKnownHostsFile "$KNOWN"
   GlobalKnownHostsFile /dev/null
+  VerifyHostKeyDNS no
   UpdateHostKeys no
   StrictHostKeyChecking yes
 EOF

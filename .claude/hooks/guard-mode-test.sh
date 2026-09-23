@@ -989,6 +989,8 @@ grep -qxF "  ControlPath ~/.cache/hostwarden/ssh-$id-%C" "$CFG" && ok \
 # that does not would reject the line and fail every call.
 grep -qxF "  UpdateHostKeys no" "$CFG" && ok \
   || bad "memory/ssh_config lets ssh rewrite memory/known_hosts"
+grep -qxF "  VerifyHostKeyDNS no" "$CFG" && ok \
+  || bad "memory/ssh_config lets a DNS fingerprint stand in for known_hosts"
 if ssh -F /dev/null -G -o KnownHostsCommand=none example.invalid \
     >/dev/null 2>&1; then
   grep -qxF "  KnownHostsCommand none" "$CFG" && ok \
