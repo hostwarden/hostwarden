@@ -621,8 +621,11 @@ says, with these differences:
   treats a HID UPS as a battery — or when a PowerChute or NUT
   service runs. A service alone says only that something
   watches the UPS, never how it is: where no battery appears
-  and NUT's `upsc.exe` is not there either, report the state as
-  not readable, **WARN**, and name the service. NUT for Windows
+  and NUT names no UPS either (`upsc: not installed` or
+  `upsc: no UPS listed`), report the state as not readable,
+  **WARN**, and name the service. Without a service, `upsc: no
+  UPS listed` and no battery read the same: NUT is installed,
+  so the state is not readable, never no UPS. NUT for Windows
   installs `upsc.exe` under `C:\Program Files\NUT\bin` and its
   `upsmon.conf` beside it under `etc`; every UPS the local
   `upsd` serves and every `MONITOR` target is queried, since a
@@ -633,7 +636,7 @@ says, with these differences:
   says:
 
   ```powershell
-  $u = 'C:\Program Files\NUT\bin\upsc.exe'; $c = 'C:\Program Files\NUT\etc\upsmon.conf'; if (Test-Path $u) { $t = @(& $u -l 2>$null); if (Test-Path $c) { $t += @(Select-String -Path $c -Pattern '^\s*MONITOR\s+(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }) }; foreach ($n in ($t | Sort-Object -Unique)) { "== $n"; & $u $n } } else { 'upsc: not installed' }
+  $u = 'C:\Program Files\NUT\bin\upsc.exe'; $c = 'C:\Program Files\NUT\etc\upsmon.conf'; if (Test-Path $u) { $t = @(& $u -l 2>$null); if (Test-Path $c) { $t += @(Select-String -Path $c -Pattern '^\s*MONITOR\s+(\S+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }) }; $t = $t | Where-Object { $_ } | Sort-Object -Unique; foreach ($n in $t) { "== $n"; & $u $n }; if (-not $t) { 'upsc: no UPS listed' } } else { 'upsc: not installed' }
   ```
 - The power state comes from the `root\wmi` class, whose
   `PowerOnline`, `Discharging` and `Critical` are the battery
