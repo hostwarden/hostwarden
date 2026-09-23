@@ -255,12 +255,20 @@ if command -v resolvectl >/dev/null 2>&1; then
     | grep -E "^(Global|Link [0-9]+ \(($l)\))"
   resolvectl domain 2>/dev/null \
     | grep -E "^(Global|Link [0-9]+ \(($l)\))"
+  resolvectl mdns 2>/dev/null \
+    | grep -E "^(Global|Link [0-9]+ \(($l)\))"
   resolvectl status --no-pager 2>/dev/null \
     | grep -E 'resolv.conf mode|Protocols' | sort -u
 fi
 grep '^hosts:' /etc/nsswitch.conf
 ss -lnu 'sport = :53' | tail -n +2
 ss -lnt 'sport = :53' | tail -n +2
+# mDNS: who listens, and the name avahi announces
+# (resolved's view is the resolvectl mdns lines above).
+ss -lnu 'sport = :5353' | tail -n +2
+ps -eo args | grep -E '^avahi-daemon: [a-z]+ \['
+grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
+  /etc/avahi/avahi-daemon.conf
 hostname -f
 getent hosts "$(hostname -f)"
 echo "dns64=$(getent ahostsv6 ipv4only.arpa \
@@ -570,6 +578,33 @@ Also:
   DNS64 resolver and carries the NAT64 prefix. The
   `grep -v '^::ffff:'` drops the IPv4-mapped
   addresses glibc adds for names without AAAA.
+- A listener on UDP 5353 is an mDNS responder, or a
+  program that only asks there, such as a media
+  server or a browser. Name it:
+  - **avahi** by its `avahi-daemon: running
+    [<name>.local]` line, with the name it announces,
+    and only beside a listener: `ps` also shows the
+    avahi of a container, which is not the host's.
+    `disable-publishing=yes` or
+    `publish-addresses=no` in its configuration
+    means it announces no address for the host.
+  - **systemd-resolved** by the `resolvectl mdns`
+    lines, where both `Global` and the uplink's
+    `Link` say `yes`; `resolve` on either only asks.
+  - **A name conflict:** an announced name that is
+    the host's own (`hostname -f` up to the first
+    dot) with `-2` or higher appended. Another
+    machine on the link held the name first.
+
+  Record `mDNS responder:` in the profile's DNS
+  section (`rules/network.md`): each responder named
+  above, avahi with its name and `publishes no
+  address` where so configured. Any other listener is
+  `UDP 5353: unnamed, may only ask`: without `-p`,
+  a socket of resolved in `resolve` mode, a
+  program's that only asks and one that answers look
+  alike. `none` only where nothing listens. It is a
+  note, not a finding.
 - `127.0.1.1` for the own name comes from
   `/etc/hosts`: Debian's default, not a finding. It
   matters only for a service that must announce its
@@ -657,6 +692,13 @@ sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding \
   net.inet6.ip6.accept_rtadv
 grep -E '^(nameserver|search|domain|options)' \
   /etc/resolv.conf
+hostname
+sysctl -n security.bsd.see_other_uids
+sockstat -4 -6 -l | grep -E ':5353\b'
+ps -ax -J 0 -o args \
+  | grep -E '^(avahi-daemon: [a-z]+ \[|(/usr/local/sbin/)?mdnsd)'
+grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
+  /usr/local/etc/avahi/avahi-daemon.conf
 ```
 
 - `rc.conf` is the source of truth.
@@ -668,6 +710,18 @@ grep -E '^(nameserver|search|domain|options)' \
 - With `ip6.forwarding=1` FreeBSD ignores RAs by
   default. Check `sysctl -d net.inet6.ip6.rfc6204w3`
   on the host before relying on that knob.
+- The last lines give the mDNS responder, read as on
+  Linux (Reading D), with `hostname` as the host's
+  own name. `ps -J 0` lists the host's processes
+  alone, not a jail's; `sockstat` names the command
+  on the port. `mdnsd` is Apple's mDNSResponder, the
+  responder of TrueNAS CORE: record it by that name.
+  Any other command `sockstat` names is recorded in
+  place of `unnamed`. Where `see_other_uids` is `0`
+  and the probe ran without root, both lines miss
+  other users' processes (`rules/os/freebsd.md` →
+  Networking): nothing found there is
+  `unchecked (needs root)`, not `none`.
 
 ## Probe — macOS
 
@@ -682,6 +736,10 @@ route -n get -inet6 default 2>/dev/null \
 scutil --dns | grep -E '^resolver|nameserver|search domain|if_index' \
   | head -40
 sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding
+scutil --get LocalHostName
+scutil --get ComputerName
+defaults read /Library/Preferences/com.apple.mDNSResponder \
+  NoMulticastAdvertisements 2>/dev/null
 ```
 
 Then `networksetup -getinfo "<service>"` for the
@@ -695,6 +753,15 @@ Automatic, Manual or Off for IPv6.
   (stable, not from the MAC).
 - `scutil --dns` shows the resolver order, including
   per-domain resolvers set by VPN clients.
+- mDNSResponder always runs and answers for
+  `<LocalHostName>.local`: record
+  `mDNS responder: mDNSResponder (<name>.local)`.
+  `NoMulticastAdvertisements` `1` stops it
+  advertising services; add `no service adverts`.
+  A `LocalHostName` ending in `-2` or higher that
+  the `ComputerName` does not end in is a name
+  conflict: another machine on the link held the
+  name first, and macOS renamed this one.
 
 ## Egress test
 

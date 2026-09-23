@@ -134,6 +134,7 @@ so does a host's `network.md` (`rules/network.md`).
 | Field                    | Owner                       | Written          |
 |--------------------------|-----------------------------|------------------|
 | `IP:`                    | `dns-aliases.md`            | first connection |
+| `Resolved via:`          | `mdns.md`                   | `.local` name    |
 | `FQDN:`                  | `dns-aliases.md`            | activity check   |
 | `SSH port:`              | this file                   | first, on a move |
 | `Reached as:`            | this file                   | first connection |

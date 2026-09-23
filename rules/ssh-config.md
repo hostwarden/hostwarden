@@ -98,7 +98,9 @@ host too. Never copy it unasked.
    and name its `- DNS alias:` names on the block's `Host` line
    too, or the aliases stay on the old port. Once the host's key
    is in place on the new port, give each alias its key there as
-   `rules/host-keys.md` → DNS Aliases says.
+   `rules/host-keys.md` → DNS Aliases says. A new `HostName`
+   drops the `- Resolved via:` line for the name ssh connected to
+   before (`rules/mdns.md`).
 5. Commit it like every workspace file, by its path
    `memory/ssh_hosts` (`rules/parallel-sessions.md` → The
    workspace). A block for a host with no memory yet goes in with

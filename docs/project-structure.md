@@ -246,6 +246,8 @@ rules/                 — Upstream rule files (git-tracked)
   firewall-changes.md  — Exposure review when a service is
                          installed, removed or reconfigured
   dns-aliases.md       — DNS alias detection & management
+  mdns.md              — mDNS or DNS for a .local name, and
+                         what disagreeing answers mean
   backups.md           — Config file backup procedure
   deployed-files.md    — Files a session writes onto a
                          host: master, marker, deploy and
