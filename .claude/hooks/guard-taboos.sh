@@ -708,10 +708,12 @@ image_write_targets() {
   # That side is only read, so copying the host's own sshd_config
   # into an image as a reference is a read of it; what is left names
   # the paths the image is written at (image_sshd_dir below counts a
-  # REMOTE that is sshd's directory). A LOCAL that itself holds a
-  # colon is left in place and still counts, which errs on asking.
+  # REMOTE that is sshd's directory). Quotes around either side go
+  # with it, since the shell drops them: x:'/etc/ssh' leaves :/etc/ssh.
+  # A LOCAL that itself holds a colon, a space or a quote inside it is
+  # left in place and still counts, which errs on asking.
   printf '%s' "$CMD" \
-    | sed -E "s/(--(copy-in|upload)([[:space:]]+|=)[\"']?)[^:[:space:]\"']+:/\\1:/g"
+    | sed -E "s/(--(copy-in|upload)([[:space:]]+|=))[\"']*[^:[:space:]\"']+[\"']*:[\"']*/\\1:/g"
 }
 
 image_sshd_dir() {

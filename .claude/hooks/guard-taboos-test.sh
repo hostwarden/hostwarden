@@ -547,6 +547,13 @@ check_mode ask default \
   "virt-customize -a $FB_IMG --copy-in=10.conf:/etc/ssh/sshd_config.d"
 check_mode ask default \
   "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/etc/ssh"
+# Quotes on either side are the shell's and change nothing.
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:'/etc/ssh'"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in \"sshd_config\":\"/etc/ssh\""
+check_mode pass default \
+  "virt-customize -a $FB_IMG --copy-in '/etc/ssh/sshd_config':'/tmp'"
 # A copy into sshd's directory asks whatever the local file is
 # called, and so does one into dropbear's; a copy into a directory
 # dropbear's config shares with everything else asks only when the
