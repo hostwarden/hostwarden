@@ -115,12 +115,18 @@ its one exception, `CHANGELOG.md`.
 
 ## Claims
 
-"Read-only", "every", "never", "only", "verified" and "whole" are
-promises every step of the flow has to keep, on every platform the
+A claim says what a flow does or guarantees: that a phase is
+"read-only", that "every" guest gets a line, that a result is
+"verified", that a snapshot covers the "whole" guest. It is a
+promise every step of the flow has to keep, on every platform the
 file covers. Write one only where you have checked each step
 against it; otherwise say what the step does and leave the
 guarantee out. A claim that a review has broken twice is dropped,
 not narrowed.
+
+A prohibition is not a claim. "Never pass a secret as an argument"
+tells the agent what not to do; a step that breaks it is the
+defect, and the prohibition stays.
 
 ## Layout
 

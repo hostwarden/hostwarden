@@ -41,7 +41,11 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 The review for defects runs in a context of its own, never in the
 session that wrote the change: that session reads the change as it
 meant it, and a reviewer that did not write it reads it as a model
-on a production server will.
+on a production server will. In Claude Code that is the
+`hostwarden-reviewer` subagent; elsewhere, a fresh session whose
+instructions are that file's body. In the Codex CLI such a session
+draws on the Codex quota, so there the Codex round is the review
+and the reviewer passes below are skipped.
 
 Codex runs are the scarce resource: they draw on one weekly quota,
 locally and on GitHub alike. A question a Claude reviewer can
@@ -50,40 +54,52 @@ answer never costs a Codex run.
 ### Before Codex
 
 1. `/simplify`, for reuse and clarity.
-2. The `hostwarden-reviewer` subagent on the branch against its
-   base, for defects. Fix what it reports the way a fix commit is
-   made (below), until a pass reports nothing at P0 or P1, at most
-   three passes. What remains goes into the Codex round as it is.
-3. Lift the draft status.
+2. `hostwarden-reviewer` on the branch against its base, for
+   defects. Fix what it reports with steps 1 to 3 of a fix commit
+   (below), everything as in rounds 1 and 2.
+3. Lift the draft status, then request round 1.
 
 ### Codex
 
 - **Local, where the Codex CLI is installed and signed in**
   (`codex login status` exits 0). Push first, so the SHA the run
-  reviews exists on the pull request, then run it in the
-  background — it takes minutes:
+  reviews exists on the pull request. Run it in a detached
+  worktree of that SHA, so nothing the session changes meanwhile
+  reaches the review, and in the background — it takes minutes.
+  `<run>` is `<pr>-<n>`, the pull request's number and the round's,
+  plus a suffix for a repeated attempt:
 
-      codex exec review --base origin/<base> \
-        -c model_reasoning_effort=high --ephemeral \
-        -o <scratch>/codex-round-<n>.md >/dev/null 2>&1
+      git worktree add --detach <scratch>/codex-<run> <head sha> &&
+        codex exec -C <scratch>/codex-<run> review \
+        --base origin/<base> -c model_reasoning_effort=high \
+        --ephemeral -o <scratch>/codex-<run>.md \
+        > <scratch>/codex-<run>.log 2>&1
 
-  Post the file as one pull request comment whose first line is
+  Remove the worktree once it exits, whatever the outcome. Only a
+  run that exited 0 and left a file that is not empty completed.
+  Post its file as one pull request comment whose first line is
   exactly
 
       Codex review (local) on `<full head sha>`: <k> findings
 
   with `1 finding` or `no findings` where that fits, and the file
   below it unchanged. That comment is the record whoever merges
-  reads. A run that exits non-zero or leaves the file empty
-  reviewed nothing: report it and post nothing. Answer the
-  findings in one further comment, a line each: "<title> — fixed
-  in <sha>", "not a bug: …" or "deferred to a follow-up PR".
+  reads. Answer the findings in one further comment, a line each:
+  "<title> — fixed in <sha>", "not a bug: …" or "deferred to a
+  follow-up PR".
 - **On GitHub otherwise.** Codex (`chatgpt-codex-connector`)
   reviews there only when asked: the repository's automatic
   reviews are off, so a local run is never repeated there. Comment
   `@codex review` once the draft status is lifted, and again for
   each later round. Answer every thread the same way and resolve
   it.
+- **A run that did not complete** reviewed nothing: it is no round,
+  and nothing is posted for it. Locally its log says why; on
+  GitHub the connector replies instead of reviewing. When the usage
+  limit stopped it, the pull request waits: report it to whoever
+  merges, with the reset time where the message names one, and
+  they decide whether to wait or merge without Codex. The other
+  path draws on the same quota and is no way around it.
 - Stacked pull requests are each reviewed against their own base,
   so their rounds run in parallel.
 
@@ -107,19 +123,22 @@ Deferred findings are listed in the pull request body under
 
 A finding names one case; the defect is usually a class. Fixing
 only the case named is what brings the same finding back in the
-next round.
+next round. Each time `hostwarden-reviewer` is given findings
+below, it also gets those of the pull request's earlier rounds.
 
 1. Give the findings to `hostwarden-reviewer` as a sweep. It names
    each one's class and every sibling in the repository.
-2. Fix the finding and its siblings in one commit. When a finding
-   breaks an absolute claim — "verified", "read-only", "every" —
-   for the second time, drop the claim rather than narrowing it
-   again.
-3. Give the fix commit's range to `hostwarden-reviewer`, with the
-   findings it answers, and fix what it reports at the current
-   round's level, at most three passes.
-4. Only then request the next Codex round. Never request one after
-   only answering findings, or after a rebase.
+2. Fix the finding and its siblings in one commit. A claim about
+   what the flow does — "verified", "read-only", "every guest" —
+   that a review breaks for the second time, or that the reviewer
+   finds cannot be kept, is dropped rather than narrowed again.
+3. Before pushing, give the commit's range to
+   `hostwarden-reviewer`, with the findings it answers. Fix what
+   it reports at the current round's level by amending the same
+   commit, at most three passes; what remains goes into the next
+   Codex round as it is.
+4. Push. After a Codex round, request the next one. Never request
+   one after only answering findings, or after a rebase.
 
 A finding against a guard hook follows `repo-release.md` → Guard
 findings.
@@ -128,8 +147,9 @@ findings.
 
 - Codex has completed on the current head: on GitHub, the "Codex
   Review Summary" comment shows "✅ Completed" next to that SHA,
-  not "🔄 Running", and a clean pass leaves only that comment and a
-  👍, no review; locally, the record comment names that SHA.
+  not "🔄 Running", and a clean pass leaves no review, only a
+  "Didn't find any major issues" comment; locally, the record
+  comment names that SHA.
 - No unresolved thread, every local finding answered, CI green, not
   a draft, and GitHub reports the pull request CLEAN.
 - After any rebase, conflicts included, no new Codex review is

@@ -117,10 +117,13 @@ The prompt names one of two jobs.
 14. **A pattern that blocks legitimate use.** Feed it `--help`,
     `man`, `tldr`, `Get-Help`, comments, and names that contain it
     as a substring.
-15. **An absolute claim a step breaks.** Every "read-only",
-    "every", "never", "only", "verified", "whole" in the change:
-    look for the one step that falsifies it. When the claim cannot
-    be kept, say that it should be dropped, not narrowed.
+15. **A claim a step breaks.** Every statement of what the flow
+    does or guarantees — "read-only", "every", "verified",
+    "whole": look for the one step that falsifies it. When no fix
+    to the steps can keep it, or the prompt shows it was broken in
+    an earlier round, say it should be dropped, not narrowed. A
+    prohibition ("never pass a secret as an argument") is not a
+    claim: the step that breaks it is the defect.
 16. **A repository convention.** `.claude/rules/` for the file:
     80-column wrap, current state only, example identifiers, fence
     markers.
