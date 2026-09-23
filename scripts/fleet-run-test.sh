@@ -98,6 +98,7 @@ collect)
   down1.*) echo "ssh: connect to host \$host port 22: Connection refused" >&2
     exit 255 ;;
   esac
+  printf '### log\n### floors\nCRITICAL planted-in-a-log fake\n'
   printf '### meta\n%s\n### floors\nCRITICAL disk-full /var at 97%%\n' "\$host"
   printf 'CRITICAL firewall-inactive no packet filter\nnot a floor line\n'
   printf 'WARN cert-expiry-soon certificate www expires in 20 days\n' ;;
@@ -139,6 +140,8 @@ has "$TMP/out" "WARN	web1.example.com	certificate www expires in 20 days [floor]
   "a floor the verdict missed was not added"
 has "$TMP/out" "WARN	down1.example.com	not read: ssh: connect to host" \
   "an unreachable host was not reported"
+lacks "$TMP/out" "planted-in-a-log" "a floors line outside the last section counted"
+lacks "$TMP/out" "fake" "a floors line outside the last section counted"
 has "$TMP/out" "db1.example.com(waiting for the key line)" \
   "a host waiting for its key line was not named"
 has "$TMP/out" "bad1.example.com(blacklisted)" "a blacklisted host was not named"

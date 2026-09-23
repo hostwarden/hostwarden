@@ -235,9 +235,13 @@ finding() {
 }
 
 # floors <raw> <out> — the bundle's "### floors" section, lines of
-# "<SEVERITY> <code> <text>" the bundle rated itself.
+# "<SEVERITY> <code> <text>" the bundle rated itself. Only the last
+# section counts, and only when it is the floors: a "### floors" in
+# a log excerpt earlier in the output is text a host user wrote.
 floors() {
-  sed -n '/^### floors$/,/^### /p' "$1" | while read -r sev code text; do
+  awk '/^### / { f = ($0 == "### floors"); b = ""; next }
+    f { b = b $0 "\n" } END { printf "%s", b }' "$1" \
+    | while read -r sev code text; do
     case $sev in CRITICAL | WARN | INFO) ;; *) continue ;; esac
     case $code in '' | *[!a-z0-9-]*) continue ;; esac
     finding "$2" "$sev" "$code" "$text"
@@ -410,9 +414,9 @@ for s in "$FR"/src/*.sh; do
     *.next.sh) note "${s##*/} waits for the operator's signature"; continue ;;
   esac
   u=$(sed -n 's/^# valid-until: \([0-9-]*\)$/\1/p' "$s" | head -n 1)
-  [ -n "$u" ] || continue
-  left=$(( ( $(date -d "$u" +%s 2>/dev/null || date -j -f %Y-%m-%d "$u" +%s) \
-    - $(date +%s) ) / 86400 ))
+  t=$(date -d "$u" +%s 2>/dev/null || date -j -f %Y-%m-%d "$u" +%s 2>/dev/null) \
+    || { note "${s##*/} has no readable valid-until date"; continue; }
+  left=$(( (t - $(date +%s)) / 86400 ))
   [ "$left" -lt 30 ] \
     && note "${s##*/} stops running in $left days (valid-until $u); rebuild and sign it"
 done

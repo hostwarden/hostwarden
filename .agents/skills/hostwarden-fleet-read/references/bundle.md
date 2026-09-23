@@ -90,9 +90,9 @@ df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
 
 sec 'floors'
 df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | awk 'NR > 1 {
-  sub(/%/, "", $5)
-  if ($5 > 95) print "CRITICAL disk-full", $6, "at", $5 "%"
-  else if ($5 > 85) print "WARN disk-high", $6, "at", $5 "%" }'
+  p = $5; sub(/%/, "", p); p += 0
+  if (p > 95) print "CRITICAL disk-full", $6, "at", p "%"
+  else if (p > 85) print "WARN disk-high", $6, "at", p "%" }'
 ```
 
 - `valid-until` is at most a year ahead; the operator may choose
@@ -119,7 +119,15 @@ too. At least:
 - `firewall-inactive`, only where no packet filter of any kind is
   active — none of ufw, firewalld, nftables with a table, iptables
   rules, pf or the appliance's own. Where that is not certain, no
-  line: the verdict decides.
+  line: the verdict decides;
+- `auto-updates-off`, where the reference's check is a plain one —
+  a configuration file missing, a timer disabled;
+- any other CRITICAL of the references that a command, not a
+  judgement, decides.
+
+The floors section is the last one, and only the last one counts:
+the fleet run ignores a `### floors` line that a check earlier in
+the output printed, such as a log excerpt.
 
 The bundle and its signature together must stay under 256 KiB, the
 wrapper's input limit.

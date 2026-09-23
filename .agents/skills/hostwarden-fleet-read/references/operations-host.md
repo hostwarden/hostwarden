@@ -65,9 +65,9 @@ the checkout. A run, in order:
 4. writes one read-only line to each host's journal through the
    wrapper and the same line to its changelog, commits those
    files, and pushes;
-5. sends one report for the fleet, which also names what went
-   wrong around the checks: an update or a pull that failed, a
-   bundle that does not verify, a push that did not go through.
+5. sends one report for the fleet. Its notes carry what the update
+   and the pull at the start said, a bundle that does not verify
+   or nears its date, and a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
 host's memory, so a unit can be told to alert on it.
