@@ -140,12 +140,16 @@ hostwarden_git_batch() {
   # workspace in memory/ can use a key the checkout around it does
   # not. Without one, as before a clone, only the user's and the
   # system's setting count.
+  # An unset key makes `git config` fail, which must not end a
+  # caller running under `set -e`.
   if [ -z "${GIT_SSH_COMMAND:-}" ]; then
     if [ -n "${1:-}" ]; then
-      GIT_SSH_COMMAND=$(git -C "$1" config core.sshCommand 2>/dev/null)
+      GIT_SSH_COMMAND=$(git -C "$1" config core.sshCommand 2>/dev/null) \
+        || GIT_SSH_COMMAND=
     else
       GIT_SSH_COMMAND=$(git config --global core.sshCommand 2>/dev/null \
-        || git config --system core.sshCommand 2>/dev/null)
+        || git config --system core.sshCommand 2>/dev/null) \
+        || GIT_SSH_COMMAND=
     fi
   fi
   export GIT_TERMINAL_PROMPT
