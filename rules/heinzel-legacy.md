@@ -89,9 +89,19 @@ echo "##paths"; ls -d /var/backups/heinzel \
   ~/.heinzel-backups ~/heinzel-scratch \
   /root/heinzel-scratch /etc/heinzel /opt/heinzel \
   2>/dev/null || true
+# crontab lines: the schedule and the command's first word, then
+# each directory a `cd` in them changes into, never the arguments
+# (rules/secrets.md → Commands That Leak)
+cs='(@[a-z]+|[^@[:space:]]+([[:space:]]+[^[:space:]]+){4})'
+cdir="(^|[[:space:];&|\"'(>])cd[[:space:]]+[\"']?[^[:space:];&|\"']+"
 echo "##cron"; { ls -1 /etc/cron.d 2>/dev/null \
   | grep -i heinzel; crontab -l 2>/dev/null \
-  | grep -i heinzel; } || true
+  | grep -v '^[[:space:]]*#' | grep -i heinzel | sed -nE \
+    -e 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=.*/\1= .../p' \
+    -e t -e "s/^[[:space:]]*($cs[[:space:]]+[^[:space:]=]+).*/\\1 .../p"
+  crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -i heinzel \
+    | grep -oE "$cdir" | sed -E "s/^[^c]*/  /; s/cd[[:space:]]+[\"']?/cd /"
+  } || true
 echo "##units"; systemctl list-unit-files 2>/dev/null \
   | grep -i heinzel || true
 ```
@@ -103,7 +113,8 @@ it names on the `##paths` line, each unit under
 an option: each goes in as one single-quoted argument
 after `--` (`ls -d -- '<path>'`,
 `systemctl list-unit-files --no-legend -- '<unit>'`,
-`grep -F -e '<cron text>'`), and one that holds a
+`grep -cF -e '<cron text>'`, a count, since the
+line can carry more than the lead), and one that holds a
 single quote or a newline is not probed but
 reported as open. A unit lead is an exact unit name:
 one with a character other than letters, digits and

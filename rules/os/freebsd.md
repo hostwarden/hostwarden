@@ -13,9 +13,24 @@ Rules for FreeBSD (all versions).
 - Installed packages: `pkg info`
 - Audit for vulnerabilities: `pkg audit -F`
 - Check which pkg branch the host uses (`quarterly`
-  or `latest`) in `/etc/pkg/FreeBSD.conf` before
-  installing, and stick to the branch the host
-  already uses (AGENTS.md: stable release tracks).
+  or `latest`) before installing, and stick to the
+  branch the host already uses (AGENTS.md: stable
+  release tracks). `pkg -vv` shows every repository
+  with the URL in effect, a file under
+  `/usr/local/etc/pkg/repos/` included, and whether it
+  is enabled; read the enabled ones' host and branch
+  only, never the URL, which can carry a user name or
+  a token. A `file://` repository shows as `local`:
+
+  ```
+  p='^[[:space:]]*url[[:space:]]*:[[:space:]]*"(pkg\+)?'
+  u="$p[a-z]+://([^/@\"]*@)?"; b='(quarterly|latest|base_[a-z0-9_]+)'
+  pkg -vv | awk '/^[[:space:]]*url[[:space:]]*:/ { l = $0 }
+    /^[[:space:]]*enabled[[:space:]]*:/ { if ($0 ~ /yes/) print l; l = "" }' \
+    | sed -nE -e "s#${p}file:.*#local#p" \
+      -e t -e "s#$u([^/:\"]+)[^\"]*/$b/?\".*#\\3 \\4#p" \
+      -e t -e "s#$u([^/:\"]+).*#\\3#p"
+  ```
 
 ### Packaged base or distribution sets
 

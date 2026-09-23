@@ -54,7 +54,10 @@ system before it is wiped. Store it in
   listening ports
 - Database dumps (PostgreSQL, MySQL, etc.)
 - Web server configs (sites, SSL certs)
-- Cron jobs (`crontab -l`, `/etc/cron.d/`)
+- Cron jobs (`crontab -l`, `/etc/cron.d/`): copied whole to
+  the workstation like the keys below, outside the repo, and
+  recorded here as their schedules (`rules/secrets.md` →
+  Commands That Leak)
 
 ### User Accounts
 
@@ -68,7 +71,11 @@ system before it is wiped. Store it in
 - Explicitly installed packages
   (`apt-mark showmanual`, `pkg info -o`,
   `dnf history userinstalled`)
-- Custom repositories
+- Custom repositories, recorded by host and suite, never
+  the URL whole (`rules/secrets.md` → Commands That Leak);
+  on Debian and Ubuntu as `rules/os/debian.md` → What to
+  Check on Existing Servers extracts them, with `own` set
+  empty so that every source is listed
 
 ### Certificates
 

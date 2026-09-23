@@ -33,12 +33,24 @@ logs from your notes, a past layout, or training
 data. Ask the running system where it actually
 points:
 
-- the service's environment and unit:
-  `systemctl cat <unit>`, its drop-ins,
-  `EnvironmentFile`, `Environment=`,
-  `WorkingDirectory=`
-- the app's own config file
-- a search: `grep -rIn '<VAR_OR_PATH>' /etc /opt …`,
+- the service's unit: `systemctl show -p LoadState
+  -p FragmentPath -p DropInPaths -p EnvironmentFiles
+  -p WorkingDirectory <unit>` (`LoadState=not-found` is
+  a unit name that is wrong, not an empty unit), the
+  paths its command names whose directory exists, as
+  `.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
+  filters them (`$PA` and `ex`, on `systemctl show -p
+  ExecStart <unit>`), since an argument that only looks
+  like a path can be a token; a `(path missing under
+  /mnt)` there is where to look first,
+  and an `Environment=` variable by its name
+  (`systemctl show -p Environment <unit> | grep -oE
+  '"DATA_DIR=[^"]*"|(^|[ =])DATA_DIR=[^ "]*'`), only one
+  that holds no credential; never `systemctl cat`, which
+  prints them all
+- the app's own config file, as `rules/secrets.md` →
+  Commands That Leak shows one
+- a search: `grep -rIl '<VAR_OR_PATH>' /etc /opt …`,
   `find / -xdev -name '<state-file>' 2>/dev/null`
 
 Paths move: migrations, redeploys, refactors. A
@@ -56,7 +68,9 @@ run, never the thing as absent. Look at:
 
 - current mounts: `findmnt <path>`, `df`,
   `/proc/mounts`
-- was it ever a mount? `/etc/fstab`, plus the
+- was it ever a mount? `/etc/fstab` by its first three
+  fields (`awk '!/^#/ {print $1, $2, $3}' /etc/fstab`:
+  the options can hold a CIFS password), plus the
   systemd mount-unit name in the journal
   (`journalctl | grep '<escaped-path>.mount'`). A
   mount that fails to reappear usually leaves an

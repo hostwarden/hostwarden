@@ -15,10 +15,20 @@ variables and filters.
 
 The probe reads hook scripts and never runs them, and it prints
 only the lines of a script that change routes, rules, filters or
-kernel settings. Such a line can carry a secret
-(`rules/secrets.md`), so a command other than a network tool is
-cut to its name (`curl ...`), and a line that names a key, a
-password, a token or `ip xfrm` stays out altogether.
+kernel settings. Such a line can carry a secret, so it keeps
+only the arguments the reading needs (`rules/secrets.md` →
+Commands That Leak): a command other than a network tool is cut
+to its name (`curl ...`), `ip` on anything but an address, a
+route, a rule, a neighbour, a link or a next hop to its object
+(`ip x ...` for an IPsec key), and an assignment whose value is
+not an address, a netfilter tool or one of the host's interfaces
+to its name. A network tool keeps its options, and a quoted
+string or the value of a free-text option shows as `...`: a
+comment, a log prefix, a match string, a description, an alias,
+options matched by prefix as the tools read them, and a shell
+comment is dropped. As the backstop, a command that names a
+password, a secret, a token or a key is cut to its name
+whatever it is.
 
 BusyBox `ip` has no `-br`, and Alpine ships no `ss` or `curl`
 by default: where a section comes back empty for that reason,
@@ -73,40 +83,111 @@ grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' $ifs 2>/dev/null
 # Hooks: the stanza lines, the scripts they name, and the
 # dispatcher scripts no package installed.
 h='^[[:space:]]*(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]'
-x='xfrm|key|pass|secret|token|psk'
-# A command is printed whole only when it is a network tool, a
-# netfilter call through a variable, an assignment of an address,
-# interface or tool, or a write to /proc/sys; any other keeps its
-# name alone, since its arguments can carry a credential.
-t='^(ip|ip6?tables(-legacy)?(-restore)?|nft|sysctl|ebtables|arptables'
+# What of a hook line is printed: the top of this file. The rest
+# is cut, since it can carry a credential (`ip x s add ... 0x<key>`).
+t='^(ip6?tables(-legacy)?(-restore)?|nft|sysctl|ebtables|arptables'
 t="$t|bridge|brctl|tc|ipset|route|firewall-cmd|ufw|conntrack)\$"
-v='(ip6?tables|nft)[^[:space:]]*|[0-9.]+(/[0-9]+)?|[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?'
+# An assignment's value printed whole: an address or a netfilter
+# tool ($vs), or an interface this host has ($il); $v also selects
+# numbers and names that look like an interface, shown withheld.
+vs='[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+(/[0-9]+)?|(ip6?tables|nft)(-[a-z]+)*'
+vs="$vs|[0-9a-f]*:[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?"
+v="$vs|[0-9]+|0x[0-9a-f]+(/0x[0-9a-f]+)?"
 v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
-va="^[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?\$"
-rd='{ pre = ""; l = $0
+il=$(ls /sys/class/net 2>/dev/null | tr '\n' ' ')
+rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]]
+  x = "pass(word|wd|phrase)|secret|token|psk|apikey|(^|[^a-z])key([^a-z]|$)"
+  split("comment log-prefix nflog-prefix ulog-prefix string hex-string" \
+    " set-description set-short", fo, " ")
+  fw = "^(comment|alias|sdata|description)$" }
+# an option or word whose value is free text; options match by
+# prefix, as iptables and firewall-cmd read them
+function ftx(s,   q, i) { if (s ~ fw) return 1
+  if (s !~ /^--/) return 0; q = s; sub(/^--/, "", q); sub(/=.*/, "", q)
+  if (q == "") return 0
+  for (i in fo) if (index(fo[i], q) == 1) return 1
+  return 0 }
+{ pre = ""; l = $0
   if (match(l, /^[^:]*:[0-9]+:/)) {
     pre = substr(l, 1, RLENGTH); l = substr(l, RLENGTH + 1) }
   sub(/^[[:space:]]+/, "", l); hk = ""
   if (l ~ /^(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]/) {
     hk = l; sub(/[[:space:]].*/, "", hk)
     sub(/^[^[:space:]]+[[:space:]]+/, "", l); hk = hk " " }
-  n = split(l, sg, /[[:space:]]*(;|&&|\|\|?)[[:space:]]*/); o = ""
+  # a quoted string stays only where it is an address, a port or
+  # range, an interface of this host or a variable, before the
+  # line is split: a separator inside quotes is text. An escaped
+  # character is text too; a quote still left marks a command
+  # whose quoting was not followed, and cuts it to its name
+  gsub(/\\./, "_", l)
+  q = ""; while (match(l, /"[^"]*"|\047[^\047]*\047/)) {
+    a = substr(l, RSTART + 1, RLENGTH - 2)
+    q = q substr(l, 1, RSTART - 1) (a ~ ("^(" vs ")$") \
+      || a ~ /^[0-9.:\/,-]+$/ || (a in isif) \
+      || a ~ /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/ ? a : "...")
+    l = substr(l, RSTART + RLENGTH) }
+  l = q l
+  # a shell comment is free text; a lone & starts a command too
+  sub(/(^|[[:space:];&|])#.*/, "", l); gsub(/[0-9]*>&[0-9-]*/, "", l)
+  if (l ~ /["\047]/) { w = l; sub(/[[:space:]].*/, "", w)
+    print pre hk w " ..."; next }
+  n = split(l, sg, /[[:space:]]*[;&|]+[[:space:]]*/); o = ""
   for (i = 1; i <= n; i++) {
     c = sg[i]; w = c; sub(/[[:space:]].*/, "", w)
-    sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b)
-    if (!(b ~ t || c ~ va \
+    sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b); ok = 0
+    if (b == "ip") {
+      k = split(c, tk, /[[:space:]]+/); j = 2
+      while (j < k && tk[j] ~ /^-/) {
+        # ip reads options by prefix; these four take an argument
+        op = tk[j]; sub(/^--?/, "", op)
+        if (op != "" && (index("family", op) == 1 || index("netns", op) == 1 \
+          || index("loops", op) == 1 \
+          || (index("rcvbuf", op) == 1 && length(op) > 1))) w = w " " tk[j++]
+        w = w " " tk[j++] }
+      if (j <= k) { w = w " " tk[j]; ok = tk[j] != "" && index(\
+        " address route rule neighbor neighbour link nexthop", " " tk[j]) }
+    } else if (w ~ /=$/) {
+      a = c; sub(/^[^=]*=/, "", a); gsub(/["\047]/, "", a)
+      ok = a ~ ("^(" vs ")$") || (a in isif)
+    } else ok = b ~ t \
       || c ~ /^"?\$\{?[A-Za-z_]+\}?"?[[:space:]]+-[tAIDNPF]/ \
-      || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)))
-      c = w " ..."
+      || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)
+    if (!ok || c ~ /[$<>]\(|`|["\047]/ || tolower(c) ~ x) c = w " ..."
+    else if (b != "echo") {
+      # a network tool keeps its options, never free text
+      r = c; sub(/^[^[:space:]]+/, "", r)
+      c = substr(c, 1, length(c) - length(r))
+      k = split(r, tk, /[[:space:]]+/)
+      for (m = 1; m <= k; m++) if (tk[m] != "") {
+        v2 = tk[m]; o2 = v2; sub(/=.*/, "", o2)
+        if (m > 1 && tk[m - 1] !~ /=/ && ftx(tk[m - 1]) \
+          && tk[m - 2] != "-m") v2 = "..."
+        else if (v2 ~ /=/ && ftx(o2)) v2 = o2 "=..."
+        c = c " " v2 } }
     o = o (i > 1 ? "; " : "") c }
   print pre hk o }'
 hl=$(grep -HnE "$h" $ifs 2>/dev/null)
 echo "## hooks"
-[ -n "$hl" ] && printf '%s\n' "$hl" | grep -viE "$x" \
-  | awk -v t="$t" -v va="$va" "$rd"
-hs=$(printf '%s\n' "$hl" | cut -d: -f3- \
-  | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' | sed 's|^[^/]*||' \
-  | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
+[ -n "$hl" ] && printf '%s\n' "$hl" \
+  | awk -v t="$t" -v vs="$vs" -v il="$il" "$rd"
+# the scripts a hook line runs: a path in command position, and
+# any other path word that is a script here: executable, a #!
+# line or a script's extension (one behind env, timeout or
+# python3); an argument that is neither can be a token or a key.
+# Tested with the privilege path; one a user cannot test counts
+T=$SUDO; [ "$T" = - ] && T=
+r='((\.|source|exec|([a-z/]*/)?(sh|bash|dash))[[:space:]]+)?'
+hc=$(printf '%s\n' "$hl" | cut -d: -f3- \
+  | sed -E 's/^[[:space:]]*[a-z-]+[[:space:]]+//' | tr ';&|' '\n\n\n')
+hs=$({ printf '%s\n' "$hc" | sed -nE "s#^[[:space:]]*$r(/[^[:space:]]+).*#\\5#p"
+  printf '%s\n' "$hc" | grep -oE "(^|[[:space:]=])/[^[:space:]\"']+" \
+    | sed 's|^[^/]*||' | while IFS= read -r w; do
+      $T test -f "$w" || { [ "$SUDO" = - ] && ! LC_ALL=C ls -d "$w" 2>&1 \
+        | grep -q 'No such file' && echo '(unread)'; continue; }
+      case $w in *.sh|*.bash|*.py|*.pl) echo "$w"; continue ;; esac
+      { $T test -x "$w" || [ "$($T head -c 2 "$w" 2>/dev/null)" = '#!' ]; } \
+        && echo "$w"; done
+  } | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
 c=
 for f in /etc/network/if-*.d/* /etc/NetworkManager/dispatcher.d/* \
   /etc/NetworkManager/dispatcher.d/*.d/* \
@@ -127,10 +208,12 @@ fi
 for f in /sbin/ifup-local /sbin/ifdown-local; do
   [ -f "$f" ] && hs="$hs $f"
 done
-hs=$(printf '%s\n' $hs | sort -u)
+hu=$(printf '%s\n' $hs | grep -c '^(unread)$')
+hs=$(printf '%s\n' $hs | grep -v '^(unread)$' | sort -u)
 echo "scripts: $(printf '%s ' $hs)"
+[ "$hu" -gt 0 ] && echo "scripts-unread=$hu(needs-root)"
 # Commands that change something, and assignments whose value is
-# a netfilter tool, an address or an interface name ($va).
+# a netfilter tool, an address, a number or an interface name ($v).
 p='^[[:space:]]*([a-z/]*/)?(ip6?tables(-legacy)?(-restore)?|nft|ip'
 p="$p|sysctl|ebtables|arptables|bridge|brctl|tc|ipset|route"
 p="$p|firewall-cmd|ufw|conntrack|wg|wg-quick)[[:space:]]"
@@ -147,9 +230,15 @@ else
     [ -f "$f" ] || { echo "missing=$f"; continue; }
     w=; o=0
     for c in $(grep -vE "^[[:space:]]*(#|\$)" "$f" | sed -e "s/^[[:space:]]*//" \
-      -e "s/[[:space:];].*//" -e "s/=.*/=/" | sort -u); do
+      -e "s/[[:space:];].*//" -e "s/^\([A-Za-z_][A-Za-z0-9_]*\)=[^=].*/\1=@/" \
+      | sort -u); do
+      # NAME= only with a value after it (a padded key ends in =),
+      # $ only before a name, a path only one that exists here
       case $c in
-        /*|*=|\$*|\"\$*) w="$w $c" ;;
+        *=@) w="$w ${c%@}" ;;
+        /*[+=]*) o=$((o + 1)) ;;
+        /*) if [ -e "$c" ]; then w="$w $c"; else o=$((o + 1)); fi ;;
+        \$[A-Za-z_{]*|\"\$[A-Za-z_{]*) w="$w $c" ;;
         *) if command -v "$c" >/dev/null 2>&1; then w="$w $c"
            else o=$((o + 1)); fi ;;
       esac
@@ -157,8 +246,8 @@ else
     echo "$f:$w (other: $o)"
   done'
   $SUDO sh -c "$q" sh $hs
-  $SUDO grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x" \
-    | awk -v t="$t" -v va="$va" "$rd"
+  $SUDO grep -HnE "$p" $hs 2>/dev/null \
+    | awk -v t="$t" -v vs="$vs" -v il="$il" "$rd"
 fi
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
@@ -292,7 +381,7 @@ echo "proxy-env=$pe proxy-apt=$pa proxy-dnf=$pd proxy-suse=${pz:-0}"
   /etc/apt/sources.list /etc/apt/sources.list.d/ \
   /etc/yum.repos.d/ /etc/zypp/repos.d/ /etc/apk/repositories \
   2>/dev/null \
-  | grep -oE 'https?://[^/ "]+' | sed 's|//[^@/]*@|//|' \
+  | grep -oE 'https?://[^/ "]+' | sed 's|//.*@|//|' \
   | sort -u | head -3)
 [ -n "$T" ] || echo "egress=no-target"
 gw=; command -v wget >/dev/null 2>&1 \
@@ -466,7 +555,11 @@ Reading **A (manager)**:
   part that matters most: NAT, policy routing and sysctls
   set in a `post-up` line or a script it calls are
   applied with the interface and appear in no manager's
-  view. `scripts:` names each script a hook line calls,
+  view. `scripts:` names each script a hook line runs as
+  a command, each other path in it that is a script here
+  (behind `env`, `timeout` or an interpreter; never a key
+  or password file it names), with `scripts-unread=<n>`
+  for those a session without root could not test,
   and each dispatcher script no package installed. Then,
   per script, the first words of its lines that are a
   command, a path or a variable, with `other:` counting
@@ -475,12 +568,19 @@ Reading **A (manager)**:
   for a script a hook line names that does not exist: that
   hook fails when it runs. The lines after that are the ones
   that change something, with the assignments that name a
-  tool, an address or an interface. A command among the
+  tool, an address, a number or an interface, cut as the
+  top of this file says. A command among the
   first words whose lines are not printed — another tool,
   a function, a program the pattern does not know — is
   read with an anchored grep on that word, and so is a
-  variable whose assignment is missing
-  (`rules/secrets.md`), never by printing the script.
+  variable whose assignment is missing; that grep prints
+  what the reading needs of the line, an option name, a
+  path or a count, never the line itself
+  (`rules/secrets.md`), and never the script. A withheld
+  assignment the reading needs (`TABLE= ...`, a `DEV=`
+  naming an interface the hook creates) is read by its name with an
+  anchored grep, as `rules/secrets.md` reads a key's
+  value: only where the name holds no credential.
   Only a script whose words are all accounted for is
   fully read.
 
@@ -771,8 +871,8 @@ One request per address family to a host the machine
 already talks to, so the test adds no new third
 party: on Linux the first answering repository host
 (section E of the probe), on FreeBSD the host of the
-`pkg` repository (`pkg -vv | grep url`, with `pkg+`
-and the path dropped: `https://pkg.FreeBSD.org/`),
+`pkg` repository (its host as `rules/os/freebsd.md`
+→ Package Manager reads it: `pkg.FreeBSD.org`),
 on macOS Apple's update host `swscan.apple.com`. On
 FreeBSD use `fetch -4` / `fetch -6` with
 `-q -T 5 -o /dev/null`; on macOS `curl` as in the

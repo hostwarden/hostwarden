@@ -118,8 +118,8 @@ not others, or different ESM services enabled.
 `crond` from the `###rc###` block. Every key above is
 `n/a (Alpine)`; the Alpine rows are
 
-- `apk upgrade job` — the script or crontab line that runs it,
-  or `none`
+- `apk upgrade job` — the script that runs it, or the
+  crontab line's schedule and first word, or `none`
 - `crond` — `started` or `stopped`
 
 A root crontab line is what usually runs it, and `crontab -l`
