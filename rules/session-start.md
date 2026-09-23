@@ -22,7 +22,8 @@ session left behind.
 
 Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`, and
-`memory/custom-rules/all.md` (if present), and glance at
+`memory/custom-rules/all.md` (if present), `memory/operators.md`
+where the workspace has a remote, and glance at
 `memory/servers/` and `memory/custom-rules/` to see what's there.
 
 **How:** read each file on its own, with whatever your harness
@@ -69,12 +70,23 @@ file's interview format:
 *"Which short handle should Hostwarden record as yours? It goes
 into the journal of every server you change and into the shared
 workspace, so initials or a code will do."* Offer the current OS
-user where it fits the handle's format, and `Other…`. Where
-`[<handle> as ` already stands in a `changelog.log` under
-`memory/servers/`, ask whether those entries are theirs; if not,
-the handle is taken. Write the answer as `Operator: <handle>`
-under `# Preferences` in `memory/user.md`, creating the file or
-the heading where it lacks them.
+user where it fits the handle's format, and `Other…`.
+
+`memory/operators.md` is the team's shared list of handles in use,
+one `- <handle>` line each. Where the answer is on it, ask whether
+it is theirs; if not, it is taken, and ask again. A new handle is
+reserved before it is used: add its line, commit that file alone
+(`bin/hostwarden-sync commit "Operator: <handle>"
+memory/operators.md`) and push it (`rules/changelog.md` → The
+Workspace). A push the remote turns down means someone else pushed
+first: pull, and check the list again. Where the user declines the
+push, say that the handle is not reserved until a later push
+carries it.
+
+Then write `Operator: <handle>` under `# Preferences` in
+`memory/user.md`, creating the file or the heading where it lacks
+them. An `Operator:` line the user wrote themselves that the list
+lacks is reserved the same way, without a question.
 
 ## What not to ask
 

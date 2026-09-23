@@ -323,7 +323,8 @@ directory has to be added there by hand.
 its masters and `decisions.md`, `memory/clusters/*/`,
 `memory/decisions/`, `memory/fleet/`, `memory/tools/`,
 `memory/plans/`, `memory/known_hosts`
-(`rules/host-keys.md`),
+(`rules/host-keys.md`), `memory/operators.md` (the
+handles in use, `rules/session-start.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 

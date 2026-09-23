@@ -337,7 +337,9 @@ that keeps updating.
    every journal entry (`[alice as root] …`) and
    every decision you record, so the team can tell
    whose work is whose, even when you all log in
-   as `root`; pick one no teammate uses. It lands
+   as `root`. The handles in use are listed in the
+   shared `operators.md`, and one a teammate has
+   already taken is turned down. It lands
    in the servers' journals, which keep it as long
    as their logs are retained and wherever they are
    shipped, so choose what you are comfortable
@@ -383,6 +385,7 @@ the backup.
   your handle (`Operator:`) and full name
   (`Operator name:`)
 - `blacklist.md`, `readonly.md` — access policies
+- `operators.md` — the team's handles in use
 - `service-policy.md` — per-service opt-out /
   opt-in for auto-reload and auto-restart
 - `servers/<hostname>/` — per-server memory,

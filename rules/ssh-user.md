@@ -161,7 +161,8 @@ prefix, a decision's `Decided:`, a `Planned:` line.
 - **Team mode** — the workspace has a remote
   (`rules/server-memory.md` → Personal versus
   shared): the line is required, one handle per
-  teammate. Where teammates share a login such as
+  teammate, reserved in the shared
+  `memory/operators.md`. Where teammates share a login such as
   `root`, `<unix-user>` cannot tell them apart; the
   handle does. Where it is missing,
   `rules/session-start.md` asks for it.
