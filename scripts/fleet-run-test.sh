@@ -321,6 +321,20 @@ mv "$TMP/ssh_config.saved" "$M/ssh_config"
 (unset HOSTWARDEN_FLEET_RUN_FRESH; run --dry-run --host web1.example.com)
 lacks "$TMP/out" "at the start" "a dry run ran the update and the pull"
 
+# --- an argument not known here runs no update --------------------
+# A stand-in update that leaves a mark, removed again after.
+printf '#!/bin/sh\n: >"%s/updated"\n' "$TMP" >"$R/.claude/hooks/check-updates.sh"
+for args in --dry-runn '--hots web1.example.com' --host '--host --dry-run'; do
+  # shellcheck disable=SC2086 # split on purpose: one case, many words
+  (unset HOSTWARDEN_FLEET_RUN_FRESH; run $args)
+  rc=$?
+  [ "$rc" = 1 ] && ok || bad "'$args' did not exit 1 (rc $rc)"
+  has "$TMP/err" 'Usage:' "'$args' printed no usage"
+  [ -e "$TMP/updated" ] && bad "'$args' ran the update" || ok
+  rm -f "$TMP/updated"
+done
+rm "$R/.claude/hooks/check-updates.sh"
+
 # --- a report the mail transport refuses -------------------------
 server ok1.example.com 'key line present' ''
 git -C "$M" add -A && git -C "$M" commit --quiet -m ok1
