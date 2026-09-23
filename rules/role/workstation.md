@@ -46,6 +46,10 @@ off or somewhere else. That changes two rules:
   stop. Connect as usual. When the host key verifies,
   update `- IP:` and say so in one line; a host-key
   mismatch still stops the session.
+- `rules/mdns.md` → Comparing: DNS and mDNS that
+  disagree do not stop the session either. The host
+  key decides the same way; record the source ssh
+  took and name the disagreement in one line.
 
 ## The Owner's Things
 

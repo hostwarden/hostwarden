@@ -67,7 +67,9 @@ symlink):
    read-only check already resolved the name this
    way, reuse that result; otherwise resolve it
    here. If nothing resolves, the IP comparisons
-   cannot run: tell the user so.
+   cannot run: tell the user so. Where the name ssh
+   connects to ends in `.local`, follow
+   `rules/mdns.md` before step 2.
 
 2. **Compare against known servers.** Scan existing
    `memory/servers/*/memory.md` files (skip
@@ -213,7 +215,13 @@ IP(s) counts as a match. Note multi-A hosts in
 server memory instead of alarming. Only when there
 is no overlap at all, **stop and tell the user.**
 Ask whether the server migrated (update IP) or the
-alias now points elsewhere (detach it).
+alias now points elsewhere (detach it). Where the
+name ssh connects to (Detection step 1) ends in
+`.local`, follow `rules/mdns.md` before asking.
+
+That name follows `rules/mdns.md` on any connection
+too while `memory.md` has no `- Resolved via:` line
+for it.
 
 The port is part of the identity too. Compare the
 `port` line of `ssh -G <user>@<hostname>` with
@@ -227,7 +235,9 @@ about a changed address.
 
 1. Delete the symlink from `memory/servers/`.
 2. Remove the `- DNS alias:` line from canonical
-   `memory.md`.
+   `memory.md`, and the `- Resolved via:` line for
+   the name ssh reached the alias by, unless another
+   of the host's names reaches the same one.
 3. Remove the alias from `memory/user.md` if present.
 4. Remove its lines from `memory/known_hosts`:
    `rules/host-keys.md` → Removing Names.

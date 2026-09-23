@@ -194,6 +194,7 @@ Probed: 2026-09-19
 - resolv.conf: symlink → systemd-resolved stub
 - Upstream: 2 v4 + 1 v6 on eth0, link-provided
 - Own name: hostname -f resolves to itself
+- mDNS responder: none
 
 ## Public DNS (from workstation)
 - A: matches · AAAA: matches
