@@ -128,36 +128,51 @@ A sourcing script, a logrotate stanza or a backup
 include list finds the file by a path nobody wrote
 down, and a symlink or a runlevel link finds it by
 a target that no content search reads. As root or
-through `sudo -n`, in one call:
+through `sudo -n`, in one call, fed to `sh -s`
+rather than typed into the login shell:
 
 ```
-grep -rIl '<old-stem>' /etc /usr/local/bin \
-  /usr/local/sbin /usr/local/etc /usr/local/lib/systemd \
-  /opt /root /home/*/bin /home/*/.config \
-  /Users/*/bin /Users/*/Library/LaunchAgents \
-  /var/spool/cron /var/cron/tabs /var/at/tabs \
-  2>/dev/null || true
-find /etc /usr/local /opt /root /home/*/bin \
-  /home/*/.config /Users/*/bin -type l \
-  -exec ls -l {} + 2>/dev/null | grep '<old-stem>' || true
+roots=""
+for d in /etc /usr/local/bin /usr/local/sbin /usr/local/etc \
+  /usr/local/lib/systemd /opt /root /Library/LaunchDaemons \
+  /Library/LaunchAgents /var/spool/cron /var/cron/tabs \
+  /var/at/tabs /home/*/bin /home/*/.config /Users/*/bin \
+  /Users/*/Library/LaunchAgents; do
+  [ -d "$d" ] && roots="$roots $d"
+done
+echo "##roots$roots"
+echo "##content"; grep -rIl '<old-stem>' $roots; echo "##rc $?"
+echo "##links"; find $roots -type l -exec ls -l {} + \
+  | grep '<old-stem>'; echo "##rc $?"
 ```
 
-The `grep`'s line of spool directories holds every
-user's crontab: `/var/spool/cron/` with its `crontabs/`
-(Debian, Ubuntu) and `tabs/` (SUSE) subdirectories,
-the directory itself on RHEL and Fedora,
+Only directories that exist reach `grep` and `find`,
+so a line a host lacks costs nothing, and neither
+command's errors are hidden. Read each `##rc`: `0`
+found something, `1` found nothing, anything else
+means a part was not searched — say which, and
+rename nothing until it has been. `sh` keeps a
+pattern that matches nothing as it is, which the
+`[ -d ]` test then drops; zsh, macOS's login shell,
+and csh abort the whole command on it instead, which
+is why the script goes through `sh -s`.
+
+The spool directories hold every user's crontab:
+`/var/spool/cron/` with its `crontabs/` (Debian,
+Ubuntu) and `tabs/` (SUSE) subdirectories, the
+directory itself on RHEL and Fedora,
 `/var/cron/tabs/` on FreeBSD, `/var/at/tabs/` on
-macOS; Alpine's `/etc/crontabs/` is under `/etc`. A
-path a host lacks costs nothing. Add the scheduler's
-own places where `rules/os/<family>.md` names more:
-launchd plists, FreeBSD's `periodic.conf`. BusyBox
-`grep` has no `--exclude-dir` and BusyBox `find` no
-`-lname`, which is why the search excludes nothing
-and lists links through `ls -l`. `grep -r` does not
-follow a link, so a link in a user's `bin` is found
-only by the `find`; both searches cover the home
-roots, `/home` on Linux and FreeBSD, `/Users` on
-macOS.
+macOS; Alpine's `/etc/crontabs/` is under `/etc`.
+The launchd directories are macOS's
+(`rules/os/macos.md` → Service Manager). Add the
+scheduler's own places where `rules/os/<family>.md`
+names more, such as FreeBSD's `periodic.conf`.
+BusyBox `grep` has no `--exclude-dir` and BusyBox
+`find` no `-lname`, which is why the search excludes
+nothing and lists links through `ls -l`. `grep -r`
+does not follow a link, so a link — in a user's
+`bin`, or a plist linked into `LaunchAgents` — is
+found only by the `find`.
 
 `-l` prints file names only. Read the hits that can
 be consumers, in one call. Never read a hit in key
@@ -249,18 +264,23 @@ the runlevels `rc-update show` listed before
 A launchd job keeps its states too. launchd goes on
 running the definition it loaded, whatever happens to
 the file, so moving and rewriting a plist is not
-enough. Read whether the job is loaded
-(`launchctl list <label>` succeeds) and whether it is
-disabled (`launchctl print-disabled system`, or
-`gui/<uid>` for an agent). Unload it from the old
-plist before the file moves, and load the renamed
-plist only if it was loaded (`rules/os/macos.md`) —
-through `sudo` for a daemon, as its user for an
-agent. The `Label` changes with the name, and
-launchd records a disabled job by its label, so a
-job that was disabled is disabled again under the new
-one: `launchctl disable system/<new-label>`, or
-`gui/<uid>/<new-label>` for an agent.
+enough. Every `launchctl` call names the job's
+domain: `system` for a daemon, `gui/<uid>` for a user
+agent. Without it, `launchctl` answers for the
+caller's own session, which over SSH or as root is
+not the user's, and an agent loaded there reads as
+not loaded. Read whether the job is loaded
+(`launchctl print <domain>/<label>` succeeds) and
+whether it is disabled
+(`launchctl print-disabled <domain>`). Remove it from
+the old plist before the file moves
+(`launchctl bootout <domain> <old-plist>`), and put
+the renamed plist back only if it was loaded
+(`launchctl bootstrap <domain> <new-plist>`). The
+`Label` changes with the name, and launchd records a
+disabled job by its label, so a job that was disabled
+is disabled again under the new one:
+`launchctl disable <domain>/<new-label>`.
 
 **Verify, in one call.** The changed files and the
 renamed paths hold no old name except those left on
@@ -270,7 +290,8 @@ each unit and launchd job is back in the states read
 before, and a timer that was active shows its next
 run under the new name in `systemctl list-timers`, as
 a cron job does in its crontab and a loaded launchd
-job in `launchctl list`; the old unit is gone from
+job in `launchctl print <domain>/<new-label>`; the
+old unit is gone from
 `systemctl list-unit-files`. Report it in one line.
 When a check fails, say which, and offer the way
 back: the § 2 map replayed backwards, the backups
