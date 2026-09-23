@@ -158,8 +158,15 @@ else
   step "release matrix" sh .claude/hooks/release-test.sh
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
-step "fleet-read wrapper" sh scripts/fleet-read-test.sh
-step "fleet run" sh scripts/fleet-run-test.sh
+# The fleet matrices read the wrapper, the runner and what it calls.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)$|^\.claude/hooks/mode\.sh$|^scripts/fleet-'
+then
+  echo "== fleet matrices: nothing they read is pushed, skipped"
+else
+  step "fleet-read wrapper" sh scripts/fleet-read-test.sh
+  step "fleet run" sh scripts/fleet-run-test.sh
+fi
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point

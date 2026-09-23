@@ -14,7 +14,7 @@ resolved IP). IPs are the most robust form — prefer
 them. In `memory/readonly.md` only, the entry `*`
 matches every host, the local machine included: an
 operations host's list holds it
-(`rules/operations-host.md`). Files are created on
+(`hostwarden-fleet-read` skill). Files are created on
 first need — do not pre-create them.
 
 ```markdown

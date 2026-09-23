@@ -48,7 +48,7 @@ git -C "$M" init --quiet
 cat >"$M/user.md" <<EOF
 # Preferences
 # Operator name: Your Full Name
-Operator name: ops1
+Fleet name: ops1
 Fleet key: $TMP/fleet-key
 Workspace push: always
 EOF
@@ -98,8 +98,9 @@ collect)
   down1.*) echo "ssh: connect to host \$host port 22: Connection refused" >&2
     exit 255 ;;
   esac
-  printf '### meta\n%s\n### floors\ndisk 97 /var\ndisk 40 /\n' "\$host"
-  printf 'firewall inactive no packet filter\ncert 20 www\n' ;;
+  printf '### meta\n%s\n### floors\nCRITICAL disk-full /var at 97%%\n' "\$host"
+  printf 'CRITICAL firewall-inactive no packet filter\nnot a floor line\n'
+  printf 'WARN cert-expiry-soon certificate www expires in 20 days\n' ;;
 log) printf '%s %s\n' "\$host" "\$(cat)" >>"$TMP/logs" ;;
 *) exit 255 ;;
 esac
@@ -183,7 +184,8 @@ lacks "$M/servers/web1.example.com/memory.md" "Last connected" \
 rm -f "$TMP"/collect-*
 echo 'echo changed' >>"$FR/src/linux.sh"
 run --dry-run --host web1.example.com
-has "$TMP/out" "bundle linux does not verify" "a changed bundle was not named"
+has "$TMP/out" "bundle 'linux' is missing or does not verify" \
+  "a changed bundle was not named"
 [ -e "$TMP/collect-web1.example.com" ] && bad "a changed bundle was sent" || ok
 
 # --- only in operations -------------------------------------------

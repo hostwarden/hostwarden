@@ -113,10 +113,7 @@ outdated entries, merge related items. A change to a
 ZFS or btrfs setting, a mount option or an ARC limit
 updates `storage.md` in the same step.
 
-**Update `Last connected:` on every connection.** An
-operations host's fleet run is not one: it writes only
-its changelog line (`rules/operations-host.md` → The
-workspace).
+**Update `Last connected:` on every connection.**
 
 Memory files never hold credential values — see
 `rules/secrets.md`.

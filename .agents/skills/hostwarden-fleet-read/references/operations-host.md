@@ -1,46 +1,44 @@
-# Operations Host
+# The operations host
 
-An operations host is an always-on machine that runs Hostwarden
-with nobody at the keyboard: the nightly housekeeping of the
-fleet, from a timer, while the operator's workstation sleeps. It
-is an operations checkout like any other (`AGENTS.md` → Development
-or Operations), with a workspace cloned from the same remote. It
-reaches the fleet only through fleet read (`hostwarden-fleet-read`
-skill), never with a shell.
-
-Read this when the user asks to set one up, to schedule
-housekeeping somewhere other than this workstation, or about the
-report one sent — and when this session runs on one.
+Part of the `hostwarden-fleet-read` skill. An operations host is an
+always-on machine that runs Hostwarden with nobody at the keyboard:
+the nightly housekeeping of the fleet, from a timer, while the
+operator's workstation sleeps. It is an operations checkout like
+any other (`AGENTS.md` → Development or Operations), with a
+workspace cloned from the same remote. It reaches the fleet only
+through fleet read, never with a shell.
 
 ## What it holds
 
 **Its own personal files.** `memory/user.md`, `memory/blacklist.md`
 and `memory/readonly.md` never sync (`rules/server-memory.md` →
-Personal versus shared), so the operations host has its own:
+Personal versus shared), so the operations host has its own. Its
+`user.md` carries, besides what any `user.md` has:
 
 ```markdown
-Operator name: ops1
+Fleet name: ops1
 Report email: ops@example.com
 Workspace push: always
 ```
 
-- `Operator name:` — one word, the machine's short name. It is the
-  name every key line's command carries, so the journal on every
-  host reads `[ops1 as root] read-only: housekeeping: …`, told
-  apart from the operator's own `[alice as root]`.
+- `Fleet name:` — one word, the machine's short name. Every key
+  line's command carries it, so the journal on every host reads
+  `[ops1 as root] read-only: housekeeping: …`, told apart from the
+  operator's own `[alice as root]`.
 - `Report email:` — where the nightly report goes, through the
-  machine's own mail transport (`sendmail`). Without it the report
-  goes to the timer's log.
-- `Workspace push: always` — the standing answer to the push
-  question (`rules/changelog.md` → The Workspace); nobody is there
-  to give it.
+  machine's own mail transport. Without it the report goes to the
+  timer's log.
+- `Workspace push: always` — the fleet run pushes its commits only
+  with this line: nobody is there to answer the push question of
+  `rules/changelog.md` → The Workspace. Sessions on the machine
+  still ask.
 - `Fleet key:` — the private key's path, when it is not
   `~/.ssh/id_fleet_read`.
 
 `memory/readonly.md` holds `*`, which makes every host read-only
 for every session there (`rules/access-control.md` → Read-Only
 Servers). `memory/blacklist.md` carries the operator's blacklist,
-copied by hand, since it never syncs.
+copied by hand, since it never syncs; the fleet run checks it too.
 
 **Keys the operator made, and nothing more:** the fleet key, a key
 that may push to the workspace's remote, and the `claude` login.
@@ -53,11 +51,7 @@ the machine would hold.
 ## What it runs
 
 `bin/hostwarden-fleet-run`, from a timer, as the account that owns
-the checkout. Before the first timer, run it by hand in this order:
-`--no-judge` shows what each host returns, `--dry-run` shows the
-report, and only then a real run writes and sends anything.
-
-A run, in order:
+the checkout. A run, in order:
 
 1. brings Hostwarden up to date the way a session start does
    (`check-updates.sh`, pins and opt-outs included), pulls the
@@ -66,12 +60,14 @@ A run, in order:
    machine, with the key line present and not blacklisted, sends
    the signed bundle and collects its output, four hosts at a time;
 3. has a model judge each output with no tools, no MCP server and
-   an empty directory, and checks the verdict against hard floors
+   an empty directory, and holds the verdict to the bundle's floors
    and the host's memory (the script's header says how);
 4. writes one read-only line to each host's journal through the
    wrapper and the same line to its changelog, commits those
    files, and pushes;
-5. sends one report for the fleet.
+5. sends one report for the fleet, which also names what went
+   wrong around the checks: an update or a pull that failed, a
+   bundle that does not verify, a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
 host's memory, so a unit can be told to alert on it.
@@ -108,11 +104,6 @@ their queue through a setuid or setgid program, which that setting
 silently stops. Both units are deployed files of the operations
 host itself (`rules/deployed-files.md`).
 
-**Scheduled `claude -p` runs** (`hostwarden-housekeeping` skill →
-`references/scheduled.md`) do not run here. They need a shell on
-the host, which the fleet key does not give; the fleet run is this
-machine's scheduled housekeeping.
-
 **An interactive session** there — over SSH, or through remote
 control — reaches no managed host: the fleet key opens only the
 wrapper. It reads the workspace and the reports, and works on the
@@ -131,17 +122,16 @@ share the machine; it never gets the fleet key.
 ## The workspace
 
 The fleet run writes only the changelog lines of the hosts it
-read, never `memory.md` — no `Last connected:`, no finding: those
-are for a session that works on a host. The changelog merges by
+read, never `memory.md`: no `Last connected:`, no finding. Those
+belong to a session that works on a host. The changelog merges by
 union (`templates/workspace/.gitattributes`), so the operations
 host and the workstation never conflict over it, and nothing else
 of theirs meets.
 
 It commits its own files by path, nothing another session left.
-When the pull at its start fails, it runs on what it has and the
-report says so; so does a push that fails. The commits wait for
-the next run, and the operator resolves the workspace with
-`git -C memory pull` on that machine.
+When the pull at its start fails, it runs on what it has; the
+commits wait for the next run, and the operator resolves the
+workspace with `git -C memory pull` on that machine.
 
 ## Setting one up
 
@@ -159,9 +149,10 @@ operator's:
 3. The personal files above.
 4. The operator makes the fleet key and logs `claude` in.
 5. Fleet read for each host, from the workstation
-   (`hostwarden-fleet-read` skill), with this machine's
-   `Operator name:` as the name in every key line.
-6. `--no-judge`, `--dry-run`, then the two units.
+   (`references/install.md`), with this machine's `Fleet name:` as
+   the name in every key line.
+6. `bin/hostwarden-fleet-run --no-judge` shows what each host
+   returns, `--dry-run` shows the report; then the two units.
 
 Record the role in its memory, the timer and the report address
 included, as for anything else the host runs.

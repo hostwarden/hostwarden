@@ -393,8 +393,9 @@ Report it; change nothing unasked:
   (`rules/secrets.md`).
 - **Jobs that are not housekeeping** — a mailbox triage, a
   remote-control session — are the operator's own automation
-  (`rules/operations-host.md` → What it is not): recorded in that
-  machine's memory, and left running.
+  (`.agents/skills/hostwarden-fleet-read/references/operations-host.md`
+  → What it is not): recorded in that machine's memory, and left
+  running.
 - **On each fleet host,** the wrapper, the signers file, and how
   many key lines name the wrapper, read with `grep -c` only. None
   of it is renamed, moved or removed while a key line names it: a
@@ -405,7 +406,9 @@ Then offer to point the fleet at Hostwarden, each step its own
 yes:
 
 1. An operations host of Hostwarden's, on the same machine or
-   another (`rules/operations-host.md` → Setting one up).
+   another
+   (`.agents/skills/hostwarden-fleet-read/references/operations-host.md`
+   → Setting one up).
 2. Fleet read on each host (`hostwarden-fleet-read` skill), beside
    Heinzel's wrapper: the operator adds a second key line, and both
    work at once.

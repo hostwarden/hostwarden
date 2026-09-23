@@ -54,9 +54,10 @@ land in the host's `deployed.md` with the source `fleet/fleet-read`.
 
 The key line carries two facts about the operations host:
 
-- **Its name** — the operator name it logs under, from its own
-  `memory/user.md`. The wrapper puts it in front of every journal
-  line, so a nightly run is told apart from anyone's session.
+- **Its name** — the `Fleet name:` of its own `memory/user.md`
+  (`references/operations-host.md`). The wrapper puts it in front
+  of every journal line, so a nightly run is told apart from
+  anyone's session.
 - **Its address as this host sees it** — for `from=`. Read it from
   the operations host's memory, and mind NAT, a VPN or a mesh: the
   address that arrives can be another than the one it has. When in

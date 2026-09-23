@@ -18,7 +18,8 @@ housekeeping while the workstation sleeps is an
 operations host, and it does not use the command
 below: it reaches the fleet only through fleet read,
 with `bin/hostwarden-fleet-run`
-(`rules/operations-host.md`).
+(`hostwarden-fleet-read` skill →
+`references/operations-host.md`).
 
 ## The Command
 

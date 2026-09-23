@@ -129,10 +129,10 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
-    hostwarden-fleet-read/    — Least-privilege access for an
-                         operations host: a forced command
-                         that runs operator-signed bundles
-                         (SKILL.md + references/)
+    hostwarden-fleet-read/    — An operations host and its
+                         least-privilege access: a forced
+                         command that runs operator-signed
+                         bundles (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   os/                  — Reference data. Detection reads at
                          most one — none for a distro no
@@ -275,8 +275,6 @@ rules/                 — Upstream rule files (git-tracked)
   heinzel-legacy.md    — Finding the state Heinzel left on a
                          host
   heinzel-adoption.md  — Adopting what that check found
-  operations-host.md   — A machine that runs the fleet's
-                         housekeeping unattended
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 templates/workspace/   — What bin/hostwarden-init puts

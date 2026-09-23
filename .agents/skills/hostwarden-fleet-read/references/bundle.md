@@ -89,8 +89,10 @@ sec 'baseline-linux.md: Disk Usage'
 df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
 
 sec 'floors'
-df -P -x tmpfs -x devtmpfs -x overlay -x squashfs \
-  | awk 'NR > 1 { sub(/%/, "", $5); print "disk", $5, $6 }'
+df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | awk 'NR > 1 {
+  sub(/%/, "", $5)
+  if ($5 > 95) print "CRITICAL disk-full", $6, "at", $5 "%"
+  else if ($5 > 85) print "WARN disk-high", $6, "at", $5 "%" }'
 ```
 
 - `valid-until` is at most a year ahead; the operator may choose
@@ -101,17 +103,23 @@ df -P -x tmpfs -x devtmpfs -x overlay -x squashfs \
   heading exactly, so whoever reads the output can find the
   thresholds that apply.
 
-The last section is `floors`, in lines the fleet run checks on its
-own, whatever the verdict says (`bin/hostwarden-fleet-run`):
+The last section is `floors`: one line per finding that no verdict
+may lower, as `<SEVERITY> <code> <text>`. The fleet run adds each
+to the host's findings and holds a finding of the same code to at
+least that severity, whatever the model says
+(`bin/hostwarden-fleet-run`). The bundle rates them itself, with
+the thresholds of the references it was built from and the
+overrides that change them, so the signature covers the numbers
+too. At least:
 
-- `disk <percent used> <mount point>` for every file system the
-  disk check covers;
-- `cert <days left> <name>` for every certificate the certificate
-  check finds, negative once expired;
-- `firewall inactive <why>` only when no packet filter of any kind
-  is active — none of ufw, firewalld, nftables with a table,
-  iptables rules, pf or the appliance's own. Where that is not
-  certain, no line: the verdict decides.
+- `disk-full` and `disk-high`, for file systems over the disk
+  check's thresholds;
+- `cert-expiry` and `cert-expiry-soon`, for certificates the
+  certificate check finds expired or near their end;
+- `firewall-inactive`, only where no packet filter of any kind is
+  active — none of ufw, firewalld, nftables with a table, iptables
+  rules, pf or the appliance's own. Where that is not certain, no
+  line: the verdict decides.
 
 The bundle and its signature together must stay under 256 KiB, the
 wrapper's input limit.
