@@ -144,18 +144,23 @@ Source for everything below unless noted: the admin guide,
   the IPSet's entries and the aliases they can name, without their
   free-text comments:
   ```
-  t=$(mktemp)
-  if pvesh get /cluster/firewall/ipset/management \
-    --output-format json > "$t"; then
-    jq -r '.[] | (if .nomatch then "!" else "" end) + .cidr' "$t"
-    echo "management: read"
-  else echo "management: none"; fi
-  rm -f "$t"
-  pvesh get /cluster/firewall/aliases --output-format json \
-    | jq -r '.[] | .name + " " + .cidr'
+  f=/cluster/firewall
+  if l=$(pvesh get $f/ipset --output-format json) \
+    && e=$(pvesh get $f/aliases --output-format json); then
+    if printf '%s' "$l" | jq -e 'any(.[]; .name == "management")' \
+      >/dev/null; then
+      m=$(pvesh get $f/ipset/management --output-format json) \
+        && printf '%s' "$m" \
+        | jq -r '.[] | (if .nomatch == 1 then "!" else "" end) + .cidr' \
+        && echo "management: read" || echo "management: unread"
+    else echo "management: none"; fi
+    printf '%s' "$e" | jq -r '.[] | .name + " " + .cidr'
+    echo "aliases: read"
+  else echo "firewall: unread"; fi
   ```
-  An entry that is no address names an alias. `management: none`
-  means no such IPSet is defined; the network `pve-firewall
+  An entry that is no address names an alias. Only `read` and
+  `none` are answers; `unread` means the read failed.
+  `management: none` means no such IPSet is defined; the network `pve-firewall
   localnet` names is admitted to the host either way
   (<https://pve.proxmox.com/wiki/Firewall>).
 - `pve-firewall stop` removes all Proxmox rules and leaves the host

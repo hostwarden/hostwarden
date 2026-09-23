@@ -500,7 +500,8 @@ with these changes:
   `name` and `description` as under Network API; otherwise the user
   reads them out.
   A port forward or WAN rule to the console's SSH is the CRITICAL
-  above; the web UI reachable from the internet directly, not
+  above, where its `enabled` is true; one switched off in the UI
+  lets nothing through; the web UI reachable from the internet directly, not
   through UniFi's remote access, is WARN.
 - Listening services (`references/listening-services.md`): as
   written.

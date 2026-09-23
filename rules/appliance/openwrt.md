@@ -30,7 +30,8 @@ of the current release branch,
 - The shell is busybox `ash`, the only one in `/etc/shells`.
 - The SSH server is **dropbear**, not OpenSSH, and under the SSH
   taboo in `AGENTS.md`. Its settings are the UCI file
-  `/etc/config/dropbear` (Port, Interface, PasswordAuth,
+  `/etc/config/dropbear` (Port, Interface, DirectInterface,
+  PasswordAuth,
   RootPasswordAuth, RootLogin; one `dropbear` section per
   instance); `/etc/dropbear` holds root's `authorized_keys` and the
   host keys. Read with `uci show dropbear` and `ls -l`, never
@@ -76,18 +77,22 @@ of the current release branch,
   file; the change is gone at the next reload.
 - **Change settings with `uci`**, not with an editor:
   - `uci show <config>` and `uci get <config>.<section>.<option>`
-    read;
+    read. `wireless`, `network` and `firewall` hold Wi-Fi keys,
+    PPPoE passwords, WireGuard keys and rule names: read those as
+    key names (`uci show network | sed -n 's/=.*//p'`), `uci get`
+    only an option that holds no credential, and `firewall` only
+    through `u` (Housekeeping and Audits);
   - `uci set`, `add`, `add_list`, `del_list` and `delete` stage a
     change in `/tmp/.uci`;
-  - `uci changes | sed 's/=.*//'` shows which options are staged,
-    without their values, which can be a password or a key;
-    `uci revert <config>` drops it;
+  - `uci changes | sed -nE 's/^[-+]?([a-z0-9_]+)[.].*/\1/p' | sort | uniq -c`
+    counts the staged changes per config; the lines themselves hold
+    values and section names, which can be a password, a key or a
+    rule's name. `uci revert <config>` drops them;
   - `uci commit <config>` writes it to flash.
   Always name the config on `commit`: a bare `uci commit` also
-  writes whatever else is staged in `/tmp/.uci`. Run
-  `uci changes | sed 's/=.*//'` first, which names each staged
-  option without its value; changes you did not stage are someone
-  else's, so stop and ask.
+  writes whatever else is staged in `/tmp/.uci`. Count the staged
+  changes first, as above; a config you staged nothing in, or more
+  changes than you staged, is someone else's, so stop and ask.
 - **Apply** with `reload_config`, which reloads each service whose
   config changed, or with the service's own `reload` (see Service
   Manager). A committed change that was never applied takes effect
@@ -183,40 +188,53 @@ of the current release branch,
   Source:
   <https://openwrt.org/docs/guide-user/firewall/firewall_configuration>.
 - Read-only: `uci show firewall | awk "${u:?}"`, with `u` from
-  Housekeeping and Audits: it withholds the free text, the name of
-  a rule, redirect, NAT rule or forwarding, a log prefix, a comment,
-  a description and raw options, and keeps zone, ipset and helper
-  names, which rules refer to; `fw4 print` (the ruleset fw4 would load) and
+  Housekeeping and Audits: it prints the values of the options
+  that say what a section filters and where it sends traffic, and
+  zone, ipset and helper names, which rules refer to; every other
+  value shows as `...`, and a named rule, redirect, NAT rule or
+  forwarding shows by its `@<type>[<n>]` address;
+  `fw4 print 2>&1` (the ruleset fw4 would load) and
   `nft list ruleset` (the ruleset that is loaded), both piped
-  through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` → Commands
-  That Leak).
+  through `sed -E -e "${fc:?}" -e "${w:?}"` (`fc`:
+  `rules/secrets.md` → Commands That Leak; `w`, from Housekeeping
+  and Audits, withholds the section and rule name in fw4's
+  warnings).
 - **Change rules through UCI** (`uci add firewall rule`, …, see
   Configuration: UCI), never with `nft` directly: the next reload
   replaces the whole ruleset. Own nftables snippets go into
   `/etc/nftables.d/*.nft`, which fw4 includes.
 - Apply a firewall change, and a change to `/etc/config/network`,
   through `rules/ssh-safety-net.md`. Its three commands here:
-  - **check:** stage the change with `uci`, then
-    `{ fw4 check 2>&1; echo "rc=$?"; } | sed -E "${fc:?}"`, which
-    renders the ruleset, staged changes included, and tests it with
-    nftables without loading it. `rc=0` is a pass, since the pipe
-    returns sed's status; an error quotes the rule it failed on. A
-    failed check means `uci revert firewall`, so the broken ruleset
-    never reaches flash. For the network there is no check beyond
-    the staged changes, printed with the values of addressing
-    options only:
+  - **check:** stage the change with `uci`, then run the command
+    below, which renders the ruleset, staged changes included, and
+    tests it with nftables without loading it:
     ```
-    uci changes network | sed -E \
+    { fw4 check 2>&1; echo "rc=$?"; } \
+      | sed -E -e "${fc:?}" -e "${w:?}"
+    ```
+    `rc=0` is a pass, since the pipe returns sed's status; an error
+    quotes the rule it failed on. A failed check means
+    `uci revert firewall`, so the broken ruleset never reaches
+    flash. For the network there is no check beyond the staged
+    changes, printed with the values of addressing options only:
+    ```
+    uci changes network | sed -E -e '/^[-+]?network[.]/!d' -e \
       '/[.](proto|ipaddr|netmask|gateway|ip6addr|ip6gw|dns|device|ifname|type|ports|metric|addresses)[+]?=/!s/[+]?=.*//'
     ```
-  - **apply:** `uci commit firewall; service firewall reload`
-    (`uci commit network; service network reload` for the
-    network).
+  - **apply:** for the firewall
+    ```
+    uci commit firewall
+    service firewall reload 2>&1 | sed -E -e "${fc:?}" -e "${w:?}"
+    ```
+    and `uci commit network; service network reload` for the
+    network.
   - **revert:** copy the backup of the config file back over it and
-    run the same reload, or `service firewall stop` where no
+    run `service firewall reload` (`service network reload`)
+    without a filter, since the revert runs detached, where `fc`
+    and `w` are not set; or `service firewall stop` where no
     `inet fw4` table was loaded before. Loaded rules against the
-    files: `nft list table inet fw4` and `fw4 print`, both through
-    `sed -E "${fc:?}"`.
+    files: `nft list table inet fw4` and `fw4 print 2>&1`, both
+    through `sed -E -e "${fc:?}" -e "${w:?}"`.
 
   OpenWrt has no systemd and ships no `at`. The `at` package from
   the feed arms the revert (ask first: it takes flash, see Package
@@ -228,10 +246,11 @@ of the current release branch,
   make the change there. Source:
   <https://github.com/openwrt/rpcd/blob/master/uci.c>.
 - **Keep every SSH port open from where the user connects.** Read
-  every dropbear instance's `Port` and `Interface`
-  (`uci show dropbear`) and what actually listens
+  every dropbear instance's `Port`, `Interface` and
+  `DirectInterface` (`uci show dropbear`) and what actually listens
   (`netstat -tlnp`). Dropbear binds every address unless
-  `Interface` is set; the `wan` zone's input policy is what keeps it
+  `Interface` or `DirectInterface` is set, and `DirectInterface`
+  wins where both are; the `wan` zone's input policy is what keeps it
   off the internet. A rule that opens SSH on `wan` is a finding;
   ask before adding one.
 
@@ -307,7 +326,8 @@ of the current release branch,
   (`fc`: `rules/secrets.md` → Commands That Leak):
   ```
   cat /etc/openwrt_release; uptime; df -Ph /overlay /tmp
-  grep -F "/ overlay ro," /proc/mounts; service; uci changes | sed 's/=.*//'
+  grep -F "/ overlay ro," /proc/mounts; service
+  uci changes | sed -nE 's/^[-+]?([a-z0-9_]+)[.].*/\1/p' | sort | uniq -c
   logread -l 50; owut check
   { nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
     nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
@@ -339,13 +359,21 @@ of the current release branch,
 - A security audit reads, in one call, instead of the `sshd`
   checks:
   ```
-  u='{ k = $0; sub(/=.*/, "", k); s = k; sub(/[.][^.]*$/, "", s)
-    o = substr(k, length(s) + 2)
-    if (s == "firewall") { t[k] = substr($0, length(k) + 2); print; next }
-    if (o ~ /^(extra|log$|comment$|description$)/ \
-      || (o == "name" && t[s] ~ /^(rule|redirect|nat|forwarding)$/)) \
-      $0 = k "=..."
-    print }'
+  u='BEGIN { K = "^(src|dest|proto|family|target|input|output|forward|network"
+      K = K "|device|masq|masq6|src_ip|dest_ip|src_port|dest_port|src_dport"
+      K = K "|src_mac|icmp_type|ipset|enabled|match|entry|syn_flood"
+      K = K "|synflood_protect|drop_invalid|reflection|policy)$" }
+    !/^firewall[.]/ { next }
+    { k = $0; sub(/=.*/, "", k); s = k; sub(/[.][^.]*$/, "", s)
+      o = substr(k, length(s) + 2); v = substr($0, length(k) + 2) }
+    s == "firewall" { a[k] = k; t[k] = v; n[v]++
+      if (k !~ /[.]@/ && v ~ /^(rule|redirect|nat|forwarding)$/) \
+        a[k] = "firewall.@" v "[" n[v] - 1 "]"
+      print a[k] "=" v; next }
+    { if (o !~ K && !(o == "name" && t[s] ~ /^(zone|ipset|helper)$/)) v = "..."
+      print a[s] "." o "=" v }'
+  w='/^(\[!\] )?(Section|ubus rule) /{s/Section [^ ]+( \(.*\))?/Section .../
+    s/ubus rule \([^)]*\)/ubus rule .../;s/(value|values) .*/\1 .../;}'
   uci show dropbear; uci show firewall | awk "${u:?}"; netstat -tlnp
   h='s#^([^:]*[[:space:]])?[a-z]+://([^/[:space:]]*@)?([^/:[:space:]]+).*#\1\3#'
   o='s/^([[:space:]]*option[[:space:]]+[^[:space:]]+).*/\1 .../'
@@ -353,10 +381,16 @@ of the current release branch,
     /etc/opkg/*.conf
   ```
   and reports:
-  - dropbear's `PasswordAuth`, `RootPasswordAuth` and `Interface`
-    per instance; password login from `wan` is CRITICAL;
+  - dropbear's `PasswordAuth`, `RootPasswordAuth` and `Interface`,
+    or `DirectInterface` where set, which takes precedence, per
+    instance that is not switched off (`enable` of `0`, `no`,
+    `off`, `false` or `disabled`, which does not run); password
+    login from `wan` is CRITICAL;
   - the firewall zones, their input policies and every rule that
-    accepts traffic on `wan`;
+    accepts traffic on `wan`. A zone, rule, redirect, NAT rule or
+    forwarding counts only where its `enabled` is absent or `1`,
+    `yes`, `on` or `true`: fw4 skips it otherwise, and a skipped
+    zone's devices fall to `@defaults`' input policy;
   - LuCI and other services listening on `wan` (`netstat` against
     the zones);
   - package feeds other than `downloads.openwrt.org`.
