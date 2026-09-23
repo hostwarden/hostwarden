@@ -101,12 +101,14 @@ sequence instead.
   locked out of everything behind it. Before dispatching, read
   `ssh -G <user>@<host>` for every target in one local call, with
   the standard options and the SSH user each will log in as, since
-  a `Match user` block can pick the jump host; for a `Mode: via`
-  guest, read it for its host. Each hop of a `proxyjump` line, and
+  a `Match user` block can pick the jump host; for a host with a
+  `Reached as:` line, read it for that destination, and for a
+  `Mode: via` guest, for its host. Each hop of a `proxyjump` line, and
   the host a `proxycommand` line connects through, is a jump host;
   compare hops as `rules/access-control.md` → Server Blacklist
-  expands them, by the `hostname` their own `ssh -G` prints, since
-  one bastion can be written several ways. Targets that share any
+  expands them, by the `hostname` their own `ssh -G` prints without
+  a `:port` a hop written `host:port` leaves on it, since one
+  bastion can be written several ways. Targets that share any
   jump host form a group, and each group runs one host after
   another.
 - **Guests reached through their host.** A guest with `Mode: via`

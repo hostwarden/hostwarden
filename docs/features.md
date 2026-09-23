@@ -384,8 +384,12 @@ A change asks once, naming every host and a proposed canary
 host. The canary runs alone; only when its result matches what
 was expected do the others follow. The first surprise stops every
 host that has not started, and each host the change reached gets
-its own journal line and memory. `/hostwarden-multi-host` starts
-it by name.
+its own journal line and memory. The rollout is written down as a
+plan in `memory/plans/` until every host is done, so a later
+session can finish it. A change to the firewall, the network or a
+login shell runs one host after another in the main session
+instead, each with the SSH safety net and its own questions.
+`/hostwarden-multi-host` starts it by name.
 
 ## Fleet read
 
