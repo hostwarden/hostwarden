@@ -125,8 +125,7 @@ Read on demand, only when the relevant section applies:
 
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
   FreeBSD and macOS are covered by the baseline references
-  above. On an appliance, its `## Housekeeping and Audits`
-  section replaces the update checks.
+  above.
 - An appliance file with `Base: none` replaces the baseline
   probes but not the baseline thresholds: disk use, memory and
   load are judged by Disk Usage, Memory and Swap, and System

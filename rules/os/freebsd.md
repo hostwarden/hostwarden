@@ -222,12 +222,32 @@ Record which one in server memory.
   value can carry a token (`rules/secrets.md`). An empty result
   proves nothing on its own: the `-a` path exits 0 whatever it
   could not read.
-- **List enabled services:** `service -e` prints the
-  paths of the enabled rc scripts in boot order —
-  `/etc/rc.d/` for the base system,
-  `/usr/local/etc/rc.d/` for packages. It reads every
-  script, so run it once per session and reuse the
-  output.
+- **Enabled services:** the `_enable` variables the rc.conf files
+  set, resolved to their values, in the two steps the bullet above
+  describes:
+  ```
+  rcn=$(sysrc -N -a) && {
+    rce=$(printf '%s\n' "$rcn" | grep -E '_enable$' | grep -Ei "${P:-.}")
+    [ -z "$rce" ] || sysrc -e $rce; }
+  ```
+  It prints `<name>_enable="YES"`, or `"NO"` for a service switched
+  off, and exits non-zero when `sysrc` fails outright; an empty
+  result proves nothing, as above. A
+  caller that looks for particular services sets `P` to an extended
+  regular expression of their names first, so that only those
+  values are looked up. `$rce` is unquoted so that several names
+  become several arguments; they are words from `sysrc`'s own
+  listing. A service only `/etc/defaults/rc.conf` enables, such as
+  `cron` or `syslogd`, is not in it.
+- **Service status:** `service <name> status` exits 0 while the
+  service runs. A script with no process of its own answers with a
+  usage line or `unknown directive` instead, which is no failure.
+- **Every enabled rc script:** `service -e` prints the
+  paths of the enabled rc scripts in boot order, defaults
+  included — `/etc/rc.d/` for the base system,
+  `/usr/local/etc/rc.d/` for packages. It executes every
+  script to resolve its rcvar, so run it once per session
+  and reuse the output.
 - `/etc/rc.conf` is the central service
   configuration file.
 
@@ -264,26 +284,36 @@ Record which one in server memory.
 
 ## Logs
 
-Hostwarden's journal entries (`rules/changelog.md`) go to syslog and
-are read back from `/var/log/messages`, both tags
-(`rules/activity-check.md`):
+**The syslog stream** is every line the host still keeps of the log
+`logger` writes to, `/var/log/messages`, oldest first. Define it
+once in a call that reads it:
 
 ```
-for f in /var/log/messages.0 /var/log/messages; do
-  [ -f "$f" ] && grep -hE "hostwarden|heinzel" "$f"
-done | tail -20
-for f in /var/log/messages.0 /var/log/messages; do
-  [ -f "$f" ] && { head -1 "$f"; break; }
-done
+syslog_stream() {
+  set -- /var/log/messages.0 /var/log/messages
+  [ -e "$1" ] || shift
+  cat "$@"
+}
+```
+
+It exits non-zero, with the reason on stderr, when `cat` could not
+read a file. The stock `/etc/newsyslog.conf` rotates `messages` at
+1000 KB or on 1 January and compresses the old files
+(`messages.0.bz2` and on), so the stream opens `messages` and an
+uncompressed `messages.0` only where one exists.
+
+Hostwarden's journal entries (`rules/changelog.md`) go to syslog and
+are read back from it, both tags (`rules/activity-check.md`):
+
+```
+syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+syslog_stream | head -1
 date
 ```
 
 This shows the last 20 matches, not a strict 7-day window; the
-second loop and `date` bound it (`rules/activity-check.md` → How
-far back it reached). The stock `/etc/newsyslog.conf` rotates
-`messages` at 1000 KB or on 1 January and compresses the old files
-(`messages.0.bz2` and on), so the read-back opens `messages` and
-an uncompressed `messages.0` only where one exists.
+`head -1` line and `date` bound it (`rules/activity-check.md` → How
+far back it reached).
 
 ## Directory Conventions
 
@@ -455,9 +485,9 @@ Lua scripts in `/boot/lua/`. The entry point is
   `/etc/ssh/sshd_config`, no `Include` by default.
   The `openssh-portable` package runs
   `/usr/local/sbin/sshd` with `/usr/local/etc/ssh`;
-  `service -e` lists `/usr/local/etc/rc.d/openssh`
-  when that one is enabled. Call the enabled one by
-  its full path.
+  Enabled services (Service Manager) shows
+  `openssh_enable="YES"` when that one is enabled.
+  Call the enabled one by its full path.
 - FreeBSD ships `KbdInteractiveAuthentication yes`
   and `UsePAM yes`, so passwords are accepted
   although `PasswordAuthentication` is `no`.

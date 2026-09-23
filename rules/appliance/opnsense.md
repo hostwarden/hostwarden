@@ -166,8 +166,12 @@ documentation, <https://docs.opnsense.org/>, and the
 
 ## Replace: Service Manager
 
-- `pluginctl -s` lists services;
-  `pluginctl -s <name> restart|start|stop|status` controls one.
+- **Enabled services:** `pluginctl -s` lists the services OPNsense
+  runs, including the ones it starts itself, which `rc.conf` does
+  not name; `pluginctl -S` gives the same as JSON with a `status`
+  per service.
+- **Service status:** `pluginctl -s <name> status`.
+- `pluginctl -s <name> restart|start|stop|status` controls one.
   `configctl service list` (JSON) and
   `configctl service restart <name>` do the same through `configd`.
 - Some services have their own namespace, e.g.
@@ -243,24 +247,30 @@ documentation, <https://docs.opnsense.org/>, and the
 - No `journalctl`. `logger -t hostwarden` lands in the `system`
   area, but only at level notice or higher: keep `logger`'s
   default priority, never `-p user.info`. It also needs local
-  logging to be on. The activity check reads it back with:
+  logging to be on.
+- **The syslog stream** is the `system` area's daily files, oldest
+  first; the glob sorts them by date:
   ```
-  grep -hE "hostwarden|heinzel" /var/log/system/system_*.log \
-    | tail -20
-  ls /var/log/system/system_*.log | head -1 | xargs head -1
+  syslog_stream() { cat /var/log/system/system_*.log; }
   ```
-  The daily files sort by date, so the last matches are the newest
-  and the first line of the first file is the oldest entry
-  (`rules/activity-check.md` → How far back it reached). "Maximum
-  preserved files" under System > Settings > Logging sets how many
-  days are kept. Keep the line csh-safe: root's remote commands run
-  in csh (see Access and Shell).
+  "Maximum preserved files" under System > Settings > Logging sets
+  how many days are kept. The activity check reads it back with:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
+  ```
+  The first line is the oldest entry (`rules/activity-check.md` →
+  How far back it reached). A shell function needs `sh`: send the
+  call as the `sh -s` bundle (`rules/ssh-connections.md` → Bundle
+  commands), never as a command line, which root's csh would run
+  (see Access and Shell).
 
 ## Housekeeping and Audits
 
 - Pending updates come from `configctl firmware probe` (see
-  Updates); they are the finding. Check that the anti-lockout rule
-  is on.
+  Updates); they are the finding, and replace the FreeBSD
+  baseline's Release Support, Pending Updates and Update
+  Notification. Check that the anti-lockout rule is on.
   `pfctl -si` reporting `Status: Disabled` is **CRITICAL** "No
   active firewall": `pfctl -d` leaves it off until the next
   reload.
@@ -274,9 +284,8 @@ documentation, <https://docs.opnsense.org/>, and the
   not apply.
 - Time Sync: judge by `ntpq -pn` alone; `ntpd_enable` is not where
   the vendor enables ntpd.
-- Failed Services: `pluginctl -S` (JSON, a `status` per service)
-  replaces the `service -e` loop, which misses the services
-  OPNsense starts itself; one not running is WARN.
+- Failed Services: `pluginctl -S` (Replace: Service Manager)
+  replaces the `service -e` loop; a service not running is WARN.
 - Certificate expiry: also the web UI's
   `/usr/local/etc/lighttpd_webgui/cert.pem`.
 - Backups: a copy off the box needs a backup plugin

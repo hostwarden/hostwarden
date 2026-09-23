@@ -169,6 +169,17 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 
 ## Replace: Service Manager
 
+- **Enabled services:** `rc.conf` is unused and PHP starts the
+  services, so take the list from the appliance, never from memory,
+  which need not hold one:
+  ```
+  php -r 'require_once("config.inc"); require_once("service-utils.inc"); foreach (get_services() as $s) { echo $s["name"], get_service_status($s) ? " running" : " stopped", "\n"; }'
+  ```
+  `get_services()` is what Status > Services lists: every service
+  the configuration enables, packages included, and `sshd` only
+  where SSH is enabled (`/etc/inc/service-utils.inc`). Each line
+  carries the service's state.
+- **Service status:** `pfSsh.php playback svc status <service>`.
 - Service control: `pfSsh.php playback svc <action> <service>` with
   `start`, `stop`, `restart` or `status`, and the name as shown
   under Status > Services, e.g. `pfSsh.php playback svc restart
@@ -248,13 +259,17 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   `md` device, and the log does not survive a reboot. Not a finding
   on its own (`rules/verify-before-reporting.md`).
 - No `journalctl`. `logger -t hostwarden` lands in
-  `/var/log/system.log`; the activity check reads it back with:
+  `/var/log/system.log`, which is **the syslog stream**:
   ```
-  grep -hE "hostwarden|heinzel" /var/log/system.log | tail -20
-  head -1 /var/log/system.log
+  syslog_stream() { cat /var/log/system.log; }
+  ```
+  The activity check reads it back with:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   date
   ```
-  The file rotates at 500 KiB by default and the read-back does not
+  The file rotates at 500 KiB by default and the stream does not
   open the compressed rotations, so the first line is the oldest
   entry it saw (`rules/activity-check.md` → How far back it
   reached). With "syslog (RFC 5424)" instead of the default BSD
@@ -264,8 +279,9 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 ## Housekeeping and Audits
 
 - Pending updates come from `pfSense-upgrade -d -c` (never without
-  `-c`: it reboots); they are the finding. Check that the
-  anti-lockout rule is on.
+  `-c`: it reboots); they are the finding, and replace the FreeBSD
+  baseline's Release Support, Pending Updates and Update
+  Notification. Check that the anti-lockout rule is on.
   `pfctl -si` reporting `Status: Disabled` is **CRITICAL** "No
   active firewall": `pfctl -d` leaves it off until the next
   reload.
@@ -279,16 +295,9 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   not apply.
 - Time Sync: judge by `ntpq -pn` alone; `ntpd_enable` is not where
   the vendor enables ntpd.
-- Failed Services: `service -e` says nothing here — `rc.conf` is
-  unused and PHP starts the services. Take the list from the
-  appliance, never from memory, which need not hold one:
-  ```
-  php -r 'require_once("config.inc"); require_once("service-utils.inc"); foreach (get_services() as $s) { echo $s["name"], get_service_status($s) ? " running" : " stopped", "\n"; }'
-  ```
-  `get_services()` is what Status > Services lists: every service
-  the configuration enables, packages included, and `sshd` only
-  where SSH is enabled (`/etc/inc/service-utils.inc`). A stopped
-  one is WARN.
+- Failed Services: the Enabled services listing (Replace: Service
+  Manager) replaces the `service -e` loop; a stopped service is
+  WARN.
 - Certificate expiry: also the web UI's `/var/etc/cert.crt`.
 - Backups: AutoConfigBackup keeps copies off the box once enabled:
   ```

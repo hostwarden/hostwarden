@@ -170,8 +170,11 @@ system rather than trust it.
 - **Services.** DSM starts its services and packages itself; turn a
   service on or off on its settings page, and a package in Package
   Center. `/usr/syno/bin/synopkg status <package>` reads a
-  package's state. `rules/service-reload.md` still decides when to
-  ask.
+  package's state. DSM 7 runs systemd
+  (<https://help.synology.com/developer-guide/resource_acquisition/systemd_user_unit.html>),
+  so the Enabled services and Service status forms of
+  `rules/os/debian.md` → Service Manager read it.
+  `rules/service-reload.md` still decides when to ask.
 - **Network changes over SSH.** Addresses, bonds and routes are set
   under Control Panel → Network (no revert:
   `rules/ssh-safety-net.md`). Never run `synonet`.
@@ -502,17 +505,27 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   written` in server memory; a read-back that failed decides
   nothing. The file is not documented as readable by
   administrators; read it with root where the session has it.
-- The activity check reads back, oldest file first so `tail` keeps
-  the newest lines:
+- **The syslog stream** is `/var/log/messages` and its rotations,
+  oldest file first:
   ```
-  for f in $(ls -tr /var/log/messages*); do
-    case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac
-  done | grep -E "hostwarden|heinzel" | tail -20
-  f=$(ls -tr /var/log/messages* | head -1)
-  case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac | head -1
+  syslog_stream() {
+    L=$(ls -tr /var/log/messages*) || return
+    for f in $L; do
+      case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac \
+        || return
+    done
+  }
+  ```
+  It exits non-zero, with the reason on stderr, when a file could
+  not be listed or read.
+- The activity check reads back, so that `tail` keeps the newest
+  lines:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   date
   ```
-  The second part and `date` bound the result
+  The `head -1` line and `date` bound the result
   (`rules/activity-check.md` → How far back it reached). An error,
   a permission denied included, means the check did not run.
 

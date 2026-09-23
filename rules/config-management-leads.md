@@ -103,8 +103,9 @@ is inert — a directory, a file, a unit that is installed and left
 off — and says those were stale on that date. It stops holding as
 soon as the probe returns something the date does not explain:
 
-- **An agent service the listing shows as enabled**, whichever
-  branch found it — on FreeBSD, a `<tool>_enable="YES"` line. That
+- **An agent service the listing shows as enabled**, in whatever
+  form the OS file's listing prints it — on FreeBSD, a
+  `<tool>_enable="YES"` line. That
   is not a leftover, and no service listing prints a date to compare
   against, so an enabled agent outdates a dismissal by itself — the
   one case where the dates do not decide.

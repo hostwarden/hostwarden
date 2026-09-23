@@ -220,11 +220,13 @@ of the current release branch,
 
 ## Service Manager
 
-- procd. `service` with no arguments lists every init script,
-  enabled or disabled (its `enabled` verb), running or stopped
-  (procd's instance state over `ubus call service list`). Source:
-  procd's `/sbin/service`,
+- procd.
+- **Enabled services:** `service` with no arguments lists every
+  init script, enabled or disabled (its `enabled` verb), running or
+  stopped (procd's instance state over `ubus call service list`).
+  Source: procd's `/sbin/service`,
   <https://github.com/openwrt/openwrt/blob/openwrt-25.12/package/system/procd/files/service>.
+- **Service status:** `service <name> status`.
 - `service <name> reload|restart|start|stop|status`, or
   `/etc/init.d/<name>` with the same verbs;
   `enable`/`disable`/`enabled` control the start at boot.
@@ -266,11 +268,15 @@ of the current release branch,
 - A persistent log exists only where the user set `log_file` to
   storage that survives a reboot, or `log_ip` to a remote syslog
   server.
-- `logger -t hostwarden` reaches logd. The activity check reads it
-  back with:
+- `logger -t hostwarden` reaches logd, whose buffer is **the syslog
+  stream**:
   ```
-  logread | grep -E "hostwarden|heinzel" | tail -20
-  logread | head -1
+  syslog_stream() { logread; }
+  ```
+  The activity check reads it back with:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   ```
   The second line is the oldest entry the buffer still holds
   (`rules/activity-check.md` → How far back it reached); it is

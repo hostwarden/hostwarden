@@ -2,11 +2,8 @@
 
 ## fail2ban Status
 
-```bash
-systemctl is-active fail2ban 2>/dev/null
-```
-
-On Alpine (OpenRC): `rc-service fail2ban status`.
+Ask the loaded OS file's Service Manager → Service status for
+`fail2ban`.
 
 - Not running / not installed → **INFO** (recommended but not
   critical, especially when SSH uses key-only authentication)

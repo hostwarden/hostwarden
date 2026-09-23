@@ -201,7 +201,8 @@ is QNAP's own.
   finding.
 - **systemd and the journal.** Services are init scripts under
   `/etc/init.d/`, and their settings belong to the web UI page or
-  app that owns them. `rules/service-reload.md` still decides when
+  app that owns them. There is no Enabled services listing and no
+  Service status form. `rules/service-reload.md` still decides when
   to ask. The journal's place is taken by QuLog Center (see Logs).
 - **Crontab.** `crontab -e` is lost at the next boot. The persistent
   table is `/etc/config/crontab`, loaded with

@@ -5,9 +5,7 @@ Run these on every FreeBSD host.
 The commands below are the family defaults. Where the loaded OS file
 covers a check — its Package Manager, Automatic Security Updates or
 Firewall section — its commands and expectations win, at the same
-severities. On an appliance, its `## Housekeeping and Audits`
-section replaces Release Support, Pending Updates and Update
-Notification below.
+severities.
 
 **Jails.** In a jail, Time Sync and the kernel lines of Kernel
 and Userland: Running vs Installed check what the host owns
@@ -193,7 +191,9 @@ security audit's question, not this one.
 
 ## Failed Services
 
-FreeBSD has no failed state. Ask every enabled service instead:
+FreeBSD has no failed state. Ask every enabled rc script for its
+Service status instead (`rules/os/freebsd.md` → Service Manager),
+defaults included:
 
 ```bash
 for svc in $(service -e); do
@@ -204,9 +204,9 @@ for svc in $(service -e); do
 done
 ```
 
-Keep the `service -e` output for the checks below. A script prints
-here when its `status` fails; one that answers with a usage line
-has no process of its own to check, and the `case` skips it.
+A script prints here when its `status` fails; one that answers
+with a usage line has no process of its own to check, and the
+`case` skips it.
 
 - **WARN** for each enabled service that is not running — list
   them by name

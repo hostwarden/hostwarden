@@ -8,19 +8,19 @@ and ports Docker publishes past any of them. Linux only.
 ## Native nftables
 
 Needs root or `sudo -n`; `nft` refuses to list for a normal
-user. The grep keeps every table header and, for each input
-chain, its name and `type` line:
+user. In one call: the loaded OS file's Service Manager → Service
+status for `nftables`, its Enabled services listing filtered for
+`nftables` and `netfilter-persistent`, and the chains. The grep
+keeps every table header and, for each input chain, its name and
+`type` line:
 
 ```bash
-systemctl is-active nftables
-systemctl is-enabled nftables netfilter-persistent
 nft list chains | grep -B1 -e ^table -e "hook input"
 ```
 
-On Alpine (OpenRC), replace the two `systemctl` lines with
-`rc-update show boot default | grep nftables`. The service loads
-the rules and exits, so a runlevel that lists it is what both
-*active* and `is-enabled` mean below.
+For the service, *active* below is what that Service status says
+about `nftables`, and *enabled* is a service the listing shows as
+starting at boot.
 
 A packet has to pass every input chain of its family, so one
 chain that drops is enough — an `accept` policy in another
@@ -52,7 +52,7 @@ filter nothing on their own.
   no rules at all (Debian's stock `/etc/nftables.conf`),
   nothing is filtered: **CRITICAL** "No active firewall"
 - Default deny, but `nftables.service` inactive and nothing
-  in `is-enabled` reloads it → **WARN** "nftables rules will
+  enabled reloads it → **WARN** "nftables rules will
   not survive a reboot"
 - Default deny, service active → OK
 
@@ -84,8 +84,8 @@ fi
   `iptables-legacy -S` and report which tool loads them.
 - No count printed, or both 0 → OK
 
-ufw or firewalld active while `systemctl is-enabled
-nftables` says `enabled` → **WARN** "nftables.service will
+ufw or firewalld active while `nftables` is enabled
+→ **WARN** "nftables.service will
 flush the firewall's rules": the stock
 `/etc/nftables.conf` starts with `flush ruleset`, so every
 start, reload or stop of that unit wipes them.

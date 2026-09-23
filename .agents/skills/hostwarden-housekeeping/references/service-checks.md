@@ -181,9 +181,7 @@ and name the script.
 ## Home Assistant
 
 Triggered when `memory.md` mentions Home Assistant. This section
-covers Home Assistant on a normal Linux host. On Home Assistant OS,
-where `memory.md` records `Appliance: Home Assistant OS`, skip it:
-`rules/appliance/haos.md` → Housekeeping and Audits covers that.
+covers Home Assistant on a normal Linux host.
 
 `memory.md` records the install type and what the checks need:
 the container name, or for Core the systemd unit, the virtual

@@ -255,7 +255,8 @@ third party says so; check it on the live host before relying on it.
   <https://www.zimaspace.com/docs/zimaos/app-store/enable-ai>).
   Read unit names from the host with
   `systemctl list-units --type=service --no-legend`; do not assume
-  them.
+  them. The Enabled services and Service status forms of
+  `rules/os/debian.md` → Service Manager apply.
 - The journal read-back of `rules/activity-check.md` and the
   `logger -t hostwarden` line of `rules/changelog.md` apply
   unchanged.

@@ -16,8 +16,6 @@ run them there, not here.
 
 **The appliance file wins** (`rules/containers.md`): run its
 container checks, then add the ones below that it does not exclude.
-On Home Assistant OS this file does not run
-(`rules/appliance/haos.md`).
 
 ## Probe
 

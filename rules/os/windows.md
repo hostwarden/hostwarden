@@ -383,8 +383,20 @@ SSH session counts is untested, and Hostwarden never installs.
 ## Service Manager
 
 `Get-Service`, or `Get-CimInstance Win32_Service` for the start
-mode and the last exit code. A service with `StartMode` `Auto`
-that is not `Running` is the Windows form of a failed unit:
+mode and the last exit code.
+
+- **Enabled services:** the services that start at boot, with
+  their state:
+  ```powershell
+  try { Get-CimInstance Win32_Service -Filter "StartMode='Auto'" -ErrorAction Stop | Format-Table Name, State } catch { "failed: $_" }
+  ```
+- **Service status:** prints `Running` while the service runs:
+  ```powershell
+  try { (Get-Service <name> -ErrorAction Stop).Status } catch { "failed: $_" }
+  ```
+
+A service with `StartMode` `Auto` that is not `Running` is the
+Windows form of a failed unit:
 
 ```powershell
 try { $v = @(Get-CimInstance Win32_Service -Filter "StartMode='Auto' AND State<>'Running'" -ErrorAction Stop); "stopped: $($v.Count)"; $v | Format-Table Name, State, ExitCode, DelayedAutoStart } catch { "failed: $_" }

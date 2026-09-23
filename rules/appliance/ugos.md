@@ -158,7 +158,9 @@ host, not as documented behaviour.
   five seconds, which restores the network settings and leaves the
   data alone (articles 110 and 294).
 - **Services.** `systemctl status`, `systemctl is-active` and
-  `journalctl -u` read as on Debian. The vendor's own services are
+  `journalctl -u` read as on Debian, and so do the Enabled services
+  and Service status forms of `rules/os/debian.md` → Service
+  Manager. The vendor's own services are
   units named `*_serv` (community: `runlevel1977-del/UgreenNASAdmin`
   lists `storage_serv`, `docker_serv`, `gateway_serv` and more).
   Never start, stop or restart one: the web UI and the apps depend

@@ -372,6 +372,10 @@ Source for everything below unless noted: the admin guide,
 
 - Check quorum (`pvecm status`) and a pending reboot (see
   Updates).
+- **Pending updates:** `apt-get -s dist-upgrade` (Add: Package
+  Manager); they are the finding (Replace: Automatic Security
+  Updates). They replace the Linux baseline's Pending Security
+  Updates and Automatic Security Updates.
 - **HA, once per cluster** (`rules/hypervisors.md` → Clusters and
   Pools): `ha-manager status`, one line per entry. A finding:
   `quorum No quorum …`; a `master` or `lrm` line reading

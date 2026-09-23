@@ -64,9 +64,10 @@ and fight for the same role.
   host with Pi-hole already runs dnsmasq although no
   `dnsmasq` package is installed.
 - **Firewall manager:** ufw, firewalld, and native
-  nftables — the last only when `systemctl is-enabled
-  nftables` says `enabled` (the package sits unused on
-  most Debian hosts). Debian's stock
+  nftables — the last only when the loaded OS file's
+  Service Manager → Enabled services shows `nftables`
+  enabled (the package sits unused on most Debian
+  hosts). Debian's stock
   `/etc/nftables.conf` starts with `flush ruleset`, so
   starting, reloading or stopping that unit wipes
   ufw's or firewalld's rules. Raw `iptables` is a
@@ -110,8 +111,8 @@ dpkg-query -W \
   2>/dev/null | awk '$1=="installed"{print $2}'
 ```
 
-Then, for the firewall class:
-`systemctl is-enabled nftables 2>/dev/null`.
+Then, for the firewall class, the Enabled services
+listing filtered for `nftables`.
 
 **Alpine**
 
@@ -132,9 +133,9 @@ apk info | grep -x \
 ```
 
 Busybox `ntpd`, the default time sync, is no
-package: `rc-service ntpd status` shows whether it
-runs. `nftables` counts as a firewall manager only
-when `rc-update show boot default` lists it.
+package: its Service status shows whether it runs.
+`nftables` counts as a firewall manager only when the
+Enabled services listing shows it.
 
 **RHEL / Fedora / SUSE**
 
@@ -168,8 +169,8 @@ pkg info -E 'apache*' 'nginx*' 'caddy*' \
 ```
 
 Note: on FreeBSD, `ntpd` and `local_unbound` ship in
-base, not as packages — check
-`service -e | grep -E 'ntpd|local_unbound'` as well.
+base, not as packages — check the Enabled services
+listing with `P='ntpd|local_unbound'` as well.
 
 **macOS (Homebrew, best-effort)**
 
