@@ -567,7 +567,8 @@ done
 KH_SRC="$OLD/memory/known_hosts"
 KH_DST="memory/known_hosts"
 # <type, a dot escaped> <base64 of its length and
-# name, in whole 3-byte groups>
+# name, in whole 3-byte groups>: the plain key types,
+# then their host certificates (ssh-keyscan -c).
 KH_TYPES="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5
 ssh-rsa AAAAB3NzaC1y
 ssh-dss AAAAB3NzaC1k
@@ -575,7 +576,15 @@ ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAy
 ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAz
 ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1
 sk-ssh-ed25519@openssh\.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29t
-sk-ecdsa-sha2-nistp256@openssh\.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5j"
+sk-ecdsa-sha2-nistp256@openssh\.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5j
+ssh-ed25519-cert-v01@openssh\.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29t
+ssh-rsa-cert-v01@openssh\.com AAAAHHNzaC1yc2EtY2VydC12MDFAb3BlbnNzaC5j
+ssh-dss-cert-v01@openssh\.com AAAAHHNzaC1kc3MtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp256-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHAyNTYtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp384-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHAzODQtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp521-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHA1MjEtY2VydC12MDFAb3BlbnNzaC5j
+sk-ssh-ed25519-cert-v01@openssh\.com AAAAI3NrLXNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29t
+sk-ecdsa-sha2-nistp256-cert-v01@openssh\.com AAAAK3NrLWVjZHNhLXNoYTItbmlzdHAyNTYtY2VydC12MDFAb3BlbnNzaC5j"
 KH_ALT=''
 for KH_T in $KH_TYPES; do
   KH_ALT="$KH_ALT${KH_ALT:+|}${KH_T%% *}[[:space:]]+${KH_T#* }"
