@@ -26,10 +26,10 @@ Where the loaded OS file names its own bundle — Windows,
 `rules/os/windows.md` → Reaching PowerShell — use that.
 
 `sh -s` also decides what a pattern with no match
-does. `sh` keeps it as it is; zsh, macOS's login
-shell, and csh abort the whole command on it, which
-a trailing `|| true` then turns into a silent
-success.
+does. `sh` keeps it as it is. zsh, macOS's login
+shell, aborts the whole command line on it, and csh
+the command it stands in; a trailing `|| true` turns
+either into a silent success.
 
 - Send several files in one `scp`/`rsync`.
 - Do not poll a host every few seconds. Run a long

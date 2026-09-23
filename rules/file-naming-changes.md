@@ -132,17 +132,23 @@ through `sudo -n`, in one call
 (`rules/ssh-connections.md` → Bundle commands):
 
 ```
-roots=""
+roots=""; plists=""
 for d in /etc /usr/local/bin /usr/local/sbin /usr/local/etc \
-  /usr/local/lib/systemd /opt /root /Library/LaunchDaemons \
-  /Library/LaunchAgents /var/spool/cron /var/cron/tabs \
-  /var/at/tabs /home/*/bin /home/*/.config /Users/*/bin \
-  /Users/*/Library/LaunchAgents; do
+  /usr/local/lib/systemd /opt /root /var/spool/cron \
+  /var/cron/tabs /var/at/tabs /home/*/bin /home/*/.config \
+  /Users/*/bin; do
   [ -d "$d" ] && roots="$roots $d"
 done
-echo "##roots$roots"
+for d in /Library/LaunchDaemons /Library/LaunchAgents \
+  /Users/*/Library/LaunchAgents; do
+  [ -d "$d" ] && plists="$plists $d"
+done
+echo "##roots$roots$plists"
 echo "##content"; grep -rIl '<old-stem>' $roots; echo "##rc $?"
-echo "##links"; find $roots -type l -exec ls -l {} + \
+if [ -n "$plists" ]; then
+  echo "##plists"; grep -rl '<old-stem>' $plists; echo "##rc $?"
+fi
+echo "##links"; find $roots $plists -type l -exec ls -l {} + \
   | grep '<old-stem>'; echo "##rc $?"
 ```
 
@@ -153,7 +159,9 @@ costs nothing, and neither command's errors are
 hidden. Read each `##rc`: `0` found something, `1`
 found nothing, anything else means a part was not
 searched — say which, and rename nothing until it
-has been.
+has been. The launchd directories are searched
+without `-I`: launchd reads binary plists too, and
+`-I` would skip them.
 
 The spool directories hold every user's crontab:
 `/var/spool/cron/` with its `crontabs/` (Debian,

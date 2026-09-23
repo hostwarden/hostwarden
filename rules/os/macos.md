@@ -142,8 +142,10 @@ Rules for macOS (Apple Silicon and Intel).
   - Loaded?
     `launchctl print <domain>/<label> >/dev/null`
     succeeds
-  - Disabled?
-    `launchctl print-disabled <domain> | grep <label>`
+  - Disabled? The list names enabled jobs too, so
+    match the state, `true` on older releases:
+    `launchctl print-disabled <domain> |
+    grep -E '"<label>" => (disabled|true)'`
   - Load: `sudo launchctl bootstrap <domain> <plist>`
   - Unload: `sudo launchctl bootout <domain> <plist>`
   - Disable: `sudo launchctl disable <domain>/<label>`
