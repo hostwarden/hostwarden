@@ -298,11 +298,11 @@ host, not as documented behaviour.
   marks its ext4 and Btrfs volumes with **vendor feature flags that
   a stock Linux kernel refuses to mount**, and that `e2fsck` from
   stock e2fsprogs rejects.
-- **Never run a file system check or repair, `btrfs check`,
-  `btrfs rescue`, `fsck`, `mdadm` with anything but `--detail` or
-  `--examine`, or an LVM command that writes.** UGOS keeps its own
-  records of pools and volumes, and a repair tool that does not know
-  the vendor flags can refuse the volume or damage it. Read with
+- **Only reads apply here:** the Change tier of `rules/storage.md`
+  is out too, and so is a file system check even with `-n`. UGOS
+  keeps its own records of pools and volumes, and a repair tool
+  that does not know the vendor flags can refuse the volume or
+  damage it. Read with
   `cat /proc/mdstat`, `mdadm --detail`, `lvs`, `findmnt`, `df` and
   `btrfs device stats`.
 - The disk taboos in `AGENTS.md` include the internal system

@@ -123,7 +123,8 @@ user when it will visibly slow the answer.
   escalating. See `rules/verify-before-reporting.md`.
 - **Always detect the OS first** before doing any work.
 - **Ask before:** reboots, firewall and network changes, service
-  restarts, credential or password rotations, any destructive command.
+  restarts, credential or password rotations, storage changes, any
+  destructive command.
   **Reloads** (`systemctl reload`) auto-proceed by default when a
   config test passes — see `rules/service-reload.md`.
 - **Absolute taboos (never run without explicit user request):** any
@@ -133,18 +134,21 @@ user when it will visibly slow the answer.
   erases a whole disk device while leaving the partition table
   alone: `blkdiscard`, `nvme format`/`sanitize`, `hdparm`
   secure-erase, `badblocks -w`, `shred` on a device, and `dd`, a
-  redirect or `tee` onto one. Read-only inspection (e.g. `lsblk`,
-  `fdisk -l`, `gpart show`, `diskutil list`, `nvme list`,
-  `hdparm -I`) is always allowed. Never modify `sshd_config` or its
-  `sshd_config.d/` drop-ins, wherever sshd keeps them (`/etc/ssh`,
-  `/usr/local/etc/ssh`, …), nor dropbear's configuration where
-  dropbear is the SSH server. Never delete or overwrite SSH keys, and
-  that includes moving, truncating or re-permissioning them. Never
-  halt or power off a server. Only the first-boot configuration of
-  a guest that has never run may set sshd's login options and keys,
-  whatever form it takes (`hostwarden-new-guest`). An sshd that
-  already runs is never touched, not in a guest and not through its
-  host.
+  redirect or `tee` onto one. Also any command that repairs or
+  destroys a file system, RAID array, volume group or ZFS pool
+  (`fsck` without `-n`, a ZFS rewind, …: `rules/storage.md`).
+  Read-only inspection (e.g. `lsblk`, `fdisk -l`, `gpart show`,
+  `diskutil list`, `nvme list`, `hdparm -I`) is always allowed.
+  Never modify `sshd_config` or its `sshd_config.d/` drop-ins,
+  wherever sshd keeps them (`/etc/ssh`, `/usr/local/etc/ssh`,
+  QNAP's `/etc/config/ssh`, …), nor dropbear's configuration where
+  dropbear is the SSH server. Never delete or overwrite SSH keys,
+  and that includes moving, truncating or re-permissioning them.
+  Never halt or power off a server. Only the first-boot
+  configuration of a guest that has never run may set sshd's login
+  options and keys, whatever form it takes (`hostwarden-new-guest`).
+  An sshd that already runs is never touched, not in a guest and
+  not through its host.
   The same holds on any Windows machine, over SSH or through WSL:
   `diskpart`, `mbr2gpt`, `format X:` and the Storage cmdlets
   (`Clear-Disk`, `Remove-VirtualDisk`, …) write the partition
@@ -294,6 +298,8 @@ trigger — not a request from the user.
   `rules/file-naming-changes.md`
 - Copying a directory tree between servers →
   `rules/directory-copy.md`
+- Growing, rebuilding or repairing storage — a file system, RAID,
+  LVM, ZFS or Btrfs → `rules/storage.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
 - A system container or VM as the target, or creating, changing,
   snapshotting, stopping or deleting one on its host (LXC, Incus,

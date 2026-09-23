@@ -16,6 +16,8 @@
 #     alone (blkdiscard, nvme format/sanitize, hdparm
 #     secure-erase, badblocks -w, shred, dd, a redirect,
 #     tee, cp or a download onto a disk device)
+#   - storage repair and destroy: the tier of rules/storage.md
+#     that lists them (fsck without -n, a ZFS rewind, ...)
 #   - destroying SSH keys (host keys, authorized_keys, id_*,
 #     or the directory holding them: ~/.ssh, an appliance
 #     key store such as /conf/sshd) by any means: rm/shred/
@@ -49,8 +51,8 @@
 #     which reach this machine's files without any shell
 #
 # ASKED, not denied -- the user confirms the exact command in a
-# permission prompt (see "Guest stop and delete" at the end for
-# the membership criterion and the modes that deny instead):
+# permission prompt (see "The ask tier" below the scope for the
+# membership criterion and the modes that deny instead):
 #
 #   - stopping or deleting a system container or VM (pct/qm
 #     stop, shutdown or destroy, incus/lxc stop or delete, virsh
@@ -60,6 +62,9 @@
 #     twins; that API's own poweroff method spells the word the
 #     rule above denies in every mode, which is stricter than
 #     this tier and stays that way)
+#   - a routine storage change: the change tier of
+#     rules/storage.md (lvextend, mdadm --add, zpool replace,
+#     zfs destroy of a snapshot, ...)
 #
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That
@@ -218,9 +223,9 @@ rephrasing, re-quoting or switching tools. A command that only \
 carries the word as text and runs none of it is not evading anything \
 when the text moves into a file that is passed instead (git commit \
 -F, gh --body-file), or when a search pattern stops spelling the \
-word (power[o]ff). Installing or replacing an OS is the one flow that \
-legitimately needs these commands: read the hostwarden-os-install \
-skill, which states what has to hold first."
+word (power[o]ff). ${GUARD_ROUTE:-Installing or replacing an OS is the \
+one flow that legitimately needs these commands: read the \
+hostwarden-os-install skill, which states what has to hold first.}"
 }
 
 # --- Edit, Write, MultiEdit, NotebookEdit: the target path ------
@@ -237,7 +242,8 @@ skill, which states what has to hold first."
 # editable:
 # authorized_keys and OpenMediaVault's directory of that name, a
 # private or public key under .ssh, a host key, an appliance key
-# store (/conf/sshd, /etc/dropbear), Windows' ProgramData\ssh,
+# store (/conf/sshd, /etc/dropbear, /etc/config/ssh), Windows'
+# ProgramData\ssh,
 # sshd_config and its drop-ins, a file an appliance merges into
 # it, and dropbear's config. ~/.ssh/config and known_hosts are not
 # keys and stay open. The left side stays open as in the Bash
@@ -254,7 +260,10 @@ skill, which states what has to hold first."
 # ignores case: macOS file systems do by default, so ~/.SSH/
 # AUTHORIZED_KEYS opens authorized_keys, and pwd -P keeps the case
 # it was given.
-FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/(etc/ssh|conf/sshd)/ssh_host_[^/]+|/(conf/sshd|etc/dropbear)/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
+# KEYSTORE: the appliances' key stores, whole directories of keys
+# and sshd's config; KEYDIR below says whose they are.
+KEYSTORE='conf/sshd|etc/config/ssh|etc/dropbear'
+FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/etc/ssh/ssh_host_[^/]+|/('"$KEYSTORE"')/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
 KEYMSG="writing an SSH key, authorized_keys or the SSH server's \
 config is never allowed"
 case "$INPUT" in
@@ -558,10 +567,14 @@ DEV='(/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])|[Pp][Hh][Y
 # and the rules must keep it that way instead of listing
 # prefixes.
 #
-# KEYDIR adds the key stores of appliances to .ssh: OPNsense's
+# KEYDIR adds the key stores of appliances (KEYSTORE, defined
+# with FILEKEY above) to .ssh: OPNsense's
 # /conf/sshd, and OpenWrt's /etc/dropbear, which holds dropbear's
 # host keys and root's authorized_keys and nothing else. The rest
-# of /conf is config and stays ordinary work.
+# of /conf is config and stays ordinary work. QNAP's
+# /etc/config/ssh holds the live sshd_config (its init script
+# starts sshd -f on it), sshd_user_config and authorized_keys
+# (rules/appliance/qnap.md), so it counts as a store too.
 # /etc/ssh itself is NOT a key store: it also holds ssh_config
 # and moduli, so rm -rf /etc/ssh or chmod -R on it is left open,
 # on the same terms as the home directory above.
@@ -574,22 +587,23 @@ DEV='(/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])|[Pp][Hh][Y
 # and administrators_authorized_keys.
 WINSSHDIR='[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa][/\\]+[Ss][Ss][Hh]'
 WINSSH="${WINSSHDIR}[/\\\\]+"
-HOSTKEY="((/etc/ssh|/conf/sshd)/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}[Ss][Ss][Hh]_[Hh][Oo][Ss][Tt]_)"
-KEYDIR="(\\.ssh|/conf/sshd|/etc/dropbear|$WINSSHDIR)"
+HOSTKEY="((/etc/ssh|/($KEYSTORE))/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}[Ss][Ss][Hh]_[Hh][Oo][Ss][Tt]_)"
+KEYDIR="(\\.ssh|/($KEYSTORE)|$WINSSHDIR)"
 KEY="($HOSTKEY|authorized_keys|$KEYDIR"'(/|[^[:alnum:]_.-]|$))'
 KEYFILE="($HOSTKEY"'[[:alnum:]_-]*[Kk][Ee][Yy]|\.ssh[/\\]+id_[[:alnum:]_-]+|authorized_keys|'"$WINSSH"'[[:alnum:]_]*[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Ee][Dd]_[Kk][Ee][Yy][Ss])'
 KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 
 # sshd's config: sshd_config, its drop-in directory, a file an
 # appliance merges into it when it regenerates the config
-# (pfSense appends /etc/sshd_extra), dropbear's config where
+# (pfSense appends /etc/sshd_extra), QNAP's own copy and its
+# user file under /etc/config/ssh, dropbear's config where
 # a system runs dropbear instead: OpenWrt's UCI file
 # /etc/config/dropbear, /etc/conf.d/dropbear under OpenRC,
 # /etc/default/dropbear on Debian, and Windows' sshd_config
 # under ProgramData\ssh. The .d suffix is optional, so a plain
 # hit on SSHD also finds the bare file. Then the editors that
 # rewrite a file in place.
-SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}[Ss][Ss][Hh][Dd]_[Cc][Oo][Nn][Ff][Ii][Gg])"
+SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|config/ssh/sshd_(user_)?config|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}[Ss][Ss][Hh][Dd]_[Cc][Oo][Nn][Ff][Ii][Gg])"
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
 # --- a guest that has never run --------------------------------
@@ -664,12 +678,13 @@ first_boot_only() {
   [ "$FB_ALL" -gt 0 ] && [ "$FB_ALL" -eq "$FB_UNDER" ]
 }
 
-FB_ASK=
-
 first_boot_ask() {
-  # first_boot_ask <what> -- register the ask; the end of the file
-  # decides it, once every taboo has seen the whole line.
-  [ -n "$FB_ASK" ] || FB_ASK=$1
+  # first_boot_ask <what> -- the ask tier (ask_for below) for a
+  # write that only a guest's first boot may make.
+  ask_for "$1" "for a guest that has not started yet. Only the \
+first-boot configuration of a guest that never ran may set sshd's \
+login options and keys (AGENTS.md - Critical Safety Rules)" "Check \
+that the path is the guest's and not this host's before approving."
 }
 
 # A general-purpose language runtime. See the interpreter section
@@ -703,6 +718,7 @@ case "$CMD" in
 *-[Vv][Oo][Ll][Uu][Mm][Ee]*|*[Mm][Bb][Rr]2*) WIN=1 ;;
 *[Ff][Oo][Rr][Mm][Aa][Tt]*|*-[Ss][Tt][Oo][Rr][Aa][Gg][Ee]*) WIN=1 ;;
 *[Ss][Hh][Uu][Tt][Dd][Oo][Ww][Nn]*/*|*[Bb][Cc][Dd][Ee][Dd]*) WIN=1 ;;
+*[Cc][Hh][Kk][Dd][Ss][Kk]*) WIN=1 ;;
 *[Cc][Ii][Pp][Hh][Ee][Rr]*[/-][Ww]*) WIN=1 ;;
 esac
 
@@ -815,6 +831,70 @@ power() { full || [ -d /run/systemd/system ]; }
 # or any single dash word. The power-off rules and the guest rule
 # below both need them.
 GOPTS='([[:space:]]+(-c|--connect|--project|-s|--server|-u|--user|-p|--port|-pw|-pwf|--password)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
+
+# --- The ask tier ---------------------------------------------
+# Some effects are legitimate work and still the user's call:
+# stopping or deleting a guest, and a routine storage change. For
+# those this is the hook's second tier: the user confirms the exact
+# command in a prompt. Membership is narrow on purpose -- an effect
+# earns ask instead of deny only when it is routine admin work AND
+# no user-tunable policy already covers it (service restarts have
+# memory/service-policy.md, so they stay with the model).
+#
+# A rule that finds such an effect calls ask_for and nothing is
+# decided yet. The prompt names every effect found, each once, and
+# the decision is taken at the very end of the file by ask_decide,
+# the tier's one reading of the permission mode, so a taboo anywhere
+# in the same command still denies.
+#
+# The prompt must reach a human. Claude Code documents ask as
+# forcing one in auto mode; for bypassPermissions and dontAsk it
+# documents nothing, so those deny, and so does a mode this hook
+# cannot read. Measured upstream in Heinzel with Claude Code
+# 2.1.267: in claude -p an ask is refused whatever the mode, so an
+# unattended run stops rather than hanging, and a session started
+# with --permission-mode auto reports default here. The operator
+# override is HOSTWARDEN_GUARD_DISABLE, as for a taboo.
+#
+# ask_for <what> <effect, with its rule> <what to check>
+ASKWHAT=''
+ASKTEXT=''
+ASKSEEN=''
+ask_for() {
+  case "|$ASKSEEN|" in *"|$1|"*) return 0 ;; esac
+  ASKSEEN="$ASKSEEN|$1"
+  ASKWHAT="${ASKWHAT:+$ASKWHAT, and }$1"
+  ASKTEXT="${ASKTEXT:+$ASKTEXT }$1 $2. $3"
+}
+# ask_decide -- ask where a prompt reaches a human, deny where none
+# does. No jq means no mode, hence deny.
+ask_decide() {
+  MODE=
+  if command -v jq >/dev/null 2>&1; then
+    MODE=$(printf '%s' "$INPUT" \
+      | jq -r '.permission_mode // empty' 2>/dev/null) || MODE=
+  fi
+  case $MODE in
+  default|acceptEdits|plan|auto)
+    decide ask "$ASKTEXT"
+    ;;
+  *)
+    decide deny "$ASKWHAT - this needs a confirmation prompt, and \
+this session shows none, or a permission mode this hook does not \
+know. Not a taboo: run it in a session that asks, or let the user \
+run it. Do not rephrase the command."
+    ;;
+  esac
+}
+# A --help or -h after the verb prints the syntax and changes
+# nothing, which AGENTS.md -> Verify Before Running asks for before
+# a command is run, so both tiers exempt it, read from the verb on,
+# per invocation as every read-only exemption here is.
+HELP='^[^;&|]*[[:space:]](--help|-h)([[:space:]]|[;&|]|$)'
+# TrueNAS' middleware client up to the method: options, some with a
+# value of their own (-u URI, -U user), around call, and a quote
+# before the method name.
+MIDCLT='(^|[^[:alnum:]_.-])midclt([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+call([[:space:]]+-[^[:space:]]+)*[[:space:]]+["'"'"']?'
 
 # --- Power off ------------------------------------------------
 if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
@@ -1091,6 +1171,319 @@ fi
 if full && hit '(^|[^[:alnum:]_.-])shred([^[:alnum:]_.-]|$)' \
   && hit "$DEV"; then
   deny "shred on a disk device overwrites the whole device"
+fi
+
+# --- Storage: repair denied, changes asked ---------------------
+# rules/storage.md sorts storage commands into three tiers. Its
+# repair-and-destroy tier is denied here: a repair tool decides on
+# its own what is damaged and drops it, a ZFS rewind discards the
+# last transactions, and the rest remove a volume, an array, a pool
+# or the metadata that finds them. On a NAS a stock tool also does
+# not know the vendor's records. Its change tier goes to the ask
+# tier, and its read tier passes.
+#
+# Each dry run and LVM's test mode are exempt per invocation, as
+# every read-only form here is, and so is HELP. One case arm per
+# tool family, and for zpool, zfs and midclt only on the verbs that
+# write, so a read such as zpool status or zfs list runs no grep.
+stor_deny() {
+  GUARD_ROUTE="A repair or a destroy is a step for the user: name the \
+command and what it can destroy, and the user runs it at a console \
+(rules/storage.md - When Storage Is Failing)."
+  deny "$1"
+}
+stor_ask() {
+  ask_for "this storage change" "can lose data or cannot be undone \
+(rules/storage.md)" "Check the device, the state of the array or \
+pool, and the backup before approving."
+}
+# A short-option cluster holding n: e2fsck -fn, xfs_repair -n,
+# zpool import -Fn, zfs destroy -rn.
+STORDRY='(^|[[:space:]])-[[:alnum:]]*n[[:alnum:]]*([[:space:]]|$)'
+LVMTEST='(^|[[:space:]])(-t|--test)([[:space:]]|$)'
+# btrfs takes global options before its command (--format and
+# --log with a value of their own), and any unique
+# prefix of a command: btrfs c is check, btrfs resc is rescue,
+# btrfs dev del is device delete.
+BTRFS='(^|[^[:alnum:]_.-])btrfs([[:space:]]+(--format|--log)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*[[:space:]]+'
+MDADM='(^|[^[:alnum:]_.-])mdadm([[:space:]][^;&|]*)?[[:space:]]'
+ZPOOL='(^|[^[:alnum:]_.-])zpool[[:space:]]+'
+# macOS: diskutil's repair verbs run fsck_apfs or fsck_hfs, or
+# rewrite the partition map (repairDisk); verifyVolume and
+# verifyDisk only read. Windows: chkdsk only reads without a fixing
+# switch, and Repair-Volume only with -Scan; Get-Help and
+# Get-Command in front of it only look it up. Like the diskutil and
+# Windows rules above, these apply in every scope.
+if hit_i '(^|[^[:alnum:]_.-])diskutil([^[:alnum:]_.-]|$)' \
+  && hit_i '(repairvolume|repairdisk)'; then
+  stor_deny "diskutil repairVolume and repairDisk repair a volume or \
+rewrite the partition map"
+fi
+if [ -n "$WIN" ] \
+  && hit_i '(^|[^[:alnum:]_.-])chkdsk(\.exe)?[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*/(f|r|x|b|spotfix|offlinescanandfix|forceofflinefix)(:|[[:space:]]|["'\''`]|$)'
+then
+  stor_deny "chkdsk with a fixing switch repairs the volume"
+fi
+if [ -n "$WIN" ] \
+  && hit_without '(^|[^[:alnum:]_-])((get-help|get-command|gcm|help)[[:space:]]+(-name[[:space:]]+)?)?repair-volume([^[:alnum:]_-]|$)' \
+    '^[^[:alnum:]]?(get-help|get-command|gcm|help)[[:space:]]|(^|[[:space:]])-scan([[:space:]]|$)' i; then
+  stor_deny "Repair-Volume beyond -Scan repairs the volume"
+fi
+if full; then
+  case "$CMD$CMDJ$CMDQ" in
+  *fsck*|*xfs_repair*)
+    # fsck, fsck.ext4, fsck_ffs, e2fsck, dosfsck and xfs_repair. -N
+    # is util-linux fsck's own dry run, -n everyone else's.
+    if hit_without '(^|[^[:alnum:]_.-])(fsck([.][[:alnum:]]+|_[[:alnum:]]+)?|e2fsck|dosfsck|xfs_repair)([^[:alnum:]_.-]|$)' \
+      "$STORDRY|(^|[[:space:]])-N([[:space:]]|\$)|$HELP"; then
+      stor_deny "a file system check without -n repairs, and a repair \
+decides on its own what to throw away"
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *btrfs*)
+    # btrfs check only reads unless one of these asks it to write.
+    if hit "(${BTRFS}c(h(e(c(k)?)?)?)?|(^|[^[:alnum:]_.-])btrfsck)([[:space:]][^;&|]*)?[[:space:]]--(repair|init-csum-tree|init-extent-tree|clear-space-cache|clear-ino-cache)"
+    then
+      stor_deny "btrfs check with a write option repairs the file \
+system"
+    fi
+    if hit_without "${BTRFS}resc(u(e)?)?([[:space:]]|\$)" "$HELP"; then
+      stor_deny "btrfs rescue rewrites the file system's metadata"
+    fi
+    # subvolume delete removes a subvolume and everything in it. A
+    # snapshot looks the same on the command line, so it is denied
+    # like zfs destroy of a dataset; snapper and timeshift prune
+    # their own snapshots.
+    if hit_without "${BTRFS}su(b(v(o(l(u(m(e)?)?)?)?)?)?)?[[:space:]]+d(e(l(e(t(e)?)?)?)?)?([[:space:]]|\$)" \
+      "$HELP"; then
+      stor_deny "btrfs subvolume delete removes a subvolume and all \
+the data in it"
+    fi
+    # A scrub rewrites damaged blocks from a verified copy: asked,
+    # as zpool scrub is; status and cancel read or stop.
+    if hit "${BTRFS}((d(e(v(i(c(e)?)?)?)?)?[[:space:]]+(a(d(d)?)?|rem(o(v(e)?)?)?|d(e(l(e(t(e)?)?)?)?)?)|rep(l(a(c(e)?)?)?)?[[:space:]]+star(t)?|sc(r(u(b)?)?)?[[:space:]]+(star(t)?|r(e(s(u(m(e)?)?)?)?)?))([[:space:]]|\$)|b(a(l(a(n(c(e)?)?)?)?)?)?[[:space:]][^;&|]*convert=)"
+    then
+      stor_ask
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *debugfs*)
+    if hit '(^|[^[:alnum:]_.-])debugfs([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*w'
+    then
+      stor_deny "debugfs -w writes file system metadata directly"
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *sync_action*)
+    # md's repair and resync rewrite every mismatch from one copy of
+    # their own choosing, with no checksum to say which is right;
+    # check only counts them, idle and frozen stop. A redirect or
+    # tee is how the word reaches the file.
+    if hit '(^|[^[:alnum:]_-])(repair|resync)([^[:alnum:]_-][^;&|]*)?>[[:space:]]*[^[:space:];&|]*sync_action' \
+      || { hit '(^|[^[:alnum:]_.-])(tee|sponge)[[:space:]]([^;&|]*[[:space:]])?[^[:space:];&|]*sync_action' \
+           && hit '(^|[^[:alnum:]_-])(repair|resync)([^[:alnum:]_-]|$)'; }
+    then
+      stor_deny "a repair or resync through sync_action rewrites the \
+array from a copy md picks"
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *mdadm*)
+    # Creating, building, growing or rewriting an array's superblock,
+    # an assemble forced past its own checks, and the repair and
+    # resync actions, which rewrite every mismatch from a copy md
+    # picks. A cluster counts: mdadm -Cv is --create. --detail,
+    # --examine, --query and --action=check read; the manage verbs
+    # are asked.
+    if hit "${MDADM}(-[[:alpha:]]*[CBG][[:alpha:]]*|--(create|build|grow|zero-superblock|update)|--action([[:space:]]+|=)(repair|resync))([[:space:]=]|\$)"
+    then
+      stor_deny "this mdadm mode creates, grows or rewrites an array's \
+metadata or data"
+    fi
+    if hit "${MDADM}((--assemble|-[[:alpha:]]*A[[:alpha:]]*)([[:space:]][^;&|]*)?[[:space:]](--force|-f)|(--force|-f)([[:space:]][^;&|]*)?[[:space:]](--assemble|-[[:alpha:]]*A[[:alpha:]]*)|-[[:alpha:]]*(A[[:alpha:]]*f|f[[:alpha:]]*A)[[:alpha:]]*)([[:space:]]|\$)"
+    then
+      stor_deny "a forced mdadm assemble overrides the array's own \
+consistency checks"
+    fi
+    if hit_without "${MDADM}(-[arfS]|--(add|re-add|add-spare|remove|fail|set-faulty|replace|stop))([[:space:]=]|\$)" \
+      "$HELP"; then
+      stor_ask
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *pvcreate*|*pvremove*|*vgremove*|*lvremove*|*lvreduce*|*vgcfgrestore*|*pvck*|*vgck*)
+    # Labelling a device, removing a PV, VG or LV, shrinking an LV,
+    # restoring old metadata over the current one, and the checkers'
+    # own repair modes. Each tool also runs as lvm <tool>.
+    if hit_without '(^|[^[:alnum:]_.-])(pvcreate|pvremove|vgremove|lvremove|lvreduce|vgcfgrestore)([^[:alnum:]_.-]|$)' \
+      "$LVMTEST|$HELP"; then
+      stor_deny "this LVM command destroys a volume or the metadata \
+that finds it"
+    fi
+    if hit '(^|[^[:alnum:]_.-])(pvck|vgck)([[:space:]][^;&|]*)?[[:space:]]--(repair|updatemetadata)([[:space:]=]|$)'
+    then
+      stor_deny "pvck and vgck with a repair option rewrite LVM \
+metadata"
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *lvcreate*|*lvextend*|*lvresize*|*lvconvert*|*vgcreate*|*vgextend*|*vgreduce*|*pvmove*|*pvresize*)
+    # lvresize shrinks with a negative size, and with an absolute one
+    # below the current size, which the command line cannot show.
+    # Only a size starting with + is known to grow; lvextend refuses
+    # to shrink whatever it is given. The size may close a cluster:
+    # lvresize -rL 10G.
+    if hit_without '(^|[^[:alnum:]_.-])lvresize([[:space:]][^;&|]*)?[[:space:]](-[[:alpha:]]*[Ll]|--size|--extents)([[:space:]]+|=)?[^+=[:space:]]' \
+      "$LVMTEST|$HELP"; then
+      stor_deny "lvresize without a + size can shrink the volume like \
+lvreduce - grow with lvextend or a size starting with +"
+    fi
+    # lvconvert --repair rebuilds a RAID or mirror LV and runs
+    # thin_repair on a thin pool's metadata: a repair, not a change.
+    if hit_without '(^|[^[:alnum:]_.-])lvconvert([[:space:]][^;&|]*)?[[:space:]]--repair([[:space:]=]|$)' \
+      "$LVMTEST|$HELP"; then
+      stor_deny "lvconvert --repair repairs a RAID, mirror or thin pool \
+volume"
+    fi
+    if hit_without '(^|[^[:alnum:]_.-])(lvcreate|lvextend|lvresize|lvconvert|vgcreate|vgextend|vgreduce|pvmove|pvresize)([^[:alnum:]_.-]|$)' \
+      "$LVMTEST|$HELP"; then
+      stor_ask
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *zinject*)
+    if hit '(^|[^[:alnum:]_.-])zinject([^[:alnum:]_.-]|$)'; then
+      stor_deny "zinject injects faults into a live pool"
+    fi
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *zpool*)
+    # create formats its disks like mkfs; destroy and labelclear
+    # remove a pool; -F, -X and -T rewind one, which import takes on
+    # every release and clear up to OpenZFS 2.1, and so does import
+    # --rewind-to-checkpoint; import -m drops a missing log device
+    # with its transactions. upgrade asks only with a pool or -a:
+    # bare, or with -v, it lists. import asks the same way: bare, or
+    # with only options (-d dir), it lists what could be imported;
+    # with a pool or -a it imports. export unmounts every dataset.
+    case "$CMD$CMDJ$CMDQ" in
+    *create*|*destroy*|*labelclear*)
+      if hit_without "${ZPOOL}(create|destroy|labelclear)([^[:alnum:]_-]|\$)" \
+        "$STORDRY|$HELP"; then
+        stor_deny "zpool create, destroy and labelclear erase the pool \
+on their disks"
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *import*|*clear*)
+      if hit_without "${ZPOOL}(import|clear)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*[FXTm]|--rewind-to-checkpoint)" \
+        "$STORDRY"; then
+        stor_deny "a ZFS rewind discards the pool's last transactions \
+for good"
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *scrub*)
+      if hit_without "${ZPOOL}scrub([^[:alnum:]_-]|\$)" \
+        "(^|[[:space:]])-[[:alnum:]]*[sp]([[:space:]]|\$)|$HELP"; then
+        stor_ask
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *attach*|*detach*|*replace*|*offline*|*online*|*add*|*remove*|*split*|*upgrade*|*export*)
+      if hit_without "${ZPOOL}((attach|detach|replace|offline|online|add|remove|split|export)([^[:alnum:]_-]|\$)|upgrade([[:space:]]+-[[:alnum:]]+)*[[:space:]]+(-a|[^-[:space:];&|]))" \
+        "$STORDRY|$HELP"; then
+        stor_ask
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *import*)
+      # An option ending in c, d, o or R takes a value (-d dir,
+      # -o prop, -c cachefile, -R root), which is not a pool name.
+      if hit_without "${ZPOOL}import([[:space:]]+-[[:alnum:]]*[cdoR][[:space:]]+[^[:space:]]+|[[:space:]]+-[[:alnum:]]*[^cdoR[:space:];&|])*[[:space:]]+([^-[:space:];&|]|-[[:alnum:]]*a([[:space:]]|\$))" \
+        "$STORDRY|$HELP"; then
+        stor_ask
+      fi
+      ;;
+    esac
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *zfs*)
+    # destroy of a dataset or volume is its data, and so is -R on a
+    # snapshot, destroy or rollback: it takes every dependent clone
+    # with it, a dataset of its own and possibly outside the target's
+    # tree. A snapshot or bookmark (@, #) otherwise, a rollback and
+    # a forced receive drop only what came after, and are asked.
+    case "$CMD$CMDJ$CMDQ" in
+    *destroy*|*rollback*)
+      if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+(destroy|rollback)([[:space:]]+-[[:alnum:]]+)*[[:space:]]+-[[:alnum:]]*R' \
+        "$STORDRY|$HELP"; then
+        stor_deny "zfs destroy or rollback with -R destroys every clone \
+that depends on the snapshot"
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *destroy*)
+      if hit_without "(^|[^[:alnum:]_.-])zfs[[:space:]]+destroy([[:space:]]+-[[:alnum:]]+)*[[:space:]]+[\"']?[^-@#[:space:];&|\"'][^@#[:space:];&|\"']*[\"']?([[:space:];&|]|\$)" \
+        "$STORDRY|$HELP"; then
+        stor_deny "zfs destroy of a dataset or volume deletes its data \
+and every snapshot of it"
+      fi
+      ;;
+    esac
+    case "$CMD$CMDJ$CMDQ" in
+    *destroy*|*rollback*|*recv*|*receive*)
+      if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+((destroy|rollback)([^[:alnum:]_-]|$)|(receive|recv)([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*F)' \
+        "$STORDRY|$HELP"; then
+        stor_ask
+      fi
+      ;;
+    esac
+    ;;
+  esac
+  case "$CMD$CMDJ$CMDQ" in
+  *disk.wipe*|*pool.create*)
+    if hit "${MIDCLT}(disk[.]wipe|pool[.]create)([^[:alnum:]_.-]|\$)"
+    then
+      stor_deny "TrueNAS disk.wipe and pool.create erase whole disks"
+    fi
+    ;;
+  *pool.export*|*pool.dataset.delete*)
+    # pool.dataset.delete is zfs destroy of a dataset, and pool.export
+    # with destroy in its argument is zpool destroy: both denied like
+    # the commands they stand for. A plain export only unmounts, and
+    # is asked like zpool export.
+    if hit "${MIDCLT}pool[.]dataset[.]delete([^[:alnum:]_.-]|\$)"
+    then
+      stor_deny "TrueNAS pool.dataset.delete deletes a dataset like zfs \
+destroy"
+    fi
+    if hit "${MIDCLT}pool[.]export([^[:alnum:]_.-][^;&|]*)?destroy"
+    then
+      stor_deny "TrueNAS pool.export with destroy erases the pool like \
+zpool destroy"
+    fi
+    if hit "${MIDCLT}pool[.]export([^[:alnum:]_.-]|\$)"
+    then
+      stor_ask
+    fi
+    ;;
+  esac
 fi
 
 # True when the command writes INTO a path matching $1 (a regex
@@ -1518,102 +1911,41 @@ fi
 # --- Guest stop and delete: ask, never silently allow ----------
 # Stopping a container or VM powers that server off and deleting
 # it destroys it (rules/system-containers.md), but managing guests
-# on a host Hostwarden administers is legitimate work. So this is
-# the hook's second tier: the user confirms the exact command in a
-# prompt. Membership is narrow on purpose -- an effect earns ask
-# instead of deny only when it is routine admin work AND no
-# user-tunable policy already covers it (service restarts have
-# memory/service-policy.md, so they stay with the model). It is
-# decided last, so a taboo anywhere in the same command still
-# denies.
-#
-# The prompt must reach a human. Claude Code documents ask as
-# forcing one in auto mode; for bypassPermissions and dontAsk it
-# documents nothing, so those deny, and so does a mode this hook
-# cannot read. Measured upstream in Heinzel with Claude Code
-# 2.1.267: in claude -p an ask is refused whatever the mode, so an
-# unattended run stops rather than hanging, and a session started
-# with --permission-mode auto reports default here. The operator
-# override is HOSTWARDEN_GUARD_DISABLE, as for a taboo.
+# on a host Hostwarden administers is legitimate work: the ask tier.
 #
 # Only the manager's own verb counts: a service stopped or a file
 # deleted inside a guest through exec stays allowed, and so do
 # snapshot, image, network and storage verbs, which carry a noun
-# before theirs. A --help or -h after the verb prints the syntax
-# and changes nothing, which AGENTS.md -> Verify Before Running
-# asks for before a command is run, so it is exempt, per
-# invocation as every read-only exemption here is. The case
-# prefilter spares every command without a manager's name the
-# greps.
-GUEST=
-# The exemption, read from the verb on: --help or -h before the
-# invocation ends.
-GUESTHELP='^[^;&|]*[[:space:]](--help|-h)([[:space:]]|[;&|]|$)'
+# before theirs. The case prefilter spares every command without a
+# manager's name the greps.
+guest_ask() {
+  ask_for "stopping or deleting a system container or VM" "powers \
+off or destroys that server (rules/system-containers.md)" "Check the \
+guest ID and the host before approving."
+}
 case "$CMD$CMDJ$CMDQ" in
 *pct*|*qm*|*virsh*|*incus*|*lxc*|*vm-*|*midclt*)
-  if full && hit_without "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|midclt[[:space:]]+call[[:space:]]+(vm|virt[.]instance)[.](stop|delete)|lxc-destroy)([^[:alnum:]_-]|\$)" \
-    "$GUESTHELP"
+  if full && hit_without "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)|${MIDCLT}(vm|virt[.]instance)[.](stop|delete)([^[:alnum:]_-]|\$)" \
+    "$HELP"
   then
-    GUEST=1
+    guest_ask
   fi
   ;;
 esac
 case "$CMD$CMDJ$CMDQ" in
 *lxc-stop*)
   if full && hit_without '(^|[^[:alnum:]_.-])lxc-stop([^[:alnum:]_.-]|$)' \
-    "(^|[[:space:]])(-r|--reboot)([[:space:]]|\$)|$GUESTHELP"
+    "(^|[[:space:]])(-r|--reboot)([[:space:]]|\$)|$HELP"
   then
-    GUEST=1
+    guest_ask
   fi
   ;;
 esac
-if [ -n "$GUEST" ]; then
-  # No jq means no mode, hence deny.
-  MODE=
-  if command -v jq >/dev/null 2>&1; then
-    MODE=$(printf '%s' "$INPUT" \
-      | jq -r '.permission_mode // empty' 2>/dev/null) || MODE=
-  fi
-  case $MODE in
-  default|acceptEdits|plan|auto)
-    decide ask "stopping or deleting a system container or VM powers \
-off or destroys that server (rules/system-containers.md). Check the \
-guest ID and the host before approving."
-    ;;
-  *)
-    decide deny "stopping or deleting a system container or VM needs \
-a confirmation prompt, and this session shows none, or a permission \
-mode this hook does not know. Not a taboo: run it in a session that \
-asks, or let the user run it. Do not rephrase the command."
-    ;;
-  esac
-fi
 
-# A first-boot write registered above, and no taboo anywhere else in
-# the line: ask where a prompt reaches a human, deny where none does.
-# No jq means no mode, hence deny.
-if [ -n "$FB_ASK" ]; then
-  FB_MODE=
-  if command -v jq >/dev/null 2>&1; then
-    FB_MODE=$(printf '%s' "$INPUT" \
-      | jq -r '.permission_mode // empty' 2>/dev/null) || FB_MODE=
-  fi
-  case $FB_MODE in
-  default|acceptEdits|plan|auto)
-    decide ask "$FB_ASK into a guest that has not started yet. Only \
-the first-boot configuration of a guest that never ran may set \
-sshd's login options and keys (AGENTS.md - Critical Safety Rules). \
-Check that the path is the guest's and not this host's before \
-approving."
-    ;;
-  *)
-    decide deny "$FB_ASK needs a confirmation prompt, and this \
-session shows none, or a permission mode this hook does not know. \
-Not a taboo: run it in a session that asks, or let the user run it. \
-Do not rephrase the command."
-    ;;
-  esac
-fi
+# --- The ask tier: decided last --------------------------------
+# Guests, storage changes and first-boot writes, whichever the line
+# holds, in one prompt.
+[ -n "$ASKWHAT" ] && ask_decide
 
 # No taboo matched: no decision, normal permission flow applies.
 exit 0

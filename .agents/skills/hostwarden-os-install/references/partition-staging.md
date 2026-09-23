@@ -138,7 +138,7 @@ stats`).
 
 ### ZFS
 
-```
+```sh guard-off
 # Add former swap to the pool
 zpool add poolname /dev/sdXn
 
@@ -172,7 +172,7 @@ After removal, the original partition is free.
 
 ### LVM
 
-```
+```sh guard-off
 # Create a PV on the former swap partition
 pvcreate /dev/sdXn
 
@@ -191,7 +191,7 @@ The original partition is now free.
 
 ### btrfs
 
-```
+```sh guard-off
 # Add the former swap partition
 btrfs device add /dev/sdXn /mountpoint
 

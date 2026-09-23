@@ -218,7 +218,7 @@ unavailable. Use `debugfs` (from the `e2fsprogs`
 package) to inject files into an ext4 rootfs
 without mounting it:
 
-```
+```sh guard-off
 # Write a local file into the image's filesystem
 debugfs -w -R \
   "write /tmp/local-file /etc/target-path" \
