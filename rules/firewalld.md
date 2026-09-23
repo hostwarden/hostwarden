@@ -12,7 +12,8 @@ and firewalld's `reload`,
 ## Commands
 
 - Check status: `firewall-cmd --state`
-- List rules: `firewall-cmd --list-all`
+- List rules: `firewall-cmd --list-all | sed -E "${fc:?}"` (`fc`:
+  `rules/secrets.md` → Commands That Leak)
 - Add rule: `firewall-cmd --add-service=http`, kept with
   `--permanent` once tested (see Changes over SSH)
 - Reload: `firewall-cmd --reload`
@@ -35,13 +36,29 @@ without `--permanent` first, so that `firewall-cmd --reload` is
 the revert: it replaces the runtime configuration with the
 permanent one.
 
-Loaded rules against the files (step 2 of the safety net):
-`diff <(firewall-cmd --list-all-zones)
-<(firewall-cmd --permanent --list-all-zones)`: any output but an
-`interfaces:` line is runtime-only state the revert discards too,
-possibly the rule SSH depends on. Settle it with the user before
-the change. `--reload` binds every interface to its zone again,
-NetworkManager's included (firewalld's `reload`).
+Loaded rules against the files (step 2 of the safety net), in
+`sh`, which has no process substitution on Debian:
+
+```
+t=$(mktemp); p=$(mktemp)
+for v in --list-all-zones --list-all-policies "--direct --get-all-rules"
+do
+  if firewall-cmd $v > "$t" && firewall-cmd --permanent $v > "$p"
+  then diff "$t" "$p" | sed -E "${fc:?}" && echo "compared $v"
+  else echo "unread $v"; fi
+done
+rm -f "$t" "$p"
+```
+
+Each view is compared only where `compared <view>` says so;
+`unread <view>`, or no such line, means one side was not read, and
+nothing is known about that view (`--list-all-policies` needs
+firewalld 0.9). An ipset's entries are in none of the views. Any
+line above a `compared` but an `interfaces:` line is runtime-only
+state the revert discards too, possibly the rule SSH depends on. Settle it
+with the user before the change. `--reload` binds every interface
+to its zone again, NetworkManager's included (firewalld's
+`reload`).
 
 Once a fresh login works, repeat the commands with `--permanent`,
 then `firewall-cmd --check-config`. Never
@@ -58,7 +75,7 @@ firewalld reverts with `systemctl stop firewalld`.
 Note the default zone: `firewall-cmd --get-default-zone`. A custom
 or renamed default zone is legitimate — what matters is the zone's
 behavior, not its name. Verify it rejects unsolicited incoming
-traffic: `firewall-cmd --info-zone=<zone>` — the target should be
-`default` (which means reject). If the zone target is `ACCEPT`,
-fix with `firewall-cmd --permanent --zone=<zone>
---set-target=default` and `firewall-cmd --reload`.
+traffic: `firewall-cmd --info-zone=<zone> | sed -E "${fc:?}"` — the
+target should be `default` (which means reject). If the zone
+target is `ACCEPT`, fix with `firewall-cmd --permanent
+--zone=<zone> --set-target=default` and `firewall-cmd --reload`.

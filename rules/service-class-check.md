@@ -175,14 +175,36 @@ listing with `P='ntpd|local_unbound'` as well.
 **macOS (Homebrew, best-effort)**
 
 ```bash
-members=(httpd nginx caddy lighttpd
-         postgresql mariadb mysql
-         postfix exim opensmtpd msmtp
-         chrony unbound bind dnsmasq
-         podman containerd)
-brew list --formula \
-  | grep -Fxf <(printf '%s\n' "${members[@]}")
+c='httpd|nginx|caddy|lighttpd|postgresql|mariadb|mysql'
+c="$c|postfix|exim|opensmtpd|msmtp|chrony|unbound|bind"
+c="$c|dnsmasq|podman|containerd|ntp|knot-resolver|pdnsrec"
+h=
+for b in $(command -v brew) /opt/homebrew/bin/brew /usr/local/bin/brew
+do
+  [ -x "$b" ] || continue
+  case " $h " in *" $b "*) continue ;; esac; h="$h $b"
+  if l=$("$b" list --formula 2>/dev/null) \
+    || l=$(ls "${b%/bin/brew}/Cellar"); then
+    printf '%s\n' "$l" | grep -E "^($c)(@[0-9.]+)?\$"
+    echo "$b: read"
+  else echo "$b: unread"; fi
+done
+[ -n "$h" ] || echo "Homebrew: none"
+ps -axo comm= | grep -xE '/usr/sbin/httpd|/usr/libexec/postfix/master'
 ```
+
+Every Homebrew is read, the one on `PATH` and both
+default prefixes, since a Mac can carry more than one,
+and a versioned formula (`postgresql@16`) counts; where
+`brew` refuses, as it does for root, its `Cellar` is
+listed instead. `none` covers `PATH` and the two
+defaults: a prefix the user named elsewhere (the
+installer's `--path`) is read with its own `bin/brew`.
+A prefix that prints `unread` is unknown and stops
+Phase 1 like a flagged member: tell the user the check
+could not read it. The last line finds Apple's own
+`httpd` and postfix running from the base system, which
+no Homebrew list shows.
 
 macOS installs are user-scoped rather than
 system-wide, so this phase is advisory on macOS.
@@ -288,8 +310,12 @@ pkg install -n <pkg>
 **macOS (Homebrew)**
 
 ```bash
-brew deps --include-build <pkg>
+<prefix>/bin/brew deps --include-build <pkg>
 ```
+
+`<prefix>` is the Homebrew that will install the
+package: the one `rules/os/macos.md` → Package Manager
+finds, or a prefix the user named.
 
 Homebrew rarely pulls a full web server as a
 transitive dependency, so this is best-effort.

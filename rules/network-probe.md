@@ -448,11 +448,20 @@ ls /etc/iptables/rules* /etc/sysconfig/ip*tables \
   /etc/local.d/*.start 2>/dev/null
 # Chains a container engine or Kubernetes writes are counted.
 e='^(DOCKER|KUBE-|CNI-|cali-)'
+# Rule comments, labels, log prefixes and match strings show as
+# `...` (rules/secrets.md → Commands That Leak, one filter).
+fc='s/(^|[^-])comment ".*"$/\1comment "..."/
+s/((comment|label|prefix|match|string)"?:?[ =!]*)"([^"\\]|\\.)*"/\1"..."/g
+s/(--comment|--(hex-)?string|-?-?(log|nflog|ulog)-prefix)([ =]+)[^ "]+/\1\4.../g
+s#/\*.*\*/#/* ... */#
+s/(^|[[:space:]])#.*/\1# .../
+s|[[:space:]]//.*| // ...|'
 nf=
 if [ "$SUDO" = - ]; then echo "netfilter=unknown(needs-root)"
 else
   if ! command -v nft >/dev/null 2>&1; then echo "nft=none"
   elif r=$($SUDO nft list ruleset 2>/dev/null); then
+    r=$(printf '%s\n' "$r" | sed -E "${fc:?}")
     echo "nft-tables=$(printf '%s\n' "$r" | grep -c '^table')"
     # A table with NAT comes in full, any other with its hooks.
     nf=$(printf '%s\n' "$r" | awk -v e="$e" '
@@ -493,7 +502,7 @@ else
           '%s\n' "$o" | grep -c ' -A INPUT ')"
         nf="$nf
 == $b -t $tb$c
-$(printf '%s\n' "$o" | grep -E "$r" | awk -v e="$e" '
+$(printf '%s\n' "$o" | grep -E "$r" | sed -E "${fc:?}" | awk -v e="$e" '
   $2 == "-A" && $3 ~ e { g = $3; sub(/-.*/, "", g); k[g]++; next }
   { print }
   END { for (g in k) print g "*: " k[g] " rules" }')"
@@ -508,7 +517,7 @@ if [ "$SUDO" != - ]; then
   for m in $(printf '%s\n' "$nf" | grep -oE -- '--match-set [^ ]+' \
     | cut -d' ' -f2 | sort -u); do
     echo "== ipset $m"; $SUDO ipset list "$m" 2>&1 | head -20
-  done
+  done | sed -E "${fc:?}"
 fi
 # The route to each NAT target.
 for a in $(printf '%s\n' "$nf" \
@@ -751,6 +760,10 @@ profile's `## Traffic flow` section (`rules/network.md`):
   container engine or Kubernetes writes for its
   containers; their jumps from the built-in chains stay
   listed.
+- A rule's comment, label, log prefix or match string
+  shows as `...` (`rules/secrets.md` → Commands That
+  Leak): read what the rule matches and where it sends
+  the packet, never what it says about itself.
 - NAT rules come as `[packets:bytes] -A …` from the
   legacy tables, or with `counter packets …` from
   nftables, where a rule without `counter` has none. The
@@ -758,7 +771,8 @@ profile's `## Traffic flow` section (`rules/network.md`):
   no match since then: compare with the uptime and the
   time the hook ran. iptables-nft rules show up in nft
   syntax with `xt` where nft cannot translate a match;
-  read that table with `iptables-save -t <table>` instead.
+  read that table with
+  `iptables-save -t <table> | sed -E "${fc:?}"` instead.
 - A table with NAT comes with its `set` and `map`
   declarations, and a rule that matches an ipset
   (`--match-set`) with the first lines of `ipset list`: a
@@ -776,10 +790,11 @@ profile's `## Traffic flow` section (`rules/network.md`):
   INPUT rules. From nftables come the base chains' `hook`
   lines with their policy, and the jumps and NAT rules;
   where the input or forward chains' rules matter, read
-  that chain with `nft list chain <family> <table>
-  <chain>`. Whether they form a firewall is the
-  security audit's call; the profile records per family
-  whether inbound traffic to the host is filtered at all.
+  that chain with
+  `nft list chain <family> <table> <chain> | sed -E "${fc:?}"`.
+  Whether they form a firewall is the security audit's
+  call; the profile records per family whether inbound
+  traffic to the host is filtered at all.
 
 ## Probe — FreeBSD
 

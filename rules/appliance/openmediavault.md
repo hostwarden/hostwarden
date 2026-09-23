@@ -240,9 +240,19 @@ under `deb/openmediavault/` there).
   accepted, which is what a fresh install has. Report it as a
   finding; on a NAS that only answers a trusted LAN the user may
   well decide to keep it.
-- Read-only: `iptables-save`, `ip6tables-save` (the docs ask for
-  `iptables-save` output rather than a screenshot) and
-  `omv-confdbadm read --prettify conf.system.network.iptables.rule`.
+- Read-only: `iptables-save` and `ip6tables-save` (the docs ask
+  for `iptables-save` output rather than a screenshot), each piped
+  through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` → Commands
+  That Leak), and the rules as the UI keeps them, without their
+  comment and with their extra options only marked, since those
+  are free text too (fields:
+  <https://github.com/openmediavault/openmediavault/blob/master/deb/openmediavault/usr/share/openmediavault/datamodels/conf.system.network.iptables.rule.json>):
+  ```
+  omv-confdbadm read conf.system.network.iptables.rule \
+    | jq -r '.[] | [.rulenum, .family, .chain, .action, .protocol,
+      .source, .sport, .destination, .dport,
+      (if .extraoptions == "" then "-" else "extra=..." end)] | @tsv'
+  ```
 - **Before adding or changing a rule:** discuss it with the user,
   keep every sshd port open (`AGENTS.md` → Critical Safety Rules)
   as well as the web UI ports (`conf.webadmin`, 80 and 443 by

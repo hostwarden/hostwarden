@@ -41,7 +41,10 @@ system before it is wiped. Store it in
 - IP addresses (static or DHCP)
 - Gateway, DNS servers
 - Interface names and bonding/VLAN config
-- Firewall rules (export full ruleset)
+- Firewall rules: the full ruleset copied whole to the
+  workstation like the cron jobs below, and recorded here
+  through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` →
+  Commands That Leak)
 - `/etc/hosts` entries
 - WireGuard or VPN configs
 

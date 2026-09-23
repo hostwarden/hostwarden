@@ -109,6 +109,33 @@ openssl pkey -pubout -in example.key | sha256sum
   A keyword filter is a backstop, never the
   redaction: `db_pass`, `token` and `secret_key` get
   past one that knows `password`.
+- A firewall listing prints its rules' free text
+  whole, and a comment can hold a token. Every
+  listing and saved rule file — `nft list`,
+  `iptables-save`, `iptables -S` and `-L`, `ipset
+  list`, `ufw status`, `firewall-cmd --list-all` and
+  `--info-zone`, `pfctl -s rules`, `ipfw list` — goes
+  through this filter. It shows comments, labels, log
+  prefixes and match strings as `...` and keeps
+  addresses, ports, interfaces, sets, chains and
+  targets:
+
+  ```
+  fc='s/(^|[^-])comment ".*"$/\1comment "..."/
+  s/((comment|label|prefix|match|string)"?:?[ =!]*)"([^"\\]|\\.)*"/\1"..."/g
+  s/(--comment|--(hex-)?string|-?-?(log|nflog|ulog)-prefix)([ =]+)[^ "]+/\1\4.../g
+  s#/\*.*\*/#/* ... */#
+  s/(^|[[:space:]])#.*/\1# .../
+  s|[[:space:]]//.*| // ...|'
+  nft list ruleset | sed -E "${fc:?}"
+  ```
+
+  A comment that ends the line is cut to its last
+  quote, since nft prints one that iptables-nft wrote
+  with its quotes unescaped. A `#` line, pfSense's
+  disabled rules in `rules.debug` included, shows as
+  `# ...`. The copies of `fc` in
+  the probes stay identical to this one.
 - When a config that embeds credentials must be
   shown, show its structure: section headers and
   key names, every value withheld. Any other line

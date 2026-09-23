@@ -140,7 +140,29 @@ Source for everything below unless noted: the admin guide,
 - **Before enabling or tightening:** keep a second SSH session
   open (the admin guide says so), check that the `management` IPSet
   contains the address you connect from, and ask the user. A wrong
-  rule in `cluster.fw` locks you out of every node at once.
+  rule in `cluster.fw` locks you out of every node at once. Read
+  the IPSet's entries and the aliases they can name, without their
+  free-text comments:
+  ```
+  f=/cluster/firewall
+  if l=$(pvesh get $f/ipset --output-format json) \
+    && e=$(pvesh get $f/aliases --output-format json); then
+    if printf '%s' "$l" | jq -e 'any(.[]; .name == "management")' \
+      >/dev/null; then
+      m=$(pvesh get $f/ipset/management --output-format json) \
+        && printf '%s' "$m" \
+        | jq -r '.[] | (if .nomatch == 1 then "!" else "" end) + .cidr' \
+        && echo "management: read" || echo "management: unread"
+    else echo "management: none"; fi
+    printf '%s' "$e" | jq -r '.[] | .name + " " + .cidr'
+    echo "aliases: read"
+  else echo "firewall: unread"; fi
+  ```
+  An entry that is no address names an alias. Only `read` and
+  `none` are answers; `unread` means the read failed.
+  `management: none` means no such IPSet is defined; the network `pve-firewall
+  localnet` names is admitted to the host either way
+  (<https://pve.proxmox.com/wiki/Firewall>).
 - `pve-firewall stop` removes all Proxmox rules and leaves the host
   unprotected. It is not a harmless test step.
 - **Bridged traffic.** Whenever `pve-firewall` applies its rules,

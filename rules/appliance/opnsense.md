@@ -146,7 +146,9 @@ documentation, <https://docs.opnsense.org/>, and the
   bogon networks by default.
 - Read-only: `pfctl -sr` (rules), `pfctl -s nat`, `pfctl -si`,
   `configctl filter rule stats`. The generated ruleset is in
-  `/tmp/rules.debug`.
+  `/tmp/rules.debug`. A rule listing, that file's included, goes
+  through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` → Commands
+  That Leak).
 - **Rules are changed in the web UI or the API**, never with
   `pfctl -f` on a file you wrote: the next `configctl filter
   reload` replaces it.
@@ -156,7 +158,12 @@ documentation, <https://docs.opnsense.org/>, and the
   (or the first interface that exists), ahead of user rules. It
   can be disabled under Firewall > Settings > Advanced (26.7; the
   menu moves in later versions). Check that it is on before any
-  rule change. Do not turn it off unless the user explicitly asks.
+  rule change: it is on while
+  `grep -c '<noantilockout' /conf/config.xml` prints `0`
+  (`system/webgui/noantilockout`,
+  <https://github.com/opnsense/core/blob/master/src/etc/inc/filter.lib.inc>).
+  A rule listing cannot tell, since `fc` withholds its description.
+  Do not turn it off unless the user explicitly asks.
 - `pfctl -d` switches off the firewall **and NAT** until the next
   reload: everyone behind it loses internet access. It is not a
   safety net for Hostwarden.

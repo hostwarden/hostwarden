@@ -286,7 +286,8 @@ https://www.debian.org/releases/bookworm/amd64/release-notes/ch-whats-new.en.htm
 ## Firewall
 
 - **Expected:** `ufw` (Uncomplicated Firewall)
-- Check status: `ufw status verbose`
+- Check status: `ufw status verbose | sed -E "${fc:?}"` (`fc`:
+  `rules/secrets.md` → Commands That Leak)
 - **Debian** does not install `ufw`. If neither `ufw`
   nor native nftables (below) is active, flag it to
   the user.
@@ -306,12 +307,14 @@ https://www.debian.org/releases/bookworm/amd64/release-notes/ch-whats-new.en.htm
   on as well (`AGENTS.md` → Critical Safety Rules).
 - Enabling `ufw` or changing its rules over SSH goes
   through `rules/ssh-safety-net.md`. Check:
-  `ufw --dry-run <command>`; revert: `ufw disable` for
-  enabling it, and for a rule change the backed-up
-  `/etc/ufw/user.rules` and `user6.rules` restored,
-  then `ufw reload`.
+  `{ ufw --dry-run <command>; echo "rc=$?"; } | sed -E "${fc:?}"`,
+  which passes with `rc=0` and filters the stored rules it
+  prints with their comments; revert:
+  `ufw disable` for enabling it, and for a rule change the
+  backed-up `/etc/ufw/user.rules` and `user6.rules`
+  restored, then `ufw reload`.
 - After enabling, verify the default policy:
-  `ufw status verbose` — look for
+  `ufw status verbose | grep '^Default:'` — look for
   `Default: deny (incoming)`. If incoming is set to
   `allow`, fix with `ufw default deny incoming`.
 - **Native nftables** is installed on Debian with
@@ -323,10 +326,12 @@ https://www.debian.org/releases/bookworm/amd64/release-notes/ch-whats-new.en.htm
   needs no ufw on top. Checks:
   `.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
   A change to it goes through `rules/ssh-safety-net.md`.
-  Check: `nft -c -f /etc/nftables.conf`; revert: the
-  backed-up file restored, then `nft -f /etc/nftables.conf`
-  where the unit ran before, or `systemctl stop nftables`
-  (its `ExecStop` is `nft flush ruleset`) where it did not.
+  Check:
+  `{ nft -c -f /etc/nftables.conf 2>&1; echo "rc=$?"; } | sed -E "${fc:?}"`,
+  which passes with `rc=0`; revert: the backed-up file restored, then
+  `nft -f /etc/nftables.conf` where the unit ran before, or
+  `systemctl stop nftables` (its `ExecStop` is
+  `nft flush ruleset`) where it did not.
 
 Sources: https://documentation.ubuntu.com/security/security-features/network/firewall/,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/standard?h=resolute

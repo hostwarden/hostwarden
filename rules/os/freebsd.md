@@ -100,7 +100,8 @@ Record which one in server memory.
   firewall may be reported as missing.
 - Enable in `/etc/rc.conf`: `pf_enable="YES"`
 - Load rules: `pfctl -f /etc/pf.conf`
-- Show current rules: `pfctl -s rules`
+- Show current rules: `pfctl -s rules | sed -E "${fc:?}"`
+  (`fc`: `rules/secrets.md` → Commands That Leak)
 - **Critical:** before enabling `pf`, always add a
   rule to pass SSH traffic first. A `pf` config
   without an SSH rule locks you out immediately.
@@ -128,9 +129,15 @@ Record which one in server memory.
   `rules/ssh-safety-net.md`. Loaded rules against the
   file (its step 2), where pf runs, in the backup call:
   ```
-  pfctl -nvf /etc/pf.conf | grep -E '^(pass|block|match|anchor)' > <tmp>
-  pfctl -sr | diff - <tmp>
+  if pfctl -nvf /etc/pf.conf > <tmp> && pfctl -sr > <tmp2>; then
+    grep -E '^(pass|block|match|anchor)' <tmp> | diff <tmp2> - \
+      | sed -E "${fc:?}" && echo compared
+  else echo unread; fi
   ```
+  Only `compared` is a comparison, of the filter rules
+  alone; `unread` means one side was not read. NAT rules
+  are read with `pfctl -sn | sed -E "${fc:?}"` against
+  the file.
   Check:
   `pfctl -nf /etc/pf.conf`; apply:
   `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:
@@ -159,12 +166,12 @@ Record which one in server memory.
   passes.
 - **ipfw's default** is its rule 65535, which cannot
   be deleted. ipfw applies the first matching rule,
-  so read the unconditional ones in `ipfw list`
-  (root) — `allow` or `deny`, with or without `log`,
-  `ip from any to any`, with or without `in` — by
-  number: incoming traffic is allowed by default when
-  the first of them is an `allow`, rule 65535
-  included. `firewall_type="open"` and the loader
+  so read the unconditional ones in `ipfw list |
+  sed -E "${fc:?}"` (root) — `allow` or `deny`, with or
+  without `log`, `ip from any to any`, with or
+  without `in` — by number: incoming traffic is
+  allowed by default when the first of them is an
+  `allow`, rule 65535 included. `firewall_type="open"` and the loader
   tunable `net.inet.ip.fw.default_to_accept` are the
   usual causes.
 - Start/stop: `service pf start`, `service pf stop`

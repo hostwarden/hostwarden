@@ -365,7 +365,9 @@ listens behind it.
   line or saved rule file (Reading B and F of the probe),
   and no firewall manager that holds it in its permanent
   configuration (firewalld's, `rules/firewalld.md`; ufw's
-  `/etc/ufw/before.rules`): it is gone after the next
+  `/etc/ufw/before.rules`, each read through `sed -E "${fc:?}"`,
+  `rules/secrets.md` → Commands That Leak): it is gone after the
+  next
   reboot. Ask the user what sets it before calling it
   hand-made.
 

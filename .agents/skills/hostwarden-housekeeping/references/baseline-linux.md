@@ -333,8 +333,11 @@ Check that the firewall is still active.
 **Debian/Ubuntu (ufw):**
 
 ```bash
-ufw status
+ufw status | head -1
 ```
+
+Its first line is the state; the rules below it stay out, since a
+rule comment can hold a token.
 
 On Ubuntu, `rules/os/debian.md` → Firewall says how to
 word an inactive ufw.
