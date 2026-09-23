@@ -71,19 +71,17 @@ directories (`rules/heinzel-adoption.md`).
 A system container or VM reached through its
 hypervisor host's manager instead of its own SSH.
 When it applies: `rules/system-containers.md` →
-Reaching It. Where the guest's memory has a
-`Mode: via …` line, compare it with its `Runs on:`
-line before connecting: the host, an alias counting
-as its canonical host (`rules/dns-aliases.md`), and
-the ID. The ID is the whole of it: the Incus or LXD
+Reaching It. The guest's `Runs on:` line names the
+host to go through, on a cluster the member it was
+last on, and the ID to enter, the Incus or LXD
 project and, on a host with more than one manager,
-the manager (`incus: prod/web`, `rules/hypervisors.md`
-→ Inventory). Where `Runs on:` is missing, carries no
-ID, or differs in either, do not enter the guest: ask
-the user which host and ID it has, and write both
-lines from the answer, `Runs on:` in the user's form
-with the ID (`rules/hypervisors.md` → Linking Guest
-and Host, `rules/server-memory.md`).
+the manager included (`rules/hypervisors.md` →
+Linking Guest and Host). The command is that
+manager's line in `rules/system-containers.md` →
+Reaching It. Where `Runs on:` is missing or names no
+managed host and ID, do not enter the guest: ask the
+user which host and ID it has, and write `Runs on:`
+from the answer.
 
 The connection to the host runs this pipeline for
 the host. For the guest, check the blacklist and the

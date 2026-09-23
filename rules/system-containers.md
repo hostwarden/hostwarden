@@ -17,7 +17,7 @@ their own:
   A guest on a known host allows, for this session. Server memory
   keeps its SSH access.
 - **No sshd in the guest:** ask the user once: install one (then
-  SSH), or record via-host mode in its memory
+  SSH), or record `Mode: via` in its memory
   (`rules/server-memory.md`). Not for a Windows guest: Hostwarden
   reaches Windows over OpenSSH only (`rules/os/windows.md`), and
   the pipeline's `sh -c` finds no shell there. Install OpenSSH,
@@ -69,7 +69,7 @@ except `--all-projects` acts in the default one. So carry the
 project the listing showed into each later command —
 `incus exec <ct> --project <name> -- <cmd>`, and the same for
 `config`, `info` and the snapshot commands — and into the
-`Mode: via …` line of its memory. Two projects may hold a guest
+`Runs on:` line of its memory. Two projects may hold a guest
 of the same name: without the project, the pipeline and every
 change after it land on the wrong server.
 

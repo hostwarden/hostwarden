@@ -112,7 +112,9 @@ under pressure.
   and why) that any admin can follow; the full
   technical detail (rollback paths, verification,
   flags) is mirrored locally in
-  `memory/servers/<hostname>/changelog.log`.
+  `memory/servers/<hostname>/changelog.log`, and a
+  constraint or rollback that still holds goes into
+  the host's `memory.md` as well.
 - **Remembers servers** — stores OS, services, and
   notes in `memory/servers/` for future sessions.
 - **Stable repos only** — no third-party sources

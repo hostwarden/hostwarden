@@ -176,7 +176,8 @@ not run on it.
 Subsequent connections run the same pipeline as the
 first (see `rules/first-connection.md`), including
 the blacklist and read-only checks. Specific to
-known servers: read the memory file, changelog, and
+known servers: read the memory file, the changelog
+as `rules/changelog.md` → Reading it says, and
 `todo.md` (if present) before any work, read the
 family file and the files that `Appliance:`,
 `Platform:` and `Role:` name.

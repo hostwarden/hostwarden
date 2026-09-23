@@ -309,8 +309,7 @@ however many members are checked.
 entry did moved, by live migration or by HA restarting it after
 its member failed. A move changes only the member and needs no
 full inventory: update the entry and, for a linked guest, its
-`Runs on:`, and a `Mode: via …` line is rewritten for it
-(`rules/server-memory.md`), without asking. Report one line:
+`Runs on:`, without asking. Report one line:
 `web1 moved pve1 → pve2`. A member that failed is found by the
 cluster's own checks, not here.
 
@@ -425,7 +424,7 @@ one line (*"Registering 7 guests of pve1.example.com through
    `- SSH: untested (registered through pve1.example.com)`. The
    SSH user and the DNS check follow on its first SSH connection,
    which removes the line.
-   Never `Mode: via …`: that line says the guest has no SSH of
+   Never `Mode: via`: that line says the guest has no SSH of
    its own, and it would route every later session through the
    host.
 5. Log a `read-only:` journal line inside the guest, in the same
@@ -532,6 +531,15 @@ finding.
 - Runs on: pve1.example.com (VM 101)
 ```
 
+The brackets hold the guest's whole ID as the inventory lists
+it: its kind with its ID or name, an Incus or LXD guest's
+project with its name (`container prod/web`), and on a host
+with more than one manager that manager first
+(`incus: container prod/web`). It is the one place memory
+keeps a guest's host and ID: via-host mode reads both from it
+(`rules/first-connection.md` → Via-host mode), and a move or a
+guest gone from its host rewrites this line alone.
+
 Look for them with one `grep -i` over
 `memory/servers/*/guests.md` and `memory/clusters/*/guests.md`. A
 match links both, a jail's as its bullet above says: `Runs on:`
@@ -586,12 +594,11 @@ none:
   <jail>`, `iocage get -s <jail>`, or no `name=<jail>` line from
   `jail -f <file> -e '|'` for any file), remove its
   entry; a guest with memory of its own then gets
-  `Runs on: unknown (left <host> <date>)` and loses its
-  `Mode: via …` line, and if it turns up on another host, the keys
-  link it there. On a cluster, the check covers every member and
-  runs only on a member with quorum; where its tools see one node,
-  the appliance file names the check. Until the check settles it,
-  the entry only gains
+  `Runs on: unknown (left <host> <date>)`, and if it turns up on
+  another host, the keys link it there. On a cluster, the check
+  covers every member and runs only on a member with quorum; where
+  its tools see one node, the appliance file names the check.
+  Until the check settles it, the entry only gains
   `not listed <date>`.
 - **Moved guest:** Clusters and Pools → Moves.
 - **State changed:** update the entry.
