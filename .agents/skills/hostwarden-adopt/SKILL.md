@@ -203,9 +203,10 @@ leads, the host confirms them.
    already there is shown, and replaced only when the user changes
    the answer.
 
-9. **Onboard, host by host.** After `[1]` in step 3. The hosts are those of the run that have no
-   `memory.md` after the copy — a kept host is already this clone's
-   own, and an alias is its canonical host. Take the hypervisors
+9. **Onboard, host by host.** After `[1]` in step 3. The hosts are
+   those of the run that have no `memory.md` after the copy — a kept
+   host is already this clone's own, and an alias is its canonical
+   host. Take the hypervisors
    step 6 noted first: a guest they register is onboarded by that
    and has a `memory.md` when its own turn comes, which then skips
    it.
