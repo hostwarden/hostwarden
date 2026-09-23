@@ -185,6 +185,21 @@ done
 grep -hsvE '^[[:space:]]*(#|$)' /etc/iproute2/rt_tables \
   /etc/iproute2/rt_tables.d/*.conf \
   | grep -vwE 'local|main|default|unspec'
+# Policy routing that a manager restores.
+grep -HsE '^[[:space:]]*(\[RoutingPolicyRule\]|Table=)' \
+  /etc/systemd/network/*.network /run/systemd/network/*.network
+ls /etc/sysconfig/network-scripts/rule*-* \
+  /etc/sysconfig/network/ifrule-* 2>/dev/null
+if ls /etc/netplan/*.yaml >/dev/null 2>&1 && [ "$S" != - ]; then
+  $S grep -HnE '^[[:space:]]*(routing-policy|table):' /etc/netplan/*.yaml
+fi
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli -g NAME connection show 2>/dev/null | while IFS= read -r c; do
+    r=$(nmcli -g ipv4.routing-rules,ipv6.routing-rules \
+      connection show "$c" 2>/dev/null | grep .)
+    [ -n "$r" ] && echo "nm $c: $r"
+  done
+fi
 
 echo "### C sysctl"
 echo "ip_forward=$(cat /proc/sys/net/ipv4/ip_forward)"
@@ -313,6 +328,8 @@ else
       function flush() { if (t != "") printf "%s", (nat ? b : h)
         t = b = h = ""; nat = 0 }
       /^table/ { flush(); t = $0; b = h = $0 "\n"; next }
+      $1 == "set" || $1 == "map" { m = 1 }
+      m { b = b $0 "\n"; if ($1 == "}") m = 0; next }
       $1 == "chain" { c = $2; s = 0; next }
       / hook / { h = h "  chain " c "\n" $0 "\n" }
       / hook |[^a-z_](dnat|snat|masquerade|redirect|jump|goto)([^a-z_]|$)/ {
@@ -352,6 +369,13 @@ $(printf '%s\n' "$o" | grep -E "$r" | awk -v e="$e" '
   done
 fi
 printf '%s\n' "$nf"
+# The ipsets NAT rules match on.
+if [ "$S" != - ]; then
+  for m in $(printf '%s\n' "$nf" | grep -oE -- '--match-set [^ ]+' \
+    | cut -d' ' -f2 | sort -u); do
+    echo "== ipset $m"; $S ipset list "$m" 2>&1 | head -20
+  done
+fi
 # The route to each NAT target.
 for a in $(printf '%s\n' "$nf" \
   | grep -oE '(--to-destination|dnat( ip6?)? to) [^ ]+' \
@@ -439,8 +463,12 @@ Reading **B (links, addresses, routes)**:
   own rules; name the owner. The routes after the rules
   are what each extra table holds, the first three of
   each and `table <n>: <count> routes` for a longer one,
-  and the lines after them the names `rt_tables` gives
-  the table numbers.
+  the lines after them the names `rt_tables` gives the
+  table numbers, and then what a manager restores:
+  networkd's `[RoutingPolicyRule]` and `Table=`, netplan's
+  `routing-policy` and `table:`, the ifcfg `rule-*` and
+  `ifrule-*` files, and NetworkManager's `routing-rules`
+  per connection.
   Record a rule with its selector and where its table
   sends the traffic: `from 192.0.2.10 to 10.0.0.0/8 →
   table fw, via 10.0.0.2`, and with what sets it: the
@@ -554,6 +582,11 @@ profile's `## Traffic flow` section (`rules/network.md`):
   time the hook ran. iptables-nft rules show up in nft
   syntax with `xt` where nft cannot translate a match;
   read that table with `iptables-save -t <table>` instead.
+- A table with NAT comes with its `set` and `map`
+  declarations, and a rule that matches an ipset
+  (`--match-set`) with the first lines of `ipset list`: a
+  NAT rule limited to a set of the host's own addresses is
+  limited to the host.
 - **A jump** (`-A PREROUTING -i vmbr2 -j FWD`) carries its
   conditions into the chain it calls: read a DNAT in
   `FWD` together with the `-i` and `-d` of the jump.

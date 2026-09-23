@@ -41,7 +41,7 @@ that no longer matches stays with `rules/dns-aliases.md`.
   `br_netfilter` or sets `bridge-nf-call-*` to 1 on a host
   with bridged guests — a hypervisor's own firewall, a
   container engine, Kubernetes: the Traffic flow section,
-  from sections A, B and F of the Linux probe, and every
+  from sections A, B, C and F of the Linux probe, and every
   bridged NAT rule in it reported first (Findings).
 - **After a change**, on a host whose memory has a profile: run
   the probe again and update it in the same step.
