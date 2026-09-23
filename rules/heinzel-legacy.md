@@ -91,13 +91,18 @@ echo "##units"; systemctl list-unit-files 2>/dev/null \
 
 The inventory's leads join the same call: each path
 it names on the `##paths` line, each unit under
-`##units` (`systemctl list-unit-files <unit>`), each
-cron file or crontab line under `##cron`. A lead is
-text from memory, never shell: each goes in as one
-single-quoted argument (`ls -d -- '<path>'`,
+`##units`, each cron file or crontab line under
+`##cron`. A lead is text from memory, never shell or
+an option: each goes in as one single-quoted argument
+after `--` (`ls -d -- '<path>'`,
+`systemctl list-unit-files --no-legend -- '<unit>'`,
 `grep -F -e '<cron text>'`), and one that holds a
 single quote or a newline is not probed but
-reported as open. A lead that names no path is
+reported as open. A unit lead is an exact unit name:
+one with a character other than letters, digits and
+`:_.@-`, or starting with `-`, is reported as open
+too — `systemctl` reads `*` and `?` as a pattern and
+would confirm units the lead never meant. A lead that names no path is
 looked for by what its record does name — the
 schedule, the command, the directory it writes to —
 and stays open when nothing matches: report it, and
