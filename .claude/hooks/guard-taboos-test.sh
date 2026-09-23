@@ -563,6 +563,17 @@ check_mode ask default "virt-customize -a $FB_IMG --copy-in x.conf:/etc/ssh/sshd
 check_mode ask default "virt-customize -a $FB_IMG --copy-in keys:/etc/dropbear"
 check_mode ask default "virt-customize -a $FB_IMG --copy-in dropbear:/etc/default"
 check_mode pass default "virt-customize -a $FB_IMG --copy-in grub:/etc/default"
+# Every directory sshd keeps its config or keys in counts, and so does
+# the path a copy only puts together where it lands.
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/usr/local/etc/ssh"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in x:/etc/config/ssh"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in x:/conf/sshd"
+check_mode ask default "virt-customize -a $FB_IMG --upload x:/ProgramData/ssh/sshd_config"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in ssh:/etc"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in ./ssh/:/usr/local/etc"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in sshd_extra:/etc"
+check_mode pass default "virt-customize -a $FB_IMG --copy-in /etc/ssh/ssh_config:/root"
 check_mode deny default "virt-customize -d web1 --copy-in sshd_config.d:/etc/ssh"
 check_mode deny default \
   "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp; cp a /etc/ssh/sshd_config"

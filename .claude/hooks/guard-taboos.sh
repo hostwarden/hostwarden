@@ -703,30 +703,33 @@ first_boot_only() {
 }
 
 image_write_targets() {
-  # image_write_targets -- the command line with the local side of
-  # virt-customize's --copy-in and --upload (LOCAL:REMOTE) dropped.
-  # That side is only read, so copying the host's own sshd_config
-  # into an image as a reference is a read of it; what is left names
-  # the paths the image is written at (image_sshd_dir below counts a
-  # REMOTE that is sshd's directory). Quotes around either side go
-  # with it, since the shell drops them: x:'/etc/ssh' leaves :/etc/ssh.
-  # A LOCAL that itself holds a colon, a space or a quote inside it is
-  # left in place and still counts, which errs on asking.
+  # image_write_targets -- the command line with each LOCAL:REMOTE of
+  # virt-customize's --copy-in and --upload replaced by the paths the
+  # image is written at: REMOTE, and REMOTE/<LOCAL's last name>, where
+  # --copy-in lands it. LOCAL is only read, so copying the host's own
+  # sshd_config into an image as a reference is a read of it, while
+  # ssh:/etc still lands as the image's /etc/ssh. Quotes around either
+  # side go too, since the shell drops them. A LOCAL that holds a
+  # colon, a space or a quote inside it is left in place and still
+  # counts, which errs on asking.
   printf '%s' "$CMD" \
-    | sed -E "s/(--(copy-in|upload)([[:space:]]+|=))[\"']*[^:[:space:]\"']+[\"']*:[\"']*/\\1:/g"
+    | sed -E "s#(--(copy-in|upload)([[:space:]]+|=))[\"']*([^:[:space:]\"']*/)?([^/:[:space:]\"']+)/*[\"']*:[\"']*([^[:space:]\"']*)[\"']*#\\1:\\6 :\\6/\\5#g"
 }
 
-image_sshd_dir() {
-  # image_sshd_dir -- true when a --copy-in or --upload REMOTE is
-  # sshd's directory or inside it, or dropbear's key store, whatever
-  # the local file is called: --copy-in takes a directory, and the
-  # file lands in it under its own name. The directories dropbear's
-  # config file lives in (/etc/config, /etc/conf.d, /etc/default)
-  # count only when the line names dropbear, since everything else
-  # goes there too.
+image_sshd_write() {
+  # image_sshd_write -- true when a --copy-in or --upload writes the
+  # image's sshd config, or anything in a directory sshd or dropbear
+  # keeps it or its keys in, whatever the file is called: /etc/ssh
+  # under any prefix (FreeBSD's /usr/local/etc/ssh), QNAP's
+  # /etc/config/ssh, dropbear's /etc/dropbear, OPNsense's /conf/sshd
+  # and Windows' ProgramData/ssh. The directories dropbear's config
+  # file shares with everything else (/etc/config, /etc/conf.d,
+  # /etc/default) count only when the line names dropbear.
   IWT=$(image_write_targets)
+  printf '%s' "$IWT" | grep -Eq "$SSHD" && return 0
   printf '%s' "$IWT" \
-    | grep -Eq ":/etc/(ssh|dropbear)([/[:space:]\"']|\$)" && return 0
+    | grep -Eq ":[^[:space:]\"']*/(etc/(ssh|dropbear|config/ssh)|conf/sshd|$WINSSHDIR)([/[:space:]\"']|\$)" \
+    && return 0
   printf '%s' "$IWT" \
     | grep -Eq ":/etc/(config|conf\\.d|default)([/[:space:]\"']|\$)" \
     && printf '%s' "$CMD" | grep -q dropbear
@@ -1660,11 +1663,12 @@ case "$TEXT" in
   hit "$SSHD" && HAS_SSHD=1 ;;
 esac
 # A libguestfs copy into sshd's directory names no sshd path when
-# the local file is called something else: `--copy-in x:/etc/ssh`.
-# It opens the sshd rules all the same.
+# the local file is called something else, `--copy-in x:/etc/ssh`,
+# or when the path is only put together where it lands,
+# `--copy-in ssh:/etc`. It opens the sshd rules all the same.
 case "$CMD" in
 *--copy-in*|*--upload*)
-  [ "$HAS_SSHD" -eq 0 ] && image_sshd_dir && HAS_SSHD=1 ;;
+  [ "$HAS_SSHD" -eq 0 ] && image_sshd_write && HAS_SSHD=1 ;;
 esac
 if [ "$HAS_KEY" -eq 1 ] \
   && { hit "(^|[^[:alnum:]_-])($CLOBBER)([^[:alnum:]_-]|\$)" \
@@ -1745,7 +1749,7 @@ if [ "$HAS_SSHD" -eq 1 ]; then
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
     || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
          && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)" \
-         && { image_write_targets | grep -Eq "$SSHD" || image_sshd_dir; }; } \
+         && image_sshd_write; } \
     || hit '(^|[^[:alnum:]_.-])(virt-edit|virt-copy-in)([^[:alnum:]_.-]|$)' \
     || writes_to "$SSHD"
   then
