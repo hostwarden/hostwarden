@@ -22,9 +22,14 @@ every storage command into one of three tiers, and the guard
   without a write option (it opens read-only by default)
 - the dry runs: `fsck -N`, `e2fsck -n`, `xfs_repair -n`,
   `fsck_ffs -n`, `ntfsfix -n` or `--no-action`, `zpool import -Fn`,
-  `zpool create -n`, `zfs destroy -n`, `zfs receive -n`
+  `zpool create -n`, `zfs destroy -n`, `zfs receive -n`, and the
+  resizers' own: `resize2fs -P`, `xfs_growfs -n`
+- a lookup of any tool here: `man`, `info`, `whatis`, `apropos`,
+  `tldr`, `which`, `whereis`, `type` or `command -v` in front of
+  it, `--help` or `-h` after it, `diskutil help <verb>`
 - `zfs snapshot`, which only adds; `zpool scrub -s`/`-p` and
-  `btrfs scrub status`/`cancel`, which stop or read a scrub;
+  `btrfs scrub status`/`cancel`, which stop or read a scrub,
+  and `btrfs balance status`, `pause` and `cancel`;
   `mdadm --action=check`, which counts mismatches and fixes none
 - `diskutil verifyVolume` on macOS, `chkdsk` without a fixing
   switch and `Repair-Volume -Scan` on Windows
@@ -34,7 +39,12 @@ host, which the user approves command by command:
 
 - LVM: `lvcreate`, `lvextend`, `lvresize` with a size starting
   with `+`, `lvconvert` (not `--repair`), `vgcreate`, `vgextend`,
-  `vgreduce`, `pvmove`, `pvresize`
+  `vgreduce`, `pvmove`, `pvresize`, and `lvchange` or `vgchange`
+  with `-an`, which takes the block device away from whatever
+  mounts or uses it
+- File systems, grown into the space under them: `resize2fs`
+  without a size, `xfs_growfs` without `-D`, and
+  `btrfs filesystem resize` with a size starting with `+` or `max`
 - mdadm: `--add`, `--re-add`, `--remove`, `--fail`, `--replace`,
   `--stop`
 - ZFS: `zpool attach`, `detach`, `replace`, `offline`, `online`,
@@ -45,7 +55,13 @@ host, which the user approves command by command:
   writes a new snapshot or file system, and with `-F` first rolls
   the target back
 - Btrfs: `btrfs device add`, `remove`, `delete`,
-  `btrfs replace start`, `btrfs balance` with a `convert` filter
+  `btrfs replace start`, and a balance that rewrites the whole
+  file system or its profile: `btrfs balance start` with a
+  `convert` filter or without any filter (a bare `-d`, `-m` or
+  `-s` selects every chunk of its type), `btrfs balance resume`,
+  and the deprecated `btrfs balance <path>`. A filtered balance
+  such as `-dusage=50` moves only the chunks it selects and runs
+  without a question
 - Scrubs, `zpool scrub` and `btrfs scrub start` or `resume`: they
   rewrite damaged blocks from a copy whose checksum verifies, which
   is self-healing and not a guess, but they load every disk for
@@ -69,6 +85,10 @@ Safety Rules; the guard denies them in every permission mode:
   tell a snapshot from a subvolume full of data (snapper and
   timeshift prune their own snapshots)
 - `debugfs -w`
+- a file system shrunk: `resize2fs` with a size (it takes no
+  relative one, so any size may be below the current) or `-M`,
+  `xfs_growfs -D`, and `btrfs filesystem resize` with a size not
+  starting with `+`, like `lvresize` below
 - mdadm: `--create`, `--build`, `--grow`, `--zero-superblock`,
   `--update`, `--assemble` with `--force`, and `--action=repair`
   or `resync`, by mdadm or written to `sync_action`: md has no

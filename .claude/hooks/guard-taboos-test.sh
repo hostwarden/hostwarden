@@ -637,6 +637,20 @@ check_mode deny default 'lvresize --size 10G vg0/data'
 check_mode deny default 'lvresize -rL 10G vg0/data'
 check_mode deny default 'lvresize -rl 50%VG vg0/data'
 check_mode ask default 'lvresize -rL +10G vg0/data'
+# A file system resizer shrinks with a size of its own: resize2fs
+# takes no relative one, xfs_growfs -D sets one, and btrfs'
+# follows lvresize.
+check deny 'resize2fs /dev/vg0/data 20G'
+check_mode deny default 'resize2fs -p /dev/vg0/data 500M'
+check_mode deny default 'resize2fs -M /dev/vg0/data'
+check_mode deny default 'xfs_growfs -D 262144 /srv'
+check_mode deny default 'btrfs filesystem resize -5G /mnt'
+check_mode deny default 'btrfs fi resize 1:20G /mnt'
+# A lookup covers its own invocation, never the one after it.
+check deny 'man fsck; fsck -y /dev/sdb1'
+check deny 'which e2fsck && e2fsck -fy /dev/sdb1'
+check deny 'command e2fsck -fy /dev/sdb1'
+check deny 'diskutil help; diskutil repairVolume disk3s1'
 check_mode deny default 'midclt call pool.dataset.delete tank/x'
 check_mode deny default "midclt call pool.export 1 '{\"destroy\": true}'"
 check_mode deny default "midclt -U api-write call pool.export 1 '{\"cascade\": true, \"destroy\": true}'"
@@ -716,6 +730,16 @@ for c in 'lvextend -r -L +10G vg0/root' 'lvcreate -L 10G -n data vg0' \
   'btrfs dev del /dev/sdb /mnt' \
   'btrfs replace start /dev/sdb /dev/sdc /mnt' \
   'btrfs balance start -dconvert=raid1 -mconvert=raid1 /mnt' \
+  'btrfs filesystem balance start -dconvert=single /mnt' \
+  'btrfs balance start /mnt' 'btrfs balance start -d -musage=50 /mnt' \
+  'btrfs balance start --full-balance --bg /mnt' \
+  'btrfs balance resume /mnt' 'btrfs balance /mnt' \
+  'btrfs filesystem resize +10G /mnt' 'btrfs fi resize 2:max /mnt' \
+  'resize2fs /dev/vg0/data' 'resize2fs -p /dev/vg0/data 2>&1' \
+  'lvextend -L +10G vg0/data && resize2fs /dev/vg0/data' \
+  'xfs_growfs /srv' 'xfs_growfs -d /srv' \
+  'lvchange -an vg0/data' 'vgchange -a n vg0' \
+  'lvchange --activate=n vg0/data' \
   'midclt call pool.export 1' "midclt call pool.export 1 '{\"cascade\": true}'"
 do
   check_mode ask default "$c"
@@ -744,6 +768,15 @@ for c in 'fsck -N /dev/sdb1' 'e2fsck -n /dev/sdb1' 'e2fsck -fn /dev/sdb1' \
   'btrfs check /dev/sdb1' 'btrfs check --readonly /dev/sdb1' \
   'btrfs device stats /mnt' 'btrfs filesystem show' \
   'btrfs balance status /mnt' 'btrfs rescue --help' \
+  'btrfs balance start -dusage=50 -musage=30 /mnt' \
+  'btrfs balance pause /mnt' 'btrfs balance cancel /mnt' \
+  'btrfs balance start --help' 'btrfs balance resume --help' \
+  'resize2fs -P /dev/vg0/data' \
+  'resize2fs --help' 'xfs_growfs -n /srv' \
+  'lvchange -ay vg0/data' 'vgchange -ay' \
+  'man fsck' 'man 8 e2fsck' 'which xfs_repair' 'command -v ntfsfix' \
+  'man lvremove' 'whatis lvextend' 'tldr zinject' 'man resize2fs' \
+  'diskutil help repairVolume' 'ssh root@nas1.example.com "man fsck"' \
   'debugfs -R stats /dev/sdb1' 'mdadm --detail /dev/md0' \
   'mdadm -D /dev/md0' 'mdadm --examine /dev/sdb1' \
   'mdadm --detail --scan' 'cat /proc/mdstat' 'pvs' 'vgs -o +vg_free' \
