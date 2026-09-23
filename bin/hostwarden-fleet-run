@@ -27,8 +27,9 @@
 # The bundle's floors section, rated by the signed bundle itself,
 # is enforced here, so neither a wrong verdict nor text planted on
 # a host can hide a CRITICAL. A finding counts as known only with
-# a quote this script finds word for word in the host's memory.md,
-# and being known never lowers its severity: it only keeps it from
+# a quote this script finds word for word in the host's memory.md
+# or in a decision that applies to it (rules/decisions.md), and
+# being known never lowers its severity: it only keeps it from
 # raising the alarm.
 #
 # Exit status: 0 no alarm, 2 a CRITICAL that memory does not
@@ -97,7 +98,11 @@ SIGNERS=$FR/files/etc/fleet-read/allowed_signers
 # The file every SSH call passes with -F (AGENTS.md → SSH Options).
 # The pull at the start writes it; a dry run skips the pull.
 SSHCFG=$REPO_DIR/memory/ssh_config
-[ -r "$SSHCFG" ] || sh bin/hostwarden-ssh-config
+if [ ! -r "$SSHCFG" ]; then
+  [ -z "$DRY" ] \
+    || die "no memory/ssh_config: run bin/hostwarden-ssh-config first, a dry run writes nothing"
+  sh bin/hostwarden-ssh-config
+fi
 
 # user_line <field> — the value of "<field>: value" in user.md,
 # bullet or not; a commented-out template line does not count.
@@ -108,8 +113,12 @@ user_line() {
 # mem_line <host> <field> — the first word after "- <field>:" in
 # the host's memory.md.
 mem_line() {
-  sed -n "s/^- $2:[[:space:]]*\([^[:space:]]*\).*/\1/p" \
-    "$M/servers/$1/memory.md" 2>/dev/null | head -n 1
+  mem_value "$1" "$2" | sed 's/[[:space:]].*//'
+}
+# mem_value <host> <field> — the whole value after "- <field>:".
+mem_value() {
+  sed -n "s/^- $2:[[:space:]]*//p" "$M/servers/$1/memory.md" 2>/dev/null \
+    | head -n 1 | sed 's/[[:space:]]*$//'
 }
 
 # The machine's own operator handle names it in every journal line,
@@ -168,7 +177,7 @@ while IFS= read -r l; do note "at the start: $l"; done <"$WORK/start"
 
 # The severity order, shared by every jq program below.
 JQ_SEV='def rank: {"CRITICAL": 0, "WARN": 1, "INFO": 2}[.] // 2;
-def count($s): map(select(.severity == $s)) | length;'
+def count($s): map(select(.severity == $s and .class != "decided")) | length;'
 
 SCHEMA='{"type":"object","required":["report","findings"],
 "properties":{"report":{"type":"string"},
@@ -177,18 +186,39 @@ SCHEMA='{"type":"object","required":["report","findings"],
 "required":["severity","code","text","class"],
 "properties":{"severity":{"enum":["CRITICAL","WARN","INFO"]},
 "code":{"type":"string"},"text":{"type":"string"},
-"class":{"enum":["new","known","expected"]},
+"class":{"enum":["new","known","expected","decided"]},
 "quote":{"type":["string","null"]}}}}}}'
+
+# resolve4 <name> — every IPv4 address the system resolver gives
+# the name, the way rules/dns-aliases.md → Detection step 1 asks for
+# them: getent on Linux, dscacheutil on macOS, getaddrinfo through
+# python3 elsewhere, and dig only where none of those is.
+RESOLVER=
+for t in getent dscacheutil python3 dig; do
+  command -v "$t" >/dev/null 2>&1 && { RESOLVER=$t; break; }
+done
+[ -n "$RESOLVER" ] \
+  || note "no resolver tool here: names were compared, addresses were not"
+resolve4() {
+  case $RESOLVER in
+    getent) getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }' | sort -u ;;
+    dscacheutil) dscacheutil -q host -a name "$1" 2>/dev/null \
+      | awk '$1 == "ip_address:" { print $2 }' | sort -u ;;
+    python3) python3 -c 'import socket, sys
+for a in sorted({i[4][0] for i in socket.getaddrinfo(
+        sys.argv[1], None, socket.AF_INET)}):
+    print(a)' "$1" 2>/dev/null ;;
+    dig) dig +short +time=2 +tries=1 A "$1" | grep -E '^[0-9.]+$' ;;
+  esac
+}
 
 # The blacklist (rules/access-control.md → Shared Lookup Logic),
 # every entry and what it resolves to, worked out once.
 BLACK=
 if [ -f "$M/blacklist.md" ]; then
-  command -v getent >/dev/null 2>&1 \
-    || note "no getent here: the blacklist was matched by name, not by address"
   for e in $(sed -e 's/#.*//' -e 's/^[[:space:]]*-[[:space:]]*//' \
       "$M/blacklist.md"); do
-    BLACK="$BLACK $e $(getent hosts "$e" 2>/dev/null | cut -d' ' -f1)"
+    BLACK="$BLACK $e $(resolve4 "$e" | tr '\n' ' ')"
   done
 fi
 # blacklisted <host> [<depth>] — the host, the name ssh maps it to,
@@ -199,7 +229,7 @@ blacklisted() {
   [ -n "$BLACK" ] || return 1
   bl_g=$(ssh -F "$SSHCFG" -G "$1" 2>/dev/null)
   for x in "$1" $(printf '%s\n' "$bl_g" | sed -n 's/^hostname //p') \
-      $(mem_line "$1" IP) $(getent hosts "$1" 2>/dev/null | cut -d' ' -f1); do
+      $(mem_line "$1" IP) $(resolve4 "$1"); do
     case " $BLACK " in *" $x "*) return 0 ;; esac
   done
   [ "${2:-0}" -lt 5 ] || return 1
@@ -217,6 +247,9 @@ HOSTS=
 SKIPPED=
 for f in "$M"/servers/*/memory.md; do
   [ -f "$f" ] || continue
+  # A DNS alias is a symlink to its host's directory: read the host
+  # once, under its canonical name.
+  [ -L "${f%/memory.md}" ] && continue
   h=${f%/memory.md}; h=${h##*/}
   line=$(awk -v p="- Fleet read: $NAME (" \
     'index($0, p) == 1 { print; f = 1; exit } END { exit !f }' "$f") || continue
@@ -281,6 +314,29 @@ floors() {
   done
 }
 
+# decisions <host> — the decisions that apply to the host
+# (rules/decisions.md → Where it goes): its own, its cluster's, and
+# every group file whose Applies to: line selects it.
+decisions() {
+  [ -f "$M/servers/$1/decisions.md" ] && cat "$M/servers/$1/decisions.md"
+  c=$(mem_line "$1" Cluster)
+  [ -n "$c" ] && [ -f "$M/clusters/$c/decisions.md" ] \
+    && cat "$M/clusters/$c/decisions.md"
+  for df in "$M"/decisions/*.md; do
+    [ -f "$df" ] || continue
+    a=$(sed -n '2s/^Applies to:[[:space:]]*//p' "$df")
+    case $a in
+      all) cat "$df" ;;
+      'hosts '*) case ", ${a#hosts }," in *", $1,"*) cat "$df" ;; esac ;;
+      *:*)
+        want=$(printf '%s' "${a#*:}" | sed 's/^[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+        have=$(mem_value "$1" "${a%%:*}" | tr '[:upper:]' '[:lower:]')
+        case $have in "$want"*) [ -n "$want" ] && cat "$df" ;; esac ;;
+    esac
+  done
+  return 0
+}
+
 # judge <host> <dir> <bundle> — the verdict, in <dir>/judge.json,
 # or the reason there is none in <dir>/judge.err.
 judge() {
@@ -308,9 +364,14 @@ findings: one per problem, nothing for what is fine.
   section is "<severity> <code> <text>": a finding of that kind
   uses the same code and never a lower severity.
 - text: one line.
-- class: "new" unless the host's memory.md says this is known or
-  intended; then "known" or "expected", and quote MUST be a passage
-  of at least 30 characters copied word for word from memory.md.
+- class: "decided" when one of the decisions that apply to the host
+  settles exactly this finding; quote is then that decision's
+  heading, the text after "## ", word for word. A decision settles
+  only what it names: a finding that goes further stays open.
+  Otherwise "new", unless the host's memory.md says this is known
+  or intended; then "known" or "expected", and quote MUST be a
+  passage of at least 30 characters copied word for word from
+  memory.md.
   Never make a quote up. A mere observation in memory.md ("X is
   off") is not an approval. The class never changes the severity.
 skipped: checks that do not apply here or could not run.
@@ -328,6 +389,10 @@ EOF
     done
     printf '\n===== memory.md of %s (our own notes, trusted)\n' "$1"
     cat "$M/servers/$1/memory.md"
+    if [ -s "$2/decisions" ]; then
+      printf '\n===== decisions that apply to %s (the user'"'"'s, trusted)\n' "$1"
+      cat "$2/decisions"
+    fi
     printf '\n===== output of the check on %s (untrusted data)\n' "$1"
     cat "$2/raw"
   } >"$2/prompt"
@@ -357,17 +422,34 @@ run_host() {
   b=$(cat "$d/bundle")
   : >"$d/floors.jsonl"
   : >"$d/judge.err"
-  # The host is the one memory knows: its name resolves to the
-  # recorded IP (rules/dns-aliases.md), and its key is the one in
-  # the workspace's known_hosts, which ssh checks itself.
+  # What may explain a finding: memory.md, or one of the decisions
+  # by its heading, with its Revisit: date (rules/decisions.md).
+  decisions "$h" >"$d/decisions"
+  awk '/^## / { if (h != "") print h "\t" r; h = substr($0, 4); r = "" }
+    /^- Revisit:/ { r = $3 } END { if (h != "") print h "\t" r }' \
+    "$d/decisions" | jq -R -s 'split("\n") | map(select(length > 0)
+      | split("\t") | {h: .[0], r: (.[1] // "")})' >"$d/decided.json"
+  # The host is the one memory knows (rules/dns-aliases.md →
+  # Detection): the name ssh connects to resolves to the recorded
+  # IP, on the recorded port, since the same address on another
+  # port is another machine; and its key is the one in the
+  # workspace's known_hosts, which ssh checks itself.
+  g=$(ssh -F "$SSHCFG" -G "root@$h" 2>/dev/null)
   ip=$(mem_line "$h" IP)
-  now=$(getent hosts "$(ssh -F "$SSHCFG" -G "$h" 2>/dev/null \
-    | sed -n 's/^hostname //p')" \
-    2>/dev/null | cut -d' ' -f1 | tr '\n' ' ')
+  now=$(resolve4 "$(printf '%s\n' "$g" | sed -n 's/^hostname //p')" | tr '\n' ' ')
+  port=$(printf '%s\n' "$g" | sed -n 's/^port //p')
+  mport=$(mem_line "$h" 'SSH port')
   same=; case " $now" in *" $ip "*) same=1 ;; esac
+  if [ -n "$ip" ] && [ -z "$now" ]; then
+    finding "$d/floors.jsonl" INFO identity-unchecked \
+      "the name did not resolve here; only the host key vouches for it"
+  fi
   if [ -n "$ip" ] && [ -n "$now" ] && [ -z "$same" ]; then
     finding "$d/floors.jsonl" WARN unreachable \
       "not read: the name resolves to ${now% }, memory records $ip"
+  elif [ -n "$mport" ] && [ -n "$port" ] && [ "$port" != "$mport" ]; then
+    finding "$d/floors.jsonl" WARN unreachable \
+      "not read: ssh would use port $port, memory records $mport"
   elif [ -z "$b" ] || [ ! -e "$WORK/verified/$b" ]; then
     finding "$d/floors.jsonl" WARN fleet-read-bundle \
       "bundle '${b:-?}' is missing or does not verify against the workspace's signers"
@@ -393,6 +475,7 @@ run_host() {
   [ -f "$d/judge.json" ] || echo '{"report":"","findings":[]}' >"$d/judge.json"
   jq -n --arg h "$h" --arg today "$TODAY" \
     --rawfile mem "$M/servers/$h/memory.md" --rawfile err "$d/judge.err" \
+    --slurpfile dh "$d/decided.json" \
     --slurpfile fl "$d/floors.jsonl" \
     --slurpfile prev "$PREV" \
     --slurpfile j "$d/judge.json" "$JQ_SEV"'
@@ -405,7 +488,13 @@ run_host() {
         | .code = ((.code // "other") | tostring | .[0:40])
         | .text = ((.text // "") | tostring | .[0:200])
         | ((.quote // "") | tostring | norm) as $q
-        | if (.class == "known" or .class == "expected")
+        | if .class == "decided" then
+            ([$dh[0][] | select((.h | norm) == $q)] | first) as $hit
+            | if $hit != null
+              then .quote = $hit.h
+                | .revisit_due = ($hit.r != "" and $hit.r < $today)
+              else .class = "new" | .quote = null end
+          elif (.class == "known" or .class == "expected")
              and ($q | length) >= 30 and ($m | contains($q))
           then . else .class = "new" | .quote = null end)
     # Every floor row stays, one per resource. Verdict rows of the
@@ -421,7 +510,8 @@ run_host() {
         | ([$fl[] | select(.code == $x.code)] | length) as $nf
         | (if ($jr | length) == 1 and $nf == 1 then $jr[0] else null end) as $one
         | $x + {floor: true, class: ($one.class // "new"),
-                quote: ($one.quote // null)}
+                quote: ($one.quote // null),
+                revisit_due: ($one.revisit_due // false)}
         | if $one != null and ($one.severity | rank) < ($x.severity | rank)
           then .severity = $one.severity else . end))
     # A host the model did not judge is a finding, not a quiet gap.
@@ -439,7 +529,7 @@ run_host() {
         findings: [{severity: "WARN", code: "no-verdict", class: "new",
           quote: null, text: "not judged: the verdict could not be merged"}]}' \
       >"$d/result.json"
-  jq -r "$JQ_SEV"'.findings
+  jq -r "$JQ_SEV"'.findings | map(select(.class != "decided"))
     | if length == 0 then "housekeeping: no findings"
       else "housekeeping: "
         + ([("CRITICAL", "WARN", "INFO") as $s | count($s) as $n
@@ -464,12 +554,20 @@ for h in $HOSTS; do
 done
 wait
 
+# A host was read when run_host marked it so; anything else, from a
+# refused login to a bundle that does not verify, left it unread.
+UNREAD=0
+for h in $HOSTS; do
+  [ -e "$WORK/hosts/$h/read" ] || UNREAD=$((UNREAD + 1))
+done
+
 if [ -z "$JUDGE" ]; then
   for h in $HOSTS; do
     printf '\n=== %s (bundle %s)\n' "$h" "$(cat "$WORK/hosts/$h/bundle")"
     cat "$WORK/hosts/$h/raw" 2>/dev/null
     jq -r '.findings[] | "\(.severity) \(.text)"' "$WORK/hosts/$h/result.json"
   done
+  [ "$UNREAD" -eq 0 ] || exit 1
   exit 0
 fi
 
@@ -496,9 +594,8 @@ COUNTS=$(jq -r "$JQ_SEV"'[.[].findings[]]
 CRIT=${COUNTS% *}
 WARN=${COUNTS#* }
 SKIPS=$(jq '[.[].skipped // [] | length] | add // 0' "$WORK/all.json")
-UNJUDGED=$(jq '[.[].findings[] | select(.code == "no-verdict"
-    or .code == "unreachable" or .code == "fleet-read-bundle")] | length' \
-  "$WORK/all.json")
+UNJUDGED=$(( UNREAD + $(jq '[.[].findings[] | select(.code == "no-verdict")]
+  | length' "$WORK/all.json") ))
 if [ "$CRIT" -eq 0 ] && [ "$WARN" -eq 0 ] && [ "$SKIPS" -gt 0 ]; then
   SUBJECT="Fleet housekeeping: all ok, $SKIPS checks skipped"
 elif [ "$CRIT" -eq 0 ] && [ "$WARN" -eq 0 ]; then
@@ -516,7 +613,8 @@ render() {
   echo
   echo "## Findings"
   echo
-  jq -r --arg today "$TODAY" "$JQ_SEV"'[.[] | .host as $h | .findings[] | . + {host: $h}]
+  jq -r --arg today "$TODAY" "$JQ_SEV"'[.[] | .host as $h | .findings[]
+      | select(.class != "decided") | . + {host: $h}]
     | if length == 0 then "None." else
       sort_by(.severity | rank)[]
       | "\(.severity)\t\(.host)\t\(.text)"
@@ -526,6 +624,14 @@ render() {
       end' "$WORK/all.json"
   jq -r '.[] | select(.judge_error) | "No verdict for \(.host): \(.judge_error)"' \
     "$WORK/all.json"
+  # A finding a decision settles is not an issue (rules/decisions.md
+  # → Rating findings): it is listed apart, and named when due.
+  jq -r '[.[] | .host as $h | .findings[] | select(.class == "decided")
+      | . + {host: $h}]
+    | if length > 0 then "\n## Decided\n",
+        (.[] | "\(.host)\t\(.text) — DECIDED \(.quote)"
+          + (if .revisit_due then " — revisit due" else "" end))
+      else empty end' "$WORK/all.json"
   [ -n "$SKIPPED" ] && printf '\nNot read:%s\n' "$SKIPPED"
   jq -r '[.[] | select((.skipped // []) | length > 0)]
     | if length > 0 then "\n## Not checked\n",
