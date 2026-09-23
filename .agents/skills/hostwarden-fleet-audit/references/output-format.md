@@ -55,11 +55,16 @@ the eye lands on it:
 
 ## Cells without a comparable value
 
-Two sentinels mark a cell that holds nothing to compare:
+Three sentinels mark a cell that holds nothing to compare, and
+none of them is drift:
 
 - `unknown(needs-root)` — the probe could not run for lack of
   privileges (see "Privilege handling" in
   `references/probes.md`). Render it as `needs root`.
+- `unknown(sshd-failed)` — sshd refused to print its
+  configuration although the probe ran as root
+  (`references/probes.md` → sshd effective config). Render it as
+  `sshd failed`.
 - `n/a (<reason>)` — the host's OS family has no such setting,
   such as the unattended-upgrades keys on Alpine, or a row only
   another family has, or a value a container takes from its

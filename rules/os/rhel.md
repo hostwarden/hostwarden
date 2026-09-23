@@ -63,6 +63,26 @@ finding. See `rules/version-check.md`.
   policy and `memory/service-policy.md` opt-out /
   opt-in lists.
 
+## sshd
+
+- Unit `sshd.service`. The package also ships `sshd.socket`
+  (`Accept=yes`), which, when enabled instead, starts one
+  `sshd@.service` (`sshd -i $OPTIONS`) per connection: no listener
+  runs, and its `ListenStream` lines, not `Port`, are the ports.
+- `sshd.service`'s `ExecStart` adds `$OPTIONS` from
+  `/etc/sysconfig/sshd`, where a `-f`, `-o` or `-p` can sit. On
+  RHEL 8 it adds `$CRYPTO_POLICY` too: `-o` options that set the
+  ciphers, MACs and key exchange from the crypto policy, which
+  neither `sshd -G` nor `sshd -T` shows.
+- Configuration: `/etc/ssh/sshd_config`, mode 0600, so reading it
+  needs root, `sshd -G` included. On RHEL 9 and newer and on Fedora
+  it includes `sshd_config.d/*.conf` near its top, and a drop-in
+  there includes the crypto policy's
+  `/etc/crypto-policies/back-ends/opensshserver.config`.
+- Auth log: `/var/log/secure` where rsyslog runs, and the journal,
+  `journalctl -u sshd`.
+- Checksum of a file: `sha256sum <file>`.
+
 ## SELinux
 
 - RHEL-family systems typically have SELinux enabled.

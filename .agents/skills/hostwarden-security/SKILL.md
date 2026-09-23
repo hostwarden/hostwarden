@@ -84,8 +84,10 @@ Read on demand, only when the relevant section applies:
 
 - `references/report-format.md` — required output format and
   severity rules (CRITICAL / WARN / INFO).
-- `references/ssh.md` — SSH password auth, root login, weak
-  algorithms, MaxAuthTries, X11Forwarding.
+- `references/ssh.md` — sshd's effective configuration and the
+  files it reads, `Match` blocks, SSH password auth, root login,
+  weak algorithms, MaxAuthTries, X11Forwarding, and the SSH client
+  on the server.
 - `references/firewall.md` — Linux (ufw / firewalld), FreeBSD
   (pf / ipfw) and macOS (Application Firewall).
 - `references/firewall-nftables-docker.md` — native nftables without

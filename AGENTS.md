@@ -187,7 +187,9 @@ user when it will visibly slow the answer.
 - **Firewall & network:** a mistake cuts off SSH access. Before
   enabling or tightening a firewall, read the ports sshd listens on
   (as root: `sshd -T | grep -iE '^(port|listenaddress) '`, a port in
-  a `listenaddress` line counts too) and keep every one open:
+  a `listenaddress` line counts too; a running daemon's own `-f`
+  file, `-p` or `-o Port=` and a socket unit's `ListenStream` count
+  as well: `rules/os/<family>.md` → sshd) and keep every one open:
   `ufw allow OpenSSH` and firewalld's `ssh` service cover 22 only.
   The default incoming policy must be deny or drop (`rules/os/<family>.md`).
 - **Never remove or block SSH port 22.** If the user asks, explain

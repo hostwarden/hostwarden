@@ -1,18 +1,24 @@
 # Unprivileged Mode
 
-When running in unprivileged mode (no sudo, no root SSH), use the
-config file fallback for SSH checks. For firewall checks, attempt
-the command — some firewall status commands work without root.
+When running in unprivileged mode (no sudo, no root SSH), run the
+sshd probe in `references/ssh.md` as it stands: its `sshd -G` needs
+no root where the files are readable, and where they are not, use
+its config file fallback. For firewall checks, attempt the command
+— some firewall status commands work without root.
 
 Many checks in this audit work without root:
 
-- **Works unprivileged:** SSH config file parsing, multiple UID 0
-  accounts, system accounts with login shells, listening services
-  (without process names on Linux), all sysctl checks,
-  world-writable system files, SUID/SGID audit, mount options,
-  unowned files, fail2ban status (`systemctl`, `rc-service`),
-  macOS checks (SIP, FileVault, Gatekeeper).
-- **Needs root:** `sshd -T`, empty password accounts
+- **Works unprivileged:** `sshd -G` where sshd's configuration
+  files are readable (`references/ssh.md`), SSH config file
+  parsing, the session user's own SSH client configuration,
+  multiple UID 0 accounts, system accounts with login shells,
+  listening services (without process names on Linux), all sysctl
+  checks, world-writable system files, SUID/SGID audit, mount
+  options, unowned files, fail2ban status (`systemctl`,
+  `rc-service`), macOS checks (SIP, FileVault, Gatekeeper).
+- **Needs root:** `sshd -T`, evaluating sshd's `Match` blocks
+  (`sshd -T -C`), other accounts' SSH client configuration and the
+  crontabs other than the session user's, empty password accounts
   (`/etc/shadow`), listening services with process names on Linux
   (`ss -tulnp`), cron directory permissions (some dirs may be
   unreadable), and the container audit — except with `docker`
@@ -31,7 +37,10 @@ skip it silently. Add it to the report:
 ```
 ### Skipped (needs root)
 
-- SSH effective config (sshd -T requires root)
+- SSH effective config (sshd -G: sshd_config Permission denied;
+  sshd -T requires root)
+- SSH Match blocks (2 listed; sshd -T -C requires root)
+- SSH client of other accounts (their ~/.ssh unreadable)
 - Firewall status (ufw requires root)
 - Empty password accounts (/etc/shadow unreadable)
 - Listening services process names (ss -p needs root)

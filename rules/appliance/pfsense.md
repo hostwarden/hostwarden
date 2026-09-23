@@ -221,6 +221,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   "Require Both" adds `AuthenticationMethods publickey,password`.
   `PermitRootLogin yes` is pfSense's normal state. Report a finding
   as the option to change.
+- Auth log: `/var/log/auth.log`. Checksum of a file:
+  `sha256 -q <file>`.
 
 ## Replace: Mail and Time
 

@@ -96,8 +96,9 @@ and notices from what ran before it stopped.
 
 **The row**, one `key: value` per line: every row key
 `references/probes.md` lists for the categories you ran, spelled
-as there, and `unknown(needs-root)` rather than a guess where a
-probe could not read what it needed.
+as there, and `unknown(needs-root)`, or the other `unknown(…)`
+sentinel a probe prints, rather than a guess where a probe could
+not read what it needed.
 
 **One status:**
 

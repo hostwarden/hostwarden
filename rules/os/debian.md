@@ -321,6 +321,23 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-
 - Check service: `systemctl status <service>`
 - Logs: `journalctl -u <service>`
 
+## sshd
+
+- Unit `ssh.service`, with `sshd.service` as its alias. Its
+  `ExecStart` adds `$SSHD_OPTS` from `/etc/default/ssh`, where a
+  `-f`, `-o` or `-p` can sit.
+- Ubuntu 22.10 and newer enable `ssh.socket` instead: it holds the
+  listening sockets and starts `ssh.service` on the first
+  connection, so until then no sshd runs. Its `ListenStream` lines
+  (`systemctl cat ssh.socket`) are the ports that count; from 24.04
+  on, `sshd-socket-generator` writes them from `Port` and
+  `ListenAddress`.
+- Configuration: `/etc/ssh/sshd_config`, readable by every account,
+  which includes `sshd_config.d/*.conf` near its top.
+- Auth log: the journal, `journalctl -u ssh`, and
+  `/var/log/auth.log` where rsyslog runs.
+- Checksum of a file: `sha256sum <file>`.
+
 ## Networking
 
 Find out which tool owns the network before touching it,

@@ -267,6 +267,27 @@ runs `apk upgrade` counts.
   `rules/service-reload.md` names them. `rc-service --debug`
   shows why a service fails to start.
 
+## sshd
+
+- OpenRC service `sshd`, from `openssh-server-common-openrc`.
+  `/etc/conf.d/sshd` can set `cfgfile`, which the script passes as
+  `-f`, and `command_args` (`-o`, `-p`); `SSHD_CONFIG` and
+  `SSHD_OPTS` are their older names, `SSHD_CONFDIR` moves the
+  default directory and `SSHD_BINARY` names the binary.
+- Three binaries: `/usr/sbin/sshd`, and `sshd.pam` or `sshd.krb5`
+  from their packages. The script starts `sshd.krb5` when the
+  configuration turns on Kerberos or GSSAPI authentication,
+  `sshd.pam` when it says `UsePAM yes`. Plain `sshd` has no PAM: it
+  warns `Unsupported option UsePAM`, succeeds, and prints no
+  `usepam` line. So read the configuration with the binary that
+  runs, and with no daemon running, with `sshd.pam` where it is
+  installed and the configuration says `UsePAM yes`.
+- Configuration: `/etc/ssh/sshd_config`, readable by every account,
+  which includes `sshd_config.d/*.conf` near its top.
+- Auth log: syslog, as Logs below describes — `/var/log/messages`,
+  or `/var/log/auth.log` under syslog-ng.
+- Checksum of a file: `sha256sum <file>`, which busybox provides.
+
 ## Logs
 
 Alpine logs through syslog, to `/var/log/messages`:

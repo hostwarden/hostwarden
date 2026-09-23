@@ -207,6 +207,9 @@ documentation, <https://docs.opnsense.org/>, and the
   `PermitRootLogin`, and `AllowGroups wheel` and
   `X11Forwarding no` are always written. Report a finding as the
   option to change.
+- Auth log: System > Log Files > Audit, kept under
+  `/var/log/audit/` one file per day. Checksum of a file:
+  `sha256 -q <file>`.
 
 ## Replace: Mail and Time
 
