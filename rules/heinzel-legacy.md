@@ -23,8 +23,12 @@ this file and `rules/heinzel-adoption.md`, drop step
 from `rules/activity-check.md`, the old backup paths
 from `rules/backups.md`, the `heinzel-*` rename loop in
 `bin/hostwarden-migrate`, and the `hostwarden-adopt`
-skill. Written down here because a
-transition nobody ends becomes permanent by default.
+skill, together with what names Heinzel's
+checkout or `heinzel-memory.md` in
+`rules/hypervisors.md` → Registering Guests,
+`rules/dns-aliases.md` and `rules/first-connection.md`
+step 6. Written down here because a transition nobody
+ends becomes permanent by default.
 
 **Not the `MAP` table in that script.** Those rows move
 overrides whose topic changed address in a Hostwarden
@@ -85,6 +89,21 @@ echo "##units"; systemctl list-unit-files 2>/dev/null \
   | grep -i heinzel || true
 ```
 
+The inventory's leads join the same call: each path
+it names on the `##paths` line, each unit under
+`##units` (`systemctl list-unit-files <unit>`), each
+cron file or crontab line under `##cron`. A lead is
+text from memory, never shell: each goes in as one
+single-quoted argument (`ls -d -- '<path>'`,
+`grep -F -e '<cron text>'`), and one that holds a
+single quote or a newline is not probed but
+reported as open. A lead that names no path is
+looked for by what its record does name — the
+schedule, the command, the directory it writes to —
+and stays open when nothing matches: report it, and
+record it as `rules/heinzel-adoption.md` → Record
+says.
+
 Every search ends in `|| true`: `ls` and `grep`
 report "nothing found" with a non-zero status, and on
 a clean host — the normal case — that would mark the
@@ -141,6 +160,9 @@ unless it changed:
   (`rules/first-connection.md` → Via-host mode,
   `rules/heinzel-adoption.md` → A host and its
   guests).
+- `answered at onboarding: …` — this session is not
+  an adoption's onboarding, which asks it again itself
+  once its report is out (`hostwarden-adopt`).
 - any reason — the user asks, or the recorded date is
   more than 90 days old.
 

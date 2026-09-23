@@ -1,7 +1,8 @@
 # Building the Per-Host Inventory
 
-What to collect from `memory/servers/<host>/memory.md` and
-`changelog.log`, and how to write it down.
+What to collect from `memory/servers/<host>/heinzel-memory.md` —
+Heinzel's `memory.md` as adopted — and `changelog.log`, and how to
+write it down.
 
 ## What counts as a lead
 
@@ -57,6 +58,7 @@ hostwarden-adopt. Not verified against the host.
 ## Verification is the host's job
 
 The inventory is a worklist, never a fact. The first connection checks
-each lead against the host (`rules/heinzel-adoption.md`), moves what
-is confirmed into the host's `memory.md`, and deletes the file once it
+each lead against the host (`rules/heinzel-legacy.md` → Detect),
+moves what is confirmed into the host's `memory.md`
+(`rules/heinzel-adoption.md` → Record), and deletes the file once it
 is empty.

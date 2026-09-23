@@ -63,6 +63,9 @@ An `- IP:` that no longer matches stays with
   `curl` or a DNS lookup that times out, or a stall in one address
   family only. Where `Probed:` names a part, it runs the whole
   probe, whatever the date.
+- **On the first connection to a host adopted from Heinzel:** the
+  full profile, which gives Heinzel's notes on the network a place
+  (`rules/heinzel-adoption.md` → Heinzel's memory).
 - **Before a change** to addresses, routes, interfaces, DNS
   resolution or the network manager: only who owns it. That is
   the Linux probe up to the end of section A, plus the first four

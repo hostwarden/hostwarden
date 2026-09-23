@@ -211,6 +211,10 @@ asked for — is never part of a numbered file. The guest's memory
 records the version it was created with and names such an
 addition, `- Baseline: debian-3 (created 2026-09-22, password)`,
 and a server brought up to the baseline later
-`- Baseline: retrofitted 2026-09-22`. A deviation the user chose
+`- Baseline: retrofitted 2026-09-22`. A measurement against it
+gets a line of its own beside that one, which it never replaces:
+`- Baseline check: 2026-09-22, missing firewall, backup`, or
+`- Baseline check: 2026-09-22, complete`. The next measurement
+rewrites it. A deviation the user chose
 at creation goes into the guest's `rules.md` as an `## Add:` under
 `# baseline`, so the audits take it as intended.

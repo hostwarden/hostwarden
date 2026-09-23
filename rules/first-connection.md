@@ -28,7 +28,13 @@ skip it.
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Server memory file.** Create on first
    connection, read on every subsequent connection.
-   See `rules/server-memory.md`.
+   See `rules/server-memory.md`. A first connection
+   is one to a host with no `memory.md` yet. That
+   includes a host adopted from Heinzel, whose
+   directory holds Heinzel's `heinzel-memory.md`
+   instead: its `memory.md` is written as
+   `rules/heinzel-adoption.md` → Heinzel's memory
+   says.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`; what
    else goes into its call, and on which connection,
