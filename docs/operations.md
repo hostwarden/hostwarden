@@ -377,14 +377,18 @@ What it needs from you:
   with a key that may push there;
 - its own `memory/user.md`:
   ```
-  Fleet name: ops1
+  Operator: ops1
   Report email: ops@example.com
   Workspace push: always
   ```
-  `ops1` is the name every journal line of the
-  nightly run carries — `[ops1 as root] read-only:
-  housekeeping: …` — so your colleagues can tell it
-  from your own sessions;
+  `ops1` is the machine's own handle, which every
+  journal line of the nightly run carries —
+  `[ops1 as root] read-only: housekeeping: …` — so
+  your colleagues can tell it from your own sessions.
+  Like yours, it is reserved in `operators.md`: the
+  first `claude` session there does that, and the
+  nightly run refuses to start until the reservation
+  has been pushed;
 - `*` in its `memory/readonly.md`, so no session there
   changes anything, and a copy of your blacklist;
 - the fleet key, made by you, and the key line on each
