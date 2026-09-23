@@ -367,6 +367,12 @@ What housekeeping does with the answer is below.
   `systemctl is-enabled nftables` says `enabled`: the
   stock `/etc/nftables.conf` flushes their rules.
 
+**iptables without a manager** (the legacy backend; check it
+when none of the above is active; needs root): the probe and
+its ratings are in the same reference → iptables without a
+manager. Send it in the same call as the nftables probe: it
+skips itself where `iptables -V` says `nf_tables`.
+
 **Docker** (when `command -v docker` finds it): run the probe
 from the same reference → Docker published ports, and judge
 it by the severities there. Housekeeping adds one exception: a
@@ -374,7 +380,9 @@ port that server memory records as meant to be public is OK.
 When the user confirms that for a port, add it there so the
 next run stays quiet.
 
-- **CRITICAL** if the firewall is inactive or not installed
+- **CRITICAL** if the firewall is inactive or not installed,
+  weighed by `rules/baseline.md` → Filtering in front of the
+  host
 
 ## Failed systemd Units
 

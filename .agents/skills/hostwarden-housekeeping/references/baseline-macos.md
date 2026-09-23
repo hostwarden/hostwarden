@@ -94,7 +94,8 @@ done
   --getglobalstate
 ```
 
-- **WARN** if the firewall is off on a server; on a
+- **WARN** if the firewall is off on a server, weighed by
+  `rules/baseline.md` → Filtering in front of the host; on a
   workstation, `rules/role/workstation.md` rates it
 
 ## SMART Disk Status

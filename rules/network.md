@@ -300,9 +300,12 @@ listens behind it.
   Firewall).
 - NAT, a policy rule or a routing table that nothing the
   probe found restores at boot — no manager, hook, `unit`
-  line or saved rule file (Reading B and F of the probe):
-  it is gone after the next reboot. Ask the user what sets
-  it before calling it hand-made.
+  line or saved rule file (Reading B and F of the probe),
+  and no firewall manager that holds it in its permanent
+  configuration (firewalld's, `rules/firewalld.md`; ufw's
+  `/etc/ufw/before.rules`): it is gone after the next
+  reboot. Ask the user what sets it before calling it
+  hand-made.
 
 **INFO**
 

@@ -195,16 +195,14 @@ ufw status verbose
 
 A runlevel that lists `nftables` means nftables; one that lists
 `iptables` means awall when `/etc/awall/` holds policies, and saved
-iptables rules otherwise. Judge default deny for nftables with
-`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`,
-for iptables as root with `iptables -S INPUT` and
-`ip6tables -S INPUT` (`-P INPUT DROP`, or an unconditional last rule
-`-A INPUT -j DROP` or `-j REJECT`;
-<https://man7.org/linux/man-pages/man8/iptables.8.html>).
+iptables rules otherwise. Judge default deny for nftables and for iptables with
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`
+(Native nftables, iptables without a manager).
 The nftables service loads the rules and exits, so
 `rc-status` may not show it as running: the runlevel entry and the
 ruleset count. Neither service in a runlevel and ufw inactive →
-**CRITICAL** "No active firewall".
+**CRITICAL** "No active firewall", weighed by `rules/baseline.md`
+→ Filtering in front of the host.
 
 ## Automatic Security Updates
 

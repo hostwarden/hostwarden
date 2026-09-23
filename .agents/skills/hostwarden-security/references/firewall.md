@@ -2,7 +2,10 @@
 
 The variants below are the family defaults. Where the loaded OS
 file's `## Firewall` section names another firewall, its commands
-and expectations win, at the same severities.
+and expectations win, at the same severities. Every finding that
+the host does not filter a family — no firewall, or the IPv6 gap
+— is then weighed by `rules/baseline.md` → Filtering in front of
+the host.
 
 Each firewall below also says where it leaves IPv6 open; the
 IPv6 section at the end weighs that gap.
@@ -13,17 +16,20 @@ Verify a firewall is installed, active, and the default incoming
 policy is deny/drop. An inactive or missing firewall on a Linux
 server is **CRITICAL** — aligned with the housekeeping severity.
 
-Three variants count as a firewall: ufw, firewalld, and native
+Four variants count as a firewall: ufw, firewalld, native
 nftables (`nftables.service` loading `/etc/nftables.conf`,
-installed on Debian with the unit off). Check them in that
-order and judge the host by the first one that is active.
-Report **CRITICAL** "No active firewall" only when none of
-the three is.
+installed on Debian with the unit off), and iptables without a
+manager on the legacy backend. Check all four: a packet has to
+pass every one that is loaded, so a family is filtered when any
+of them drops its input by default, and an active one that does
+not changes nothing for it. Report **CRITICAL** "No active
+firewall" only when none of the four drops by default in either
+family; an active variant that is not default deny gets only its
+own WARN below.
 
-`references/firewall-nftables-docker.md` checks native
-nftables and iptables-legacy rules. Run its Docker check
-whenever `command -v docker` finds Docker, whatever the
-firewall.
+`references/firewall-nftables-docker.md` checks the variants
+after ufw and firewalld. Run its Docker check whenever
+`command -v docker` finds Docker, whatever the firewall.
 
 ### Debian/Ubuntu (ufw)
 

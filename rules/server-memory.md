@@ -152,6 +152,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Time sync:`             | `service-class-check.md`    | service found    |
 | `DNS resolver:`          | `service-class-check.md`    | service found    |
 | `Firewall manager:`      | `service-class-check.md`    | service found    |
+| `Upstream firewall:`     | `baseline.md`               | user's answer    |
 | `Container runtime:`     | `service-class-check.md`    | runtime found    |
 | `Container: privileged`  | `system-containers.md`      | container found  |
 | `Cluster:`               | `hypervisors.md`            | member found     |

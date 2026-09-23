@@ -243,15 +243,21 @@ Classify the tool in this order, first match wins:
 2. `firewalld` when `firewall-cmd --state` says `running`
 3. `nftables` when `nftables.service` is `active`, or an
    input chain in the `--nft` block drops by default
-4. `none` — nothing of the above. The `nft` binary alone
+4. `iptables` when the `--legacy` block shows the legacy
+   backend and a family's INPUT drops by default
+5. `none` — nothing of the above. The `nft` binary alone
    is not a firewall, nor are input chains that fail2ban,
    Docker or kube-proxy add with `policy accept;`.
 
-Default deny for `nftables`, and what `legacy4` and
-`legacy6` in the `--legacy` block mean: the security skill's
+Default deny for `nftables` and `iptables`, and what `legacy4`
+and `legacy6` in the `--legacy` block mean: the security skill's
 `firewall-nftables-docker` reference,
-`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`.
-No count means no legacy table.
+`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`
+(Native nftables, iptables without a manager, Mixed frameworks).
+No count means no legacy table. Where `--legacy` shows the legacy
+backend and neither ufw nor firewalld is active, append that
+reference's iptables without a manager probe to this script,
+with `$SUDO` in front of its reads; its output decides row 4.
 
 ```bash
 # Prefer ufw on Debian/Ubuntu; firewall-cmd on RHEL family.
@@ -275,14 +281,16 @@ elif [ -n "$TOOLS" ]; then
              | grep -B1 -e ^table -e "hook input" ;;
     esac 2>&1
   done
-  echo "--legacy"
-  iptables -V 2>/dev/null
-  if iptables -V 2>/dev/null | grep -q nf_tables; then
-    $SUDO grep -q . /proc/net/ip_tables_names 2>/dev/null &&
-      echo "legacy4=$($SUDO iptables-legacy -S | grep -vc ^-P)"
-    $SUDO grep -q . /proc/net/ip6_tables_names 2>/dev/null &&
-      echo "legacy6=$($SUDO ip6tables-legacy -S | grep -vc ^-P)"
-  fi
+fi
+echo "--legacy"
+v=$(iptables -V 2>/dev/null); echo "${v:-iptables=none}"
+if [ -n "$v" ] && [ "$SUDO" = "-" ]; then
+  echo "legacy=unknown(needs-root)"
+elif printf '%s' "$v" | grep -q nf_tables; then
+  $SUDO grep -q . /proc/net/ip_tables_names 2>/dev/null &&
+    echo "legacy4=$($SUDO iptables-legacy -S | grep -vc ^-P)"
+  $SUDO grep -q . /proc/net/ip6_tables_names 2>/dev/null &&
+    echo "legacy6=$($SUDO ip6tables-legacy -S | grep -vc ^-P)"
 fi
 ```
 
@@ -301,8 +309,10 @@ the runlevels from the `###rc###` block instead of
 
 Row keys for the table:
 
-- Tool in use (`ufw` / `firewalld` / `nftables` / `none`;
-  on Alpine also `awall` / `iptables`)
+- Tool in use (`ufw` / `firewalld` / `nftables` / `iptables` /
+  `none`; on Alpine also `awall`)
+- Upstream firewall — the host's `Upstream firewall:` line
+  from memory, or `not recorded`, shown as it stands
 - State — `unknown(needs-root)` when a tool exists but
   its status is unreadable without root
 - Legacy iptables rules next to nf_tables (count; > 0 is

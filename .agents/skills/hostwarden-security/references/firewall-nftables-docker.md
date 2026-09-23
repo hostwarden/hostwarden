@@ -1,9 +1,10 @@
 # Firewall: native nftables, legacy rules, Docker
 
-Three checks that `references/firewall.md` points to: a host
+Four checks that `references/firewall.md` points to: a host
 that filters with native nftables instead of ufw or
-firewalld, iptables-legacy rules hidden next to nf_tables,
-and ports Docker publishes past any of them. Linux only.
+firewalld, one that filters with iptables on the legacy
+backend, iptables-legacy rules hidden next to nf_tables, and
+ports Docker publishes past any of them. Linux only.
 
 ## Native nftables
 
@@ -46,15 +47,94 @@ fail2ban, Docker or kube-proxy add with `policy accept;`
 filter nothing on their own.
 
 - Not active → not a firewall: **CRITICAL** "No active
-  firewall" when ufw and firewalld are inactive too
+  firewall" when ufw, firewalld and iptables without a manager
+  are inactive too
 - Service active, not default deny → **WARN** "nftables
   input policy is not deny". But if its input chains hold
   no rules at all (Debian's stock `/etc/nftables.conf`),
-  nothing is filtered: **CRITICAL** "No active firewall"
+  nothing is filtered: **CRITICAL** "No active firewall",
+  unless another variant drops by default
+  (`references/firewall.md` → Linux)
 - Default deny, but `nftables.service` inactive and nothing
   enabled reloads it → **WARN** "nftables rules will
   not survive a reboot"
 - Default deny, service active → OK
+
+## iptables without a manager
+
+Rules written with `iptables` and restored by a service or a
+hook script, with no ufw or firewalld on top. Where `iptables -V`
+says `nf_tables`, Native nftables above judges them. Where it
+says `legacy`, or names no backend, `nft` shows nothing of them,
+and this check reads them. As root, or with `$SUDO` from
+`rules/privilege-escalation.md` → Stand-ins for sudo in front of
+each read; a family whose `filter` table the proc file does not
+list has no rules and is not read, so that nothing loads the
+module:
+
+```bash
+v=$(iptables -V 2>/dev/null); echo "iptables=${v:-none}"
+case $v in
+  ''|*nf_tables*) ;;
+  *) for f in ip ip6; do
+       grep -qx filter /proc/net/${f}_tables_names 2>/dev/null \
+         || { echo "$f: no filter table"; continue; }
+       r=$(${f}tables -S INPUT) || { echo "$f: unread"; continue; }
+       printf '%s\n' "$r" | sed -n -e "1s/^/$f /p" \
+         -e "1!{\$s/^/$f last /p;}"
+       echo "$f input-rules=$(printf '%s\n' "$r" | grep -c '^-A')"
+     done
+     for u in netfilter-persistent iptables ip6tables; do
+       echo "unit $u=$(systemctl is-enabled "$u" 2>/dev/null)"
+     done
+     # Each saved rule file's filter INPUT: policy and last rule.
+     for s in /etc/iptables/rules* /etc/sysconfig/ip*tables; do
+       [ -f "$s" ] || continue
+       awk -v s="$s" '/^\*/ { t = $1 }
+         t == "*filter" && /^:INPUT / { print s, $1, $2 }
+         t == "*filter" && /^(\[[0-9:]+\] )?-A INPUT / { l = $0 }
+         END { if (l != "") print s, "last", l }' "$s"
+     done
+     ls /etc/rc.local /etc/local.d/*.start 2>/dev/null || true ;;
+esac
+```
+
+The `unit` lines and files are the ones the network probe reads
+(`rules/network-probe.md`, Reading F), where OpenRC's runlevels
+take the place of the `systemctl` line. `<family>: unread` is a
+failed read, never an empty chain.
+
+Default deny for a family is `-P INPUT DROP`, or a last rule
+that drops or rejects unconditionally (`-A INPUT -j DROP`,
+`-A INPUT -j REJECT …`)
+(<https://man7.org/linux/man-pages/man8/iptables.8.html>). A last
+rule that jumps to a chain of its own (`-A INPUT -j fw-in`) takes
+that chain's verdict: read it with `iptables -S <chain>` and judge
+its last rule the same way. The variant is *active* when a
+family is default deny; INPUT rules that fail2ban or Docker add
+under `-P INPUT ACCEPT` filter nothing on their own.
+
+- Not active, whatever INPUT rules fail2ban or others added →
+  not a firewall: **CRITICAL** "No active firewall" when none of
+  the four variants drops by default (`references/firewall.md`
+  → Linux)
+- Default deny, but nothing restores it at boot → **WARN**
+  "iptables rules will not survive a reboot". Restored means a
+  loader and its source together, for that family: an enabled
+  `netfilter-persistent` with `/etc/iptables/rules.v4` or
+  `rules.v6`; an enabled `iptables` or `ip6tables` service, or
+  runlevel entry, with `/etc/sysconfig/iptables`,
+  `/etc/sysconfig/ip6tables` or Alpine's `rules-save` and
+  `rules6-save`; a hook line in the host's network profile
+  (`rules/network.md`) or an `rc.local` or `/etc/local.d`
+  script that loads rules. The source's filter INPUT must be
+  default deny as the live one is: a saved file whose policy
+  and last rule differ, a unit without its file, or a file
+  without an enabled unit restores something else, or
+  nothing.
+- Default deny in one family only → the IPv6 gap that
+  `references/firewall.md` → IPv6 weighs
+- Default deny and restored at boot → OK
 
 ## Mixed frameworks
 

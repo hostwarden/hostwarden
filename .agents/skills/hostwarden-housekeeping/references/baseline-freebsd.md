@@ -173,7 +173,9 @@ also says which firewalls count.
 Whether the ruleset denies incoming traffic by default is the
 security audit's question, not this one.
 
-- **CRITICAL** if none of pf, ipfw and IPFilter is running
+- **CRITICAL** if none of pf, ipfw and IPFilter is running,
+  weighed by `rules/baseline.md` → Filtering in front of the
+  host
 - **WARN** if one runs but its `_enable` variable is not `YES`:
   the firewall is gone after the next reboot
 

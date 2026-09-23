@@ -328,7 +328,9 @@ try { $r = @(Get-NetFirewallRule -ErrorAction Stop | Where-Object Name -eq 'Open
   store only and misses what Group Policy sets.
 - The profile a network card uses is its `NetworkCategory`;
   judge that profile first. A profile that is **disabled**, or
-  whose `DefaultInboundAction` is `Allow`, is a **WARN**.
+  whose `DefaultInboundAction` is `Allow`, is a **WARN**,
+  weighed by `rules/baseline.md` → Filtering in front of the
+  host.
   `NotConfigured` falls back to the built-in default, which is
   `Block`
   ([Intune firewall settings](https://learn.microsoft.com/intune/device-configuration/endpoint-security/ref-firewall-settings#windows-firewall-profile)):
