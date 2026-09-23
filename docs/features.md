@@ -212,9 +212,9 @@ pending and asks whether to continue or start fresh.
 Work that spans sessions — a rollout in phases, a
 migration with decisions still open — gets a plan in
 `memory/plans/<slug>.md`, and every host it touches
-points to it from its memory. Once it is done, what it
-decided moves into the hosts' memory and the plan is
-deleted.
+points to it from its memory. Once it is done, its facts
+move into the hosts' memory, what you decided and still
+holds becomes a decision record, and the plan is deleted.
 
 ## Masters of deployed files
 
