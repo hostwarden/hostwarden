@@ -104,7 +104,9 @@ ssh hands `-F` on to the `ProxyJump` hop, so the jump host reads
 the same file: its key is checked against `memory/known_hosts`
 (`rules/host-keys.md` → Jump Hosts), and it keeps a shared
 connection of its own, so only the first call pays for two logins.
-Options given with `-o` reach the target alone.
+Options given with `-o` reach the target alone. A jump host on the
+blacklist blocks every host behind it (`rules/access-control.md` →
+Server Blacklist).
 
 ## Port Forwardings
 
