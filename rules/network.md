@@ -1,11 +1,12 @@
 # Network Profile
 
 What Hostwarden records about a host's own network, and what
-counts as a finding there. The profile answers four questions
+counts as a finding there. The profile answers five questions
 before anyone touches the network:
 
 1. **Who owns the configuration?** Which manager, which file,
-   and whether something regenerates it.
+   the hooks and scripts that run with it, and whether
+   something regenerates it.
 2. **What is the stack?** IPv4 and IPv6, which address ranges,
    static or dynamic.
 3. **Does it work?** Default routes, name resolution, and
@@ -13,6 +14,9 @@ before anyone touches the network:
    often broken IPv6.
 4. **Does the outside agree?** A, AAAA and PTR records against
    the addresses the host really has.
+5. **Which way does traffic run?** What comes in and goes out
+   per family, through which NAT and policy rules, and which
+   guest routes for whom.
 
 Every probe for it is read-only.
 
@@ -32,8 +36,22 @@ that no longer matches stays with `rules/dns-aliases.md`.
   commands of section D for a DNS change, or the family's `sysrc`
   or `networksetup` lines; then Before changing the network
   below.
+- **Before a change** to NAT, forwarding, a bridge or policy
+  routing, and before switching on anything that loads
+  `br_netfilter` or sets `bridge-nf-call-*` to 1 on a host
+  with bridged guests — a hypervisor's own firewall, a
+  container engine, Kubernetes: the Traffic flow section,
+  from sections A, B, C and F of the Linux probe, and every
+  bridged NAT rule in it reported first (Findings).
 - **After a change**, on a host whose memory has a profile: run
   the probe again and update it in the same step.
+
+A full profile has a `## Traffic flow` section when the probe
+shows any of: forwarding on in either family, a bridge with
+guest ports, a NAT rule in any backend, `ip rule` beyond the
+defaults, or a hook line or script that sets routes, rules or
+filters. Otherwise it has none, and says nothing about traffic
+flow.
 
 A profile whose `Probed:` date is older than 90 days is refreshed
 before it is relied on. The probes are in
@@ -84,6 +102,14 @@ gains one summary line, which names a mesh VPN too:
 - Network: dual-stack, v6 egress OK, Tailscale — see network.md
 ```
 
+With a Traffic flow section, the line names the guest that
+routes and the netfilter backend:
+
+```markdown
+- Network: dual-stack, inbound v4 to guest 100 (DNAT),
+  iptables-legacy — see network.md
+```
+
 `network.md` holds current facts only. Replace stale values; the
 history is in `changelog.log`:
 
@@ -99,6 +125,7 @@ Probed: 2026-09-19
 - Manager: netplan → systemd-networkd
 - Source: /etc/netplan/50-cloud-init.yaml
 - cloud-init: owns network config
+- Hooks: none
 - Conflicts: none
 
 ## Interfaces
@@ -131,6 +158,45 @@ Probed: 2026-09-19
 
 A mesh VPN interface or agent in the probe loads
 `rules/mesh-vpn.md`, which adds a `## Mesh VPN` section.
+
+Where When above calls for it, `## Traffic flow` follows
+`## IPv6`, and `## Management` names every hook line that sets
+something, with the script behind it. A hypervisor whose guest
+firewall takes the public IPv4 traffic looks like this:
+
+```markdown
+## Management
+- Manager: ifupdown2
+- Source: /etc/network/interfaces
+- Hooks: vmbr2 post-up/post-down → /usr/local/sbin/wan.sh
+  (DNAT, MASQUERADE, policy routing); vmbr3 post-up (IPv6
+  and ARP off)
+
+## Traffic flow
+- Forwarding: v4 on, v6 on
+- Bridges: vmbr0 (eno1; host 192.168.1.10/24; guests 101,
+  102) · vmbr1 (no port; host 10.0.0.1/30; guest 100) ·
+  vmbr2 (eno2; host 203.0.113.10/32 peer 203.0.113.1,
+  2001:db8:5::10/128; guest 100) · vmbr3 (no port; no host
+  address; guest 100)
+- Netfilter: iptables-legacy, nft empty; bridge-nf-call v4 0,
+  v6 0
+- Inbound v4: DNAT on vmbr2 to 10.0.0.2 (guest 100), except
+  tcp/22 and tcp/8006 to the host
+- Inbound v6: to the host, INPUT policy ACCEPT, no rules;
+  web DNAT to 2001:db8:5:1::2 (0 packets)
+- Outbound v4: host direct via vmbr2; 10.0.0.0/30
+  masqueraded out vmbr2
+- Outbound v6: direct via vmbr2
+- Policy routing: from 192.168.1.10 to 10.0.0.0/8,
+  100.64.0.0/10 → table fw, via 10.0.0.2 (guest 100)
+- Router: guest 100 (DNAT target, next hop of table fw)
+```
+
+Name a guest only as Reading F of the probe ties it to a port.
+A guest's own public address on a bridge is invisible from the
+host; record it only when the user or the guest's memory says
+so.
 
 Record only what a probe showed. Never infer a hosting provider
 from an address range or a gateway; name one only when
@@ -172,11 +238,28 @@ housekeeping report format.
 
 - Name resolution fails: no egress target resolves in any
   family.
+- **Bridged NAT with bridge-nf-call on:** a NAT rule of the
+  host's own that a frame crossing a bridge with guest ports
+  can match, while `bridge-nf-call` for that family is `1`.
+  That is a DNAT or REDIRECT for traffic in on the bridge
+  (`-i`, `iifname`, or no interface at all) not limited to
+  the host's own addresses — by `-d` or `daddr`, a set of
+  them, `-m addrtype --dst-type LOCAL` or
+  `fib daddr type local` — or an SNAT or
+  MASQUERADE out the bridge not limited to the sources the
+  host routes (`-s`, `saddr`) — on the rule itself or on the
+  jump that leads to it. The rule then rewrites the guests'
+  own traffic across that bridge. The fix limits it: the
+  host's address or the routed sources, or
+  `-m physdev ! --physdev-is-bridged` in iptables.
 
 A firewall that filters IPv4 but not IPv6 is the security audit's
 finding, at its severities
 (`.agents/skills/hostwarden-security/references/firewall.md` →
-IPv6).
+IPv6). That includes a host whose inbound IPv4 goes to a guest
+firewall by DNAT while IPv6 reaches the host itself: the
+Traffic flow lines show the split, and the audit rates what
+listens behind it.
 
 **WARN**
 
@@ -209,6 +292,17 @@ IPv6).
 - The uplink is down on a configured interface.
 - No PTR, or a PTR without forward confirmation, on a public
   address of a host that sends mail (`memory.md` names an MTA).
+- The bridged NAT above while `bridge-nf-call` for that
+  family is `0` or `absent`. It waits for whatever sets it
+  to `1`: loading `br_netfilter`, which a container engine
+  or Kubernetes may do, or a hypervisor firewall such as
+  `pve-firewall` (`rules/appliance/proxmox-ve.md` → Replace:
+  Firewall).
+- NAT, a policy rule or a routing table that nothing the
+  probe found restores at boot — no manager, hook, `unit`
+  line or saved rule file (Reading B and F of the probe):
+  it is gone after the next reboot. Ask the user what sets
+  it before calling it hand-made.
 
 **INFO**
 
@@ -224,6 +318,17 @@ IPv6).
 - Only one upstream nameserver.
 - No PTR on a public address of a host without an MTA.
 - `hostname -f` does not return an FQDN, or it does not resolve.
+- The whole rule set is in iptables-legacy and `nft` shows no
+  tables. Record it under Netfilter: a check that reads only
+  `nft` sees no rules there. Legacy rules next to
+  nf_tables are the security audit's finding
+  (`.agents/skills/hostwarden-security/references/firewall-nftables-docker.md`
+  → Mixed frameworks).
+- A NAT rule of the host's own, not one a container engine or
+  hypervisor writes, with no match since it was loaded, or
+  whose target is routed back out the interface the rule
+  matched on (`route-to`): it does nothing, and neither do
+  the FORWARD rules written for its target.
 
 ## Before changing the network
 
