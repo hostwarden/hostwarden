@@ -142,7 +142,8 @@ Ask first: both are privilege changes.
   `visudo -c -f`. Name it without a `.`, which `@includedir`
   would skip, then run `visudo -c` for the whole set, since a
   sudo older than 1.9.3 refuses to run at all with an error
-  anywhere in it; confirm with `sudo -l -U <user>`.
+  anywhere in it; confirm with `sudo -l -U <user>`, filtered as
+  `rules/accounts-probe.md` → The Sudo Model says.
 
 ## Team Accounts
 

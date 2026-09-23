@@ -72,7 +72,8 @@ run-as on every line: `deploy NOPASSWD ALL (root)`.
   rules live there lose sudo, or keep rules the directory has
   already revoked.
 - Rules from a directory → **INFO**: the local files show only
-  part; list the effective rules per admin (`sudo -l -U <user>`).
+  part; list the effective rules per admin (`sudo -l -U <user>`,
+  filtered as `rules/accounts-probe.md` → The Sudo Model says).
 - The two above apply to classic sudo only. Where the `sudo:` line
   names sudo-rs, a `sudoers:` line naming `sss` or `ldap` →
   **INFO**: sudo-rs reads the files alone, so rules kept in the

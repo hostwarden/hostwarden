@@ -74,13 +74,25 @@ else
   fi
 fi
 echo "@sudoers"
+rd() {  # a rules file, continuation lines joined, comments out
+  $SUDO sed -e ':a' -e '/\\$/N' -e 's/\\\n/ /' -e 'ta' "$1" \
+    2>&1 | grep -vE '^[[:space:]]*($|#([^0-9]|$))' \
+    | sed "s|^|$1:|"
+}
+wh() {  # print a rule up to its first command, never an argument
+  sed -E -e 's#setenv[[:space:]]*\{[^}]*\}#setenv { <withheld> }#' \
+    -e 's#([[:space:]]cmd[[:space:]]+[^[:space:]]+)[[:space:]].*#\1 <rest withheld>#' \
+    -e 's#([[:space:],!:=)^])(/[^[:space:],]*)[[:space:]].*#\1\2 <rest withheld>#'
+}
 R=
 O=
 if [ "$SUDO" = "-" ]; then
   echo "unknown(needs-root)"
 elif command -v visudo >/dev/null 2>&1; then
   V=$($SUDO visudo -c 2>&1)
-  printf '%s\nvisudo-rc=%s\n' "$V" "$?"
+  rc=$?
+  printf '%s\n' "$V" | wh
+  echo "visudo-rc=$rc"
   echo "sudo: $(sudo -V 2>/dev/null | head -n 1)"
   F=$(printf '%s\n' "$V" | sed -n 's|^\(/[^:]*\): .*|\1|p' | tr '\n' ' ')
   if [ -z "${F% }" ]; then
@@ -109,8 +121,8 @@ elif command -v visudo >/dev/null 2>&1; then
     done
   done
   for x in $S; do echo "skipped: $x"; done
-  [ -n "$F" ] && R=$($SUDO grep -HvE '^[[:space:]]*($|#([^0-9]|$))' $F)
-  printf '%s\n' "$R"
+  R=$(for f in $F; do rd "$f"; done)
+  printf '%s\n' "$R" | wh
 else
   echo "sudoers=none"
 fi
@@ -119,13 +131,11 @@ if command -v doas >/dev/null 2>&1 && [ "$SUDO" = "-" ]; then
   echo "unknown(needs-root)"
 elif command -v doas >/dev/null 2>&1; then
   echo "@doas"
-  C=$($SUDO ls -A /etc/doas.d 2>/dev/null \
-    | sed -n 's|.*\.conf$|/etc/doas.d/&|p')
-  for f in /etc/doas.conf /usr/local/etc/doas.conf $C; do
-    O="$O
-$($SUDO grep -HvE '^[[:space:]]*(#|$)' "$f" 2>/dev/null)"
-  done
-  printf '%s\n' "$O" | grep .
+  C=$($SUDO ls -d /etc/doas.conf /usr/local/etc/doas.conf 2>/dev/null
+    $SUDO ls -A /etc/doas.d 2>/dev/null \
+      | sed -n 's|.*\.conf$|/etc/doas.d/&|p')
+  O=$(for f in $C; do rd "$f"; done)
+  printf '%s\n' "$O" | wh
 fi
 echo "@groups"
 echo "root groups: $(id -Gn root | tr ' ' ,)"
@@ -187,7 +197,16 @@ name. `${SUDO#-}` is empty where there is no privilege path, so
 normal user's `PATH` over SSH lacks `/usr/sbin` on Debian, where
 `visudo`, `sssctl` and `realm` live. The `sshd` of the host's
 family file answers `sshd -T` (FreeBSD: `rules/os/freebsd.md` →
-sshd).
+sshd). An argument in a rule can carry a password
+(`rules/secrets.md`), so `rd` joins a rule's continuation lines
+and `wh` prints it only up to its first command that has
+arguments, then `<rest withheld>`: after `=`, `:`, `,`, `)` or a
+space in sudoers, after `cmd` in doas, whose `setenv { … }`
+values are withheld too. It is stricter than the filter of
+`rules/privilege-escalation.md` → Sudo, since a file allows forms
+sudo's listing never prints. The groups are read from the
+unfiltered rules, which never leave the host. Read a withheld rule
+as that section says: never as a narrower one than it may be.
 
 macOS keeps the `@sudoers` and `@groups` parts, whose group lookup
 uses `dscl` there, and replaces the rest:
@@ -399,7 +418,10 @@ a group up with `getent group <name>` or in the directory.
 **Effective rules for one account**, directory rules included,
 which the files alone never show: `sudo -l -U <user>` as root;
 `sudo -n -l` as the account itself, which answers without a
-password only where some rule has `NOPASSWD`.
+password only where some rule has `NOPASSWD`. Either is a sudo
+listing: pipe it through the filter of
+`rules/privilege-escalation.md` → Sudo, with `LC_ALL=C` in front,
+as that section does.
 
 **Run-as.** A rule makes its holder root only where its run-as
 list can name root: `ALL`, `root`, `#0`, a `%group` whose members

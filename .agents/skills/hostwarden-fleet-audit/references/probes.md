@@ -871,7 +871,8 @@ Row keys:
 - Rules with `ALL` as the command, per user or `%group`, with
   their run-as and `NOPASSWD` marked, root rules apart
   (`rules/accounts-probe.md` → The Sudo Model).
-- Rules with `NOPASSWD` on selected commands.
+- Rules with `NOPASSWD` on selected commands, as the probe prints
+  them: arguments withheld, never copied from anywhere else.
 - Members of each `%group` a sudoers rule names and each `:group`
   a doas rule names, and whether the group is `local` or from the
   `directory`.
