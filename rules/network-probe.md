@@ -20,7 +20,13 @@ to its name (`curl ...`), `ip` on anything but an address, a
 route, a rule, a neighbour, a link or a next hop to its object
 (`ip x ...` for an IPsec key), and an assignment whose value is
 not an address, a netfilter tool or one of the host's interfaces
-to its name.
+to its name. A network tool keeps its options, and a quoted
+string or the value of a free-text option shows as `...`: a
+comment, a log prefix, a match string, a description, an alias,
+options matched by prefix as the tools read them, and a shell
+comment is dropped. As the backstop, a command that names a
+password, a secret, a token or a key is cut to its name
+whatever it is.
 
 BusyBox `ip` has no `-br`, and Alpine ships no `ss` or `curl`
 by default: where a section comes back empty for that reason,
@@ -87,7 +93,18 @@ vs="$vs|[0-9a-f]*:[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?"
 v="$vs|[0-9]+|0x[0-9a-f]+(/0x[0-9a-f]+)?"
 v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
 il=$(ls /sys/class/net 2>/dev/null | tr '\n' ' ')
-rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]] }
+rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]]
+  x = "pass(word|wd|phrase)|secret|token|psk|apikey|(^|[^a-z])key([^a-z]|$)"
+  split("comment log-prefix nflog-prefix ulog-prefix string hex-string" \
+    " set-description set-short", fo, " ")
+  fw = "^(comment|alias|sdata|description)$" }
+# an option or word whose value is free text; options match by
+# prefix, as iptables and firewall-cmd read them
+function ftx(s,   q, i) { if (s ~ fw) return 1
+  if (s !~ /^--/) return 0; q = s; sub(/^--/, "", q); sub(/=.*/, "", q)
+  if (q == "") return 0
+  for (i in fo) if (index(fo[i], q) == 1) return 1
+  return 0 }
 { pre = ""; l = $0
   if (match(l, /^[^:]*:[0-9]+:/)) {
     pre = substr(l, 1, RLENGTH); l = substr(l, RLENGTH + 1) }
@@ -95,7 +112,24 @@ rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]] }
   if (l ~ /^(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]/) {
     hk = l; sub(/[[:space:]].*/, "", hk)
     sub(/^[^[:space:]]+[[:space:]]+/, "", l); hk = hk " " }
-  n = split(l, sg, /[[:space:]]*(;|&&|\|\|?)[[:space:]]*/); o = ""
+  # a quoted string stays only where it is an address, a port or
+  # range, an interface of this host or a variable, before the
+  # line is split: a separator inside quotes is text. An escaped
+  # character is text too; a quote still left marks a command
+  # whose quoting was not followed, and cuts it to its name
+  gsub(/\\./, "_", l)
+  q = ""; while (match(l, /"[^"]*"|\047[^\047]*\047/)) {
+    a = substr(l, RSTART + 1, RLENGTH - 2)
+    q = q substr(l, 1, RSTART - 1) (a ~ ("^(" vs ")$") \
+      || a ~ /^[0-9.:\/,-]+$/ || (a in isif) \
+      || a ~ /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/ ? a : "...")
+    l = substr(l, RSTART + RLENGTH) }
+  l = q l
+  # a shell comment is free text; a lone & starts a command too
+  sub(/(^|[[:space:];&|])#.*/, "", l); gsub(/[0-9]*>&[0-9-]*/, "", l)
+  if (l ~ /["\047]/) { w = l; sub(/[[:space:]].*/, "", w)
+    print pre hk w " ..."; next }
+  n = split(l, sg, /[[:space:]]*[;&|]+[[:space:]]*/); o = ""
   for (i = 1; i <= n; i++) {
     c = sg[i]; w = c; sub(/[[:space:]].*/, "", w)
     sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b); ok = 0
@@ -116,7 +150,18 @@ rd='BEGIN { split(il, f, " "); for (k in f) isif[f[k]] }
     } else ok = b ~ t \
       || c ~ /^"?\$\{?[A-Za-z_]+\}?"?[[:space:]]+-[tAIDNPF]/ \
       || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)
-    if (!ok || c ~ /[$<>]\(|`/) c = w " ..."
+    if (!ok || c ~ /[$<>]\(|`|["\047]/ || tolower(c) ~ x) c = w " ..."
+    else if (b != "echo") {
+      # a network tool keeps its options, never free text
+      r = c; sub(/^[^[:space:]]+/, "", r)
+      c = substr(c, 1, length(c) - length(r))
+      k = split(r, tk, /[[:space:]]+/)
+      for (m = 1; m <= k; m++) if (tk[m] != "") {
+        v2 = tk[m]; o2 = v2; sub(/=.*/, "", o2)
+        if (m > 1 && tk[m - 1] !~ /=/ && ftx(tk[m - 1]) \
+          && tk[m - 2] != "-m") v2 = "..."
+        else if (v2 ~ /=/ && ftx(o2)) v2 = o2 "=..."
+        c = c " " v2 } }
     o = o (i > 1 ? "; " : "") c }
   print pre hk o }'
 hl=$(grep -HnE "$h" $ifs 2>/dev/null)

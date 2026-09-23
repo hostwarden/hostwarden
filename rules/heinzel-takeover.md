@@ -504,18 +504,30 @@ checkout and start `claude` there. Read what each one
 starts and the directory it changes into before
 reporting it, never the command whole:
 
-- a crontab line: `##cron` of `rules/heinzel-legacy.md`
-  without its `grep -i heinzel`, since the checkout
-  can have any name;
+- a crontab line: the `##cron` block of
+  `rules/heinzel-legacy.md`, its `cs=` and `cdir=`
+  lines included, without its `grep -i heinzel`,
+  since the checkout can have any name;
 - a unit, with `--user` for one under
   `~/.config/systemd/user/`: `systemctl show -p LoadState
   -p WorkingDirectory <unit>`, the program from
   `systemctl show -p ExecStart <unit> | grep -oE
-  'path=[^ ;]+'`, and each `cd` its command runs from
-  `systemctl cat <unit> | grep -oE "$cdir"`;
+  'path=[^ ;]+'`, and each `cd` its command runs;
 - a launchd job: `plutil -extract WorkingDirectory raw
-  <plist>`, and the same grep on `plutil -convert xml1
-  -o - <plist>`.
+  <plist>`, the program from `plutil -extract Program raw
+  <plist>` or, where that is unset, `plutil -extract
+  ProgramArguments.0 raw <plist>`, and each `cd` its
+  command runs.
+
+Each `cd` comes from the same pattern, set in the same
+call as the grep: an unset one matches every line, and
+BSD `grep -o` then prints the whole unit or plist:
+
+```
+cdir="(^|[[:space:];&|\"'(>])cd[[:space:]]+[\"']?[^[:space:];&|\"']+"
+systemctl cat <unit> | grep -oE "$cdir"
+plutil -convert xml1 -o - <plist> | grep -oE "$cdir"
+```
 
 If that
 checkout is gone, the job fails silently: nobody gets
