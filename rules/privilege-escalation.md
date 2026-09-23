@@ -104,6 +104,21 @@ ssh -F "<checkout>/memory/ssh_config" \
   -o ControlMaster=no -o ControlPath=none root@hostname "id" 2>&1
 ```
 
+First compare `ssh -F "<checkout>/memory/ssh_config" -G
+root@hostname` with the same output for the SSH user, on the
+`hostname`, `port`, `hostkeyalias` and `proxyjump` lines. Where
+one differs, a `Match user root` block sends root another way:
+run steps 1–4 of `rules/first-connection.md` for root's endpoint,
+blacklist, read-only list, DNS check and host key, and for each
+jump host root's `proxyjump` line names, as
+`rules/access-control.md` → Server Blacklist and
+`rules/host-keys.md` → Before the First Connection say. A
+different port is another machine until the user says otherwise
+(`rules/dns-aliases.md` → IP Verification): stop and ask. Either
+way, a host key missing for root's endpoint or a hop fails the
+probe before it logs in and says nothing about root login: get it
+first.
+
 - **Works:** record `- Root SSH: available`.
 - **Fails:** keep the recorded sudo line, add the
   following, and enter unprivileged mode:

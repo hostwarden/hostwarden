@@ -20,7 +20,10 @@ skip it.
 3. **SSH user lookup** (first connection only). See
    `rules/ssh-user.md`. It comes before the DNS check
    because the alias comparison reads the port for
-   this user.
+   this user. Once the user is chosen, run step 1's
+   jump-host lookup again for that user where its
+   `proxyjump` line differs from the one step 1 read,
+   before any SSH call.
 4. **DNS check.** New hostname (no
    `memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP
