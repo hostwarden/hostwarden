@@ -148,18 +148,24 @@ echo "##content"; grep -rIl '<old-stem>' $roots; echo "##rc $?"
 if [ -n "$plists" ]; then
   echo "##plists"; grep -rl '<old-stem>' $plists; echo "##rc $?"
 fi
-echo "##links"; find $roots $plists -type l -exec ls -l {} + \
-  | grep '<old-stem>'; echo "##rc $?"
+t=$(mktemp)
+echo "##links"; find $roots $plists -type l -exec ls -l {} + >"$t"
+echo "##rc $?"; grep '<old-stem>' "$t"; echo "##rc $?"; rm -f "$t"
 ```
 
 Only directories that exist reach `grep` and `find`
 — a pattern that matches nothing stays as it is and
 fails the `[ -d ]` test — so a path a host lacks
 costs nothing, and neither command's errors are
-hidden. Read each `##rc`: `0` found something, `1`
-found nothing, anything else means a part was not
-searched — say which, and rename nothing until it
-has been. The launchd directories are searched
+hidden. Read each `##rc`. For a `grep`, `0` found
+something, `1` found nothing; for the `find`, the
+first `##rc` under `##links`, only `0` is clean.
+Anything else means a part was not searched — say
+which, and rename nothing until it has been. The
+`find` writes to a file rather than into the pipe:
+`sh` has no `pipefail`, and behind a pipe only
+`grep`'s status would reach `$?`. The launchd
+directories are searched
 without `-I`: launchd reads binary plists too, and
 `-I` would skip them.
 
