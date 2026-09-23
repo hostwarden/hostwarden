@@ -10,8 +10,15 @@ pools or btrfs `storage.md`, their settings
 (`rules/storage-inventory.md`). A host adopted from
 Heinzel has `heinzel-memory.md` until its first
 connection and `heinzel-inventory.md` until its
-leads are checked (`rules/heinzel-adoption.md`). A
-hypervisor cluster or pool keeps its members, state
+leads are checked (`rules/heinzel-adoption.md`).
+Until that first connection writes `memory.md`, the
+address checks — the DNS check and alias detection
+(`rules/dns-aliases.md`), a guest's registration
+(`rules/hypervisors.md`) — compare against the
+`- IP:` of `heinzel-memory.md`; one it lacks is
+absent. No other rule reads that file as the host's
+state, and none writes there.
+A hypervisor cluster or pool keeps its members, state
 and guest inventory in `memory/clusters/<name>/`
 instead (`rules/hypervisors.md` → Clusters and Pools).
 

@@ -557,13 +557,40 @@ done
 # a key revoked there stays revoked here — cut after the
 # key: a comment, on its own line or after a key, can
 # hold anything, a password included, and this file is
-# shared. A file holding a private key is not copied at
-# all (rules/secrets.md). grep and sed, because they
-# read the file without running anything it contains.
+# shared. A record counts only when its key type is one
+# ssh knows and its key starts with that same type,
+# encoded: every key does, and a note that merely looks
+# like a record ("x ssh-password secret") does not. A
+# file holding a private key is not copied at all
+# (rules/secrets.md). grep and sed, because they read
+# the file without running anything it contains.
 KH_SRC="$OLD/memory/known_hosts"
 KH_DST="memory/known_hosts"
-KH_KEY='[[:space:]]+(ssh-|ecdsa-|sk-)'
-KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+$KH_KEY|^[^@#[:space:]][^[:space:]]*$KH_KEY"
+# <type, a dot escaped> <base64 of its length and
+# name, in whole 3-byte groups>: the plain key types,
+# then their host certificates (ssh-keyscan -c).
+KH_TYPES="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5
+ssh-rsa AAAAB3NzaC1y
+ssh-dss AAAAB3NzaC1k
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAy
+ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAz
+ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1
+sk-ssh-ed25519@openssh\.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29t
+sk-ecdsa-sha2-nistp256@openssh\.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5j
+ssh-ed25519-cert-v01@openssh\.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29t
+ssh-rsa-cert-v01@openssh\.com AAAAHHNzaC1yc2EtY2VydC12MDFAb3BlbnNzaC5j
+ssh-dss-cert-v01@openssh\.com AAAAHHNzaC1kc3MtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp256-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHAyNTYtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp384-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHAzODQtY2VydC12MDFAb3BlbnNzaC5j
+ecdsa-sha2-nistp521-cert-v01@openssh\.com AAAAKGVjZHNhLXNoYTItbmlzdHA1MjEtY2VydC12MDFAb3BlbnNzaC5j
+sk-ssh-ed25519-cert-v01@openssh\.com AAAAI3NrLXNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29t
+sk-ecdsa-sha2-nistp256-cert-v01@openssh\.com AAAAK3NrLWVjZHNhLXNoYTItbmlzdHAyNTYtY2VydC12MDFAb3BlbnNzaC5j"
+KH_ALT=''
+for KH_T in $KH_TYPES; do
+  KH_ALT="$KH_ALT${KH_ALT:+|}${KH_T%% *}[[:space:]]+${KH_T#* }"
+done
+KH_REC="($KH_ALT)[A-Za-z0-9+/]*={0,2}([[:space:]]|\$)"
+KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+[[:space:]]+$KH_REC|^[^@#[:space:]][^[:space:]]*[[:space:]]+$KH_REC"
 KH_CUT='s/^((@[^[:space:]]+[[:space:]]+)?[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[^[:space:]]+).*/\1/'
 if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
   # The records, read once; empty when there is
@@ -599,17 +626,18 @@ fi
 CR=$(printf '\r')
 US=$(printf '\037')
 
-# user_line <key> <file>: the first line of <file>
-# that sets <key>, without a leading "- ", or nothing.
+# user_line <id> <file>: the first line of <file> that
+# sets <id>, or nothing. The id is the text before ": "
+# with its list form: "- Default" is a host named
+# Default, "Default" the default user (rules/ssh-user.md).
 # A commented line sets nothing: the template ships its
 # preferences as comments.
 user_line() {
   while IFS= read -r ul_line || [ -n "$ul_line" ]; do
     ul_line=${ul_line%"$CR"}
     case "$ul_line" in '#'*|'') continue ;; esac
-    ul_item=${ul_line#- }
-    if [ "${ul_item%%: *}" = "$1" ]; then
-      printf '%s\n' "$ul_item"
+    if [ "${ul_line%%: *}" = "$1" ]; then
+      printf '%s\n' "$ul_line"
       return 0
     fi
   done < "$2"
@@ -640,17 +668,18 @@ case " $SHARED_PENDING " in
         esac
         UM_ITEM=${UM_LINE#- }
         case "$UM_ITEM" in *': '*) ;; *) continue ;; esac
-        UM_KEY=${UM_ITEM%%: *}
+        UM_ID=${UM_LINE%%: *}
+        UM_KEY=${UM_ID#- }
         # This script writes that line itself.
         [ "$UM_KEY" = "Adopted from heinzel" ] && continue
         # The first line for a key decides, as for the
         # agent that reads the file.
-        case "$UM_SEEN" in *"$NL$UM_KEY$NL"*) continue ;; esac
-        UM_SEEN="$UM_SEEN$UM_KEY$NL"
-        UM_HAVE=$(user_line "$UM_KEY" "$UM_DST")
+        case "$UM_SEEN" in *"$NL$UM_ID$NL"*) continue ;; esac
+        UM_SEEN="$UM_SEEN$UM_ID$NL"
+        UM_HAVE=$(user_line "$UM_ID" "$UM_DST")
         if [ -n "$UM_HAVE" ]; then
-          [ "$UM_HAVE" = "$UM_ITEM" ] \
-            || UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+          [ "$UM_HAVE" = "$UM_LINE" ] \
+            || UM_DIFF="$UM_DIFF  $UM_ID: \"${UM_HAVE#*: }\" here, \"${UM_LINE#*: }\" in the old checkout$NL"
           continue
         fi
         case "$UM_ITEM" in
