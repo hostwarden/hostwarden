@@ -57,6 +57,48 @@ three rule overrides for their Heinzel checkout that
 make it read both journal tags, treat its memory as a
 lead, and leave Hostwarden's files alone.
 
+## A host and its guests
+
+When a hypervisor host registers its guests in the
+same session (`rules/hypervisors.md` → Registering
+Guests), the host's finds and every registered
+guest's make one report and one question, not one
+per machine. Hold the host's question until
+registration is done and its report is out. The
+report groups the finds by machine, the host first,
+each guest under its memory directory; a machine
+without finds is not listed:
+
+```
+heinzel state on pve1.example.com and 3 of its guests:
+  pve1.example.com:
+    /var/backups/heinzel/ — 24 files, oldest 61 days
+  web1.example.com:
+    /var/backups/heinzel/ — 6 files, oldest 12 days
+  db1.example.com:
+    /root/heinzel-scratch/ — 2 files, oldest 40 days
+  app1.example.com:
+    heinzel entries in the journal, last 3 days ago
+```
+
+Ask in the picker form of `rules/service-reload.md`
+→ Prompt Shape When Asking, where one answer covers
+every machine listed or the user answers per
+machine. Whether Heinzel still runs is one question
+for all of them: the answer holds for each machine
+it was given for, and each one's memory records its
+own outcome line (Record, below).
+
+Adopting changes a machine. On the host it runs now.
+Registration never changes a guest, so a guest keeps
+the answer as a deferral that names it. Its first
+SSH connection asks again, for that guest alone, with
+the recorded answer as the recommended one:
+
+```markdown
+- heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)
+```
+
 ## Move the fixed paths
 
 Never overwrite. `mv -n` keeps a same-named file at
