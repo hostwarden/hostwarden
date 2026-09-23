@@ -209,6 +209,34 @@ keeps a to-do list in
 for each step. On reconnection it shows what's still
 pending and asks whether to continue or start fresh.
 
+Work that spans sessions — a rollout in phases, a
+migration with decisions still open — gets a plan in
+`memory/plans/<slug>.md`, and every host it touches
+points to it from its memory. Once it is done, what it
+decided moves into the hosts' memory and the plan is
+deleted.
+
+## Masters of deployed files
+
+A script, a systemd unit or timer, a cron file or a
+config drop-in that Hostwarden writes onto a server has
+its master copy in your workspace, at the same path it
+has on the host:
+`memory/servers/<hostname>/files/usr/local/bin/backup-usb-watch`.
+One file deployed to several hosts lives in
+`memory/fleet/<name>/`. `deployed.md` beside the host's
+memory records what was deployed, with its hash, and
+the file itself carries a comment naming its master.
+
+Housekeeping compares the three and reports when a file
+was edited on the host, removed there, or changed in
+the workspace without being deployed. Neither side is
+ever overwritten on its own: you decide whether the
+host's edit goes into the master or the master goes
+back onto the host. Files you or a configuration
+management tool own stay where they are — Hostwarden
+keeps no second copy of them.
+
 ## Housekeeping checks
 
 Run routine health inspections on any server:

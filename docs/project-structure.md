@@ -220,6 +220,9 @@ rules/                 — Upstream rule files (git-tracked)
                          installed, removed or reconfigured
   dns-aliases.md       — DNS alias detection & management
   backups.md           — Config file backup procedure
+  deployed-files.md    — Files a session writes onto a
+                         host: master, marker, deploy and
+                         drift
   best-practices.md    — Common anti-patterns to review
                          before risky actions
   directory-copy.md    — Cross-server directory copy checks
@@ -291,7 +294,20 @@ memory/                — The workspace: all your user
     guests.md          — A hypervisor's guest inventory
     storage.md         — ZFS pool and btrfs settings,
                          compared by housekeeping
+    files/             — Masters of the files deployed
+                         there, at their paths on the host
+    src/               — What renders a master: generators,
+                         upstream copies, patches
+    deployed.md        — What was deployed, with hashes
+    notes/             — Evidence and snapshots, never
+                         deployed
   clusters/<name>/
     cluster.md         — Members, quorum, HA, pool master
     guests.md          — The cluster's guest inventory
+    files/             — Masters every member carries
+  fleet/<name>/        — One artifact deployed to several
+                         hosts, and its README.md
+  tools/               — Scripts you run from the
+                         workstation against hosts
+  plans/               — Work that spans sessions
 ```

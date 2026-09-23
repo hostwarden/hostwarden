@@ -121,8 +121,17 @@ technical detail the journal omitted:
 
 A new entry starts with `[` in column 1; indented
 lines continue the previous entry. Use the labels
-`Detail:`, `Rollback:`, `Verify:`, `Flags:` as
-applicable — skip empty ones.
+`Detail:`, `Source:`, `Rollback:`, `Verify:`, `Flags:`
+as applicable — skip empty ones.
+
+`Source:` belongs to a deploy (`rules/deployed-files.md`):
+one line per file, naming its master in the workspace
+and the first 16 characters of the hash it was
+deployed with, which finds that version in the
+workspace history for a later rollback:
+
+      Source: servers/web1.example.com/files/usr/local/
+      bin/backup-usb-watch (sha256 98ea6e4f216f2fb4)
 
 Trim entries older than 2 years when writing, except
 one a standing line in `memory.md` still points to

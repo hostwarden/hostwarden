@@ -297,6 +297,9 @@ trigger — not a request from the user.
   header says a tool manages it →
   `rules/config-management-changes.md`
 - Editing any config file → `rules/backups.md`
+- Writing a file of your own onto a host, changing or removing
+  one, or running a script from `memory/tools/` against a host →
+  `rules/deployed-files.md`
 - Installing or upgrading any software →
   `rules/version-check.md`, for the stable version to install.
   A request that names no version still needs the lookup
