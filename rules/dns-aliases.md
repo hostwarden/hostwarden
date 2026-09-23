@@ -133,7 +133,10 @@ alias now points elsewhere (detach it).
 
 The port is part of the identity too. Compare the
 `port` line of `ssh -G <user>@<hostname>` with
-`- SSH port:`, and record it where memory has none.
+`- SSH port:`, and record it where memory has none —
+in `memory.md` only: a `heinzel-memory.md` is never
+edited, and gets its port when `memory.md` is
+written.
 A different port is a different machine until the
 user says otherwise, even on a matching IP: **stop
 and tell the user**, whatever the role file says
