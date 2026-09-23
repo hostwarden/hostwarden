@@ -106,9 +106,10 @@ sequence instead.
   `Mode: via` guest, for its host. Each hop of a `proxyjump` line, and
   the host a `proxycommand` line connects through, is a jump host;
   compare hops as `rules/access-control.md` → Server Blacklist
-  expands them, by the `hostname` their own `ssh -G` prints without
-  a `:port` a hop written `host:port` leaves on it, since one
-  bastion can be written several ways. Targets that share any
+  expands them, by the `hostname` their own `ssh -G` prints, since
+  one bastion can be written several ways. Take a hop's `:port` off
+  before that call: ssh matches `Host` blocks against the whole
+  `host:port`. Targets that share any
   jump host form a group, and each group runs one host after
   another.
 - **Guests reached through their host.** A guest with `Mode: via`
