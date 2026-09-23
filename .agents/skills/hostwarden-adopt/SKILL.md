@@ -81,13 +81,17 @@ leads, the host confirms them.
    link may point anywhere, at a credential too. The link stays where
    it is and is named in the report.
 
-   `bin/hostwarden-adopt` refuses a link further down, but copies a
-   top-level entry of `memory/` that is a link, and a `memory/` that
-   is one, by what it points to. So before the copy,
-   `find <path>/memory -maxdepth 1 -type l` lists both, the aliases
-   below `servers/` never among them. Name each with its target
-   (`readlink`) in step 3's question: the copy runs only on the
-   user's yes to exactly those links.
+   So before anything in it is read, `find -H <path>/memory -type l`
+   lists every link below `memory/`, into it even when it is a link
+   itself, and `[ -L <path>/memory ]` says whether it is one. A
+   link directly in `memory/servers/` is an alias and left to
+   `bin/hostwarden-adopt`, which checks them. Every other link is
+   never read through, by any step, and named in the report. The
+   script refuses a link further down, but copies a top-level entry
+   of `memory/` that is a link, and a `memory/` that is one, by what
+   it points to: name those with their target (`readlink`) in step
+   3's question, and the copy runs only on the user's yes to exactly
+   those links.
 
 3. **Ask once, before the copy.** Name the hosts the run takes and
    what follows the copy:
