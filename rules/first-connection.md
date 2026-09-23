@@ -22,8 +22,9 @@ skip it.
    because the alias comparison reads the port for
    this user. Once the user is chosen, compare the
    `hostname` and `proxyjump` lines of its `ssh -G`
-   output with the default user's, the `proxyjump`
-   line with its tokens expanded
+   output with the output steps 1–2 read, never with
+   a default this step has just written, and the
+   `proxyjump` line with its tokens expanded
    (`rules/access-control.md` → Server Blacklist):
    `%r` alone makes it differ. Where one differs,
    rerun the blacklist check for the target as the

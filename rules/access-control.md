@@ -52,8 +52,11 @@ IP-level check could not be performed. Err on the
 side of caution for anything ambiguous.
 
 On a first connection the user is chosen only after
-both checks; `rules/first-connection.md` step 3 says
-when they run again for the chosen one.
+both checks. Run them as the `Default:` user of
+`memory/user.md`, or, where it has none yet, with
+`ssh -G <hostname>` and no user, and keep that output:
+`rules/first-connection.md` step 3 compares the
+chosen user's with it and says when both run again.
 
 ## Server Blacklist
 
