@@ -280,14 +280,14 @@ permissions — never its value.
 Good:
 
 ```
-logger -t hostwarden "Rotated DB password for app \
+logger -t hostwarden "[<operator> as <unix-user>] Rotated DB password for app \
 (value in /var/www/app/.env, mode 600)"
 ```
 
 Bad:
 
 ```
-logger -t hostwarden "Set DB password to hunter2"
+logger -t hostwarden "[<operator> as <unix-user>] Set DB password to hunter2"
 ```
 
 ## Email Attachments

@@ -381,6 +381,7 @@ leads, the host confirms them.
       no baseline template for containers
     web1.example.com — Debian 13; 4 leads, all confirmed
       baseline: complete
+      watcher on the session tag heinzel: heinzel-backup.service
     db1.example.com — not onboarded: SSH timeout; its first
       connection onboards it
     Heinzel: still in use — its state is reported, not moved
@@ -401,6 +402,11 @@ leads, the host confirms them.
     each host onboards it: memory in Hostwarden's form, its leads
     checked, before anything is moved.
     ```
+
+    A watcher the activity check found on a session tag
+    (`rules/activity-check.md` → Sessions and watchers) gets a line
+    under its host, as for web1: a leftover to retag, never a sign
+    that Heinzel still runs.
 
     Add a line for each file an override needs and this clone lacks,
     each `user.md` key the two checkouts set differently, what was

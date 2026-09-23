@@ -78,13 +78,20 @@ journal of every server it touched. Write only
 
 Run the read-back from the loaded OS file's `## Logs`
 section. Where it has none and systemd runs — every
-Linux family but Alpine — read the journal:
+Linux family but Alpine — read the journal, in the
+verbose format, which names the unit each entry came
+from:
 
 ```
 journalctl -t hostwarden -t heinzel --since "7 days ago" \
-  --no-pager -q
+  --no-pager -q -o verbose 2>&1 | awk "$C"
 journalctl --no-pager -q -o short-iso | head -1
 ```
+
+Every read-back, the journal's and each `## Logs`
+section's, pipes what it read into `awk "$C"`: the
+classifier under Sessions and watchers below, defined
+at the top of the same call.
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
@@ -96,12 +103,12 @@ allow it and nothing else:
 ```
 if sudo -n journalctl -n 0 --no-pager >/dev/null 2>&1; then
   sudo -n journalctl -t hostwarden -t heinzel \
-    --since "7 days ago" --no-pager -q
+    --since "7 days ago" --no-pager -q -o verbose 2>&1 | awk "$C"
   sudo -n journalctl --no-pager -q -o short-iso | head -1
 else
   echo "no sudo"
   journalctl -t hostwarden -t heinzel --since "7 days ago" \
-    --no-pager
+    --no-pager -o verbose 2>&1 | awk "$C"
   journalctl --no-pager -q -o short-iso | head -1
 fi
 ```
@@ -116,9 +123,9 @@ incomplete.
 Without a `## Logs` section and without systemd, tell
 the user the check could not run.
 
-If the command returns nothing under either tag —
-and it actually ran, and nothing limited what it can
-see — say nothing. Do not report "no recent
+If the command returns no `session:` line — and it
+actually ran, and nothing limited what it can see —
+say nothing about sessions. Do not report "no recent
 activity": silence means no news.
 
 An empty result only means "no activity" when the
@@ -128,6 +135,167 @@ you have no result at all — tell the user the check
 did not run, rather than reporting silence. A failed
 check that reads as a clean host is how a concurrent
 session's work goes unnoticed.
+
+## Sessions and watchers
+
+Two kinds of writer use the two tags. A session,
+Hostwarden's or Heinzel's, writes one headline per
+change (`rules/changelog.md` → Entry format). A
+watcher is a script, cron job or timer on the host
+that logs under a session tag instead of its own
+(`rules/deployed-files.md` → Naming on the host),
+most often one a Heinzel session wrote. Only a
+session's entry is activity. A watcher that logs
+every few minutes would otherwise bury the sessions'
+entries and look like somebody at work.
+
+An entry is a session's when it passes all three
+marks:
+
+- **It opens with the prefix**
+  `[<operator> as <unix-user>] `, which every session
+  writes and no script does. Older Heinzel versions
+  wrote none, so under `heinzel` an entry without it
+  still counts as a session's unless one of the next
+  two marks it as a watcher's.
+- **Its unit is a login's**, on a host with the
+  journal, which records the unit an entry came from
+  and lets no writer set it: `session-<n>.scope`,
+  `user@<uid>.service`, or the SSH server's own
+  service where logins get no scope. Any other
+  service, a timer's or `cron.service`, is a watcher,
+  whatever its text says.
+- **Its text does not recur.** An entry under
+  `heinzel` without the prefix whose text, digits
+  aside, appears three times or more in the window is
+  a job's: a session's headlines do not repeat word
+  for word. On a host without the journal, and for
+  cron jobs that run in a login, as on RHEL, this and
+  the prefix are all there is to go on.
+
+The classifier applies these marks and prints one
+line per finding:
+
+```
+earlier: 12 session entries
+session: 2026-09-23 12:58 UTC hostwarden [alice as root] Installed nginx
+watcher: heinzel cron.service 2016x, 2026-09-16 13:00 UTC to 2026-09-23 12:55 UTC, last: backup done: 4 files
+other: 3 lines name a tag, last: … hostwarden-backup: done
+```
+
+- `session:` — the last 20 sessions' entries, oldest
+  first; `earlier:` counts the ones before them.
+- `watcher:` — one line per watcher: its tag, its
+  unit, or `-` where the log names none, how many
+  entries, the first and last, and the last text.
+  Without a unit, entries whose text differs only in
+  digits count as one watcher.
+- `other:` — lines that name a tag without being an
+  entry under it: a watcher with its own tag
+  `hostwarden-backup`, a login name in sshd's log.
+  Neither activity nor a watcher on a session tag.
+  Where every line of a read-back lands here, the
+  classifier does not know that log's layout: read
+  the lines without it, by their prefix.
+- Any other line is what the read-back printed
+  besides the log, such as the hint above or an
+  error, and is passed through as it came. An error
+  means the check did not run.
+
+The classifier, defined once at the top of the call:
+
+```
+C='
+  function keep(   k, o, n) {
+    if (tag == "") return
+    o = (u ~ /\.service$/ && u !~ /^(user@|(ssh|sshd|dropbear)[@.])/) ? u : "-"
+    n = m; gsub(/[0-9]+/, "#", n); k = tag " " o " " n
+    N++; T[N] = ts; G[N] = tag; M[N] = m; K[N] = k; cnt[k]++
+    if (o == "-" && m ~ /^\[[^]]+ as [^]]+\] /) P[N] = 1
+    if (o != "-") U[k] = o
+    tag = ""
+  }
+  BEGIN {
+    re = "(^|[[:space:]])(hostwarden|heinzel)" \
+      "(\\[[0-9]+\\]:|:|[[:space:]]+([0-9]+|-)[[:space:]])"
+  }
+  /^[A-Z][a-z][a-z] [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] .*\[s=/ {
+    keep(); split($0, f, " "); ts = f[2] " " substr(f[3], 1, 5) " " f[4]
+    tag = "?"; u = ""; m = ""; next
+  }
+  tag != "" && /^    SYSLOG_IDENTIFIER=/ { tag = substr($0, 23); next }
+  tag != "" && /^    _SYSTEMD_UNIT=/ { u = substr($0, 19); next }
+  tag != "" && /^    MESSAGE=/ { m = substr($0, 13); next }
+  tag != "" && /^    / { next }
+  match($0, re) {
+    keep(); ts = substr($0, 1, RSTART); t = substr($0, RSTART, RLENGTH)
+    m = substr($0, RSTART + RLENGTH); u = ""
+    sub(/^[[:space:]]+/, "", t); tag = t; sub(/[^a-z].*/, "", tag)
+    if (t !~ /:$/) {
+      sub(/^[^ ]+ /, "", m)
+      if (m ~ /^- /) m = substr(m, 3)
+      else while (match(m, /^\[[^]]*="[^]]*\] ?/))
+        m = substr(m, RLENGTH + 1)
+    }
+    sub(/^ /, "", m); sub(/^<[0-9]+>1 /, "", ts); sub(/[[:space:]]+$/, "", ts)
+    sub(/ [a-z0-9]+\.(emerg|alert|crit|err|warning|notice|info|debug)$/, "",
+      ts)
+    keep(); next
+  }
+  NF { keep(); if (/hostwarden|heinzel/) { other++; last = $0 } else print }
+  END {
+    keep()
+    for (i = 1; i <= N; i++) {
+      k = K[i]
+      if (!P[i] && !(k in U) && G[i] == "heinzel" && cnt[k] < 3) P[i] = 1
+      if (P[i]) { S[++s] = i; continue }
+      if (!(k in F)) { F[k] = T[i]; Q[++q] = k }
+      L[k] = T[i]; W[k] = M[i]
+    }
+    if (s > 20) print "earlier: " s - 20 " session entries"
+    for (j = (s > 20 ? s - 19 : 1); j <= s; j++) {
+      i = S[j]; print "session: " T[i] " " G[i] " " M[i]
+    }
+    for (j = 1; j <= q; j++) {
+      k = Q[j]; split(k, f, " ")
+      print "watcher: " f[1] " " (k in U ? U[k] : "-") " " cnt[k] "x, " \
+        F[k] " to " L[k] ", last: " W[k]
+    }
+    if (other) print "other: " other " lines name a tag, last: " last
+  }'
+```
+
+It reads the journal's verbose format and the syslog
+formats the `## Logs` sections produce: BSD, with or
+without a pid, busybox's with facility and level,
+ISO timestamps, and RFC 5424. A syslog line carries
+no unit, so there the prefix and recurrence decide.
+
+### What to do with a watcher
+
+- **It is not activity**, and never a live session,
+  however fresh its last entry. Leave it out of What
+  to show except for the line below.
+- **Report it once**, as a finding:
+  *"Watcher on the session tag heinzel: cron.service,
+  2016 entries in 7 days — it should log under its
+  own tag."* A prefixed entry from a service is a
+  script that imitates a session: say so.
+- **Record it** in the host's `memory.md`, with what
+  found it and the script where known:
+
+      - Journal watcher: heinzel from cron.service,
+        /etc/cron.d/heinzel-backup (2026-09-23)
+
+  A watcher memory records is not reported again on
+  connection; housekeeping names it until it is gone
+  (`hostwarden-housekeeping`). Remove the line once
+  the watcher logs under its own tag.
+- **Retagging it is a change** to the script: asked,
+  and done as `rules/deployed-files.md` → Naming on
+  the host says, or `rules/heinzel-adoption.md` for a
+  script Heinzel left. Its unit, or its text, is the
+  lead to the script.
 
 ## How far back it reached
 
@@ -164,11 +332,12 @@ it matters more, see below.
 
 ## A fresh Heinzel entry means a live session
 
-An entry tagged `heinzel` from the last 15 minutes is
-not history — a Heinzel session is probably working
-on this host right now. Both tools administer the
-same machines during a transition, and the journal is
-the only signal they share.
+A `session:` line tagged `heinzel` from the last 15
+minutes is not history — a Heinzel session is
+probably working on this host right now. Both tools
+administer the same machines during a transition,
+and the journal is the only signal they share. A
+`watcher:` line is not one, however fresh.
 
 Where the timestamp has no year, an entry from a year
 ago looks just as fresh, and neither the entry nor
@@ -301,7 +470,9 @@ Recent activity (last 7 days):
 
 The heading is neutral and every line names its
 journal tag, so no Heinzel entry is credited to
-Hostwarden.
+Hostwarden. Only `session:` lines are listed; a
+watcher a memory line does not yet record follows as
+one line of its own (What to do with a watcher).
 
 - Group related entries when possible.
 - Keep it concise — summarize, don't dump raw logs.

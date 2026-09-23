@@ -325,14 +325,16 @@ Hostwarden's journal entries (`rules/changelog.md`) go to syslog and
 are read back from it, both tags (`rules/activity-check.md`):
 
 ```
-syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
 syslog_stream | head -1
 date
 ```
 
-This shows the last 20 matches, not a strict 7-day window; the
-`head -1` line and `date` bound it (`rules/activity-check.md` → How
-far back it reached).
+`$C` is the activity check's classifier, defined in the same call
+(`rules/activity-check.md` → Sessions and watchers); it keeps the
+last 20 sessions' entries and sums up the watchers. The stream is
+not cut to seven days: the `head -1` line and `date` bound it
+(`rules/activity-check.md` → How far back it reached).
 
 ## Directory Conventions
 

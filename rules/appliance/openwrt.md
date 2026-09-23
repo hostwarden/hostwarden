@@ -275,7 +275,7 @@ of the current release branch,
   ```
   The activity check reads it back with:
   ```
-  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
   syslog_stream | head -1
   ```
   The second line is the oldest entry the buffer still holds

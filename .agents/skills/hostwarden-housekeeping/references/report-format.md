@@ -51,6 +51,15 @@ Versions   2 updates available (see below)
   Rating findings) reads `DECIDED — <heading> (<who>, <date>)`
   on its line, never under Issues:
   `Firewall   DECIDED — No local firewall (user, 2026-09-18)`.
+- **A watcher on a session tag** — a script that logs under
+  `hostwarden` or `heinzel`, found by this connection's activity
+  check or recorded as a `Journal watcher:` line in `memory.md`
+  (`rules/activity-check.md` → Sessions and watchers) — is one
+  line under Issues until it logs under its own tag:
+  `WARN      Watcher heinzel-backup.service logs under the session
+  tag heinzel (2016 entries in 7 days)`. It hides the sessions'
+  entries and, where the check cannot tell it apart, passes for a
+  live session.
 - Severity levels:
   - `CRITICAL` — needs immediate attention
   - `WARN` — should be addressed soon

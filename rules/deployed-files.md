@@ -96,15 +96,18 @@ the user asks for one; record it as an override of this section
 (`rules/overrides.md`), so that every later file gets it too.
 
 A script that logs uses its own name as its tag
-(`logger -t backup-usb-watch`), never `hostwarden` or `heinzel`.
-Those two tags are the record of sessions: the activity check
-(`rules/activity-check.md`) reads every entry under them as a
-session's change, and a fresh one as a live session. A watcher that
-logs there every few minutes buries the real entries and looks like
-somebody at work. A deployed script that still logs under either tag
-gets its own the next time its master changes, or earlier as a
-change of its own when the user agrees; the tag is part of the
-master like every other byte.
+(`logger -t backup-usb-watch`), never `hostwarden` or `heinzel`,
+and never opens a message with a session's
+`[<operator> as <unix-user>] ` prefix. Those two tags and that
+prefix are the record of sessions: the activity check reads such an
+entry as a session's change, and a fresh one as a live session. A
+script that logs there anyway is reported as a watcher where the
+check can tell (`rules/activity-check.md` → Sessions and
+watchers), and passes for a session where it cannot. A deployed
+script that
+still logs under either tag gets its own the next time its master
+changes, or earlier as a change of its own when the user agrees;
+the tag is part of the master like every other byte.
 
 A file that already carries a Heinzel name keeps it: a timer, a
 cron line or another host calls it by that name. It is renamed only

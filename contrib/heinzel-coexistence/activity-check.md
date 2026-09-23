@@ -23,7 +23,12 @@ when the command succeeded":
 
 An entry tagged `hostwarden` from the last 15 minutes
 means a Hostwarden session is probably working on
-this host right now.
+this host right now — when it opens with
+`[<operator> as <unix-user>] ` and, where the journal
+names a unit, comes from a login's
+(`session-<n>.scope`). Without the prefix, or from
+any other service, it is a script on the host that
+logs under the tag, not a session.
 
 Say so before making any change, and let the user
 decide whether to go ahead, wait, or switch tools for

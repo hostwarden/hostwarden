@@ -256,7 +256,7 @@ documentation, <https://docs.opnsense.org/>, and the
   "Maximum preserved files" under System > Settings > Logging sets
   how many days are kept. The activity check reads it back with:
   ```
-  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
   syslog_stream | head -1
   ```
   The first line is the oldest entry (`rules/activity-check.md` →

@@ -84,6 +84,16 @@ Other rule files and skills show example message
 envelope above — identity prefix and `— because` —
 always applies on top of them.
 
+The prefix is also what marks an entry as a
+session's. The activity check reads an entry under
+the tag without it, or one a service unit wrote, as
+a watcher's: a script on the host, not a session
+(`rules/activity-check.md` → Sessions and watchers).
+So every entry a session writes opens with it,
+exactly `[<operator> as <unix-user>] ` and no `]`
+inside, and nothing a session deploys writes it
+(`rules/deployed-files.md` → Naming on the host).
+
 ### What stays out of the journal
 
 Backup file paths, commit hashes, CI run IDs,

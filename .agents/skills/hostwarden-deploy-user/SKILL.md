@@ -196,7 +196,7 @@ Log the deployment user setup per
 `rules/changelog.md`:
 
 ```bash
-logger -t hostwarden "Created deploy user 'deploy' \
+logger -t hostwarden "[<operator> as <unix-user>] Created deploy user 'deploy' \
 for CI/CD, key auth, target /var/www/myapp"
 ```
 
