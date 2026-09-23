@@ -335,6 +335,12 @@ the cloud provider, recorded after the kind:
 | `product_name` | `CloudSigma`           | `CloudSigma`    |
 | `product_name` | `Alibaba Cloud ECS`    | `Alibaba Cloud` |
 
+The kinds `amazon` and `google` name their provider
+themselves: where `systemd-detect-virt` printed one of
+them and no row above matched, because the DMI fields
+were unreadable or empty, record `Amazon EC2` or
+`Google Cloud` after the kind all the same.
+
 The providers sell bare-metal machines under the same
 names, so a name alone makes no VM. On Windows, which
 has only the type table to find one, it names no
