@@ -43,8 +43,9 @@ What only a full VM can answer goes to a test clone
 sh scripts/check.sh
 ```
 
-That is what CI runs. An agent session does not run it, nor the
-pre-push hook above: it pushes and reads CI
+That is what CI runs. An agent session runs only its secret scan,
+`sh scripts/check.sh --pre-commit`, and not the hooks above: it
+pushes and reads CI
 ([pull-requests.md](.claude/rules/pull-requests.md#checks)).
 
 ## What goes where

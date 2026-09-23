@@ -14,13 +14,17 @@ When auto mode blocks a step below — answering a thread,
 
 ## Checks
 
-CI is the only gate. Ten sessions each running the guard matrix on
-the workstation, with endpoint protection inspecting every process,
-took 15 to 36 minutes a run; CI runs all of `scripts/check.sh` in
-one to two.
+CI is the only gate for the tests. A run of the guard matrix on the
+workstation starts tens of thousands of processes, endpoint
+protection inspects each, and parallel sessions compete for the
+cores; CI runs all of `scripts/check.sh` in one to two minutes.
 
-- A pull request session runs neither `scripts/check.sh` nor a test
-  script (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
+- Before each commit, a pull request session runs the one cheap
+  check, the secret scan of the staged changes:
+  `sh scripts/check.sh --pre-commit`. A credential caught there
+  never reaches the remote; CI finds it only after the push.
+- Beyond that, it runs neither `scripts/check.sh` nor a test script
+  (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
   workstation. It pushes, waits with
   `gh pr checks <number> --watch`, and on a failure reads
   `gh run view <run-id> --log-failed`.
@@ -28,8 +32,9 @@ one to two.
   with `git am` (`repo-release.md` → CI), which CI does not see
   until then. The matrix of the hook it changes runs exactly once,
   in the scratch clone the patch is built in, when it is done.
-- A clone agents push from does not set up the pre-push hook from
-  `CONTRIBUTING.md`: it would run the checks on every push.
+- A clone agents push from does not set up the git hooks from
+  `CONTRIBUTING.md`: the pre-push hook would run the checks on
+  every push.
 
 ## Review
 
@@ -51,8 +56,8 @@ one to two.
   Deferred findings are listed in the PR body under
   `## Deferred Codex findings`.
 - Before each fix commit, read the code around the fix, not only
-  the line flagged: the late P1s mostly came from the previous
-  round's fix.
+  the line flagged: a fix is where the next round's P1 usually
+  sits.
 - After the first review, comment `@codex review` only after a fix
   commit, never after only answering threads or after a rebase.
 - A finding against a guard hook follows `repo-release.md` → Guard
@@ -92,7 +97,7 @@ one to two.
   created, or read it from `git reflog show <branch>`.
   `git merge-base <branch> <old-base-head>` is not it: once the
   base is squashed away it finds an old `main` commit, and the
-  rebase replays the base's commits with conflicts, as on #111.
+  rebase replays the base's commits with conflicts.
 
       git rebase --onto origin/main <fork-point> <branch>
 

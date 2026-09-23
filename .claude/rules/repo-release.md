@@ -85,8 +85,8 @@ layer, and they stay.
 
 `.github/workflows/ci.yml` runs `scripts/check.sh` and nothing
 else; its `step` lines are the list of checks. Add a new check
-there, never to the workflow alone. An agent session does not run
-it on the workstation: `pull-requests.md` → Checks.
+there, never to the workflow alone. An agent session runs only its
+secret scan on the workstation: `pull-requests.md` → Checks.
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
 Renovate. Setup, including the git hooks, is in
