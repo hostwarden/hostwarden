@@ -440,8 +440,9 @@ The migration renames skill overrides in
   moves access lists, overrides, the host keys in
   `memory/known_hosts` and every server's memory
   across and renames what is found by name. Heinzel's
-  memory of a host is kept beside the new one as
-  `heinzel-memory.md` and never changed. The skill
+  memory of a host arrives as `heinzel-memory.md`,
+  unchanged, until the host's onboarding splits it up;
+  the workspace's history keeps the original. The skill
   then reads it and the changelogs into a per-host
   list of leads: the scripts, configs, units and cron
   jobs your sessions improvised, and asks whether

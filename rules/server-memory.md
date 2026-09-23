@@ -8,12 +8,12 @@ hypervisor `guests.md`, its guest inventory
 (`rules/hypervisors.md`), and on a host with ZFS
 pools or btrfs `storage.md`, their settings
 (`rules/storage-inventory.md`). A host adopted from
-Heinzel also has `heinzel-memory.md` and, until its
-leads are checked, `heinzel-inventory.md`
-(`rules/heinzel-adoption.md`). A hypervisor cluster or
-pool keeps its members, state and guest inventory in
-`memory/clusters/<name>/` instead (`rules/hypervisors.md`
-→ Clusters and Pools).
+Heinzel has `heinzel-memory.md` until its first
+connection and `heinzel-inventory.md` until its
+leads are checked (`rules/heinzel-adoption.md`). A
+hypervisor cluster or pool keeps its members, state
+and guest inventory in `memory/clusters/<name>/`
+instead (`rules/hypervisors.md` → Clusters and Pools).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.

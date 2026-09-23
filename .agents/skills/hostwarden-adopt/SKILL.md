@@ -114,11 +114,11 @@ leads, the host confirms them.
    never its content (`rules/secrets.md`).
 
 5. **Leave the facts in memory alone.** Each host's `memory.md`
-   arrives as `heinzel-memory.md`, byte for byte, and stays that way:
-   it is Heinzel's record, kept as the host's history from before
-   Hostwarden. The host's `memory.md` is written by its first
-   connection, from what that connection finds
-   (`rules/heinzel-adoption.md` → Heinzel's memory). A memory line
+   arrives as `heinzel-memory.md`, byte for byte, and stays that way
+   until the host's first connection splits it into `memory.md`, the
+   host's `rules.md` and `memory/network.md`, from what that
+   connection finds, and deletes it (`rules/heinzel-adoption.md` →
+   Heinzel's memory). A memory line
    naming `/var/backups/heinzel/` or a `heinzel-backup.sh` is a true
    statement about that host — the path is still there, and it
    carries over as written. Only the greeting line in `user.md`
@@ -136,7 +136,8 @@ leads, the host confirms them.
    that one, drop the alias. Never every host under
    `memory/servers/`, or a `--shared` run builds inventories for
    hosts nothing was adopted for. Skip a host that already has an
-   inventory file.
+   inventory file or a `heinzel legacy:` line: its leads were
+   checked.
 
    For each host in that set, read `heinzel-memory.md` and
    `changelog.log` and collect every path, unit, cron job or script

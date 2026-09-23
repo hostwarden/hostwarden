@@ -247,12 +247,15 @@ registered through its host (`rules/hypervisors.md`
 network profile read inside it through the host in
 one call, like its other steps.
 
-`heinzel-memory.md` is history: it stays as adopted,
-is never edited, and is never read as the host's
-current state. The Heinzel entries in
+`heinzel-memory.md` is a worklist, like the
+inventory: never edited, never read as the host's
+current state, and split up by that first connection
+— nothing of it is left as prose. Once `memory.md` is
+written and each part below has its place, delete
+it. The workspace keeps it in its history, since the
+adoption committed it. The Heinzel entries in
 `changelog.log` stay as they are, the start of the
-host's history. Neither is part of the transition
-(`rules/heinzel-legacy.md` → When this ends).
+host's history.
 
 Write `memory.md` from these sources, and only
 these:
@@ -297,12 +300,12 @@ these:
 3. **What the Heinzel check confirmed** — Record
    above.
 
-Everything else stays in `heinzel-memory.md` and
-`changelog.log`: incidents, what was done when,
-versions that were current then, how a problem was
-solved. The ~30 lines of `rules/server-memory.md`
-hold: what does not fit and is not standing is
-history.
+History is not carried: incidents, what was done
+when, versions that were current then, how a problem
+was solved. `changelog.log` has it, and the
+workspace's history has the prose. The ~30 lines of
+`rules/server-memory.md` hold: what does not fit and
+is not standing is history.
 
 Two kinds of fact have another place:
 
@@ -318,8 +321,8 @@ Two kinds of fact have another place:
   controller's address. They go to
   `memory/network.md` (`rules/server-memory.md` →
   Cross-server facts) once this connection or the
-  user confirms them; unconfirmed, they stay in
-  `heinzel-memory.md`.
+  user confirms them; an unconfirmed one is named in
+  the report and not recorded.
 
 ## On the workstation (local mode)
 
