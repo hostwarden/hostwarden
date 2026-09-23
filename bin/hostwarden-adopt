@@ -557,13 +557,31 @@ done
 # a key revoked there stays revoked here — cut after the
 # key: a comment, on its own line or after a key, can
 # hold anything, a password included, and this file is
-# shared. A file holding a private key is not copied at
-# all (rules/secrets.md). grep and sed, because they
-# read the file without running anything it contains.
+# shared. A record counts only when its key type is one
+# ssh knows and its key starts with that same type,
+# encoded: every key does, and a note that merely looks
+# like a record ("x ssh-password secret") does not. A
+# file holding a private key is not copied at all
+# (rules/secrets.md). grep and sed, because they read
+# the file without running anything it contains.
 KH_SRC="$OLD/memory/known_hosts"
 KH_DST="memory/known_hosts"
-KH_KEY='[[:space:]]+(ssh-|ecdsa-|sk-)'
-KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+$KH_KEY|^[^@#[:space:]][^[:space:]]*$KH_KEY"
+# <type> <base64 of its length and name, as far as
+# those alone decide it>
+KH_TYPES="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5
+ssh-rsa AAAAB3NzaC1y
+ssh-dss AAAAB3NzaC1k
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAy
+ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAz
+ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29t
+sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5j"
+KH_ALT=''
+for KH_T in $KH_TYPES; do
+  KH_ALT="$KH_ALT${KH_ALT:+|}$(printf '%s' "${KH_T%% *}" | sed 's/\./\\./g')[[:space:]]+${KH_T#* }"
+done
+KH_REC="($KH_ALT)[A-Za-z0-9+/]*={0,2}([[:space:]]|\$)"
+KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+[[:space:]]+$KH_REC|^[^@#[:space:]][^[:space:]]*[[:space:]]+$KH_REC"
 KH_CUT='s/^((@[^[:space:]]+[[:space:]]+)?[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[^[:space:]]+).*/\1/'
 if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
   # The records, read once; empty when there is

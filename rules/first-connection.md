@@ -24,7 +24,10 @@ skip it.
    `memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP
    still matches the `- IP:` field in server memory.
-   See `rules/dns-aliases.md` for both.
+   A host adopted from Heinzel and not yet connected
+   to — a `heinzel-memory.md` and no `memory.md` —
+   is verified against that file's `- IP:` instead.
+   See `rules/dns-aliases.md` for all three.
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Server memory file.** Create on first
    connection, read on every subsequent connection.
