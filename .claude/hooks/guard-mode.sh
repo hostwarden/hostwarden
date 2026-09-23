@@ -103,6 +103,16 @@
 # evade this guard.
 
 ROOT=${0%/*}/../..
+# Without mode.sh or json.sh the guard can tell no mode and write no
+# deny, and a hook that fails to start lets the call through (bash
+# as sh leaves a failed . with status 1): exit 2 blocks it instead,
+# as in guard-taboos.sh and guard-settings.sh.
+for f in mode.sh json.sh; do
+  if [ ! -f "$ROOT/.claude/hooks/$f" ]; then
+    echo "hostwarden mode guard: $f is missing beside $0" >&2
+    exit 2
+  fi
+done
 # shellcheck source=mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
 # shellcheck source=json.sh

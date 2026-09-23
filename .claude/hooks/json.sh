@@ -29,9 +29,9 @@
 
 # Read as text with sed: a key occurs once in the input, a quote
 # inside a string value is escaped, and a value with an escape in
-# it is left unread unless the class allows one. The first line
-# that holds the key decides, and on that line its last occurrence,
-# which in Claude Code's one-line input is the only one.
+# it is left unread unless the class allows one. The first line on
+# which the key has such a value decides, and on that line its last
+# occurrence, which in Claude Code's one-line input is the only one.
 hook_field() {
   hf_c=${2-}
   [ -n "$hf_c" ] || hf_c='[^"\\]'

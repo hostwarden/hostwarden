@@ -835,7 +835,7 @@ iocage:stop|destroy'
 GMNAMES='' GMWORDS='' GMSTOP='' GMSHUT='' GMSHUTWORDS=''
 for gm in $GUESTMGRS; do
   GMNAMES="$GMNAMES|${gm%%:*}" GMWORDS="$GMWORDS ${gm%%:*}"
-  GMSTOP="$GMSTOP|${gm%%:*}$GOPTS[[:space:]]+(${gm#*:})"
+  GMSTOP="$GMSTOP|${gm%%:*}${GOPTS}[[:space:]]+(${gm#*:})"
   case "|${gm#*:}|" in
   *'|shutdown|'*)
     GMSHUT="$GMSHUT|${gm%%:*}" GMSHUTWORDS="$GMSHUTWORDS ${gm%%:*}" ;;
@@ -1608,7 +1608,9 @@ fi # the disk precheck
 # the same effect, and the sshd_config rule below already
 # reflected that while this one did not.
 # KEY and SSHD are checked once and first: most commands name
-# neither, and every rule below and the interpreter rule need one.
+# neither, and the key rules, the sshd_config rule and the
+# interpreter rule need one (OpenMediaVault, uci and ProgramData
+# keep prechecks of their own).
 # Each needs a word as well: KEY authorized_keys, .ssh, /etc/,
 # /conf/sshd or ProgramData, SSHD /etc/ or ProgramData.
 # CLOBBER: tools that delete, move, re-permission or rewrite a
