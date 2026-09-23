@@ -21,8 +21,9 @@ one to two.
 
 - A pull request session runs neither `scripts/check.sh` nor a test
   script (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
-  workstation. It pushes, reads `gh pr checks <number>`, and on a
-  failure `gh run view <run-id> --log-failed`.
+  workstation. It pushes, waits with
+  `gh pr checks <number> --watch`, and on a failure reads
+  `gh run view <run-id> --log-failed`.
 - The one exception is a guard hook patch the maintainer applies
   with `git am` (`repo-release.md` → CI), which CI does not see
   until then. The matrix of the hook it changes runs exactly once,

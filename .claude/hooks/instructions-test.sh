@@ -1,8 +1,8 @@
 #!/bin/sh
 # instructions-test.sh — dev-only structural checks on the
-# instruction layer. Run manually before committing changes to
-# it:  sh .claude/hooks/instructions-test.sh
-# Not invoked by Claude Code at runtime.
+# instruction layer. CI runs it through scripts/check.sh; an
+# agent session leaves it to CI (.claude/rules/pull-requests.md →
+# Checks). Not invoked by Claude Code at runtime.
 #
 # What the content of an instruction says is a matter of judgement.
 # Where it lives is not, and neither is whether the mechanism that

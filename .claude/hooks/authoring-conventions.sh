@@ -88,7 +88,7 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "You are changing Hostwarden itself: its instruction set is the product, and `bin/` ships with it. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Every change also gets one entry under `## Unreleased` in `CHANGELOG.md`, written as `.claude/rules/repo-release.md` says. Run `sh .claude/hooks/instructions-test.sh` and `sh .claude/hooks/guard-taboos-test.sh` before committing; they check the mechanical half. Said once per session."
+    "additionalContext": "You are changing Hostwarden itself: its instruction set is the product, and `bin/` ships with it. `.claude/rules/instruction-authoring.md` carries the conventions: which mechanism a new instruction belongs to, current state only (no before/after narration), 80-character wrapping, and example identifiers from RFC 2606/5737/3849 with Alice and Bob for people. Every change also gets one entry under `## Unreleased` in `CHANGELOG.md`, written as `.claude/rules/repo-release.md` says. CI checks the mechanical half through `scripts/check.sh`; do not run it or a test script locally (`.claude/rules/pull-requests.md` → Checks). Said once per session."
   }
 }
 JSON
