@@ -22,14 +22,47 @@ Every probe for it is read-only.
 
 ## When
 
-This file is not part of the connection pipeline, and an `- IP:`
-that no longer matches stays with `rules/dns-aliases.md`.
+An `- IP:` that no longer matches stays with
+`rules/dns-aliases.md`.
 
+- **On connecting**, in the activity-check call
+  (`rules/activity-check.md` → What rides in this call), to a
+  host whose memory has no `- Network:` line, or one that is not
+  a `managed by` line while its `network.md` has no
+  `## Management`, or whose profile is marked
+  `unchecked (needs root)` while memory records a working
+  `Sudo: passwordless` or `Doas: passwordless`
+  (`rules/privilege-escalation.md` → Stand-ins for sudo). The
+  root SSH fallback is never tried for it, and where the probe
+  finds that line no longer true, it corrects the line as that
+  file says, which ends the retry.
+  - **Linux:** the Linux probe's opening lines and sections A,
+    B, C and F. They give `## Management`, and `## Traffic flow`
+    where a trigger in the paragraph after this list applies.
+    A workstation (`rules/role/workstation.md`) runs section A
+    alone and gets Management alone.
+  - **FreeBSD and macOS:** the family's probe, for
+    `## Management`.
+  - **An appliance or platform that owns its network** — every
+    appliance with `Base: none`, and one whose file names its own
+    tool or store as the owner (a web UI, middleware,
+    `config.xml`, XAPI, Windows under WSL): no probe. The line
+    names that owner: `- Network: managed by TrueNAS middleware`.
+  - **Windows:** nothing is probed, written or looked for.
+
+  What was not read for want of a privilege path is marked
+  `unchecked (needs root)`, in the profile and on the line; a
+  read that fails with one is `unread`. An overlay interface is
+  named on the line (`overlay: wg0`); `rules/mesh-vpn.md` waits
+  for the full profile. `Probed:` names what the profile
+  records, `Probed: 2026-09-23 (Management, Traffic flow)`, and
+  no list means the whole probe ran.
 - **Full profile:** when the user asks about the host's
   addresses, IPv6, DNS resolution, outbound reachability or a VPN,
   and when a failure points at the network — a package mirror,
   `curl` or a DNS lookup that times out, or a stall in one address
-  family only.
+  family only. Where `Probed:` names a part, it runs the whole
+  probe, whatever the date.
 - **Before a change** to addresses, routes, interfaces, DNS
   resolution or the network manager: only who owns it. That is
   the Linux probe up to the end of section A, plus the first four
@@ -41,12 +74,13 @@ that no longer matches stays with `rules/dns-aliases.md`.
   `br_netfilter` or sets `bridge-nf-call-*` to 1 on a host
   with bridged guests — a hypervisor's own firewall, a
   container engine, Kubernetes: the Traffic flow section,
-  from sections A, B, C and F of the Linux probe, and every
+  from the Linux probe without sections D and E, and every
   bridged NAT rule in it reported first (Findings).
 - **After a change**, on a host whose memory has a profile: run
-  the probe again and update it in the same step.
+  again what its `Probed:` line covers, and update it in the same
+  step.
 
-A full profile has a `## Traffic flow` section when the probe
+A profile has a `## Traffic flow` section when the probe
 shows any of: forwarding on in either family, a bridge with
 guest ports, a NAT rule in any backend, `ip rule` beyond the
 defaults, or a hook line or script that sets routes, rules or
@@ -100,6 +134,14 @@ gains one summary line, which names a mesh VPN too:
 
 ```markdown
 - Network: dual-stack, v6 egress OK, Tailscale — see network.md
+```
+
+Before a full profile, the line names the manager and its
+hooks:
+
+```markdown
+- Network: netplan → systemd-networkd, cloud-init, no hooks —
+  see network.md
 ```
 
 With a Traffic flow section, the line names the guest that
