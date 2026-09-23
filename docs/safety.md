@@ -68,7 +68,9 @@ under pressure.
 - **A new guest's SSH server is set up only on your
   say** — writing sshd's configuration or keys into
   a container that has never started, or into a disk
-  image through a libguestfs tool, is the one place
+  image through a libguestfs tool, and clearing a
+  golden image's old host keys with `virt-sysprep`,
+  is the one place
   the taboo on sshd bends, and only for a guest that
   never ran. The same hook puts the command and its
   path to you in a permission prompt, and blocks it

@@ -85,16 +85,20 @@ test -s /var/lib/lxc/web4/rootfs/etc/cloud/cloud.cfg.d/90-hostwarden.cfg || exit
 rm /var/lib/lxc/web4/rootfs/etc/cloud/cloud-init.disabled
 lxc-start -n web4
 timeout 570 lxc-attach -n web4 -- cloud-init status --wait --long
-lxc-info -n web4 -c lxc.cgroup2.memory.max
 ```
 
-The host key is read in a call of its own, because a line that
-removes a file and a line that names a key path deny each other
-when the guard reads them together (`AGENTS.md` → Critical Safety
-Rules):
+The wait is the last command, so its exit status is the call's:
+0 done, 2 recovered errors, 1 failed, 124 out of time, each judged
+as `SKILL.md` → After creation says before anything else happens.
+
+The host key and the limits the host enforces are read in a call
+of their own, because a line that removes a file and a line that
+names a key path deny each other when the guard reads them
+together (`AGENTS.md` → Critical Safety Rules):
 
 ```bash
 lxc-attach -n web4 -- cat /etc/ssh/ssh_host_ed25519_key.pub
+lxc-info -n web4 -c lxc.cgroup2.memory.max
 ```
 
 A container whose `cloud-init status` never leaves `not run` has

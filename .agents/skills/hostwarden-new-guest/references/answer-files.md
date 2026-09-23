@@ -58,6 +58,8 @@ Syntax: <https://pykickstart.readthedocs.io/en/latest/>.
 text
 network --bootproto=static --ip=192.0.2.21 --netmask=255.255.255.0 --gateway=192.0.2.1 --nameserver=192.0.2.53 --hostname=web1.example.com --activate
 timezone Europe/Berlin --utc
+clearpart --all --initlabel
+autopart
 rootpw --lock
 firewall --enabled --service=ssh
 services --enabled=sshd
@@ -74,6 +76,12 @@ cloud-init
   `ksvalidator` reads a backslash-wrapped `network` line as three
   commands and rejects two of them, so `network` stays long even
   where that passes 80 characters.
+- `clearpart --all --initlabel` and `autopart` answer Installation
+  Destination, which anaconda otherwise leaves open and waits at:
+  the new guest's empty disk gets a fresh label and the automatic
+  layout. They act only on the disk the installer sees, which is
+  the one this skill just created. A syntax check does not catch
+  their absence; an install without them never reaches `%post`.
 - `rootpw --lock` locks root and creates no other account, so the
   install ends with no password on the system. The SSH user comes
   from cloud-init at the first boot.

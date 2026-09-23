@@ -64,10 +64,12 @@ the same host key, so the fingerprint in `known_hosts` would prove
 nothing.
 
 `virt-sysprep` removes them, on the copy, before the first start:
-
-```bash
-virt-sysprep -a /var/lib/libvirt/images/web1.qcow2
-```
+`virt-sysprep -a <image copy>`, alone in its call. Its default
+`ssh-hostkeys` operation deletes the image's host keys, so the
+taboo guard asks about it with the image path in front of the
+user, and refuses it where no prompt reaches one, with `-d`, or
+with anything else on the line. Say so in the plan, so the prompt
+is expected rather than a surprise.
 
 Read `virt-sysprep --list-operations` on the host first and name
 in the plan which of them will run: the default set differs
