@@ -78,8 +78,8 @@ what changed.
 It also rates them: `sync=disabled` on data that matters, dedup
 without the RAM for it, compression off, autotrim off on flash
 with no trim running, a special vdev with less redundancy than the
-pool, an ARC that leaves too little room for a hypervisor's VMs,
-and btrfs profiles left half converted. Pool features that
+pool, an ARC that leaves too little room for a hypervisor's
+guests, and btrfs profiles left half converted. Pool features that
 `zpool upgrade` would enable are reported, never enabled: that
 step cannot be undone, and it is yours. Tell it why a setting is
 the way it is, and it stops asking.

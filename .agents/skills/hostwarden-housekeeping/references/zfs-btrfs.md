@@ -136,17 +136,19 @@ A value that carries a reason from the user is reported as
 - **ARC limit that was set at runtime only** (`storage.md`):
   **INFO**, the next boot reverts it.
 - **ARC against guests**, on a host with a `Hypervisor:` line:
-  add the memory of every running VM on this host and the ARC's
+  add the memory of every running guest on this host — a VM's
+  configured memory, a container's memory limit — and the ARC's
   `c_max`. **WARN** if the sum exceeds the host's RAM: the ARC
-  can then grow only by pushing VMs into swap or the OOM killer,
-  and it gives memory back more slowly than a starting VM takes
-  it. The Linux default from OpenZFS 2.3 on nearly always trips
-  this on a hypervisor (`rules/storage-inventory.md` → ARC
-  limits). Containers do not count; their memory is the host's
-  own.
+  can then grow only by pushing guests into swap or the OOM
+  killer, and it gives memory back more slowly than a starting
+  guest takes it. A container's limit is a ceiling it may never
+  reach, so name how much of the sum is containers. A container
+  or jail without a limit adds nothing; say how many there are.
+  The Linux default from OpenZFS 2.3 on nearly always trips this
+  on a hypervisor (`rules/storage-inventory.md` → ARC limits).
   - Proxmox VE: the guest listing this run already made
     (`rules/appliance/proxmox-ve.md` → Guests): `maxmem` of each
-    `qemu` entry that is `running` on this node.
+    `qemu` and `lxc` entry that is `running` on this node.
   - libvirt: `balloon.maximum`, in KiB, per domain of
     `virsh -c qemu:///system domstats --list-running --balloon`.
   - vm-bhyve: the `MEMORY` column of running VMs in `vm list`.
