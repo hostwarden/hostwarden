@@ -17,6 +17,11 @@
 # hostwarden-migrate to rename skill overrides. Reads
 # the old checkout, never writes into it.
 #
+# A user.md this clone already has gains the lines it
+# lacks; a line it has with another value stays and is
+# reported. What else the old memory/ holds is named as
+# "not copied: …" for the skill to sort.
+#
 # Host by host: --server takes one hostname and may be
 # repeated. The shared state (access lists, service
 # policy, overrides, network and housekeeping
@@ -484,6 +489,29 @@ for ITEM in $SHARED; do
   fi
 done
 
+# What the old memory/ holds beyond the shared state,
+# the servers and known_hosts — Claude's auto-memory,
+# notes, a brand directory — named before anything can
+# stop the run, so a dry run shows it too. None
+# of it has a place of its own here, and copying it
+# whole would put a second, unread memory beside this
+# one. The skill sorts it item by item.
+set +f
+for E in "$OLD"/memory/* "$OLD"/memory/.[!.]*; do
+  { [ -e "$E" ] || [ -L "$E" ]; } || continue
+  N=${E##*/}
+  case "$N" in
+    servers|known_hosts|MEMORY.md|*.example|.git|.gitignore|.gitkeep|.DS_Store|.heinzel*) continue ;;
+  esac
+  case "$NL$SHARED$NL" in *"$NL$N$NL"*) continue ;; esac
+  if [ -d "$E" ]; then
+    echo "not copied: memory/$N/"
+  else
+    echo "not copied: memory/$N"
+  fi
+done
+set -f
+
 # The invariant from the header: a host may not come
 # across while the lists that say whether it may be
 # touched stayed behind. A kept blacklist or
@@ -567,6 +595,124 @@ if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
     fi
   fi
 fi
+
+CR=$(printf '\r')
+US=$(printf '\037')
+
+# user_line <key> <file>: the first line of <file>
+# that sets <key>, without a leading "- ", or nothing.
+# A commented line sets nothing: the template ships its
+# preferences as comments.
+user_line() {
+  while IFS= read -r ul_line || [ -n "$ul_line" ]; do
+    ul_line=${ul_line%"$CR"}
+    case "$ul_line" in '#'*|'') continue ;; esac
+    ul_item=${ul_line#- }
+    if [ "${ul_item%%: *}" = "$1" ]; then
+      printf '%s\n' "$ul_item"
+      return 0
+    fi
+  done < "$2"
+}
+
+# A user.md of this clone's own is merged rather than
+# kept whole: the old one's language, reply address and
+# per-server SSH users would otherwise stay behind
+# unnoticed. Every "Key: value" line this clone does not
+# set comes across, under the heading it had in the old
+# file — "# Preferences", "# SSH Users",
+# "## Per-server overrides" or one of the user's own —
+# which this file gets at its end where it lacks it. A
+# key both set differently is reported, never chosen,
+# and so is a greeting that signs as Heinzel.
+UM_SRC="$OLD/memory/user.md"
+UM_DST="memory/user.md"
+case " $SHARED_PENDING " in
+  *" user.md "*)
+    if [ -f "$UM_SRC" ] && [ -f "$UM_DST" ] && [ ! -L "$UM_DST" ]; then
+      # UM_Q: one "<heading><US><line>" per line to add.
+      UM_Q='' UM_DIFF='' UM_SEEN="$NL" UM_N=0 UM_HEAD=''
+      while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
+        UM_LINE=${UM_LINE%"$CR"}
+        case "$UM_LINE" in
+          '# '*|'## '*) UM_HEAD=$UM_LINE; continue ;;
+          '#'*|'') continue ;;
+        esac
+        UM_ITEM=${UM_LINE#- }
+        case "$UM_ITEM" in *': '*) ;; *) continue ;; esac
+        UM_KEY=${UM_ITEM%%: *}
+        # This script writes that line itself.
+        [ "$UM_KEY" = "Adopted from heinzel" ] && continue
+        # The first line for a key decides, as for the
+        # agent that reads the file.
+        case "$UM_SEEN" in *"$NL$UM_KEY$NL"*) continue ;; esac
+        UM_SEEN="$UM_SEEN$UM_KEY$NL"
+        UM_HAVE=$(user_line "$UM_KEY" "$UM_DST")
+        if [ -n "$UM_HAVE" ]; then
+          [ "$UM_HAVE" = "$UM_ITEM" ] \
+            || UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+          continue
+        fi
+        case "$UM_ITEM" in
+          Greeting:*[Hh]einzel*)
+            UM_DIFF="$UM_DIFF  Greeting: the old checkout's signs as Heinzel, not taken$NL"
+            continue ;;
+        esac
+        UM_N=$((UM_N + 1))
+        UM_Q="$UM_Q$UM_HEAD$US$UM_LINE$NL"
+      done < "$UM_SRC"
+      # user.md is the first shared item, so it leads the
+      # list when it is pending.
+      SHARED_PENDING=${SHARED_PENDING# user.md}
+      if [ -n "$UM_DIFF" ]; then
+        printf 'kept memory/user.md where it differs from the old checkout:\n%s' \
+          "$UM_DIFF" >&2
+      fi
+      if [ "$UM_N" -eq 0 ]; then
+        NOTHING_LEFT=yes
+      else
+        plan "user.md (merged: $UM_N lines added)"
+        if [ -z "$LIST" ]; then
+          UM_TMP=$(mktemp "$UM_DST.XXXXXX")
+          # um_under <heading>: the queued lines for it.
+          um_under() {
+            printf '%s' "$UM_Q" | while IFS= read -r uu; do
+              [ "${uu%%"$US"*}" != "$1" ] || printf '%s\n' "${uu#*"$US"}"
+            done
+          }
+          UM_DONE="$NL"
+          {
+            # Lines that stood above every heading.
+            um_under ''
+            while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
+              UM_LINE=${UM_LINE%"$CR"}
+              printf '%s\n' "$UM_LINE"
+              case "$UM_LINE" in
+                '# '*|'## '*)
+                  case "$UM_DONE" in *"$NL$UM_LINE$NL"*) ;; *)
+                    um_under "$UM_LINE"
+                    UM_DONE="$UM_DONE$UM_LINE$NL" ;;
+                  esac ;;
+              esac
+            done < "$UM_DST"
+            # Headings this file lacks, in the old order.
+            printf '%s' "$UM_Q" | while IFS= read -r UM_QL; do
+              UM_H=${UM_QL%%"$US"*}
+              [ -n "$UM_H" ] || continue
+              case "$UM_DONE" in *"$NL$UM_H$NL"*) continue ;; esac
+              UM_DONE="$UM_DONE$UM_H$NL"
+              printf '\n%s\n\n' "$UM_H"
+              um_under "$UM_H"
+            done
+          } > "$UM_TMP"
+          # Through cat, not mv: the file keeps its own
+          # mode, and mktemp's is 0600.
+          cat "$UM_TMP" > "$UM_DST"
+          rm -f "$UM_TMP"
+        fi
+      fi
+    fi ;;
+esac
 
 if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   if [ -z "$HOSTS" ]; then

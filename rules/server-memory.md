@@ -149,6 +149,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |
 | `heinzel legacy:`        | `heinzel-adoption.md`       | legacy settled   |
 | `Other ways in:`         | `heinzel-adoption.md`       | host adopted     |
+| `Planned:`               | `heinzel-adoption.md`       | host adopted     |
 | `Config management:`     | `config-management-leads.md`| tool found       |
 | `Provisioned by:`        | `config-management-leads.md`| tool found       |
 | `Web server:`            | `service-class-check.md`    | service found    |

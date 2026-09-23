@@ -299,6 +299,14 @@ these:
      Heinzel.
 3. **What the Heinzel check confirmed** — Record
    above.
+4. **The inventory's `## Facts`** — what the
+   adoption sorted out of Heinzel's other memory for
+   this host, under the same test as the standing
+   facts of 2. An open plan becomes
+   `- Planned: <what> (user, <date>)`, removed once
+   it is done or the user drops it. Once written,
+   the section leaves the inventory, which is then
+   empty when no lead is left.
 
 History is not carried: incidents, what was done
 when, versions that were current then, how a problem

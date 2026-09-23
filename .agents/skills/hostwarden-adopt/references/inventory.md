@@ -53,7 +53,19 @@ hostwarden-adopt. Not verified against the host.
 
 ## Accounts
 - deploy — created 2026-04-01 for the CI deployment
+
+## Facts
+- Maintenance window Sunday 02:00–04:00, from Heinzel's
+  auto-memory (maintenance-windows.md, 2026-08-17)
+- Planned: move the database to db2 (user, 2026-08-20)
 ```
+
+`## Facts` holds what the adoption sorted out of Heinzel's other
+memory for this host (the skill's step 4): facts, decisions and open
+plans, not leads. Each keeps its source file and date. The Heinzel
+check does not probe for them; the first connection writes them into
+`memory.md` and removes the section (`rules/heinzel-adoption.md` →
+Heinzel's memory).
 
 ## Verification is the host's job
 
