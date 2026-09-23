@@ -5,7 +5,7 @@ Windows runs in a utility VM. The distribution's family file
 applies to its packages and services. Windows owns the kernel,
 the firewall, name resolution and the instance's lifetime.
 Hostwarden administers the distribution only; Windows is the
-outside `rules/os-detection.md` → Platforms says is read,
+outside `rules/first-detection.md` → Platforms says is read,
 never changed.
 
 Source for everything below unless noted: Microsoft's WSL
@@ -31,7 +31,7 @@ apart:
   firewall as `Windows side, not checked` at **INFO**, naming
   each port that listens beyond loopback.
 
-The role is inferred as `workstation` (`rules/os-detection.md`
+The role is inferred as `workstation` (`rules/first-detection.md`
 → Roles).
 
 The instance takes the Windows hostname unless `/etc/wsl.conf`

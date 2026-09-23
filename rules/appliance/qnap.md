@@ -45,7 +45,7 @@ is QNAP's own.
   QuTS hero h6.0 is a new major release
   (<https://www.qnap.com/en/release-notes/quts_hero/overview/h6.0.0>).
   On a 4.x, on h6 or later, and on any QTS 6, stop
-  (`rules/os-detection.md` → Appliances).
+  (`rules/os-detection.md` → Layers).
 - The version lives in the `[System]` section of
   `/etc/config/uLinux.conf`, read with QNAP's `getcfg`:
   ```
@@ -546,7 +546,7 @@ is QNAP's own.
     unprotected. Ask instead (see the settings below), and rate the
     `Backup:` line from that.
 - **Settings only the web UI shows**, asked for as
-  `rules/os-detection.md` → Appliances says: the firmware update
+  `rules/os-detection.md` → Layers says: the firmware update
   policy; the scrub schedule and the date of the last scrub per
   storage pool; the backup app in use, its tasks, their schedule,
   their destination and the last successful run — a task that

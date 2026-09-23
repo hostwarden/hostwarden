@@ -8,7 +8,7 @@ vocabulary (`ifconfig`, `pfctl`, ZFS). Most of its instructions for
 changing the system are **wrong here**: OPNsense generates the
 system configuration from one XML file and overwrites manual edits.
 This file applies on top of the base (`rules/os-detection.md` →
-Appliances).
+Layers).
 
 The host is usually the network's only way out. A mistake here cuts
 off everyone behind it, not just your SSH session.
@@ -29,7 +29,7 @@ documentation, <https://docs.opnsense.org/>, and the
 
 - **root runs remote commands in csh.** root's login shell is
   `opnsense-shell`, which hands a command passed over SSH to
-  `/bin/csh -c` (`rules/os-detection.md` step 1 records it as
+  `/bin/csh -c` (`rules/first-detection.md` step 1 records it as
   `Shell: csh`). An admin user with its own login shell gets that
   shell instead.
 - An interactive root login shows the console menu.

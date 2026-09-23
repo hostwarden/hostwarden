@@ -30,7 +30,7 @@ third party says so; check it on the live host before relying on it.
   neither; both come from a third-party project that read them on a
   ZimaCube (`chicohaager/zimaos-mergerfs-snapraid-sysext`, the
   table of verified facts in its README). Step 1 of
-  `rules/os-detection.md` prints them; later connections read them
+  `rules/first-detection.md` prints them; later connections read them
   with
   `grep -E "^(ID|VERSION_ID)=" /etc/os-release`, in double quotes
   because the step-1 shape wraps each piece in single ones.
@@ -44,7 +44,7 @@ third party says so; check it on the live host before relying on it.
   builds
   (<https://www.zimaspace.com/docs/developer/v-1-4-0>).
 - **This file covers ZimaOS 1.x.** When `VERSION_ID` is 2 or later,
-  stop (`rules/os-detection.md` → Appliances).
+  stop (`rules/os-detection.md` → Layers).
 - Record in server memory: `Appliance: ZimaOS <version>`, and `beta`
   after it when the version carries a `-beta` suffix.
 

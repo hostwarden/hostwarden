@@ -1,7 +1,7 @@
 # Workstation
 
 For a machine whose memory says `Role: workstation`
-(`rules/os-detection.md` → Roles): a machine a person works
+(`rules/first-detection.md` → Roles): a machine a person works
 at. It sleeps, changes networks and reboots when its owner
 decides, and the person in front of it owns what is in their
 home directory.

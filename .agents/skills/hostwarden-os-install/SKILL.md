@@ -61,7 +61,7 @@ No workflow below **writes** on a device whose only OS is the
 vendor's firmware: replacing or repartitioning it can leave the
 device unbootable. That is every host whose appliance file says
 `Hardware: vendor`, an `any` appliance on the vendor's own device
-(`rules/os-detection.md` → Appliances), and a machine that boots
+(`rules/first-detection.md` → Appliances), and a machine that boots
 from on-board flash without EFI or BIOS. For a host that is not
 `Hardware: vendor`, read the device first, in one call, and record
 it in server memory as `Device: <vendor> <model>, EFI|no EFI`:

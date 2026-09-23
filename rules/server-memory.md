@@ -33,7 +33,7 @@ the same hostname.
   the Linux `hostname`, which `/etc/wsl.conf` can
   change. Where interop is off, ask the user.
 - **The distribution** is the `WSL_DISTRO_NAME` line
-  under `@platform` (`rules/os-detection.md`). Where
+  under `@platform` (`rules/first-detection.md`). Where
   that line is empty, as it often is over SSH, ask the
   user for the name `wsl.exe -l -v` shows; never take
   the os-release `ID`, which can differ from it.
@@ -88,8 +88,9 @@ connection above; a controller's address lives in
 A host that a configuration management tool manages,
 wholly or in some areas, gains a `Config management:`
 line, and one that Terraform or OpenTofu provisioned
-a `Provisioned by:` line; `rules/config-management.md`
-owns their wording. Most hosts have neither.
+a `Provisioned by:` line;
+`rules/config-management-leads.md` owns their
+wording. Most hosts have neither.
 
 Adapt fields to OS (add Homebrew for macOS;
 add `Mode: local` for localhost, or
@@ -110,7 +111,7 @@ line would route every later session through the host
 an OS file whose Version Detection names fields to
 record adds those. `Appliance:`,
 `Platform:`, `Role:` and `Shell:` come from
-`rules/os-detection.md`; `SSH port:`, remote mode only, is
+`rules/first-detection.md`; `SSH port:`, remote mode only, is
 the `port` line of `ssh -G <user>@<hostname>`, which the
 alias check in `rules/dns-aliases.md` compares. A
 field a probe could not read is written `unknown`, never
@@ -119,7 +120,7 @@ filled from an example. A container engine is recorded as
 `rules/service-class-check.md` gives.
 
 `Virtualization:`, `Arch:` and `Hypervisor:` come
-from `rules/os-detection.md`; `Cluster:`,
+from `rules/first-detection.md`; `Cluster:`,
 `Guest identity:`, `Runs on:` and, on a guest
 registered through its host, `SSH: untested`, from
 `rules/hypervisors.md`. `Baseline:` comes from

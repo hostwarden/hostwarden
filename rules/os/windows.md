@@ -240,21 +240,20 @@ says when it runs again.
 - `InstallationType` is `Server Core` on Server Core.
 - `SystemType` (`x64-based PC`, `ARM64-based PC`,
   `X86-based PC`) is the first part of `Arch:`
-  (`rules/os-detection.md`, step 2), recorded as the
+  (`rules/first-detection.md`, step 2), recorded as the
   architecture the other families print: `x86_64`, `aarch64`,
   `i686`. It describes the machine, while
   `$env:PROCESSOR_ARCHITECTURE` describes the process that
   reads it and prints `x86` from a 32-bit PowerShell on 64-bit
   Windows.
-- `Manufacturer` and `Model` are read against the DMI
-  table in `rules/os-detection.md` → Virtualization.
-  Windows has no `hypervisor` count, so `Amazon EC2`
-  is a VM unless the model ends in `.metal`. A
+- `Manufacturer` and `Model` are read against the type
+  and provider tables in `rules/first-detection.md` →
+  Virtualization. A
   hardware vendor's name and model is bare metal;
   anything else is unknown. `HypervisorPresent`
   settles nothing: it is also true on a Hyper-V host.
 - A `vmms` line is the Hyper-V management service: the
-  host is a Hyper-V candidate (`rules/os-detection.md` →
+  host is a Hyper-V candidate (`rules/first-detection.md` →
   Hypervisors). Its guests: `Get-VM` (`Name`, `State`,
   `VMId`, `AutomaticStartAction`) and
   `Get-VMNetworkAdapter -VMName *` (`VMName`,

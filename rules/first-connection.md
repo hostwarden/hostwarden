@@ -33,9 +33,12 @@ skip it.
    the first. See `rules/activity-check.md`. The
    configuration-management probes go into the same
    call, as `rules/config-management.md` → Detect
-   says; so do a hypervisor's guest listing and a
-   guest's link keys when `rules/os-detection.md` →
-   Hypervisors says so.
+   says. So do, as `rules/hypervisors.md` describes,
+   the guest listing on a host with a `Hypervisor:`
+   line (Inventory), on a cluster member once for the
+   whole cluster (Clusters and Pools), and the keys
+   that link a VM or container without a `Runs on:`
+   line to its host (Linking Guest and Host).
 8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,

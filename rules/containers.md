@@ -144,7 +144,7 @@ the change is lost at the next recreate.
 - **Configuration management:** where server memory's
   `Config management:` line covers the containers, the tool's code
   defines them, whatever file it renders on the host
-  (`rules/config-management.md` → What it changes).
+  (`rules/config-management-changes.md` → What it changes).
 - **Compose:** `docker compose ls -a` lists every project with its
   config files. For one container:
 

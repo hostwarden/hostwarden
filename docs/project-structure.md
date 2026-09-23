@@ -171,7 +171,11 @@ rules/                 — Upstream rule files (git-tracked)
   baseline.md          — What every server is expected to
                          have
   privilege-escalation.md — Sudo, root SSH, unprivileged mode
-  os-detection.md      — OS detection procedure
+  os-detection.md      — OS detection on every connection:
+                         the first call, Windows, layers
+  first-detection.md   — What detection settles once:
+                         family, appliance, platform,
+                         virtualization, hypervisor, role
   ssh-user.md          — SSH username & language management
   ssh-connections.md   — Bundled, shared SSH connections;
                          avoiding failed logins
@@ -183,8 +187,14 @@ rules/                 — Upstream rule files (git-tracked)
   changelog.md         — Session logging procedure
   activity-check.md    — Recent-activity summary on connect
   config-management.md — Hosts managed by Ansible or
-                         another tool: detect, record,
-                         change through it or by hand
+                         another tool: the probe on
+                         every connection
+  config-management-leads.md — The first-connection
+                         probe, what a lead means, and
+                         the question that records it
+  config-management-changes.md — A change on a managed
+                         host: through the tool or by
+                         hand
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
   session-start.md     — Preferences and overrides to

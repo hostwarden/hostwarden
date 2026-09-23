@@ -8,7 +8,7 @@ base file supplies the vocabulary (`ifconfig`, `pfctl`,
 `/usr/local/etc`). Most of its instructions for changing the system
 are **wrong here**: pfSense generates the system configuration from
 one XML file and overwrites manual edits. This file applies on top
-of the base (`rules/os-detection.md` → Appliances).
+of the base (`rules/os-detection.md` → Layers).
 
 The host is usually the network's only way out. A mistake here cuts
 off everyone behind it, not just your SSH session.
@@ -42,7 +42,7 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 - An interactive root login shows the console menu. A command
   passed over SSH skips the menu and runs under `/bin/sh`.
 - A non-root user with shell access gets `tcsh`
-  (`rules/os-detection.md` step 1 records it as `Shell: tcsh`).
+  (`rules/first-detection.md` step 1 records it as `Shell: tcsh`).
 - No `sudo` in the base system. It comes from the Sudo package,
   which asks for a password unless the entry is set to "No
   Password"; `sudo -n` then fails. Probe as usual
