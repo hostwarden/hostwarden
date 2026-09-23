@@ -746,6 +746,34 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
       print n ":" FNR " (" length(s) ")"
     } }')" "wrapped at 80 characters"
 
+# --- the firewall listing filter has one text -------------------
+# rules/secrets.md -> Commands That Leak holds the filter that shows
+# a rule's comment as `...`; the probes that run as one call carry a
+# copy of it. A copy that drifts withholds less, and nothing in the
+# output says so.
+report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
+  | xargs -0 awk -v root="$CORPUS_ROOT/" -v ref="$ROOT/rules/secrets.md" '
+  function take(l) { sub(/^[ \t]+/, "", l); return l "\n" }
+  BEGIN {
+    while ((getline l < ref) > 0) {
+      if (!in_ref && l ~ /^[ \t]*fc=\047/) in_ref = 1
+      if (in_ref) { want = want take(l); if (l ~ /\047$/) break }
+    }
+    close(ref)
+    if (want == "") print "rules/secrets.md: no fc filter to compare with"
+  }
+  FNR == 1 { on = 0 }
+  !on && /^[ \t]*fc=\047/ { on = 1; got = ""; at = FNR }
+  on { got = got take($0)
+    if ($0 ~ /\047$/) {
+      on = 0
+      if (got != want) {
+        n = FILENAME
+        if (index(n, root) == 1) n = substr(n, length(root) + 1)
+        print n ":" at ": fc differs from rules/secrets.md"
+      }
+    } }')" "one firewall listing filter"
+
 # --- every required check is a CI job ---------------------------
 # The ruleset names the checks a pull request waits for, ci.yml
 # names the jobs that report them. Rename one without the other

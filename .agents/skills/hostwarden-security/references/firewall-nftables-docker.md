@@ -6,6 +6,9 @@ firewalld, one that filters with iptables on the legacy
 backend, iptables-legacy rules hidden next to nf_tables, and
 ports Docker publishes past any of them. Linux only.
 
+Every listing below goes through `sed -E "${fc:?}"` (`fc`:
+`rules/secrets.md` → Commands That Leak).
+
 ## Native nftables
 
 Needs root or `sudo -n`; `nft` refuses to list for a normal
@@ -13,10 +16,12 @@ user. In one call: the loaded OS file's Service Manager → Service
 status for `nftables`, its Enabled services listing filtered for
 `nftables` and `netfilter-persistent`, and the chains. The grep
 keeps every table header and, for each input chain, its name and
-`type` line:
+`type` line; a chain's `comment` line, which nft prints between
+the two, is dropped first:
 
 ```bash
-nft list chains | grep -B1 -e ^table -e "hook input"
+nft list chains | grep -v '^[[:space:]]*comment "' \
+  | grep -B1 -e ^table -e "hook input"
 ```
 
 For the service, *active* below is what that Service status says
@@ -32,7 +37,7 @@ table does not undo it. Default deny means one of:
   unconditional `drop` or `reject`. Check with:
 
   ```bash
-  nft list chain <family> <table> <chain> | tail -3
+  nft list chain <family> <table> <chain> | sed -E "${fc:?}" | tail -3
   ```
 
 A table of family `ip` covers IPv4 only, `ip6` IPv6 only and
@@ -82,7 +87,7 @@ case $v in
        grep -qx filter /proc/net/${f}_tables_names 2>/dev/null \
          || { echo "$f: no filter table"; continue; }
        r=$(${f}tables -S INPUT) || { echo "$f: unread"; continue; }
-       printf '%s\n' "$r" | sed -n -e "1s/^/$f /p" \
+       printf '%s\n' "$r" | sed -En -e "${fc:?}" -e "1s/^/$f /p" \
          -e "1!{\$s/^/$f last /p;}"
        echo "$f input-rules=$(printf '%s\n' "$r" | grep -c '^-A')"
      done
@@ -96,7 +101,7 @@ case $v in
          t == "*filter" && /^:INPUT / { print s, $1, $2 }
          t == "*filter" && /^(\[[0-9:]+\] )?-A INPUT / { l = $0 }
          END { if (l != "") print s, "last", l }' "$s"
-     done
+     done | sed -E "${fc:?}"
      ls /etc/rc.local /etc/local.d/*.start 2>/dev/null || true ;;
 esac
 ```
@@ -111,10 +116,11 @@ that drops or rejects unconditionally (`-A INPUT -j DROP`,
 `-A INPUT -j REJECT …`)
 (<https://man7.org/linux/man-pages/man8/iptables.8.html>). A last
 rule that jumps to a chain of its own (`-A INPUT -j fw-in`) takes
-that chain's verdict: read it with `iptables -S <chain>` and judge
-its last rule the same way. The variant is *active* when a
-family is default deny; INPUT rules that fail2ban or Docker add
-under `-P INPUT ACCEPT` filter nothing on their own.
+that chain's verdict: read it with
+`iptables -S <chain> | sed -E "${fc:?}"` and judge its last rule the
+same way. The variant is *active* when a family is default deny;
+INPUT rules that fail2ban or Docker add under `-P INPUT ACCEPT`
+filter nothing on their own.
 
 - Not active, whatever INPUT rules fail2ban or others added →
   not a firewall: **CRITICAL** "No active firewall" when none of
@@ -163,7 +169,8 @@ fi
 
 - Either count > 0 → **WARN** "iptables-legacy rules active
   next to nf_tables, invisible to nft". List them with
-  `iptables-legacy -S` and report which tool loads them.
+  `iptables-legacy -S | sed -E "${fc:?}"` and report which tool
+  loads them.
 - No count printed, or both 0 → OK
 
 ufw or firewalld active while `nftables` is enabled
@@ -186,7 +193,7 @@ group:
 ```bash
 docker info --format '{{.FirewallBackend.Driver}}'
 docker ps --format '{{.Names}} {{.Ports}}'
-for c in iptables ip6tables; do $c -S DOCKER-USER; done
+for c in iptables ip6tables; do $c -S DOCKER-USER; done | sed -E "${fc:?}"
 ```
 
 A published port (an entry with `->`) is public unless bound
@@ -205,7 +212,7 @@ and not available in Swarm mode
 (https://docs.docker.com/engine/network/firewall-nftables/).
 It has no DOCKER-USER chain; restrictions live in a separate
 table with a base chain on Docker's hooks, visible in
-`nft list chains`.
+`nft list chains | sed -E "${fc:?}"`.
 
 - Public port not covered by a DOCKER-USER rule (or its
   nftables equivalent) → **WARN** "Docker publishes

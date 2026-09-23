@@ -332,7 +332,9 @@ host, not as documented behaviour.
 - Report its state from what the user reads there; UGREEN
   documents no command for it. Rules the Docker engine and UGOS
   write can be read as root with `nft list ruleset` or
-  `iptables-save`, both in UGREEN's manifest. Neither shows which
+  `iptables-save`, both in UGREEN's manifest, piped through
+  `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` → Commands That
+  Leak). Neither shows which
   rules belong to the UGOS firewall.
 - The firewall off, or a profile whose default action is "Access
   allowed", is a finding under the standing expectation in

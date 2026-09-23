@@ -180,26 +180,36 @@ of the current release branch,
   forwarded traffic, and forwarding allowed from `lan` to `wan`.
   Source:
   <https://openwrt.org/docs/guide-user/firewall/firewall_configuration>.
-- Read-only: `uci show firewall`, `fw4 print` (the ruleset fw4
-  would load), `nft list ruleset` (the ruleset that is loaded).
+- Read-only: `uci show firewall | awk "$u"`, with `u` from
+  Housekeeping and Audits: it withholds the free text, the name of
+  a rule, redirect, NAT rule or forwarding, a log prefix, a comment,
+  a description and raw options, and keeps zone, ipset and helper
+  names, which rules refer to; `fw4 print` (the ruleset fw4 would load) and
+  `nft list ruleset` (the ruleset that is loaded), both piped
+  through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md` → Commands
+  That Leak).
 - **Change rules through UCI** (`uci add firewall rule`, …, see
   Configuration: UCI), never with `nft` directly: the next reload
   replaces the whole ruleset. Own nftables snippets go into
   `/etc/nftables.d/*.nft`, which fw4 includes.
 - Apply a firewall change, and a change to `/etc/config/network`,
   through `rules/ssh-safety-net.md`. Its three commands here:
-  - **check:** stage the change with `uci`, then `fw4 check`, which
+  - **check:** stage the change with `uci`, then
+    `{ fw4 check 2>&1; echo "rc=$?"; } | sed -E "${fc:?}"`, which
     renders the ruleset, staged changes included, and tests it with
-    nftables without loading it. A failed check means
-    `uci revert firewall`, so the broken ruleset never reaches
-    flash. For the network there is no check beyond `uci changes`.
+    nftables without loading it. `rc=0` is a pass, since the pipe
+    returns sed's status; an error quotes the rule it failed on. A
+    failed check means `uci revert firewall`, so the broken ruleset
+    never reaches flash. For the network there is no check beyond
+    `uci changes`.
   - **apply:** `uci commit firewall; service firewall reload`
     (`uci commit network; service network reload` for the
     network).
   - **revert:** copy the backup of the config file back over it and
     run the same reload, or `service firewall stop` where no
     `inet fw4` table was loaded before. Loaded rules against the
-    files: `nft list table inet fw4` and `fw4 print`.
+    files: `nft list table inet fw4` and `fw4 print`, both through
+    `sed -E "${fc:?}"`.
 
   OpenWrt has no systemd and ships no `at`. The `at` package from
   the feed arms the revert (ask first: it takes flash, see Package
@@ -286,13 +296,15 @@ of the current release branch,
 ## Housekeeping and Audits
 
 - The Linux baseline does not apply: no systemd, no journal, no
-  `apt`. Housekeeping reads, in one call:
+  `apt`. Housekeeping reads, in one call with `fc` set
+  (`fc`: `rules/secrets.md` → Commands That Leak):
   ```
   cat /etc/openwrt_release; uptime; df -Ph /overlay /tmp
   grep -F "/ overlay ro," /proc/mounts; service; uci changes
   logread -l 50; owut check
-  nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
-  nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
+  { nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
+    nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
+  } | sed -E "${fc:?}"
   awk '$2=="00000000" && $8=="00000000" && $1!="lo" && substr($4,2,1)!~/[2367ABEF]/ {print $1}' /proc/net/route
   awk '$1~/^0+$/ && $2=="00" && $10!="lo" {print $10}' /proc/net/ipv6_route
   ```
@@ -320,7 +332,14 @@ of the current release branch,
 - A security audit reads, in one call, instead of the `sshd`
   checks:
   ```
-  uci show dropbear; uci show firewall; netstat -tlnp
+  u='{ k = $0; sub(/=.*/, "", k); s = k; sub(/[.][^.]*$/, "", s)
+    o = substr(k, length(s) + 2)
+    if (s == "firewall") { t[k] = substr($0, length(k) + 2); print; next }
+    if (o ~ /^(extra|log$|comment$|description$)/ \
+      || (o == "name" && t[s] ~ /^(rule|redirect|nat|forwarding)$/)) \
+      $0 = k "=..."
+    print }'
+  uci show dropbear; uci show firewall | awk "$u"; netstat -tlnp
   h='s#^([^:]*[[:space:]])?[a-z]+://([^/[:space:]]*@)?([^/:[:space:]]+).*#\1\3#'
   o='s/^([[:space:]]*option[[:space:]]+[^[:space:]]+).*/\1 .../'
   sed -E -e "$h" -e "$o" /etc/apk/repositories.d/*.list \

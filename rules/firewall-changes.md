@@ -22,7 +22,9 @@ already, so it is not repeated here.
 2. **Read the current rules before proposing a change.**
    Use the host's own tool — `ufw status verbose`,
    `firewall-cmd --list-all`, `nft list ruleset`,
-   `pfctl -sr`. Report what is there, not what you expect.
+   `pfctl -sr` — piped through `sed -E "${fc:?}"` (`fc`:
+   `rules/secrets.md` → Commands That Leak). Report what is
+   there, not what you expect.
 
    Ports published by Docker bypass ufw and firewalld
    entirely: `-p 5432:5432` writes its own `DOCKER` chain

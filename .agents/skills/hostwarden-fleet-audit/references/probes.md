@@ -361,6 +361,20 @@ backend and neither ufw nor firewalld is active, append that
 reference's iptables without a manager probe to this script,
 with `$SUDO` in front of its reads; its output decides row 4.
 
+A rule's comment can hold a token, so every listing goes through
+`sed -E "${fc:?}"` (`rules/secrets.md` → Commands That Leak). The
+firewall probe opens with it on every family, the FreeBSD variant
+below included:
+
+```bash
+fc='s/(^|[^-])comment ".*"$/\1comment "..."/
+s/((comment|label|prefix|match|string)"?:?[ =!]*)"([^"\\]|\\.)*"/\1"..."/g
+s/(--comment|--(hex-)?string|-?-?(log|nflog|ulog)-prefix)([ =]+)[^ "]+/\1\4.../g
+s#/\*.*\*/#/* ... */#
+s/(^|[[:space:]])#.*/\1# .../
+s|[[:space:]]//.*| // ...|'
+```
+
 ```bash
 # Prefer ufw on Debian/Ubuntu; firewall-cmd on RHEL family.
 TOOLS=""
@@ -380,9 +394,10 @@ elif [ -n "$TOOLS" ]; then
       firewall-cmd) $SUDO firewall-cmd --state
                     $SUDO firewall-cmd --list-all ;;
       nft) $SUDO nft list chains \
+             | grep -v '^[[:space:]]*comment "' \
              | grep -B1 -e ^table -e "hook input" ;;
     esac 2>&1
-  done
+  done | sed -E "${fc:?}"
 fi
 echo "--legacy"
 v=$(iptables -V 2>/dev/null); echo "${v:-iptables=none}"
@@ -468,11 +483,11 @@ if [ "$SUDO" = "-" ]; then
   echo "state=unknown(needs-root)"
 else
   echo "--pf"
-  $SUDO pfctl -s rules 2>/dev/null
+  $SUDO pfctl -s rules 2>/dev/null | sed -E "${fc:?}"
   echo "--ipf"
-  $SUDO ipfstat -i 2>/dev/null
+  $SUDO ipfstat -i 2>/dev/null | sed -E "${fc:?}"
   echo "--ipfw"
-  $SUDO ipfw list 2>/dev/null
+  $SUDO ipfw list 2>/dev/null | sed -E "${fc:?}"
 fi
 ```
 

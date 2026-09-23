@@ -732,11 +732,12 @@ no file:
 
 **Firewall.** The Firewall block above, rated as it says, and
 the enabled inbound allow rules of the policy in effect, Group
-Policy included — name, profile, protocol, local port, remote and local
+Policy included — rule ID (`Name`; the display name is free text
+and stays out), profile, protocol, local port, remote and local
 addresses:
 
 ```powershell
-try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $_.DisplayName, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $r | ForEach-Object { $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $_.Name, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
 ```
 
 Judge only the rules of the profile in use (Firewall above). A

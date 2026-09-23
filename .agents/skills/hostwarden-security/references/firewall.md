@@ -34,9 +34,12 @@ after ufw and firewalld. Run its Docker check whenever
 ### Debian/Ubuntu (ufw)
 
 ```bash
-ufw status verbose
+ufw status verbose | sed -E "${fc:?}"
 grep '^IPV6=' /etc/default/ufw
 ```
+
+Every listing of rules here goes through `sed -E "${fc:?}"`
+(`fc`: `rules/secrets.md` → Commands That Leak).
 
 - Not installed or inactive → check native nftables
 - `IPV6=no` → ufw writes no IPv6 rules. Before calling that the
@@ -74,9 +77,10 @@ gap of its own.
 Run the status probe in `rules/os/freebsd.md` → Firewall, which
 also says how each firewall's default reads. Then, as root, the
 rules of whichever runs in full — `pfctl -s rules`, `ipfstat -i`
-or `ipfw list` — for the ports passed in; the default comes from
-them as the OS file describes. Unprivileged, report the status
-lines and list the rules as skipped.
+or `ipfw list`, each through `sed -E "${fc:?}"` — for the ports passed
+in; the default comes from them as the OS file describes.
+Unprivileged, report the status lines and list the rules as
+skipped.
 
 - None running → **CRITICAL** "No active firewall"
 - Running but its `_enable` variable is not `YES` → **WARN**: the
@@ -87,10 +91,10 @@ lines and list the rules as skipped.
 
 **On a firewall appliance** (OPNsense, pfSense) the vendor owns the
 ruleset and its default deny; skip the default check above. Read
-`pfctl -s rules` once and report every rule that passes traffic in
-on a WAN interface from any source, **WARN** when one reaches SSH
-or the web UI. The appliance file names where those rules live in
-its web UI.
+`pfctl -s rules | sed -E "${fc:?}"` once and report every rule that
+passes traffic in on a WAN interface from any source, **WARN**
+when one reaches SSH or the web UI. The appliance file names where
+those rules live in its web UI.
 
 IPv6: a pf rule without `inet` or `inet6` covers both families,
 so the gap is a default block that carries `inet` with none for

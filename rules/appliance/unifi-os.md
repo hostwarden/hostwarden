@@ -222,7 +222,10 @@ included
   API keeps its secrets in `x_` fields (`x_passphrase`,
   `x_password`, the VPN keys). For housekeeping, project
   `.data[] | {name, model, state, upgradable, version}` for devices
-  and `.data[] | {subsystem, status}` for health.
+  and `.data[] | {subsystem, status}` for health. A firewall rule's,
+  policy's or port forward's `name` and `description` are free
+  text and stay out of every projection; name one by its `_id` or
+  `id` (`rules/secrets.md` → Commands That Leak).
 - The endpoints the read admin reaches are the classic API under
   `/proxy/network/api/s/<site>/` — `stat/health`, `stat/device`,
   `stat/sta` (connected clients), `stat/sysinfo`, `rest/networkconf`,
@@ -380,7 +383,8 @@ directory.
   kernel. The kernel ruleset is generated and changes at each
   provisioning; when the question is about one rule on this box,
   read only its chain (`nft list chain …`, or `iptables-save` through
-  `grep`), and never base a change on it.
+  `grep`), piped through `sed -E "${fc:?}"` (`fc`: `rules/secrets.md`
+  → Commands That Leak), and never base a change on it.
 - Rules, port forwards and zones change in the application, after
   asking, with no revert (`rules/ssh-safety-net.md`; Network API →
   Writing): name what reaches SSH and the UniFi OS web UI.
@@ -492,7 +496,8 @@ with these changes:
 - Firewall (`references/firewall.md`): replaced by the application's
   rules (see Firewall). With read access they come from the API —
   `rest/portforward` and `rest/firewallrule`, and the zone-based
-  `firewall/policies` where key reads are allowed; otherwise the user
+  `firewall/policies` where key reads are allowed, projected without
+  `name` and `description` as under Network API; otherwise the user
   reads them out.
   A port forward or WAN rule to the console's SSH is the CRITICAL
   above; the web UI reachable from the internet directly, not

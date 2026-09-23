@@ -145,7 +145,10 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   all inbound traffic; LAN has default allow rules.
 - Read-only: `pfctl -sr` (rules), `pfctl -sn` (NAT), `pfctl -ss`
   (states), `pfSsh.php playback pfanchordrill`. The generated
-  ruleset is in `/tmp/rules.debug`.
+  ruleset is in `/tmp/rules.debug`. A rule listing, that file's
+  included, goes through `sed -E "${fc:?}"`, which withholds the
+  description pfSense writes into each rule's label (`fc`:
+  `rules/secrets.md` → Commands That Leak).
 - **Rules are changed in the web UI**, never with `pfctl -f` on a
   file you wrote: the next filter reload (almost every save)
   replaces it.
@@ -158,8 +161,12 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   `easyrule unblock <if> <src>` removes a block. Ask first.
 - **Anti-lockout rule:** keeps the web UI and SSH reachable on LAN,
   ahead of user rules. It can be disabled under System > Advanced >
-  Admin Access. Check that it is on before any rule change. Do not
-  turn it off unless the user explicitly asks.
+  Admin Access. Check that it is on before any rule change: it is
+  on while `grep -c '<noantilockout' /conf/config.xml` prints `0`
+  (`system/webgui/noantilockout`,
+  <https://github.com/pfsense/pfsense/blob/master/src/etc/inc/filter.inc>).
+  A rule listing cannot tell, since `fc` withholds its label. Do
+  not turn it off unless the user explicitly asks.
 - `pfctl -d` switches off the firewall **and NAT** until the next
   reload: everyone behind it loses internet access. It is an
   emergency tool for the user on the console, not a safety net for

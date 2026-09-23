@@ -290,8 +290,10 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
 - **Expected:** the `iptables` service with its rules in
   `/etc/sysconfig/iptables`, as XCP-ng ships it. Not `firewalld`;
   do not install or enable it.
-- Read-only: `iptables -S; ip6tables -S`; `iptables -L -n -v` only
-  when the packet counters matter.
+- Read-only, each piped through `sed -E "${fc:?}"` (`fc`:
+  `rules/secrets.md` → Commands That Leak): `iptables -S;
+  ip6tables -S`; `iptables -L -n -v` only when the packet counters
+  matter.
 - XAPI listens on 443 (HTTPS), and on 80 unless the pool sets
   `https-only=true` (8.3), which closes it on the management
   interface (<https://docs.xcp-ng.org/releases/release-8-3/>).
@@ -311,8 +313,8 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   restored, then `systemctl restart iptables` where the service ran
   before, or `systemctl stop iptables` where it did not. Loaded
   rules against the file: `iptables-save` and
-  `/etc/sysconfig/iptables`. An IPv6 rule goes
-  the same way with `ip6tables-restore --test`,
+  `/etc/sysconfig/iptables`, both through `sed -E "${fc:?}"`. An IPv6
+  rule goes the same way with `ip6tables-restore --test`,
   `/etc/sysconfig/ip6tables` and the `ip6tables` service.
 
 ## SSH

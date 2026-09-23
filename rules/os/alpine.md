@@ -177,7 +177,13 @@ service as shipped cuts the SSH session. Before
    `openssh-nftrules`, opens port 22 only.
 3. Start it, and make every later ruleset change, through
    `rules/ssh-safety-net.md`:
-   - **check:** `rc-service nftables checkconfig`.
+   - **check:** the command below, which passes with `rc=0`; an
+     error quotes the rule it failed on (`fc`: `rules/secrets.md`
+     → Commands That Leak).
+     ```
+     { rc-service nftables checkconfig 2>&1; echo "rc=$?"; } \
+       | sed -E "${fc:?}"
+     ```
    - **apply:** `rc-service nftables start`, or `reload` once it
      runs.
    - **revert:** the backups restored, then
@@ -196,11 +202,12 @@ service as shipped cuts the SSH session. Before
 
 Discuss all of it with the user first (`rules/firewall-changes.md`).
 
-Checks, for housekeeping and the security audit alike:
+Checks, for housekeeping and the security audit alike (`fc`:
+`rules/secrets.md` → Commands That Leak):
 
 ```
 rc-update show boot default
-ufw status verbose
+ufw status verbose | sed -E "${fc:?}"
 ```
 
 A runlevel that lists `nftables` means nftables; one that lists
