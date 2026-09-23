@@ -349,6 +349,13 @@ Source for everything below unless noted: the admin guide,
   by all nodes.
 - ZFS: `zpool status`, `zfs list`. LVM-thin: `lvs` (watch `Data%`
   and `Meta%`: a full thin pool stops guest writes).
+- The ZFS settings and the ARC limit are recorded as
+  `rules/storage-inventory.md` says. From 8.1 on, the installer
+  writes `zfs_arc_max` as 10% of the RAM, at most 16 GiB, into
+  `/etc/modprobe.d/zfs.conf`; a node installed earlier runs with
+  the ZFS default. A new value there takes effect at boot on a
+  node booting from ZFS only after `update-initramfs -u -k all`
+  ([Proxmox VE](https://pve.proxmox.com/pve-docs/chapter-sysadmin.html)).
 - Ceph: `pveceph status` or `ceph -s`. Anything that is not
   `HEALTH_OK` goes to the user before any reboot.
 

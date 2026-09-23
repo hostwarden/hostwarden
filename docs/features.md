@@ -64,6 +64,26 @@ see, never from a name alone. A jail without a network
 stack of its own has no MAC, and links by its path or by
 name and IP address together.
 
+## ZFS and btrfs
+
+On a host with ZFS pools or btrfs, Hostwarden records the settings
+that decide how the storage behaves, once, in
+`memory/servers/<host>/storage.md`: each pool's layout, TRIM,
+compatibility and features not yet enabled, the dataset properties
+someone set by hand (compression, `sync`, dedup, record size),
+encryption roots, the ARC limits, and btrfs profiles, compression
+and quotas. Housekeeping reads them again on every run and names
+what changed.
+
+It also rates them: `sync=disabled` on data that matters, dedup
+without the RAM for it, compression off, autotrim off on flash
+with no trim running, a special vdev with less redundancy than the
+pool, an ARC that leaves too little room for a hypervisor's VMs,
+and btrfs profiles left half converted. Pool features that
+`zpool upgrade` would enable are reported, never enabled: that
+step cannot be undone, and it is yours. Tell it why a setting is
+the way it is, and it stops asking.
+
 ## Server baseline
 
 What every server is expected to have is written down in

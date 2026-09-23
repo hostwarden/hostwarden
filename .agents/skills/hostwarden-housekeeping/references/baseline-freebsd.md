@@ -20,7 +20,7 @@ Run the generic "any backup at all?" check — see
 `references/backup-presence.md` → FreeBSD Probes. It runs on every
 host, independent of `memory.md` service entries.
 
-## Disk Usage and ZFS
+## Disk Usage
 
 ```bash
 df -h -t nodevfs,fdescfs,procfs,tmpfs,nullfs
@@ -30,21 +30,9 @@ df -h -t nodevfs,fdescfs,procfs,tmpfs,nullfs
 - **CRITICAL** if any filesystem > 95% used
 
 On ZFS, `df` shows each dataset against the pool's free space, so
-the pool is the number that counts. Where a pool exists:
-
-```bash
-zpool list -H -o name,cap,health
-zpool status
-```
-
-- **WARN** if a pool's `cap` > 80% — ZFS slows down well before
-  it is full
-- **CRITICAL** if a pool's `cap` > 95%
-- **CRITICAL** for a pool that is not `ONLINE`, or whose
-  `zpool status` lists read, write or checksum errors
-- **INFO** if the `scan:` line shows the last scrub older than 35
-  days, or none. `daily_scrub_zfs_enable` in `/etc/periodic.conf`
-  turns on the periodic scrub; it is off by default.
+the pool is the number that counts: its fill level, health, errors
+and scrub age, and the pool's settings, are
+`references/zfs-btrfs.md`.
 
 ## Memory and Swap
 

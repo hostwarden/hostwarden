@@ -3,9 +3,11 @@
 Each server: `memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
 optionally `rules.md` (per-server rule
-overrides — see `rules/overrides.md`), and on a
+overrides — see `rules/overrides.md`), on a
 hypervisor `guests.md`, its guest inventory
-(`rules/hypervisors.md`). A hypervisor cluster or
+(`rules/hypervisors.md`), and on a host with ZFS
+pools or btrfs `storage.md`, their settings
+(`rules/storage-inventory.md`). A hypervisor cluster or
 pool keeps its members, state and guest inventory in
 `memory/clusters/<name>/` instead (`rules/hypervisors.md`
 → Clusters and Pools).
@@ -91,7 +93,9 @@ route every later session through the host.
 
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
-outdated entries, merge related items.
+outdated entries, merge related items. A change to a
+ZFS or btrfs setting, a mount option or an ARC limit
+updates `storage.md` in the same step.
 
 **Update `Last connected:` on every connection.**
 
@@ -124,6 +128,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Arch:`, `RAM:`, `Disk:` | `first-detection.md`        | first connection |
 | `Virtualization:`        | `first-detection.md`        | first connection |
 | `Hypervisor:`            | `first-detection.md`        | first connection |
+| `Storage:`               | `storage-inventory.md`      | first connection |
 | `Installation:`          | `os/windows.md`             | first connection |
 | `PowerShell:`, `Admin:`  | `os/windows.md`             | first connection |
 | `Full disk access:`      | `os/macos.md`               | first connection |

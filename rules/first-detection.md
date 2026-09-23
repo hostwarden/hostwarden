@@ -47,6 +47,7 @@ are there.
      'bastille iocage appjail pot cbsd;' \
      'ls -d /run/libvirt /var/snap/lxd/common/lxd /var/lib/lxc /dev/vmm;' \
      'ls /etc/jail.conf /etc/jail.conf.d; sysrc jail_enable jail_conf;' \
+     'echo @storage; ls -d /dev/zfs; grep -c -w btrfs /proc/mounts;' \
      'echo @platform; cat /proc/version; printenv WSL_DISTRO_NAME'
    ```
    It goes out, and its first line is read, as
@@ -104,8 +105,10 @@ are there.
    line names a maker (many ARM boards), `Arch:` holds
    the architecture alone. An image, an installer or a
    binary download picks its build by this line.
-   Add `zpool status` to the next call on a FreeBSD
-   host with ZFS. Whether the hardware is the host's
+   Whether it has ZFS pools or btrfs comes from the
+   lines after `@storage`; see
+   `rules/storage-inventory.md` → Detection. Whether
+   the hardware is the host's
    own comes from the lines after `@virt`; see
    Virtualization below. Whether it runs guests of
    its own comes from the lines after `@hypervisor`;

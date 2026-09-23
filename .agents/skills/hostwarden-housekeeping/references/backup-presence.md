@@ -55,8 +55,9 @@ grep -riE "$KW" /etc/cron.d /etc/cron.daily /etc/cron.weekly \
   | grep -vE '^[^:]*:[[:space:]]*#'
 crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -iE "$KW"
 
-# Filesystem snapshots
-zpool list 2>/dev/null && \
+# Filesystem snapshots (no zpool without /dev/zfs: it would load
+# the module, rules/storage-inventory.md → Detection)
+test -e /dev/zfs && zpool list 2>/dev/null && \
   zfs list -t snapshot -o name,creation -s creation \
     2>/dev/null | tail -3
 command -v snapper >/dev/null && snapper list-configs
@@ -138,7 +139,7 @@ service -e | grep -iE 'zrepl|sanoid|bacula|bareos'
 # root's crontab needs root: as a normal user, sudo -n crontab …
 
 # ZFS snapshots, newest last
-zfs list -H -t snapshot -o name,creation -s creation \
+test -e /dev/zfs && zfs list -H -t snapshot -o name,creation -s creation \
   2>/dev/null | tail -3
 ```
 
