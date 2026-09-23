@@ -44,6 +44,9 @@ df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 - **WARN** if any filesystem > 85% used
 - **CRITICAL** if any filesystem > 95% used
 
+ZFS pools and btrfs filesystems have their own fill levels,
+health and settings: `references/zfs-btrfs.md`.
+
 ## Memory and Swap
 
 ```bash

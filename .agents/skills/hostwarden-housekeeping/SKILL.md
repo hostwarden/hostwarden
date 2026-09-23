@@ -45,7 +45,10 @@ applies before any of this runs.
    passthrough inventory from `references/passthrough.md`, and
    `references/bmc-event-log.md`, which settles the `Management:`
    line on every host and reads the event log where there is a
-   BMC. An override of `rules/baseline.md` changes what the checks
+   BMC. The `@storage` lines of the step-1 probe run in the
+   first batch; where they find ZFS or btrfs, or memory has a
+   `Storage:` line, `references/zfs-btrfs.md` runs too. An
+   override of `rules/baseline.md` changes what the checks
    that measure it expect, and where one fills the sections left
    empty there, `rules/baseline.md` → The Sections an Override
    Fills says how they are checked.
@@ -76,10 +79,9 @@ Read on demand, only when the relevant section applies:
   severity rules (CRITICAL / WARN / INFO).
 - `references/baseline-linux.md` — disk, memory, load, uptime,
   updates, firewall, NTP, network, logs, SSL certs, kernel.
-- `references/baseline-freebsd.md` — disk and ZFS pools, memory
-  with the ARC, load, base and package updates, pkg audit,
-  release support, pf or ipfw, enabled services, NTP, logs, SSL
-  certs, kernel.
+- `references/baseline-freebsd.md` — disk, memory with the ARC,
+  load, base and package updates, pkg audit, release support,
+  pf or ipfw, enabled services, NTP, logs, SSL certs, kernel.
 - `references/baseline-macos.md` — disk, memory, load, updates
   and restarts, Homebrew, Application Firewall, SMART, time sync,
   failed launchd jobs, kernel panics, local snapshots.
@@ -93,6 +95,10 @@ Read on demand, only when the relevant section applies:
   hypervisor, and on one its guest inventory: stopped guests
   without a reason, retired ones past their date, guests that do
   not start with the host.
+- `references/zfs-btrfs.md` — ZFS pools and btrfs filesystems:
+  health, scrubs, and their settings against `storage.md` — sync,
+  dedup, compression, feature flags, TRIM, the ARC beside guests,
+  btrfs profiles.
 - `references/passthrough.md` — what a host handed to a guest, a
   PCI or USB device or a directory, the `Passthrough:` line, and
   a bind mount whose share is not mounted.

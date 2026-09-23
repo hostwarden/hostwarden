@@ -187,6 +187,8 @@ rules/                 — Upstream rule files (git-tracked)
   ssh-safety-net.md    — Timed revert armed before a
                          firewall or network change
   server-memory.md     — Server memory file format
+  storage-inventory.md — ZFS and btrfs settings recorded
+                         once per host
   changelog.md         — Session logging procedure
   activity-check.md    — Recent-activity summary on connect
   config-management.md — Hosts managed by Ansible or
@@ -282,6 +284,8 @@ memory/                — The workspace: all your user
     todo.md            — Session task list
     rules.md           — Per-server rule overrides
     guests.md          — A hypervisor's guest inventory
+    storage.md         — ZFS pool and btrfs settings,
+                         compared by housekeeping
   clusters/<name>/
     cluster.md         — Members, quorum, HA, pool master
     guests.md          — The cluster's guest inventory
