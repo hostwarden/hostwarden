@@ -76,19 +76,19 @@ every platform, whichever check reports it:
   finding.
 - **`none`.** The finding stands.
 - **A line.** Work out which ports still reach the host in that
-  family: every port it listens on at an address other than
-  loopback, private and VPN addresses included, TCP and UDP (the
-  security skill's `references/listening-services.md` lists them;
-  on macOS, whose list there is TCP only, add
-  `sudo -n lsof -iUDP -P -n`), minus
-  those a DNAT hands
-  to a guest first (the `Inbound` lines of a current Traffic
-  flow profile, `rules/network.md`), minus what the line blocks.
-  The line blocks a port only where it stands in front of every
-  way to it: a port bound to an address it does not cover, or
-  bound to all addresses on a host with another interface
-  carrying an address — a second NIC, the LAN, a VPN or
-  overlay — is still reachable that way, and stays.
+  family. Start from every port it listens on at an address
+  other than loopback, private and VPN addresses included, TCP
+  and UDP (the security skill's
+  `references/listening-services.md` lists them; on macOS, whose
+  list there is TCP only, add `sudo -n lsof -iUDP -P -n`). A
+  port's ways in are the addresses it is bound to, and for one
+  bound to all addresses, every address the host has — a second
+  NIC, the LAN, a VPN or overlay included. A way in is closed
+  when the line stands in front of that address and blocks the
+  port, or when a DNAT hands the port to a guest on that
+  address's interface before it reaches the host (the `Inbound`
+  lines of a current Traffic flow profile, `rules/network.md`).
+  A port leaves the set only when every way in is closed.
   Under "all denied except P" everything but P is blocked, under
   "all allowed except P" only P, and a port limited to named
   sources counts as blocked. No port left → **INFO** "Host does
