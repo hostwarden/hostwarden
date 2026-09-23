@@ -410,8 +410,8 @@ Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
   not registered: 110 mail-old (stopped), 120 win1 (Windows),
     121 fw1 (VM, no agent), 130 old-db (blacklisted)
   failed: 131 ci1 (OS detection: timeout; nothing written)
-  written: a read-only: journal line in each guest registered;
-    15 new memory directories, 2 existing ones given Runs on:,
+  written: a read-only: journal line in 16 guests (102 db1: no
+    logger); 15 new memory directories, 2 existing ones given Runs on:,
     guests.md, the local changelog
   next, only with you: the first SSH connection to each guest
   findings:
@@ -430,9 +430,14 @@ Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
 - `failed` names a guest whose probe failed, with the step, the
   error in a few words, and whether its memory directory was
   written.
+- `written` counts the journal lines that were written and names
+  each registered guest whose logger failed
+  (`rules/changelog.md` → Journal Headlines).
 - `findings` holds one line per finding, led by the memory
-  directory it was recorded in. Heinzel finds are left to their
-  own question.
+  directory it was recorded in, or by ID and name for a guest
+  step 3 left out, which has no memory to record it. A registered
+  guest's Heinzel finds are left to their own question; one step
+  3 left out has them here.
 - A line with nothing to list is left out.
 
 Questions follow in their own form: Stopped Guests above and,
