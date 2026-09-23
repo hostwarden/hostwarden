@@ -50,7 +50,7 @@ cp "$REPO/templates/workspace/.gitignore" "$M/.gitignore"
 cat >"$M/user.md" <<EOF
 # Preferences
 # Operator name: Your Full Name
-Fleet name: ops1
+Operator: ops1
 Fleet key: $TMP/fleet-key
 Workspace push: always
 EOF
@@ -90,7 +90,11 @@ server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
 server bad1.example.com 'key line present' ''
+printf -- '- alice\n- ops1\n' >"$M/operators.md"
 git -C "$M" add -A && git -C "$M" commit --quiet -m init
+git init --bare --quiet "$TMP/remote.git"
+git -C "$M" remote add origin "$TMP/remote.git"
+git -C "$M" push --quiet -u origin HEAD
 
 # --- the stand-ins ----------------------------------------------
 S="$TMP/bin"
@@ -261,6 +265,17 @@ run --dry-run --host web1.example.com
 has "$TMP/out" "bundle 'linux' is missing or does not verify" \
   "a changed bundle was not named"
 [ -e "$TMP/collect-web1.example.com" ] && bad "a changed bundle was sent" || ok
+
+# --- a handle the remote's operators.md does not hold -------------
+# Listed in the local copy only, as before a push.
+cp "$M/user.md" "$TMP/user.md"
+sed 's/^Operator: ops1$/Operator: ops2/' "$TMP/user.md" >"$M/user.md"
+printf -- '- ops2\n' >>"$M/operators.md"
+run --dry-run
+rc=$?
+[ "$rc" = 1 ] && grep -q "not in the remote's memory/operators.md" "$TMP/err" \
+  && ok || bad "an unpushed handle ran (rc $rc)"
+cp "$TMP/user.md" "$M/user.md"
 
 # --- only in operations -------------------------------------------
 rm "$M/.hostwarden-workspace"

@@ -13,18 +13,21 @@ through fleet read, never with a shell.
 **Its own personal files.** `memory/user.md`, `memory/blacklist.md`
 and `memory/readonly.md` never sync (`rules/server-memory.md` →
 Personal versus shared), so the operations host has its own. Its
-`user.md` carries, besides what any `user.md` has:
+`user.md` carries:
 
 ```markdown
-Fleet name: ops1
+Operator: ops1
 Report email: ops@example.com
 Workspace push: always
 ```
 
-- `Fleet name:` — one word, the machine's short name. Every key
-  line's command carries it, so the journal on every host reads
+- `Operator:` — the machine's own handle, its short name, never a
+  person's (`rules/ssh-user.md` → Operator). Every key line's
+  command carries it, so the journal on every host reads
   `[ops1 as root] read-only: housekeeping: …`, told apart from the
-  operator's own `[alice as root]`.
+  operator's own `[alice as root]`. It is reserved in
+  `memory/operators.md` like a teammate's, and the fleet run starts
+  only once the remote's copy of that list holds it.
 - `Report email:` — where the nightly report goes, through the
   machine's own mail transport. Without it the report goes to the
   timer's log.
@@ -152,10 +155,13 @@ operator's:
 2. Clone Hostwarden into the account's home, and
    `bin/hostwarden-init --clone <workspace remote>` — the operator
    gives the account a key that may push there.
-3. The personal files above.
-4. The operator makes the fleet key and logs `claude` in.
+3. The personal files above, with an `Operator:` handle
+   `memory/operators.md` does not hold yet.
+4. The operator makes the fleet key and logs `claude` in. The first
+   `claude` session there reserves the handle
+   (`rules/session-start.md` → The operator handle).
 5. Fleet read for each host, from the workstation
-   (`references/install.md`), with this machine's `Fleet name:` as
+   (`references/install.md`), with this machine's `Operator:` as
    the name in every key line.
 6. `bin/hostwarden-fleet-run --no-judge` shows what each host
    returns, `--dry-run` shows the report; neither updates the

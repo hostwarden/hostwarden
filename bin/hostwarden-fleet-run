@@ -112,11 +112,17 @@ mem_line() {
     "$M/servers/$1/memory.md" 2>/dev/null | head -n 1
 }
 
-NAME=$(user_line 'Fleet name')
+# The machine's own operator handle names it in every journal line,
+# and only once the remote's operators.md holds it, so it cannot be
+# a teammate's (rules/ssh-user.md → Operator).
+NAME=$(user_line 'Operator')
 case $NAME in
-  '' | *[!A-Za-z0-9._@-]*)
-    die "memory/user.md needs 'Fleet name: <this host's name>', one word" ;;
+  '' | *[!a-z0-9-]*)
+    die "memory/user.md needs 'Operator: <this host's handle>'" ;;
 esac
+git -C "$M" show '@{upstream}:operators.md' 2>/dev/null \
+  | grep -Eq "^- $NAME[[:space:]]*\$" \
+  || die "Operator: $NAME is not in the remote's memory/operators.md yet"
 KEY=$(user_line 'Fleet key')
 KEY=${KEY:-$HOME/.ssh/id_fleet_read}
 # shellcheck disable=SC2088 # a literal ~/ from user.md, expanded here

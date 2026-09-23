@@ -152,8 +152,10 @@ respond in that language regardless of the setting.
 ## Operator
 
 `Operator:` under `# Preferences` is a short handle
-for the person running Hostwarden — one word, lower
-case letters, digits and hyphens: `Operator: alice`.
+for the person running Hostwarden, or on an
+operations host for the machine itself — one word,
+lower case letters, digits and hyphens:
+`Operator: alice`, `Operator: ops1`.
 It is what `<operator>` stands for wherever
 Hostwarden records who did something: the journal
 prefix, a decision's `Decided:`, a `Planned:` line.
@@ -161,13 +163,14 @@ prefix, a decision's `Decided:`, a `Planned:` line.
 - **Team mode** — the workspace has a remote
   (`rules/server-memory.md` → Personal versus
   shared): the line is required, one handle per
-  teammate, reserved in the shared
-  `memory/operators.md`. Where teammates share a
+  teammate and per operations host, reserved in the
+  shared `memory/operators.md`. Where teammates share a
   login such as `root`, `<unix-user>` cannot tell
   them apart; the handle does. Where it is missing,
   `rules/session-start.md` asks for it and reserves
   it; until the reservation reaches the remote,
-  `<operator>` is `user`.
+  `<operator>` is `user`, and an operations host's
+  nightly run does not start.
 - **Solo** — no remote: the line is optional. Where
   it is missing, `<operator>` is `user`.
 
