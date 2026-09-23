@@ -5,6 +5,10 @@
 #   sh scripts/check.sh --pre-commit  the staged changes' secret scan
 #   sh scripts/check.sh --pre-push    what the pushed commits need,
 #                                     refs on stdin as git gives them
+#   sh scripts/check.sh --help        this usage; runs nothing
+#
+# An agent session runs only --pre-commit and leaves the rest to CI
+# (.claude/rules/pull-requests.md → Checks).
 #
 # CI runs this file and nothing else, so a green run here is a
 # green run there. A check added to the workflow instead is first
@@ -13,6 +17,19 @@
 #
 # A missing tool fails the run instead of skipping its step: a
 # check that quietly did not happen reads like one that passed.
+
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
+}
+
+# First of all: an argument not known here would otherwise fall
+# through to the full run, --help included.
+[ $# -le 1 ] || { usage >&2; exit 2; }
+case "${1:-}" in
+  ''|--pre-commit|--pre-push) ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; exit 2 ;;
+esac
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || {
   echo "check: not inside a git checkout" >&2
