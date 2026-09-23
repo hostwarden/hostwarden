@@ -7,10 +7,13 @@ overrides — see `rules/overrides.md`), on a
 hypervisor `guests.md`, its guest inventory
 (`rules/hypervisors.md`), and on a host with ZFS
 pools or btrfs `storage.md`, their settings
-(`rules/storage-inventory.md`). A hypervisor cluster or
-pool keeps its members, state and guest inventory in
-`memory/clusters/<name>/` instead (`rules/hypervisors.md`
-→ Clusters and Pools).
+(`rules/storage-inventory.md`). A host adopted from
+Heinzel has `heinzel-memory.md` until its first
+connection and `heinzel-inventory.md` until its
+leads are checked (`rules/heinzel-adoption.md`). A
+hypervisor cluster or pool keeps its members, state
+and guest inventory in `memory/clusters/<name>/`
+instead (`rules/hypervisors.md` → Clusters and Pools).
 
 Two guests can carry the same hostname: the same instance name
 in two Incus or LXD projects, or a VM cloned and never renamed.
@@ -145,6 +148,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Management:`            | `management-controller.md`  | first need       |
 | `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |
 | `heinzel legacy:`        | `heinzel-adoption.md`       | legacy settled   |
+| `Other ways in:`         | `heinzel-adoption.md`       | host adopted     |
 | `Config management:`     | `config-management-leads.md`| tool found       |
 | `Provisioned by:`        | `config-management-leads.md`| tool found       |
 | `Web server:`            | `service-class-check.md`    | service found    |
@@ -161,6 +165,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `SSH: untested`          | `hypervisors.md`            | guest registered |
 | `Baseline:`              | `baseline.md`               | baseline applied |
 | `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
+| `Baseline check:`        | `baseline.md`               | baseline measured|
 | `Network:`               | `network.md`                | first connection |
 | `Access:`                | `ssh-safety-net.md`         | paths tested     |
 | `API read:`              | `appliance-api.md`          | access set up    |

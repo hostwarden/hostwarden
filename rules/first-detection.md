@@ -12,6 +12,11 @@ are there.
 
 ## On first connection
 
+What counts as a first connection:
+`rules/first-connection.md` step 6. A host adopted
+from Heinzel is one; what Heinzel remembered never
+stands in for this probe.
+
 0. **Check access control and DNS alias.** For remote
    servers: check blacklist, then read-only list
    (see `rules/access-control.md`), then DNS aliases

@@ -232,6 +232,98 @@ logger -t hostwarden "Renamed heinzel artifacts: \
   /var/backups/hostwarden/heinzel-rename-map-20260920-1412.txt"
 ```
 
+## Heinzel's memory
+
+A host adopted from Heinzel (`hostwarden-adopt`)
+arrives with Heinzel's `memory.md` as
+`memory/servers/<hostname>/heinzel-memory.md` and no
+`memory.md`. Its first connection — the adoption's
+onboarding, or whichever session reaches it first —
+is a first connection in every step of
+`rules/first-connection.md`, and writes `memory.md`
+in the form of `rules/server-memory.md`. A guest
+registered through its host (`rules/hypervisors.md`
+→ Registering Guests) is written the same way, its
+network profile read inside it through the host in
+one call, like its other steps.
+
+`heinzel-memory.md` is a worklist, like the
+inventory: never edited, never read as the host's
+current state, and split up by that first connection
+— nothing of it is left as prose. Once `memory.md` is
+written and each part below has its place, delete
+it. The workspace keeps it in its history, since the
+adoption committed it. The Heinzel entries in
+`changelog.log` stay as they are, the start of the
+host's history.
+
+Write `memory.md` from these sources, and only
+these:
+
+1. **What this connection probed** — every field
+   `rules/server-memory.md` lists, and on a
+   hypervisor what `rules/hypervisors.md` adds. A
+   value Heinzel remembered is never written in
+   place of a probed one, and a field no probe could
+   read is `unknown`. Where the two differ, say so
+   in one line: `OS: Debian 12 in Heinzel's memory,
+   Debian 13 now`. Heinzel's `IP:` is checked as
+   `rules/dns-aliases.md` → IP Verification checks
+   `- IP:`: no address in common, and you stop and
+   tell the user before anything else.
+2. **Standing facts that are still true**, one line
+   each:
+   - Flags for other admins, and what only a person
+     could have told Heinzel: the host's purpose,
+     its owner, a maintenance window. A fact the
+     host can show is checked against this
+     connection's probes first; one only a person
+     knows keeps the date of its record.
+   - Decisions the user made, with `(user, <date>)`,
+     the date of Heinzel's record. One that changes
+     what a rule does on this host — no automatic
+     reboots, a pinned version — is offered as a
+     block in the host's `rules.md`
+     (`rules/overrides.md`) once the user's request
+     is answered, and written only on a yes.
+   - The `Flags:` and `Rollback:` lines of
+     `changelog.log` that no later entry lifts or
+     undoes (`rules/changelog.md` → Standing lines).
+   - Ways in other than the one this session took,
+     as `- Other ways in (heinzel, untested): …`,
+     until `rules/ssh-safety-net.md` → Which way in
+     tests them and writes `Access:`.
+   - Paths, script names and units exactly as
+     Heinzel wrote them. A true fact about a host
+     path is never rewritten, even where it names
+     Heinzel.
+3. **What the Heinzel check confirmed** — Record
+   above.
+
+History is not carried: incidents, what was done
+when, versions that were current then, how a problem
+was solved. `changelog.log` has it, and the
+workspace's history has the prose. The ~30 lines of
+`rules/server-memory.md` hold: what does not fit and
+is not standing is history.
+
+Two kinds of fact have another place:
+
+- **The host's own network** — bridges, VLANs, VPN,
+  addresses, resolvers. This first connection runs
+  the full network profile (`rules/network.md`), and
+  Heinzel's notes on it are leads the profile
+  confirms or contradicts; a contradiction is one of
+  its findings.
+- **Facts that belong to no single host** — a shared
+  gateway, a VPN subnet, the backup target on
+  another host, which UPS powers the machine, a
+  controller's address. They go to
+  `memory/network.md` (`rules/server-memory.md` →
+  Cross-server facts) once this connection or the
+  user confirms them; an unconfirmed one is named in
+  the report and not recorded.
+
 ## On the workstation (local mode)
 
 The local machine may carry scheduled runs from

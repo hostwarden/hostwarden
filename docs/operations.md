@@ -437,14 +437,30 @@ The migration renames skill overrides in
   Heinzel is in ~/heinzel, take it over", or
   `/hostwarden-adopt ~/heinzel` in Claude Code. The copy
   itself is a script — `bin/hostwarden-adopt <path>`
-  moves access lists, overrides and every server's
-  memory across and renames what is found by name.
-  The skill then reads your memory files and
-  changelogs into a per-host list of leads: the
-  scripts, configs, units and cron jobs your sessions
-  improvised, and asks whether those should get
-  Hostwarden's names on the servers too: rename, keep,
-  or decide per host. Neither contacts a server.
+  moves access lists, overrides, the host keys in
+  `memory/known_hosts` and every server's memory
+  across and renames what is found by name. Heinzel's
+  memory of a host arrives as `heinzel-memory.md`,
+  unchanged, until the host's onboarding splits it up;
+  the workspace's history keeps the original. The skill
+  then reads it and the changelogs into a per-host
+  list of leads: the scripts, configs, units and cron
+  jobs your sessions improvised, and asks whether
+  those should get Hostwarden's names on the servers
+  too: rename, keep, or decide per host. None of that
+  contacts a server.
+- Then, unless you choose "only copy", the skill
+  onboards each host the way a first connection would
+  have: read-only, host by host. It writes the host's
+  memory in Hostwarden's form from what it finds, with
+  your earlier decisions and notes carried over, runs
+  the network profile, checks the leads, and on a
+  hypervisor inventories and registers the guests —
+  and adopts the guests still in your Heinzel
+  checkout together with it, if you say so. It ends
+  with what each host lacks against the baseline and
+  asks which to take on first. With "only copy", the
+  first connection to each host does the same later.
 - Keeping Heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your Heinzel checkout so it reads both

@@ -29,7 +29,9 @@ the gaps the user picks. The pipeline in
    reference, in as few bundled calls as they allow, and list what
    is missing, one line per section. A section the host's
    appliance, platform or role file replaces is measured by that
-   file.
+   file. Record the result as `- Baseline check: <date>, missing
+   <sections>` (`rules/baseline.md` → Rendered Versions), or
+   `complete`.
 3. **Ask** which to apply, in one question.
 4. **Apply** one section at a time, each under the rules
    `AGENTS.md` → Where the Rest Lives → Before you change something
@@ -37,5 +39,6 @@ the gaps the user picks. The pipeline in
 5. **SSH Login and Admin Keys:** as `rules/baseline.md` → SSH
    Login says.
 6. **Record** `- Baseline: retrofitted <date>` in the host's
-   memory once every section the user picked is in place, and log
-   each change (`rules/changelog.md`).
+   memory once every section the user picked is in place and none
+   is missing any more, and rewrite the `Baseline check:` line with
+   what still is. Log each change (`rules/changelog.md`).

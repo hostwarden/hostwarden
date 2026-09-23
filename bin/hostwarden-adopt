@@ -12,7 +12,8 @@
 #   hostwarden-adopt --help              Show this help
 #
 # Copies memory/ state — access lists, service policy,
-# overrides, per-server memory — and then runs
+# overrides, trusted host keys, per-server memory, a
+# host's memory.md as heinzel-memory.md — and then runs
 # hostwarden-migrate to rename skill overrides. Reads
 # the old checkout, never writes into it.
 #
@@ -27,9 +28,9 @@
 # that takes its hosts one at a time later.
 #
 # The judgement work around this (reading changelogs
-# into a per-host inventory, the coexistence rules)
-# lives in the hostwarden-adopt skill; this script is
-# only the deterministic part.
+# into a per-host inventory, the coexistence rules,
+# onboarding each host) lives in the hostwarden-adopt
+# skill; this script is only the deterministic part.
 set -ef # -f: a host name is data, never a glob to expand.
 
 usage() {
@@ -158,9 +159,15 @@ same_content() {
     # has added to since, the log above all, differs
     # rather than being extra; it still matches as long
     # as the imported bytes come first, unchanged.
+    # A host's memory.md matches its heinzel-memory.md
+    # (keep_heinzel_memory below).
     diff -rq "$1" "$2" 2>/dev/null | while IFS= read -r sc_line; do
       case "$sc_line" in
         "Only in $2"*) continue ;;
+        "Only in $1: memory.md" \
+          | "Files $1/memory.md and $2/memory.md differ")
+          [ -f "$2/heinzel-memory.md" ] && [ ! -L "$2/heinzel-memory.md" ] \
+            && cmp -s "$1/memory.md" "$2/heinzel-memory.md" || exit 1 ;;
         "Files $1/"*" differ")
           sc_rel=${sc_line#"Files $1/"}
           sc_rel=${sc_rel%%" and $2/"*}
@@ -259,6 +266,20 @@ if [ ! -d "$OLD/memory" ] || [ ! -d "$OLD/rules" ]; then
 fi
 
 cd "$REPO_DIR"
+
+# Adopted access lists and server memory are operations
+# state (AGENTS.md → Development or Operations). A
+# development checkout or a worktree can neither keep
+# them nor onboard a host, so it gets nothing; a dry
+# run writes nothing and may look.
+# shellcheck source=../.claude/hooks/mode.sh
+. .claude/hooks/mode.sh
+hostwarden_mode "$REPO_DIR"
+if [ "$HOSTWARDEN_MODE" != operations ] && [ -z "$LIST" ]; then
+  echo "error: this is not an operations checkout — adopt into one" >&2
+  echo "  (the main checkout of a worktree, or bin/hostwarden-init)" >&2
+  exit 1
+fi
 
 # An ln -s that cannot link fails, and set -e would stop the run
 # with some hosts copied and others not. Find out before the first
@@ -362,6 +383,26 @@ copy_item() {
   else
     cp "$ci_src" "$ci_dst"
   fi
+}
+
+# keep_heinzel_memory memory/servers/<host>
+#
+# Heinzel's memory.md becomes heinzel-memory.md, byte
+# for byte. Left as memory.md, it would read as a
+# Hostwarden memory file: the next connection would
+# take the short subsequent-connection path and trust
+# a narrative that was true when Heinzel wrote it.
+# Without memory.md, every rule treats that connection
+# as the first, which writes one in Hostwarden's form
+# (rules/heinzel-adoption.md → Heinzel's memory). An
+# alias is a link to its canonical host and is left
+# alone.
+keep_heinzel_memory() {
+  [ -L "$1" ] && return 0
+  [ -f "$1/memory.md" ] && [ ! -L "$1/memory.md" ] || return 0
+  [ -e "$1/heinzel-memory.md" ] || [ -L "$1/heinzel-memory.md" ] \
+    || mv "$1/memory.md" "$1/heinzel-memory.md"
+  return 0
 }
 
 COPIED=""
@@ -479,6 +520,54 @@ for ITEM in $SHARED; do
   [ -n "$LIST" ] || copy_item "$OLD/memory/$ITEM" "$ITEM"
 done
 
+# Host keys the old checkout trusted. An override can
+# point ssh at memory/known_hosts (UserKnownHostsFile);
+# without the file, every login under it fails, or it
+# trusts whatever key the next connection is shown.
+# Only the records come across — host keys, and
+# @cert-authority and @revoked lines, the last so that
+# a key revoked there stays revoked here — cut after the
+# key: a comment, on its own line or after a key, can
+# hold anything, a password included, and this file is
+# shared. A file holding a private key is not copied at
+# all (rules/secrets.md). grep and sed, because they
+# read the file without running anything it contains.
+KH_SRC="$OLD/memory/known_hosts"
+KH_DST="memory/known_hosts"
+KH_KEY='[[:space:]]+(ssh-|ecdsa-|sk-)'
+KH_KEEP="^@(cert-authority|revoked)[[:space:]]+[^[:space:]]+$KH_KEY|^[^@#[:space:]][^[:space:]]*$KH_KEY"
+KH_CUT='s/^((@[^[:space:]]+[[:space:]]+)?[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+[^[:space:]]+).*/\1/'
+if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
+  # The records, read once; empty when there is
+  # nothing to copy.
+  KH_PUB=''
+  if [ ! -f "$KH_SRC" ]; then
+    echo "skipped memory/known_hosts — not a readable file in the old checkout" >&2
+  elif grep -q 'PRIVATE KEY' "$KH_SRC"; then
+    echo "skipped memory/known_hosts — it holds a private key; left in the old checkout" >&2
+  else
+    KH_PUB=$(grep -E "$KH_KEEP" "$KH_SRC" | sed -E "$KH_CUT" || :)
+    [ -n "$KH_PUB" ] || echo "skipped memory/known_hosts — no host key line in it" >&2
+  fi
+  if [ -z "$KH_PUB" ]; then
+    :
+  elif [ ! -L "$KH_DST" ] \
+      && printf '%s\n' "$KH_PUB" | cmp -s - "$KH_DST" 2>/dev/null; then
+    NOTHING_LEFT=yes
+  elif occupied "$KH_SRC" "$KH_DST" && [ -z "$FORCE" ]; then
+    SHARED_PENDING="$SHARED_PENDING known_hosts"
+  else
+    KH_OUT=$(( $(grep -c '' "$KH_SRC") - $(printf '%s\n' "$KH_PUB" | grep -c '') ))
+    KH_NOTE=''
+    [ "$KH_OUT" -le 0 ] || KH_NOTE=" (host keys only, $KH_OUT lines left out)"
+    plan "known_hosts$KH_NOTE"
+    if [ -z "$LIST" ]; then
+      rm -rf "$KH_DST"
+      printf '%s\n' "$KH_PUB" > "$KH_DST"
+    fi
+  fi
+fi
+
 if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
   if [ -z "$HOSTS" ]; then
     # Globbing, briefly and deliberately: it is the
@@ -567,6 +656,15 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       # inventory for the hosts a run selected, and a
       # repeat run copies none of them.
       echo "already adopted: memory/servers/$H"
+      # A memory.md identical to the old checkout's is
+      # still Heinzel's, whatever copied it here.
+      if [ -z "$LIST" ]; then
+        for AD in "memory/servers/$H" ${CANON:+"memory/servers/$CANON"}; do
+          AD_SRC="$OLD/memory/servers/${AD##*/}"
+          cmp -s "$AD_SRC/memory.md" "$AD/memory.md" 2>/dev/null \
+            && keep_heinzel_memory "$AD"
+        done
+      fi
       DONE_HOSTS="$DONE_HOSTS$H|"
       [ -z "$CANON" ] || DONE_HOSTS="$DONE_HOSTS$CANON|"
       NOTHING_LEFT=yes
@@ -631,8 +729,10 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
           || [ -n "$FORCE" ]; then
         plan "servers/$CANON (canonical host of $H)"
         DONE_HOSTS="$DONE_HOSTS$CANON|"
-        [ -n "$LIST" ] \
-          || copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
+        if [ -z "$LIST" ]; then
+          copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
+          keep_heinzel_memory "memory/servers/$CANON"
+        fi
       fi
     fi
     if [ -n "$KEEP" ]; then
@@ -647,7 +747,10 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     esac
     plan "servers/$H"
     DONE_HOSTS="$DONE_HOSTS$H|"
-    [ -n "$LIST" ] || copy_item "$SRC" "servers/$H" link
+    if [ -z "$LIST" ]; then
+      copy_item "$SRC" "servers/$H" link
+      keep_heinzel_memory "memory/servers/$H"
+    fi
   done
 fi
 
@@ -699,5 +802,6 @@ sh bin/hostwarden-migrate
 
 echo "The old checkout was not modified."
 echo "Next: the hostwarden-adopt skill reads the copied"
-echo "changelogs into a per-host inventory of what Heinzel"
-echo "left on the servers."
+echo "memory and changelogs into a per-host inventory of"
+echo "what Heinzel left on the servers, then onboards each"
+echo "host as on its first connection."
