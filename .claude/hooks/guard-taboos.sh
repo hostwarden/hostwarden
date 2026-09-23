@@ -54,14 +54,16 @@
 # permission prompt (see "The ask tier" below the scope for the
 # membership criterion and the modes that deny instead):
 #
-#   - stopping or deleting a system container or VM (pct/qm
-#     stop, shutdown or destroy, incus/lxc stop or delete, virsh
-#     destroy, shutdown or undefine, xe vm-shutdown, vm-destroy
-#     or vm-uninstall, lxc-stop, lxc-destroy, and TrueNAS'
-#     midclt call vm.stop / vm.delete and its virt.instance
-#     twins; that API's own poweroff method spells the word the
-#     rule above denies in every mode, which is stricter than
-#     this tier and stays that way)
+#   - stopping or deleting a system container, jail or VM (the
+#     managers and their verbs in GUESTMGRS: pct/qm stop, shutdown
+#     or destroy, incus/lxc stop or delete, virsh destroy,
+#     shutdown or undefine, xe vm-shutdown, vm-destroy or
+#     vm-uninstall, bastille/iocage stop or destroy; and lxc-stop,
+#     lxc-destroy, jail -r, service jail stop and its bastille and
+#     iocage twins, and TrueNAS' midclt call vm.stop / vm.delete
+#     and its virt.instance twins; that API's own poweroff method
+#     spells the word the rule above denies in every mode, which
+#     is stricter than this tier and stays that way)
 #   - a routine storage change: the change tier of
 #     rules/storage.md (lvextend, mdadm --add, zpool replace,
 #     zfs destroy of a snapshot, ...)
@@ -814,7 +816,32 @@ esac
 # Windows rules need no scope: WIN below gates them, and a
 # Windows user reaches wsl --unregister or Stop-Computer without
 # admin, so they apply in both.
-REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|lxc-[[:alpha:]]+|incus|pct|qm|xe|midclt|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
+#
+# The global options a guest manager takes between its name and
+# its verb: a flag with a value of its own (virsh -c URI, incus
+# --project NAME, xe -s HOST -u USER), or any single dash word. The
+# power-off rules and the guest rule below both need them.
+GOPTS='([[:space:]]+(-c|--connect|--project|-s|--server|-u|--user|-p|--port|-pw|-pwf|--password)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
+# The guest managers, written once: each as name:verbs, the verbs
+# that stop or delete one of its guests as an ERE alternation. REACH
+# takes the names, the host shutdown rules the managers whose verb
+# is a bare shutdown, and the guest rule at the end all of it. A
+# manager whose stop has another shape is a form of its own there
+# (GUESTFORMS).
+GUESTMGRS='pct:stop|shutdown|destroy qm:stop|shutdown|destroy
+virsh:destroy|shutdown|undefine incus:stop|delete lxc:stop|delete
+xe:vm-shutdown|vm-destroy|vm-uninstall bastille:stop|destroy
+iocage:stop|destroy'
+GMNAMES='' GMWORDS='' GMSTOP='' GMSHUT='' GMSHUTWORDS=''
+for gm in $GUESTMGRS; do
+  GMNAMES="$GMNAMES|${gm%%:*}" GMWORDS="$GMWORDS ${gm%%:*}"
+  GMSTOP="$GMSTOP|${gm%%:*}$GOPTS[[:space:]]+(${gm#*:})"
+  case "|${gm#*:}|" in
+  *'|shutdown|'*)
+    GMSHUT="$GMSHUT|${gm%%:*}" GMSHUTWORDS="$GMSHUTWORDS ${gm%%:*}" ;;
+  esac
+done
+REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc-[[:alpha:]]+|midclt|machinectl|systemd-nspawn|jexec|jail'"$GMNAMES"'|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
 SCOPE=full
 if [ -f "$HOOKDIR/mode.sh" ]; then
   # shellcheck source=mode.sh
@@ -845,13 +872,6 @@ full() { [ "$SCOPE" = full ]; }
 # machine running systemd, whose logind lets the user at the seat
 # power off without root.
 power() { full || [ -d /run/systemd/system ]; }
-
-# The global options a guest manager (pct, qm, virsh, incus, lxc,
-# xe) takes between its name and its verb: a flag with a value of
-# its own (virsh -c URI, incus --project NAME, xe -s HOST -u USER),
-# or any single dash word. The power-off rules and the guest rule
-# below both need them.
-GOPTS='([[:space:]]+(-c|--connect|--project|-s|--server|-u|--user|-p|--port|-pw|-pwf|--password)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*'
 
 # --- The ask tier ---------------------------------------------
 # Some effects are legitimate work and still the user's call:
@@ -939,18 +959,20 @@ esac
 # skips their greps, as the Windows rules do with WIN below.
 case "$TEXT" in
 *shutdown*)
-  # pct, qm and virsh take shutdown as a verb for one guest, which
-  # the guest rule at the end asks about. The host rules here judge
-  # the segments with that verb renamed, and the full set is
-  # restored after them.
+  # Some guest managers take shutdown as a verb for one guest
+  # (GMSHUT), which the guest rule at the end asks about. The host
+  # rules here judge the segments with that verb renamed, and the
+  # full set is restored after them. xe's vm-shutdown needs no
+  # renaming: none of these rules reads a shutdown after a dash.
   SEGS_ALL=$SEGS
-  case $SEGS in
-  *pct*|*qm*|*virsh*|*vm-shutdown*)
-    SEGS=$(printf '%s\n' "$SEGS" | sed -E \
-      -e "s/((^|[^[:alnum:]_.-])(pct|qm|virsh)${GOPTS}[[:space:]]+)shutdown/\1guest-off/g" \
-      -e "s/((^|[^[:alnum:]_.-])xe${GOPTS}[[:space:]]+vm-)shutdown/\1off/g")
-    ;;
-  esac
+  for gm in $GMSHUTWORDS; do
+    case $SEGS in
+    *"$gm"*)
+      SEGS=$(printf '%s\n' "$SEGS" | sed -E \
+        "s/((^|[^[:alnum:]_.-])(${GMSHUT#|})${GOPTS}[[:space:]]+)shutdown/\1guest-off/g")
+      break ;;
+    esac
+  done
   # Windows' shutdown is judged below, so the Linux rule exempts
   # it rather than lending it its -r: shutdown.exe, or shutdown
   # whose every flag takes Windows' slash, as a Windows server
@@ -1987,22 +2009,34 @@ fi
 # Only the manager's own verb counts: a service stopped or a file
 # deleted inside a guest through exec stays allowed, and so do
 # snapshot, image, network and storage verbs, which carry a noun
-# before theirs. The case prefilter spares every command without a
+# before theirs. The prefilter spares every command without a
 # manager's name the greps.
+#
+# Beside the managers in GUESTMGRS, the forms of another shape:
+# lxc-destroy; jail(8) with -r or -R among its
+# options, which removes a running jail, -rc included (the restart
+# is a stop first); and the rc scripts that stop every jail of
+# jail.conf, Bastille or iocage (service jail stop, onestop and the
+# rest, or /etc/rc.d/jail stop). lxc-stop has an exemption of its
+# own below, and TrueNAS' API is read through MIDCLT, which carries
+# its own leading boundary.
+GUESTFORMS='lxc-destroy|jail[[:space:]]+(-[[:alpha:]]+[[:space:]]+([^-[:space:];&|][^[:space:];&|]*[[:space:]]+)?)*-[[:alpha:]]*[rR][[:alpha:]]*|(service[[:space:]]+|rc[.]d/)(jail|bastille|iocage)[[:space:]]+(one|fast|force|quiet)?stop'
 guest_ask() {
   ask_for "stopping or deleting a system container or VM" "powers \
 off or destroys that server (rules/system-containers.md)" "Check the \
 guest ID and the host before approving."
 }
-case "$TEXT" in
-*pct*|*qm*|*virsh*|*incus*|*lxc*|*vm-*|*midclt*)
-  if full && hit_without "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)|${MIDCLT}(vm|virt[.]instance)[.](stop|delete)([^[:alnum:]_-]|\$)" \
-    "$HELP"
-  then
-    guest_ask
-  fi
-  ;;
-esac
+for gm in $GMWORDS midclt lxc-destroy jail; do
+  case "$TEXT" in
+  *"$gm"*)
+    if full && hit_without "(^|[^[:alnum:]_.-])(${GMSTOP#|}|$GUESTFORMS)([^[:alnum:]_-]|\$)|${MIDCLT}(vm|virt[.]instance)[.](stop|delete)([^[:alnum:]_-]|\$)" \
+      "$HELP"
+    then
+      guest_ask
+    fi
+    break ;;
+  esac
+done
 case "$TEXT" in
 *lxc-stop*)
   if full && hit_without '(^|[^[:alnum:]_.-])lxc-stop([^[:alnum:]_.-]|$)' \
