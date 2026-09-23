@@ -129,9 +129,15 @@ Record which one in server memory.
   `rules/ssh-safety-net.md`. Loaded rules against the
   file (its step 2), where pf runs, in the backup call:
   ```
-  pfctl -nvf /etc/pf.conf | grep -E '^(pass|block|match|anchor)' > <tmp>
-  pfctl -sr | diff - <tmp> | sed -E "${fc:?}"
+  if pfctl -nvf /etc/pf.conf > <tmp> && pfctl -sr > <tmp2>; then
+    grep -E '^(pass|block|match|anchor)' <tmp> | diff <tmp2> - \
+      | sed -E "${fc:?}" && echo compared
+  else echo unread; fi
   ```
+  Only `compared` is a comparison, of the filter rules
+  alone; `unread` means one side was not read. NAT rules
+  are read with `pfctl -sn | sed -E "${fc:?}"` against
+  the file.
   Check:
   `pfctl -nf /etc/pf.conf`; apply:
   `pfctl -f /etc/pf.conf` (or `pfctl -e`); revert:

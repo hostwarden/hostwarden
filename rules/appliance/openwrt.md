@@ -79,13 +79,15 @@ of the current release branch,
     read;
   - `uci set`, `add`, `add_list`, `del_list` and `delete` stage a
     change in `/tmp/.uci`;
-  - `uci changes` shows what is staged, `uci revert <config>`
-    drops it;
+  - `uci changes | sed 's/=.*//'` shows which options are staged,
+    without their values, which can be a password or a key;
+    `uci revert <config>` drops it;
   - `uci commit <config>` writes it to flash.
   Always name the config on `commit`: a bare `uci commit` also
-  writes whatever else is staged in `/tmp/.uci`. Run `uci changes`
-  first; changes you did not stage are someone else's, so stop and
-  ask.
+  writes whatever else is staged in `/tmp/.uci`. Run
+  `uci changes | sed 's/=.*//'` first, which names each staged
+  option without its value; changes you did not stage are someone
+  else's, so stop and ask.
 - **Apply** with `reload_config`, which reloads each service whose
   config changed, or with the service's own `reload` (see Service
   Manager). A committed change that was never applied takes effect
@@ -180,7 +182,7 @@ of the current release branch,
   forwarded traffic, and forwarding allowed from `lan` to `wan`.
   Source:
   <https://openwrt.org/docs/guide-user/firewall/firewall_configuration>.
-- Read-only: `uci show firewall | awk "$u"`, with `u` from
+- Read-only: `uci show firewall | awk "${u:?}"`, with `u` from
   Housekeeping and Audits: it withholds the free text, the name of
   a rule, redirect, NAT rule or forwarding, a log prefix, a comment,
   a description and raw options, and keeps zone, ipset and helper
@@ -201,7 +203,12 @@ of the current release branch,
     returns sed's status; an error quotes the rule it failed on. A
     failed check means `uci revert firewall`, so the broken ruleset
     never reaches flash. For the network there is no check beyond
-    `uci changes`.
+    the staged changes, printed with the values of addressing
+    options only:
+    ```
+    uci changes network | sed -E \
+      '/[.](proto|ipaddr|netmask|gateway|ip6addr|ip6gw|dns|device|ifname|type|ports|metric|addresses)[+]?=/!s/[+]?=.*//'
+    ```
   - **apply:** `uci commit firewall; service firewall reload`
     (`uci commit network; service network reload` for the
     network).
@@ -300,7 +307,7 @@ of the current release branch,
   (`fc`: `rules/secrets.md` → Commands That Leak):
   ```
   cat /etc/openwrt_release; uptime; df -Ph /overlay /tmp
-  grep -F "/ overlay ro," /proc/mounts; service; uci changes
+  grep -F "/ overlay ro," /proc/mounts; service; uci changes | sed 's/=.*//'
   logread -l 50; owut check
   { nft list chain inet fw4 input | grep -E "policy|jump (input_|handle_)"
     nft list table inet fw4 | grep -E "jump (accept|reject|drop)_from_"
@@ -339,7 +346,7 @@ of the current release branch,
       || (o == "name" && t[s] ~ /^(rule|redirect|nat|forwarding)$/)) \
       $0 = k "=..."
     print }'
-  uci show dropbear; uci show firewall | awk "$u"; netstat -tlnp
+  uci show dropbear; uci show firewall | awk "${u:?}"; netstat -tlnp
   h='s#^([^:]*[[:space:]])?[a-z]+://([^/[:space:]]*@)?([^/:[:space:]]+).*#\1\3#'
   o='s/^([[:space:]]*option[[:space:]]+[^[:space:]]+).*/\1 .../'
   sed -E -e "$h" -e "$o" /etc/apk/repositories.d/*.list \

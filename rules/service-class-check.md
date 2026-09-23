@@ -175,13 +175,12 @@ listing with `P='ntpd|local_unbound'` as well.
 **macOS (Homebrew, best-effort)**
 
 ```bash
-members=(httpd nginx caddy lighttpd
-         postgresql mariadb mysql
-         postfix exim opensmtpd msmtp
-         chrony unbound bind dnsmasq
-         podman containerd)
-brew list --formula \
-  | grep -Fxf <(printf '%s\n' "${members[@]}")
+m='httpd nginx caddy lighttpd
+   postgresql mariadb mysql
+   postfix exim opensmtpd msmtp
+   chrony unbound bind dnsmasq
+   podman containerd'
+brew list --formula | grep -Fx "$(printf '%s\n' $m)"
 ```
 
 macOS installs are user-scoped rather than

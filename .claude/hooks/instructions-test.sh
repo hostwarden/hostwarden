@@ -750,29 +750,38 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
 # rules/secrets.md -> Commands That Leak holds the filter that shows
 # a rule's comment as `...`; the probes that run as one call carry a
 # copy of it. A copy that drifts withholds less, and nothing in the
-# output says so.
+# output says so. A copy ends at its closing quote, wherever on the
+# line that stands, and one that never closes is a finding too.
 report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
   | xargs -0 awk -v root="$CORPUS_ROOT/" -v ref="$ROOT/rules/secrets.md" '
   function take(l) { sub(/^[ \t]+/, "", l); return l "\n" }
+  function closes(l, first) {
+    if (first) sub(/^[ \t]*fc=\047/, "", l)
+    return index(l, "\047") > 0
+  }
+  function rel(n) {
+    if (index(n, root) == 1) n = substr(n, length(root) + 1)
+    return n
+  }
   BEGIN {
     while ((getline l < ref) > 0) {
-      if (!in_ref && l ~ /^[ \t]*fc=\047/) in_ref = 1
-      if (in_ref) { want = want take(l); if (l ~ /\047$/) break }
+      first = 0
+      if (!in_ref && l ~ /^[ \t]*fc=\047/) in_ref = first = 1
+      if (in_ref) { want = want take(l); if (closes(l, first)) break }
     }
     close(ref)
     if (want == "") print "rules/secrets.md: no fc filter to compare with"
   }
-  FNR == 1 { on = 0 }
-  !on && /^[ \t]*fc=\047/ { on = 1; got = ""; at = FNR }
+  FNR == 1 && on { print rel(pf) ":" at ": fc never closes"; on = 0 }
+  { pf = FILENAME; first = 0 }
+  !on && /^[ \t]*fc=\047/ { on = first = 1; got = ""; at = FNR }
   on { got = got take($0)
-    if ($0 ~ /\047$/) {
+    if (closes($0, first)) {
       on = 0
-      if (got != want) {
-        n = FILENAME
-        if (index(n, root) == 1) n = substr(n, length(root) + 1)
-        print n ":" at ": fc differs from rules/secrets.md"
-      }
-    } }')" "one firewall listing filter"
+      if (got != want) print rel(FILENAME) ":" at ": fc differs from rules/secrets.md"
+    } }
+  END { if (on) print rel(pf) ":" at ": fc never closes" }')" \
+  "one firewall listing filter"
 
 # --- every required check is a CI job ---------------------------
 # The ruleset names the checks a pull request waits for, ci.yml

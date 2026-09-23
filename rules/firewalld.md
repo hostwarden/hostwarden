@@ -36,13 +36,29 @@ without `--permanent` first, so that `firewall-cmd --reload` is
 the revert: it replaces the runtime configuration with the
 permanent one.
 
-Loaded rules against the files (step 2 of the safety net):
-`diff <(firewall-cmd --list-all-zones)
-<(firewall-cmd --permanent --list-all-zones) | sed -E "${fc:?}"`: any
-output but an `interfaces:` line is runtime-only state the revert
-discards too, possibly the rule SSH depends on. Settle it with the
-user before the change. `--reload` binds every interface to its
-zone again, NetworkManager's included (firewalld's `reload`).
+Loaded rules against the files (step 2 of the safety net), in
+`sh`, which has no process substitution on Debian:
+
+```
+t=$(mktemp); p=$(mktemp)
+for v in --list-all-zones --list-all-policies "--direct --get-all-rules"
+do
+  if firewall-cmd $v > "$t" && firewall-cmd --permanent $v > "$p"
+  then diff "$t" "$p" | sed -E "${fc:?}" && echo "compared $v"
+  else echo "unread $v"; fi
+done
+rm -f "$t" "$p"
+```
+
+Each view is compared only where `compared <view>` says so;
+`unread <view>`, or no such line, means one side was not read, and
+nothing is known about that view (`--list-all-policies` needs
+firewalld 0.9). An ipset's entries are in none of the views. Any
+line above a `compared` but an `interfaces:` line is runtime-only
+state the revert discards too, possibly the rule SSH depends on. Settle it
+with the user before the change. `--reload` binds every interface
+to its zone again, NetworkManager's included (firewalld's
+`reload`).
 
 Once a fresh login works, repeat the commands with `--permanent`,
 then `firewall-cmd --check-config`. Never
