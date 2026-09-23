@@ -155,9 +155,24 @@ Rules for macOS (Apple Silicon and Intel).
   - Disabled? The list names enabled jobs too, so
     match the state, `true` on older releases, and
     the label as a fixed string, since dots and
-    brackets in it would otherwise act as a pattern:
-    `launchctl print-disabled <domain> | grep -F
-    -e '"<label>" => disabled' -e '"<label>" => true'`
+    brackets in it would otherwise act as a pattern.
+    `print-disabled` fails for a `gui/<uid>` whose
+    user has no login session, yet that user's
+    disabled jobs stay disabled at the next login, so
+    a failure is no answer: read launchd's own record
+    `R` then (`disabled.plist` for `system`), readable
+    by any user. With neither read, the state is
+    `unknown`, never enabled:
+    ```
+    R=/private/var/db/com.apple.xpc.launchd/disabled.<uid>.plist
+    if L=$(launchctl print-disabled <domain>) ||
+       L=$(plutil -p "$R"); then
+      printf '%s\n' "$L" | grep -qF -e '"<label>" => disabled' \
+        -e '"<label>" => true' && echo disabled || echo enabled
+    else
+      echo unknown
+    fi
+    ```
   - Load: `sudo launchctl bootstrap <domain> <plist>`
   - Unload: `sudo launchctl bootout <domain> <plist>`
   - Disable: `sudo launchctl disable <domain>/<label>`
