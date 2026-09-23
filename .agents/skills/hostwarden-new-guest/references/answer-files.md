@@ -109,6 +109,24 @@ cloud-init
 Syntax: <https://www.debian.org/releases/stable/amd64/apb.en.html>.
 
 ```
+d-i debian-installer/locale string en_US.UTF-8
+d-i keyboard-configuration/xkb-keymap select us
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string web1
+d-i netcfg/get_domain string example.com
+d-i mirror/country string manual
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+d-i clock-setup/utc boolean true
+d-i time/zone string Etc/UTC
+d-i clock-setup/ntp boolean true
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
 d-i passwd/root-login boolean true
 d-i passwd/root-password-crypted password !
 d-i passwd/make-user boolean false
@@ -116,8 +134,26 @@ d-i pkgsel/include string openssh-server qemu-guest-agent cloud-init
 d-i pkgsel/upgrade select none
 tasksel tasksel/first multiselect standard
 popularity-contest popularity-contest/participate boolean false
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/bootdev string default
 d-i finish-install/reboot_in_progress note
 ```
+
+- Every question the installer asks has an answer, or the install
+  stops at it and never reaches the wait below: locale, keyboard,
+  network, mirror, clock, the disk, the accounts, the packages and
+  the boot loader. The values are Debian's own example preseed
+  (<https://www.debian.org/releases/stable/example-preseed.txt>),
+  with the guest's names and the baseline's timezone filled in.
+- The disk is the new guest's own empty one. `regular` lays it out
+  with the architecture's usual partitions and `atomic` puts
+  everything in one filesystem; the three `confirm` answers let
+  partman write that layout without asking. With a single disk
+  partman needs no `partman-auto/disk`; a guest given more than one
+  names the system disk there.
+- `grub-installer/bootdev string default` installs to the primary
+  disk, which is what the example preseed offers for a machine
+  without a USB stick in it.
 
 - `!` as the crypted password disables the account: "The
   `passwd/root-password-crypted` and `passwd/user-password-crypted`
@@ -315,9 +351,20 @@ that dead end stands: say so, and let them decide.
 ### Proxmox VE and Incus
 
 A Proxmox VE VM takes the installer ISO as `--ide2 <storage>:iso/…`
-and the answer ISO as a second CD drive; nothing else about
-`references/proxmox.md` changes. Incus and LXD create from images,
-not installers, and have no path here: use `references/incus.md`.
+and the answer ISO as a second CD drive. Attaching the ISO is not
+enough: the installer reads it only when the kernel command line
+names it, and Proxmox VE boots the installer ISO's own menu, which
+Hostwarden cannot edit. So this is the route of a host whose UI
+owns the guests, above: the user opens the VM's console
+(`qm terminal <vmid>` or the web UI's), adds the argument there
+once — `autoinstall` for Ubuntu, `inst.ks=hd:<device>:<path>` or
+`autoyast=device://<device>/<file>` for the others — and preseed
+is not offered, for the same reason as there. Say this in the plan,
+and start the VM only once the user is at the console. The rest of
+`references/proxmox.md` is unchanged.
+
+Incus and LXD create from images, not installers, and have no path
+here: use `references/incus.md`.
 
 ## Checking it before the install
 

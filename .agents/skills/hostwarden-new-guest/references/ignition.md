@@ -101,10 +101,18 @@ storage:
 `--strict` makes a warning an error, so nothing reaches a guest on
 a config that only nearly parses. The transpile runs in the same
 call as the creation, ahead of it, so a config that does not
-transpile creates nothing:
+transpile creates nothing. The output is written straight to the
+file the platform reads, so nothing has to be copied between the
+transpile and the creation:
+
+- libvirt: `/var/lib/libvirt/images/<name>.ign`, the path the
+  `--qemu-commandline` below names;
+- Proxmox VE: `/var/lib/vz/snippets/<vmid>-config.ign`, the
+  snippet `--cicustom` names (on `local`; another storage with
+  `snippets` content has its own directory).
 
 ```bash
-butane --strict --pretty --output /run/hostwarden.ign /run/hostwarden.bu
+butane --strict --pretty --output /var/lib/libvirt/images/web1.ign /run/hostwarden.bu
 ```
 
 `--output` rather than a redirect, as the documentation asks
@@ -114,7 +122,7 @@ call reports — the documented container does the same work:
 
 ```bash
 podman run --interactive --rm quay.io/coreos/butane:release \
-  --pretty --strict < /run/hostwarden.bu > /run/hostwarden.ign
+  --pretty --strict < /run/hostwarden.bu > /var/lib/libvirt/images/web1.ign
 ```
 
 A transpile that fails stops the creation; it is the only check
@@ -213,9 +221,10 @@ finding of this run.
   on open — written into `storage.files` with the unit that loads
   it in `systemd.units`, for the tool the release's own
   documentation names and no other; do not assume
-  `nftables.service` exists. Where the release documents none, the
-  guest is created without a firewall and that is a finding of
-  this run, reported in one line.
+  `nftables.service` exists. Where the release documents none, stop
+  before the creation and say so: a guest is never created outside
+  the baseline's deny-by-default firewall. Offer a distribution
+  whose cloud image the other paths cover instead.
 - **SSH Login and Admin Keys:** the Butane config above.
 - **Time Sync:** the image's own service; Flatcar's documentation
   names `systemd-timesyncd` for its images
