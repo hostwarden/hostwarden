@@ -4,11 +4,11 @@
 #
 # Holds a session to the mode mode.sh determines:
 #
-#   development, worktree — ssh, scp, sftp, mosh, sudo, sudoedit,
-#     doas and pkexec are refused, and so are the configuration
-#     tools that reach servers or a cloud on their own: ansible,
-#     ansible-playbook, ansible-pull, ansible-console, terraform
-#     and tofu. The shim does most of it
+#   development, worktree — the tools in shim/ are refused: remote
+#     logins and copies, privilege tools, and the configuration
+#     tools that reach servers or a cloud on their own. That list
+#     is the one to extend; guard-mode-test.sh holds the prefilter
+#     below and T and W to it. The shim does most of it
 #     (shim.sh): session-mode.sh puts it first on PATH, so the
 #     tools refuse wherever they are started from, rsync's own
 #     ssh included. This hook denies the forms that go past a
@@ -134,7 +134,7 @@ deny() {
 # engine or a VM manager holds none of the forms this hook denies.
 # That is nearly every call, and it ends here without a single
 # process. A Monitor call is rare and
-# always goes on.
+# always goes on. The tool names below are shim/'s, as in T and W.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
   *'"tool_name"'*'"Monitor"'*) ;;

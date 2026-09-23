@@ -338,11 +338,17 @@ esac
 # jq marks it w and it passes, where its description would
 # otherwise be scanned as a command. Without jq it cannot be told
 # from a Monitor call jq failed on, so it is scanned raw.
-CMD=""
+# The permission mode, which only the guest rule at the end reads,
+# comes from the same jq call, as shell assignments @sh has quoted.
+# -s parses the whole input before printing anything, so input jq
+# cannot read sets neither and is scanned raw.
+CMD="" MODE=""
 if command -v jq >/dev/null 2>&1; then
-  CMD=$(printf '%s' "$INPUT" | jq -r 'if .tool_name == "Monitor"
-    and (.tool_input.command // "") == "" then "w"
-    else "c" + (.tool_input.command // "") end' 2>/dev/null) || CMD=""
+  eval "$(printf '%s' "$INPUT" | jq -rs '@sh "CMD=\(map(
+      if .tool_name == "Monitor" and (.tool_input.command // "") == ""
+      then "w" else "c" + (.tool_input.command // "") end) | join("\n"))
+    MODE=\(map(.permission_mode // empty | tostring) | join("\n"))"' \
+    2>/dev/null)"
   [ "$CMD" = w ] && exit 0
   CMD=${CMD#c}
 fi
@@ -518,6 +524,15 @@ SEGS=$(printf '%s\n' "$CMD"
 segments() {
   printf '%s\n' "$SEGS"
 }
+
+# The three texts once more, one per line, for a builtin case. Each
+# segment is a piece of one of them, so a word without a newline is
+# in some segment exactly when it is in TEXT: a case on it answers
+# hit on a plain word without a process, and keeps the greps of a
+# rule off every command that lacks the word the rule needs.
+TEXT="$CMD
+$CMDJ
+$CMDQ"
 
 hit() {
   segments | grep -Eq "$1"
@@ -770,11 +785,12 @@ hit_without() {
 # through the command string too, so writing the literal
 # assignment into a file or commit message also triggers
 # this; phrase such text without the equals sign.
-if hit 'HOSTWARDEN_GUARD_DISABLE='; then
+case "$TEXT" in
+*HOSTWARDEN_GUARD_DISABLE=*)
   deny "inline HOSTWARDEN_GUARD_DISABLE assignment is not \
 allowed - the operator must export it before launching the \
-session"
-fi
+session" ;;
+esac
 
 # --- Scope: full, or local to a development session -----------
 # The header says what each scope covers. A hook copied without
@@ -867,13 +883,9 @@ ask_for() {
   ASKTEXT="${ASKTEXT:+$ASKTEXT }$1 $2. $3"
 }
 # ask_decide -- ask where a prompt reaches a human, deny where none
-# does. No jq means no mode, hence deny.
+# does. MODE was read with the command; no jq means no mode, hence
+# deny.
 ask_decide() {
-  MODE=
-  if command -v jq >/dev/null 2>&1; then
-    MODE=$(printf '%s' "$INPUT" \
-      | jq -r '.permission_mode // empty' 2>/dev/null) || MODE=
-  fi
   case $MODE in
   default|acceptEdits|plan|auto)
     decide ask "$ASKTEXT"
@@ -897,22 +909,30 @@ HELP='^[^;&|]*[[:space:]](--help|-h)([[:space:]]|[;&|]|$)'
 MIDCLT='(^|[^[:alnum:]_.-])midclt([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+call([[:space:]]+-[^[:space:]]+)*[[:space:]]+["'"'"']?'
 
 # --- Power off ------------------------------------------------
-if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
-  deny "halt/poweroff never runs without explicit user request"
-fi
-if power && hit '(^|[^[:alnum:]_.-])(tel)?init[[:space:]]+0([^0-9]|$)'; then
-  deny "init 0 powers off the server"
-fi
+# Each rule greps only a command that holds its word (TEXT above).
+case "$TEXT" in
+*halt*|*poweroff*)
+  if power && hit '(^|[^[:alnum:]_-])(halt|poweroff)([^[:alnum:]_-]|$)'; then
+    deny "halt/poweroff never runs without explicit user request"
+  fi ;;
+esac
+case "$TEXT" in
+*init*)
+  if power && hit '(^|[^[:alnum:]_.-])(tel)?init[[:space:]]+0([^0-9]|$)'; then
+    deny "init 0 powers off the server"
+  fi ;;
+esac
 # echo o > /proc/sysrq-trigger cuts the power instantly, and b
 # resets without syncing. Nothing reads this file, so any
 # mention of it is a write.
-if power && hit 'sysrq-trigger'; then
-  deny "sysrq-trigger powers off or resets the server without \
-shutting anything down cleanly"
-fi
+case "$TEXT" in
+*sysrq-trigger*)
+  power && deny "sysrq-trigger powers off or resets the server \
+without shutting anything down cleanly" ;;
+esac
 # Both Linux rules need the word itself, so a command without it
 # skips their greps, as the Windows rules do with WIN below.
-case "$CMD$CMDJ$CMDQ" in
+case "$TEXT" in
 *shutdown*)
   # pct, qm and virsh take shutdown as a verb for one guest, which
   # the guest rule at the end asks about. The host rules here judge
@@ -999,6 +1019,55 @@ then
 which is a power-off for everything running in them"
 fi
 
+# True when the command writes INTO a path matching $1 (a regex
+# without a trailing boundary) through a tool that names its
+# target: tee or sponge, dd of=, an output flag (curl -o, wget -O,
+# sort -o, openssl -out), or the destination of cp, rsync or scp.
+# The same shapes reach a disk device, sshd_config and a key.
+#
+# A copy is judged by its DESTINATION, the last operand of its
+# invocation, because the common legitimate forms name the
+# protected path as the source: scp -i ~/.ssh/id_ed25519, a backup
+# of authorized_keys, cp /dev/sda disk.img. Trailing options,
+# redirects, a closing parenthesis or backtick and a comment are
+# skipped while looking for that operand; cp -t names it up front.
+# An = right before an output path is excluded on purpose:
+# ssh -o IdentityFile=~/.ssh/id_ed25519 only reads the key.
+#
+# The set of writers cannot be closed (an archive unpacked into
+# place, a git checkout, any tool with an output flag of its own),
+# so this stays a backstop, not a sandbox.
+#
+# END includes < and >: a redirect glued to the path
+# (tee /etc/ssh/sshd_config<<EOF) still ends it.
+END="([\"'[:space:];|&)\`<>]|\$)"
+ENDARG="[\"']?([[:space:]]+(-[^[:space:]]*|[0-9]*[<>]+&?([[:space:]]*[^[:space:]]+)?))*[[:space:])\`]*(#.*)?\$"
+writes_to() {
+  hit "(^|[^[:alnum:]_.-])(tee|sponge)[[:space:]]([^;|&<>]*[[:space:]])?[^[:space:];|&]*$1$END" \
+    || hit "(^|[[:space:]])of=[^[:space:]]*$1$END" \
+    || hit "(^|[[:space:]])(-[oO]|-out|--output(-document)?)([[:space:]]+|=)?[^[:space:]=]*$1$END" \
+    || hit "(^|[^[:alnum:]_.-])(cp|rsync|scp)[[:space:]]([^;&|]*[[:space:]])?[^[:space:]]*$1$ENDARG" \
+    || hit "(^|[^[:alnum:]_.-])cp[[:space:]]([^;&|]*[[:space:]])?(-[[:alpha:]]*t[[:space:]]*|--target-directory[=[:space:]])[^[:space:]]*$1$END"
+}
+
+# --- Disks: one precheck --------------------------------------
+# Every disk rule from here to shred, and the write onto a device
+# after the storage rules, needs a word of its own in the command,
+# so one case finds out whether any can match, and the twenty-odd
+# greps below run only then. A new disk rule adds its word here; the
+# storage rules between the two parts keep prechecks of their own. The words are case-sensitive as the rules read them,
+# diskutil and PhysicalDrive in any case; dd, shred and a write onto
+# a device need a device path. The Windows rules in between keep
+# their own precheck, WIN, which opens this one too.
+DISK=$WIN
+case "$TEXT" in
+*mkfs*|*mke2fs*|*mkntfs*|*mkdosfs*|*mkexfatfs*|*mkudffs*) DISK=1 ;;
+*newfs*|*wipefs*|*fdisk*|*gdisk*|*parted*|*growpart*) DISK=1 ;;
+*gpt*|*gpart*|*[Dd][Ii][Ss][Kk][Uu][Tt][Ii][Ll]*) DISK=1 ;;
+*blkdiscard*|*nvme*|*hdparm*|*badblocks*) DISK=1 ;;
+*/dev/*|*[Pp][Hh][Yy][Ss][Ii][Cc][Aa][Ll][Dd][Rr][Ii][Vv][Ee]*) DISK=1 ;;
+esac
+if [ -n "$DISK" ]; then
 # --- Filesystem creation --------------------------------------
 if full && hit '(^|[^[:alnum:]_.-])mkfs(\.[[:alnum:]]+)?([^[:alnum:]_.-]|$)'
 then
@@ -1173,6 +1242,8 @@ if full && hit '(^|[^[:alnum:]_.-])shred([^[:alnum:]_.-]|$)' \
   deny "shred on a disk device overwrites the whole device"
 fi
 
+fi # the disk precheck, up to shred
+
 # --- Storage: repair denied, changes asked ---------------------
 # rules/storage.md sorts storage commands into three tiers. Its
 # repair-and-destroy tier is denied here: a repair tool decides on
@@ -1214,11 +1285,14 @@ ZPOOL='(^|[^[:alnum:]_.-])zpool[[:space:]]+'
 # switch, and Repair-Volume only with -Scan; Get-Help and
 # Get-Command in front of it only look it up. Like the diskutil and
 # Windows rules above, these apply in every scope.
-if hit_i '(^|[^[:alnum:]_.-])diskutil([^[:alnum:]_.-]|$)' \
-  && hit_i '(repairvolume|repairdisk)'; then
-  stor_deny "diskutil repairVolume and repairDisk repair a volume or \
+case "$TEXT" in
+*[Dd][Ii][Ss][Kk][Uu][Tt][Ii][Ll]*)
+  if hit_i '(^|[^[:alnum:]_.-])diskutil([^[:alnum:]_.-]|$)' \
+    && hit_i '(repairvolume|repairdisk)'; then
+    stor_deny "diskutil repairVolume and repairDisk repair a volume or \
 rewrite the partition map"
-fi
+  fi ;;
+esac
 if [ -n "$WIN" ] \
   && hit_i '(^|[^[:alnum:]_.-])chkdsk(\.exe)?[[:space:]]+([^;&|]*[[:space:]])?["'\''`]*/(f|r|x|b|spotfix|offlinescanandfix|forceofflinefix)(:|[[:space:]]|["'\''`]|$)'
 then
@@ -1230,7 +1304,7 @@ if [ -n "$WIN" ] \
   stor_deny "Repair-Volume beyond -Scan repairs the volume"
 fi
 if full; then
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *fsck*|*xfs_repair*|*ntfsfix*)
     # fsck, fsck.ext4, fsck_ffs, e2fsck, dosfsck, xfs_repair and
     # ntfsfix, which repairs NTFS and resets its journal. -N is
@@ -1243,7 +1317,7 @@ decides on its own what to throw away"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *btrfs*)
     # btrfs check only reads unless one of these asks it to write.
     if hit "(${BTRFS}c(h(e(c(k)?)?)?)?|(^|[^[:alnum:]_.-])btrfsck)([[:space:]][^;&|]*)?[[:space:]]--(repair|init-csum-tree|init-extent-tree|clear-space-cache|clear-ino-cache)"
@@ -1271,7 +1345,7 @@ the data in it"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *debugfs*)
     if hit '(^|[^[:alnum:]_.-])debugfs([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*w'
     then
@@ -1279,7 +1353,7 @@ the data in it"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *sync_action*)
     # md's repair and resync rewrite every mismatch from one copy of
     # their own choosing, with no checksum to say which is right;
@@ -1294,7 +1368,7 @@ array from a copy md picks"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *mdadm*)
     # Creating, building, growing or rewriting an array's superblock,
     # an assemble forced past its own checks, and the repair and
@@ -1318,7 +1392,7 @@ consistency checks"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *pvcreate*|*pvremove*|*vgremove*|*lvremove*|*lvreduce*|*vgcfgrestore*|*pvck*|*vgck*)
     # Labelling a device, removing a PV, VG or LV, shrinking an LV,
     # restoring old metadata over the current one, and the checkers'
@@ -1335,7 +1409,7 @@ metadata"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *lvcreate*|*lvextend*|*lvresize*|*lvconvert*|*vgcreate*|*vgextend*|*vgreduce*|*pvmove*|*pvresize*)
     # lvresize shrinks with a negative size, and with an absolute one
     # below the current size, which the command line cannot show.
@@ -1360,14 +1434,14 @@ volume"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *zinject*)
     if hit '(^|[^[:alnum:]_.-])zinject([^[:alnum:]_.-]|$)'; then
       stor_deny "zinject injects faults into a live pool"
     fi
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *zpool*)
     # create formats its disks like mkfs; destroy and labelclear
     # remove a pool; -F, -X and -T rewind one, which import takes on
@@ -1377,7 +1451,7 @@ volume"
     # bare, or with -v, it lists. import asks the same way: bare, or
     # with only options (-d dir), it lists what could be imported;
     # with a pool or -a it imports. export unmounts every dataset.
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *create*|*destroy*|*labelclear*)
       if hit_without "${ZPOOL}(create|destroy|labelclear)([^[:alnum:]_-]|\$)" \
         "$STORDRY|$HELP"; then
@@ -1386,7 +1460,7 @@ on their disks"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *import*|*clear*)
       if hit_without "${ZPOOL}(import|clear)([[:space:]][^;&|]*)?[[:space:]](-[[:alnum:]]*[FXTm]|--rewind-to-checkpoint)" \
         "$STORDRY"; then
@@ -1395,7 +1469,7 @@ for good"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *scrub*)
       if hit_without "${ZPOOL}scrub([^[:alnum:]_-]|\$)" \
         "(^|[[:space:]])-[[:alnum:]]*[sp]([[:space:]]|\$)|$HELP"; then
@@ -1403,7 +1477,7 @@ for good"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *attach*|*detach*|*replace*|*offline*|*online*|*add*|*remove*|*split*|*upgrade*|*export*)
       if hit_without "${ZPOOL}((attach|detach|replace|offline|online|add|remove|split|export)([^[:alnum:]_-]|\$)|upgrade([[:space:]]+-[[:alnum:]]+)*[[:space:]]+(-a|[^-[:space:];&|]))" \
         "$STORDRY|$HELP"; then
@@ -1411,7 +1485,7 @@ for good"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *import*)
       # An option ending in c, d, o or R takes a value (-d dir,
       # -o prop, -c cachefile, -R root), which is not a pool name.
@@ -1423,14 +1497,14 @@ for good"
     esac
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *zfs*)
     # destroy of a dataset or volume is its data, and so is -R on a
     # snapshot, destroy or rollback: it takes every dependent clone
     # with it, a dataset of its own and possibly outside the target's
     # tree. A snapshot or bookmark (@, #) otherwise, a rollback and
     # a receive change only what came after, and are asked.
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *destroy*|*rollback*)
       if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+(destroy|rollback)([[:space:]]+-[[:alnum:]]+)*[[:space:]]+-[[:alnum:]]*R' \
         "$STORDRY|$HELP"; then
@@ -1439,7 +1513,7 @@ that depends on the snapshot"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *destroy*)
       if hit_without "(^|[^[:alnum:]_.-])zfs[[:space:]]+destroy([[:space:]]+-[[:alnum:]]+)*[[:space:]]+[\"']?[^-@#[:space:];&|\"'][^@#[:space:];&|\"']*[\"']?([[:space:];&|]|\$)" \
         "$STORDRY|$HELP"; then
@@ -1448,7 +1522,7 @@ and every snapshot of it"
       fi
       ;;
     esac
-    case "$CMD$CMDJ$CMDQ" in
+    case "$TEXT" in
     *destroy*|*rollback*|*recv*|*receive*)
       if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+(destroy|rollback|receive|recv)([^[:alnum:]_-]|$)' \
         "$STORDRY|$HELP"; then
@@ -1458,7 +1532,7 @@ and every snapshot of it"
     esac
     ;;
   esac
-  case "$CMD$CMDJ$CMDQ" in
+  case "$TEXT" in
   *disk.wipe*|*pool.create*)
     if hit "${MIDCLT}(disk[.]wipe|pool[.]create)([^[:alnum:]_.-]|\$)"
     then
@@ -1488,37 +1562,8 @@ zpool destroy"
   esac
 fi
 
-# True when the command writes INTO a path matching $1 (a regex
-# without a trailing boundary) through a tool that names its
-# target: tee or sponge, dd of=, an output flag (curl -o, wget -O,
-# sort -o, openssl -out), or the destination of cp, rsync or scp.
-# The same shapes reach a disk device, sshd_config and a key.
-#
-# A copy is judged by its DESTINATION, the last operand of its
-# invocation, because the common legitimate forms name the
-# protected path as the source: scp -i ~/.ssh/id_ed25519, a backup
-# of authorized_keys, cp /dev/sda disk.img. Trailing options,
-# redirects, a closing parenthesis or backtick and a comment are
-# skipped while looking for that operand; cp -t names it up front.
-# An = right before an output path is excluded on purpose:
-# ssh -o IdentityFile=~/.ssh/id_ed25519 only reads the key.
-#
-# The set of writers cannot be closed (an archive unpacked into
-# place, a git checkout, any tool with an output flag of its own),
-# so this stays a backstop, not a sandbox.
-#
-# END includes < and >: a redirect glued to the path
-# (tee /etc/ssh/sshd_config<<EOF) still ends it.
-END="([\"'[:space:];|&)\`<>]|\$)"
-ENDARG="[\"']?([[:space:]]+(-[^[:space:]]*|[0-9]*[<>]+&?([[:space:]]*[^[:space:]]+)?))*[[:space:])\`]*(#.*)?\$"
-writes_to() {
-  hit "(^|[^[:alnum:]_.-])(tee|sponge)[[:space:]]([^;|&<>]*[[:space:]])?[^[:space:];|&]*$1$END" \
-    || hit "(^|[[:space:]])of=[^[:space:]]*$1$END" \
-    || hit "(^|[[:space:]])(-[oO]|-out|--output(-document)?)([[:space:]]+|=)?[^[:space:]=]*$1$END" \
-    || hit "(^|[^[:alnum:]_.-])(cp|rsync|scp)[[:space:]]([^;&|]*[[:space:]])?[^[:space:]]*$1$ENDARG" \
-    || hit "(^|[^[:alnum:]_.-])cp[[:space:]]([^;&|]*[[:space:]])?(-[[:alpha:]]*t[[:space:]]*|--target-directory[=[:space:]])[^[:space:]]*$1$END"
-}
-
+# The disk precheck again, for the rule that needs writes_to.
+if [ -n "$DISK" ]; then
 # A redirect, tee, cp or download onto a disk device does what
 # dd of= does. /dev/null, /dev/stderr and /dev/disk/by-id are
 # unaffected.
@@ -1528,20 +1573,30 @@ then
   deny "writing onto a raw disk device overwrites its content \
 and partition table"
 fi
+fi # the disk precheck
 
 # --- SSH keys and sshd_config ---------------------------------
 # Deleting is only one way to lose a key. Renaming it away,
 # truncating it to zero, or making it unreadable to sshd have
 # the same effect, and the sshd_config rule below already
 # reflected that while this one did not.
-# KEY is checked once and first: most commands name no key, and
-# every key rule below needs one.
+# KEY and SSHD are checked once and first: most commands name
+# neither, and every rule below and the interpreter rule need one.
+# Each needs a word as well: KEY authorized_keys, .ssh, /etc/,
+# /conf/sshd or ProgramData, SSHD /etc/ or ProgramData.
 # CLOBBER: tools that delete, move, re-permission or rewrite a
 # file named on their command line. Both rules below use it; the
 # sshd_config rule adds cp, since a copy onto it replaces it.
 CLOBBER='rm|shred|unlink|truncate|mv|chmod|chown|install|ln|setfacl|patch'
-HAS_KEY=0
-hit "$KEY" && HAS_KEY=1
+HAS_KEY=0 HAS_SSHD=0
+case "$TEXT" in
+*authorized_keys*|*.ssh*|*/etc/*|*/conf/sshd*|*[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa]*)
+  hit "$KEY" && HAS_KEY=1 ;;
+esac
+case "$TEXT" in
+*/etc/*|*[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Dd][Aa][Tt][Aa]*)
+  hit "$SSHD" && HAS_SSHD=1 ;;
+esac
 if [ "$HAS_KEY" -eq 1 ] \
   && { hit "(^|[^[:alnum:]_-])($CLOBBER)([^[:alnum:]_-]|\$)" \
        || hit '(^|[[:space:]])(-delete|--remove-s(ource|ent)-files)([[:space:]]|$)'; }
@@ -1561,26 +1616,36 @@ fi
 # else it is denied. An --operations list without ssh-hostkeys is
 # asked about all the same - the prompt costs one click, and
 # telling the lists apart is a parser this hook does not need.
-if hit '(^|[^[:alnum:]_.-])virt-sysprep([^[:alnum:]_.-]|$)'; then
-  if first_boot_only "$KEY"; then
-    first_boot_ask "removing an image's SSH host keys with virt-sysprep"
-  else
-    deny "virt-sysprep removes SSH host keys by default - only on a \
+case "$TEXT" in
+*virt-sysprep*)
+  if hit '(^|[^[:alnum:]_.-])virt-sysprep([^[:alnum:]_.-]|$)'; then
+    if first_boot_only "$KEY"; then
+      first_boot_ask "removing an image's SSH host keys with virt-sysprep"
+    else
+      deny "virt-sysprep removes SSH host keys by default - only on a \
 disk image opened with -a, alone on the line, and only with a prompt"
-  fi
-fi
+    fi
+  fi ;;
+esac
+# KEYPRIV only ever matches where KEY does, so both rules below
+# wait for HAS_KEY.
 # A truncating redirect needs no command at all: : > key.
-if hit ">[[:space:]]*[\"']?[^[:space:];|&]*$KEYPRIV"; then
+if [ "$HAS_KEY" -eq 1 ] \
+  && hit ">[[:space:]]*[\"']?[^[:space:];|&]*$KEYPRIV"; then
   deny "redirecting onto an SSH key file truncates it"
 fi
 # ssh-keygen -f onto an existing private key overwrites it.
 # Reading a .pub (for a fingerprint) stays allowed.
-if hit '(^|[^[:alnum:]_-])ssh-keygen([^[:alnum:]_-]|$)' \
-  && hit "$KEYPRIV"; then
-  deny "ssh-keygen pointed at an existing key overwrites it - a \
+case "$TEXT" in
+*ssh-keygen*)
+  if [ "$HAS_KEY" -eq 1 ] \
+    && hit '(^|[^[:alnum:]_-])ssh-keygen([^[:alnum:]_-]|$)' \
+    && hit "$KEYPRIV"; then
+    deny "ssh-keygen pointed at an existing key overwrites it - a \
 fingerprint of a .pub runs in a call of its own, with no private \
 key path in it"
-fi
+  fi ;;
+esac
 # OpenMediaVault's ssh Salt state renders sshd_config and empties and
 # rebuilds /var/lib/openmediavault/ssh/authorized_keys, naming
 # neither path on the command line. It deploys through
@@ -1603,7 +1668,7 @@ changes SSH settings in the web UI"
   fi
   ;;
 esac
-if hit "$SSHD"; then
+if [ "$HAS_SSHD" -eq 1 ]; then
   if hit '>>?[[:space:]]*["'\'']?[^[:space:];|&]*'"$SSHD" \
     || { hit '(^|[^[:alnum:]_-])(sed|perl)([^[:alnum:]_-]|$)' \
          && hit '(^|[[:space:]])-i'; } \
@@ -1753,7 +1818,7 @@ fi
 # Full scope only: a development session reaches none of these
 # tools (the shim refuses them), and this repository names them in
 # rules, tests and commit messages all day.
-case "$CMD$CMDJ$CMDQ" in
+case "$TEXT" in
 *ansible*)
   if full; then
     if hit_without '(^|[^[:alnum:]_.-])ansible-playbook([^[:alnum:]_.-]|$)' \
@@ -1841,7 +1906,7 @@ and cat, or with -m stat"
   fi
   ;;
 esac
-case "$CMD$CMDJ$CMDQ" in
+case "$TEXT" in
 *terraform*|*tofu*)
   # The verb is the first word after the global options, whose value
   # may be quoted (-chdir="my infra"): terraform output apply only
@@ -1892,13 +1957,13 @@ esac
 # cat, grep, jq, stat or sshd -T instead, which is what the rule
 # files use anyway.
 if hit "$INTERP" || { [ -n "$WIN" ] && hit_i "$WININTERP"; }; then
-  if hit "$KEY"; then
+  if [ "$HAS_KEY" -eq 1 ]; then
     deny "an interpreter with an SSH key path on its command \
 line can overwrite or delete the key, and a pattern matcher \
 cannot tell that from a read - read keys with cat, stat or \
 ssh-keygen -lf instead"
   fi
-  if hit "$SSHD"; then
+  if [ "$HAS_SSHD" -eq 1 ]; then
     deny "an interpreter with sshd_config on its command line \
 can rewrite it, and a pattern matcher cannot tell that from a \
 read - read it with cat, grep or sshd -T instead"
@@ -1925,7 +1990,7 @@ guest_ask() {
 off or destroys that server (rules/system-containers.md)" "Check the \
 guest ID and the host before approving."
 }
-case "$CMD$CMDJ$CMDQ" in
+case "$TEXT" in
 *pct*|*qm*|*virsh*|*incus*|*lxc*|*vm-*|*midclt*)
   if full && hit_without "(^|[^[:alnum:]_.-])((pct|qm)${GOPTS}[[:space:]]+(stop|shutdown|destroy)|virsh${GOPTS}[[:space:]]+(destroy|shutdown|undefine)|(incus|lxc)${GOPTS}[[:space:]]+(stop|delete)|xe${GOPTS}[[:space:]]+vm-(shutdown|destroy|uninstall)|lxc-destroy)([^[:alnum:]_-]|\$)|${MIDCLT}(vm|virt[.]instance)[.](stop|delete)([^[:alnum:]_-]|\$)" \
     "$HELP"
@@ -1934,7 +1999,7 @@ case "$CMD$CMDJ$CMDQ" in
   fi
   ;;
 esac
-case "$CMD$CMDJ$CMDQ" in
+case "$TEXT" in
 *lxc-stop*)
   if full && hit_without '(^|[^[:alnum:]_.-])lxc-stop([^[:alnum:]_.-]|$)' \
     "(^|[[:space:]])(-r|--reboot)([[:space:]]|\$)|$HELP"
