@@ -281,6 +281,10 @@ A master missing from the workspace counts as a changed master. A
 mode or owner other than the recorded one is drift of its own. A
 `secret-inline` file compares only its master's hash against the
 record; on the host it is checked for existence, mode and owner.
+An entry whose hash reads `unverified` is a master rebuilt from
+Heinzel's copy that its host has not confirmed yet: it is no
+drift, only not checked, and `rules/heinzel-adoption.md` →
+Heinzel's copies settles it.
 
 Nothing is overwritten in either direction without the user's
 answer. For each finding, show what differs and ask:

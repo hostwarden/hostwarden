@@ -486,6 +486,20 @@ The migration renames skill overrides in
   those should get Hostwarden's names on the servers
   too: rename, keep, or decide per host. None of that
   contacts a server.
+- The copies your Heinzel sessions kept of the files
+  they wrote onto servers — a `scripts/` directory
+  under a host, a tool at the top of `memory/`,
+  wherever they ended up — are always rebuilt into
+  [masters](features.md#masters-of-deployed-files):
+  each file at its host path under the host's
+  `files/`, one deployed to several hosts under
+  `memory/fleet/`, workstation scripts in
+  `memory/tools/`, open plans in `memory/plans/`,
+  evidence in the host's `notes/`. A file with
+  credentials stays in the old checkout. Each master
+  is recorded as unverified until the host's first
+  connection compares it; where the host's file
+  differs, the host's version becomes the master.
 - Then, unless you choose "only copy", the skill
   onboards each host the way a first connection would
   have: read-only, host by host. It writes the host's

@@ -15,7 +15,8 @@ nothing said — that is the normal case.
 
 The transition is over once no host memory carries a
 `heinzel legacy:` line, no `heinzel-inventory.md` is
-left, and `memory/user.md` has neither an
+left, no `deployed.md` entry reads `sha256 unverified`,
+and `memory/user.md` has neither an
 `Adopted from heinzel:` nor a
 `Heinzel names on hosts:` line. At that point delete
 this file and `rules/heinzel-adoption.md`, drop step
@@ -27,8 +28,11 @@ skill, together with what names Heinzel's
 checkout or `heinzel-memory.md` in
 `rules/hypervisors.md` → Registering Guests,
 `rules/dns-aliases.md` and `rules/first-connection.md`
-step 6. Written down here because a transition nobody
-ends becomes permanent by default.
+step 6, and what names an `unverified` entry in
+`rules/deployed-files.md` and the housekeeping
+reference on deployed files. Written down here
+because a transition nobody ends becomes permanent
+by default.
 
 **Not the `MAP` table in that script.** Those rows move
 overrides whose topic changed address in a Hostwarden
@@ -112,6 +116,17 @@ and stays open when nothing matches: report it, and
 record it as `rules/heinzel-adoption.md` → Record
 says.
 
+**Heinzel's copies join as well.** Each entry of the
+host's `deployed.md`, and of its cluster's, whose
+hash reads `unverified` is a master the adoption
+rebuilt from Heinzel's copy. Its path goes into the
+probe of `rules/deployed-files.md` → Drift, run as a
+bundle beside this one, and
+`rules/heinzel-adoption.md` → Heinzel's copies
+settles it — whatever the answer to the rest of the
+check, since settling it changes nothing on the
+host.
+
 Every search ends in `|| true`: `ls` and `grep`
 report "nothing found" with a non-zero status, and on
 a clean host — the normal case — that would mark the
@@ -136,20 +151,21 @@ check did not run. Say so and record
 - heinzel legacy: deferred 2026-09-20 (privileged paths unread)
 ```
 
-A deferral is the one outcome that keeps the check
-eligible on later connections
+A deferral keeps the check eligible on later
+connections
 (`rules/heinzel-adoption.md` → Record), so the next
 session that does have root actually looks. Recording
 nothing would not: the check is otherwise
 first-connection only.
 
-Nothing found, no inventory file, no `heinzel`
-entries in the activity check, and nothing left
-unread: say nothing, record nothing, continue. The
-check runs on the first connection, and after that
-only while the host's memory carries a
-`heinzel legacy: deferred` line or an unresolved
-`heinzel-inventory.md`, and whenever the user asks
+Nothing found, no inventory file, no `unverified`
+entry, no `heinzel` entries in the activity check,
+and nothing left unread: say nothing, record
+nothing, continue. The check runs on the first
+connection, and after that only while the host's
+memory carries a `heinzel legacy: deferred` line, an
+unresolved `heinzel-inventory.md` or an `unverified`
+entry in `deployed.md`, and whenever the user asks
 for it, whatever the line says.
 
 On a deferred host the probe runs but the question

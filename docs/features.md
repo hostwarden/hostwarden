@@ -292,6 +292,10 @@ back onto the host. Files you or a configuration
 management tool own stay where they are — Hostwarden
 keeps no second copy of them.
 
+Taking over from Heinzel rebuilds the copies its
+sessions kept into this layout
+([Moving over from Heinzel](operations.md#moving-over-from-heinzel)).
+
 ## Housekeeping checks
 
 Run routine health inspections on any server:
