@@ -71,7 +71,17 @@ The prompt names one of two jobs.
    each: long, short, clustered and `=` options, deprecated and
    alias spellings, quoted and unquoted `ssh host cmd`, sibling
    tools of the same job, other key types, states, drivers,
-   middleware front ends and search roots.
+   middleware front ends and search roots, and every source the
+   prose names or the system would pick — each file `ssh -G`
+   lists, each include, the server that split DNS, a routing
+   domain or a scoped resolver picks for this name — not only the
+   first default or the primary one. A preflight that decides a
+   later step will not need to ask: does it look things up by the
+   same name and along the same path as that step — alias, jump
+   hosts, other users' endpoints? A value from an
+   effective-configuration dump (`sshd -T`): can a `Match` block
+   change it per account, address or group, and does the rule read
+   it in the context it is applied to?
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
@@ -79,30 +89,87 @@ The prompt names one of two jobs.
    wins" is a defect there. Where two fields answer the same
    question, the one their source says decides must win. The value
    that decides is the one the output shows. A fallback for an
-   optional field claims only what it can show.
+   optional field claims only what it can show. Then ask:
+   - Installed is not running, and on disk is not loaded. Does the
+     rule take a file or an app bundle as running or reachable, or
+     a value read from disk or a config dump as what the running
+     process uses now rather than at its next start or reload?
+     Which read tells the two apart?
+   - A finding about what a program does, read from its setting or
+     file: does the probe skip comments and read only the files
+     and sections the program loads — the PAM stack sshd includes,
+     the domains SSSD enables? A finding rated on a file a daemon
+     could use: does the probe first establish that the daemon is
+     configured to use it, or does any match on disk count? This
+     holds for its content — validity, expiry, principals — but
+     not for how exposed the file is: its mode, owner or place.
+     Files paired by their names — a key and its certificate
+     or `.pub`: does the program pair them that way, or by its
+     configuration or their content, as sshd matches a
+     `HostCertificate` to the `HostKey` whose public key it
+     carries, and does the probe pair them the same way?
+   - A grant is rated from the grant. Does the rule read the grant
+     itself before it records full access, rather than one
+     harmless command that succeeds (`sudo -n true`), and check
+     each field that narrows it — the target it runs as, a default
+     that fills an empty field — before it names the worst case?
+   - A column or flag read as the source of an answer: does the
+     tool document it as the protocol, or only as where the answer
+     arrived, and can the query be forced to the one source
+     instead?
+   - A test written for one use — a memory label, a mail header —
+     that another rule now cites: do its exclusions hold for that
+     rule's question, or does it turn a healthy state into a
+     finding?
+   - A decision list that sends one branch on to "the next case":
+     does that case's trigger, an error text, occur in the state
+     the branch leaves, or does the branch end with nothing to
+     record?
 3. **A step that reads data nothing produces.** Every field the
-   text uses must be printed by a probe the same flow runs. Every
-   answer, state and outcome it creates must have a step that
-   handles it.
+   text uses must be printed by a probe the same flow runs, for
+   each syntax a rating is said to cover: the members of a named
+   group for doas as for sudoers. Every answer, state and outcome
+   it creates must have a step that handles it. A privilege gate —
+   a root-only test around a whole block, a `sudo -n true` reused
+   from another rule: does it test the command the block runs, as
+   the read-back beside it does, or does a run without root or
+   with a narrower grant report as unread what it could have read?
+   A step that lets a narrower privilege fill what a bundle
+   skipped says "must" wherever the rule it serves does, and each
+   consumer that ends on a sentinel reaches it.
 4. **A contradiction with another file, or a lost safeguard.**
    Another rule, skill, hook or doc says the opposite now, or the
-   diff removes a check an earlier change put there on purpose.
+   diff removes a check an earlier change put there on purpose. A
+   blanket skip derived from a rule — read-only, unsupported: does
+   that rule carry exceptions of its own, and does the skip keep
+   them without widening them to cases they never covered?
 5. **A platform or privilege path left out.** Run the change on
    each: systemd, OpenRC, BusyBox, launchd, FreeBSD rc.d, Windows,
-   WSL 2; root, sudo, doas, unprivileged; old and current releases
-   of each family the file covers; GNU and BSD tools; zsh and csh
-   where a user's shell runs the line.
+   WSL 2, the appliances; root, sudo, doas, unprivileged; old and
+   current releases of each family the file covers; GNU and BSD
+   tools; zsh and csh where a user's shell runs the line. A path
+   or source written for one platform, such as Alpine's log file:
+   what does the check print where it is not written?
 6. **A tool that does not work as written.** Syntax, argument
    order, output format, and above all what it prints and returns
-   on pending, timeout, empty and error.
+   on pending, timeout, empty and error. A step that requires an
+   input or a placeholder exactly once: does every optional branch
+   the rule allows — no revocation list, no principals file —
+   still satisfy it?
 7. **A literal where a recorded value belongs, or ambient
    configuration taking over.** Ports, storage, pools, paths,
    UID ranges, architectures; the user's `ssh_config`, `PATH`,
    locale, proxy and tool contexts, and a name resolved at run
    time: a remote, a ref (`origin/main`), a default zone, profile
-   or network.
+   or network. Where an earlier step chose a user, path or value,
+   does every later call and example use the chosen one, and does
+   an example that shows a default say so?
 8. **An identity key that is not unique or not stable.** Try to
-   make two objects share the key, and one object change it.
+   make two objects share the key, and one object change it. A key
+   that decides two things are one — a name, an address, a
+   destination: is it unique on its own, or does another rule
+   already say which extra field, a port or a verified key, it
+   needs before two are merged?
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
    validated, `--` before them, `grep -F` for a literal
@@ -112,10 +179,16 @@ The prompt names one of two jobs.
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
-    and to a run that stopped half way. If the session ends after
-    any step, can a later one find the full text of each item it
-    must still act on, in the repository, memory, the pull request
-    or an issue?
+    and to a run that stopped half way? A value an event makes
+    stale — a re-probe, a rename: does the rule that owns it say to
+    write the new value, and does every path that triggers the
+    event, the automatic one included, reach that write? A
+    condition checked once before a hand-off: when what it was
+    checked against changes before the hand-off, what makes it true
+    again, and who is told? If the session ends after any
+    step, can a later one find the full text of each item it must
+    still act on, in the repository, memory, the pull request or an
+    issue?
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
