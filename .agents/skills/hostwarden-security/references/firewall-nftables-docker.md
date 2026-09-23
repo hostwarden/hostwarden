@@ -114,11 +114,10 @@ its last rule the same way. The variant is *active* when a
 family is default deny; INPUT rules that fail2ban or Docker add
 under `-P INPUT ACCEPT` filter nothing on their own.
 
-- Not active, and no INPUT rules → not a firewall:
-  **CRITICAL** "No active firewall" when ufw, firewalld and
-  native nftables are inactive too
-- INPUT rules, not default deny → **WARN** "iptables input
-  policy is not deny"
+- Not active, whatever INPUT rules fail2ban or others added →
+  not a firewall: **CRITICAL** "No active firewall" when none of
+  the four variants drops by default (`references/firewall.md`
+  → Linux)
 - Default deny, but nothing restores it at boot → **WARN**
   "iptables rules will not survive a reboot". Restored means a
   loader and its source together, for that family: an enabled

@@ -77,8 +77,10 @@ every platform, whichever check reports it:
 - **`none`.** The finding stands.
 - **A line.** Work out which ports still reach the host in that
   family: every port it listens on at an address other than
-  loopback, private and VPN addresses included (the security
-  skill's `references/listening-services.md` lists them), minus
+  loopback, private and VPN addresses included, TCP and UDP (the
+  security skill's `references/listening-services.md` lists them;
+  on macOS, whose list there is TCP only, add
+  `sudo -n lsof -iUDP -P -n`), minus
   those a DNAT hands
   to a guest first (the `Inbound` lines of a current Traffic
   flow profile, `rules/network.md`), minus what the line blocks.
