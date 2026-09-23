@@ -10,8 +10,10 @@ tool reads. This file adds only what exists here and nowhere else.
   both run shell commands, and on the edit tools, which it judges
   by the file they write. It denies in every permission mode,
   `--dangerously-skip-permissions` included. Stopping or deleting
-  a system container or VM it asks about instead, and denies only
-  where no prompt reaches a human. The `PowerShell`
+  a system container or VM, and writing sshd's configuration or
+  keys into a guest that has never started or clearing its image's
+  old host keys, it asks about instead,
+  and denies only where no prompt reaches a human. The `PowerShell`
   tool, whose commands it cannot read, is denied outright. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
   are the entire safety layer. The off switch counts only for a

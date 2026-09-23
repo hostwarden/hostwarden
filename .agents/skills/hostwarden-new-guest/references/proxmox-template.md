@@ -37,30 +37,14 @@ longer lists the `pveam` template it was built from.
    manager: an update and upgrade, then `cloud-init`,
    `openssh-server` and the packages of the rendered container
    baseline.
-4. The drop-in `/etc/cloud/cloud.cfg.d/90-hostwarden.cfg`, written
-   with `pct push <id> <local file> <path>` from a file copied to
-   the node; steps 3 to 5 run in one call after that copy:
-
-   ```yaml
-   datasource_list: [NoCloud, None]
-   network: {config: disabled}
-   preserve_hostname: true
-   manage_etc_hosts: false
-   datasource:
-     NoCloud:
-       meta-data: |
-         instance-id: hostwarden-debian-ct-3
-       user-data: |
-         #cloud-config
-         # hostwarden-baseline debian-ct-3 (2026-09-22)
-         …
-   ```
-
-   The user-data is `memory/baseline/debian-ct-3.yaml`, indented.
-   Proxmox VE owns the network, the hostname and `/etc/hosts` of
-   the container, so cloud-init leaves them alone.
-   Source: <https://docs.cloud-init.io/en/latest/reference/datasources/nocloud.html>,
-   Source 1.
+4. The seed, `references/user-data.md` → The seed, in its
+   manager-owned form: Proxmox VE owns the container's network,
+   hostname and `/etc/hosts`. Its user-data is
+   `memory/baseline/debian-ct-3.yaml` and its `instance-id` is the
+   template's own, `hostwarden-debian-ct-3`, so every container
+   built from it starts from the same state. Write it with
+   `pct push <id> <local file> <path>` from a file copied to the
+   node; steps 3 to 5 run in one call after that copy.
 5. `pct exec <id> -- cloud-init clean --logs`, so no container
    inherits a state of the build container.
 6. Stop it with `pct shutdown <id>`. The guard asks: show ID,

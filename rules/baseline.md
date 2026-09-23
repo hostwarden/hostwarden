@@ -125,9 +125,30 @@ A new guest gets this file as cloud-init user-data, rendered from
 it, its global override and the family file, and kept in the
 workspace as `memory/baseline/<family>-<n>.yaml`, or
 `<family>-ct-<n>.yaml` for a container; `<n>` counts up whenever
-the rendered content changes. A host's `# baseline` block is not
-part of it: the guest has no memory yet, and the hypervisor's is
-about the hypervisor.
+the rendered content changes.
+
+Fedora CoreOS and Flatcar read no cloud-init, so they get a
+rendering of their own beside it, `<family>-ign-<n>.bu`, with
+`<family>` as `fcos` or `flatcar`. It is numbered by the same
+rule: the baseline's content decides `<n>`.
+
+Everything else that cannot be handed the file at boot carries one
+instead of restating it — an installer's answer file, a seed in a
+container's root filesystem or in a disk image. A carrier is not a
+rendering: it is numbered by its own content, which changes with
+the disk layout or the network as much as with the baseline, and
+it records which rendering it carries. The answer files are
+`<family>-ks-<n>.cfg` for kickstart, `<family>-preseed-<n>.cfg`
+for preseed, `<family>-autoinstall-<n>.yaml` for Ubuntu's
+autoinstall and `<family>-ay-<n>.xml` for AutoYaST.
+
+Where a manager holds a rendering as a named object of its own, an
+Incus profile for instance, the name is
+`hostwarden-baseline-<family>-<n>` and the object is never edited
+afterwards: a new version is a new object.
+
+A host's `# baseline` block is not part of any of it: the guest
+has no memory yet, and the hypervisor's is about the hypervisor.
 
 What one guest adds at creation — its names, a password the user
 asked for — is never part of a numbered file. The guest's memory

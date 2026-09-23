@@ -82,6 +82,15 @@ the `network:` key around it belongs only inside cloud-config
 network-config). Validate it like the user-data, with
 `-t network-config`.
 
+## A guest that reads something other than cloud-init
+
+`--cloud-init` is for images that run cloud-init. The call above
+carries Ignition instead for Fedora CoreOS and Flatcar
+(`references/ignition.md` → libvirt), and an installer's answer
+file for a guest that has to be installed
+(`references/answer-files.md` → libvirt). Each names the options
+it changes.
+
 ## Waiting for the first boot
 
 libvirt cannot run a command in the guest or read its host key.

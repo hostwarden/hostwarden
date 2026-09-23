@@ -592,6 +592,86 @@ KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
 SSHD="(/etc/(ssh/sshd_config(\\.d(/[[:alnum:]_.-]*)?)?|sshd_extra|(config|conf\\.d|default)/dropbear)|${WINSSH}[Ss][Ss][Hh][Dd]_[Cc][Oo][Nn][Ff][Ii][Gg])"
 EDITOR='(vi|vim|nvim|nano|emacs|ed)'
 
+# --- a guest that has never run --------------------------------
+# AGENTS.md -> Critical Safety Rules lets the first-boot
+# configuration of a guest that has never started set sshd's login
+# options and keys, whatever form that configuration takes, and
+# hostwarden-new-guest writes it. Nothing here can prove that a
+# root filesystem or an image belongs to such a guest, so the two
+# shapes a manager owns are put to the user with the path in front
+# of them, and everything else stays denied.
+#
+#   - the root filesystem of a container under its manager's own
+#     directory: /var/lib/lxc/<name>/rootfs, /var/lib/machines/
+#     <name>, an Incus or LXD container in its storage pool. A
+#     path under one of those is not the running system's /etc.
+#     The root must sit right in front of the guarded path, so
+#     rootfs/../../etc/ssh is the host's and stays denied. For
+#     keys that means host keys at rootfs/etc/ssh; a user's
+#     authorized_keys further down stays denied.
+#   - a disk image a libguestfs tool opened with -a or --add, as
+#     the only command on the line. libguestfs refuses a disk
+#     another process has open, so that is a file rather than a
+#     server. A -d or --domain names a libvirt guest that may be
+#     running and does not count, and neither does a line with a
+#     second command or a redirect beside the tool: those spell
+#     the host's /etc/ssh exactly as the image's is spelled.
+#
+# /mnt and /media are deliberately absent: a bind mount of the
+# live system is spelled exactly the same way, and what the guard
+# cannot tell apart it must not decide.
+#
+# Asking, not allowing, for the same reason the guest rules ask:
+# the everyday mistake here is a path that looks like a guest and
+# is the host. Where no prompt can reach a human the answer is
+# deny, and the user runs it themselves.
+#
+# The ask is registered where it is found and decided at the end of
+# this file, never on the spot: decide exits, and every rule after
+# the sshd and key rules has to see the rest of the line first. A
+# first-boot write followed by any taboo is that taboo's deny.
+GUESTROOT='(/var/lib/lxc/[^/[:space:]]+/rootfs|/var/lib/machines/[^/[:space:]]+|/var/lib/(incus|lxd)/storage-pools/[^/[:space:]]+/containers/[^/[:space:]]+/rootfs)'
+IMAGETOOL='(virt-customize|virt-copy-in|virt-edit|virt-sysprep|guestfish|guestmount)'
+
+FB_NL='
+'
+
+first_boot_only() {
+  # first_boot_only <path pattern> -- true when the command works
+  # on an image through libguestfs, or when EVERY occurrence of
+  # that pattern sits under a guest root. One unqualified /etc/ssh
+  # beside a qualified one is enough to fail: a command that
+  # touches both is a command that touches the host.
+  if hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)"; then
+    # One invocation and nothing beside it. A second command or a
+    # redirect names paths the image tool never sees, spelled the
+    # same as the ones it does.
+    case $CMD in
+    *';'* | *'&'* | *'|'* | *'>'* | *'`'* | *'$('*) return 1 ;;
+    esac
+    case $CMD in
+    *"$FB_NL"*) return 1 ;;
+    esac
+    # A domain may be running, whatever else the line carries.
+    hit '(^|[[:space:]])(-d|--domain)([[:space:]]|=)' && return 1
+    # Every invocation must name an image with -a, scoped to the
+    # invocation rather than to the whole string.
+    hit_without "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
+      '(^|[[:space:]])(-a|--add)([[:space:]]|=)' || return 0
+  fi
+  FB_ALL=$(segments | grep -oE "$1" | grep -c .)
+  FB_UNDER=$(segments | grep -oE "$GUESTROOT$1" | grep -c .)
+  [ "$FB_ALL" -gt 0 ] && [ "$FB_ALL" -eq "$FB_UNDER" ]
+}
+
+FB_ASK=
+
+first_boot_ask() {
+  # first_boot_ask <what> -- register the ask; the end of the file
+  # decides it, once every taboo has seen the whole line.
+  [ -n "$FB_ASK" ] || FB_ASK=$1
+}
+
 # A general-purpose language runtime. See the interpreter section
 # at the bottom for why this list, and not a list of the ways
 # those runtimes spell a write.
@@ -1071,8 +1151,28 @@ if [ "$HAS_KEY" -eq 1 ] \
   && { hit "(^|[^[:alnum:]_-])($CLOBBER)([^[:alnum:]_-]|\$)" \
        || hit '(^|[[:space:]])(-delete|--remove-s(ource|ent)-files)([[:space:]]|$)'; }
 then
-  deny "deleting, moving or re-permissioning SSH keys is never \
+  if first_boot_only "$KEY"; then
+    first_boot_ask "deleting, moving or re-permissioning SSH keys"
+  else
+    deny "deleting, moving or re-permissioning SSH keys is never \
 allowed"
+  fi
+fi
+# virt-sysprep deletes an image's SSH host keys by default (its
+# ssh-hostkeys operation) and names no key path, so the rule above
+# never sees it. Every invocation counts as that deletion: on an
+# image opened with -a, alone on the line, it is the first-boot ask
+# like any other key change in a guest that never ran; anywhere
+# else it is denied. An --operations list without ssh-hostkeys is
+# asked about all the same - the prompt costs one click, and
+# telling the lists apart is a parser this hook does not need.
+if hit '(^|[^[:alnum:]_.-])virt-sysprep([^[:alnum:]_.-]|$)'; then
+  if first_boot_only "$KEY"; then
+    first_boot_ask "removing an image's SSH host keys with virt-sysprep"
+  else
+    deny "virt-sysprep removes SSH host keys by default - only on a \
+disk image opened with -a, alone on the line, and only with a prompt"
+  fi
 fi
 # A truncating redirect needs no command at all: : > key.
 if hit ">[[:space:]]*[\"']?[^[:space:];|&]*$KEYPRIV"; then
@@ -1114,10 +1214,17 @@ if hit "$SSHD"; then
          && hit '(^|[[:space:]])-i'; } \
     || hit "(^|[^[:alnum:]_-])$EDITOR([^[:alnum:]_-]|\$)" \
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
+    || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
+         && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)"; } \
+    || hit '(^|[^[:alnum:]_.-])(virt-edit|virt-copy-in)([^[:alnum:]_.-]|$)' \
     || writes_to "$SSHD"
   then
-    deny "modifying sshd_config or a file merged into it is \
+    if first_boot_only "$SSHD"; then
+      first_boot_ask "writing sshd's configuration"
+    else
+      deny "modifying sshd_config or a file merged into it is \
 never allowed (reading it is fine: cat, grep, sshd -T)"
+    fi
   fi
 fi
 # Windows' OpenSSH files under ProgramData\ssh are changed by cmd
@@ -1478,6 +1585,32 @@ guest ID and the host before approving."
 a confirmation prompt, and this session shows none, or a permission \
 mode this hook does not know. Not a taboo: run it in a session that \
 asks, or let the user run it. Do not rephrase the command."
+    ;;
+  esac
+fi
+
+# A first-boot write registered above, and no taboo anywhere else in
+# the line: ask where a prompt reaches a human, deny where none does.
+# No jq means no mode, hence deny.
+if [ -n "$FB_ASK" ]; then
+  FB_MODE=
+  if command -v jq >/dev/null 2>&1; then
+    FB_MODE=$(printf '%s' "$INPUT" \
+      | jq -r '.permission_mode // empty' 2>/dev/null) || FB_MODE=
+  fi
+  case $FB_MODE in
+  default|acceptEdits|plan|auto)
+    decide ask "$FB_ASK into a guest that has not started yet. Only \
+the first-boot configuration of a guest that never ran may set \
+sshd's login options and keys (AGENTS.md - Critical Safety Rules). \
+Check that the path is the guest's and not this host's before \
+approving."
+    ;;
+  *)
+    decide deny "$FB_ASK needs a confirmation prompt, and this \
+session shows none, or a permission mode this hook does not know. \
+Not a taboo: run it in a session that asks, or let the user run it. \
+Do not rephrase the command."
     ;;
   esac
 fi

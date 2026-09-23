@@ -97,16 +97,29 @@ Public keys only: passwords and tokens never go there.
 ```
 
 Hostwarden creates VMs and containers on Proxmox VE,
-libvirt, Incus and LXD, with the platform's own tools. A
-VM starts from the distribution's official cloud image,
-checked against its checksum, and gets the baseline as
-cloud-init user-data at its first boot, so there is no
-golden image to go stale. The rendered user-data is kept,
-numbered, in `memory/baseline/`, and each guest records the
-version it got. On Proxmox VE, containers come from a
-baseline template Hostwarden builds from the official
-container template; housekeeping says when it is due for a
-rebuild.
+libvirt, Incus, LXD and classic LXC, with the platform's
+own tools. A VM starts from the distribution's official
+cloud image, checked against its checksum, and gets the
+baseline as cloud-init user-data at its first boot, so
+there is no golden image to go stale. The rendered
+user-data is kept, numbered, in `memory/baseline/`, and
+each guest records the version it got. On Proxmox VE,
+containers come from a baseline template Hostwarden builds
+from the official container template; housekeeping says
+when it is due for a rebuild.
+
+A guest that reads no cloud-init gets the same baseline in
+the form its system does read: Butane and Ignition for
+Fedora CoreOS and Flatcar, a kickstart, preseed,
+autoinstall or AutoYaST file where the guest has to be
+installed rather than copied from an image, and a seed
+written into the root filesystem or the disk image before
+the first start for everything else. On Incus the baseline
+lives in a profile of its own per version, so it is written
+once rather than on every command line. Whichever form it
+takes, it is applied only to a guest that has never run:
+the SSH server of a machine that is already up is never
+touched, in the guest or through its host.
 
 You log in with your SSH keys from the first boot on. If
 you have no key and want a password, the guest generates
