@@ -19,20 +19,10 @@ the disk of a guest that exists.
 
 Work on a copy made for this guest, never on the verified original,
 so the next guest starts from a file whose checksum still matches
-the list.
-
-- **libvirt:** the copy `references/libvirt.md` → The disk already
-  makes, `/var/lib/libvirt/images/<name>.qcow2`.
-- **Proxmox VE:** `import-from` copies the image only while
-  `qm set` runs, too late to change it. Copy it first beside the
-  original, `cp /var/lib/vz/import/<image>
-  /var/lib/vz/import/<vmid>-<image>`, prepare that copy as below,
-  and give that copy to `import-from` in place of the original. It
-  has served its purpose once the import is done; remove it in the
-  same call.
-
-The commands below name the libvirt copy; on Proxmox VE they take
-the path of the guest copy instead.
+the list: `references/libvirt.md` → The disk, or
+`references/proxmox.md` → The image, which says what changes in
+the creation there. The commands below name the libvirt copy; on
+Proxmox VE they take that copy's path.
 
 A checksum recorded in memory afterwards is the original's, not the
 copy's, so the guest's memory records

@@ -47,9 +47,6 @@ names — the hostname in the installer's network line, the
 `instance-id` in the seed — go on a copy at hand-off and are never
 numbered.
 
-They are written and copied as `references/user-data.md` →
-Rendering it says, for the same reason.
-
 ## Kickstart — RHEL, Rocky, AlmaLinux, Fedora
 
 Syntax: <https://pykickstart.readthedocs.io/en/latest/>.
@@ -362,56 +359,11 @@ that dead end stands: say so, and let them decide.
 
 ### Proxmox VE and Incus
 
-An installed VM is built differently from one imported from a
-cloud image, so `references/proxmox.md` → A VM from a cloud image
-gives only its Before the creation call and its storage and bridge
-defaults here. There is no cloud-init drive, no `import-from`, no
-`--cicustom` and no `--ipconfig0`: the disk starts empty, and the
-guest's network comes from the answer file.
-
-Both ISOs go into a storage with `iso` content, `local`'s
-`/var/lib/vz/template/iso/` by default: the installer ISO
-downloaded on the node and checked against the distribution's
-signed checksum list as `references/images.md` does for cloud
-images, the answer ISO built as `references/seed-iso.md` says and
-copied there with `scp`. Then, in one call:
-
-```bash
-qm create <vmid> --name web1 --memory 2048 --cores 2 \
-  --cpu x86-64-v2-AES --scsihw virtio-scsi-pci --ostype l26 \
-  --net0 virtio,bridge=vmbr0,macaddr=52:54:00:12:34:56 \
-  --agent enabled=1 --onboot 1
-qm set <vmid> --scsi0 <storage>:20
-qm set <vmid> --ide2 local:iso/<installer iso>,media=cdrom
-qm set <vmid> --ide3 local:iso/<answer iso>,media=cdrom
-qm set <vmid> --boot 'order=scsi0;ide2'
-```
-
-- `<storage>:20` allocates a new, empty 20 GiB disk: "Use the
-  special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume"
-  (<https://pve.proxmox.com/pve-docs/qm.1.html>).
-- Two CD drives, installer on `ide2` and answer ISO on `ide3`.
-  `ide2` is where a cloud-image VM keeps its cloud-init drive,
-  which this one does not have.
-- `order=scsi0;ide2`: the empty disk boots nothing, so the first
-  start falls through to the installer; once the install is done,
-  the disk boots and the installer never runs a second time.
-- No `--vga serial0`: the user needs the web UI's console for the
-  installer's boot menu.
-
-The installer reads the answer ISO only when its kernel command
-line names it, and Proxmox VE boots the installer ISO's own menu,
-which Hostwarden cannot edit. So the boot argument is the route of
-a host whose UI owns the guests, above: the user opens the VM's
-console in the web UI and adds it there, once — `autoinstall` for
-Ubuntu, `inst.ks=hd:<device>:<path>` or
-`autoyast=device://<device>/<file>` for the others. Preseed is not
-offered, for the same reason as there. Say this in the plan, and
-run `qm start <vmid>` only once the user is at the console.
-
-After the install, remove both CD drives (`qm set <vmid> --delete
-ide2,ide3`) in the same call that waits for the guest's SSH port,
-so neither is left attached to the server.
+A Proxmox VE VM installed from an ISO has a creation of its own,
+with the answer ISO on its second CD drive:
+`references/proxmox.md` → A VM from an installer ISO. The boot
+argument is the user's, as on a host whose UI owns the guests
+above, and preseed is not offered there either.
 
 Incus and LXD create from images, not installers, and have no path
 here: use `references/incus.md`.
