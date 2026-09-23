@@ -119,12 +119,13 @@ Rules for macOS (Apple Silicon and Intel).
   launchctl print <domain> | awk '/^\tservices = \{/ {s = 1; next}
     s && /^\t\}/ {exit} s {n++; print} END {exit !n}'
   ```
-- **Service status:** exits 0 while the job is loaded and prints
-  only its `state` (`running` while it runs), `pid` and
+- **Service status:** exits 0 while the job is loaded, a status
+  `launchctl` sets and not its text, which is no API. It prints
+  only the job's `state` (`running` while it runs), `pid` and
   `last exit code`:
   ```
-  launchctl print <domain>/<label> | awk '/^\t(state|pid|last exit code) = / {
-    sub(/^\t/, ""); n++; print} END {exit !n}'
+  J=$(launchctl print <domain>/<label>) && printf '%s\n' "$J" |
+    awk '/^\t(state|pid|last exit code) = / {sub(/^\t/, ""); print}'
   ```
   A bare name is a `system` label. A Homebrew service also answers
   `brew services info <name>`.
