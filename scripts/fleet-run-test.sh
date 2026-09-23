@@ -56,8 +56,8 @@ Fleet key: $TMP/fleet-key
 Workspace push: always
 EOF
 : >"$TMP/fleet-key"
-printf -- '- bad1.example.com\n- jumped2.example.com-hop.example.com\n' \
-  >"$M/blacklist.md"
+printf -- '- %s\n' bad1.example.com jumped2.example.com-hop.example.com \
+  2001:db8::66 >"$M/blacklist.md"
 
 ssh-keygen -q -t ed25519 -N '' -C signer -f "$TMP/signer"
 printf 'fleet-read namespaces="fleet-read" %s\n' "$(cat "$TMP/signer.pub")" \
@@ -89,6 +89,17 @@ server part1.example.com 'key line present' ''
 server nojudge1.example.com 'key line present' ''
 server jumped1.example.com 'key line present' ''
 server jumped2.example.com 'key line present' ''
+server jumped3.example.com 'key line present' ''
+server jumped4.example.com 'key line present' ''
+server jumped5.example.com 'key line present' ''
+server jumped6.example.com 'key line present' ''
+server jumped7.example.com 'key line present' ''
+server jumped8.example.com 'key line present' ''
+server jumped9.example.com 'key line present' ''
+server script1.example.com 'key line present' ''
+server script2.example.com 'key line present' ''
+server script3.example.com 'key line present' ''
+server jumped10.example.com 'key line present' ''
 server port1.example.com 'key line present' '- SSH port: 2222'
 server dec1.example.com 'key line present' ''
 server dec2.example.com 'key line present' ''
@@ -125,6 +136,17 @@ case " \$* " in *" -G "*)
   case \$last in
   jumped1.*) echo "proxyjump alice@bad1.example.com:22" ;;
   jumped2.*) echo "proxyjump %r@%n-hop.example.com" ;;
+  jumped3.*) echo "proxycommand ssh -W %h:%p -l bob bad1.example.com" ;;
+  jumped4.*) echo "proxyjump carol@[2001:db8::66]:2200" ;;
+  jumped5.*) echo "proxycommand nc -X 5 -x bad1.example.com:1080 %h %p" ;;
+  jumped6.*) echo "proxycommand ssh -W %h:%p 'bad1.example.com'" ;;
+  jumped7.*) echo "proxycommand ssh -oProxyJump=bad1.example.com -W %h:%p ok.example.com" ;;
+  jumped8.*) echo "proxycommand socat - PROXY:bad1.example.com:%h:%p,proxyport=3128" ;;
+  jumped9.*) echo "proxycommand ssh ok.example.com 'ssh -W %h:%p bad1.example.com'" ;;
+  script1.*) echo "proxycommand ~/bin/jump %h %p" ;;
+  jumped10.*) echo "proxycommand nc -vx bad1.example.com:1080 %h %p" ;;
+  script2.*) echo "proxycommand ssh -J \\\$JUMP -W %h:%p ok.example.com" ;;
+  script3.*) echo "proxycommand cloudflared access ssh --hostname %h" ;;
   esac
   exit 0 ;;
 esac
@@ -250,6 +272,32 @@ has "$TMP/out" "jumped1.example.com(blacklisted)" \
   "a host behind a blacklisted jump host was not refused"
 has "$TMP/out" "jumped2.example.com(blacklisted)" \
   "a jump host named through %r and %n was not expanded before the check"
+has "$TMP/out" "jumped3.example.com(blacklisted)" \
+  "a jump host an ssh in ProxyCommand logs in to was not checked"
+has "$TMP/out" "jumped4.example.com(blacklisted)" \
+  "a jump host given as [IPv6]:port was not checked by its address"
+has "$TMP/out" "jumped5.example.com(blacklisted)" \
+  "a proxy host a ProxyCommand names was not checked"
+has "$TMP/out" "jumped6.example.com(blacklisted)" \
+  "a quoted jump host in a ProxyCommand was not checked"
+has "$TMP/out" "jumped7.example.com(blacklisted)" \
+  "a ProxyJump given with -o in a ProxyCommand was not checked"
+has "$TMP/out" "jumped8.example.com(blacklisted)" \
+  "a proxy inside a socat address was not checked"
+has "$TMP/out" "jumped9.example.com(blacklisted)" \
+  "a jump host in a quoted remote command was not checked"
+has "$TMP/out" "script1.example.com(jump path not readable)" \
+  "a host behind a script as ProxyCommand was reached"
+has "$TMP/out" "ProxyCommand (~/bin/jump) takes" \
+  "an unreadable ProxyCommand was not named by its program"
+has "$TMP/out" "script2.example.com(jump path not readable)" \
+  "a ProxyCommand with a variable was read past it"
+has "$TMP/out" "script3.example.com(jump path not readable)" \
+  "a tunnel client that names no hop was taken as read"
+[ -e "$TMP/collect-script3.example.com" ] \
+  && bad "a host whose jump path is not readable was reached" || ok
+has "$TMP/out" "jumped10.example.com(blacklisted)" \
+  "a proxy after clustered nc flags was not checked"
 [ -e "$TMP/collect-jumped1.example.com" ] \
   && bad "a host behind a blacklisted jump host was reached" || ok
 [ -e "$TMP/collect-bad1.example.com" ] && bad "a blacklisted host was reached" || ok

@@ -76,20 +76,72 @@ Do not proceed. Do not ask for override. Do not run
 any SSH commands against the server.
 
 **Jump hosts count too.** SSH connects to each jump
-host before the target. Where the `proxyjump` line of
+host before the target. Its jump hosts come from the
+`proxyjump` and `proxycommand` lines of
 `ssh -G <user>@<hostname>` with the standard options,
-for the user the call will log in as, names hops, run
-the lookup above for each hop as well, by the name
-that line gives it and as the hop's own login user:
-the one its `[user@]host` names, else the `user` line
-of `ssh -G` for that hop. `ssh -G` prints the line
-with its tokens unexpanded, and ssh expands them only
-when it connects: read `%r` as the target's `user`
-line, `%h` as its `hostname`, `%p` as its `port`, `%n`
-as the name as given and `%%` as `%` before taking a
-hop's name or user from it. A `Match user` block can
-map a hop elsewhere for that user alone. A listed hop
-blocks the target: name the hop and refuse, as above.
+for the user the call will log in as; a `Match user`
+block can change either for that user alone. `ssh -G`
+prints both with their tokens unexpanded, and ssh
+expands them only when it connects: read `%r` as the
+target's `user` line, `%h` as its `hostname`, `%p` as
+its `port`, `%n` as the name as given and `%%` as `%`
+first. The jump hosts, where a line is not `none`:
+
+- **`proxyjump`:** each comma-separated
+  `[user@]host[:port]`, an `ssh://` before it
+  dropped.
+- **`proxycommand` that runs `ssh`**, read as the
+  shell would, quotes undone and `~` expanded: its
+  destination, the first argument that is neither an
+  option nor an option's value, and the address a
+  `-o HostName` gives it; each hop of a `-J` or a
+  `-o ProxyJump`, as above; a host other than the
+  target that its `-W` names; and its remote
+  command, read as a `proxycommand` of its own. The
+  user is the one `-l`, `-o User` or `user@` names
+  first. That ssh reads the file its `-F` names,
+  else the user's own configuration, never the
+  standard options: the `ssh -G` of its hops reads
+  the same.
+- **`proxycommand` that runs `nc`, `ncat`,
+  `netcat`, `socat` or `connect`:** the proxy it
+  names (`-x`, alone or in a cluster such as `-vx`,
+  `--proxy`, a socat `PROXY:`, `SOCKS4:`, `SOCKS4A:`
+  or `SOCKS5:` address, connect's `-S`, `-H` or
+  `-T`), and the host it connects to where that is
+  not the target (a socat `TCP:` or `OPENSSL:`
+  address among them). Nothing else on the line is a
+  host: its other arguments can hold a password,
+  never looked up or printed (`rules/secrets.md`).
+
+A host reached other than by an ssh from here — a
+proxy, one a `-W` names, anything a jump host's
+remote command reaches — is looked up by its name
+and addresses alone: its `ssh -G` here says nothing
+about how it is reached.
+
+Any other `proxycommand` hides its path: another
+program, a tunnel client, a `connect` whose proxy
+comes from the environment, a `$`, a command
+substitution, a `ProxyCommand` of its own. So does a
+chain longer than five hops. That counts as a listed
+hop: name the program alone, never the line, and ask
+the user whether its path passes a host on the
+blacklist. Connect only when they say it does not.
+The answer holds for this session and is never
+recorded: the blacklist and the ProxyCommand are the
+user's own, and either can change. A hop whose
+`ssh -G` fails cannot be read either, and the
+connection would fail on the same configuration: say
+so and do not connect.
+
+Run the lookup above for each hop, and for the hops
+its own `ssh -G` names in turn, by the hop's name
+without `user@` or `:port`, an IPv6 address without
+its brackets, and as the hop's own login user: the
+one named with it, else the `user` line of `ssh -G`
+for that hop. A listed hop blocks the target: name
+the hop and refuse, as above.
 
 ## Read-Only Servers
 
