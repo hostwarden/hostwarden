@@ -187,10 +187,11 @@ Rules for macOS (Apple Silicon and Intel).
 ## sshd
 
 - launchd job `com.openssh.sshd`, on while Remote Login is. launchd
-  starts one sshd per connection, so none waits in `ps`, and a
-  changed file takes effect at the next login. Its command line,
-  a `-f` included, is under `arguments` in
-  `launchctl print system/com.openssh.sshd`.
+  starts one sshd per connection, through
+  `/usr/libexec/sshd-keygen-wrapper`, so none waits in `ps`, and a
+  changed file takes effect at the next login. Its plist,
+  `/System/Library/LaunchDaemons/ssh.plist`, sits on the sealed
+  system volume and passes no `-f`: sshd reads its default file.
 - Configuration: `/etc/ssh/sshd_config`, whose `Include` lines name
   the rest.
 - Auth log: the unified log, `/usr/bin/log show --last 1d

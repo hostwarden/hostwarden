@@ -19,7 +19,7 @@ INFO      macOS Application Firewall disabled
 SSH password auth   WARN — PasswordAuthentication yes
 SSH weak algos      OK — no weak algorithms found
 SSH root login      INFO — PermitRootLogin yes
-SSH client          OK — no account accepts any host key
+SSH client          OK — none in ssh_config, 2 ~/.ssh/config, cron
 Firewall            OK — ufw active, default deny
 VPN SSH             WARN — Tailscale SSH admits root by accept
 Empty passwords     OK — no accounts with empty password

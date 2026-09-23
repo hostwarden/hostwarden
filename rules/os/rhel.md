@@ -66,7 +66,10 @@ finding. See `rules/version-check.md`.
 ## sshd
 
 - Unit `sshd.service`. Its `ExecStart` adds `$OPTIONS` from
-  `/etc/sysconfig/sshd`, where a `-f`, `-o` or `-p` can sit.
+  `/etc/sysconfig/sshd`, where a `-f`, `-o` or `-p` can sit. On
+  RHEL 8 it adds `$CRYPTO_POLICY` too: `-o` options that set the
+  ciphers, MACs and key exchange from the crypto policy, which
+  neither `sshd -G` nor `sshd -T` shows.
 - Configuration: `/etc/ssh/sshd_config`, mode 0600, so reading it
   needs root, `sshd -G` included. On RHEL 9 and newer and on Fedora
   it includes `sshd_config.d/*.conf` near its top, and a drop-in

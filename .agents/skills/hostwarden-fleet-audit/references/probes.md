@@ -162,23 +162,34 @@ only.
 `sshd -T` needs root (it reads host keys). Run it with the
 privilege prefix. Without one, `sshd -G` prints the same without
 the host keys (OpenSSH 9.3 and newer) where sshd's configuration
-files are readable; emit the sentinel when it fails too. A `-f` on
-a running daemon's command line is carried over, the same
-extraction the security audit's SSH reference uses; where several
-daemons run, the row reads one of them:
+files are readable; emit a sentinel when a run fails. The daemon
+is picked as the security audit's SSH reference picks it: a root
+process whose parent is PID 1 and whose program is an sshd, run as
+its own binary with its own `-f`. Where several run, the row reads
+the one on the default file, or else the first `-f` one, and the
+`sshd-f` line says so (on FreeBSD with jails, add `-J 0` to the
+`ps`):
 
 ```bash
 PATH=$PATH:/usr/sbin:/usr/local/sbin
-F=$(ps ax -o args= \
-  | grep '^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-[[:alpha:]]' \
-  | sed -e 's/^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-f \([^ ]*\).*/\2/' \
-    -e t -e 's/.*/default/' | sort -u | head -n 1)
-set --
-[ "${F:-default}" = default ] || { set -- -f "$F"; echo "sshd-f $F"; }
+L=$(ps ax -o user=,ppid=,args= | sed -n 's/^root  *1  *//p' \
+  | sed 's/^[^ ]*sshd[^ /]*: //' \
+  | grep -e '^[^ ]*sshd[^ /]* ' -e '^[^ ]*sshd[^ /]*$' \
+  | sed -e 's/^\([^ ]*\) \(.* \)\{0,1\}-[[:alpha:]]*f *\([^ ]*\).*/\1 \3/' \
+    -e t -e 's/^\([^ ]*\).*/\1 default/' | LC_ALL=C sort -u)
+D=$(printf '%s\n' "$L" | grep ' default$' | head -n 1)
+[ -n "$D" ] || D=$(printf '%s\n' "$L" | head -n 1)
+set -- ${D:-sshd default}
+B=$1; F=$2; set --
+N=$(printf '%s\n' "$L" | grep -c .)
+[ "$N" -gt 0 ] || echo "sshd-daemons none visible, row reads $B"
+[ "$N" -le 1 ] || echo "sshd-daemons $N, row reads $B"
+[ "$F" = default ] || { set -- -f "$F"; echo "sshd-f $F"; }
 if [ "$SUDO" = "-" ]; then
-  OUT=$(sshd "$@" -G 2>/dev/null) || { echo "unknown(needs-root)"; OUT=; }
+  OUT=$("$B" "$@" -G 2>/dev/null) || { echo "unknown(needs-root)"; OUT=; }
 else
-  OUT=$($SUDO sshd "$@" -T 2>/dev/null)
+  OUT=$($SUDO "$B" "$@" -T 2>/dev/null) \
+    || { echo "unknown(sshd-failed)"; OUT=; }
 fi
 printf '%s\n' "$OUT" | grep -i \
     -e '^permitrootlogin ' \
@@ -200,12 +211,21 @@ the keys are mixed case (`PermitRootLogin`), so compare
 them without regard to case. Compare column-by-column.
 `sshd-f` names the file a daemon started with `-f` reads; the
 values of a host that has one come from that file.
-A host whose sshd column is `unknown(needs-root)` is
-reported as such, never as "defaults".
+`sshd-daemons` says the host runs more than one sshd and which
+binary the row read; its other daemons are the security audit's
+to read, and the report names the host as reading one of several.
+`sshd-daemons none visible` means no listener runs (launchd, a
+socket unit) or, without root, that the process list hides it;
+the row then reads the default file, and without root the report
+says a `-f` could not be seen.
+A host whose sshd column is `unknown(needs-root)` or
+`unknown(sshd-failed)` is reported as such, never as "defaults".
 
-On Alpine the probe runs unchanged. Alpine's default
-`openssh-server` is built without PAM, so the `usepam` line may
-be missing there: a missing line is `n/a (Alpine)`, not `no`.
+On Alpine the probe runs unchanged; it reads the configuration
+with the binary that runs, `sshd.pam` where PAM is on. Alpine's
+default `openssh-server` is built without PAM, so the `usepam`
+line may be missing there: a missing line is `n/a (Alpine)`, not
+`no`.
 
 Highlight as drift:
 
@@ -235,8 +255,10 @@ fi
 `all users`, or the members and nested groups (Administrators
 is a nested group). Hosts that differ are drift.
 
-**FreeBSD** runs the probe with `sshd` replaced by the full path
-of the one `rules/os/freebsd.md` → sshd says is enabled
+**FreeBSD** runs the probe unchanged, `-J 0` added where jails
+run: it takes the binary from the running daemon. Where none is
+visible, it replaces the `sshd` in `${D:-sshd default}` with the
+full path of the one `rules/os/freebsd.md` → sshd says is enabled
 (`/usr/local/sbin/sshd` when `$SVC` has
 `openssh_enable="YES"`). A FreeBSD host that
 accepts passwords by `.agents/skills/hostwarden-security/references/ssh.md`
