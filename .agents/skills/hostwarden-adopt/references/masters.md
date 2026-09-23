@@ -80,6 +80,12 @@ copy that does not become the master goes to the host's `notes/`
 as a superseded copy (`rules/heinzel-adoption.md` → Heinzel's
 copies), never dropped.
 
+A note that nothing points to is deleted (`rules/server-memory.md`
+→ Notes and evidence), so each note this pass writes gets a line
+where the host's first connection finds it: under `## Facts` in
+its inventory, or in its `memory.md` where it has one —
+`- Note: notes/<file> (<what it is>, from Heinzel)`.
+
 An emptied Heinzel directory is removed with `rmdir`, which fails
 on anything left; what is left is named in the report.
 

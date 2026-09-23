@@ -68,7 +68,8 @@ skip it.
 
    When it does apply: first connection, plus every
    connection while a `deferred` line, an unresolved
-   inventory or an unverified entry in `deployed.md`
+   inventory or an unverified entry in the host's or
+   its cluster's `deployed.md`
    (`rules/deployed-files.md` → Unverified entries) is
    there, and whenever the
    user asks for it. One batched probe, silent unless

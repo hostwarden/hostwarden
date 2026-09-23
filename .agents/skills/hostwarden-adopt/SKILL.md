@@ -246,7 +246,8 @@ leads, the host confirms them.
    whenever this clone kept its own — the leads live in the records
    that were not copied.
 
-   **Rebuild Heinzel's copies** for the same hosts, always:
+   **Rebuild Heinzel's copies** for every host of that set, one
+   skipped above included, always:
    whatever Heinzel kept of the files its sessions wrote onto hosts
    — in a host's directory or at the top of its `memory/` — moves
    onto the layout of `rules/deployed-files.md`, each master with a

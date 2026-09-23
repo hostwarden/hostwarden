@@ -101,8 +101,9 @@ before its host has shown what it carries:
 
 No mode, owner or hash, since none was observed. Such an entry is
 no drift in either direction: Drift reports it as not checked, a
-deploy treats its path as one `deployed.md` does not know, and the
-rule that recorded it settles it from the host. Settling it is no
+deploy treats its path as one `deployed.md` does not know and
+replaces the entry with its own, and the rule that recorded it
+settles it from the host. Settling it is no
 resolution of drift under Drift below: no deploy was ever recorded
 for it, so whichever side it takes overrules nobody's decision.
 

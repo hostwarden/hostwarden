@@ -379,17 +379,18 @@ entry:
   today's where none does.
 - **Another hash.** The host's file becomes the
   master, and the entry is recorded from it as
-  above. Read every such file in one call, as root
-  or through `sudo -n` where needed, into the
-  masters' places without printing it, and hash each
-  against the probe. Heinzel's copy moves to the
-  host's `notes/` as
-  `<file name>.heinzel-superseded-<date>`, never
-  dropped: it may hold an intent the host lost. A
-  fleet master other hosts list stays; the host's
-  file becomes this host's variant under its own
-  `files/` (`rules/deployed-files.md` → Where the
-  master lives).
+  above. For a fleet master other hosts list, that
+  is this host's variant under its own `files/`
+  (`rules/deployed-files.md` → Where the master
+  lives), and the fleet master stays. Otherwise
+  Heinzel's copy first moves to the host's `notes/`
+  as `<file name>.heinzel-superseded-<date>`, with
+  `-2` and on where that is taken, never dropped: it
+  may hold an intent the host lost. Then read every
+  such host file in one call, as root or through
+  `sudo -n` where needed, into its master's place
+  without printing it, and hash each against the
+  probe.
   This is no drift resolution in the sense of
   `rules/deployed-files.md` → Drift, which never
   settles a difference on its own: Heinzel's copy
@@ -409,6 +410,10 @@ entry:
 - **Unread.** The entry stays unverified, and the
   check records the deferral for privileged paths
   (`rules/heinzel-legacy.md` → Detect).
+
+This connection's changelog entry names each note
+these write, which keeps it (`rules/server-memory.md`
+→ Notes and evidence).
 
 A file Heinzel wrote carries no marker; it gets one,
 like its own log tag, the next time its master
