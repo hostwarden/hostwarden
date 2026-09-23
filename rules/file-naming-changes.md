@@ -132,7 +132,7 @@ through `sudo -n`, in one call
 (`rules/ssh-connections.md` → Bundle commands):
 
 ```
-roots=""; plists=""
+roots=""; plists=""; links=""
 for d in /etc /usr/local/bin /usr/local/sbin /usr/local/etc \
   /usr/local/lib/systemd /opt /root /var/spool/cron \
   /var/cron/tabs /var/at/tabs /home/*/bin /home/*/.config \
@@ -143,13 +143,17 @@ for d in /Library/LaunchDaemons /Library/LaunchAgents \
   /Users/*/Library/LaunchAgents; do
   [ -d "$d" ] && plists="$plists $d"
 done
-echo "##roots$roots$plists"
+for d in /etc /usr/local /opt /root /home/*/bin \
+  /home/*/.config /Users/*/bin; do
+  [ -d "$d" ] && links="$links $d"
+done
+echo "##roots$roots$plists"; echo "##link-roots$links"
 echo "##content"; grep -rIl '<old-stem>' $roots; echo "##rc $?"
 if [ -n "$plists" ]; then
   echo "##plists"; grep -rl '<old-stem>' $plists; echo "##rc $?"
 fi
 t=$(mktemp)
-echo "##links"; find $roots $plists -type l -exec ls -l {} + >"$t"
+echo "##links"; find $links $plists -type l -exec ls -l {} + >"$t"
 echo "##rc $?"; grep '<old-stem>' "$t"; echo "##rc $?"; rm -f "$t"
 ```
 
@@ -165,9 +169,14 @@ which, and rename nothing until it has been. The
 `find` writes to a file rather than into the pipe:
 `sh` has no `pipefail`, and behind a pipe only
 `grep`'s status would reach `$?`. The launchd
-directories are searched
-without `-I`: launchd reads binary plists too, and
-`-I` would skip them.
+directories are searched without `-I`: launchd reads
+binary plists too, and `-I` would skip them. The
+link search takes all of `/usr/local`, not only the
+parts whose content is read: a stable link such as
+`/usr/local/libexec/job` can point at the renamed
+file from anywhere under it, and the caller names
+only the link. Listing links reads directory entries
+alone, so the wider root costs little.
 
 The spool directories hold every user's crontab:
 `/var/spool/cron/` with its `crontabs/` (Debian,
