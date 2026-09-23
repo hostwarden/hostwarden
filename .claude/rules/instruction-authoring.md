@@ -32,8 +32,8 @@ hook on `Edit|Write`, names this file once per session when one of
 them is touched. Where hooks do not run, read it yourself before
 changing the product.
 
-The mechanical half is checked rather than remembered:
-`sh .claude/hooks/instructions-test.sh`.
+The mechanical half is checked rather than remembered, by
+`instructions-test.sh` in CI (`pull-requests.md` → Checks).
 
 ## Where a new instruction belongs
 

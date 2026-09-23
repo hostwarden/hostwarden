@@ -2,14 +2,32 @@
 paths:
   - "CONTRIBUTING.md"
 description: How a pull request to Hostwarden goes from open to
-  merged — Codex review, merge readiness, rebasing. For work on
-  this repository, never for a managed host.
+  merged — checks in CI only, Codex review, merge readiness,
+  rebasing. For work on this repository, never for a managed host.
 ---
 
 # Pull requests
 
 When auto mode blocks a step below — answering a thread,
 `rebase --continue`, a push — report it; never work around it.
+
+## Checks
+
+CI is the only gate. Ten sessions each running the guard matrix on
+the workstation, with endpoint protection inspecting every process,
+took 15 to 36 minutes a run; CI runs all of `scripts/check.sh` in
+one to two.
+
+- A pull request session runs neither `scripts/check.sh` nor a test
+  script (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
+  workstation. It pushes, reads `gh pr checks <number>`, and on a
+  failure `gh run view <run-id> --log-failed`.
+- The one exception is a guard hook patch the maintainer applies
+  with `git am` (`repo-release.md` → CI), which CI does not see
+  until then. The matrix of the hook it changes runs exactly once,
+  in the scratch clone the patch is built in, when it is done.
+- A clone agents push from does not set up the pre-push hook from
+  `CONTRIBUTING.md`: it would run the checks on every push.
 
 ## Review
 
@@ -39,8 +57,8 @@ When auto mode blocks a step below — answering a thread,
   requested or awaited if Codex had completed on the pre-rebase
   head with nothing open. The session checks its own conflict
   resolution instead: `git range-diff` against the pre-rebase
-  head, the tests, and green CI. Only a new fix commit of its own
-  needs Codex again.
+  head and green CI. Only a new fix commit of its own needs Codex
+  again.
 - Once a pull request is reported ready, push no new commit without
   telling whoever merges, or an unreviewed head gets merged.
 - The merge is `gh pr merge --squash --match-head-commit <sha>`.
