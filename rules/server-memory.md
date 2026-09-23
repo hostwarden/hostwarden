@@ -248,7 +248,8 @@ directory has to be added there by hand.
 
 **Shared in team mode:** everything else —
 `memory/servers/*/` with each host's `rules.md`,
-`memory/clusters/*/`,
+`memory/clusters/*/`, `memory/known_hosts`
+(`rules/host-keys.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 

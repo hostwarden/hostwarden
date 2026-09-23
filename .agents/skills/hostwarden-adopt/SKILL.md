@@ -119,6 +119,13 @@ leads, the host confirms them.
    checkout — it held a private key — is one of them; name the path,
    never its content (`rules/secrets.md`).
 
+   **Host keys.** An adopted override that adds
+   `UserKnownHostsFile=…/memory/known_hosts` to the SSH options, or
+   says how that file is filled, repeats `rules/host-keys.md`. It keeps
+   working as it is. Point it out in the report, and offer to cut it
+   down to what still differs, such as forbidding first use, in
+   `memory/custom-rules/host-keys.md`. Change it only on a yes.
+
    **What the copy leaves behind.** Each `not copied:` line names
    something in the old `memory/` that has no place here as it is —
    most often Claude's own auto-memory from Heinzel sessions (a

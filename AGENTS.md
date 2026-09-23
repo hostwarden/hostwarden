@@ -82,13 +82,23 @@ Always use these options on every SSH and SCP/rsync-over-SSH command
 
     ssh -o BatchMode=yes -o ConnectTimeout=5 \
       -o ControlMaster=auto \
-      -o ControlPath=~/.cache/hostwarden/ssh-%C \
+      -o ControlPath=~/.cache/hostwarden/ssh-<id>-%C \
       -o ControlPersist=10m \
-      -o ServerAliveInterval=15 -o ServerAliveCountMax=3 …
+      -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+      -o 'UserKnownHostsFile="<checkout>/memory/known_hosts"' \
+      -o GlobalKnownHostsFile=/dev/null \
+      -o StrictHostKeyChecking=yes …
 
 They share one connection per host and remote user across calls. A
 SessionStart hook creates the socket directory; where hooks do not
 run, run `mkdir -p -m 700 ~/.cache/hostwarden` first.
+
+`<checkout>` is this checkout's absolute path; a relative one
+breaks after a `cd`. The inner double quotes keep a path with a
+space in one piece: ssh splits the option's value at whitespace.
+`<id>` is `printf %s '<checkout>' | cksum | cut -d' ' -f1`, so a
+connection another checkout opened, checked against its own
+known_hosts, is never shared with this one.
 
 Access tests and the single retry after a hanging call need a fresh
 login instead, and connection sharing has limits worth knowing
@@ -99,7 +109,8 @@ before a firewall counts you out: `rules/ssh-connections.md`.
 **Follow `rules/first-connection.md`.** It is the ordered pipeline
 that runs on every remote connection and every local-mode session.
 It names each step's file: access control, DNS aliases, SSH user,
-OS detection, server memory, activity check, Heinzel legacy.
+host key, OS detection, server memory, activity check, Heinzel
+legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
 `uname -a` and every other one-liner run the pipeline first.
@@ -319,6 +330,8 @@ trigger — not a request from the user.
 - A development session needs a live server's answer →
   `rules/server-check-handoff.md`
 - A secret is anywhere near the command → `rules/secrets.md`
+- `Host key verification failed`, or a host key that changed →
+  `rules/host-keys.md`, never a manual login
 - Inspecting or changing a service that runs in a container →
   `rules/containers.md`
 - Reading what a server returned → `rules/anomaly-detection.md`

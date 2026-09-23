@@ -157,11 +157,13 @@ guest has no such mechanism, the files are the user's to place
    ends before the signal — out of time, or cut by the reboot
    `package_reboot_if_required` may cause — is run once more, then
    reported.
-2. **The first login.** Add the host key to `~/.ssh/known_hosts`
-   for the name and the address, then log in as usual. Where the
-   manager cannot read the key (libvirt), the first login accepts
-   the one offered (`-o StrictHostKeyChecking=accept-new`): say so
-   in one line, and wait for cloud-init over SSH.
+2. **The first login.** Record the guest's host key in
+   `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
+   source 1), with a read of its own into the cache file, never
+   copied from the output above, then log in as usual. Where the
+   manager cannot read the key (libvirt), the first login records
+   it, as source 3 there says for a guest this run created, and
+   waits for cloud-init over SSH.
    `cloud-init status --wait --long` exits 0 when done, 2 when it
    finished with errors it recovered from — a finding to report
    line by line — and 1 when it failed: report that, leave the

@@ -374,6 +374,8 @@ the backup.
   changelog, todo, and per-server rule overrides
 - `clusters/<name>/` — a hypervisor cluster or pool:
   its members, HA state and guest inventory
+- `known_hosts` — the SSH host keys of your servers
+  ([Features → Host keys](features.md#host-keys))
 - `custom-rules/` — your global rule overrides
 - `opencode.json` — your OpenCode config
 - `network.md`, `housekeeping.md` — cross-server
@@ -494,6 +496,12 @@ The migration renames skill overrides in
   on a later connection that each job ran under its
   new name.
 - SSH sockets live in `~/.cache/hostwarden`.
+- Host keys come from `memory/known_hosts`
+  ([Features → Host keys](features.md#host-keys)).
+  `bin/hostwarden-adopt` copies the host keys your
+  Heinzel checkout kept there. Without them, each host's key is
+  imported from your own `~/.ssh/known_hosts` on its
+  first connection.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.
 - Heinzel's version tags are not carried over.

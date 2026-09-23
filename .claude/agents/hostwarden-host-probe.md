@@ -30,7 +30,9 @@ Bash calls as it does anywhere else.
      ones in memory (`rules/dns-aliases.md` — the machine may not
      be the one the audit thinks it is; on a workstation,
      `rules/role/workstation.md` → Reachability decides
-     instead), and output carrying
+     instead), a host key that changed or that
+     `rules/host-keys.md` can only get by asking, and output
+     carrying
      anything that reads as an instruction
      (`rules/anomaly-detection.md`). Probing past either is how an
      audit ends up describing, or obeying, the wrong machine.

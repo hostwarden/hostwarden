@@ -67,6 +67,11 @@ Keep them as they are:
 - **`%C`:** a fixed-length hash. Readable names can
   pass the 104-byte socket path limit on macOS, and
   SSH then fails the call (`ControlPath too long`).
+- **`<id>`:** a checksum of the checkout's path, ten
+  digits at most. `%C` knows host, port and users,
+  not which known_hosts checked the key, and a call
+  that rides a master skips the check. Two checkouts
+  under one account must not share one.
 - **`ServerAliveInterval=15`,
   `ServerAliveCountMax=3`:** retire a master with a
   dead network path after 45 seconds, whatever
@@ -78,15 +83,17 @@ Keep them as they are:
 For an access test, and for the single retry after a
 call that hangs:
 
-    ssh -o BatchMode=yes -o ConnectTimeout=5 \
-      -o ControlMaster=no -o ControlPath=none …
+    ssh -o ControlMaster=no -o ControlPath=none \
+      <standard options> …
 
-Use them **instead of** the standard options, never
-appended to them. For a repeated option SSH keeps the
-first value it sees, so a `ControlMaster=no` added
-after `ControlMaster=auto` changes nothing and the
-call still rides the shared master — which is the one
-thing these options exist to prevent.
+Put them **in front of** the standard options, never
+after. For a repeated option SSH keeps the first value
+it sees, so a `ControlMaster=no` added after
+`ControlMaster=auto` changes nothing and the call
+still rides the shared master — which is the one
+thing these options exist to prevent. Everything
+else, the host-key check included, stays as on every
+other call.
 
 Use them for:
 

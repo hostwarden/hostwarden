@@ -173,6 +173,13 @@ remote command here, like everywhere else. Beyond that:
 - `rules/secrets.md` — host keys and credentials recovered from
   the old system are secrets; inspect metadata, never contents.
 - `rules/os/<family>.md` — for every OS involved, old and new.
+- `rules/host-keys.md` — the new OS answers with new host keys
+  unless the old ones were restored. Replace the host's lines as
+  A Changed Key there says, without asking for the cause: this run
+  is it. Read the new key through a session this run already
+  trusts, such as the installer or rescue system that built the
+  new root filesystem; where there is none, Getting a Key,
+  source 3 covers a host this run reinstalled.
 - `rules/server-memory.md` — the host's memory file describes a
   machine that is about to stop existing. Capture the inventory
   before the wipe, and rewrite memory after.

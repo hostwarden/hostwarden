@@ -456,7 +456,11 @@ one line (*"Registering 7 guests of pve1.example.com through
    Never `Mode: via`: that line says the guest has no SSH of
    its own, and it would route every later session through the
    host.
-5. Log a `read-only:` journal line inside the guest, in the same
+5. Record its host key, so the first SSH connection finds it
+   verified: `rules/host-keys.md` → Getting a Key, source 1. A
+   key that differs from the recorded one goes into the report as
+   a finding.
+6. Log a `read-only:` journal line inside the guest, in the same
    call, and a line in its local changelog (`rules/changelog.md`).
 
 Registration never changes a guest, whatever the probe finds:
@@ -476,7 +480,8 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   failed: 131 ci1 (OS detection: timeout; nothing written)
   written: a read-only: journal line in 16 guests (102 db1: no
     logger); 15 new memory directories, 2 existing ones given Runs on:,
-    guests.md, the local changelog
+    guests.md, host keys of 16 guests in memory/known_hosts, the
+    local changelog
   next, only with you: the first SSH connection to each guest
   findings:
     db1.example.com: no automatic security updates
