@@ -23,12 +23,12 @@ WARN      Deployed /etc/cron.d/reboot-check removed on the host
 WARN      Deployed /etc/app/app.conf mode 644, recorded 600
 INFO      Master of /usr/local/bin/reboot-check changed, not deployed
 INFO      Deployed /etc/app/app.conf not checked (unread)
-INFO      Deployed /usr/local/bin/heinzel-backup.sh unverified since adoption
+INFO      Deployed /usr/local/bin/heinzel-backup.sh not checked (unverified)
 ```
 
-An `unverified` entry is reported as the last line shows, whatever
-the probe returns: settling it is the Heinzel check's
-(`rules/heinzel-adoption.md` → Heinzel's copies).
+An unverified entry (`rules/deployed-files.md` → Unverified
+entries) stays out of the probe and is reported as the last line
+shows.
 
 "Both changed" is a `WARN` like an edit on the host. Under System,
 one line for all of them:

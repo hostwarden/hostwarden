@@ -299,6 +299,12 @@ that joins a cluster moves its entries into the cluster's file
 and removes its own; one that leaves gets its own back from its
 next inventory and drops out of `Members:`.
 
+**Masters.** A member's master under `files/` at a path in the
+cluster's shared file system — `/etc/pve/` on Proxmox VE — moves
+to `memory/clusters/<name>/files/`, with its `deployed.md` entry,
+once the member is found in the cluster: that file exists once for
+all members (`rules/deployed-files.md` → Where the master lives).
+
 **Once per cluster.** Inventory → When applies to the cluster,
 not the member: the first connection is the first to any member,
 and `Inventoried:` gates the light listing for all of them. In

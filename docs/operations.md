@@ -499,7 +499,8 @@ The migration renames skill overrides in
   credentials stays in the old checkout. Each master
   is recorded as unverified until the host's first
   connection compares it; where the host's file
-  differs, the host's version becomes the master.
+  differs, the host's version becomes the master and
+  Heinzel's copy is kept in the host's `notes/`.
 - Then, unless you choose "only copy", the skill
   onboards each host the way a first connection would
   have: read-only, host by host. It writes the host's

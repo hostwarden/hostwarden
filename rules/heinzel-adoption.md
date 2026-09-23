@@ -187,13 +187,6 @@ for one wherever its unit and its text do not give
 it away. A `watcher:` line under `heinzel` is a lead
 to such a script like any other.
 
-A renamed or rewritten file with a `deployed.md`
-entry changes in its master first, the master moving
-to the new path under `files/`, and the host is then
-checked against it as `rules/deployed-files.md` →
-Deploying, steps 4 and 5, says: the entry takes the
-new path and hash.
-
 Afterwards the host's memory names the new paths —
 they are what is true now.
 
@@ -372,56 +365,54 @@ Two kinds of fact have another place:
 ## Heinzel's copies
 
 The adoption rebuilds the copies Heinzel kept of
-files on its hosts into masters
-(`rules/deployed-files.md`), each with a
-`deployed.md` entry whose hash reads `unverified`
-(`hostwarden-adopt`, `references/masters.md`). The
-host settles them; nothing on it changes for that.
-
-The Heinzel check probes every `unverified` path of
-the host's `deployed.md`, and of its cluster's
-through this member, with the probe of
-`rules/deployed-files.md` → Drift, beside its
-other probes (`rules/heinzel-legacy.md` → Detect).
-Then, per entry:
+files on its hosts into masters, each recorded as an
+unverified entry (`rules/deployed-files.md` →
+Unverified entries; `hostwarden-adopt`,
+`references/masters.md`). The Heinzel check settles
+them from the host (`rules/heinzel-legacy.md` →
+Detect); nothing on the host changes for that. Per
+entry:
 
 - **Same hash as the master.** The entry gets the
   host's mode, owner and hash, and the date of the
   Heinzel changelog entry that deployed it, or
   today's where none does.
-- **Another hash.** The host's file is what is
-  deployed, and it becomes the master: read it into
-  the master's place over SSH without printing it,
-  hash that on the workstation against the probe's,
-  and record the entry as above. Heinzel's copy was
-  never recorded as deployed, so this overwrites no
-  decision; the workspace history keeps it for a
-  diff on request. A host file that looks like it
-  holds a credential (`rules/secrets.md`) is not
-  read: its entry is removed, Heinzel's copy moves to
-  the host's `notes/`, and the report names the file
-  as one to rebuild under `rules/deployed-files.md` →
-  Secrets.
+- **Another hash.** The host's file becomes the
+  master, and the entry is recorded from it as
+  above. Read every such file in one call, as root
+  or through `sudo -n` where needed, into the
+  masters' places without printing it, and hash each
+  against the probe. Heinzel's copy moves to the
+  host's `notes/` as
+  `<file name>.heinzel-superseded-<date>`, never
+  dropped: it may hold an intent the host lost. A
+  fleet master other hosts list stays; the host's
+  file becomes this host's variant under its own
+  `files/` (`rules/deployed-files.md` → Where the
+  master lives).
+  This is no drift resolution in the sense of
+  `rules/deployed-files.md` → Drift, which never
+  settles a difference on its own: Heinzel's copy
+  was never recorded as deployed, so there is no
+  deployed state for the host to have drifted from,
+  and the host's file is the only one known to run.
+  A host file `rules/secrets.md` counts as a secret
+  is not read: its entry is removed, Heinzel's copy
+  moves to `notes/` the same way, and the report
+  names the file as one to rebuild under
+  `rules/deployed-files.md` → Secrets.
 - **Missing on the host.** The entry is removed, and
   the master moves to the host's `notes/` with the
   date in its name — a fleet or cluster master only
   once no entry lists it. Its absence is a lead the
   host did not confirm (Record, above).
-- **Unread.** The entry stays `unverified`, and the
+- **Unread.** The entry stays unverified, and the
   check records the deferral for privileged paths
   (`rules/heinzel-legacy.md` → Detect).
 
-A master still in the host's `files/` that lies in
-a cluster's shared file system moves to
-`memory/clusters/<name>/files/`, with its entry,
-once the hypervisor onboarding has created that
-directory (`rules/hypervisors.md` → Clusters and
-Pools).
-
-Only a settled entry counts in `rules/deployed-files.md`
-→ Drift. A file Heinzel wrote carries no marker; it
-gets one, like its own log tag, the next time its
-master changes and is deployed.
+A file Heinzel wrote carries no marker; it gets one,
+like its own log tag, the next time its master
+changes and is deployed.
 
 ## On the workstation (local mode)
 

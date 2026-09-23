@@ -87,6 +87,25 @@ deployed. It is what tells a file edited on the host from a master
 that changed and was never deployed; a hash taken from the master
 today could tell neither.
 
+## Unverified entries
+
+A master rebuilt from a copy kept outside this layout — Heinzel's
+(`rules/heinzel-adoption.md` → Heinzel's copies) — is recorded
+before its host has shown what it carries:
+
+```markdown
+- /usr/local/bin/heinzel-backup.sh
+  servers/web1.example.com, adopted 2026-09-20
+  sha256 unverified
+```
+
+No mode, owner or hash, since none was observed. Such an entry is
+no drift in either direction: Drift reports it as not checked, a
+deploy treats its path as one `deployed.md` does not know, and the
+rule that recorded it settles it from the host. Settling it is no
+resolution of drift under Drift below: no deploy was ever recorded
+for it, so whichever side it takes overrules nobody's decision.
+
 ## Naming on the host
 
 Name a new file for what it does — `backup-usb-watch`,
@@ -281,10 +300,7 @@ A master missing from the workspace counts as a changed master. A
 mode or owner other than the recorded one is drift of its own. A
 `secret-inline` file compares only its master's hash against the
 record; on the host it is checked for existence, mode and owner.
-An entry whose hash reads `unverified` is a master rebuilt from
-Heinzel's copy that its host has not confirmed yet: it is no
-drift, only not checked, and `rules/heinzel-adoption.md` →
-Heinzel's copies settles it.
+An `unverified` entry is not checked (Unverified entries, above).
 
 Nothing is overwritten in either direction without the user's
 answer. For each finding, show what differs and ask:

@@ -28,9 +28,9 @@ skill, together with what names Heinzel's
 checkout or `heinzel-memory.md` in
 `rules/hypervisors.md` → Registering Guests,
 `rules/dns-aliases.md` and `rules/first-connection.md`
-step 6, and what names an `unverified` entry in
-`rules/deployed-files.md` and the housekeeping
-reference on deployed files. Written down here
+step 6, `rules/deployed-files.md` → Unverified
+entries and its line in the housekeeping reference
+on deployed files. Written down here
 because a transition nobody ends becomes permanent
 by default.
 
@@ -116,16 +116,14 @@ and stays open when nothing matches: report it, and
 record it as `rules/heinzel-adoption.md` → Record
 says.
 
-**Heinzel's copies join as well.** Each entry of the
-host's `deployed.md`, and of its cluster's, whose
-hash reads `unverified` is a master the adoption
-rebuilt from Heinzel's copy. Its path goes into the
-probe of `rules/deployed-files.md` → Drift, run as a
-bundle beside this one, and
+**Heinzel's copies join as well.** The path of each
+unverified entry in the host's `deployed.md`, and in
+its cluster's, goes into the probe of
+`rules/deployed-files.md` → Drift, nested in the
+same bundle under the same `sudo -n`, and
 `rules/heinzel-adoption.md` → Heinzel's copies
 settles it — whatever the answer to the rest of the
-check, since settling it changes nothing on the
-host.
+check.
 
 Every search ends in `|| true`: `ls` and `grep`
 report "nothing found" with a non-zero status, and on
