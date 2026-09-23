@@ -75,7 +75,23 @@ leads, the host confirms them.
 2. **Never write into the old tree.** The old checkout is the user's
    fallback. Read from it, copy out of it, change nothing in it. Say
    this once, so the user knows the original stays intact. The single
-   exception is step 7, which the user approves explicitly.
+   exception is step 7, which the user approves explicitly. What you
+   read or copy out of it never goes through a link, a DNS alias to a
+   sibling host in `memory/servers/` aside (`rules/dns-aliases.md`): a
+   link may point anywhere, at a credential too. The link stays where
+   it is and is named in the report.
+
+   So before anything in it is read, `find -H <path>/memory -type l`
+   lists every link below `memory/`, into it even when it is a link
+   itself, and `[ -L <path>/memory ]` says whether it is one. A
+   link directly in `memory/servers/` is an alias and left to
+   `bin/hostwarden-adopt`, which checks them. Every other link is
+   never read through, by any step, and named in the report. The
+   script refuses a link further down, but copies a top-level entry
+   of `memory/` that is a link, and a `memory/` that is one, by what
+   it points to: name those with their target (`readlink`) in step
+   3's question, and the copy runs only on the user's yes to exactly
+   those links.
 
 3. **Ask once, before the copy.** Name the hosts the run takes and
    what follows the copy:
