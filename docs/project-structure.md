@@ -186,6 +186,8 @@ rules/                 — Upstream rule files (git-tracked)
                          avoiding failed logins
   ssh-unreachable.md   — No retry loops; blocked path vs
                          broken host
+  host-keys.md         — memory/known_hosts: getting a key,
+                         a changed key, certificates
   ssh-safety-net.md    — Timed revert armed before a
                          firewall or network change
   server-memory.md     — Server memory file format
@@ -277,6 +279,7 @@ memory/                — The workspace: all your user
                          opt-in for reload/restart
   housekeeping.md      — User-added custom checks
   network.md           — Cross-server network facts
+  known_hosts          — The SSH host keys of your servers
   opencode.json        — Your local OpenCode config
   custom-rules/        — Your rule overrides that layer on
                          top of rules/*.md

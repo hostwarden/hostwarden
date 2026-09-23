@@ -24,7 +24,10 @@ skip it.
    `memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP
    still matches the `- IP:` field in server memory.
-   See `rules/dns-aliases.md` for both.
+   See `rules/dns-aliases.md` for both. Then, before
+   the session's first SSH call to the host, look its
+   key up in `memory/known_hosts`, and get it first
+   where it is missing: `rules/host-keys.md`.
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Server memory file.** Create on first
    connection, read on every subsequent connection.
@@ -63,7 +66,8 @@ skip it.
 
 In local mode (`localhost`, the user's own
 hostname), skip steps 1–4 — blacklist, read-only
-list, SSH user and DNS check are remote-only. Still
+list, SSH user, DNS check and host key are
+remote-only. Still
 run OS detection, server memory, activity check, and
 the Heinzel legacy check — on the workstation the
 latter looks at scheduled runs instead of backup

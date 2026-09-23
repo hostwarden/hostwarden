@@ -14,6 +14,36 @@ addresses. The first hostname becomes the canonical
 name; additional names become symlinks that share the
 same memory. Each alias can have its own SSH user.
 
+## Host keys
+
+Hostwarden checks every server's SSH host key against
+one file in the workspace, `memory/known_hosts`, and
+never asks you to log in by hand first. A host that is
+not in it gets its key in this order:
+
+1. **Through a host that is already verified.** A
+   container or VM reached through its hypervisor
+   (`pct exec`, `qm guest exec`, `incus exec`, …) has
+   its key read inside. Registering a hypervisor's guests
+   and creating a new one record their keys this way.
+2. **From your own `~/.ssh/known_hosts`**, imported
+   with a note saying so.
+3. **Otherwise it asks:** accept the key on first use,
+   compare it with the fingerprint you read at the
+   console, or stop.
+
+Every entry starts with a comment line saying when and
+how the key was obtained. In a team the file is shared,
+so each host's key is accepted once for everyone, and
+the workspace's history shows who added it. A host
+whose key changed stops the session; nothing is
+overwritten until you say so.
+
+`@cert-authority` lines work in the same file, so SSH
+host certificates from your own CA need no per-host
+lines. Hostwarden supports them and does not ask you
+to run a CA.
+
 ## Memory across sessions
 
 After working on a machine, Hostwarden remembers it.

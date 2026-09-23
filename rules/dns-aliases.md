@@ -92,6 +92,11 @@ symlink):
    included; a no makes it a new server.
 
 3. **Match found -> alias.**
+   - First verify its host key against the canonical
+     host's and give it lines of its own:
+     `rules/host-keys.md` → DNS Aliases. A key that
+     does not verify writes nothing here: no symlink,
+     no `DNS alias:` line.
    - Create symlink:
      `ln -s <canonical> memory/servers/<alias>`
    - Confirm it is one: `test -L memory/servers/<alias>`.
@@ -139,3 +144,5 @@ about a changed address.
 2. Remove the `- DNS alias:` line from canonical
    `memory.md`.
 3. Remove the alias from `memory/user.md` if present.
+4. Remove its lines from `memory/known_hosts`:
+   `rules/host-keys.md` → Removing Names.

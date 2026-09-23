@@ -231,32 +231,20 @@ a static IP on both OSes to avoid confusion.
 ## SSH Host Key Changes
 
 When switching between OSes on a dual-boot system,
-the SSH host keys change (each OS has its own).
-The SSH client will warn about a "man-in-the-middle
-attack" because the key for the IP changed.
+the SSH host keys change (each OS has its own), and
+the second OS stops every call as a changed key does
+(`rules/host-keys.md` → A Changed Key).
 
-Options:
-- Accept the new key when prompted.
-- **Proper fix:** define one alias per OS in
-  `~/.ssh/config`, each with its own known-hosts
-  file. This works despite the shared IP:
-  ```
-  Host vm-linux
-      HostName 192.0.2.10
-      UserKnownHostsFile ~/.ssh/known_hosts.vm-linux
-  Host vm-freebsd
-      HostName 192.0.2.10
-      UserKnownHostsFile ~/.ssh/known_hosts.vm-freebsd
-  ```
-- `ssh -o StrictHostKeyChecking=no
-  -o UserKnownHostsFile=/dev/null` disables
-  man-in-the-middle protection entirely. This is
-  acceptable ONLY for local throwaway VMs —
-  never for any host reachable from a network
-  you don't fully control.
-
-This is expected behavior, not a security issue,
-as long as you initiated the OS switch yourself.
+Record both. `memory/known_hosts` may hold several
+keys for one name, and a connection verifies when
+any of them matches (`man sshd` →
+SSH_KNOWN_HOSTS FILE FORMAT). Add the second OS's
+key when this run installs it, as `SKILL.md` →
+Rules that still apply says for a new key, with
+`second OS (<os>)` as the source. Never
+`StrictHostKeyChecking=no` or
+`UserKnownHostsFile=/dev/null`: they switch the
+check off for the whole call.
 
 ## Checklist
 
