@@ -31,7 +31,8 @@ unset HOSTWARDEN_FLEET_MODEL
 R="$TMP/repo"
 H="$R/.agents/skills/hostwarden-housekeeping/references"
 mkdir -p "$R/bin" "$R/.claude/hooks" "$H"
-cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" "$R/bin/"
+cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" \
+  "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
 cp "$REPO/.claude/hooks/mode.sh" "$R/.claude/hooks/"
 printf 'Report format marker\n' >"$H/report-format.md"
 printf 'Baseline marker: CRITICAL if any filesystem > 95%%\n' \
@@ -45,6 +46,7 @@ FR="$M/fleet/fleet-read"
 mkdir -p "$FR/src" "$FR/files/etc/fleet-read"
 git -C "$M" init --quiet
 : >"$M/.hostwarden-workspace"
+cp "$REPO/templates/workspace/.gitignore" "$M/.gitignore"
 cat >"$M/user.md" <<EOF
 # Preferences
 # Operator name: Your Full Name
@@ -83,6 +85,7 @@ server down1.example.com 'key line present' ''
 server db1.example.com 'waiting for the key line' ''
 server part1.example.com 'key line present' ''
 server nojudge1.example.com 'key line present' ''
+server jumped1.example.com 'key line present' ''
 server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
@@ -94,6 +97,12 @@ S="$TMP/bin"
 mkdir -p "$S"
 cat >"$S/ssh" <<EOF
 #!/bin/sh
+case " \$* " in *" -G "*)
+  for a; do last=\$a; done
+  echo "hostname \$last"
+  case \$last in jumped1.*) echo "proxyjump alice@bad1.example.com:22" ;; esac
+  exit 0 ;;
+esac
 for a; do host=\$verb; verb=\$a; done
 host=\${host#root@}
 case \$verb in
@@ -172,6 +181,10 @@ lacks "$TMP/out" "fake" "a floors line outside the last section counted"
 has "$TMP/out" "db1.example.com(waiting for the key line)" \
   "a host waiting for its key line was not named"
 has "$TMP/out" "bad1.example.com(blacklisted)" "a blacklisted host was not named"
+has "$TMP/out" "jumped1.example.com(blacklisted)" \
+  "a host behind a blacklisted jump host was not refused"
+[ -e "$TMP/collect-jumped1.example.com" ] \
+  && bad "a host behind a blacklisted jump host was reached" || ok
 [ -e "$TMP/collect-bad1.example.com" ] && bad "a blacklisted host was reached" || ok
 [ -e "$TMP/collect-db1.example.com" ] && bad "a waiting host was reached" || ok
 has "$TMP/out" "## Housekeeping Report: web1.example.com" "the host report is missing"
@@ -227,6 +240,19 @@ rc=$?
 # the report's notes.
 (unset HOSTWARDEN_FLEET_RUN_FRESH; run --dry-run --host web1.example.com)
 lacks "$TMP/out" "at the start" "a dry run ran the update and the pull"
+
+# --- a report the mail transport refuses -------------------------
+server ok1.example.com 'key line present' ''
+git -C "$M" add -A && git -C "$M" commit --quiet -m ok1
+echo 'Report email: ops@example.com' >>"$M/user.md"
+printf '#!/bin/sh\ncat >/dev/null\nexit 75\n' >"$S/sendmail"
+chmod +x "$S/sendmail"
+run --host ok1.example.com
+rc=$?
+[ "$rc" = 1 ] && ok || bad "a refused mail did not exit 1 (rc $rc)"
+grep -q 'the mail was not accepted' "$TMP/err" && ok \
+  || bad "a refused mail was not named"
+has "$TMP/out" "# Fleet housekeeping:" "a refused mail's report was lost"
 
 # --- a bundle that no longer verifies -----------------------------
 rm -f "$TMP"/collect-*

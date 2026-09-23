@@ -70,9 +70,10 @@ the checkout. A run, in order:
    or nears its date, and a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
-host's memory, and `1` when the run failed or a host was not read
-or got no verdict — a connection refused, a host key missing from
-the workspace, the `claude` login expired. Each of those is a WARN
+host's memory, and `1` when the run failed, a host was not read or
+got no verdict — a connection refused, a host key missing from the
+workspace, the `claude` login expired — or the report could not be
+mailed. Each of those is a WARN
 in the report as well, and checks the model could not
 make are listed under "Not checked" and counted in the subject. A
 unit can be told to alert on either status.
