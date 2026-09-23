@@ -97,7 +97,9 @@ echo "scripts: $(printf '%s ' $hs)"
 # Commands that change something, and assignments whose value is
 # a netfilter tool, an address or an interface name.
 p='^[[:space:]]*([a-z/]*/)?(ip6?tables(-legacy)?(-restore)?|nft|ip'
-p="$p|sysctl|ebtables|bridge|brctl|tc)[[:space:]]"
+p="$p|sysctl|ebtables|arptables|bridge|brctl|tc|ipset|route"
+p="$p|firewall-cmd|ufw|conntrack|wg|wg-quick)[[:space:]]"
+p="$p|^[[:space:]]*((\\.|source|sh|bash|exec)[[:space:]]+)?/[A-Za-z0-9_./-]+"
 p="$p|^[[:space:]]*\"?\\\$\{?[A-Za-z_]+\}?\"?[[:space:]]+-[tAIDNPF]"
 v='(ip6?tables|nft)[^[:space:]]*|[0-9.]+(/[0-9]+)?|[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?'
 v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
@@ -106,8 +108,22 @@ p="$p|/proc/sys/|-j (DNAT|SNAT|MASQUERADE|REDIRECT|NETMAP)"
 if [ -z "$hs" ]; then :
 elif [ "$S" = - ]; then echo "scripts=unknown(needs-root)"
 else
-  # A hook that names a missing script fails when it runs.
-  $S sh -c 'for f; do [ -f "$f" ] || echo "missing=$f"; done' sh $hs
+  # Per script, the first word of every line that is a command,
+  # a path or a variable; any other word is counted, not shown.
+  q='set -f; for f; do
+    [ -f "$f" ] || { echo "missing=$f"; continue; }
+    w=; o=0
+    for c in $(grep -vE "^[[:space:]]*(#|\$)" "$f" | sed -e "s/^[[:space:]]*//" \
+      -e "s/[[:space:];].*//" -e "s/=.*/=/" | sort -u); do
+      case $c in
+        /*|*=|\$*|\"\$*) w="$w $c" ;;
+        *) if command -v "$c" >/dev/null 2>&1; then w="$w $c"
+           else o=$((o + 1)); fi ;;
+      esac
+    done
+    echo "$f:$w (other: $o)"
+  done'
+  $S sh -c "$q" sh $hs
   $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x"
 fi
 if command -v networkctl >/dev/null 2>&1; then
@@ -272,11 +288,18 @@ for k in iptables ip6tables; do
 done
 iv=$(iptables -V 2>/dev/null); echo "iptables=${iv:-none}"
 # What restores rules at boot, besides the hooks above.
-for u in netfilter-persistent iptables ip6tables nftables; do
-  echo "unit $u=$(systemctl is-enabled "$u" 2>/dev/null)"
-done
-ls /etc/iptables/rules.v* /etc/sysconfig/ip*tables \
-  /etc/nftables.conf /etc/rc.local 2>/dev/null
+if [ -d /run/systemd/system ]; then
+  for u in netfilter-persistent iptables ip6tables nftables; do
+    echo "unit $u=$(systemctl is-enabled "$u" 2>/dev/null)"
+  done
+elif command -v rc-update >/dev/null 2>&1; then
+  rc-update show boot default 2>/dev/null \
+    | grep -E '^[[:space:]]*(iptables|ip6tables|nftables) ' \
+    | sed 's/^[[:space:]]*/unit /'
+fi
+ls /etc/iptables/rules* /etc/sysconfig/ip*tables \
+  /etc/nftables.conf /etc/nftables.nft /etc/rc.local \
+  /etc/local.d/*.start 2>/dev/null
 # Chains a container engine or Kubernetes writes are counted.
 e='^(DOCKER|KUBE-|CNI-|cali-)'
 nf=
@@ -370,16 +393,22 @@ Reading **A (manager)**:
   set in a `post-up` line or a script it calls are
   applied with the interface and appear in no manager's
   view. `scripts:` names each script a hook line calls,
-  and each dispatcher script no package installed; the
-  lines after it are the ones that change something, with
-  the assignments that name a tool, an address or an
-  interface. `missing=<path>` is a script a hook line
-  names that does not exist: that hook fails when it runs.
-  A variable whose assignment is not among them
-  is read with an anchored grep on its name
-  (`rules/secrets.md`), never by printing the script. A
-  script without printed lines changes nothing the profile
-  records.
+  and each dispatcher script no package installed. Then,
+  per script, the first words of its lines that are a
+  command, a path or a variable, with `other:` counting
+  the rest (heredoc text, a function the script defines),
+  which can be data and is not shown; and `missing=<path>`
+  for a script a hook line names that does not exist: that
+  hook fails when it runs. The lines after that are the ones
+  that change something, with the assignments that name a
+  tool, an address or an interface. A command among the
+  first words whose lines are not printed — another tool,
+  a function, a program the pattern does not know — is
+  read with an anchored grep on that word, and so is a
+  variable whose assignment is missing
+  (`rules/secrets.md`), never by printing the script.
+  Only a script whose words are all accounted for is
+  fully read.
 
 Reading **B (links, addresses, routes)**:
 
@@ -505,8 +534,12 @@ profile's `## Traffic flow` section (`rules/network.md`):
   restore rules at boot besides the hooks:
   `netfilter-persistent` with `/etc/iptables/rules.v4`
   and `rules.v6`, the `iptables` services with
-  `/etc/sysconfig/iptables`, `nftables` with
-  `/etc/nftables.conf`, and `rc.local`. A firewall
+  `/etc/sysconfig/iptables` or, on Alpine,
+  `/etc/iptables/rules-save` and `rules6-save` (awall's
+  output too), `nftables` with `/etc/nftables.conf` or
+  Alpine's `/etc/nftables.nft`, and `rc.local` or
+  `/etc/local.d`. On OpenRC a `unit` line is a runlevel
+  entry. A firewall
   manager, a hypervisor firewall and a container engine
   write their own rules at start.
 - `DOCKER*`, `KUBE*`, `CNI*`, `cali*` count the rules a

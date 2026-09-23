@@ -243,7 +243,9 @@ housekeeping report format.
   can match, while `bridge-nf-call` for that family is `1`.
   That is a DNAT or REDIRECT for traffic in on the bridge
   (`-i`, `iifname`, or no interface at all) not limited to
-  the host's own addresses (`-d`, `daddr`), or an SNAT or
+  the host's own addresses — by `-d` or `daddr`, a set of
+  them, `-m addrtype --dst-type LOCAL` or
+  `fib daddr type local` — or an SNAT or
   MASQUERADE out the bridge not limited to the sources the
   host routes (`-s`, `saddr`) — on the rule itself or on the
   jump that leads to it. The rule then rewrites the guests'
