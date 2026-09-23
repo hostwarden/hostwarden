@@ -382,8 +382,8 @@ directory.
   read only its chain (`nft list chain …`, or `iptables-save` through
   `grep`), and never base a change on it.
 - Rules, port forwards and zones change in the application, after
-  asking, with no revert (see Network API → Writing): name what
-  reaches SSH and the UniFi OS web UI.
+  asking, with no revert (`rules/ssh-safety-net.md`; Network API →
+  Writing): name what reaches SSH and the UniFi OS web UI.
 
 ## Services and Logs
 

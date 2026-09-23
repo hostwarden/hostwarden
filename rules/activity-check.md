@@ -32,10 +32,12 @@ journalctl --no-pager -q -o short-iso | head -1
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
 user's own entries. When connected as non-root, try
-sudo and fall back in the same call:
+sudo and fall back in the same call. The test asks
+for `journalctl` itself, since a sudoers rule may
+allow it and nothing else:
 
 ```
-if sudo -n true 2>/dev/null; then
+if sudo -n journalctl -n 0 --no-pager >/dev/null 2>&1; then
   sudo -n journalctl -t hostwarden -t heinzel \
     --since "7 days ago" --no-pager -q
   sudo -n journalctl --no-pager -q -o short-iso | head -1
