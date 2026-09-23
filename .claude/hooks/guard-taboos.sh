@@ -1231,11 +1231,13 @@ if [ -n "$WIN" ] \
 fi
 if full; then
   case "$CMD$CMDJ$CMDQ" in
-  *fsck*|*xfs_repair*)
-    # fsck, fsck.ext4, fsck_ffs, e2fsck, dosfsck and xfs_repair. -N
-    # is util-linux fsck's own dry run, -n everyone else's.
-    if hit_without '(^|[^[:alnum:]_.-])(fsck([.][[:alnum:]]+|_[[:alnum:]]+)?|e2fsck|dosfsck|xfs_repair)([^[:alnum:]_.-]|$)' \
-      "$STORDRY|(^|[[:space:]])-N([[:space:]]|\$)|$HELP"; then
+  *fsck*|*xfs_repair*|*ntfsfix*)
+    # fsck, fsck.ext4, fsck_ffs, e2fsck, dosfsck, xfs_repair and
+    # ntfsfix, which repairs NTFS and resets its journal. -N is
+    # util-linux fsck's own dry run, --no-action ntfsfix's long one,
+    # -n everyone's.
+    if hit_without '(^|[^[:alnum:]_.-])(fsck([.][[:alnum:]]+|_[[:alnum:]]+)?|e2fsck|dosfsck|xfs_repair|ntfsfix)([^[:alnum:]_.-]|$)' \
+      "$STORDRY|(^|[[:space:]])(-N|--no-action)([[:space:]]|\$)|$HELP"; then
       stor_deny "a file system check without -n repairs, and a repair \
 decides on its own what to throw away"
     fi
@@ -1427,7 +1429,7 @@ for good"
     # snapshot, destroy or rollback: it takes every dependent clone
     # with it, a dataset of its own and possibly outside the target's
     # tree. A snapshot or bookmark (@, #) otherwise, a rollback and
-    # a forced receive drop only what came after, and are asked.
+    # a receive change only what came after, and are asked.
     case "$CMD$CMDJ$CMDQ" in
     *destroy*|*rollback*)
       if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+(destroy|rollback)([[:space:]]+-[[:alnum:]]+)*[[:space:]]+-[[:alnum:]]*R' \
@@ -1448,7 +1450,7 @@ and every snapshot of it"
     esac
     case "$CMD$CMDJ$CMDQ" in
     *destroy*|*rollback*|*recv*|*receive*)
-      if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+((destroy|rollback)([^[:alnum:]_-]|$)|(receive|recv)([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*F)' \
+      if hit_without '(^|[^[:alnum:]_.-])zfs[[:space:]]+(destroy|rollback|receive|recv)([^[:alnum:]_-]|$)' \
         "$STORDRY|$HELP"; then
         stor_ask
       fi
