@@ -931,15 +931,6 @@ run it. Do not rephrase the command."
 # a command is run, so both tiers exempt it, read from the verb on,
 # per invocation as every read-only exemption here is.
 HELP='^[^;&|]*[[:space:]](--help|-h)([[:space:]]|[;&|]|$)'
-# A manual or a lookup in front of a tool only names it: man fsck,
-# man 8 e2fsck, which xfs_repair, command -v lvremove. LOOKUP is
-# the optional prefix a rule puts before the tool's name, so the
-# match starts at the lookup, and LOOKED the exemption that sees it
-# there. Its arguments stop at the next ; & or |, so a lookup never
-# covers the command after it.
-LOOKER='(man|info|whatis|apropos|tldr|which|whereis|type|command[[:space:]]+-[vV])'
-LOOKUP="(${LOOKER}([[:space:]]+[^[:space:];&|]+)*[[:space:]]+)?"
-LOOKED="^[^[:alnum:]]?${LOOKER}[[:space:]]"
 # TrueNAS' middleware client up to the method: options, some with a
 # value of their own (-u URI, -U user), around call, and a quote
 # before the method name.
@@ -1293,11 +1284,10 @@ fi # the disk precheck, up to shred
 # tier, and its read tier passes.
 #
 # Each dry run and LVM's test mode are exempt per invocation, as
-# every read-only form here is, and so are HELP and, where a rule
-# needs only the tool's name, a LOOKUP in front of it. One case
-# arm per tool family, and for zpool, zfs and midclt only on the
-# verbs that write, so a read such as zpool status or zfs list runs
-# no grep.
+# every read-only form here is, and so is HELP; a lookup never
+# reaches a rule (below). One case arm per tool family, and for
+# zpool, zfs and midclt only on the verbs that write, so a read such
+# as zpool status or zfs list runs no grep.
 stor_deny() {
   GUARD_ROUTE="A repair or a destroy is a step for the user: name the \
 command and what it can destroy, and the user runs it at a console \
@@ -1320,6 +1310,25 @@ LVMTEST='(^|[[:space:]])(-t|--test)([[:space:]]|$)'
 BTRFS='(^|[^[:alnum:]_.-])btrfs([[:space:]]+(--format|--log)[[:space:]]+[^[:space:]]+|[[:space:]]+-[^[:space:]]+)*[[:space:]]+'
 MDADM='(^|[^[:alnum:]_.-])mdadm([[:space:]][^;&|]*)?[[:space:]]'
 ZPOOL='(^|[^[:alnum:]_.-])zpool[[:space:]]+'
+# A manual or a lookup only names a tool: man fsck, man zpool
+# destroy, tldr btrfs rescue, which e2fsck, command -v lvremove.
+# For the rules of this section each lookup, from its word to the
+# next ; & or |, is blanked out of the segments, so no rule sees
+# the tool it names while the command after it is still judged.
+# The word must start a command, at the start of a line or after
+# ; & | ( ` or a quote: btrfs --log info rescue is no lookup. The
+# segments are restored after the section. A sed that fails or
+# prints nothing leaves them whole, which only blocks more.
+LOOKUP='(^[[:space:]]*|[;&|(`"'"'"'][[:space:]]*)(man|info|whatis|apropos|tldr|which|whereis|type|command[[:space:]]+-[vV])([[:space:]]+[^[:space:];&|]+)+'
+SEGS_STOR=$SEGS
+case "$TEXT" in
+*man*|*info*|*whatis*|*apropos*|*tldr*|*which*|*whereis*|*type*)
+  if LOOKLESS=$(printf '%s\n' "$SEGS" | sed -E "s/${LOOKUP}/\1:/g") \
+    && [ -n "$LOOKLESS" ]; then
+    SEGS=$LOOKLESS
+  fi
+  ;;
+esac
 # macOS: diskutil's repair verbs run fsck_apfs or fsck_hfs, or
 # rewrite the partition map (repairDisk); verifyVolume and
 # verifyDisk only read. Windows: chkdsk only reads without a fixing
@@ -1353,8 +1362,8 @@ if full; then
     # ntfsfix, which repairs NTFS and resets its journal. -N is
     # util-linux fsck's own dry run, --no-action ntfsfix's long one,
     # -n everyone's.
-    if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}(fsck([.][[:alnum:]]+|_[[:alnum:]]+)?|e2fsck|dosfsck|xfs_repair|ntfsfix)([^[:alnum:]_.-]|\$)" \
-      "$STORDRY|(^|[[:space:]])(-N|--no-action)([[:space:]]|\$)|$HELP|$LOOKED"; then
+    if hit_without "(^|[^[:alnum:]_.-])(fsck([.][[:alnum:]]+|_[[:alnum:]]+)?|e2fsck|dosfsck|xfs_repair|ntfsfix)([^[:alnum:]_.-]|\$)" \
+      "$STORDRY|(^|[[:space:]])(-N|--no-action)([[:space:]]|\$)|$HELP"; then
       stor_deny "a file system check without -n repairs, and a repair \
 decides on its own what to throw away"
     fi
@@ -1387,19 +1396,27 @@ the data in it"
       stor_ask
     fi
     # A balance rewrites every chunk it selects: all of them without
-    # a filter, where a bare -d, -m or -s selects a whole type, and
-    # in the deprecated btrfs balance <path>; resume goes on with
-    # whatever was paused, and convert= changes the profile. A
-    # filter such as -dusage=50 moves only the chunks it names, and
-    # status, pause and cancel read or stop. balance also still runs
-    # under filesystem.
+    # a filter, where a bare -d, -m or -s selects a whole type, with
+    # the hidden btrfs balance --full-balance <path>, and with the
+    # deprecated btrfs balance <path> older releases still take;
+    # resume goes on with whatever was paused, and convert= changes
+    # the profile. A filter such as -dusage=50 moves only the chunks
+    # it names, and status, pause and cancel read or stop. balance
+    # also still runs under filesystem. A word after balance that is
+    # no subcommand, or no prefix of one, is that path.
     FSWORD='f(i(l(e(s(y(s(t(e(m)?)?)?)?)?)?)?)?)?[[:space:]]+'
     BTRFSFS="${BTRFS}${FSWORD}"
     BAL="${BTRFS}(${FSWORD})?b(a(l(a(n(c(e)?)?)?)?)?)?[[:space:]]+"
-    if hit_without "${BAL}([^-scpr\"'[:space:];&|]|r(e(s(u(m(e)?)?)?)?)?([[:space:]]|\$)|[^;&|]*convert=|star(t)?[[:space:]]([^;&|]*[[:space:]])?(-[dms]|--full-balance)([[:space:]]|\$))" \
+    # BAL without its leading anchor, for an exemption that starts
+    # where the match does.
+    BALW=${BAL#"(^|[^[:alnum:]_.-])"}
+    BALSUB='(s(t(a(r(t)?|t(u(s)?)?)?)?)?|p(a(u(s(e)?)?)?)?|c(a(n(c(e(l)?)?)?)?)?|r(e(s(u(m(e)?)?)?)?)?)([[:space:]]|$)'
+    if hit_without "${BAL}(--full-balance|r(e(s(u(m(e)?)?)?)?)?)([[:space:]]|\$)|${BAL}[^;&|]*convert=|${BAL}star(t)?[[:space:]]([^;&|]*[[:space:]])?(-[dms]|--full-balance)([[:space:]]|\$)" \
         "$HELP" \
       || hit_without "${BAL}star(t)?([[:space:]]|\$)" \
-        "(^|[[:space:]])-[dms][^[:space:];&|]|$HELP"
+        "(^|[[:space:]])-[dms][^[:space:];&|]|$HELP" \
+      || hit_without "${BAL}[^-[:space:];&|]" \
+        "^[^[:alnum:]]?${BALW}${BALSUB}|$HELP"
     then
       stor_ask
     fi
@@ -1470,8 +1487,8 @@ consistency checks"
     # Labelling a device, removing a PV, VG or LV, shrinking an LV,
     # restoring old metadata over the current one, and the checkers'
     # own repair modes. Each tool also runs as lvm <tool>.
-    if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}(pvcreate|pvremove|vgremove|lvremove|lvreduce|vgcfgrestore)([^[:alnum:]_.-]|\$)" \
-      "$LVMTEST|$HELP|$LOOKED"; then
+    if hit_without "(^|[^[:alnum:]_.-])(pvcreate|pvremove|vgremove|lvremove|lvreduce|vgcfgrestore)([^[:alnum:]_.-]|\$)" \
+      "$LVMTEST|$HELP"; then
       stor_deny "this LVM command destroys a volume or the metadata \
 that finds it"
     fi
@@ -1501,8 +1518,8 @@ lvreduce - grow with lvextend or a size starting with +"
       stor_deny "lvconvert --repair repairs a RAID, mirror or thin pool \
 volume"
     fi
-    if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}(lvcreate|lvextend|lvresize|lvconvert|vgcreate|vgextend|vgreduce|pvmove|pvresize)([^[:alnum:]_.-]|\$)" \
-      "$LVMTEST|$HELP|$LOOKED"; then
+    if hit_without "(^|[^[:alnum:]_.-])(lvcreate|lvextend|lvresize|lvconvert|vgcreate|vgextend|vgreduce|pvmove|pvresize)([^[:alnum:]_.-]|\$)" \
+      "$LVMTEST|$HELP"; then
       stor_ask
     fi
     ;;
@@ -1531,8 +1548,8 @@ volume"
     *resize2fs*)
       R2OPT='([[:space:]]+(-[[:alnum:]]*[dSz][[:space:]]+[^[:space:];&|]+|-[^[:space:];&|]*[^dSz[:space:];&|]))*'
       R2ARG='[[:space:]]+[^-#<>[:space:];&|][^<>[:space:];&|]*'
-      if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}resize2fs(${R2OPT}${R2ARG}${R2OPT}${R2ARG}([[:space:];&|]|\$)|([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*M)" \
-        "$HELP|$LOOKED"; then
+      if hit_without "(^|[^[:alnum:]_.-])resize2fs(${R2OPT}${R2ARG}${R2OPT}${R2ARG}([[:space:];&|]|\$)|([[:space:]][^;&|]*)?[[:space:]]-[[:alnum:]]*M)" \
+        "$HELP"; then
         stor_deny "resize2fs with a size or -M can shrink the file system \
 - grow it with no size, after the volume under it"
       fi
@@ -1547,16 +1564,16 @@ can shrink it - grow it with -d"
       fi
       ;;
     esac
-    if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}(resize2fs|xfs_growfs)([^[:alnum:]_.-]|\$)" \
-      "(^|[[:space:]])-[[:alnum:]]*P|$STORDRY|(^|[[:space:]])-V([[:space:]]|\$)|$HELP|$LOOKED"; then
+    if hit_without "(^|[^[:alnum:]_.-])(resize2fs|xfs_growfs)([^[:alnum:]_.-]|\$)" \
+      "(^|[[:space:]])-[[:alnum:]]*P|$STORDRY|(^|[[:space:]])-V([[:space:]]|\$)|$HELP"; then
       stor_ask
     fi
     ;;
   esac
   case "$TEXT" in
   *zinject*)
-    if hit_without "(^|[^[:alnum:]_.-])${LOOKUP}zinject([^[:alnum:]_.-]|\$)" \
-      "$HELP|$LOOKED"; then
+    if hit_without "(^|[^[:alnum:]_.-])zinject([^[:alnum:]_.-]|\$)" \
+      "$HELP"; then
       stor_deny "zinject injects faults into a live pool"
     fi
     ;;
@@ -1681,6 +1698,7 @@ zpool destroy"
     ;;
   esac
 fi
+SEGS=$SEGS_STOR
 
 # The disk precheck again, for the rule that needs writes_to.
 if [ -n "$DISK" ]; then

@@ -59,7 +59,8 @@ host, which the user approves command by command:
   file system or its profile: `btrfs balance start` with a
   `convert` filter or without any filter (a bare `-d`, `-m` or
   `-s` selects every chunk of its type), `btrfs balance resume`,
-  and the deprecated `btrfs balance <path>`. A filtered balance
+  the hidden `btrfs balance --full-balance <path>`, and the
+  deprecated `btrfs balance <path>`. A filtered balance
   such as `-dusage=50` moves only the chunks it selects and runs
   without a question
 - Scrubs, `zpool scrub` and `btrfs scrub start` or `resume`: they
