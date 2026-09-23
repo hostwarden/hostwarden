@@ -21,8 +21,8 @@ every storage command into one of three tiers, and the guard
 - `btrfs device stats`, `btrfs filesystem show`, `btrfs check`
   without a write option (it opens read-only by default)
 - the dry runs: `fsck -N`, `e2fsck -n`, `xfs_repair -n`,
-  `fsck_ffs -n`, `zpool import -Fn`, `zpool create -n`,
-  `zfs destroy -n`
+  `fsck_ffs -n`, `ntfsfix -n` or `--no-action`, `zpool import -Fn`,
+  `zpool create -n`, `zfs destroy -n`, `zfs receive -n`
 - `zfs snapshot`, which only adds; `zpool scrub -s`/`-p` and
   `btrfs scrub status`/`cancel`, which stop or read a scrub;
   `mdadm --action=check`, which counts mismatches and fixes none
@@ -41,7 +41,9 @@ host, which the user approves command by command:
   `add`, `remove`, `split`, `export`, and `import` or `upgrade`
   with a pool or `-a`;
   `zfs destroy` of a snapshot or bookmark (`@`, `#`) and
-  `zfs rollback`, each without `-R`, `zfs receive -F`
+  `zfs rollback`, each without `-R`, and `zfs receive`, which
+  writes a new snapshot or file system, and with `-F` first rolls
+  the target back
 - Btrfs: `btrfs device add`, `remove`, `delete`,
   `btrfs replace start`, `btrfs balance` with a `convert` filter
 - Scrubs, `zpool scrub` and `btrfs scrub start` or `resume`: they
@@ -60,8 +62,8 @@ loader or ZFS release cannot read. Say so in the question.
 Safety Rules; the guard denies them in every permission mode:
 
 - `fsck`, `fsck.<type>`, `e2fsck`, `xfs_repair` (with `-L` it also
-  zeroes the log), `fsck_ffs`, `fsck_apfs`, `fsck_hfs`, each
-  without `-n`
+  zeroes the log), `fsck_ffs`, `fsck_apfs`, `fsck_hfs`, and
+  `ntfsfix`, which resets the NTFS journal, each without `-n`
 - `btrfs check --repair`, `--init-csum-tree`, `--init-extent-tree`,
   every `btrfs rescue`, and `btrfs subvolume delete`, which cannot
   tell a snapshot from a subvolume full of data (snapper and

@@ -513,6 +513,8 @@ check deny 'xfs_repair /dev/sdb1'
 check deny 'xfs_repair -L /dev/sdb1'
 check deny 'fsck_ffs -y /dev/ada0p2'
 check deny 'dosfsck -a /dev/sdc1'
+check_mode deny default 'ntfsfix /dev/sdb1'
+check_mode deny default 'ntfsfix -d /dev/sdb1'
 check deny 'ssh root@nas1.example.com "e2fsck -f -y /dev/md2"'
 check deny 'fsck -N /dev/sdb1; fsck -y /dev/sdb1'
 check deny 'btrfs check --repair /dev/sdb1'
@@ -629,7 +631,8 @@ for c in 'lvextend -r -L +10G vg0/root' 'lvcreate -L 10G -n data vg0' \
   'btrfs scrub start /mnt' 'btrfs scrub resume /mnt' 'btrfs sc star /mnt' \
   'zfs destroy tank/data@2026-09-01' 'zfs destroy -r tank/data@auto' \
   'zfs destroy tank/data#bm' 'zfs rollback -r tank/data@snap' \
-  'zfs receive -F tank/backup' \
+  'zfs receive -F tank/backup' 'zfs receive tank/backup' \
+  'zfs send tank/data@s | zfs recv tank/copy' \
   'zfs send tank/data@s | ssh root@nas2.example.com zfs recv -F tank/data' \
   'btrfs device add /dev/sdc /mnt' 'btrfs device remove /dev/sdb /mnt' \
   'btrfs dev del /dev/sdb /mnt' \
@@ -657,6 +660,8 @@ check_mode deny default 'mdadm /dev/md0 --add /dev/sdc1; e2fsck -y /dev/md0'
 # Read and dry runs pass. The default mode is the one that would
 # show an ask, so it catches a read the change tier took in.
 for c in 'fsck -N /dev/sdb1' 'e2fsck -n /dev/sdb1' 'e2fsck -fn /dev/sdb1' \
+  'ntfsfix -n /dev/sdb1' 'ntfsfix --no-action /dev/sdb1' \
+  'zfs receive -n tank/backup' \
   'xfs_repair -n /dev/sdb1' 'fsck_ffs -n /dev/ada0p2' \
   'btrfs check /dev/sdb1' 'btrfs check --readonly /dev/sdb1' \
   'btrfs device stats /mnt' 'btrfs filesystem show' \
