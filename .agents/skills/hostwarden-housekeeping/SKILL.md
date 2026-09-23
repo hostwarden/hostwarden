@@ -134,7 +134,10 @@ Read on demand, only when the relevant section applies:
   file gives a number of its own. The Memory and Swap probe is
   the one baseline probe that still runs, appended to the
   appliance's first call: its limits read what swap is made of,
-  which no appliance probe prints.
+  which no appliance probe prints. Where the appliance's SSH
+  login lands in a container rather than on the host, as on
+  Home Assistant OS, it does not run: memory and swap there are
+  the container's, and the report shows them `n/a (container)`.
 - A reference written for `sh` — the baselines, the version
   check, `references/service-checks.md` — runs only where the
   loaded OS file uses the `sh -s` bundle
