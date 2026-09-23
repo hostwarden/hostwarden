@@ -99,18 +99,26 @@ tmutil destinationinfo
 tmutil latestbackup 2>/dev/null
 tmutil listbackups 2>/dev/null | tail -1
 P='backup|arq|restic|ccc'
-for D in system "gui/$(id -u)"; do
-  <Enabled services listing of "$D"> | grep -iE "$P"
-done 2>/dev/null
+G=$(who | awk '$2 == "console" {print $1}' | sort -u |
+  while read -r u; do echo "gui/$(id -u "$u")"; done)
+for D in system $G; do
+  if L=$({ <Enabled services listing of "$D">; } 2>/dev/null); then
+    printf '%s\n' "$L" | grep -iE "$P"
+  else
+    echo "$D unread"
+  fi
+done
 ls /Applications 2>/dev/null \
   | grep -iE 'arq|carbon copy|backblaze'
 ```
 
 `<Enabled services listing of "$D">` is `rules/os/macos.md` →
 Service Manager → Enabled services, with `"$D"` as its domain: the
-system daemons, then the SSH user's agents, where a backup tool
-can run as a LaunchAgent. An agent the user half cannot read, as
-over a root login, the `/Applications` line still finds.
+system daemons, then the agents of every user logged in at the
+screen (`who` lists them on `console`), where a backup tool can run
+as a LaunchAgent whoever the SSH user is. With nobody logged in no
+agent runs, and only `system` is read. An `unread` domain makes the
+backup "unknown", not "absent", when nothing else is found.
 
 With `Full disk access: off` in memory, the `tmutil`
 lines are skipped (`rules/os/macos.md` → Privacy
