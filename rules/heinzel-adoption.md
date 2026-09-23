@@ -83,11 +83,12 @@ Stopped Guests; whether Heinzel still runs is asked
 once the same way. Each machine's memory records its
 own outcome line (Record, below).
 
-On the host, adoption runs now. A guest keeps the
-answer as a deferral, since registration never
-changes it. Its next connection that may change it
-asks again, for that guest alone, with the recorded
-answer as the recommended one:
+Leaving and waiting are recorded in each machine
+now. Adopting runs now on the host only: registration
+never changes a guest, so a guest keeps that answer
+as a deferral. Its next connection that may change
+it asks again, for that guest alone, with the
+recorded answer as the recommended one:
 
 ```markdown
 - heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)

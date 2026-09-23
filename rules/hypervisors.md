@@ -403,13 +403,13 @@ findings go into its memory and into the report below.
 question registration raises, report in this form:
 
 ```
-Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
+Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
   read inside through pct exec: 101 web1, 102 db1, …
   read inside through qm guest exec: 105 app1, …
-  not entered: 110 mail-old (stopped), 120 win1 (Windows),
+  not registered: 110 mail-old (stopped), 120 win1 (Windows),
     121 fw1 (VM, no agent), 130 old-db (blacklisted)
   failed: 131 ci1 (OS detection: timeout; nothing written)
-  written: a read-only: journal line in each guest read;
+  written: a read-only: journal line in each guest registered;
     15 new memory directories, 2 existing ones given Runs on:,
     guests.md, the local changelog
   next, only with you: the first SSH connection to each guest
@@ -422,13 +422,14 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   `rules/system-containers.md` → Reaching It used; a guest is
   named by its ID and name as the inventory lists them, a jail by
   its name.
-- `not entered` names every guest of the inventory that was not
-  read, templates excepted, with the reason this section or step
-  1 or 3 kept it out.
+- `not registered` names every guest of the inventory that has
+  no memory of its own now, templates excepted, with the reason
+  this section or step 1 or 3 gives: a guest waiting for step 3's
+  question was read inside, and says so.
 - `failed` names a guest whose probe failed, with the step, the
   error in a few words, and whether its memory directory was
   written.
-- `findings` holds one line per finding, under the memory
+- `findings` holds one line per finding, led by the memory
   directory it was recorded in. Heinzel finds are left to their
   own question.
 - A line with nothing to list is left out.

@@ -133,9 +133,10 @@ unless it changed:
 - `privileged paths unread` — this session can read
   them, through sudo or as root.
 - `answered at registration: …` — this session may
-  change the guest: any connection other than a
-  registration (`rules/heinzel-adoption.md` → A host
-  and its guests).
+  change the guest: it is not a registration, and
+  neither the guest nor its host is on the read-only
+  list (`rules/heinzel-adoption.md` → A host and its
+  guests).
 - any reason — the user asks, or the recorded date is
   more than 90 days old.
 
