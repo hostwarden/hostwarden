@@ -300,6 +300,12 @@ UUID:
 | `Parallels …`           | any               | `parallels` | none |
 | `Microsoft Corporation` | `Virtual Machine` | `microsoft` | none |
 | `Amazon EC2`            | not `*.metal`     | `amazon`    | none |
+| `Google`                | `Google Compute…` | `google`    | none |
+
+Google names its bare-metal machines the same way, so
+its row counts only with a `hypervisor` count above 0
+where there is one; Windows has none, and there the
+row decides.
 
 The UUID column says where a VM reads the key
 `rules/hypervisors.md` → Linking Guest and Host
