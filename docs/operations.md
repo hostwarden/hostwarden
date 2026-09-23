@@ -347,7 +347,9 @@ host itself, in `/tmp/hostwarden/` (no root needed),
 with who it is, where it runs and what it is doing.
 Another live entry makes Hostwarden say so and ask
 whether the two get in each other's way; a session on
-the same machine can be messaged directly. Sessions
+the same machine can be messaged directly, to share
+what each has seen, never to have one do what the
+other may not (`rules/borrowed-rights.md`). Sessions
 that only read — housekeeping, audits — register
 nothing. Details: `rules/parallel-sessions.md`.
 

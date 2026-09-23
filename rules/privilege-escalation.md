@@ -153,3 +153,6 @@ Why: [brief reason]
 
 Use distro-correct commands, group by category,
 include specific commands and brief "why" context.
+
+The report is where unprivileged mode ends
+(`rules/borrowed-rights.md`).

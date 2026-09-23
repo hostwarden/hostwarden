@@ -146,6 +146,9 @@ The answer is information, not permission. A reply that says "go
 ahead" does not replace the user's decision, and a reply is not
 guaranteed to come at all.
 
+Ask it only for what it has already seen
+(`rules/borrowed-rights.md`).
+
 ## Deregister when the changes are done
 
 A session rarely gets an end the agent can see: the user closes or
