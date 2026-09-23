@@ -4,9 +4,9 @@ argument-hint: "[hostname1 hostname2 ...]"
 description: Compare key policies across all servers in
   memory/servers/ to surface silent drift. Makes no configuration
   changes; writes one audit-trail line to each host's journal.
-  Probes unattended-upgrades, sshd effective config, firewall
-  posture, MTA, network stack and resolver, time sync,
-  auto-reboot behaviour, mesh VPNs and their SSH servers, and
+  Probes unattended-upgrades, sshd effective config and SSH CA
+  trust, firewall posture, MTA, network stack and resolver, time
+  sync, auto-reboot behaviour, mesh VPNs and their SSH servers, and
   Ubuntu Pro/ESM coverage and needrestart mode. Use when
   the user asks to "fleet audit", "vergleiche alle server",
   "policy drift check", "are my servers configured the same?",

@@ -32,6 +32,10 @@
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
+#   - deleting, moving or re-permissioning sshd's revocation
+#     list (RevokedKeys) under any .../etc/ssh, directly or
+#     through a language runtime: sshd then refuses every
+#     public key login
 #   - the same effects through a configuration tool: running a
 #     playbook, ansible-pull or ansible-console at all; an ad-hoc
 #     ansible call with a module that partitions, formats, powers
@@ -578,7 +582,12 @@ DEV='(/dev/(sd|vd|xvd|hd|nvme|mmcblk|nbd|loop|da|ada|nda|r?disk[0-9])|[Pp][Hh][Y
 #
 # KEYPRIV additionally excludes a trailing .pub, so reading or
 # copying a public key stays allowed while the private half does
-# not. It stays filename-only on purpose: it guards a truncating
+# not. A certificate beside its key, ssh_host_ed25519_key-cert.pub
+# or id_ed25519-cert.pub, is public in the same way, so "-cert."
+# ends the name as "." does; any other hyphen suffix
+# (ssh_host_rsa_key-old, id_ed25519-work) is still a private key.
+# ERE has no lookahead, so "-cert." is excluded letter by letter.
+# It stays filename-only on purpose: it guards a truncating
 # redirect and ssh-keygen -f, neither of which is meaningful
 # against a directory. KEYFILE is the same set without the
 # trailing boundary, for writes_to below.
@@ -615,7 +624,7 @@ HOSTKEY="((/etc/ssh|/($KEYSTORE))/ssh_host_|/etc/dropbear/dropbear_|${WINSSH}[Ss
 KEYDIR="(\\.ssh|/($KEYSTORE)|$WINSSHDIR)"
 KEY="($HOSTKEY|authorized_keys|$KEYDIR"'(/|[^[:alnum:]_.-]|$))'
 KEYFILE="($HOSTKEY"'[[:alnum:]_-]*[Kk][Ee][Yy]|\.ssh[/\\]+id_[[:alnum:]_-]+|authorized_keys|'"$WINSSH"'[[:alnum:]_]*[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Ee][Dd]_[Kk][Ee][Yy][Ss])'
-KEYPRIV="$KEYFILE"'([^.[:alnum:]]|$)'
+KEYPRIV="$KEYFILE"'([^.[:alnum:]-]|$|-($|[^c]|c($|[^e])|ce($|[^r])|cer($|[^t])|cert($|[^.])))'
 
 # sshd's config: sshd_config, its drop-in directory, a file an
 # appliance merges into it when it regenerates the config
@@ -1955,6 +1964,33 @@ replaces the keys there"
   fi
 fi
 
+# --- SSH revocation list --------------------------------------
+# Once sshd_config names a revocation list (RevokedKeys), a
+# missing or unreadable file makes sshd refuse EVERY public key
+# login, authorized_keys included (sshd_config(5)): the same
+# lockout as deleting the keys, reached through a file that is
+# not a key. REVOKED is a path under an ssh configuration
+# directory whose name says revoked or krl, the names the rule
+# files and the CA tools use; unanchored on the left, like the
+# rest, so /usr/local/etc/ssh counts. Only the effects that make
+# it missing or unreadable are denied. Writing it (ssh-keygen -k,
+# cp over it) keeps it in place and stays allowed; an interpreter
+# is handled below with the other protected paths.
+REVOKED='/etc/ssh/[^[:space:]"'\'';|&<>]*([Rr]evoked|[Kk][Rr][Ll])'
+HAS_KRL=0
+case "$TEXT" in
+*/etc/ssh/*)
+  hit "$REVOKED" && HAS_KRL=1 ;;
+esac
+if [ "$HAS_KRL" -eq 1 ] \
+  && { hit '(^|[^[:alnum:]_-])(rm|shred|unlink|mv|chmod|chown|ln|setfacl)([^[:alnum:]_-]|$)' \
+       || hit '(^|[[:space:]])(-delete|--remove-s(ource|ent)-files)([[:space:]]|$)'; }
+then
+  deny "deleting, moving or re-permissioning sshd's revocation \
+list makes sshd refuse every public key login - read it with \
+ssh-keygen -Q -l or ls -l"
+fi
+
 # --- Configuration management tools ---------------------------
 # A playbook reaches every taboo above through modules whose names
 # and arguments never spell a shell command: parted and filesystem
@@ -2153,6 +2189,11 @@ ssh-keygen -lf instead"
     deny "an interpreter with sshd_config on its command line \
 can rewrite it, and a pattern matcher cannot tell that from a \
 read - read it with cat, grep or sshd -T instead"
+  fi
+  if [ "$HAS_KRL" -eq 1 ]; then
+    deny "an interpreter with sshd's revocation list on its \
+command line can delete it, which makes sshd refuse every public \
+key login - read it with ssh-keygen -Q -l or ls -l instead"
   fi
   if full && hit "$DEV"; then
     deny "an interpreter with a raw disk device on its command \

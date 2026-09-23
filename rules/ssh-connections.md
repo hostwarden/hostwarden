@@ -179,7 +179,9 @@ count toward the same limit. Counted are:
   logs in;
 - in fail2ban's `ddos` and `aggressive` modes and
   for `PerSourcePenalties`: connections that never
-  log in (`nc -z`, `ssh-keyscan`); those two
+  log in (`nc -z`, `ssh-keyscan`, the latter only
+  ever run on a server against itself,
+  `rules/ssh-ca.md` → Host Certificate); those two
   fail2ban modes also count every rejected login.
 
 The rules that own these steps keep Hostwarden clear of

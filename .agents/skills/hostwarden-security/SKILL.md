@@ -2,7 +2,8 @@
 name: hostwarden-security
 argument-hint: "[hostname]"
 description: Run a Hostwarden security audit on a server — SSH
-  hardening (password auth, weak algos, root login), firewall,
+  hardening (password auth, weak algos, root login, host
+  certificates, user CA trust), firewall,
   user account hygiene, listening services, kernel hardening
   (ASLR, IP forwarding), file permissions, SUID/SGID audit,
   fail2ban. Use when the user asks for a "security audit",
@@ -46,7 +47,7 @@ applies before any of this runs.
    method otherwise.
 5. **Emit the report** using the format in
    `references/report-format.md`.
-6. **Do NOT update memory**, with two exceptions. These are
+6. **Do NOT update memory**, with three exceptions. These are
    config observations, not state changes: memory tracks what is
    installed and running, not security posture details. The
    exceptions are inventory rather than posture:
@@ -57,7 +58,8 @@ applies before any of this runs.
      `references/vpn-ssh.md` → Unrecorded ways in — record the
      agent, and the SSH state this audit read, in `network.md` as
      `rules/mesh-vpn.md` → Memory says. It is the only flow that
-     reads Newt's.
+     reads Newt's;
+   - the SSH CA lines (`rules/ssh-ca.md` → Memory).
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
@@ -93,8 +95,10 @@ Read on demand, only when the relevant section applies:
   severity rules (CRITICAL / WARN / INFO).
 - `references/ssh.md` — sshd's effective configuration and the
   files it reads, `Match` blocks, SSH password auth, root login,
-  weak algorithms, MaxAuthTries, X11Forwarding, and the SSH client
-  on the server.
+  weak algorithms, MaxAuthTries, X11Forwarding, the SSH client on
+  the server, and SSH CA.
+- `rules/ssh-ca-issuing.md` — the issuing rules of a user CA the
+  host trusts.
 - `references/firewall.md` — Linux (ufw / firewalld), FreeBSD
   (pf / ipfw) and macOS (Application Firewall).
 - `references/firewall-nftables-docker.md` — native nftables without

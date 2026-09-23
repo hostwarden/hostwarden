@@ -90,7 +90,9 @@ gains `-p default -p hostwarden-baseline-debian-ct-3`, and whose
 `cloud-init.user-data` then carries only this guest's copy — its
 hostname and network — never the rendered baseline a second time:
 the two are merged, and a key in both is replaced rather than
-added to:
+added to. A guest whose copy carries SSH CA trust takes no
+baseline profile (`references/user-data.md` → SSH CA). The
+profile itself:
 
 ```bash
 incus profile create hostwarden-baseline-debian-ct-3 --project <project>

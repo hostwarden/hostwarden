@@ -75,7 +75,20 @@ system before it is wiped. Store it in
 - SSL/TLS certificates and keys
   (`/etc/letsencrypt/`, `/usr/local/etc/ssl/`)
 - SSH host keys (`/etc/ssh/ssh_host_*`) — save if
-  you want to avoid host key change warnings
+  you want to avoid host key change warnings. The host
+  certificate sshd serves goes with the key it belongs
+  to, paired by fingerprint as `rules/ssh-ca.md` →
+  Host Certificate does, not by file name; a new key
+  needs a newly signed one
+- SSH CA trust: run the Host Certificate and User CA
+  Trust probes of `rules/ssh-ca.md` now, whatever the
+  host's memory says — a missing `SSH user CA:` line
+  proves nothing. They name the CA's public key, the
+  principals files and the revocation list. The new
+  system gets them at first boot where a user CA of
+  the user's covers the host
+  (`references/cloud-image.md`, the nocloud image
+  steps); without them, certificate logins stop
 
 **Never store private key material anywhere
 under the Hostwarden repo.** `pre-replacement.md`
@@ -223,7 +236,10 @@ After the new OS is installed and accessible:
 6. [ ] Automatic security updates enabled
 7. [ ] SSH host keys restored (optional — avoids
        host key warnings for other users/scripts)
-8. [ ] User accounts and SSH keys restored
+8. [ ] User accounts and SSH keys restored; SSH CA
+       trust in place, and a host certificate for the
+       new host keys handed to the user to sign,
+       where the host had them (`rules/ssh-ca.md`)
 9. [ ] Services reinstalled and configured
 10. [ ] Data restored (databases, web content, etc.)
 11. [ ] SSL certificates restored or renewed

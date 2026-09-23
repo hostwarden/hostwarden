@@ -217,6 +217,26 @@ printf '%s\n' "$OUT" | grep -i \
     -e '^port '
 ```
 
+After it, in the same section, run the two probes of
+`rules/ssh-ca.md` → Host Certificate, public and serving, its
+User CA Trust probe, which reuses `OUT`, and, in a call of its
+own, since
+the bundle runs `awk`, its `cert-authority` grep, whose keys are
+fingerprinted on the workstation as that file says. Their
+`hostcert`, `clientca`, `userca`, `krl` and `cert-authority`
+lines, and the
+`trustedusercakeys`, `authorizedprincipals…` and `revokedkeys`
+values, are rows of the same table; for a host certificate, the
+signing CA and the end of the `Valid:` line of the one the daemon
+presents, a `NOT PRESENTED` file beside it, and a certificate
+that is not served as a note, not a row. With
+`sshd -G`, the host certificate rows need no root; the client CA
+rows never do, and are filled on a host whose sshd column is
+`unknown(needs-root)`; after
+`unknown(sshd-failed)` the CA rows read the same, never
+"defaults" or "no user CA". What these rows find stays in the
+report: the fleet audit writes no memory.
+
 Row keys: each line is `key value`. Since OpenSSH 10.4
 the keys are mixed case (`PermitRootLogin`), so compare
 them without regard to case. Compare column-by-column.
@@ -249,6 +269,36 @@ Highlight as drift:
 - Any host with `permitrootlogin yes` while others use
   `prohibit-password` or `forced-commands-only`.
 - Mismatched `port` values across the fleet.
+- A different `userca` fingerprint, principals setup or
+  `revokedkeys` path on hosts that should admit the same
+  people, and a host with no user CA among hosts that
+  have one. A CA trusted through a `cert-authority` line
+  counts as trusted, for that account.
+- A different `krl` checksum on hosts that trust the same
+  user CA: the lists differ. Either a revocation did not
+  reach every host, and a revoked certificate still works
+  on some, or each host builds its own list, whose
+  checksum always differs (`rules/ssh-ca.md` → User CA
+  Trust). Report it as that question for the user; where
+  the CA's line in `memory/network.md` already says
+  `KRL built per host`, the row lists the checksums
+  without a verdict. A host whose `krl`
+  line says `missing` has that file's lockout:
+  **CRITICAL**.
+  Hosts that trust a user CA without `revokedkeys`
+  cannot revoke at all; list them too.
+- Served host certificates on some hosts but not others,
+  or signed by different CAs. One that ends much earlier
+  than the rest usually has a renewal job that stopped,
+  or one that renewed the file without a reload of sshd
+  (`NOT PRESENTED`).
+- A different `clientca`, or none, on hosts whose memory
+  says they open SSH connections to others.
+
+During a CA rotation two fingerprints show on some hosts.
+Where the CA's line in `memory/network.md` says
+`rotating to …`, both count as that CA until the user
+says the rotation is done; without it, they are drift.
 
 **macOS** runs the probe unchanged
 (`.agents/skills/hostwarden-security/references/ssh.md` →

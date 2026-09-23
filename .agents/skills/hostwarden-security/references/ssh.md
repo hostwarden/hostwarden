@@ -253,6 +253,38 @@ Fallback: parse from config files.
 
 Skip this check on macOS.
 
+## SSH CA
+
+Which CA the host trusts, and which certificate it presents:
+`rules/ssh-ca.md`. Run its public Host Certificate probe in the
+first batch, since it needs neither root nor sshd's configuration;
+its serving probe and its User CA Trust probe inside the loop of
+the probe in sshd's Effective Configuration above, before its
+`done`, where `OUT` holds each daemon's values, with the privilege
+prefix at the top of that batch; and its `cert-authority` grep in
+the call of its own that file gives. A daemon whose run fails
+leaves the loop before them: its lines read `unchecked`, with the
+reason the probe printed. On macOS only with Remote Login on. The severities are
+the ones listed there. Report host and user
+certificates on separate lines, `SSH host cert` and `SSH user CA`:
+`none` on both where the host has neither, `unchecked` where a
+probe could not run. Windows runs neither probe: both lines read
+`not checked (Windows)`.
+
+Where a CA of the user's covers the host (`rules/ssh-ca.md` →
+Terms), the host is also measured against it as
+`rules/baseline.md` → SSH CA says:
+
+- It does not trust that user CA, or has no revocation list where
+  the other hosts in its scope have one → **WARN**, with the lines
+  for the user to add.
+- No served host certificate from that host CA → **INFO**, with
+  the public keys of its `hostkey:` lines and its names for the
+  user to sign.
+- It opens SSH connections itself, as its memory says, and its global
+  known-hosts file has no line for the host CA → **INFO**
+  (`rules/ssh-ca.md` → Using the CA Everywhere).
+
 ## SSH servers past sshd
 
 Some VPN and tunnel agents let people in without sshd, where none

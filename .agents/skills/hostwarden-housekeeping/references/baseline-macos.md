@@ -106,6 +106,11 @@ diskutil info disk0 | grep "SMART Status"
 
 - **CRITICAL** if SMART status is not "Verified"
 
+## SSH Host Certificate
+
+Only with Remote Login on: as `references/baseline-linux.md` →
+SSH Host Certificate.
+
 ## Time Sync
 
 ```bash

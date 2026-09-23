@@ -1439,6 +1439,43 @@ check pass 'growpart --dry-run /dev/sda 1'
 check pass 'file /etc/ssh/ssh_host_ed25519_key'
 check deny 'file /etc/ssh/ssh_host_ed25519_key; ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub'
 
+# --- SSH certificates are public (rules/ssh-ca.md) -------------
+# A certificate beside its key ends in -cert.pub and is read
+# with ssh-keygen -L; any other hyphen suffix is still a private
+# key.
+check pass 'ssh-keygen -L -f /etc/ssh/ssh_host_ed25519_key-cert.pub'
+check pass 'ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key-cert.pub'
+check pass 'ssh root@web1.example.com "ssh-keygen -L -f /usr/local/etc/ssh/ssh_host_ed25519_key-cert.pub"'
+check pass 'ssh-keygen -L -f ~/.ssh/id_ed25519-cert.pub'
+check pass 'cat /etc/ssh/ssh_host_rsa_key-cert.pub'
+check deny 'ssh-keygen -q -N "" -f /etc/ssh/ssh_host_ed25519_key-cert'
+check deny 'ssh-keygen -q -N "" -f /etc/ssh/ssh_host_ed25519_key-certs.pub'
+check deny 'ssh-keygen -q -N "" -f /etc/ssh/ssh_host_rsa_key-old'
+check deny 'ssh-keygen -q -N "" -f ~/.ssh/id_ed25519-work'
+check deny 'ssh-keygen -q -N "" -f ~/.ssh/id_ed25519-c'
+check deny ': > /etc/ssh/ssh_host_ed25519_key-cert'
+
+# --- sshd's revocation list (RevokedKeys) -----------------------
+# Missing or unreadable, it makes sshd refuse every public key
+# login. Reading and writing it stay allowed.
+check deny 'rm /etc/ssh/revoked_keys'
+check deny 'rm -f /usr/local/etc/ssh/revoked_keys.krl'
+check deny 'mv /etc/ssh/revoked_keys /tmp/'
+check deny 'mv /tmp/krl.new /etc/ssh/user_ca.krl'
+check deny 'chmod 000 /etc/ssh/revoked_keys'
+check deny 'chown nobody /etc/ssh/ca/revoked'
+check deny 'ln -sf /dev/null /etc/ssh/revoked_keys'
+check deny 'find /etc/ssh/revoked_keys -delete'
+check deny 'ssh root@web1.example.com "rm /etc/ssh/Revoked_Keys"'
+check deny "python3 -c \"import os; os.remove('/etc/ssh/revoked_keys')\""
+check pass 'ssh-keygen -Q -l -f /etc/ssh/revoked_keys'
+check pass 'ls -l /etc/ssh/revoked_keys'
+check pass 'sha256sum /etc/ssh/revoked_keys'
+check pass 'ssh-keygen -k -u -f /etc/ssh/revoked_keys /tmp/leaked-cert.pub'
+check pass 'cp /tmp/revoked_keys /etc/ssh/revoked_keys'
+check pass 'rm /tmp/revoked_keys'
+check pass 'rm /srv/backup/etc-ssh/revoked_keys'
+
 # --- interpreters away from a protected target (issue #6) ------
 # Only the combination is a taboo. An interpreter on its own,
 # even writing files, is ordinary work and must stay usable.

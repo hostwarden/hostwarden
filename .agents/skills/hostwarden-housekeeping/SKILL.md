@@ -84,13 +84,16 @@ Read on demand, only when the relevant section applies:
 - `references/report-format.md` — required output format and
   severity rules (CRITICAL / WARN / INFO).
 - `references/baseline-linux.md` — disk, memory, load, uptime,
-  updates, firewall, NTP, network, logs, SSL certs, kernel.
+  updates, firewall, NTP, network, logs, SSL certs, SSH host
+  certificate, kernel.
 - `references/baseline-freebsd.md` — disk, memory with the ARC,
   load, base and package updates, pkg audit, release support,
-  pf or ipfw, enabled services, NTP, logs, SSL certs, kernel.
+  pf or ipfw, enabled services, NTP, logs, SSL certs, SSH host
+  certificate, kernel.
 - `references/baseline-macos.md` — disk, memory, load, updates
-  and restarts, Homebrew, Application Firewall, SMART, time sync,
-  failed launchd jobs, kernel panics, local snapshots.
+  and restarts, Homebrew, Application Firewall, SMART, SSH host
+  certificate, time sync, failed launchd jobs, kernel panics,
+  local snapshots.
 - `references/backup-presence.md` — generic "any backup at
   all?" probe, the provider-snapshot question, and the
   `Backup:` acknowledgment line in `memory.md`.

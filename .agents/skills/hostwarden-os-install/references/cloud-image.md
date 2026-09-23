@@ -136,7 +136,13 @@ system user.
 5. Generate SSH host keys: `ssh-keygen -A`
    (or generate from the host OS — key format is
    compatible across OSes)
-6. Inject authorized_keys for root
+6. Inject authorized_keys for root, and where a
+   user CA of the user's covers the host
+   (`rules/ssh-ca.md` → Terms), the same CA trust a
+   new guest gets
+   (`.agents/skills/hostwarden-new-guest/references/user-data.md`
+   → SSH CA): without it, certificate logins stop
+   on the new OS
 7. Enable the service:
    `ln -sf /lib/systemd/system/ssh.service
    etc/systemd/system/multi-user.target.wants/`

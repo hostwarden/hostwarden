@@ -194,6 +194,11 @@ guest has no such mechanism, the files are the user's to place
    `.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
    finds it. A section the guest misses is a finding of this run;
    for a missing backup, ask whether to add the guest to a job.
+   Where a host CA of the user's covers the guest, the public keys
+   of the host keys its sshd loads go to the user to sign; where
+   it trusts a user CA with a revocation list, the user hears that
+   the guest must now be among the hosts their revocations reach
+   (`rules/ssh-ca.md` → Using the CA Everywhere).
 6. **Log** on both, as `rules/changelog.md` says: the host's
    journal line names the guest created, the guest's names the
    baseline version.

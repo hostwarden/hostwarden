@@ -163,6 +163,9 @@ so does a host's `network.md` (`rules/network.md`).
 | `WSL root:`              | `platform/wsl.md`           | privileged use   |
 | `Management:`            | `management-controller.md`  | first need       |
 | `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |
+| `SSH host cert:`         | `ssh-ca.md`                 | cert found       |
+| `SSH user CA:`           | `ssh-ca.md`                 | CA trust found   |
+| `SSH client host CA:`    | `ssh-ca.md`                 | CA line found    |
 | `heinzel legacy:`        | `heinzel-takeover.md`       | legacy settled   |
 | `Other ways in:`         | `heinzel-takeover.md`       | host taken over  |
 | `Planned:`               | `heinzel-takeover.md`       | host taken over  |
@@ -307,7 +310,9 @@ several hosts is a decision instead, under
 
 Management controller addresses go there too, under
 `## Management controllers`
-(`rules/management-controller.md` → What to record).
+(`rules/management-controller.md` → What to record),
+and the SSH CAs the hosts trust, under `## SSH CAs`
+(`rules/ssh-ca.md` → Memory).
 
 ## Personal versus shared
 

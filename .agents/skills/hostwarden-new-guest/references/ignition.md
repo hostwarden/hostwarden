@@ -90,6 +90,13 @@ storage:
 - A service the baseline needs goes under `systemd.units` with
   `enabled: true`, a file under `storage.files`, a symbolic link
   under `storage.links`.
+- The SSH CA files of `references/user-data.md` → SSH CA go on the
+  guest's copy, not the numbered file, under `storage.files` with
+  `mode: 0644`: the revocation list as
+  `contents.source: "data:;base64,KRL-BASE64"`, both values
+  checked and filled in by the command that section gives, and
+  their lines in `11-hostwarden-ca.conf`. Ignition writes every
+  file before sshd first starts.
 
 ## A static address
 

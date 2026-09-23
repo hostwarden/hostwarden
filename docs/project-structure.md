@@ -212,6 +212,11 @@ rules/                 — Upstream rule files (git-tracked)
                          broken host
   host-keys.md         — memory/known_hosts: getting a key,
                          a changed key, certificates
+  ssh-ca.md            — An existing SSH CA: host and user
+                         certificates, CA trust, revocation
+                         list, using it everywhere
+  ssh-ca-issuing.md    — What a CA hands out, per product;
+                         a login that fails on the principal
   ssh-config.md        — memory/ssh_hosts: other ports,
                          addresses, jump hosts; finding
                          a new host's port; port
