@@ -42,16 +42,16 @@ Two reviews, in this order. The own review is where the quality is
 made; the second review checks it with a model of another family,
 whose blind spots differ.
 
-Which second reviewer, and for which pull requests, is set here
-and nowhere else:
+Which second reviewer, and for which pull requests, is set here:
 
 - **Second reviewer:** Codex (→ Codex, below).
 - **Required:** on every pull request.
 
-Changing either line is a change to this file. Another reviewer
-gets a subsection like Codex's, with how it is run locally, how it
-is asked on GitHub, and what a completed, clean and stopped run
-look like.
+Changing either line is a change to this file; `CONTRIBUTING.md`
+names the reviewer's CLI and changes with it. Another reviewer gets
+a subsection like Codex's: how its capacity is read, how it runs
+locally, how it is asked on GitHub, and what a completed, clean and
+stopped run look like.
 
 ### The own review
 
@@ -60,9 +60,14 @@ session that wrote the change: that session reads the change as it
 meant it, and a reviewer that did not write it reads it as a model
 on a production server will. In Claude Code that is the
 `hostwarden-reviewer` subagent; elsewhere, a fresh session whose
-instructions are that file's body. Where that session would run on
-the second reviewer's own quota — Codex reviewing for Codex — the
-second review is the review and the own passes are skipped.
+instructions are that file's body, on whatever model that tool
+runs. The own review runs on every pull request, whatever the
+setting below says.
+
+Post each pass's result as one pull request comment whose first
+line is `Own review, pass <p> before round <n>: <k> findings`, the
+reviewer's text below it. Later passes, in this session or another,
+are given these comments.
 
 1. `/simplify`, for reuse and clarity.
 2. `hostwarden-reviewer` on the branch against its base, for
@@ -73,9 +78,22 @@ second review is the review and the own passes are skipped.
 
 ### The second review
 
-A second reviewer's runs draw on a quota and are the scarce
+A second reviewer's runs draw on a usage limit and are the scarce
 resource. A question the own review can answer never costs one.
 
+- **Capacity.** Before each run, read what is left of the limit
+  where the reviewer's subsection says how, and name it in the
+  status message. Where it cannot be read, run anyway: the
+  reviewer's own reply says whether a limit stopped it. When a
+  limit is reached, or a run stops on one, a person decides, never
+  the session and never a coordinating session relaying the
+  question: wait for the reset, take the other path where its limit
+  is a separate one, skip the second review for this pull request
+  from the current head on, or stop. With a skip, the pull request
+  body gets `## Second review skipped`, a line naming the head it
+  applies from, the reason, the reset time, and who decided. The
+  skip holds for that pull request only; the next one reads the
+  capacity again.
 - **Local, where the reviewer's CLI is installed and signed in.**
   Push first, so the SHA it reviews exists on the pull request, and
   run it on a detached worktree of that SHA, so nothing the session
@@ -85,7 +103,8 @@ resource. A question the own review can answer never costs one.
       Second review (<reviewer>, local) on `<full head sha>`: <k> findings
 
   with `1 finding` or `no findings` where that fits, and the
-  reviewer's text below it unchanged. That comment is the record
+  reviewer's text below it unchanged, apart from the `@` in front
+  of any reviewer's handle (below). That comment is the record
   whoever merges reads. Answer the findings in one further comment,
   a line each: "<title> — fixed in <sha>", "not a bug: …" or
   "deferred to a follow-up PR".
@@ -93,21 +112,28 @@ resource. A question the own review can answer never costs one.
   there on its own would repeat a local run. Answer every thread
   the same way and resolve it.
 - Write a reviewer's handle only in the comment that asks it for a
-  review. In a pull request body, a commit message or an answer, a
-  mention starts it as well; write the name without the `@`.
+  review. Anywhere else a mention starts it as well — a pull
+  request body, a commit message, an answer, and a reviewer's text
+  posted as a comment, the own review's included: write the name
+  there without the `@`.
 - **A run that did not complete** reviewed nothing: it is no round,
   and nothing is posted for it. Retry once when the reason is
-  transient, a network error or a timeout. Any other reason — the
-  usage limit, a lost sign-in, a missing environment, an option
-  the CLI rejects — goes to whoever merges with the reviewer's own
-  message, and they decide whether to wait, fix it, or merge
-  without the second review. The other path draws on the same
-  quota and is no way around a limit.
+  transient, a network error or a timeout. A usage limit goes to
+  a person as under Capacity; any other reason — a lost sign-in, a
+  missing environment, an option the CLI rejects — goes to whoever
+  merges with the reviewer's own message.
 - Stacked pull requests are each reviewed against their own base,
   so their rounds run in parallel.
 
 ### Codex
 
+- **Capacity:** `sh scripts/codex-quota.sh` reads the limits of
+  the account the CLI is signed in to, at no cost: what is used of
+  each window, when it resets, and any reset credit. It exits 1 at
+  a limit, 2 when it cannot tell. GitHub reviews have a code-review
+  limit of their own that it does not show; there the connector's
+  reply is the only signal. Redeeming a reset credit is the
+  person's decision.
 - **Local:** `codex login status` exits 0. `<run>` is
   `<pr>-<n>`, the pull request's number and the round's, plus a
   suffix for a repeated attempt. Run in the background — it takes
@@ -151,8 +177,8 @@ Deferred findings are listed in the pull request body under
 A finding names one case; the defect is usually a class. Fixing
 only the case named is what brings the same finding back in the
 next round. Each time `hostwarden-reviewer` is given findings
-below, it also gets every earlier finding on the pull request, its
-own included.
+below, it also gets every earlier finding on the pull request, the
+own review's comments included.
 
 1. Give the findings to `hostwarden-reviewer` as a sweep. It names
    each one's class and every sibling in the repository.
@@ -163,27 +189,41 @@ own included.
 3. Before pushing, give the commit's range to
    `hostwarden-reviewer`, with the findings it answers. Fix what
    it reports at the current round's level by amending the same
-   commit, at most three passes; what remains goes into the next
-   round as it is.
+   commit, at most three passes. What remains goes into the next
+   round as it is or, where no second review follows, under
+   `## Deferred review findings`.
 4. Push. After a round, request the next one. Never request one
    after only answering findings, or after a rebase.
-
-A second-review finding is one the own review missed. When the
-sweep puts it in no class of `hostwarden-reviewer`, or in a class
-whose questions would not have led there, list it in the pull
-request body under `## Missed by the own review`, with the class
-it needs. Those lists are what sharpens the reviewer, in a pull
-request of its own, and what shows whether the second review is
-still needed on every pull request.
 
 A finding against a guard hook follows `repo-release.md` → Guard
 findings.
 
+### Missed by the own review
+
+Every second-review finding not answered "not a bug", on a head the
+own review had passed, is one the own review missed, and goes
+through the sweep even when it is deferred.
+List it in the pull request body under `## Missed by the own
+review`: the finding's title, the class the sweep put it in, and
+what that class lacked — a class of its own, or a question that
+would have led there.
+
+When the session reports the pull request merge-ready, it adds the
+list's entries to the one open issue titled "Sharpen
+hostwarden-reviewer", a checklist line each with the pull request's
+number, and opens that issue when none is open. At three unchecked
+lines, it proposes to the person a pull request that sharpens the
+reviewer and closes the issue, as a task chip where the tool has
+them. Whether the second review is still needed on every pull
+request is the person's call; the issue's history and the review
+comments' counts are the evidence.
+
 ## Merge-ready
 
-- Where the second review is required, it has completed on the
-  current head: on GitHub as its reviewer's subsection says, or
-  locally with a record comment naming that SHA.
+- Where the second review is required and not skipped, it has
+  completed on the current head: on GitHub as its reviewer's
+  subsection says, or locally with a record comment naming that
+  SHA. A skip counts only with its `## Second review skipped` line.
 - No unresolved thread, every local finding answered, CI green, not
   a draft, and GitHub reports the pull request CLEAN.
 - After any rebase, conflicts included, no new second review is
@@ -197,7 +237,7 @@ findings.
 - The merge is `gh pr merge --squash --match-head-commit <sha>`.
   The squash message carries the why, not only the what: before
   1.0.0 the changelog is rewritten from the code, the pull requests
-  and the commit messages.
+  and the commit messages. It names a reviewer without the `@`.
 
 ## Updating a branch
 

@@ -35,6 +35,8 @@ bin/
                          for a test clone
 scripts/
   check.sh             — Everything CI checks, runnable locally
+  codex-quota.sh       — What is left of the Codex usage limit,
+                         read without spending any
   fleet-read-test.sh   — Fixture matrix for the fleet-read
                          wrapper (run by scripts/check.sh)
   fleet-run-test.sh    — Fixture matrix for
