@@ -1315,11 +1315,15 @@ ZPOOL='(^|[^[:alnum:]_.-])zpool[[:space:]]+'
 # For the rules of this section each lookup, from its word to the
 # next ; & or |, is blanked out of the segments, so no rule sees
 # the tool it names while the command after it is still judged.
-# The word must start a command, at the start of a line or after
-# ; & | ( ` or a quote: btrfs --log info rescue is no lookup. The
-# segments are restored after the section. A sed that fails or
-# prints nothing leaves them whole, which only blocks more.
-LOOKUP='(^[[:space:]]*|[;&|(`"'"'"'][[:space:]]*)(man|info|whatis|apropos|tldr|which|whereis|type|command[[:space:]]+-[vV])([[:space:]]+[^[:space:];&|]+)+'
+# The word must start a command, at the start of a line, after
+# ; & | ( ` or a quote, or as the command an unquoted ssh runs:
+# btrfs --log info rescue is no lookup. An ssh option that takes a
+# value (LOOKSSH lists them) only counts with its value, so
+# ssh -l man host is no lookup either. The segments are restored
+# after the section. A sed that fails or prints nothing leaves them
+# whole, which only blocks more.
+LOOKSSH='ssh([[:space:]]+(-[[:alnum:]]*[BbcDEeFIiJLlmOoPpQRSWw][[:space:]]+[^[:space:]]+|-[[:alnum:]]*[46AaCfGgKkMNnqsTtVvXxYy]))*[[:space:]]+[^-[:space:];&|][^[:space:];&|]*[[:space:]]+'
+LOOKUP='(^[[:space:]]*|[;&|(`"'"'"'][[:space:]]*)('"$LOOKSSH"')?(man|info|whatis|apropos|tldr|which|whereis|type|command[[:space:]]+-[vV])([[:space:]]+[^[:space:];&|]+)+'
 SEGS_STOR=$SEGS
 case "$TEXT" in
 *man*|*info*|*whatis*|*apropos*|*tldr*|*which*|*whereis*|*type*)
@@ -1403,7 +1407,8 @@ the data in it"
     # the profile. A filter such as -dusage=50 moves only the chunks
     # it names, and status, pause and cancel read or stop. balance
     # also still runs under filesystem. A word after balance that is
-    # no subcommand, or no prefix of one, is that path.
+    # no subcommand, or no prefix of one, is that path, and options
+    # right after balance are the deprecated form with filters.
     FSWORD='f(i(l(e(s(y(s(t(e(m)?)?)?)?)?)?)?)?)?[[:space:]]+'
     BTRFSFS="${BTRFS}${FSWORD}"
     BAL="${BTRFS}(${FSWORD})?b(a(l(a(n(c(e)?)?)?)?)?)?[[:space:]]+"
@@ -1411,9 +1416,9 @@ the data in it"
     # where the match does.
     BALW=${BAL#"(^|[^[:alnum:]_.-])"}
     BALSUB='(s(t(a(r(t)?|t(u(s)?)?)?)?)?|p(a(u(s(e)?)?)?)?|c(a(n(c(e(l)?)?)?)?)?|r(e(s(u(m(e)?)?)?)?)?)([[:space:]]|$)'
-    if hit_without "${BAL}(--full-balance|r(e(s(u(m(e)?)?)?)?)?)([[:space:]]|\$)|${BAL}[^;&|]*convert=|${BAL}star(t)?[[:space:]]([^;&|]*[[:space:]])?(-[dms]|--full-balance)([[:space:]]|\$)" \
+    if hit_without "${BAL}(--full-balance|r(e(s(u(m(e)?)?)?)?)?)([[:space:]]|\$)|${BAL}[^;&|]*convert=|${BAL}([^;&|]*[[:space:]])?(-[dms]|--full-balance)([[:space:]]|\$)" \
         "$HELP" \
-      || hit_without "${BAL}star(t)?([[:space:]]|\$)" \
+      || hit_without "${BAL}(star(t)?([[:space:]]|\$)|-)" \
         "(^|[[:space:]])-[dms][^[:space:];&|]|$HELP" \
       || hit_without "${BAL}[^-[:space:];&|]" \
         "^[^[:alnum:]]?${BALW}${BALSUB}|$HELP"

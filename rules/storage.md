@@ -60,7 +60,8 @@ host, which the user approves command by command:
   `convert` filter or without any filter (a bare `-d`, `-m` or
   `-s` selects every chunk of its type), `btrfs balance resume`,
   the hidden `btrfs balance --full-balance <path>`, and the
-  deprecated `btrfs balance <path>`. A filtered balance
+  deprecated `btrfs balance [options] <path>` on the same terms as
+  `start`. A filtered balance
   such as `-dusage=50` moves only the chunks it selects and runs
   without a question
 - Scrubs, `zpool scrub` and `btrfs scrub start` or `resume`: they

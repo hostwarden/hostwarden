@@ -652,6 +652,7 @@ check deny 'which e2fsck && e2fsck -fy /dev/sdb1'
 check deny 'command e2fsck -fy /dev/sdb1'
 check deny 'diskutil help; diskutil repairVolume disk3s1'
 check deny 'man zpool; zpool destroy tank'
+check deny 'ssh -l man nas1.example.com e2fsck -fy /dev/sdb1'
 check deny 'ssh root@nas1.example.com "which zfs && zfs destroy -r tank/home"'
 check_mode deny default 'midclt call pool.dataset.delete tank/x'
 check_mode deny default "midclt call pool.export 1 '{\"destroy\": true}'"
@@ -743,6 +744,8 @@ for c in 'lvextend -r -L +10G vg0/root' 'lvcreate -L 10G -n data vg0' \
   'lvchange -an vg0/data' 'vgchange -a n vg0' \
   'lvchange --activate=n vg0/data' \
   'btrfs balance pool' 'btrfs balance --full-balance /mnt' \
+  'btrfs balance -d /mnt' 'btrfs filesystem balance -m /mnt' \
+  'btrfs balance -v /mnt' \
   'midclt call pool.export 1' "midclt call pool.export 1 '{\"cascade\": true}'"
 do
   check_mode ask default "$c"
@@ -781,6 +784,8 @@ for c in 'fsck -N /dev/sdb1' 'e2fsck -n /dev/sdb1' 'e2fsck -fn /dev/sdb1' \
   'man lvremove' 'whatis lvextend' 'tldr zinject' 'man resize2fs' \
   'man zpool destroy' 'tldr btrfs rescue' 'apropos zfs destroy' \
   'man mdadm --create' 'btrfs balance statu /mnt' \
+  'btrfs balance -dusage=50 /mnt' 'ssh root@nas1.example.com man fsck' \
+  'ssh -o BatchMode=yes root@nas1.example.com command -v lvremove' \
   'diskutil help repairVolume' 'ssh root@nas1.example.com "man fsck"' \
   'debugfs -R stats /dev/sdb1' 'mdadm --detail /dev/md0' \
   'mdadm -D /dev/md0' 'mdadm --examine /dev/sdb1' \
