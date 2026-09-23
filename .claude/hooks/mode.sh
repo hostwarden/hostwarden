@@ -134,25 +134,33 @@ hostwarden_git_batch() {
   # Appended to a command the user set, not replaced by it: ssh
   # takes the first value it sees, so their own options still win,
   # and ours fill in what they left open. GIT_SSH_COMMAND outranks
-  # core.sshCommand and GIT_SSH, so either of those, where set, is
-  # the command ours are appended to — a mirror's deploy key, say.
-  # core.sshCommand is read from the repository the caller contacts,
-  # never from another one: the workspace in memory/ can use a key
-  # the checkout around it does not. Without one, as before a clone,
-  # only the user's and the system's setting count.
+  # core.sshCommand, so that, where set, is the command ours are
+  # appended to — a mirror's deploy key, say. It is read from the
+  # repository the caller contacts, never from another one: the
+  # workspace in memory/ can use a key the checkout around it does
+  # not. Without one, as before a clone, only the user's and the
+  # system's setting count.
   if [ -z "${GIT_SSH_COMMAND:-}" ]; then
     if [ -n "${1:-}" ]; then
       GIT_SSH_COMMAND=$(git -C "$1" config core.sshCommand 2>/dev/null)
     else
       GIT_SSH_COMMAND=$(git config --global core.sshCommand 2>/dev/null \
         || git config --system core.sshCommand 2>/dev/null)
-    fi || GIT_SSH_COMMAND=${GIT_SSH:-}
+    fi
+  fi
+  export GIT_TERMINAL_PROMPT
+  # A GIT_SSH program with nothing above it stays in charge: git runs
+  # it as a bare path, and plink or a wrapper may take no ssh
+  # options at all. An empty GIT_SSH_COMMAND would outrank it too.
+  if [ -z "$GIT_SSH_COMMAND" ] && [ -n "${GIT_SSH:-}" ]; then
+    unset GIT_SSH_COMMAND
+    return 0
   fi
   GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
 -o ConnectTimeout=5 -o ControlMaster=auto \
 -o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \
 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
-  export GIT_TERMINAL_PROMPT GIT_SSH_COMMAND
+  export GIT_SSH_COMMAND
 }
 
 # Every Hostwarden shim goes, not only this checkout's: a session
