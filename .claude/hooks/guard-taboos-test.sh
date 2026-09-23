@@ -549,6 +549,13 @@ check deny 'lvresize -y -L 10G vg0/data'
 check deny 'lvresize -l 50%VG vg0/data'
 check deny 'lvresize -L10G vg0/data'
 check_mode deny default 'lvresize --size 10G vg0/data'
+check_mode deny default 'lvresize -rL 10G vg0/data'
+check_mode deny default 'lvresize -rl 50%VG vg0/data'
+check_mode ask default 'lvresize -rL +10G vg0/data'
+check_mode deny default 'midclt call pool.dataset.delete tank/x'
+check_mode deny default "midclt call pool.export 1 '{\"destroy\": true}'"
+check_mode deny default "midclt -U api-write call pool.export 1 '{\"cascade\": true, \"destroy\": true}'"
+check_mode deny default 'ssh root@nas1.example.com midclt call pool.dataset.delete tank/x'
 check deny 'vgcfgrestore vg0'
 check deny 'zpool create tank mirror /dev/sdb /dev/sdc'
 check deny 'zpool create -f tank /dev/sdb'
@@ -623,7 +630,7 @@ for c in 'lvextend -r -L +10G vg0/root' 'lvcreate -L 10G -n data vg0' \
   'btrfs dev del /dev/sdb /mnt' \
   'btrfs replace start /dev/sdb /dev/sdc /mnt' \
   'btrfs balance start -dconvert=raid1 -mconvert=raid1 /mnt' \
-  'midclt call pool.export 1' 'midclt call pool.dataset.delete tank/x'
+  'midclt call pool.export 1' "midclt call pool.export 1 '{\"cascade\": true}'"
 do
   check_mode ask default "$c"
 done

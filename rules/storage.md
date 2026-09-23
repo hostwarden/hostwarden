@@ -48,8 +48,8 @@ host, which the user approves command by command:
   rewrite damaged blocks from a copy whose checksum verifies, which
   is self-healing and not a guess, but they load every disk for
   hours, which a degraded pool may not survive
-- TrueNAS' middleware: `midclt call pool.export` and
-  `pool.dataset.delete`
+- TrueNAS' middleware: `midclt call pool.export` without `destroy`
+  in its argument
 
 Some of these cannot be undone: `zpool add` puts a vdev into the
 pool for good where `zpool remove` cannot take it out again (a
@@ -84,7 +84,9 @@ Safety Rules; the guard denies them in every permission mode:
   transactions, `zinject`, `zfs destroy` of a dataset or volume,
   and `zfs destroy` or `rollback` with `-R`, which takes every
   clone of the snapshot with it
-- TrueNAS' middleware: `midclt call disk.wipe` and `pool.create`
+- TrueNAS' middleware: `midclt call disk.wipe`, `pool.create`,
+  `pool.dataset.delete` (`zfs destroy` of a dataset) and
+  `pool.export` with `destroy` in its argument (`zpool destroy`)
 - macOS: `diskutil repairVolume` and `repairDisk`; Windows:
   `chkdsk` with `/f`, `/r`, `/x`, `/b`, `/spotfix` or
   `/offlinescanandfix`, and `Repair-Volume` beyond `-Scan`

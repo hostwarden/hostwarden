@@ -1338,8 +1338,9 @@ metadata"
     # lvresize shrinks with a negative size, and with an absolute one
     # below the current size, which the command line cannot show.
     # Only a size starting with + is known to grow; lvextend refuses
-    # to shrink whatever it is given.
-    if hit_without '(^|[^[:alnum:]_.-])lvresize([[:space:]][^;&|]*)?[[:space:]](-[Ll]|--size|--extents)([[:space:]]+|=)?[^+=[:space:]]' \
+    # to shrink whatever it is given. The size may close a cluster:
+    # lvresize -rL 10G.
+    if hit_without '(^|[^[:alnum:]_.-])lvresize([[:space:]][^;&|]*)?[[:space:]](-[[:alpha:]]*[Ll]|--size|--extents)([[:space:]]+|=)?[^+=[:space:]]' \
       "$LVMTEST|$HELP"; then
       stor_deny "lvresize without a + size can shrink the volume like \
 lvreduce - grow with lvextend or a size starting with +"
@@ -1463,7 +1464,21 @@ and every snapshot of it"
     fi
     ;;
   *pool.export*|*pool.dataset.delete*)
-    if hit "${MIDCLT}pool[.](export|dataset[.]delete)([^[:alnum:]_.-]|\$)"
+    # pool.dataset.delete is zfs destroy of a dataset, and pool.export
+    # with destroy in its argument is zpool destroy: both denied like
+    # the commands they stand for. A plain export only unmounts, and
+    # is asked like zpool export.
+    if hit "${MIDCLT}pool[.]dataset[.]delete([^[:alnum:]_.-]|\$)"
+    then
+      stor_deny "TrueNAS pool.dataset.delete deletes a dataset like zfs \
+destroy"
+    fi
+    if hit "${MIDCLT}pool[.]export([^[:alnum:]_.-][^;&|]*)?destroy"
+    then
+      stor_deny "TrueNAS pool.export with destroy erases the pool like \
+zpool destroy"
+    fi
+    if hit "${MIDCLT}pool[.]export([^[:alnum:]_.-]|\$)"
     then
       stor_ask
     fi
