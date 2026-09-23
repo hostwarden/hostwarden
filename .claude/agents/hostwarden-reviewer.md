@@ -112,7 +112,8 @@ The prompt names one of two jobs.
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
     read as complete, a missing row taken as proof of absence
-    (`rules/verify-before-reporting.md` → 2 and 5).
+    (`rules/verify-before-reporting.md` → Prove absence, and its
+    step 5).
 12. **Side effects in the wrong order.** A change before its
     check, a service started before its firewall rule or its
     config test, memory written before verification, state not
