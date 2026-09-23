@@ -12,7 +12,9 @@ the host against that record
 
 The record holds settings, never state: pool health, fill level,
 errors and scrub age change by the hour and are read fresh by
-housekeeping. Everything here only reads.
+housekeeping. Everything here only reads; which storage commands
+change something, and which of those are the user's alone, is
+`rules/storage.md` → The Three Tiers.
 
 ## Detection
 

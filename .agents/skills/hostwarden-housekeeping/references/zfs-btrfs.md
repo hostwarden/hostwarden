@@ -6,14 +6,21 @@ inventory from that file runs in one call with the health reads
 below; health is read fresh, and settings are compared with
 `memory/servers/<hostname>/storage.md` and rated.
 
-An appliance whose `## Housekeeping and Audits` section reads its
-pools or volumes already owns their health: its findings stand,
-and ZFS Health and Btrfs Health below are skipped. Settings runs
-everywhere.
+An appliance's `## Housekeeping and Audits` section owns each
+health check it runs itself, and that check is skipped below:
+pool state and errors where it reads `zpool status` or its API,
+fill level where it reads `cap`, scrub age where it reads the
+scan line or a scrub task, device errors where it reads
+`btrfs device stats`. Every check it does not run comes from
+here, and Settings runs everywhere.
 
 ## ZFS Health
 
 The inventory's `zpool list` and `zpool status -t` carry it all.
+Where `storage.md` records pools and `/dev/zfs` is missing, the
+module is not loaded and no pool is imported: **WARN**, and no
+`zpool` or `zfs` command runs (`rules/storage-inventory.md` →
+Detection), so nothing below is read.
 
 - **WARN** if a pool's `cap` > 80% — ZFS slows down well before
   it is full
@@ -24,13 +31,14 @@ The inventory's `zpool list` and `zpool status -t` carry it all.
   days, or none. The age answers for whatever schedules scrubs;
   on FreeBSD that is `daily_scrub_zfs_enable` in
   `/etc/periodic.conf`, off by default.
-- **WARN** for a pool `storage.md` records that `zpool list` no
-  longer shows, handled as a guest that is not listed
-  (`rules/hypervisors.md` → Changes Between Connections): its
-  section gains `not listed <date>`. `zpool import` without a
+- **WARN** for a pool `storage.md` records that a `zpool list`
+  which exited 0 no longer shows, handled as a guest that is not
+  listed (`rules/hypervisors.md` → Changes Between Connections):
+  its section gains `not listed <date>`. `zpool import` without a
   pool name lists the pools that could be imported and changes
   nothing; report whether it is among them. Importing is the
-  user's step. Neither answer proves the pool destroyed — its
+  user's step (`rules/storage.md` → The Three Tiers). Neither
+  answer proves the pool destroyed — its
   disks may only be detached — so the section goes only when the
   user says the pool is gone.
 
@@ -52,7 +60,8 @@ are the only record of past errors.
   below 1 GiB: btrfs allocates space in chunks, and a filesystem
   that cannot allocate a new metadata chunk fails with "no space
   left" while `df` still shows free space. The remedy is a
-  filtered balance, which moves data and is the user's decision.
+  filtered balance, which moves data and is the user's decision
+  (`rules/storage.md` → Before a Change).
 - **INFO** if the last scrub is older than 35 days, or none.
 - **WARN** for a filesystem `storage.md` records that is no longer
   mounted, handled as the missing pool above.
@@ -76,7 +85,8 @@ A value that carries a reason from the user is reported as
 
 - **Features not enabled** — the `status:` line of `zpool status`
   says so ([zpool-upgrade(8)](https://openzfs.github.io/openzfs-docs/man/master/8/zpool-upgrade.8.html)):
-  **INFO**, one line per pool. `zpool upgrade` is one-way.
+  **INFO**, one line per pool. `zpool upgrade` is one-way and in
+  the change tier of `rules/storage.md` → The Three Tiers.
   Once a feature is active, an older ZFS, a rescue system, a
   replication target on an older release, and a boot loader
   reading a boot pool may no longer import the pool. Never run it;
@@ -159,6 +169,8 @@ A value that carries a reason from the user is reported as
   `RAID1C3`
   ([Status](https://btrfs.readthedocs.io/en/latest/Status.html)).
 
-Fixing any of these is a change the user approves, and on an
-appliance it happens in its web UI (`rules/storage-inventory.md`
-→ On an Appliance).
+Fixing any of these is a change the user approves: `zfs set`,
+`zpool set`, a mount option or an ARC limit as a configuration
+change, a scrub, an import or a balance as `rules/storage.md`
+sorts it. On an appliance it happens in its web UI
+(`rules/storage-inventory.md` → On an Appliance).
