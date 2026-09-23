@@ -161,7 +161,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `SSH: untested`          | `hypervisors.md`            | guest registered |
 | `Baseline:`              | `baseline.md`               | baseline applied |
 | `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
-| `Network:`               | `network.md`                | profile probed   |
+| `Network:`               | `network.md`                | first connection |
 | `Access:`                | `ssh-safety-net.md`         | paths tested     |
 | `API read:`              | `appliance-api.md`          | access set up    |
 | `API write:`             | `appliance-api.md`          | access set up    |

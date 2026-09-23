@@ -441,14 +441,17 @@ root and no profile.
 
 - A global IPv6 address without a default route → the `no v6
   route` entry in `rules/network.md` → Findings, at its severity
-- `/etc/resolv.conf` written by hand where the host has a
-  profile that records a manager as its owner → the resolv.conf
+- `/etc/resolv.conf` written by hand where the profile's
+  `## DNS` records a manager as its owner → the resolv.conf
   entry there
-- Everything as the profile records it, or no profile and
-  nothing from the list → OK, one line
+- Everything as the profile records it, or nothing recorded to
+  compare with and nothing from the list → OK, one line
 
-A difference is reported, never repaired here, and the full
-profile is offered rather than rebuilt inside the inspection.
+Compare only what the profile records: one built on the first
+connection holds Management and perhaps Traffic flow, not the
+stack, the routes or DNS. A difference is reported, never
+repaired here, and the full profile is offered rather than
+rebuilt inside the inspection.
 
 ## Log Anomalies
 

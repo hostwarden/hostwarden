@@ -50,12 +50,18 @@ done
 <privilege prefix>
 
 echo "### A manager"
-for u in systemd-networkd NetworkManager networking \
-         network wicked systemd-resolved resolvconf \
-         dhcpcd connman; do
-  printf '%s=%s\n' "$u" \
-    "$(systemctl is-active "$u" 2>/dev/null)"
-done
+if [ -d /run/systemd/system ]; then
+  for u in systemd-networkd NetworkManager networking \
+           network wicked systemd-resolved resolvconf \
+           dhcpcd connman; do
+    printf '%s=%s\n' "$u" \
+      "$(systemctl is-active "$u" 2>/dev/null)"
+  done
+elif command -v rc-update >/dev/null 2>&1; then
+  # OpenRC: the runlevels say what starts the network.
+  rc-update show boot default 2>/dev/null | grep -E \
+    '^[[:space:]]*(networking|dhcpcd|connman|NetworkManager|iwd) '
+fi
 ls -d /etc/netplan/*.yaml /etc/network/interfaces \
   /etc/network/interfaces.d/* /etc/systemd/network/* \
   /etc/sysconfig/network-scripts/ifcfg-* \
@@ -353,7 +359,10 @@ else
     nf=$(printf '%s\n' "$r" | awk -v e="$e" '
       function flush() { if (t != "") printf "%s", (nat ? b : h)
         t = b = h = ""; nat = 0 }
-      /^table/ { flush(); t = $0; b = h = $0 "\n"; next }
+      /^table/ { flush(); t = $0; b = h = $0 "\n"
+        q = ($3 == "kube-proxy"); if (q) t = b = h = ""; next }
+      q { if ($0 ~ /[^a-z_](dnat|snat|masquerade)/) k["kube-proxy"]++
+          next }
       $1 == "set" || $1 == "map" { m = 1 }
       m { b = b $0 "\n"; if ($1 == "}") m = 0; next }
       $1 == "chain" { c = $2; s = 0; next }
@@ -426,6 +435,11 @@ Reading **A (manager)**:
   The `iface` lines decide.
 - `network=active` is the legacy initscripts service
   (RHEL 8 and older); `wicked` is SUSE's manager.
+- On OpenRC (Alpine) the runlevel lines name the manager:
+  `networking` is ifupdown-ng reading `/etc/network/interfaces`,
+  `dhcpcd`, `connman`, `NetworkManager` or `iwd` their own. A
+  host with none of them in a runlevel has no network manager
+  at boot; record that, not `unknown`.
 - **cloud-init** owns the network when it is
   installed, enabled, and nothing disables its
   network config. It renders the configuration on

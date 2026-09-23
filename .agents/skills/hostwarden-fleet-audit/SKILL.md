@@ -216,8 +216,10 @@ Layers).
 7. **No audit result in memory.** What the pipeline owns,
    it still writes: `Last connected` for every host
    reached, because each was in fact connected to
-   (`rules/server-memory.md`), and a changed OS version
-   where detection found one (`rules/os-detection.md`).
+   (`rules/server-memory.md`), a changed OS version
+   where detection found one (`rules/os-detection.md`),
+   and what `rules/network.md` → When writes on
+   connecting.
    What the probes found goes nowhere near a memory file:
    the audit compares hosts, it does not own what any one
    of them records. A memory file that

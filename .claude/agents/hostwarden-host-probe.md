@@ -72,10 +72,11 @@ Bash calls as it does anywhere else.
   not a "while I was here". If a probe shows something broken,
   that is a cell in the row, not a task.
 - **No audit result in memory.** What the pipeline owns, it still
-  writes: `Last connected`, and the OS version when detection
+  writes: `Last connected`, the OS version when detection
   finds it has changed (`rules/os-detection.md` — a stale OS line
   is what makes a later session reach for the wrong package
-  manager and the wrong `rules/os/` file). What the *probes*
+  manager and the wrong `rules/os/` file), and what
+  `rules/network.md` → When writes on connecting. What the *probes*
   found goes in the row and nowhere else: an audit compares
   hosts, it does not own what any one of them records.
 - **No second host.** You were given one. Another agent has the rest.

@@ -30,6 +30,7 @@ condition, and what to do with the result.
 | A guest's link keys | conditional | `rules/hypervisors.md` |
 | The ZFS and btrfs inventory | first | `rules/storage-inventory.md` |
 | Windows Version Detection | every but the first | `rules/os-detection.md` |
+| Who manages the network | first; conditional | `rules/network.md` |
 
 Where each condition is:
 
@@ -56,6 +57,8 @@ Where each condition is:
 - **The ZFS and btrfs inventory:** where the `@storage` lines of
   the first probe found either (`rules/storage-inventory.md` →
   When); later connections leave it to housekeeping.
+- **Who manages the network:** on a host whose memory lacks it,
+  as `rules/network.md` → When defines.
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line
   (`rules/os-detection.md` → On subsequent connections).
