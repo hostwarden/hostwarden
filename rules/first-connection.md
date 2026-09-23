@@ -30,15 +30,10 @@ skip it.
    connection, read on every subsequent connection.
    See `rules/server-memory.md`.
 7. **Activity check.** Every connection, not just
-   the first. See `rules/activity-check.md`. The
-   configuration-management probes go into the same
-   call, as `rules/config-management.md` → Detect
-   says. So do, as `rules/hypervisors.md` describes,
-   the guest listing on a host with a `Hypervisor:`
-   line (Inventory), on a cluster member once for the
-   whole cluster (Clusters and Pools), and the keys
-   that link a VM or container without a `Runs on:`
-   line to its host (Linking Guest and Host).
+   the first. See `rules/activity-check.md`; what
+   else goes into its call, and on which connection,
+   is `rules/activity-check.md` → What rides in this
+   call.
 8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: an
    `Adopted from heinzel:` line in `memory/user.md`,
@@ -52,8 +47,9 @@ skip it.
    When it does apply: first connection, plus every
    connection while a `deferred` line or an
    unresolved inventory is there. One batched probe,
-   folded into step 7 where possible, silent unless
-   it finds something. See `rules/heinzel-legacy.md`.
+   silent unless it finds something, in step 7's call
+   where possible (`rules/activity-check.md` → What
+   rides in this call). See `rules/heinzel-legacy.md`.
 9. **Then** execute the user's request.
 
 ## Local mode

@@ -191,8 +191,9 @@ first call says. On Windows the first call is
 memory records a POSIX layer as the shell, `uname -s`
 read as The first call says; the second is the
 Version Detection probe of `rules/os/windows.md`
-without its hardware part,
-joined with the activity read-back, and its
+without its hardware part, in the activity check's
+call (`rules/activity-check.md` → What rides in this
+call), and its
 `ProductType` decides as above. Update memory if a
 version changed.
 

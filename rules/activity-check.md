@@ -11,6 +11,54 @@ sessions.
 After reading the server memory file and before
 starting any requested work.
 
+## What rides in this call
+
+Other checks go into the read-back's call, so that none of them is
+an SSH call of its own (`rules/ssh-connections.md` — one call per
+logical step). This table is the one list of what rides along and
+on which connection; each owner keeps its probe, the exact
+condition, and what to do with the result.
+
+| What is added | Connection | Owner |
+| --- | --- | --- |
+| The session register | every | this file, below |
+| Ansible's module runs | every | this file, below |
+| Agent directories and services | every | `rules/config-management.md` |
+| Cron and marker probe | first; conditional | `rules/config-management.md` |
+| Heinzel's leftovers | conditional | `rules/heinzel-legacy.md` |
+| The guest listing | first; daily | `rules/hypervisors.md` |
+| A guest's link keys | conditional | `rules/hypervisors.md` |
+| Windows Version Detection | every but the first | `rules/os-detection.md` |
+
+Where each condition is:
+
+- **The session register:** where the OS file's `## Logs` section
+  does not say otherwise (A fresh Heinzel entry means a live session,
+  below).
+- **Cron and marker probe:** the triggers in
+  `rules/config-management.md` → Detect; the probe itself is in
+  `rules/config-management-leads.md`. Fired by a lead the directory
+  probe has just returned, it follows in the next call.
+- **Heinzel's leftovers:** on the connections
+  `rules/first-connection.md` step 8 names, and only where possible
+  (`rules/heinzel-legacy.md` → Detect).
+- **The guest listing:** on a host with a `Hypervisor:` line — the
+  full inventory on the first connection, the light listing at most
+  once a day or when the request is about guests
+  (`rules/hypervisors.md` → Inventory), and on a cluster member once
+  for the whole cluster (`rules/hypervisors.md` → Clusters and
+  Pools).
+- **A guest's link keys:** on a VM or container whose memory has no
+  `Runs on:` line (`rules/hypervisors.md` → Linking Guest and Host).
+- **Windows Version Detection:** without its hardware part, unless
+  memory lacks a `Virtualization:` or an `Arch:` line
+  (`rules/os-detection.md` → On subsequent connections).
+
+On a host without a register, the read-back runs again before each
+change, with the `starting` marker in the same call
+(`rules/parallel-sessions.md` → Hosts without a register); nothing
+in the table rides in that one.
+
 ## How to check
 
 Read both tags: `hostwarden`, and `heinzel` for entries

@@ -67,10 +67,10 @@ when a Heinzel installation is taken over. Every
 entry is a lead, not a fact
 (`rules/verify-before-reporting.md`).
 
-**Then probe the host in one call,** batched into
-the activity check's call where possible
-(`rules/ssh-connections.md` — one call per logical
-step):
+**Then probe the host in one call,** in the activity
+check's call where possible
+(`rules/activity-check.md` → What rides in this
+call):
 
 ```
 echo "##paths"; ls -d /var/backups/heinzel \

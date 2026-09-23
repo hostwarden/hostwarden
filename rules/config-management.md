@@ -19,8 +19,8 @@ role) and name the cost as well as the gain.
 
 ## Detect
 
-Two probes, batched into the activity check's call
-(`rules/ssh-connections.md` — one call per logical step), so
+Two probes, both in the activity check's call on the connections
+`rules/activity-check.md` → What rides in this call lists, so
 neither is an SSH call of its own. One case cannot be: the second
 probe fired by a lead the first has just returned, since that
 trigger is not known until the call is back. It follows in the next

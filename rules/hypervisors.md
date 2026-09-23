@@ -18,6 +18,9 @@ housekeeping. On a later connection, the light listing (ID and
 state only), once a day at most: when `Inventoried:` is not
 today, or when the request is about guests. The full inventory
 then runs for the guests whose listing differs from `guests.md`.
+The listing on a connection, like a guest's link keys (Linking
+below), rides in the activity check's call
+(`rules/activity-check.md` → What rides in this call).
 
 **Privileges:** each manager shows the system's guests to root
 and to its root-equivalent group
