@@ -257,9 +257,12 @@ Skip this check on macOS.
 
 Which CA the host trusts, and which certificate it presents:
 `rules/ssh-ca.md`. Run its Host Certificate probe in the first
-batch, since it needs no root, and its User CA Trust probe in the
-batch that runs `sshd -T`; on macOS only with Remote Login on. The
-severities are the ones listed there. Report host and user
+batch, since it needs no root; its User CA Trust probe inside the
+loop of the probe in sshd's Effective Configuration above, before
+its `done`, where `OUT` holds each daemon's values; and its
+`cert-authority` grep in a batch with neither `ssh-keygen` nor
+`awk`. On macOS only with Remote Login on. The severities are the
+ones listed there. Report host and user
 certificates on separate lines, `SSH host cert` and `SSH user CA`:
 `none` on both where the host has neither, `unchecked` where a
 probe could not run. Windows runs neither probe: both lines read

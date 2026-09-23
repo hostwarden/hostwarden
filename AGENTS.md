@@ -145,10 +145,9 @@ user when it will visibly slow the answer.
   Never modify `sshd_config` or its `sshd_config.d/` drop-ins,
   wherever sshd keeps them (`/etc/ssh`, `/usr/local/etc/ssh`,
   QNAP's `/etc/config/ssh`, …), nor dropbear's configuration where
-  dropbear is the SSH server. Never delete or overwrite SSH keys,
-  and that includes moving, truncating or re-permissioning them;
-  the same goes for sshd's revocation list (`RevokedKeys`), without
-  which sshd refuses every key login.
+  dropbear is the SSH server. Never delete or overwrite SSH keys or
+  sshd's revocation list (`RevokedKeys`), and that includes moving,
+  truncating or re-permissioning them.
   Never halt or power off a server. Only the first-boot
   configuration of a guest that has never run may set sshd's login
   options and keys, whatever form it takes (`hostwarden-new-guest`).
@@ -336,9 +335,7 @@ trigger — not a request from the user.
 - A secret is anywhere near the command → `rules/secrets.md`
 - `Host key verification failed`, or a host key that changed →
   `rules/host-keys.md`, never a manual login
-- A probe finds a host certificate or a trusted user CA, a
-  certificate login is refused, or SSH trust is about to be
-  written where `memory/network.md` records an SSH CA →
+- A host certificate, a user CA or a refused certificate login →
   `rules/ssh-ca.md`
 - Inspecting or changing a service that runs in a container →
   `rules/containers.md`

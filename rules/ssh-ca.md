@@ -78,16 +78,21 @@ for f in $(ssh -G localhost 2>/dev/null \
   done
 done
 systemctl list-timers --all --no-pager 2>/dev/null \
-  | grep -iE 'cert|ssh' | sed 's/^/renewal: /'
-grep -lisE 'ssh.*cert|cert.*ssh|step ssh|/sign' /etc/crontab \
-  /etc/cron.d/* /etc/periodic/*/* /Library/LaunchDaemons/* \
+  | grep -iE 'cert|ssh|renew|step|vault|bao' | sed 's/^/renewal: /'
+grep -lisE 'ssh.*cert|cert.*ssh|step ssh|/sign|renew' /etc/crontab \
+  /etc/cron.d/* /etc/cron.hourly/* /etc/cron.daily/* \
+  /etc/cron.weekly/* /etc/crontabs/* /etc/periodic/*/* \
+  /usr/local/etc/periodic/*/* /Library/LaunchDaemons/* \
   2>/dev/null | sed 's/^/renewal: /'
 date '+now: %Y-%m-%dT%H:%M:%S'
 ```
 
 With root, `hostcertificate` lines from the User CA Trust probe
-name the certificates sshd serves; one outside these directories
-is read the same way. Read from the output:
+name the certificates sshd serves; one outside these directories,
+and the path the host's `SSH host cert:` line names, is read the
+same way. A run without them — housekeeping, or no root — rates
+everything below but whether sshd serves the certificate. Read
+from the output:
 
 - **Type** says `host certificate`.
 - **Public key:** its fingerprint equals the one of the key beside
@@ -123,7 +128,11 @@ Findings:
 - No renewal job, as the user confirms, or one that does not
   reload sshd → **WARN**.
 - A certificate on disk that no `hostcertificate` line names →
-  **INFO**: sshd does not serve it.
+  **INFO**: sshd does not serve it. Only where the
+  `hostcertificate` lines were read.
+- A certificate the host's `SSH host cert:` line names that the
+  probe no longer finds → **WARN**; the line is not rewritten to
+  `none` until the user says the certificate is gone.
 - A name from the list above missing from the principals →
   **INFO**; for the name clients verify by, **WARN**.
 
@@ -132,10 +141,12 @@ Findings:
 With the privilege prefix (`rules/privilege-escalation.md`), in
 the call that reads sshd's effective configuration: the probe of
 `.agents/skills/hostwarden-security/references/ssh.md` → sshd's
-Effective Configuration, or the fleet audit's, which leave it in
-`OUT`, run with the daemon's own binary and `-f`. Where that probe
-reads several daemons, this one runs inside its loop, before its
-`done`. The key file, the list and the principals files may be
+Effective Configuration, or the fleet audit's, which hold it in
+`OUT`, read with the daemon's own binary and `-f`. The security
+audit's probe sets `OUT` inside its loop, which runs in a
+pipeline, so this probe goes inside that loop, before its `done`;
+the fleet audit's sets it once, and this probe follows it. The
+key file, the list and the principals files may be
 readable by root alone, and the globs run in a root shell, since
 homes and `.ssh` directories are closed to the SSH user.
 
@@ -148,28 +159,35 @@ else
     -e '^revokedkeys ' -e '^casignaturealgorithms ' \
     -e '^authorizedkeysfile '
   v() { printf '%s\n' "$OUT" | grep -i "^$1 " | cut -d' ' -f2-; }
-  CA=$(v trustedusercakeys)
-  if [ -n "$CA" ] && [ "$CA" != none ]; then
-    $SUDO ssh-keygen -lf "$CA" 2>&1 | sed 's/^/userca: /'
-    case $CA in *.pub) $SUDO ls -l "${CA%.pub}" 2>&1 ;; esac
-  fi
-  RK=$(v revokedkeys)
-  if [ -n "$RK" ] && [ "$RK" != none ]; then
-    echo "krl: $($SUDO cksum "$RK" 2>&1)"
-    $SUDO ssh-keygen -Q -l -f "$RK" 2>&1 | head -n 3
-  fi
+  CA=$(v trustedusercakeys); RK=$(v revokedkeys)
   P=$(v authorizedprincipalsfile)
-  case $P in
-    ''|none) ;;
-    */%u) $SUDO sh -c 'grep -H . "$1"/*' sh "${P%/%u}" 2>&1 ;;
-    *) echo "principals file per account: $P" ;;
-  esac
+  if [ "$SUDO" = - ]; then
+    echo "no root: user CA files unchecked"
+  else
+    if [ -n "$CA" ] && [ "$CA" != none ]; then
+      $SUDO ssh-keygen -lf "$CA" 2>&1 | sed 's/^/userca: /'
+      case $CA in *.pub) $SUDO ls -l "${CA%.pub}" 2>&1 ;; esac
+    fi
+    if [ -n "$RK" ] && [ "$RK" != none ]; then
+      if ! $SUDO test -r "$RK"; then echo "krl: missing $RK"
+      elif L=$($SUDO ssh-keygen -Q -l -f "$RK" 2>/dev/null); then
+        echo "krl: entries $(printf '%s\n' "$L" \
+          | grep -v -e '^# Generated at' -e '^# KRL version' | cksum)"
+      else echo "krl: file $($SUDO cksum "$RK" | cut -d' ' -f1,2)"; fi
+    fi
+    case $P in
+      ''|none) ;;
+      */%u) $SUDO sh -c 'grep -H . "$1"/*' sh "${P%/%u}" 2>&1 ;;
+      *) echo "principals file per account: $P" ;;
+    esac
+  fi
 fi
 ```
 
-A `cert-authority` line in `authorized_keys` is read without
-`ssh-keygen` on the same line, which the taboo guard refuses next
-to a key path; any other batch of the audit can carry it:
+A `cert-authority` line in `authorized_keys` is read in a call
+that runs neither `ssh-keygen` nor an interpreter, which the taboo
+guard refuses next to a key path. In the fleet audit that is a
+call of its own, since its bundle runs `awk`:
 
 ```bash
 $SUDO sh -c 'grep -Hn cert-authority /root/.ssh/authorized_keys* \
@@ -179,12 +197,17 @@ $SUDO sh -c 'grep -Hn cert-authority /root/.ssh/authorized_keys* \
 
 Where `authorizedkeysfile` names another path, grep that one too;
 homes elsewhere, from a directory service for one, are not in the
-globs.
+globs. Fingerprint each line's key on the workstation, from the
+output, with no key path in the command:
+`printf '%s\n' '<the key type and key>' | ssh-keygen -lf -`. Such
+a line is user CA trust like `TrustedUserCAKeys`, for that
+account only.
 
 What it shows:
 
-- **`sshd's configuration unread`:** the SSH CA lines read
-  `unchecked`, never `none`.
+- **`sshd's configuration unread`**, or **`no root`** for the
+  files: those parts of the SSH CA lines read `unchecked`, never
+  `none`.
 - **`trustedusercakeys none`** and no `cert-authority` line: no
   user CA on this host. **`revokedkeys none`:** no revocation
   list.
@@ -198,9 +221,11 @@ What it shows:
   root and of the SSH user by hand. Report which principals reach
   root. A principals command cannot be evaluated from outside:
   name it and its user.
-- **Revocation list:** the `krl` line carries a checksum. An error
-  instead (`No such file`, or a file root cannot read) is the
-  lockout the Terms describe.
+- **Revocation list:** the `krl` line carries a checksum of what
+  it revokes (`entries`, the KRL's listing without the lines that
+  name its version and when it was generated, so two hosts that
+  build the same list agree), or of a plain key list (`file`).
+  `missing` is the lockout the Terms describe.
 - **One CA for both directions:** a user CA fingerprint equal to
   the host certificate's signing CA.
 - **`Match` blocks** change these values per account or address,
@@ -270,8 +295,9 @@ trust, each within the scope its line names, and every place it
 cannot write reports the gap.
 
 - **The workstation:** every host whose `SSH host cert:` line
-  names a CA is covered by that CA's `@cert-authority` line in
-  `memory/known_hosts` (`rules/host-keys.md` → Host Certificates).
+  names a host CA of the user's is covered by that CA's
+  `@cert-authority` line in `memory/known_hosts`
+  (`rules/host-keys.md` → Host Certificates).
 - **Servers that connect out:** a server whose memory names a job
   or role that opens SSH to other hosts — a backup or rsync to
   another host, a deploy, a jump host — or that the user names.
@@ -290,10 +316,14 @@ cannot write reports the gap.
   (`rules/borrowed-rights.md`). Record it as
   `SSH client host CA:`. A host in read-only mode gets the finding
   only (`rules/access-control.md` → Read-Only Servers).
-- **A new guest** trusts the user CA from its first boot, and
-  **every server** is measured against the CA: `rules/baseline.md`
-  → SSH CA. So does an OS reinstall that writes the new system's
-  SSH login (`hostwarden-os-install`).
+- **A new guest** trusts the user CA from its first boot, except
+  a container from the Proxmox VE baseline template, which has no
+  first-boot file of its own
+  (`.agents/skills/hostwarden-new-guest/references/user-data.md`
+  → SSH CA); **every server** is measured against the CA:
+  `rules/baseline.md` → SSH CA. An OS reinstall lists the CA trust
+  and the host certificate among what the new system needs back
+  (`hostwarden-os-install`).
 - **A new guest's host certificate:** Hostwarden signs none. After
   the guest's first login, give the user its host public keys
   (`/etc/ssh/ssh_host_*_key.pub`) and the principals to sign, as
@@ -312,9 +342,9 @@ Per host, in `memory/servers/<hostname>/memory.md`, one line per
 direction, only where present:
 
 ```markdown
-- SSH host cert: ed25519, CA SHA256:Cxr4…, principals
-  web1.example.com web1, valid to 2026-10-19, renewed by
-  ssh-cert-renew.timer
+- SSH host cert: ed25519 /etc/ssh/ssh_host_ed25519_key-cert.pub,
+  CA SHA256:Cxr4…, principals web1.example.com web1, valid to
+  2026-10-19, renewed by ssh-cert-renew.timer
 - SSH user CA: CA SHA256:9fQe… (/etc/ssh/user_ca.pub), principals
   /etc/ssh/auth_principals/%u, KRL /etc/ssh/revoked_keys
 - SSH client host CA: /etc/ssh/ssh_known_hosts trusts CA
@@ -338,8 +368,15 @@ answer, leaves it a finding.
   principals root ← ops, KRL /etc/ssh/revoked_keys, issuing:
   groups server-admins, root denied
 - Host CA SHA256:Cxr4… — same CA, the user's (2026-09-23), scope
-  *.example.com, host certificates 30d
+  *.example.com, host certificates 30d, known_hosts line: yes
+  (user, 2026-09-23)
 ```
+
+`known_hosts line:` records the user's answer to the offer of
+`rules/host-keys.md` → Host Certificates, `no` included, so it is
+made once. A CA rotation the user announces is part of the line
+until it is done, `rotating to SHA256:… since 2026-09-23`: the
+audits accept both CAs meanwhile.
 
 The onboarding, the security audit and housekeeping write or
 refresh a host's lines when they probe it; the fleet audit only

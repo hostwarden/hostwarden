@@ -83,15 +83,17 @@ carried anywhere.
   every server trusts, so a revocation that missed a
   server stands out.
 - **Your workstation:** every host with a host
-  certificate is covered by its CA's line in
+  certificate from your CA is covered by its line in
   `memory/known_hosts`. A missing line is offered;
   another CA for the same name stops the connection.
 - **Servers that connect to others** get the host CA's
   line in their global known-hosts file when you say
   yes.
 - **New guests** trust your user CA from their first
-  boot. Their host keys are handed to you to sign;
-  installing the certificate is yours.
+  boot; a container from the Proxmox VE baseline
+  template, which shares the template's setup, gets the
+  lines to add instead. Their host keys are handed to
+  you to sign; installing the certificate is yours.
 - **Baseline:** once you confirm a CA as yours and say
   which servers it covers, a server there that does
   not trust it, or has no revocation list where the

@@ -65,7 +65,8 @@ ssh-keygen -F web1.example.com -f "/srv/hostwarden/memory/known_hosts"
 and below, the `<checkout>` of `AGENTS.md` → SSH Options. Any
 output, a plain key or a line marked `CA`, means the host is
 known: connect — except for a host whose `SSH host cert:` line
-names a CA, which Host Certificates below checks first. No output
+names a host CA of the user's, which Host Certificates below checks
+first. No output
 means Getting a Key comes first, or DNS Aliases for a name the DNS
 check has just found to be an alias.
 
@@ -297,10 +298,13 @@ user's decision, which Hostwarden neither proposes nor helps
 with.
 
 Before the first connection to a host whose `SSH host cert:` line
-names a CA, the CA lines of Before the First Connection's lookup
-must name that CA. Off port 22, look up the plain name as well:
-ssh accepts a CA line for either `[<name>]:<port>` or `<name>`,
-while `ssh-keygen -F` finds only the form it is given.
+names a host CA of the user's (`rules/ssh-ca.md` → Terms), the CA
+lines of Before the First Connection's lookup must name that CA. A
+CA that is not the user's asks for nothing here: the host is known
+by its plain key or not at all. Off port 22 and without a
+`hostkeyalias`, look up the plain name as well: ssh then accepts a
+CA line for either `[<name>]:<port>` or `<name>`, while
+`ssh-keygen -F` finds only the form it is given.
 
 ```bash
 for n in '[web1.example.com]:2222' web1.example.com; do
@@ -316,11 +320,16 @@ done
   `memory/network.md` names, never `*`, each in both forms:
   `*.example.com,[*.example.com]:*`. It comes from the user's own
   known_hosts as source 2 of Getting a Key imports it, or from the
-  user; written as The File says, and only on a yes. A no leaves
-  the plain key working.
+  user; written as The File says, and only on a yes. The answer, a
+  no included, goes on the CA's line in `memory/network.md`
+  (`rules/ssh-ca.md` → Memory), so it is asked once; a no leaves
+  the plain key working. A run with nobody to ask — a scheduled
+  one, the fleet audit's probe — connects on the plain key and
+  reports the missing line.
 - **Only other CAs:** the workspace trusts another CA for this
   name — an unfinished rotation, or a wrong line. Connect to
-  nothing, and tell the user both fingerprints.
+  nothing, and tell the user both fingerprints; a run with nobody
+  to ask stops for this host and reports it.
 
 The certificate must list the name looked up here among its
 principals (`rules/ssh-ca.md` → Host Certificate).

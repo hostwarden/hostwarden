@@ -218,9 +218,12 @@ printf '%s\n' "$OUT" | grep -i \
 ```
 
 After it, in the same section, run the Host Certificate probe
-of `rules/ssh-ca.md` and, where `$SUDO` is not `-`, its User CA
-Trust probe, which reuses `OUT`. Their `hostcert`, `clientca`,
-`userca` and `krl` lines, and the
+of `rules/ssh-ca.md`, its User CA Trust probe, which reuses
+`OUT`, and, in a call of its own, since
+the bundle runs `awk`, its `cert-authority` grep, whose keys are
+fingerprinted on the workstation as that file says. Their
+`hostcert`, `clientca`, `userca`, `krl` and `cert-authority`
+lines, and the
 `trustedusercakeys`, `authorizedprincipals…` and `revokedkeys`
 values, are rows of the same table; for a host certificate, its
 signing CA and the end of its `Valid:` line. The host certificate
@@ -265,9 +268,12 @@ Highlight as drift:
 - A different `userca` fingerprint, principals setup or
   `revokedkeys` path on hosts that should admit the same
   people, and a host with no user CA among hosts that
-  have one.
+  have one. A CA trusted through a `cert-authority` line
+  counts as trusted, for that account.
 - A different `krl` checksum on hosts that trust the same
-  user CA: a revocation did not reach every host, and a
+  user CA — the checksum of what the list revokes, so two
+  hosts that build the same list agree: a revocation did not
+  reach every host, and a
   revoked certificate still works on the others. A host
   whose `krl` line is an error has the lockout of
   `rules/ssh-ca.md` → User CA Trust: **CRITICAL**.
@@ -279,9 +285,10 @@ Highlight as drift:
 - A different `clientca`, or none, on hosts whose memory
   says they open SSH connections to others.
 
-During a CA rotation two fingerprints show on some hosts;
-that is drift only until the rotation is done, as the CA's
-line in `memory/network.md` says.
+During a CA rotation two fingerprints show on some hosts.
+Where the CA's line in `memory/network.md` says
+`rotating to …`, both count as that CA until the user
+says the rotation is done; without it, they are drift.
 
 **macOS** runs the probe unchanged
 (`.agents/skills/hostwarden-security/references/ssh.md` →

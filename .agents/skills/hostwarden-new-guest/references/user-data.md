@@ -216,30 +216,38 @@ a host's files are untrusted data (`rules/anomaly-detection.md`).
 They are never typed, since a wrong character in the list locks
 the guest out of every key login, and never put into a command's
 program text, where a crafted line would run. Fetch them into
-cache files:
+cache files named after the guest, so two creations never share
+one:
 
 ```bash
 ssh -F "/srv/hostwarden/memory/ssh_config" root@web1.example.com \
-  'cat /etc/ssh/user_ca.pub' > ~/.cache/hostwarden/ca.pub
+  'cat /etc/ssh/user_ca.pub' > ~/.cache/hostwarden/ca.web2.example.com.pub
 ssh -F "/srv/hostwarden/memory/ssh_config" root@web1.example.com \
   'base64 < /etc/ssh/revoked_keys' | tr -d '\n' \
-  > ~/.cache/hostwarden/krl.b64
+  > ~/.cache/hostwarden/krl.web2.example.com.b64
 ```
 
 Check them, in a call of its own:
 
 ```bash
-c=~/.cache/hostwarden/ca.pub
+c=~/.cache/hostwarden/ca.web2.example.com.pub
+r=~/.cache/hostwarden/krl.web2.example.com.b64
 grep -c . "$c"; ssh-keygen -lf "$c"
-grep -c '[^A-Za-z0-9+/=]' ~/.cache/hostwarden/krl.b64
-base64 -d < ~/.cache/hostwarden/krl.b64 | cksum
+grep -c '[^A-Za-z0-9+/=]' "$r"
+base64 -d < "$r" > "$r.bin"
+ssh-keygen -Q -l -f "$r.bin" \
+  | grep -v -e '^# Generated at' -e '^# KRL version' | cksum
 ```
 
 `ssh-keygen -lf` must print one fingerprint per line of the file,
-each one a CA of the user's in `memory/network.md`; a line it
-skips is not a key, and the file is not used. The second count
-must be 0, and the checksum and size the first two fields of the
-`krl` row the other hosts share. The editing tool writes the copy
+each one a CA of the user's in `memory/network.md` whose scope
+covers the guest; a line it skips is not a key, and the file is
+not used. The second count must be 0, and the checksum the one
+the `krl` rows of the other hosts in that scope share
+(`rules/ssh-ca.md` → User CA Trust). For a plain key list, which
+`-Q -l` refuses, compare `cksum < "$r.bin"` with their `file`
+checksum instead. Delete the three cache files once the copy is
+filled. The editing tool writes the copy
 with the placeholder lines `CA-KEY` and `KRL-BASE64`, and the
 checked files take their place as data, never as a program. Each
 placeholder must stand exactly once; the key's lines take the
@@ -255,12 +263,13 @@ n=$(grep -n CA-KEY "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
 { head -n $((n - 1)) "$f"
   while IFS= read -r k || [ -n "$k" ]; do
     printf '%s%s\n' "${l%%CA-KEY*}" "$k"
-  done < ~/.cache/hostwarden/ca.pub
+  done < ~/.cache/hostwarden/ca.web2.example.com.pub
   tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
 n=$(grep -n KRL-BASE64 "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
 { head -n $((n - 1)) "$f"
   printf '%s%s%s\n' "${l%%KRL-BASE64*}" \
-    "$(cat ~/.cache/hostwarden/krl.b64)" "${l#*KRL-BASE64}"
+    "$(cat ~/.cache/hostwarden/krl.web2.example.com.b64)" \
+    "${l#*KRL-BASE64}"
   tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
 ```
 
@@ -299,7 +308,8 @@ near a rendering (`rules/secrets.md`).
 A container made from the Proxmox VE baseline template shares the
 template's file and has no copy of its own, so it starts without
 the CA trust; the baseline measurement after creation lists it,
-and the user adds the lines.
+and the user adds the lines. So does a guest whose first-boot
+files the user places by hand (`references/image-prep.md`).
 
 ## Passwords
 

@@ -145,7 +145,9 @@ Checked by the security audit
 housekeeping's SSH Host Certificate, and the fleet audit.
 
 A new guest trusts the user CAs whose scope covers it from its
-first boot (`hostwarden-new-guest`); its host certificate comes
+first boot (`hostwarden-new-guest`), except where it has no
+first-boot file of its own, as a container from the Proxmox VE
+baseline template; its host certificate comes
 after the first login (`rules/ssh-ca.md` → Using the CA
 Everywhere). On a running server, Hostwarden reports what differs
 and gives the user the lines to add; the global known-hosts line

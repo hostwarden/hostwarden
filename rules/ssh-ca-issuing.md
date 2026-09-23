@@ -53,15 +53,21 @@ same rule; what keeps root out; the lifetime.
     | sed -n 's/.*STEPPATH=\([^ ]*\).*/\1/p')
   $SUDO jq '{admin: .authority.enableAdmin,
     policy: .authority.policy, claims: .authority.claims,
-    oidc: [.authority.provisioners[]? | select(.type == "OIDC")
-      | {name, admins, groups, domains, claims,
+    provisioners: [.authority.provisioners[]?
+      | {type, name, admins, groups, domains, claims,
          template: .options.ssh.templateFile}]}' \
     "${S:-/etc/step-ca}/config/ca.json"
   ```
 
-  OIDC `groups` and `domains`; `admins`, who may request any
-  principal; `policy.ssh.user` with a `deny` for root, or an
-  `allow` list without it; `claims.maxUserSSHCertDuration`. With
+  Every provisioner that can sign SSH certificates is a way to
+  one. OIDC: its `groups` and `domains`, and `admins`, who may
+  request any principal. JWK (what `step ca init --ssh` creates),
+  X5C, SSHPOP, K8sSA and the cloud identity types: the requester
+  names the principals, so whoever holds the JWK password or the
+  accepted credential gets root unless a template or a policy
+  says otherwise. `policy.ssh.user` with a `deny` for root, or an
+  `allow` list without it, keeps root out for all of them;
+  `claims.maxUserSSHCertDuration` is the lifetime. With
   `enableAdmin: true` the provisioners live in the CA's database:
   ask the user for the same fields.
 - **HashiCorp Vault, OpenBao** (a fork, CLI `bao`), the SSH
