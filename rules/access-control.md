@@ -65,10 +65,12 @@ any SSH commands against the server.
 
 **Jump hosts count too.** SSH connects to each jump
 host before the target. Where the `proxyjump` line of
-`ssh -G <hostname>` with the standard options names
-hops, run the lookup above for each hop as well, by
-the name that line gives it. A listed hop blocks the
-target: name the hop and refuse, as above.
+`ssh -G <user>@<hostname>` with the standard options,
+for the user the call will log in as, names hops, run
+the lookup above for each hop as well, by the name
+that line gives it: a `Match user` block can give one
+user a hop the others do not use. A listed hop blocks
+the target: name the hop and refuse, as above.
 
 ## Read-Only Servers
 
