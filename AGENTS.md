@@ -77,28 +77,20 @@ itself.
 
 ### SSH Options
 
-Always use these options on every SSH and SCP/rsync-over-SSH command
-(for rsync inside `-e "ssh …"`):
+Every SSH, scp and rsync-over-SSH call passes one file with `-F`
+(for rsync inside `-e "ssh …"`). These are the standard options:
 
-    ssh -o BatchMode=yes -o ConnectTimeout=5 \
-      -o ControlMaster=auto \
-      -o ControlPath=~/.cache/hostwarden/ssh-<id>-%C \
-      -o ControlPersist=10m \
-      -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
-      -o 'UserKnownHostsFile="<checkout>/memory/known_hosts"' \
-      -o GlobalKnownHostsFile=/dev/null \
-      -o StrictHostKeyChecking=yes …
-
-They share one connection per host and remote user across calls. A
-SessionStart hook creates the socket directory; where hooks do not
-run, run `mkdir -p -m 700 ~/.cache/hostwarden` first.
+    ssh -F "<checkout>/memory/ssh_config" …
+    scp -F "<checkout>/memory/ssh_config" …
+    rsync -e 'ssh -F "<checkout>/memory/ssh_config"' …
 
 `<checkout>` is this checkout's absolute path; a relative one
-breaks after a `cd`. The inner double quotes keep a path with a
-space in one piece: ssh splits the option's value at whitespace.
-`<id>` is `printf %s '<checkout>' | cksum | cut -d' ' -f1`, so a
-connection another checkout opened, checked against its own
-known_hosts, is never shared with this one.
+breaks after a `cd`. `bin/hostwarden-ssh-config` writes the file
+at every session start: connections shared per checkout,
+keepalives, the host key checked against `memory/known_hosts`
+alone, then the user's own configuration (`rules/ssh-config.md` →
+The Files). Where ssh cannot open it, run that script and repeat
+the call.
 
 Access tests and the single retry after a hanging call need a fresh
 login instead, and connection sharing has limits worth knowing
@@ -345,6 +337,8 @@ trigger — not a request from the user.
   there, or a network change is next, a firewall or container
   engine beside bridged guests included → `rules/network.md`
 - Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
+- A host that needs another port, address or jump host, or a
+  port forwarding → `rules/ssh-config.md`
 
 **Before you report**
 

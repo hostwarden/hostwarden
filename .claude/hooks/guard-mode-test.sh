@@ -1,7 +1,8 @@
 #!/bin/sh
 # guard-mode-test.sh — dev-only fixture matrix for mode.sh,
 # guard-mode.sh, session-mode.sh, bin/hostwarden-init,
-# bin/hostwarden-sync and bin/hostwarden-lab. CI runs it through
+# bin/hostwarden-sync, bin/hostwarden-ssh-config and
+# bin/hostwarden-lab. CI runs it through
 # scripts/check.sh; an agent session leaves it to CI
 # (.claude/rules/pull-requests.md → Checks), except while building a
 # guard patch in a scratch clone. Not invoked by Claude Code at
@@ -81,7 +82,8 @@ checkout() {
     "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$c/.claude/hooks/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
-    "$REPO/bin/hostwarden-backup" "$REPO/bin/hostwarden-lab" "$c/bin/"
+    "$REPO/bin/hostwarden-ssh-config" "$REPO/bin/hostwarden-backup" \
+    "$REPO/bin/hostwarden-lab" "$c/bin/"
   mkdir -p "$c/templates"
   cp -R "$REPO/templates/workspace" "$c/templates/"
   printf 'memory/\n.claude/settings.local.json\n' > "$c/.gitignore"
@@ -968,6 +970,68 @@ done > "$TMP/modes"
 if [ -s "$TMP/modes" ]; then
   bad "committed without the executable bit: $(tr '\n' ' ' < "$TMP/modes")"
 else ok; fi
+
+# --- bin/hostwarden-ssh-config ---------------------------------
+CFG="$OPS/memory/ssh_config"
+gen() { sh "$OPS/bin/hostwarden-ssh-config" 2>/dev/null; }
+# init wrote it, for this checkout, and the workspace keeps it to
+# this machine.
+grep -qF "UserKnownHostsFile \"$OPS/memory/known_hosts\"" "$CFG" \
+  && ok || bad "init wrote no memory/ssh_config naming this checkout"
+git -C "$OPS/memory" check-ignore -q ssh_config && ok \
+  || bad "the workspace would share memory/ssh_config"
+# Masters of this checkout's own: its checksum is in ControlPath.
+id=$(printf %s "$OPS" | cksum | cut -d' ' -f1)
+grep -qxF "  ControlPath ~/.cache/hostwarden/ssh-$id-%C" "$CFG" && ok \
+  || bad "memory/ssh_config shares masters with other checkouts"
+# A workspace .gitignore older than the file: the clone's exclude
+# list keeps it out instead.
+cp "$OPS/memory/.gitignore" "$TMP/gi.orig"
+grep -v '^/ssh_config$' "$TMP/gi.orig" > "$OPS/memory/.gitignore"
+gen && git -C "$OPS/memory" check-ignore -q ssh_config && ok \
+  || bad "an older workspace .gitignore left memory/ssh_config shared"
+cp "$TMP/gi.orig" "$OPS/memory/.gitignore"
+# The five keywords come through, ahead of the standard options.
+printf '%s\n' '# web' 'Host web1 web1.example.com' '  HostName 192.0.2.10' \
+  '  Port 2222' '  ProxyJump alice@jump.example.com:2200,[2001:db8::1]' \
+  '  HostKeyAlias web1.example.com' > "$OPS/memory/ssh_hosts"
+if gen && grep -q '^  Port 2222$' "$CFG" \
+    && [ "$(grep -n '^Host web1' "$CFG" | cut -d: -f1)" -lt \
+         "$(grep -n '^Match all' "$CFG" | cut -d: -f1)" ]; then ok
+else bad "memory/ssh_hosts did not reach memory/ssh_config ahead of Match all"; fi
+# Anything else fails, and keeps every host block out, the good
+# ones too.
+for l in '  ProxyCommand nc %h %p' '  User alice' '  Include /tmp/x' \
+    '  LocalCommand id' 'Match exec true' '  HostName $(id)' \
+    '  HostName -oProxyCommand=x' '  HostName %h.example.com' \
+    '  Port 70000' '  Port=22' '  ProxyJump ssh://jump.example.com' \
+    '  ProxyJump -oProxyCommand=x' 'Host "web2"'; do
+  printf 'Host web1\n  Port 2222\n%s\n' "$l" > "$OPS/memory/ssh_hosts"
+  if gen; then bad "memory/ssh_hosts passed with: $l"
+  elif grep -q '^Host' "$CFG"; then bad "host blocks kept beside: $l"
+  elif ! grep -q '^Match all' "$CFG"; then bad "no standard options beside: $l"
+  else ok; fi
+done
+rm "$OPS/memory/ssh_hosts"
+# A link is refused unread, even to a file that would pass.
+printf 'Host web1\n  Port 2222\nsecret-line\n' > "$TMP/target"
+ln -s "$TMP/target" "$OPS/memory/ssh_hosts"
+out=$(sh "$OPS/bin/hostwarden-ssh-config" 2>&1) && bad "a linked memory/ssh_hosts passed"
+case "$out" in *secret-line*) bad "a linked memory/ssh_hosts was read: $out" ;; *) ok ;; esac
+if grep -q '^Host' "$CFG"; then
+  bad "a linked memory/ssh_hosts reached memory/ssh_config"
+else ok; fi
+rm "$OPS/memory/ssh_hosts"
+# A backup leaves it out: it names this checkout's path.
+if sh "$OPS/bin/hostwarden-backup" --list | grep -qx memory/ssh_config; then
+  bad "the backup carries memory/ssh_config"
+else ok; fi
+# Outside operations it does nothing; every pull writes it.
+sh "$DEV/bin/hostwarden-ssh-config" && [ ! -e "$DEV/memory" ] && ok \
+  || bad "ssh-config acted in a development checkout"
+rm "$CFG"
+sh "$OPS/bin/hostwarden-sync" pull && [ -f "$CFG" ] && ok \
+  || bad "sync pull did not write memory/ssh_config"
 
 # --- bin/hostwarden-sync ---------------------------------------
 sync_a() { sh "$OPS/bin/hostwarden-sync" "$@"; }

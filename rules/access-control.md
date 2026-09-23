@@ -32,7 +32,7 @@ match):
 1. If the file does not exist, skip (nothing to
    check).
 2. Is the target hostname, or the name `ssh -G`
-   maps it to (`rules/dns-aliases.md` → Detection
+   with the standard options maps it to (`rules/dns-aliases.md` → Detection
    step 1), listed?
 3. Resolve the target's IP(s)
    (`rules/dns-aliases.md` → Detection step 1).
@@ -62,6 +62,13 @@ when a user mentions a server.
 `memory/blacklist.md`. I will not connect to it."
 Do not proceed. Do not ask for override. Do not run
 any SSH commands against the server.
+
+**Jump hosts count too.** SSH connects to each jump
+host before the target. Where the `proxyjump` line of
+`ssh -G <hostname>` with the standard options names
+hops, run the lookup above for each hop as well, by
+the name that line gives it. A listed hop blocks the
+target: name the hop and refuse, as above.
 
 ## Read-Only Servers
 

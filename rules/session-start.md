@@ -12,9 +12,12 @@ asks nothing.
 
 ## What to load
 
-If the workspace has a remote, bring it up to date first:
-`bin/hostwarden-sync pull`. Claude Code's session-start hook
-has already run it. When it reports that the workspace could
+Run `bin/hostwarden-sync pull` first. It brings a workspace
+with a remote up to date, and writes `memory/ssh_config`
+(`AGENTS.md` → SSH Options) either way. Claude Code's
+session-start hook has already run it. When it names a failing
+line of `memory/ssh_hosts`: `rules/ssh-config.md`. When it
+reports that the workspace could
 not be updated, say so before any server work: its server
 memory may be older than another machine's. When it names
 uncommitted changes: `rules/parallel-sessions.md` → Changes a

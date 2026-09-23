@@ -166,13 +166,17 @@ real_ssh() {
   (PATH=$HOSTWARDEN_PATH && command -v ssh >/dev/null)
 }
 
-# Every call shares one connection (AGENTS.md → SSH Options).
-# -G parses the options and connects to nothing; -F /dev/null
-# leaves the user's config, and any Match exec in it, out.
+# Every call shares one connection and passes memory/ssh_config
+# (AGENTS.md → SSH Options), whose Include and ProxyJump need
+# OpenSSH 7.3: 7.2 rejects the file before connecting. -G parses
+# and connects to nothing; the config on stdin holds only an
+# Include of nothing, so the user's config, and any Match exec in
+# it, stay out.
 ssh_shares() {
-  ssh -F /dev/null -G -o ControlMaster=auto \
-    -o "ControlPath=$HOME/.cache/hostwarden/ssh-%C" \
-    -o ControlPersist=10m example.invalid
+  set --
+  for o in $HOSTWARDEN_SSH_OPTIONS; do set -- "$@" -o "$o"; done
+  printf 'Match all\n  Include /nonexistent/hostwarden-probe\n' |
+    ssh -F /dev/stdin -G "$@" example.invalid
 }
 
 # .claude/skills and every DNS alias are links, and git writes a
@@ -268,7 +272,7 @@ done
 # checkout never does. There the ssh on PATH is often the shim
 # (.claude/hooks/shim.sh), which refuses even -G.
 [ -n "$DEV" ] || ! real_ssh \
-  || probe need "ssh connection sharing (OpenSSH 6.8+)" ssh ssh_shares
+  || probe need "ssh connection sharing and Include (OpenSSH 7.3+)" ssh ssh_shares
 probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 
 if [ -n "$DEV" ]; then

@@ -15,14 +15,17 @@ When connecting to a hostname with no
 symlink):
 
 1. **Resolve the IP(s) the way `ssh` does.** First
-   apply the SSH client config: a `Host` alias in
-   `~/.ssh/config` can point anywhere through
-   `HostName`. `ssh -G` prints the name ssh will
-   really connect to, without connecting:
+   apply the SSH client config: a `Host` block in
+   `memory/ssh_hosts` or `~/.ssh/config` can point
+   anywhere through `HostName`. `ssh -G` with the
+   standard options (`AGENTS.md` → SSH Options)
+   prints the name ssh will really connect to,
+   without connecting:
    ```
-   ssh -G <hostname> 2>/dev/null | \
+   ssh -F "<checkout>/memory/ssh_config" -G <hostname> 2>/dev/null | \
      awk '$1=="hostname"{print $2}'
    ```
+   Every `ssh -G` below carries the same `-F`.
    Resolve that name. Ask the system resolver, not
    DNS directly: only it sees `/etc/hosts`, the
    search domain and the resolvers a VPN adds per

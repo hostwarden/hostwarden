@@ -1,0 +1,231 @@
+#!/bin/sh
+# hostwarden-ssh-config — write memory/ssh_config, the file every
+# SSH, scp and rsync call of this checkout passes with -F
+# (AGENTS.md → SSH Options).
+#
+# Usage:
+#   hostwarden-ssh-config          Write it
+#   hostwarden-ssh-config --help   Show this help
+#
+# Silent when all is well, and does nothing outside an operations
+# checkout. hostwarden-sync pull runs it, so every session start
+# does; a session runs it after each change to memory/ssh_hosts
+# (rules/ssh-config.md).
+#
+# The file is generated, once per machine, and never shared: it
+# names this checkout's absolute path, which a shared file cannot,
+# since ssh resolves a relative Include under ~/.ssh. Its order is
+# its precedence, because ssh keeps the first value it finds:
+#
+#   1. memory/ssh_hosts, the shared host blocks, checked here line
+#      by line;
+#   2. Match all with the standard options: connection sharing,
+#      keepalives, and the host key checked against
+#      memory/known_hosts alone (rules/host-keys.md);
+#   3. the user's own ~/.ssh/config, then /etc/ssh/ssh_config,
+#      which -F would otherwise leave out.
+#
+# A jump host reads the same file: ssh hands -F on to the
+# ProxyJump hop, where options given with -o never reach.
+#
+# Why memory/ssh_hosts is checked at all: in team mode, whoever can
+# push to the workspace writes it, and ssh_config can run commands
+# (ProxyCommand, LocalCommand, Match exec, KnownHostsCommand) and
+# pull in other files (Include). Only Host, HostName, Port,
+# ProxyJump and HostKeyAlias pass, each with a value that cannot
+# carry a token, a variable, a quote or an option. One line that
+# fails keeps every host block out, not only its own: half a file
+# would send a host to the wrong port, or past its jump host.
+# Parts 2 and 3 are written either way.
+set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+cd "$REPO_DIR"
+# shellcheck source=../.claude/hooks/mode.sh
+. .claude/hooks/mode.sh
+
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
+}
+
+case "${1:-}" in
+  "") ;;
+  -h|--help) usage; exit 0 ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+hostwarden_mode "$REPO_DIR"
+[ "$HOSTWARDEN_MODE" = operations ] || exit 0
+
+# The path goes into the file quoted. A quote, a $ or a line break
+# in it cannot be written safely; % is escaped, as ssh would read it
+# as a token.
+case "$REPO_DIR" in
+  *\"*|*\$*|*"
+"*)
+    echo "hostwarden: this checkout's path holds a quote, a \$ or a" >&2
+    echo "  line break, which memory/ssh_config cannot name. Move the" >&2
+    echo "  checkout, then run bin/hostwarden-ssh-config again." >&2
+    exit 1 ;;
+esac
+KNOWN="$REPO_DIR/memory/known_hosts"
+# Masters of their own for each checkout (rules/ssh-connections.md →
+# Why these values): %C does not say which known_hosts checked a key.
+ID=$(printf %s "$REPO_DIR" | cksum | cut -d' ' -f1)
+case "$KNOWN" in *%*) KNOWN=$(printf '%s' "$KNOWN" | sed 's/%/%%/g') ;; esac
+
+# check <file> — the host blocks of <file>, rewritten one keyword
+# per line, on stdout; each line that fails, on stderr. Fails when
+# one does.
+check() {
+  awk '
+    BEGIN {
+      kw["hostname"] = "HostName"; kw["port"] = "Port"
+      kw["proxyjump"] = "ProxyJump"; kw["hostkeyalias"] = "HostKeyAlias"
+    }
+    function bad(why) {
+      printf "hostwarden: memory/ssh_hosts line %d: %s\n", NR, why \
+        > "/dev/stderr"
+      failed = 1
+    }
+    # A host name or user name, never starting with "-".
+    function label(v) { return v ~ /^[A-Za-z0-9_.][A-Za-z0-9_.-]*$/ }
+    function name(v) { return label(v) || v ~ /^[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*$/ }
+    function port(v) { return v ~ /^[0-9]+$/ && v + 0 >= 1 && v + 0 <= 65535 }
+    function hop(v,   u, h, p) {
+      if (v ~ /@/) {
+        u = v; sub(/@.*/, "", u); sub(/^[^@]*@/, "", v)
+        if (!label(u)) return 0
+      }
+      if (v ~ /^\[/) {
+        h = v; sub(/\].*/, "]", h); p = substr(v, length(h) + 1)
+        if (h !~ /^\[[0-9A-Fa-f:.]+\]$/) return 0
+      } else {
+        h = v; sub(/:.*/, "", h); p = substr(v, length(h) + 1)
+        if (!label(h)) return 0
+      }
+      return p == "" || (p ~ /^:/ && port(substr(p, 2)))
+    }
+    /\r/ { bad("a carriage return"); next }
+    /^[ \t]*(#|$)/ { next }
+    {
+      k = tolower($1)
+      if ($1 ~ /=/) { bad("write \"Keyword value\", without \"=\""); next }
+      if (k == "host") {
+        for (i = 2; i <= NF; i++)
+          if ($i !~ /^!?[A-Za-z0-9_.*?][A-Za-z0-9_.*?:-]*$/) {
+            bad("host pattern \"" $i "\" is not a plain name or pattern")
+            next
+          }
+        if (NF < 2) { bad("Host without a name"); next }
+        in_host = 1
+        $1 = "Host"
+        out[++n] = $0
+        next
+      }
+      if (!(k in kw)) {
+        bad("\"" $1 "\" is not one of Host, HostName, Port, ProxyJump, HostKeyAlias")
+        next
+      }
+      if (!in_host) { bad("\"" $1 "\" before the first Host line"); next }
+      if (NF != 2) { bad("\"" $1 "\" takes exactly one value"); next }
+      v = $2
+      if (k == "hostname") ok = name(v)
+      else if (k == "port") ok = port(v)
+      else if (k == "hostkeyalias") ok = name(v) || v ~ /^\[[A-Za-z0-9_.:-]+\]:[0-9]+$/
+      else {
+        ok = 1
+        if (v != "none") {
+          m = split(v, hops, ",")
+          for (i = 1; i <= m; i++) if (!hop(hops[i])) ok = 0
+        }
+      }
+      if (!ok) { bad("\"" v "\" is not a valid " $1 " value"); next }
+      out[++n] = "  " kw[k] " " v
+    }
+    END {
+      if (failed) exit 1
+      for (i = 1; i <= n; i++) print out[i]
+    }
+  ' "$1"
+}
+
+HOSTS=""
+# A link is never read: a teammate could push one that points at a
+# local file, a private key say, and each of its lines would come
+# back in a complaint below.
+if [ -L memory/ssh_hosts ]; then
+  echo "hostwarden: memory/ssh_hosts is a symbolic link, which is" >&2
+  echo "  never read; memory/ssh_config was written without host" >&2
+  echo "  blocks. Replace the link with a plain file." >&2
+  FAILED=1
+elif [ -f memory/ssh_hosts ]; then
+  if ! HOSTS=$(check memory/ssh_hosts); then
+    echo "hostwarden: memory/ssh_config was written without the host" >&2
+    echo "  blocks of memory/ssh_hosts until those lines are fixed" >&2
+    echo "  (rules/ssh-config.md); the standard options still apply." >&2
+    FAILED=1
+  fi
+fi
+
+# ControlPath needs the directory before the first call.
+# shellcheck disable=SC2174
+mkdir -p -m 700 "$HOME/.cache/hostwarden"
+
+# Beside the file, for an atomic mv, and named *.lock, which every
+# workspace ignores: a commit of the whole workspace by another
+# session must not pick it up.
+TMP="memory/.ssh_config.$$.lock"
+trap 'rm -f "$TMP"' EXIT
+{
+  echo "# Written by bin/hostwarden-ssh-config for this checkout on this"
+  echo "# machine; rewritten at every session start. Change"
+  echo "# memory/ssh_hosts instead, then run that script."
+  if [ -n "$HOSTS" ]; then
+    echo
+    echo "# From memory/ssh_hosts."
+    printf '%s\n' "$HOSTS"
+  fi
+  echo
+  echo "# The standard options (AGENTS.md → SSH Options)."
+  echo "Match all"
+  for o in $HOSTWARDEN_SSH_OPTIONS; do
+    case $o in
+      ControlPath=*) o="ControlPath=~/.cache/hostwarden/ssh-$ID-%C" ;;
+    esac
+    echo "  ${o%%=*} ${o#*=}"
+  done
+  cat <<EOF
+  UserKnownHostsFile "$KNOWN"
+  GlobalKnownHostsFile /dev/null
+  StrictHostKeyChecking yes
+  # The user's own configuration, for what the lines above leave
+  # open: a User, an IdentityFile, a host only they reach.
+  Include ~/.ssh/config
+  Include /etc/ssh/ssh_config
+EOF
+} > "$TMP"
+# Unchanged, the file keeps its date.
+if ! cmp -s "$TMP" memory/ssh_config; then
+  chmod 644 "$TMP"
+  mv "$TMP" memory/ssh_config
+fi
+
+# Personal in every workspace, including one whose .gitignore is
+# older than this file: the clone's own exclude list covers it.
+if ! git -C memory check-ignore -q --no-index ssh_config; then
+  EXCLUDE=$(git -C memory rev-parse --git-path info/exclude)
+  case "$EXCLUDE" in /*) ;; *) EXCLUDE="memory/$EXCLUDE" ;; esac
+  mkdir -p "$(dirname "$EXCLUDE")"
+  echo /ssh_config >> "$EXCLUDE"
+fi
+if git -C memory ls-files --error-unmatch ssh_config >/dev/null 2>&1; then
+  echo "hostwarden: memory/ssh_config is committed to the workspace," >&2
+  echo "  but it names this machine's paths. Take it out of the index:" >&2
+  echo "    git -C memory rm --cached ssh_config" >&2
+  FAILED=1
+fi
+
+[ -z "${FAILED:-}" ]

@@ -12,7 +12,8 @@ skip it.
 
 ## Order
 
-1. **Blacklist check.** Refuse if listed. See
+1. **Blacklist check.** Refuse if the host or one of
+   its jump hosts is listed. See
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
    listed. See `rules/access-control.md`.

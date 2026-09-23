@@ -19,6 +19,8 @@ bin/
   hostwarden-init         — Set up (or join) the workspace
   hostwarden-sync         — Keep the workspace in step with
                             its remote
+  hostwarden-ssh-config   — Write memory/ssh_config, the file
+                            every SSH call passes with -F
   hostwarden-mirror       — Keep a mirror of hostwarden current
                             (for CI or cron)
   hostwarden-adopt        — Take over a heinzel checkout's state
@@ -194,6 +196,9 @@ rules/                 — Upstream rule files (git-tracked)
                          broken host
   host-keys.md         — memory/known_hosts: getting a key,
                          a changed key, certificates
+  ssh-config.md        — memory/ssh_hosts: other ports,
+                         addresses, jump hosts; port
+                         forwardings per session
   ssh-safety-net.md    — Timed revert armed before a
                          firewall or network change
   server-memory.md     — Server memory file format
@@ -295,6 +300,10 @@ memory/                — The workspace: all your user
   housekeeping.md      — User-added custom checks
   network.md           — Cross-server network facts
   known_hosts          — The SSH host keys of your servers
+  ssh_hosts            — How a server is reached when its
+                         name alone does not say it
+  ssh_config           — Written for this machine by
+                         bin/hostwarden-ssh-config
   opencode.json        — Your local OpenCode config
   custom-rules/        — Your rule overrides that layer on
                          top of rules/*.md

@@ -52,9 +52,12 @@ archive_hostname() {
 }
 
 # Build the list of files to archive. We exclude
-# transient noise (.DS_Store, *.lock) and the
+# transient noise (.DS_Store, *.lock), the
 # workspace's git history, which lives with its
-# remote, but keep everything else under memory/.
+# remote, and memory/ssh_config, which names this
+# checkout's path and is written anew wherever the
+# backup lands, but keep everything else under
+# memory/.
 archive_list() {
   if [ ! -d memory ]; then
     echo "error: memory/ does not exist — nothing to back up" >&2
@@ -63,6 +66,7 @@ archive_list() {
   find memory -path memory/.git -prune -o -type f \
     ! -name '.DS_Store' \
     ! -name '*.lock' \
+    ! -path memory/ssh_config \
     -print \
     | LC_ALL=C sort
 }
@@ -148,7 +152,8 @@ do_restore() {
   # Refuse to overwrite existing content unless
   # --force. A memory/ holding only .gitkeep, noise
   # the backup excludes anyway, and the files init
-  # writes counts as empty. Checked before anything is
+  # writes, memory/ssh_config among them, counts as
+  # empty. Checked before anything is
   # written, so a refused restore leaves the checkout
   # exactly as it was — a development one stays one.
   if [ -d memory ] && [ "$FORCE" != "--force" ]; then
@@ -160,7 +165,8 @@ do_restore() {
         \( -type f \
            ! -name '.gitkeep' \
            ! -name '.DS_Store' \
-           ! -name '*.lock' \) \
+           ! -name '*.lock' \
+           ! -path memory/ssh_config \) \
         -o -type l \) -print \
       | grep -vxF "$(workspace_paths)" \
       | head -n 1)
@@ -185,7 +191,12 @@ do_restore() {
   # Restored state is state to operate with, so the
   # checkout becomes an operations install now.
   sh bin/hostwarden-init >/dev/null
+  # An older archive may carry another checkout's
+  # memory/ssh_config; this one is written from the
+  # restored memory/ssh_hosts instead.
+  rm -f "$TMPEX/memory/ssh_config"
   cp -R "$TMPEX/memory/." memory/
+  sh bin/hostwarden-ssh-config || true
   echo "restored $FILE into $REPO_DIR"
 }
 

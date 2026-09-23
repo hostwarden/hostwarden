@@ -103,7 +103,8 @@ via-host mode is then this session's only, and the line would
 route every later session through the host.
 
 `SSH port:`, remote mode only, is the `port` line of
-`ssh -G <user>@<hostname>`, which the alias check in
+`ssh -G <user>@<hostname>` with the standard options
+(`AGENTS.md` → SSH Options), which the alias check in
 `rules/dns-aliases.md` compares.
 
 **Update memory immediately after any system
@@ -313,8 +314,9 @@ one, and then the split matters.
 
 **Always personal, never shared:** `memory/user.md`
 (SSH usernames, language, operator handle),
-`memory/blacklist.md`,
-`memory/readonly.md`, and the memory directory of
+`memory/blacklist.md`, `memory/readonly.md`,
+`memory/ssh_config`, which `bin/hostwarden-ssh-config`
+writes for each machine, and the memory directory of
 anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname
 directory has to be added there by hand.
@@ -324,7 +326,8 @@ directory has to be added there by hand.
 its masters and `decisions.md`, `memory/clusters/*/`,
 `memory/decisions/`, `memory/fleet/`, `memory/tools/`,
 `memory/plans/`, `memory/known_hosts`
-(`rules/host-keys.md`), `memory/operators.md` (the
+(`rules/host-keys.md`), `memory/ssh_hosts`
+(`rules/ssh-config.md`), `memory/operators.md` (the
 handles in use, `rules/session-start.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.

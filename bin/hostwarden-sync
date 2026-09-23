@@ -4,7 +4,8 @@
 # server memory.
 #
 # Usage:
-#   hostwarden-sync pull         Bring in the remote's changes
+#   hostwarden-sync pull         Bring in the remote's changes,
+#                                then write memory/ssh_config
 #   hostwarden-sync commit MSG [PATH...]
 #                                Commit PATHs (relative to the
 #                                workspace or under memory/), or
@@ -47,6 +48,15 @@ case "${1:-}" in
   pull|push|commit) [ "$HOSTWARDEN_MODE" = operations ] || exit 0 ;;
   *) usage >&2; exit 1 ;;
 esac
+
+# Every pull ends by writing memory/ssh_config, whatever it
+# found: a session start runs it, and a new memory/ssh_hosts may
+# have come in with it. A workspace without a remote needs the file
+# as much as one with. Its complaints go to stdout, like this
+# script's own: that is what a session-start hook hands the session.
+if [ "$1" = pull ]; then
+  trap 'sh "$SCRIPT_DIR/hostwarden-ssh-config" 2>&1 || true' EXIT
+fi
 
 hostwarden_git_batch memory
 
