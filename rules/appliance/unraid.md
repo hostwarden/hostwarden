@@ -278,8 +278,8 @@ holds one line, `x-api-key: <key>`.
 ### What stays on SSH
 
 The API does not replace these, and Housekeeping and Audits keeps
-reading them over SSH: `/etc/unraid-version`, `uptime`, `free` and
-`df`, the syslog counts, SMART detail, `zpool` health, the boot
+reading them over SSH: `/etc/unraid-version`, `uptime`, memory and
+swap, `df`, the syslog counts, SMART detail, `zpool` health, the boot
 device's file system, the plugin update loop over `/tmp/plugins/`
 (the API's `plugins` query lists API plugins, not `.plg` update
 state), the time of the last Docker update check
@@ -440,7 +440,6 @@ security audit reads from files.
   n=$(sed -n '/^\[notify\]/,/^\[/s/^path="\(.*\)"/\1/p' /boot/config/plugins/dynamix/dynamix.cfg)
   ls "${n:-/tmp/notifications}/unread" | wc -l
   uptime
-  free -h
   df -hT /boot
   for f in /var/log/syslog.1 /var/log/syslog; do
     [ -e "$f" ] && echo "$f: oom $(grep -c 'Out of memory' "$f") io $(grep -c 'I/O error' "$f") ssh $(grep -c 'Failed password' "$f")"
