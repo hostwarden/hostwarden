@@ -49,13 +49,24 @@ original stays as it was:
 cp /var/lib/vz/import/<image> /var/lib/vz/import/<vmid>-<image>
 ```
 
-That copy is what `import-from` takes, and it is removed in the
-call that imports it. Such an image carries its own seed, so
-its VM gets no cloud-init drive, no `--cicustom` and no
-`--ipconfig0`, and the snippet check after Creating it does not
-apply: a second NoCloud source would compete with the one inside
-the image. It takes its address by DHCP: where the user asked for
-a static one, say in the plan that this path cannot give it.
+That copy is what `import-from` takes. In the creation call below,
+its `--scsi0` line becomes this one, and the copy goes as soon as
+the import has succeeded, since `import-from` leaves its source in
+place and each prepared guest would otherwise keep a second full
+image on the node:
+
+```bash
+qm set <vmid> --scsi0 <storage>:0,import-from=/var/lib/vz/import/<vmid>-<image> && rm /var/lib/vz/import/<vmid>-<image>
+```
+
+Such an image carries its own seed, so its VM gets no cloud-init
+drive, no `--cicustom` and no `--ipconfig0`. In the creation call
+below, the `--ide2` line keeps only `--boot order=scsi0`, the
+`--ipconfig0` and `--cicustom` lines go, and so do the `grep` and
+`sha256sum` of the snippet check. A second NoCloud source would
+compete with the one inside the image. It takes its address by
+DHCP: where the user asked for a static one, say in the plan that
+this path cannot give it.
 
 ### The user-data snippet
 
