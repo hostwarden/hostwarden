@@ -188,9 +188,9 @@ other: 3 lines name a tag, last: … hostwarden-backup: done
 - `watcher:` — one line per watcher: its tag, its
   unit, or `-` where the log names none, how many
   entries, the first and last, and the last text.
-  Without a unit, entries whose text differs only in
-  digits count as one watcher. After ten, one line
-  counts the rest.
+  Entries from one unit are one watcher; without a
+  unit, entries whose text differs only in digits
+  are. After ten, one line counts the rest.
 - `other:` — lines that name a tag without being an
   entry under it: a watcher with its own tag
   `hostwarden-backup`, a login name in sshd's log.
@@ -210,7 +210,7 @@ C='
   function keep(   o, n) {
     if (tag == "") return
     o = (u ~ /\.service$/ && u !~ /^(user@|(ssh|sshd|dropbear)[@.])/) ? u : "-"
-    n = m; gsub(/[0-9]+/, "#", n)
+    n = m; gsub(/[0-9]+/, "#", n); if (o != "-") n = ""
     N++; T[N] = ts; M[N] = m; K[N] = tag " " o " " n; cnt[K[N]]++
     tag = ""
   }
@@ -218,7 +218,7 @@ C='
     re = "(^|[[:space:]])(hostwarden|heinzel)" \
       "(\\[[0-9]+\\]:|:|[[:space:]]+([0-9]+|-)[[:space:]])"
   }
-  /^[A-Z][a-z][a-z] [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] .*\[s=/ {
+  /^[^ ]+ [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] .* \[s=[0-9a-f]+;/ {
     keep(); split($0, f, " "); ts = f[2] " " substr(f[3], 1, 5) " " f[4]
     tag = "?"; u = ""; m = ""; next
   }
@@ -233,7 +233,7 @@ C='
     if (t !~ /:$/) {
       sub(/^[^ ]+ /, "", m)
       if (m ~ /^- /) m = substr(m, 3)
-      else while (match(m, /^\[[^]]*="[^]]*\] ?/))
+      else while (match(m, /^\[([^] =]+|[^]]*="[^]]*)\] ?/))
         m = substr(m, RLENGTH + 1)
     }
     sub(/^ /, "", m); sub(/^<[0-9]+>1 /, "", ts); sub(/[[:space:]]+$/, "", ts)
