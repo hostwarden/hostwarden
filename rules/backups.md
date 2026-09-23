@@ -54,7 +54,7 @@ Backups made before the rename from Heinzel sit in
 Look there too when restoring, but write new backups
 only to the paths above. The retention `find` never
 reaches those directories, which is why the first
-connection to a host offers to adopt them
+connection to a host offers to take them over
 (`rules/heinzel-legacy.md`).
 
 ## State behind an API

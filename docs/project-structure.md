@@ -25,7 +25,8 @@ bin/
                             housekeeping through fleet read
   hostwarden-mirror       — Keep a mirror of hostwarden current
                             (for CI or cron)
-  hostwarden-adopt        — Take over a heinzel checkout's state
+  hostwarden-heinzel-takeover — Take over a Heinzel
+                            checkout's state
   hostwarden-migrate      — Bring older user-state layouts up to
                          date (called automatically on update)
   hostwarden-doctor       — Check the workstation for the tools
@@ -129,8 +130,8 @@ contrib/
                          first connection, read-only (SKILL.md)
     hostwarden-baseline/  — Bring an existing server up to
                          the baseline (SKILL.md)
-    hostwarden-adopt/     — Take over a heinzel installation
-                         (SKILL.md + references/)
+    hostwarden-heinzel-takeover/ — Take over a Heinzel
+                         installation (SKILL.md + references/)
     hostwarden-runtimes/  — Install language runtimes via mise
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
@@ -280,7 +281,7 @@ rules/                 — Upstream rule files (git-tracked)
                          changes: find what matches on them
   heinzel-legacy.md    — Finding the state Heinzel left on a
                          host
-  heinzel-adoption.md  — Adopting what that check found
+  heinzel-takeover.md  — Taking over what that check found
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 templates/workspace/   — What bin/hostwarden-init puts

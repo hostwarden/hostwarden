@@ -57,10 +57,10 @@ skip it.
    `rules/decisions.md` before proposing anything or
    rating a finding. A first connection
    is one to a host with no `memory.md` yet. That
-   includes a host adopted from Heinzel, whose
+   includes a host taken over from Heinzel, whose
    directory holds Heinzel's `heinzel-memory.md`
    instead: its `memory.md` is written as
-   `rules/heinzel-adoption.md` → Heinzel's memory
+   `rules/heinzel-takeover.md` → Heinzel's memory
    says.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`; what
@@ -68,8 +68,8 @@ skip it.
    is `rules/activity-check.md` → What rides in this
    call.
 8. **Heinzel legacy check.** Only in an installation
-   that has something to do with Heinzel: an
-   `Adopted from heinzel:` line in `memory/user.md`,
+   that has something to do with Heinzel: a
+   `Taken over from heinzel:` line in `memory/user.md`,
    a `heinzel legacy:` line or an unresolved
    `heinzel-inventory.md` in this host's memory, or
    `heinzel` entries in the activity check above —
@@ -98,7 +98,7 @@ remote-only. Still
 run OS detection, server memory, activity check, and
 the Heinzel legacy check — on the workstation the
 latter looks at scheduled runs instead of backup
-directories (`rules/heinzel-adoption.md`).
+directories (`rules/heinzel-takeover.md`).
 
 ## Via-host mode
 

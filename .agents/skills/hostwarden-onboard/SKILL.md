@@ -12,8 +12,8 @@ description: Onboard a host into Hostwarden explicitly and read-only,
   auf", "übernimm den Server xyz in die Verwaltung", "richte db1 in
   Hostwarden ein", or names hosts to be onboarded. Makes no change on
   a server beyond one read-only line in each host's journal. Not for
-  taking over a Heinzel installation (hostwarden-adopt), and not for a
-  new guest (hostwarden-new-guest).
+  taking over a Heinzel installation (hostwarden-heinzel-takeover),
+  and not for a new guest (hostwarden-new-guest).
 ---
 
 # hostwarden-onboard
@@ -106,8 +106,9 @@ checkout) and stop.
    measurement; a node starts building its template
    (`hostwarden-new-guest`).
 
-`hostwarden-adopt` runs this skill for the hosts it takes over from
-Heinzel; where it adds to a step, its step 9 says so.
+`hostwarden-heinzel-takeover` runs this skill for the hosts it
+takes over from Heinzel; where it adds to a step, its step 9 says
+so.
 
 ## What this skill does not do
 

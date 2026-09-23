@@ -4,11 +4,11 @@ Heinzel kept copies of what its sessions wrote onto hosts wherever
 a session found room — a `scripts/` or `configs/` directory in a
 host's memory, loose files beside its `memory.md`, a `memory/tools/`
 or `memory/scripts/` at the top — often under the first host of a
-fleet for all of them. Every adoption rebuilds them onto the layout
+fleet for all of them. Every takeover rebuilds them onto the layout
 of `rules/deployed-files.md`, as part of step 6, before its commit.
 It is not a question to the user: the report says where each file
 went. Nothing here contacts a server; which copies are really
-deployed is the host's to say (`rules/heinzel-adoption.md` →
+deployed is the host's to say (`rules/heinzel-takeover.md` →
 Heinzel's copies).
 
 ## What to look at
@@ -24,8 +24,8 @@ are found before any of these is read. One `find <source>… -type l`
 over every source in the old checkout lists each source that is a
 link and every link below one; a source with anything listed is
 neither read nor copied, and is named in the report.
-`bin/hostwarden-adopt` does the same for whole host directories: it
-skips a host that has a link.
+`bin/hostwarden-heinzel-takeover` does the same for whole host
+directories: it skips a host that has a link.
 
 ## Where each kind goes
 
@@ -42,7 +42,7 @@ comments and the file itself.
     `memory/fleet/<name>/`, `<name>` its file name without the
     extension, with its `README.md` written from the records,
     which says where they deploy it: that is history, for the runs
-    that adopt those hosts later (Recording, below), while
+    that take those hosts over later (Recording, below), while
     membership stays in each host's `deployed.md`.
   - Otherwise, a file in a cluster's shared file system included:
     the host directory it came in, `servers/<host>/files/`.
@@ -101,7 +101,7 @@ A master already at the target stays, with its entry. Of two
 Heinzel copies of one host path that differ, the one the latest
 changelog entry deployed goes to the target, else either. Every
 copy that does not become the master goes to the host's `notes/`
-as a superseded copy (`rules/heinzel-adoption.md` → Heinzel's
+as a superseded copy (`rules/heinzel-takeover.md` → Heinzel's
 copies), never dropped.
 
 A note that nothing points to is deleted (`rules/server-memory.md`
@@ -126,8 +126,9 @@ Mode, owner and a hash are never written from the records.
 
 A host of this run also gets an entry for each fleet master already
 in the workspace whose `README.md` names it, or whose host path its
-own records say it carries. That is how a host adopted in a later
-run joins a fleet artifact whose copy came in with another host.
+own records say it carries. That is how a host taken over in a
+later run joins a fleet artifact whose copy came in with another
+host.
 
 ## Report
 

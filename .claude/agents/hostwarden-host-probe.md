@@ -133,7 +133,7 @@ around them:
 - recent Hostwarden or Heinzel activity on the host
   (`rules/activity-check.md`);
 - Heinzel artifacts, with path, file count and age
-  (`rules/heinzel-adoption.md`);
+  (`rules/heinzel-takeover.md`);
 - pending items in the host's `todo.md`
   (`rules/server-memory.md`);
 - a memory file that disagrees with what the host answered.

@@ -1,7 +1,7 @@
 # Building the Per-Host Inventory
 
 What to collect from `memory/servers/<host>/heinzel-memory.md` —
-Heinzel's `memory.md` as adopted — and `changelog.log`, and how to
+Heinzel's `memory.md` as copied — and `changelog.log`, and how to
 write it down.
 
 ## What counts as a lead
@@ -38,7 +38,7 @@ reason, which no path does:
 # heinzel leads on web1.example.com
 
 Collected from memory and changelog on 2026-09-20 by
-hostwarden-adopt. Not verified against the host.
+hostwarden-heinzel-takeover. Not verified against the host.
 
 ## Scripts
 - /usr/local/bin/heinzel-backup.sh — nightly pg_dump,
@@ -60,11 +60,11 @@ hostwarden-adopt. Not verified against the host.
 - Planned: move the database to db2 (alice, 2026-08-20)
 ```
 
-`## Facts` holds what the adoption sorted out of Heinzel's other
+`## Facts` holds what the takeover sorted out of Heinzel's other
 memory for this host (the skill's step 4): facts and open plans, not
 leads. Each keeps its source file and date. The Heinzel check does
 not probe for them; the first connection writes them into `memory.md`
-and removes the section (`rules/heinzel-adoption.md` → Heinzel's
+and removes the section (`rules/heinzel-takeover.md` → Heinzel's
 memory). A decision is not a fact and goes to `decisions.md` instead
 (`rules/decisions.md`).
 
@@ -73,5 +73,5 @@ memory). A decision is not a fact and goes to `decisions.md` instead
 The inventory is a worklist, never a fact. The first connection checks
 each lead against the host (`rules/heinzel-legacy.md` → Detect),
 moves what is confirmed into the host's `memory.md`
-(`rules/heinzel-adoption.md` → Record), and deletes the file once it
+(`rules/heinzel-takeover.md` → Record), and deletes the file once it
 is empty.

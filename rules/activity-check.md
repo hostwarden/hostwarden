@@ -292,7 +292,7 @@ no unit, so there the prefix and recurrence decide.
   out.
 - **Retagging it is a change** to the script: asked,
   and done as `rules/deployed-files.md` → Naming on
-  the host says, or `rules/heinzel-adoption.md` for a
+  the host says, or `rules/heinzel-takeover.md` for a
   script Heinzel left. Its unit, or its text, is the
   lead to the script.
 

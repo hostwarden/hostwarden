@@ -90,12 +90,12 @@ today could tell neither.
 ## Unverified entries
 
 A master rebuilt from a copy kept outside this layout — Heinzel's
-(`rules/heinzel-adoption.md` → Heinzel's copies) — is recorded
+(`rules/heinzel-takeover.md` → Heinzel's copies) — is recorded
 before its host has shown what it carries:
 
 ```markdown
 - /usr/local/bin/heinzel-backup.sh
-  servers/web1.example.com, adopted 2026-09-20
+  servers/web1.example.com, taken over 2026-09-20
   sha256 unverified
 ```
 

@@ -369,26 +369,27 @@ a Windows guest on any of them (reached over OpenSSH only), and
 every stopped guest stay in `guests.md` alone until they are
 connected to by name.
 
-**A guest still in the Heinzel checkout is adopted, not
-registered.** Where `memory/user.md` has an
-`Adopted from heinzel: <date> (<path>)` line, a guest with no
+**A guest still in the Heinzel checkout is taken over, not
+registered.** Where `memory/user.md` has a
+`Taken over from heinzel: <date> (<path>)` line, a guest with no
 memory directory here but one in that checkout's `memory/servers/`
 is left out: a directory registration created would make a later
-`bin/hostwarden-adopt --server` for it keep this clone's version
-and copy nothing, and the guest's Heinzel memory and changelog
-would never come across. Match with what step 1 below matches
-against the access lists — the names, their first labels and the
-IP addresses — against the directory names there and one
-`grep -H '^- IP:'` over their `memory.md` files, read once for all
-guests, before entering any. Where the path holds no Heinzel
-checkout any more, nothing is left out.
+`bin/hostwarden-heinzel-takeover --server` for it keep this
+clone's version and copy nothing, and the guest's Heinzel memory
+and changelog would never come across. Match with what step 1
+below matches against the access lists — the names, their first
+labels and the IP addresses — against the directory names there
+and one `grep -H '^- IP:'` over their `memory.md` files, read once
+for all guests, before entering any. Where the path holds no
+Heinzel checkout any more, nothing is left out.
 
-The `hostwarden-adopt` skill adopts such guests with their host
-(its step 9). Outside it, `not registered` lists each as `in the
-Heinzel checkout`, and one question after the report offers to
-adopt them, which is the explicit request that skill needs. A no
-is recorded in each entry of `guests.md`, `in the Heinzel
-checkout, not adopted (user, <date>)`, and not asked again.
+The `hostwarden-heinzel-takeover` skill takes such guests over
+with their host (its step 9). Outside it, `not registered` lists
+each as `in the Heinzel checkout`, and one question after the
+report offers to take them over, which is the explicit request
+that skill needs. A no is recorded in each entry of `guests.md`,
+`in the Heinzel checkout, not taken over (user, <date>)`, and
+not asked again.
 
 Per guest, after the user's request is answered and announced in
 one line (*"Registering 7 guests of pve1.example.com through
@@ -456,13 +457,13 @@ one line (*"Registering 7 guests of pve1.example.com through
    `rules/server-memory.md` says for two guests of one hostname
    (`web-pve1-105`). Where the existing directory has neither
    keys nor a matching `IP:`, ask the user before writing
-   anything. A directory adopted from Heinzel that nothing has
+   anything. A directory taken over from Heinzel that nothing has
    connected to has no `memory.md`: the `- IP:` of its
    `heinzel-memory.md` counts here, and a directory the
-   adoption just took for this guest is this guest.
+   takeover just copied for this guest is this guest.
 4. Write `memory.md` as `rules/server-memory.md` says — for a
-   directory adopted from Heinzel, as `rules/heinzel-adoption.md`
-   → Heinzel's memory says — with
+   directory taken over from Heinzel, as
+   `rules/heinzel-takeover.md` → Heinzel's memory says — with
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. The
    SSH user and the DNS check follow on its first SSH connection,
@@ -527,7 +528,7 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
 Questions follow in their own form: Stopped Guests above,
 guests in the Heinzel checkout as above and, where the Heinzel
 check found anything, one question for the host and its
-registered guests together (`rules/heinzel-adoption.md` → A host
+registered guests together (`rules/heinzel-takeover.md` → A host
 and its guests).
 
 ## Linking Guest and Host

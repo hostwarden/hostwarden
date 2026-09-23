@@ -76,10 +76,10 @@ a trailer:
 which is the only reason the trailer exists. Nothing is ever pushed
 to `upstream`.
 
-The `hostwarden-adopt` skill and `rules/heinzel-legacy.md` are a
-different matter entirely: they are a product feature about taking
-over Heinzel's state on a user's machines, not a compatibility
-layer, and they stay.
+The `hostwarden-heinzel-takeover` skill and
+`rules/heinzel-legacy.md` are a different matter entirely: they
+are a product feature about taking over Heinzel's state on a
+user's machines, not a compatibility layer, and they stay.
 
 ## CI
 

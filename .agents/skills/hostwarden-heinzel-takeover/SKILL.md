@@ -1,48 +1,41 @@
 ---
-name: hostwarden-adopt
+name: hostwarden-heinzel-takeover
 argument-hint: "[path to the old Heinzel checkout]"
 description: Take over an existing Heinzel installation — copy its
-  memory, access lists, overrides and trusted host keys into this
-  Hostwarden clone, rename what is found by name, rebuild the copies
-  Heinzel kept of files on the servers into masters, build a per-host
-  inventory of the scripts, configs, units and cron jobs Heinzel left
-  on the servers, ask whether those should get Hostwarden's names on
-  the hosts too, then onboard each host read-only as on its first
-  Hostwarden connection — memory in Hostwarden's form, a
-  hypervisor's guests inventoried and registered, the gaps to the
-  server baseline listed. Can run host by host, with the shared state
-  moved first. Use when the user says "übernimm mein altes Heinzel",
-  "migrate my Heinzel setup", "mein Heinzel liegt in <pfad>, mach es
-  dir zu eigen", "nimm erstmal nur server X mit", "take pve1 over
-  from Heinzel", or points at a Heinzel directory and asks to take it
-  over. Makes no change on a server beyond one read-only line in each
-  host's journal. Needs an explicit request — a session that merely
-  mentions Heinzel is not one.
+  memory, access lists, overrides and host keys into this clone, list
+  what Heinzel left on each server, and onboard each host read-only.
+  Can run host by host. Use when the user says "übernimm mein altes
+  Heinzel", "migrate my Heinzel setup", "mein Heinzel liegt in
+  <pfad>", "nimm erstmal nur server X mit", "take pve1 over from
+  Heinzel", or points at a Heinzel directory to take over. Needs an
+  explicit request — a mention of Heinzel is not one. Not for
+  onboarding a host that never ran Heinzel (hostwarden-onboard).
 ---
 
-# hostwarden-adopt
+# hostwarden-heinzel-takeover
 
 Takes hosts over from Heinzel so that each ends where a first
 onboarding by Hostwarden would have left it. Two phases:
 
 1. **Copy** (steps 1–8) — this clone and the old checkout, nothing
    else. No server is contacted.
-2. **Onboard** (steps 9–10) — each adopted host in turn, through
-   `hostwarden-onboard` as its first Hostwarden connection:
-   read-only, one `read-only:` journal line per host. This is the
-   default; the user does not have to ask for it.
+2. **Onboard** (steps 9–10) — each host taken over in turn,
+   through `hostwarden-onboard` as its first Hostwarden
+   connection: read-only, one `read-only:` journal line per host.
+   This is the default; the user does not have to ask for it.
 
 **Only in an operations checkout** (`AGENTS.md` → Development or
-Operations). Adopted access lists and server memory are operations
-state, and a development checkout can neither keep them nor onboard
-a host: there, say so, name the operations checkout — the main
-checkout of a worktree, or one `bin/hostwarden-init` sets up — and
-stop. `bin/hostwarden-adopt` refuses to copy there as well.
+Operations). Access lists and server memory copied from Heinzel are
+operations state, and a development checkout can neither keep them
+nor onboard a host: there, say so, name the operations checkout —
+the main checkout of a worktree, or one `bin/hostwarden-init` sets
+up — and stop. `bin/hostwarden-heinzel-takeover` refuses to copy
+there as well.
 
 **Only on an explicit request** — the user naming their old checkout,
-or `/hostwarden-adopt <path>` in Claude Code. A session that merely
-mentions Heinzel is not a request, and neither is a question about
-what adoption would do: answer it, don't start.
+or `/hostwarden-heinzel-takeover <path>` in Claude Code. A session
+that merely mentions Heinzel is not a request, and neither is a
+question about what a takeover would do: answer it, don't start.
 
 What makes this safe is not the trigger but the gates: the old
 checkout is only read, anything this clone already holds is reported
@@ -70,7 +63,7 @@ leads, the host confirms them.
 1. **Locate the old checkout.** Take it from the argument, or ask for
    the path. Verify it is one: a `VERSION` file, a `memory/`
    directory, and `bin/heinzel-*` or `rules/`. If `memory/` is empty,
-   say so and stop — there is nothing to adopt.
+   say so and stop — there is nothing to take over.
 
 2. **Never write into the old tree.** The old checkout is the user's
    fallback. Read from it, copy out of it, change nothing in it. Say
@@ -85,30 +78,30 @@ leads, the host confirms them.
    lists every link below `memory/`, into it even when it is a link
    itself, and `[ -L <path>/memory ]` says whether it is one. A
    link directly in `memory/servers/` is an alias and left to
-   `bin/hostwarden-adopt`, which checks them. Every other link is
-   never read through, by any step, and named in the report. The
-   script refuses a link further down, but copies a top-level entry
-   of `memory/` that is a link, and a `memory/` that is one, by what
-   it points to: name those with their target (`readlink`) in step
-   3's question, and the copy runs only on the user's yes to exactly
-   those links.
+   `bin/hostwarden-heinzel-takeover`, which checks them. Every other
+   link is never read through, by any step, and named in the report.
+   The script refuses a link further down, but copies a top-level
+   entry of `memory/` that is a link, and a `memory/` that is one,
+   by what it points to: name those with their target (`readlink`)
+   in step 3's question, and the copy runs only on the user's yes to
+   exactly those links.
 
 3. **Ask once, before the copy.** Name the hosts the run takes and
    what follows the copy:
 
-       Adopt 11 hosts from /Users/alice/heinzel?
-         [1] Adopt and onboard each host now, read-only (Recommended)
+       Take over 11 hosts from /Users/alice/heinzel?
+         [1] Take over and onboard each host now, read-only (Recommended)
          [2] Only copy — each host is onboarded on its first connection
 
    `[2]` defers onboarding, it does not skip it: a copied host has no
    `memory.md`, so whichever session reaches it first onboards it the
    same way, as does `hostwarden-onboard` on request.
 
-4. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
-   state — access lists, service policy, overrides, network and
-   housekeeping notes, and `memory/known_hosts` with its host-key
-   records only, no comments — then every server's memory, then
-   `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
+4. **Copy the state.** `bin/hostwarden-heinzel-takeover <path>` does
+   it: shared state — access lists, service policy, overrides,
+   network and housekeeping notes, and `memory/known_hosts` with its
+   host-key records only, no comments — then every server's memory,
+   then `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
    `hostwarden-<skill>.md` renames. It
    keeps this clone's version of anything that already holds user
    data and says so; `--list` shows the plan without copying. A
@@ -127,16 +120,17 @@ leads, the host confirms them.
    unsafe one. Say which hosts are still in the old checkout after a
    partial run, and that the old one stays authoritative for them.
 
-   **Files an override needs.** An adopted override can name a file
-   under `memory/` — `memory/known_hosts` for `UserKnownHostsFile`,
-   an SSH config, a key list. List the `memory/…` paths the files in
-   `memory/custom-rules/` name, and report each one this clone does
-   not have: the override fails, or falls back to something weaker,
-   wherever it applies. A `known_hosts` the script left in the old
-   checkout — it held a private key — is one of them; name the path,
-   never its content (`rules/secrets.md`).
+   **Files an override needs.** An override copied from Heinzel can
+   name a file under `memory/` — `memory/known_hosts` for
+   `UserKnownHostsFile`, an SSH config, a key list. List the
+   `memory/…` paths the files in `memory/custom-rules/` name, and
+   report each one this clone does not have: the override fails, or
+   falls back to something weaker, wherever it applies. A
+   `known_hosts` the script left in the old checkout — it held a
+   private key — is one of them; name the path, never its content
+   (`rules/secrets.md`).
 
-   **Host keys.** An adopted override that adds
+   **Host keys.** An override copied from Heinzel that adds
    `UserKnownHostsFile=…/memory/known_hosts` to the SSH options, or
    says how that file is filled, repeats `rules/host-keys.md`. It keeps
    working as it is. Point it out in the report, and offer to cut it
@@ -178,14 +172,15 @@ leads, the host confirms them.
      entry in the place and form `rules/decisions.md` gives, carried
      over from Heinzel, its longer reasoning in the entry's
      `Details:` file. A host still in the old checkout gets nothing
-     yet: its decisions are sorted again when it is adopted.
+     yet: its decisions are sorted again when it is taken over.
    - **A fact about one host** or an open plan for it: under
      `## Facts` in that host's `heinzel-inventory.md`
      (`references/inventory.md`), which its first connection checks
      and carries into `memory.md`, a plan as `- Planned: …`, and then
      removes; it is no lead. A host that already has a `memory.md`
      takes the item there directly. A host still in the old checkout
-     gets nothing yet: its items are sorted again when it is adopted.
+     gets nothing yet: its items are sorted again when it is taken
+     over.
    - **A fact about the network or several hosts** — sites, VPNs,
      break-glass access, a firewall between sites, which host backs
      up which: `memory/network.md` (`rules/server-memory.md` →
@@ -212,7 +207,7 @@ leads, the host confirms them.
    arrives as `heinzel-memory.md`, byte for byte, and stays that way
    until the host's first connection splits it into `memory.md`, the
    host's `rules.md` and `memory/network.md`, from what that
-   connection finds, and deletes it (`rules/heinzel-adoption.md` →
+   connection finds, and deletes it (`rules/heinzel-takeover.md` →
    Heinzel's memory). A memory line
    naming `/var/backups/heinzel/` or a `heinzel-backup.sh` is a true
    statement about that host — the path is still there, and it
@@ -222,7 +217,7 @@ leads, the host confirms them.
 
 6. **Build the inventory.** This is the part no script can do. It
    covers every host the run named: listed as copied,
-   `already adopted: memory/servers/<host>`, or
+   `already taken over: memory/servers/<host>`, or
    `kept memory/servers/<host> — …`. A repeat or interrupted run
    copies nothing, and a kept host is one whose leads sit in the old
    checkout's records — both would otherwise end up with no leads at
@@ -230,12 +225,12 @@ leads, the host confirms them.
    the canonical host it points at (`rules/dns-aliases.md`): take
    that one, drop the alias. Never every host under
    `memory/servers/`, or a `--shared` run builds inventories for
-   hosts nothing was adopted for. Skip a host whose inventory already
+   hosts the run did not select. Skip a host whose inventory already
    holds leads, or whose `heinzel legacy:` line settles the question
-   (`rules/heinzel-adoption.md` → Record): its leads were collected or
+   (`rules/heinzel-takeover.md` → Record): its leads were collected or
    checked. `## Facts` from step 4 alone is no reason to skip, and
    neither is a deferral: the check that deferred it knew only the
-   fixed paths, not the leads in the records adopted now.
+   fixed paths, not the leads in the records copied now.
 
    For each host in that set, read `heinzel-memory.md` and
    `changelog.log` and collect every path, unit, cron job or script
@@ -255,7 +250,7 @@ leads, the host confirms them.
    to that host's `memory.md` as a standing line, as
    `rules/changelog.md` → Standing lines says. A host with no
    `memory.md` yet keeps them for its onboarding, which writes them
-   into the new file (`rules/heinzel-adoption.md` → Heinzel's
+   into the new file (`rules/heinzel-takeover.md` → Heinzel's
    memory).
 
    Read the **old checkout's** `memory.md` and `changelog.log`
@@ -272,8 +267,8 @@ leads, the host confirms them.
 
    Then commit what the copy and the inventory wrote, as
    `rules/parallel-sessions.md` → The workspace says, with the
-   message `Adopted <n> hosts from Heinzel (<path>)`. Name the
-   copied and rebuilt files that are not personal
+   message `Took over <n> hosts from Heinzel (<path>)`. Name
+   the copied and rebuilt files that are not personal
    (`rules/server-memory.md` → Personal versus shared) and each
    copied host's directory.
 
@@ -289,7 +284,7 @@ leads, the host confirms them.
 
    The answer to "does Heinzel stay in use" is also the one every
    host's Heinzel check needs while onboarding
-   (`rules/heinzel-adoption.md` → Not while Heinzel is still in
+   (`rules/heinzel-takeover.md` → Not while Heinzel is still in
    use): ask it once, here, never again per host.
 
 8. **Ask how the names on the hosts should end up.** Scripts, units,
@@ -307,51 +302,51 @@ leads, the host confirms them.
 
    Record `Heinzel names on hosts: rename` or `keep` in
    `memory/user.md`; per host records nothing. What the line does on
-   a host is `rules/heinzel-adoption.md` → Report, then ask. A line
+   a host is `rules/heinzel-takeover.md` → Report, then ask. A line
    already there is shown, and replaced only when the user changes
    the answer.
 
 9. **Onboard.** After `[1]` in step 3, run `hostwarden-onboard` for
    the hosts of the run that have no `memory.md` after the copy — a
    kept host is already this clone's own, and an alias is its
-   canonical host — naming the hypervisors step 6 noted. For adopted
-   hosts it adds:
+   canonical host — naming the hypervisors step 6 noted. For hosts
+   taken over it adds:
 
    - **Guests still in the old checkout**, on a hypervisor, before
      Registering Guests. Match the inventory against the old
      checkout's `memory/servers/`, as `rules/hypervisors.md` →
      Registering Guests says, which then uses this match. Those with
-     a directory there and none here are adopted with their host, in
-     one question:
+     a directory there and none here are taken over with their host,
+     in one question:
 
          7 guests of pve1.example.com have Heinzel memory in
          /Users/alice/heinzel: web1.example.com, db1.example.com, …
-           [1] Adopt them with pve1 (Recommended)
+           [1] Take them over with pve1 (Recommended)
            [2] Leave them in the Heinzel checkout
 
-     `[1]` runs `bin/hostwarden-adopt <path>` once with a
+     `[1]` runs `bin/hostwarden-heinzel-takeover <path>` once with a
      `--server` for each and builds their inventory as in step 6;
      registration then onboards them through the host. `[2]` leaves
-     them unregistered, as Registering Guests says. An adopted guest
-     the manager cannot enter — a VM without an agent — keeps its
-     `heinzel-memory.md` alone and is onboarded on its first SSH
-     connection.
+     them unregistered, as Registering Guests says. A guest taken
+     over with it that the manager cannot enter — a VM without an
+     agent — keeps its `heinzel-memory.md` alone and is onboarded on
+     its first SSH connection.
    - **Heinzel's finds** answered "leave" or "later" are among the
      questions that only get recorded. Moving or renaming Heinzel's
-     state is a change: an answer that adopts is recorded as
+     state is a change: an answer to take it over is recorded as
      `heinzel legacy: deferred <date> (answered at onboarding:
      <answer>)` and asked again after the report.
-   - **The journal line** names the adoption:
-     `read-only: onboarded after adoption from Heinzel`.
+   - **The journal line** names the takeover:
+     `read-only: onboarded after takeover from Heinzel`.
 
 10. **Report.** The report of `hostwarden-onboard`, headed with the
-    adoption, with each host's leads on its line and Heinzel's state
+    takeover, with each host's leads on its line and Heinzel's state
     after the hosts. After onboarding:
 
     ```
-    Adopted 7 hosts from /Users/alice/heinzel, onboarded 6, read-only
+    Took over 7 hosts from /Users/alice/heinzel, onboarded 6, read-only
     pve1.example.com — Proxmox VE 9.0.3, 11 guests: 9 registered,
-      4 of them adopted with it; 3 leads: 2 confirmed, 1 gone
+      4 of them taken over with it; 3 leads: 2 confirmed, 1 gone
       baseline: missing automatic security updates, backup;
       no baseline template for containers
     web1.example.com — Debian 13; 4 leads, all confirmed
@@ -368,7 +363,7 @@ leads, the host confirms them.
     Copy only:
 
     ```
-    Adopted 7 hosts from /Users/alice/heinzel, copy only
+    Took over 7 hosts from /Users/alice/heinzel, copy only
     web1.example.com — Heinzel memory, 3 changelog entries, 4 leads
     db1.example.com  — Heinzel memory, 0 leads
     ...
@@ -379,7 +374,7 @@ leads, the host confirms them.
     ```
 
     A watcher the activity check found on a session tag gets a line
-    under its host, as for web1 (`rules/heinzel-adoption.md`).
+    under its host, as for web1 (`rules/heinzel-takeover.md`).
 
     Add the lines for Heinzel's rebuilt copies
     (`references/masters.md` → Report), a line for each file an
@@ -390,13 +385,13 @@ leads, the host confirms them.
     partial run. Say which of the two states the installation is in:
     Hostwarden alone, or both tools in parallel. In the parallel case
     the Heinzel check reports what Heinzel left but does not move it
-    (`rules/heinzel-adoption.md`).
+    (`rules/heinzel-takeover.md`).
 
-    First, per host whose answer to Heinzel's finds adopted them,
-    that question once more, now as a change: on a yes, the move and
-    any rename run as `rules/heinzel-adoption.md` says, with the
-    host's own journal line, and its `heinzel legacy:` line is
-    rewritten.
+    First, for each host whose answer was to take Heinzel's finds
+    over, that question once more, now as a change: on a yes, the
+    move and any rename run as `rules/heinzel-takeover.md` says,
+    with the host's own journal line, and its `heinzel legacy:` line
+    is rewritten.
 
     Then `hostwarden-onboard`'s question.
 
@@ -418,13 +413,13 @@ its halves are triggered by different things:
   unresolved, and whenever the activity check turns up `heinzel`
   entries — which is what catches Heinzel touching a host again
   after the question was settled. It detects; it never moves.
-- **`rules/heinzel-adoption.md`** — what to do about a detection,
+- **`rules/heinzel-takeover.md`** — what to do about a detection,
   and how Heinzel's memory becomes a Hostwarden `memory.md`. Also a
   reflex. Every path that would *move* something ends in a question,
   because moving files on a live server is a change. The path that
   moves nothing does not ask: while Heinzel is still in use,
-  adoption is premature, and that one reports and records a deferral
-  instead.
+  a takeover is premature, and that one reports and records a
+  deferral instead.
 - **`rules/hypervisors.md`** → Registering Guests — which guests are
   registered, and why one still in the Heinzel checkout is not.
 
@@ -440,10 +435,10 @@ than summarizing it.
   own question under its own rule, after the report.
 - **No renaming on hosts from here.** Step 8 only records which way
   the user leans. The rename runs on each host after its own
-  question — `rules/heinzel-adoption.md` § "Rename to Hostwarden's
+  question — `rules/heinzel-takeover.md` § "Rename to Hostwarden's
   name".
 - **No scheduled runs.** Heinzel's cron lines and timers on the
-  workstation are reported under `rules/heinzel-adoption.md` § "On
+  workstation are reported under `rules/heinzel-takeover.md` § "On
   the workstation (local mode)", those of a machine that runs
   Heinzel headless under § "On an operations host", and they change
   only with explicit approval.

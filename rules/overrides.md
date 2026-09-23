@@ -93,9 +93,9 @@ apply" is the wrong one to resolve by nearest match.
 When an upgrade moves a topic — out of `rules/` into a
 skill, or into `rules/os/` — `bin/hostwarden-migrate` moves
 the matching override with it, and says which files it
-moved. It runs on update and as the last step of adopting a
-Heinzel checkout. A file already at the new path wins; the
-old one is left for the user to merge, and named.
+moved. It runs on update and as the last step of taking
+over a Heinzel checkout. A file already at the new path
+wins; the old one is left for the user to merge, and named.
 
 It moves whole files, which is all it can do: when a topic
 was not only moved but **split**, some sections of the

@@ -59,7 +59,7 @@ reason not to retry a hanging call more than once.
 
 ## Add: What the other tool may have moved
 
-Hostwarden offers, once per host, to adopt what
+Hostwarden offers, once per host, to take over what
 Heinzel left there, which moves
 `/var/backups/heinzel/` into
 `/var/backups/hostwarden/`. Nothing is deleted by

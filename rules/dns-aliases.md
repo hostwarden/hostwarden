@@ -84,9 +84,9 @@ symlink):
    on one Windows host: no alias.
 
    A directory with `heinzel-memory.md` and no
-   `memory.md` is a host adopted from Heinzel that
-   nothing has connected to yet
-   (`rules/heinzel-adoption.md` → Heinzel's memory).
+   `memory.md` is a host taken over from Heinzel
+   that nothing has connected to yet
+   (`rules/heinzel-takeover.md` → Heinzel's memory).
    Compare its `- IP:` line too, by address alone
    — that file is never edited, so it gets no
    `SSH port:` — and never link on it: Heinzel's

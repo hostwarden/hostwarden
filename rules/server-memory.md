@@ -10,10 +10,10 @@ hypervisor `guests.md`, its guest inventory
 (`rules/hypervisors.md`), and on bare metal or a
 host with ZFS pools or btrfs `storage.md`, its disks
 and their settings (`rules/storage-inventory.md`). A
-host adopted from Heinzel has `heinzel-memory.md`
+host taken over from Heinzel has `heinzel-memory.md`
 until its first connection and `heinzel-inventory.md`
 until its leads are checked
-(`rules/heinzel-adoption.md`).
+(`rules/heinzel-takeover.md`).
 Until that first connection writes `memory.md`, the
 address checks — the DNS check and alias detection
 (`rules/dns-aliases.md`), a guest's registration
@@ -160,9 +160,9 @@ so does a host's `network.md` (`rules/network.md`).
 | `WSL root:`              | `platform/wsl.md`           | privileged use   |
 | `Management:`            | `management-controller.md`  | first need       |
 | `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |
-| `heinzel legacy:`        | `heinzel-adoption.md`       | legacy settled   |
-| `Other ways in:`         | `heinzel-adoption.md`       | host adopted     |
-| `Planned:`               | `heinzel-adoption.md`       | host adopted     |
+| `heinzel legacy:`        | `heinzel-takeover.md`       | legacy settled   |
+| `Other ways in:`         | `heinzel-takeover.md`       | host taken over  |
+| `Planned:`               | `heinzel-takeover.md`       | host taken over  |
 | `Config management:`     | `config-management-leads.md`| tool found       |
 | `Provisioned by:`        | `config-management-leads.md`| tool found       |
 | `Web server:`            | `service-class-check.md`    | service found    |

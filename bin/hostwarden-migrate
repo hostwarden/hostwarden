@@ -61,9 +61,13 @@ if [ -d memory/custom-rules ]; then
   # memory/custom-rules/heinzel-<skill>.md →
   # hostwarden-<skill>.md: a skill override is found by the
   # skill's name, which changed with the rename from Heinzel.
+  # One named after a rule that still has the prefix
+  # (rules/heinzel-legacy.md, rules/heinzel-takeover.md)
+  # overrides that rule and stays where it is.
   for f in memory/custom-rules/heinzel-*.md; do
     [ -e "$f" ] || continue
     name=$(basename "$f")
+    [ -e "rules/$name" ] && continue
     move_override "$f" "hostwarden-${name#heinzel-}"
   done
 
