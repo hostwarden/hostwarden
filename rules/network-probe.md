@@ -68,7 +68,7 @@ h='^[[:space:]]*(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]'
 x='xfrm|key|pass|secret|token|psk'
 hl=$(grep -HnE "$h" $ifs 2>/dev/null)
 echo "## hooks"
-printf '%s\n' "$hl" | grep -viE "$x"
+[ -n "$hl" ] && printf '%s\n' "$hl" | grep -viE "$x"
 hs=$(printf '%s\n' "$hl" | cut -d: -f3- \
   | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' | sed 's|^[^/]*||' \
   | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
@@ -105,7 +105,11 @@ p="$p|^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?[[:space:]]*\$"
 p="$p|/proc/sys/|-j (DNAT|SNAT|MASQUERADE|REDIRECT|NETMAP)"
 if [ -z "$hs" ]; then :
 elif [ "$S" = - ]; then echo "scripts=unknown(needs-root)"
-else $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x"; fi
+else
+  # A hook that names a missing script fails when it runs.
+  $S sh -c 'for f; do [ -f "$f" ] || echo "missing=$f"; done' sh $hs
+  $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x"
+fi
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
     | grep -vE " ($n)"
@@ -255,7 +259,8 @@ echo "### F bridges and netfilter"
 for b in /sys/class/net/*/bridge; do
   [ -d "$b" ] || continue
   b=${b%/bridge}; b=${b##*/}
-  printf '%s\n' "$b" | grep -qE "^($n)" && continue
+  printf '%s\n' "$b" | grep -qE '^(docker|br-[0-9a-f]{12}|fwbr)' \
+    && continue
   m=$(ls "/sys/class/net/$b/brif" 2>/dev/null)
   echo "bridge $b: ports=$(printf '%s\n' $m | grep -vE "^($n)" \
     | tr '\n' ' ')guests=$(printf '%s\n' $m | grep -E "^($n)" \
@@ -280,13 +285,18 @@ else
   if ! command -v nft >/dev/null 2>&1; then echo "nft=none"
   elif r=$($S nft list ruleset 2>/dev/null); then
     echo "nft-tables=$(printf '%s\n' "$r" | grep -c '^table')"
+    # A table with NAT comes in full, any other with its hooks.
     nf=$(printf '%s\n' "$r" | awk -v e="$e" '
-      /^table/ { print; next }
+      function flush() { if (t != "") printf "%s", (nat ? b : h)
+        t = b = h = ""; nat = 0 }
+      /^table/ { flush(); t = $0; b = h = $0 "\n"; next }
       $1 == "chain" { c = $2; s = 0; next }
-      / hook |[^a-z_](dnat|snat|masquerade|redirect)([^a-z_]|$)/ {
+      / hook / { h = h "  chain " c "\n" $0 "\n" }
+      / hook |[^a-z_](dnat|snat|masquerade|redirect|jump|goto)([^a-z_]|$)/ {
+        if (/[^a-z_](dnat|snat|masquerade|redirect)([^a-z_]|$)/) nat = 1
         if (c ~ e) { g = c; sub(/-.*/, "", g); k[g]++; next }
-        if (!s) { print "  chain " c; s = 1 }; print }
-      END { for (g in k) print "  " g "*: " k[g] " lines" }')
+        if (!s) { b = b "  chain " c "\n"; s = 1 }; b = b $0 "\n" }
+      END { flush(); for (g in k) print "  " g "*: " k[g] " lines" }')
   else echo "nft=unread"; fi
   # Legacy tables only where they exist: the legacy tools load
   # the modules that create them (Mixed frameworks in the
@@ -363,7 +373,9 @@ Reading **A (manager)**:
   and each dispatcher script no package installed; the
   lines after it are the ones that change something, with
   the assignments that name a tool, an address or an
-  interface. A variable whose assignment is not among them
+  interface. `missing=<path>` is a script a hook line
+  names that does not exist: that hook fails when it runs.
+  A variable whose assignment is not among them
   is read with an anchored grep on its name
   (`rules/secrets.md`), never by printing the script. A
   script without printed lines changes nothing the profile
@@ -396,8 +408,10 @@ Reading **B (links, addresses, routes)**:
   default for IPv4; local and main for IPv6) is
   policy routing. `wg-quick` and Tailscale add their
   own rules; name the owner. The routes after the rules
-  are what each extra table holds, and the lines after
-  them the names `rt_tables` gives the table numbers.
+  are what each extra table holds, the first three of
+  each and `table <n>: <count> routes` for a longer one,
+  and the lines after them the names `rt_tables` gives
+  the table numbers.
   Record a rule with its selector and where its table
   sends the traffic: `from 192.0.2.10 to 10.0.0.0/8 →
   table fw, via 10.0.0.2`, and with what sets it: the
@@ -514,9 +528,13 @@ profile's `## Traffic flow` section (`rules/network.md`):
   A DNAT target reached through the interface the rule
   matched on sends the packet back where it came from:
   the rule never delivers.
-- The filter lines give each family's `INPUT` and
+- The legacy filter lines give each family's `INPUT` and
   `FORWARD` policy, the FORWARD rules and the number of
-  INPUT rules. Whether they form a firewall is the
+  INPUT rules. From nftables come the base chains' `hook`
+  lines with their policy, and the jumps and NAT rules;
+  where the input or forward chains' rules matter, read
+  that chain with `nft list chain <family> <table>
+  <chain>`. Whether they form a firewall is the
   security audit's call; the profile records per family
   whether inbound traffic to the host is filtered at all.
 

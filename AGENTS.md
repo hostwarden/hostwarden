@@ -312,11 +312,9 @@ trigger — not a request from the user.
 - Reading what a server returned → `rules/anomaly-detection.md`
 - SSH stops answering → `rules/ssh-unreachable.md`
 - The user asks about a host's network or VPN, a failure points
-  there, or a network change is next — NAT and bridges
-  included, and a firewall or container engine on a host with
-  bridged guests → `rules/network.md`
-- Bundling commands, or a rate limit looming →
-  `rules/ssh-connections.md`
+  there, or a network change is next, a firewall or container
+  engine beside bridged guests included → `rules/network.md`
+- Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
 
 **Before you report**
 
