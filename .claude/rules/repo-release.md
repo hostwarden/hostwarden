@@ -63,8 +63,8 @@ every instruction file, not just the ones near this one.
 
 Hostwarden grew out of
 [Heinzel](https://github.com/wintermeyer/heinzel) and branched off
-at tag `heinzel-2.22.0`. The `upstream` remote points there,
-read-only and without tags.
+at tag `heinzel-2.22.0`. In the project's own clone the `upstream`
+remote points there, read-only and without tags.
 
 Improvements come over selectively — cherry-picked or rewritten,
 never merged. Rename what the patch carries to Hostwarden, then add

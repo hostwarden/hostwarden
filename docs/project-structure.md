@@ -35,6 +35,8 @@ bin/
                          for a test clone
 scripts/
   check.sh             — Everything CI checks, runnable locally
+  codex-quota.sh       — What is left of the Codex usage limit,
+                         read without spending any
   fleet-read-test.sh   — Fixture matrix for the fleet-read
                          wrapper (run by scripts/check.sh)
   fleet-run-test.sh    — Fixture matrix for
@@ -54,6 +56,8 @@ contrib/
   agents/              — Subagent definitions
     hostwarden-host-probe.md — Probes one host for the fleet
                          audit and returns one row
+    hostwarden-reviewer.md — Reviews a change to Hostwarden
+                         for defects before a second reviewer does
   rules/               — Conventions for working on this repo,
                          loaded only when those files are read
   hooks/

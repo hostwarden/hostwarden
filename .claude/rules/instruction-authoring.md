@@ -113,6 +113,21 @@ Instruction files describe how things are, never how they came
 to be. `.claude/rules/repo-release.md` states the rule and owns
 its one exception, `CHANGELOG.md`.
 
+## Claims
+
+A claim says what a flow does or guarantees: that a phase is
+"read-only", that "every" guest gets a line, that a result is
+"verified", that a snapshot covers the "whole" guest. It is a
+promise every step of the flow has to keep, on every platform the
+file covers. Write one only where you have checked each step
+against it; otherwise say what the step does and leave the
+guarantee out. A claim that a review has broken twice, or that no
+change to the steps can keep, is dropped, not narrowed.
+
+A prohibition is not a claim. "Never pass a secret as an argument"
+tells the agent what not to do; a step that breaks it is the
+defect, and the prohibition stays.
+
 ## Layout
 
 - Wrap every `.md` at 80 characters. A URL or a command line that
