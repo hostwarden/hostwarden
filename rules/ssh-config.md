@@ -28,9 +28,10 @@ stands for `<checkout>` in the commands below.
 One keyword and one value per line, indented under its `Host`
 line. A comment takes a line of its own:
 
-- **`Host`:** the names the block applies to, the name memory and
-  the user use and its FQDN; plain names, or patterns with `*`,
-  `?` and `!`.
+- **`Host`:** the names the block applies to, those memory and
+  the user connect by; the host's `- FQDN:` adds none
+  (`rules/dns-aliases.md` → The FQDN). Plain names, or patterns
+  with `*`, `?` and `!`.
 - **`HostName`:** the name or address to connect to.
 - **`Port`:** an SSH port other than 22.
 - **`ProxyJump`:** `[user@]host[:port]`, several comma-separated,

@@ -217,7 +217,8 @@ one on a known host (`hostwarden-onboard`). It
 rewrites the lines detection owns
 (`rules/server-memory.md` → Who writes which line:
 this file's, `rules/first-detection.md`'s, and those
-a Version Detection section names) where the probe
+a Version Detection section names) and `FQDN:`
+(`rules/dns-aliases.md` → The FQDN) where the probe
 reads something else, and says each difference in one
 line: `OS: Debian 12 in memory, Debian 13 now`. Every
 other line stays. One the user asked for also runs

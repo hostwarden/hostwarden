@@ -82,7 +82,13 @@ directory, and where it is empty, ask which.
 ```
 
 A field a probe could not read is written `unknown`, never
-filled from an example.
+filled from an example. `- FQDN: hostname.example.com` comes
+only from its probe (`rules/dns-aliases.md` → The FQDN), never
+from the directory name and never as a placeholder: a first
+connection writes the file without it, and the activity
+check's call right after adds it; a guest's registration
+writes what its own call read (`rules/hypervisors.md` →
+Registering Guests).
 
 `Mode: local` marks the local machine. `Mode: via` marks a
 guest that has no sshd of its own and is reached through its
@@ -128,6 +134,7 @@ so does a host's `network.md` (`rules/network.md`).
 | Field                    | Owner                       | Written          |
 |--------------------------|-----------------------------|------------------|
 | `IP:`                    | `dns-aliases.md`            | first connection |
+| `FQDN:`                  | `dns-aliases.md`            | activity check   |
 | `SSH port:`              | this file                   | first, on a move |
 | `Reached as:`            | this file                   | first connection |
 | `Mode:`                  | this file                   | mode chosen      |

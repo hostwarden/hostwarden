@@ -280,7 +280,8 @@ these:
 
 1. **What this connection probed** — every field
    `rules/server-memory.md` lists, and on a
-   hypervisor what `rules/hypervisors.md` adds. A
+   hypervisor what `rules/hypervisors.md` adds, and
+   `FQDN:` from the activity check's call. A
    value Heinzel remembered is never written in
    place of a probed one, and a field no probe could
    read is `unknown`. Where the two differ, say so
@@ -371,11 +372,13 @@ Two kinds of fact have another place:
 ## Before its first connection
 
 Until its first connection writes `memory.md`, a host's
-`heinzel-memory.md` stands in for one line only, its
-`- IP:`, where an address check looks for a known host.
-Where it has none, the address is unknown. No other rule
-reads that file as the host's state, and none writes
-there.
+`heinzel-memory.md` stands in for two lines only: its
+`- IP:`, where an address check looks for a known host,
+and its `- FQDN:`, where a short name is matched
+(`rules/dns-aliases.md` → Short Names Matching More Than
+One Server). Where one of them is missing, its value is
+unknown. No other rule reads that file as the host's
+state, and none writes there.
 
 - **The DNS check and alias detection**
   (`rules/dns-aliases.md`): compare the `- IP:` of every

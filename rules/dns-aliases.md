@@ -107,6 +107,94 @@ symlink):
 4. **No match -> new server.** Normal first-connection
    flow. Include resolved IP as `- IP:` field.
 
+## The FQDN
+
+`- FQDN:` is the host's fully qualified name as the host
+itself gives it. It tells apart servers whose names share a
+first label (Short Names Matching More Than One Server
+below) and names the host in mail (`hostwarden-email`). It
+is not unique: two guests of one hostname, or two machines
+behind one address, can give the same one, and a host can
+claim any name. So it never renames the directory and adds
+no name to connect by: `ssh` calls, `Host` lines and
+`memory/known_hosts` name what they would without it.
+
+**When.** In the activity check's call
+(`rules/activity-check.md` → What rides in this call), on a
+host whose memory has no `- FQDN:` line or `unknown` in it.
+A first connection writes `memory.md` without the line; this
+call adds it. A full re-probe (`rules/os-detection.md` → On
+subsequent connections) reads it again, `none` included, and
+writes what it finds over the old value.
+
+**The probe** is the first line of `hostname -f` on the host,
+after a marker of its own:
+
+```
+echo @fqdn; hostname -f
+```
+
+On Windows it is left out, since `hostname` there takes no
+`-f`, and the resolver below decides alone.
+
+**The test.** Take off one trailing dot first. The name
+qualifies when it is one word of letters, digits, hyphens
+and dots, holds at least one dot, has no label `localhost`
+or `localdomain`, and does not end in `.local`. Record it in
+lower case.
+
+**The resolver.** Where the host's answer fails the test, or
+the host has no `hostname` (OpenWrt, `rules/busybox.md`),
+apply the test to the canonical name the workstation's
+resolver gives for the `hostname` line of `ssh -G` that
+Detection step 1 or IP Verification read, asked with the
+tool step 1 uses: the third field of the first line of
+`getent ahostsv4` on Linux, the `name:` line of
+`dscacheutil -q host -a name` on macOS, elsewhere
+`getaddrinfo` with `AI_CANONNAME`, whose first entry carries
+it. It counts only where its first label equals that of the
+name asked or of the host's answer: a CNAME target, such as a
+load balancer's name, is not the host's. Skip it where that
+line is an address, where `ssh -G` names a `proxyjump` other
+than `none` or a `proxycommand` — the name is then resolved
+beyond the workstation — for a guest reached through its
+host, and for the local machine.
+
+**Neither qualifies:** where the resolver gave a name that
+fails the test or does not count, write `- FQDN: none`, so
+later connections do not probe again. Where it was skipped
+or gave nothing — a timeout and a name that does not exist
+look alike there — write `- FQDN: unknown`, which the next
+connection reads again.
+
+## Short Names Matching More Than One Server
+
+In remote mode, when the user names a host without a dot,
+scan `memory/servers/`, skipping symlinks, for directories
+whose name or `- FQDN:` line in `memory.md` has that first
+label, ignoring case. A directory with `heinzel-memory.md`
+and no `memory.md` counts as `rules/heinzel-takeover.md` →
+Before its first connection says. A name taken from a
+memory directory rather than from the user — the fleet
+audit, a scheduled run — is that directory: no scan.
+
+One match or none, or matches that are WSL instances of one
+Windows machine, which the port tells apart
+(`rules/server-memory.md`): go on as usual. Otherwise, ask
+which server is meant before anything reaches the network,
+in the picker form of `rules/service-reload.md` → Prompt
+Shape When Asking: one option per directory, labelled with
+its name and FQDN, and one for another server.
+
+- **A directory:** the session goes on with it as with any
+  known host, by the name it is reached by — the directory
+  name, its `Reached as:`, or its `Runs on:` in via-host
+  mode — and the blacklist and read-only checks run for the
+  name as given too. Where the name reaches another address,
+  IP Verification below stops it.
+- **Another server:** ask for its name with the domain, and
+  go on with that name as the user's.
+
 ## Subsequent Connections via Alias
 
 Follow the symlink, read canonical `memory.md`. Use
