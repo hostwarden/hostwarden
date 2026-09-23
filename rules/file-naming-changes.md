@@ -128,8 +128,8 @@ A sourcing script, a logrotate stanza or a backup
 include list finds the file by a path nobody wrote
 down, and a symlink or a runlevel link finds it by
 a target that no content search reads. As root or
-through `sudo -n`, in one call, fed to `sh -s`
-rather than typed into the login shell:
+through `sudo -n`, in one call
+(`rules/ssh-connections.md` → Bundle commands):
 
 ```
 roots=""
@@ -146,16 +146,14 @@ echo "##links"; find $roots -type l -exec ls -l {} + \
   | grep '<old-stem>'; echo "##rc $?"
 ```
 
-Only directories that exist reach `grep` and `find`,
-so a line a host lacks costs nothing, and neither
-command's errors are hidden. Read each `##rc`: `0`
-found something, `1` found nothing, anything else
-means a part was not searched — say which, and
-rename nothing until it has been. `sh` keeps a
-pattern that matches nothing as it is, which the
-`[ -d ]` test then drops; zsh, macOS's login shell,
-and csh abort the whole command on it instead, which
-is why the script goes through `sh -s`.
+Only directories that exist reach `grep` and `find`
+— a pattern that matches nothing stays as it is and
+fails the `[ -d ]` test — so a path a host lacks
+costs nothing, and neither command's errors are
+hidden. Read each `##rc`: `0` found something, `1`
+found nothing, anything else means a part was not
+searched — say which, and rename nothing until it
+has been.
 
 The spool directories hold every user's crontab:
 `/var/spool/cron/` with its `crontabs/` (Debian,
@@ -264,23 +262,14 @@ the runlevels `rc-update show` listed before
 A launchd job keeps its states too. launchd goes on
 running the definition it loaded, whatever happens to
 the file, so moving and rewriting a plist is not
-enough. Every `launchctl` call names the job's
-domain: `system` for a daemon, `gui/<uid>` for a user
-agent. Without it, `launchctl` answers for the
-caller's own session, which over SSH or as root is
-not the user's, and an agent loaded there reads as
-not loaded. Read whether the job is loaded
-(`launchctl print <domain>/<label>` succeeds) and
-whether it is disabled
-(`launchctl print-disabled <domain>`). Remove it from
-the old plist before the file moves
-(`launchctl bootout <domain> <old-plist>`), and put
-the renamed plist back only if it was loaded
-(`launchctl bootstrap <domain> <new-plist>`). The
+enough. With the commands and the domain from
+`rules/os/macos.md` → Service Manager: read whether
+the job is loaded and whether it is disabled, unload
+it from the old plist before the file moves, and
+load the renamed plist only if it was loaded. The
 `Label` changes with the name, and launchd records a
 disabled job by its label, so a job that was disabled
-is disabled again under the new one:
-`launchctl disable <domain>/<new-label>`.
+is disabled again under the new one.
 
 **Verify, in one call.** The changed files and the
 renamed paths hold no old name except those left on
@@ -289,10 +278,10 @@ purpose; each changed script passes its shell's `-n`;
 each unit and launchd job is back in the states read
 before, and a timer that was active shows its next
 run under the new name in `systemctl list-timers`, as
-a cron job does in its crontab and a loaded launchd
-job in `launchctl print <domain>/<new-label>`; the
-old unit is gone from
-`systemctl list-unit-files`. Report it in one line.
+a cron job does in its crontab; a launchd job that
+was loaded is found under its new label; the old
+unit is gone from `systemctl list-unit-files`.
+Report it in one line.
 When a check fails, say which, and offer the way
 back: the § 2 map replayed backwards, the backups
 restored.

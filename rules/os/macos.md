@@ -133,10 +133,20 @@ Rules for macOS (Apple Silicon and Intel).
   service itself reports, not the binary on `PATH`,
   and follow up with `brew services restart
   <service>`.
-- For non-Homebrew services:
-  - Load: `sudo launchctl load <plist>`
-  - Unload: `sudo launchctl unload <plist>`
-  - List running: `launchctl list`
+- For non-Homebrew services, name the job's domain
+  in every call: `system` for a daemon, `gui/<uid>`
+  for a user's agent. Without it, `launchctl`
+  answers for the caller's own session, which over
+  SSH or as root is not the user's, and an agent
+  loaded there reads as not loaded.
+  - Loaded?
+    `launchctl print <domain>/<label> >/dev/null`
+    succeeds
+  - Disabled?
+    `launchctl print-disabled <domain> | grep <label>`
+  - Load: `sudo launchctl bootstrap <domain> <plist>`
+  - Unload: `sudo launchctl bootout <domain> <plist>`
+  - Disable: `sudo launchctl disable <domain>/<label>`
 
 ## SIP and Gatekeeper
 
