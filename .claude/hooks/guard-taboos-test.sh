@@ -545,6 +545,8 @@ check_mode ask default \
   "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config.d/x.conf:/etc/ssh/sshd_config.d"
 check_mode ask default \
   "virt-customize -a $FB_IMG --copy-in=10.conf:/etc/ssh/sshd_config.d"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/etc/ssh"
 check_mode deny default \
   "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp; cp a /etc/ssh/sshd_config"
 # The ask is decided last: a taboo anywhere after a first-boot write

@@ -707,8 +707,11 @@ image_write_targets() {
   # virt-customize's --copy-in and --upload (LOCAL:REMOTE) dropped.
   # That side is only read, so copying the host's own sshd_config
   # into an image as a reference is a read of it; what is left names
-  # the paths the image is written at. A LOCAL that itself holds a
-  # colon is left in place and still counts, which errs on asking.
+  # the paths the image is written at. The caller also counts a
+  # REMOTE that is sshd's directory itself, or dropbear's (--copy-in
+  # takes a directory: `x:/etc/ssh` lands x in it). A LOCAL that
+  # itself holds a colon is left in place and still counts, which
+  # errs on asking.
   printf '%s' "$CMD" \
     | sed -E "s/(--(copy-in|upload)([[:space:]]+|=)[\"']?)[^:[:space:]\"']+:/\\1:/g"
 }
@@ -1719,7 +1722,8 @@ if [ "$HAS_SSHD" -eq 1 ]; then
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
     || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
          && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)" \
-         && image_write_targets | grep -Eq "$SSHD"; } \
+         && image_write_targets \
+              | grep -Eq "$SSHD|:/etc/(ssh|config|conf\\.d|default)([/[:space:]\"']|\$)"; } \
     || hit '(^|[^[:alnum:]_.-])(virt-edit|virt-copy-in)([^[:alnum:]_.-]|$)' \
     || writes_to "$SSHD"
   then
