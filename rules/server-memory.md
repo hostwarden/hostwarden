@@ -254,9 +254,9 @@ Read the plan when the work on a host touches what it
 plans, and never start its next phase unasked. Update
 `Status:` and `Updated:` whenever a phase moves. Once
 the plan is done, its facts go into the hosts'
-`memory.md`, a decision that still binds becomes a
-`Flags:` line there (`rules/changelog.md` → Standing
-lines), and the plan and its `Plan:` lines are
+`memory.md`, a decision of the user's that still
+binds becomes a decision (`rules/decisions.md` →
+Writing one), and the plan and its `Plan:` lines are
 deleted.
 
 ## Deployed files
