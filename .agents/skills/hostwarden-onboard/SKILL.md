@@ -3,17 +3,17 @@ name: hostwarden-onboard
 argument-hint: "<hostname> [more hostnames]"
 description: Onboard a host into Hostwarden explicitly and read-only,
   as its first connection — the full OS and hardware probe, its
-  memory, the network profile, on a hypervisor the guest inventory
-  and registration, then what it lacks against the server baseline,
-  and a report. A host Hostwarden already knows is probed in full
-  again and its memory refreshed. Use when the user says "onboard
-  web1", "add this server to Hostwarden", "take db1 into
-  Hostwarden", "set up pve1 in Hostwarden", "nimm web1 in
-  Hostwarden auf", "übernimm den Server xyz in die Verwaltung",
-  "richte db1 in Hostwarden ein", or names hosts to be onboarded.
-  Makes no change on a server beyond one read-only line in each
-  host's journal. Not for taking over a Heinzel installation
-  (hostwarden-adopt), and not for a new guest (hostwarden-new-guest).
+  memory, the network profile where the host has one, on a hypervisor
+  the guest inventory and registration, then what it lacks against the
+  server baseline, and a report. A host Hostwarden already knows is
+  probed in full again and its memory refreshed. Use when the user
+  says "onboard web1", "add this server to Hostwarden", "take db1 into
+  Hostwarden", "set up pve1 in Hostwarden", "nimm web1 in Hostwarden
+  auf", "übernimm den Server xyz in die Verwaltung", "richte db1 in
+  Hostwarden ein", or names hosts to be onboarded. Makes no change on
+  a server beyond one read-only line in each host's journal. Not for
+  taking over a Heinzel installation (hostwarden-adopt), and not for a
+  new guest (hostwarden-new-guest).
 ---
 
 # hostwarden-onboard
@@ -48,7 +48,8 @@ checkout) and stop.
    `rules/first-detection.md` and `memory.md` in the form of
    `rules/server-memory.md`; on a known host as a known one, with the
    full re-probe in place of the short one. Either way it gets the
-   full network profile, and on a hypervisor the full inventory
+   full network profile where `rules/network.md` → When gives the
+   host one, and on a hypervisor the full inventory
    (`rules/hypervisors.md`). A blacklisted host is not reached; its
    report line says so. A host that cannot be reached gets what
    `rules/ssh-unreachable.md` allows and no more, and the run moves on
@@ -72,7 +73,7 @@ checkout) and stop.
    journal line rides in the host's last call, and its changelog
    entry and commit follow (`rules/changelog.md`):
 
-       read-only: onboarded — OS, hardware and network recorded,
+       read-only: onboarded — the server's details recorded and
        checked against the server baseline, nothing changed
 
 6. **Report.** One block for the run, then the question.
@@ -86,8 +87,9 @@ checkout) and stop.
      OS: Debian 12 in memory, Debian 13 now
      baseline: complete
    db1.example.com — not onboarded: SSH timeout
-   Written: memory.md, network.md and a read-only journal line for
-     each onboarded host, guests.md for pve1, the workspace committed
+   Written: memory.md and a read-only journal line for each onboarded
+     host, network.md for pve1 and web1, guests.md for pve1, the
+     workspace committed
    Nothing on the servers was changed.
    ```
 

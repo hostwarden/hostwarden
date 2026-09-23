@@ -13,12 +13,12 @@ needed. To have it now, ask for it — "onboard
 web1.example.com", "nimm web1 in Hostwarden auf", or
 `/hostwarden-onboard web1.example.com` in Claude Code.
 Hostwarden probes the host in full, writes its memory,
-records its network, on a hypervisor lists and
-registers the guests, and reports what the host lacks
-against the server baseline. It changes nothing on the
-server beyond one read-only line in its journal. A
-host it already knows is probed in full again, and
-its memory is brought up to date.
+records its network where it can read it, on a
+hypervisor lists and registers the guests, and reports
+what the host lacks against the server baseline. It
+changes nothing on the server beyond one read-only line
+in its journal. A host it already knows is probed in
+full again, and its memory is brought up to date.
 
 ## DNS alias detection
 
