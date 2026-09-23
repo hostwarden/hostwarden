@@ -72,7 +72,10 @@ system before it is wiped. Store it in
   (`apt-mark showmanual`, `pkg info -o`,
   `dnf history userinstalled`)
 - Custom repositories, recorded by host and suite, never
-  the URL whole (`rules/secrets.md` → Commands That Leak)
+  the URL whole (`rules/secrets.md` → Commands That Leak);
+  on Debian and Ubuntu as `rules/os/debian.md` → What to
+  Check on Existing Servers extracts them, with `own` set
+  empty so that every source is listed
 
 ### Certificates
 

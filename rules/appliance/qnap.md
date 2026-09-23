@@ -266,7 +266,10 @@ is QNAP's own.
   conversation. App Center's third-party repositories can carry a
   user name and password (`app-center-settings-8C55F8A1.html`);
   sherpa reads their addresses from `/etc/config/3rd_pkg_v2.conf`,
-  so read only the URL key `u` there.
+  so read only the URL key `u` there, and of it only the host:
+  its line through `sed -nE
+  's#^.*[A-Za-z]+://([^/]*@)?([^/:]+).*#\2#p'`, which prints
+  nothing for a line that holds no URL.
 
 ## App Center and QPKG
 

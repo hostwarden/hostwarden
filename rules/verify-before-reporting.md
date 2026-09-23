@@ -37,8 +37,12 @@ points:
   -p FragmentPath -p DropInPaths -p EnvironmentFiles
   -p WorkingDirectory <unit>` (`LoadState=not-found` is
   a unit name that is wrong, not an empty unit), the
-  paths its command names (`systemctl show -p ExecStart
-  <unit> | grep -oE '(^|[[:space:]>=])/[^[:space:]";|&<>]+'`),
+  paths its command names whose directory exists, as
+  `.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
+  filters them (`$PA` and `ex`, on `systemctl show -p
+  ExecStart <unit>`), since an argument that only looks
+  like a path can be a token; a `(path missing under
+  /mnt)` there is where to look first,
   and an `Environment=` variable by its name
   (`systemctl show -p Environment <unit> | grep -oE
   '"DATA_DIR=[^"]*"|(^|[ =])DATA_DIR=[^ "]*'`), only one

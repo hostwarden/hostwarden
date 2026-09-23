@@ -168,19 +168,68 @@ user override: stable had no option)"
 
 ### What to Check on Existing Servers
 
-During housekeeping, verify the sources list:
+During housekeeping, list every suite apt reads that is
+not the host's own release, with the host it comes from,
+by file, never the line: its URL can hold a token
+(`rules/secrets.md` → Commands That Leak). apt reads only
+`*.list` and `*.sources` files, skips a deb822 stanza
+whose `Enabled:` is `no`, `false`, `off` or `0`, and lets
+a field carry on over indented lines. The pins come along:
 
 ```
-for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
-  grep -v '^[[:space:]]*#' "$f" 2>/dev/null \
-    | grep -owE "testing|unstable|sid|experimental" | sed "s|^|$f:|"
+. /etc/os-release
+for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list \
+  /etc/apt/sources.list.d/*.sources; do
+  [ -f "$f" ] && awk -v own="$VERSION_CODENAME" -v f="$f" '
+    function hs(u) { sub(/^[a-z+]+:\/\/([^\/]*@)?/, "", u)
+      sub(/[\/:].*/, "", u); return u }
+    function out(h, s) { b = s
+      sub(/-(security|updates|backports)$/, "", b)
+      if (b != own) print f ": " hs(h) " " s }
+    function flush(  i, j, n, m, a, c) { if (en) {
+        n = split(ur, c, " "); m = split(su, a, " ")
+        for (i = 1; i <= n; i++) for (j = 1; j <= m; j++) out(c[i], a[j]) }
+      su = ""; ur = ""; en = 1; k = "" }
+    BEGIN { en = 1 }
+    /^[[:space:]]*#/ { next }
+    f ~ /[.]sources$/ {
+      if ($0 ~ /^[[:space:]]*$/) { flush(); next }
+      if ($0 ~ /^[[:space:]]/) {
+        if (k == "suites") su = su " " $0
+        if (k == "uris") ur = ur " " $0
+        next }
+      k = tolower($1); sub(/:.*/, "", k); v = $0; sub(/^[^:]*:/, "", v)
+      if (k == "enabled" && \
+        tolower(v) ~ /^[[:space:]]*(no|false|off|0)[[:space:]]*$/) en = 0
+      if (k == "suites") su = su " " v
+      if (k == "uris") ur = ur " " v
+      next }
+    { l = $0; gsub(/[[][^]]*[]]/, "", l); split(l, w, " ")
+      if (w[1] ~ /^deb(-src)?$/) out(w[2], w[3]) }
+    END { flush() }' "$f"
 done | sort | uniq -c
+# pins from the files apt reads: no extension, or .pref
+for f in /etc/apt/preferences /etc/apt/preferences.d/*; do
+  case ${f##*/} in *.pref) ;; *.*|*~) continue ;; esac
+  grep -HsE '^(Package|Pin|Pin-Priority):' "$f"
+done
+# who publishes each suite: Origin, Suite, Codename of every
+# Release file apt fetched, never the file name (it holds the URL)
+for r in /var/lib/apt/lists/*Release; do
+  [ -f "$r" ] && grep -hE '^(Origin|Suite|Codename):' "$r" | tr '\n' ' ' \
+    && echo
+done | sort -u
 ```
 
-The file and the suite are enough, never the line, whose URL can
-hold a token (`rules/secrets.md` → Commands That Leak). If
-non-stable sources are found without pinning,
-flag as **WARN** in the housekeeping report.
+`testing`, `unstable`, `sid`, `experimental`, a
+`-proposed` pocket, another release's codename, or a
+`stable` whose Release line says `Origin: Debian` (it
+moves the host to the next release the day that ships,
+whatever the mirror's host name), with no `Pin:` above
+that holds it below 500 → **WARN** in the housekeeping
+report. A suite another origin publishes
+(`apt.grafana.com stable`, `./`) is that vendor's
+scheme, not a Debian release: name it, no finding.
 
 ### Ubuntu Equivalent
 
@@ -188,13 +237,8 @@ On Ubuntu, the same principle applies: use the
 release the server was installed with. Do not mix
 in packages from a newer Ubuntu release. Prefer
 PPAs from the upstream project over random
-third-party PPAs. The check above becomes one for
-any codename other than the host's own
-(`VERSION_CODENAME` in `/etc/os-release`) in the
-`Suites:` and `deb` lines, printing the suites
-alone, never the URL: the one-line format's third
-word (`sed -E 's/\[[^]]*\]//' <file> | awk '$1 ~
-/^deb/ {print $3}'`) and what follows `Suites:`.
+third-party PPAs. The check above holds as it is: it
+compares against the host's own `VERSION_CODENAME`.
 
 ## Package Sources
 

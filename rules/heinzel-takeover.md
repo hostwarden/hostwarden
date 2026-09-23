@@ -512,7 +512,7 @@ reporting it, never the command whole:
   `~/.config/systemd/user/`: `systemctl show -p LoadState
   -p WorkingDirectory <unit>`, the program from
   `systemctl show -p ExecStart <unit> | grep -oE
-  'path=[^ ;]+'`, and each `cd` its command runs;
+  '\{ path=[^ ;]+'`, and each `cd` its command runs;
 - a launchd job: `plutil -extract WorkingDirectory raw
   <plist>`, the program from `plutil -extract Program raw
   <plist>` or, where that is unset, `plutil -extract

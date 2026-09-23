@@ -168,9 +168,24 @@ hl=$(grep -HnE "$h" $ifs 2>/dev/null)
 echo "## hooks"
 [ -n "$hl" ] && printf '%s\n' "$hl" \
   | awk -v t="$t" -v vs="$vs" -v il="$il" "$rd"
-hs=$(printf '%s\n' "$hl" | cut -d: -f3- \
-  | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' | sed 's|^[^/]*||' \
-  | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
+# the scripts a hook line runs: a path in command position, and
+# any other path word that is a script here: executable, a #!
+# line or a script's extension (one behind env, timeout or
+# python3); an argument that is neither can be a token or a key.
+# Tested with the privilege path; one a user cannot test counts
+T=$SUDO; [ "$T" = - ] && T=
+r='((\.|source|exec|([a-z/]*/)?(sh|bash|dash))[[:space:]]+)?'
+hc=$(printf '%s\n' "$hl" | cut -d: -f3- \
+  | sed -E 's/^[[:space:]]*[a-z-]+[[:space:]]+//' | tr ';&|' '\n\n\n')
+hs=$({ printf '%s\n' "$hc" | sed -nE "s#^[[:space:]]*$r(/[^[:space:]]+).*#\\5#p"
+  printf '%s\n' "$hc" | grep -oE "(^|[[:space:]=])/[^[:space:]\"']+" \
+    | sed 's|^[^/]*||' | while IFS= read -r w; do
+      $T test -f "$w" || { [ "$SUDO" = - ] && ! LC_ALL=C ls -d "$w" 2>&1 \
+        | grep -q 'No such file' && echo '(unread)'; continue; }
+      case $w in *.sh|*.bash|*.py|*.pl) echo "$w"; continue ;; esac
+      { $T test -x "$w" || [ "$($T head -c 2 "$w" 2>/dev/null)" = '#!' ]; } \
+        && echo "$w"; done
+  } | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
 c=
 for f in /etc/network/if-*.d/* /etc/NetworkManager/dispatcher.d/* \
   /etc/NetworkManager/dispatcher.d/*.d/* \
@@ -191,8 +206,10 @@ fi
 for f in /sbin/ifup-local /sbin/ifdown-local; do
   [ -f "$f" ] && hs="$hs $f"
 done
-hs=$(printf '%s\n' $hs | sort -u)
+hu=$(printf '%s\n' $hs | grep -c '^(unread)$')
+hs=$(printf '%s\n' $hs | grep -v '^(unread)$' | sort -u)
 echo "scripts: $(printf '%s ' $hs)"
+[ "$hu" -gt 0 ] && echo "scripts-unread=$hu(needs-root)"
 # Commands that change something, and assignments whose value is
 # a netfilter tool, an address, a number or an interface name ($v).
 p='^[[:space:]]*([a-z/]*/)?(ip6?tables(-legacy)?(-restore)?|nft|ip'
@@ -211,9 +228,15 @@ else
     [ -f "$f" ] || { echo "missing=$f"; continue; }
     w=; o=0
     for c in $(grep -vE "^[[:space:]]*(#|\$)" "$f" | sed -e "s/^[[:space:]]*//" \
-      -e "s/[[:space:];].*//" -e "s/=.*/=/" | sort -u); do
+      -e "s/[[:space:];].*//" -e "s/^\([A-Za-z_][A-Za-z0-9_]*\)=[^=].*/\1=@/" \
+      | sort -u); do
+      # NAME= only with a value after it (a padded key ends in =),
+      # $ only before a name, a path only one that exists here
       case $c in
-        /*|*=|\$*|\"\$*) w="$w $c" ;;
+        *=@) w="$w ${c%@}" ;;
+        /*[+=]*) o=$((o + 1)) ;;
+        /*) if [ -e "$c" ]; then w="$w $c"; else o=$((o + 1)); fi ;;
+        \$[A-Za-z_{]*|\"\$[A-Za-z_{]*) w="$w $c" ;;
         *) if command -v "$c" >/dev/null 2>&1; then w="$w $c"
            else o=$((o + 1)); fi ;;
       esac
@@ -348,7 +371,7 @@ echo "proxy-env=$pe proxy-apt=$pa proxy-dnf=$pd proxy-suse=${pz:-0}"
   /etc/apt/sources.list /etc/apt/sources.list.d/ \
   /etc/yum.repos.d/ /etc/zypp/repos.d/ /etc/apk/repositories \
   2>/dev/null \
-  | grep -oE 'https?://[^/ "]+' | sed 's|//[^@/]*@|//|' \
+  | grep -oE 'https?://[^/ "]+' | sed 's|//.*@|//|' \
   | sort -u | head -3)
 [ -n "$T" ] || echo "egress=no-target"
 gw=; command -v wget >/dev/null 2>&1 \
@@ -522,7 +545,11 @@ Reading **A (manager)**:
   part that matters most: NAT, policy routing and sysctls
   set in a `post-up` line or a script it calls are
   applied with the interface and appear in no manager's
-  view. `scripts:` names each script a hook line calls,
+  view. `scripts:` names each script a hook line runs as
+  a command, each other path in it that is a script here
+  (behind `env`, `timeout` or an interpreter; never a key
+  or password file it names), with `scripts-unread=<n>`
+  for those a session without root could not test,
   and each dispatcher script no package installed. Then,
   per script, the first words of its lines that are a
   command, a path or a variable, with `other:` counting
@@ -775,8 +802,8 @@ One request per address family to a host the machine
 already talks to, so the test adds no new third
 party: on Linux the first answering repository host
 (section E of the probe), on FreeBSD the host of the
-`pkg` repository (`pkg -vv | grep url`, with `pkg+`
-and the path dropped: `https://pkg.FreeBSD.org/`),
+`pkg` repository (its host as `rules/os/freebsd.md`
+→ Package Manager reads it: `pkg.FreeBSD.org`),
 on macOS Apple's update host `swscan.apple.com`. On
 FreeBSD use `fetch -4` / `fetch -6` with
 `-q -T 5 -o /dev/null`; on macOS `curl` as in the

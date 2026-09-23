@@ -321,7 +321,7 @@ of the current release branch,
   checks:
   ```
   uci show dropbear; uci show firewall; netstat -tlnp
-  h='s#^([^:]*[[:space:]])?[a-z]+://([^/@]*@)?([^/:[:space:]]+).*#\1\3#'
+  h='s#^([^:]*[[:space:]])?[a-z]+://([^/[:space:]]*@)?([^/:[:space:]]+).*#\1\3#'
   o='s/^([[:space:]]*option[[:space:]]+[^[:space:]]+).*/\1 .../'
   sed -E -e "$h" -e "$o" /etc/apk/repositories.d/*.list \
     /etc/opkg/*.conf

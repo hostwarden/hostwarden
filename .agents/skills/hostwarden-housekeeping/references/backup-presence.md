@@ -53,13 +53,25 @@ systemctl list-timers --all 2>/dev/null \
   | grep -iE 'backup|borg|restic|rsnapshot|dump|rclone'
 KW='backup|restic|borg|dump|rclone|rsync'
 PA="(^|[[:space:]>=])/[^[:space:]\"';|&<>]+"
+# a path shows only where its directory exists here: an argument
+# that only looks like one can be a token. One whose directory is
+# gone shows as "(path missing under <nearest that exists>)", one
+# this user cannot test (permission, a stale mount behind the
+# timeout) as "(path not readable)", never as its value
+ex() { while IFS= read -r w; do w=${w#[[:space:]>=]}; w=${w%%::*}
+  case $w in /*) d=${w%/*}; d=${d:-$w}; timeout 5 test -e "$d"; r=$?
+    if [ $r -eq 1 ] && LC_ALL=C ls -d "$d" 2>&1 | grep -q 'No such file'
+    then a=${d%/*}; while [ -n "$a" ] && ! timeout 5 test -e "$a"
+      do a=${a%/*}; done; w="(path missing under ${a:-/})"
+    elif [ $r -ne 0 ]; then w='(path not readable)'; fi ;; esac
+  printf '%s%s\n' "$1" "$w"; done; }
 for f in /etc/crontab /etc/cron.d/* /etc/cron.daily/* \
   /etc/cron.weekly/* /etc/periodic/*/*; do
   grep -v '^[[:space:]]*#' "$f" 2>/dev/null | grep -iE "$KW" \
-    | grep -oiE "$KW|$PA" | sed "s|^[[:space:]>=]*|$f:|"
+    | grep -oiE "$KW|$PA" | ex "$f:"
 done | sort | uniq -c
 crontab -l 2>/dev/null | grep -v '^[[:space:]]*#' | grep -iE "$KW" \
-  | grep -oiE "$KW|$PA" | sed 's|^[[:space:]>=]*||' | sort | uniq -c
+  | grep -oiE "$KW|$PA" | ex | sort | uniq -c
 
 # Filesystem snapshots (no zpool without /dev/zfs: it would load
 # the module, rules/storage-inventory.md → Detection)
@@ -77,8 +89,14 @@ ls -lt /var/backups/ 2>/dev/null | head -5
 
 **Recent-run evidence:** the `LAST` column of
 `list-timers`, mtimes of backup logs and repo
-directories, which the cron lines name, the
-creation date of the newest snapshot.
+directories, which the cron lines name where their
+directory exists, the creation date of the newest
+snapshot. A `(path not readable)` line is evidence
+this user could not check: "unknown", not "none". A
+`(path missing under /mnt)` line is a target that is
+not there: an unmounted disk or share, a repository
+that was moved, or an argument that only looked like a
+path; name the job and ask.
 
 Two caveats to carry into the report:
 
@@ -147,13 +165,24 @@ done
 # are not jobs
 KW='backup|restic|borg|zfs send|syncoid|zrepl|dump|rclone|rsync'
 PA="(^|[[:space:]>=])/[^[:space:]\"';|&<>]+"
+# a path shows only where its directory exists here: an argument
+# that only looks like one can be a token. One whose directory is
+# gone shows as "(path missing under <nearest that exists>)", one
+# this user cannot test (permission, a stale mount behind the
+# timeout) as "(path not readable)", never as its value
+ex() { while IFS= read -r w; do w=${w#[[:space:]>=]}; w=${w%%::*}
+  case $w in /*) d=${w%/*}; d=${d:-$w}; timeout 5 test -e "$d"; r=$?
+    if [ $r -eq 1 ] && LC_ALL=C ls -d "$d" 2>&1 | grep -q 'No such file'
+    then a=${d%/*}; while [ -n "$a" ] && ! timeout 5 test -e "$a"
+      do a=${a%/*}; done; w="(path missing under ${a:-/})"
+    elif [ $r -ne 0 ]; then w='(path not readable)'; fi ;; esac
+  printf '%s%s\n' "$1" "$w"; done; }
 for f in /etc/crontab /etc/cron.d/* /usr/local/etc/cron.d/*; do
   grep -v '^[[:space:]]*#' "$f" 2>/dev/null | grep -iE "$KW" \
-    | grep -oiE "$KW|$PA" | sed "s|^[[:space:]>=]*|$f:|"
+    | grep -oiE "$KW|$PA" | ex "$f:"
 done | sort | uniq -c
 crontab -l -u root 2>/dev/null | grep -v '^[[:space:]]*#' \
-  | grep -iE "$KW" | grep -oiE "$KW|$PA" | sed 's|^[[:space:]>=]*||' \
-  | sort | uniq -c
+  | grep -iE "$KW" | grep -oiE "$KW|$PA" | ex | sort | uniq -c
 # periodic settings count only when their last value, the local
 # file's where it sets one, is YES
 cat /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \

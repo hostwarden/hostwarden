@@ -16,13 +16,14 @@ pattern rather than by name:
 w="([A-Za-z_][A-Za-z0-9_]*=)?[^[:space:]\"'=]*"
 grep -rnoE "$w<old-path-or-stem>[^[:space:]\"';?]*" \
   /etc /usr/local /root /home/*/bin 2>/dev/null \
-  | sed -E 's#[a-z][a-z0-9+.-]*://.*/#<url>/#'
+  | sed -E 's#[a-z][a-z0-9+.-]*://[^[:space:]]*#<url>#'
 ```
 
 `-o` prints the word that holds the name and the
 variable it is assigned to, not the line, which can
-carry a password; a URL keeps only its last part
-(`rules/secrets.md` → Commands That Leak). A variable
+carry a password; a URL shows as `<url>`, since any
+part of it can hold a token (`rules/secrets.md` →
+Commands That Leak). A variable
 the search names (`LOG=`) is searched for in turn, as
 `$LOG` and `${LOG}`, the same way.
 
@@ -206,8 +207,8 @@ found only by the `find`.
 
 `-l` prints file names only. Read the hits that can
 be consumers, in one call, first by the words that
-hold the name (the `-o` search of step 1, on those
-files); a crontab or a unit never whole
+hold the name (the whole search of step 1, its `sed`
+included, on those files); a crontab or a unit never whole
 (`rules/secrets.md` → Commands That Leak). Never read a hit in key
 material, a file `rules/secrets.md` names, a config
 backup or a scratch directory — none of them runs
