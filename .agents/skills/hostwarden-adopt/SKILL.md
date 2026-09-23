@@ -149,9 +149,10 @@ leads, the host confirms them.
    - **A fact about one host**, a decision about it or an open plan
      for it: under `## Facts` in that host's `heinzel-inventory.md`
      (`references/inventory.md`), which its first connection checks
-     and carries into `memory.md`, a plan as `- Planned: …`. A host
-     still in the old checkout gets nothing yet: its items are sorted
-     again when it is adopted.
+     and carries into `memory.md`, a plan as `- Planned: …`, and then
+     removes; it is no lead. A host that already has a `memory.md`
+     takes the item there directly. A host still in the old checkout
+     gets nothing yet: its items are sorted again when it is adopted.
    - **A fact about the network or several hosts** — sites, VPNs,
      break-glass access, a firewall between sites, which host backs
      up which: `memory/network.md` (`rules/server-memory.md` →

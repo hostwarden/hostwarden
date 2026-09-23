@@ -62,7 +62,10 @@ hostwarden-adopt. Not verified against the host.
 
 `## Facts` holds what the adoption sorted out of Heinzel's other
 memory for this host (the skill's step 4): facts, decisions and open
-plans, not leads. Each keeps its source file and date.
+plans, not leads. Each keeps its source file and date. The Heinzel
+check does not probe for them; the first connection writes them into
+`memory.md` and removes the section (`rules/heinzel-adoption.md` →
+Heinzel's memory).
 
 ## Verification is the host's job
 

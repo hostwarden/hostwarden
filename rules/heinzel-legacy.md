@@ -70,7 +70,10 @@ it exists, holds what memory and changelog say this
 host carries; the `hostwarden-adopt` skill writes it
 when a Heinzel installation is taken over. Every
 entry is a lead, not a fact
-(`rules/verify-before-reporting.md`).
+(`rules/verify-before-reporting.md`), except those
+under `## Facts`: they are no artifacts to probe for,
+and `rules/heinzel-adoption.md` → Heinzel's memory
+takes them.
 
 **Then probe the host in one call,** in the activity
 check's call where possible

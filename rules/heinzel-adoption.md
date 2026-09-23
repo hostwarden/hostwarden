@@ -304,7 +304,9 @@ these:
    this host, under the same test as the standing
    facts of 2. An open plan becomes
    `- Planned: <what> (user, <date>)`, removed once
-   it is done or the user drops it.
+   it is done or the user drops it. Once written,
+   the section leaves the inventory, which is then
+   empty when no lead is left.
 
 History is not carried: incidents, what was done
 when, versions that were current then, how a problem

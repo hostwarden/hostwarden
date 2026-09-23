@@ -597,6 +597,7 @@ if [ -e "$KH_SRC" ] || [ -L "$KH_SRC" ]; then
 fi
 
 CR=$(printf '\r')
+US=$(printf '\037')
 
 # user_line <key> <file>: the first line of <file>
 # that sets <key>, without a leading "- ", or nothing.
@@ -615,41 +616,33 @@ user_line() {
 }
 
 # A user.md of this clone's own is merged rather than
-# kept whole: the old one's language, operator name and
+# kept whole: the old one's language, reply address and
 # per-server SSH users would otherwise stay behind
-# unnoticed. Only what the template knows comes across
-# — Language, Operator name and Greeting under
-# "# Preferences", Default under "# SSH Users", and the
-# entries under "## Per-server overrides" — and only
-# where this clone sets nothing. A key both set
-# differently is reported, never chosen, and so is a
-# greeting that signs as Heinzel.
+# unnoticed. Every "Key: value" line this clone does not
+# set comes across, under the heading it had in the old
+# file — "# Preferences", "# SSH Users",
+# "## Per-server overrides" or one of the user's own —
+# which this file gets at its end where it lacks it. A
+# key both set differently is reported, never chosen,
+# and so is a greeting that signs as Heinzel.
 UM_SRC="$OLD/memory/user.md"
 UM_DST="memory/user.md"
 case " $SHARED_PENDING " in
   *" user.md "*)
     if [ -f "$UM_SRC" ] && [ -f "$UM_DST" ] && [ ! -L "$UM_DST" ]; then
-      UM_PREF='' UM_DEF='' UM_HOST='' UM_DIFF='' UM_SEEN="$NL" UM_N=0
-      UM_SEC=''
+      # UM_Q: one "<heading><US><line>" per line to add.
+      UM_Q='' UM_DIFF='' UM_SEEN="$NL" UM_N=0 UM_HEAD=''
       while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
         UM_LINE=${UM_LINE%"$CR"}
         case "$UM_LINE" in
-          '## Per-server overrides'*) UM_SEC=host; continue ;;
-          '# '*|'## '*) UM_SEC=''; continue ;;
+          '# '*|'## '*) UM_HEAD=$UM_LINE; continue ;;
           '#'*|'') continue ;;
         esac
         UM_ITEM=${UM_LINE#- }
         case "$UM_ITEM" in *': '*) ;; *) continue ;; esac
         UM_KEY=${UM_ITEM%%: *}
-        if [ "$UM_SEC" = host ]; then
-          UM_KIND=host
-        else
-          case "$UM_KEY" in
-            Language|'Operator name'|Greeting) UM_KIND=pref ;;
-            Default) UM_KIND=default ;;
-            *) continue ;;
-          esac
-        fi
+        # This script writes that line itself.
+        [ "$UM_KEY" = "Adopted from heinzel" ] && continue
         # The first line for a key decides, as for the
         # agent that reads the file.
         case "$UM_SEEN" in *"$NL$UM_KEY$NL"*) continue ;; esac
@@ -660,17 +653,13 @@ case " $SHARED_PENDING " in
             || UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
           continue
         fi
-        case "$UM_KIND:$UM_ITEM" in
-          pref:Greeting:*[Hh]einzel*)
+        case "$UM_ITEM" in
+          Greeting:*[Hh]einzel*)
             UM_DIFF="$UM_DIFF  Greeting: the old checkout's signs as Heinzel, not taken$NL"
             continue ;;
         esac
         UM_N=$((UM_N + 1))
-        case "$UM_KIND" in
-          pref) UM_PREF="$UM_PREF$UM_ITEM$NL" ;;
-          default) UM_DEF="$UM_DEF$UM_ITEM$NL" ;;
-          host) UM_HOST="$UM_HOST- $UM_ITEM$NL" ;;
-        esac
+        UM_Q="$UM_Q$UM_HEAD$US$UM_LINE$NL"
       done < "$UM_SRC"
       # user.md is the first shared item, so it leads the
       # list when it is pending.
@@ -685,27 +674,36 @@ case " $SHARED_PENDING " in
         plan "user.md (merged: $UM_N lines added)"
         if [ -z "$LIST" ]; then
           UM_TMP=$(mktemp "$UM_DST.XXXXXX")
-          UM_P='' UM_D='' UM_H=''
+          # um_under <heading>: the queued lines for it.
+          um_under() {
+            printf '%s' "$UM_Q" | while IFS= read -r uu; do
+              [ "${uu%%"$US"*}" != "$1" ] || printf '%s\n' "${uu#*"$US"}"
+            done
+          }
+          UM_DONE="$NL"
           {
+            # Lines that stood above every heading.
+            um_under ''
             while IFS= read -r UM_LINE || [ -n "$UM_LINE" ]; do
               UM_LINE=${UM_LINE%"$CR"}
               printf '%s\n' "$UM_LINE"
               case "$UM_LINE" in
-                '# Preferences') [ -z "$UM_PREF" ] || printf '\n%s' "$UM_PREF"; UM_P=yes ;;
-                '# SSH Users') [ -z "$UM_DEF" ] || printf '\n%s' "$UM_DEF"; UM_D=yes ;;
-                '## Per-server overrides'*) UM_H=yes ;;
+                '# '*|'## '*)
+                  case "$UM_DONE" in *"$NL$UM_LINE$NL"*) ;; *)
+                    um_under "$UM_LINE"
+                    UM_DONE="$UM_DONE$UM_LINE$NL" ;;
+                  esac ;;
               esac
             done < "$UM_DST"
-            if [ -z "$UM_P" ] && [ -n "$UM_PREF" ]; then
-              printf '\n# Preferences\n\n%s' "$UM_PREF"
-            fi
-            if [ -z "$UM_D" ] && [ -n "$UM_DEF" ]; then
-              printf '\n# SSH Users\n\n%s' "$UM_DEF"
-            fi
-            if [ -n "$UM_HOST" ]; then
-              [ -n "$UM_H" ] || printf '\n## Per-server overrides\n'
-              printf '%s' "$UM_HOST"
-            fi
+            # Headings this file lacks, in the old order.
+            printf '%s' "$UM_Q" | while IFS= read -r UM_QL; do
+              UM_H=${UM_QL%%"$US"*}
+              [ -n "$UM_H" ] || continue
+              case "$UM_DONE" in *"$NL$UM_H$NL"*) continue ;; esac
+              UM_DONE="$UM_DONE$UM_H$NL"
+              printf '\n%s\n\n' "$UM_H"
+              um_under "$UM_H"
+            done
           } > "$UM_TMP"
           # Through cat, not mv: the file keeps its own
           # mode, and mktemp's is 0600.
