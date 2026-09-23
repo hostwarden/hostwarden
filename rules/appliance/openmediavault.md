@@ -4,7 +4,7 @@ Base: `rules/os/debian.md`
 Hardware: any
 
 An OpenMediaVault (OMV) host is a Debian host, and this file applies
-on top of the base (`rules/os-detection.md` → Appliances). OMV owns
+on top of the base (`rules/os-detection.md` → Layers). OMV owns
 most of what the base would have you edit: it keeps its settings in
 one XML database and regenerates the files under `/etc` from it, so
 a hand edit lasts until the next time the web UI applies a change.

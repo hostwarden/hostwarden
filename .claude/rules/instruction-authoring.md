@@ -64,7 +64,7 @@ several OS files share, such as `rules/busybox.md`, lives in
 through the files that point to it, never by detection, so the
 one-family cap still holds.
 
-An appliance (`rules/os-detection.md` → Appliances) gets a file in
+An appliance (`rules/first-detection.md` → Appliances) gets a file in
 `rules/appliance/` and a row in that section's marker table. The
 file opens with a `Base:` line naming its family file, or
 `Base: none`, followed by a `Hardware:` line, `vendor` or `any`
@@ -74,7 +74,7 @@ Decide per section of the base with the override prefixes; "this
 file wins wherever the two disagree" leaves the reader to find the
 disagreement on a live firewall.
 
-A platform (`rules/os-detection.md` → Platforms) gets a file in
+A platform (`rules/first-detection.md` → Platforms) gets a file in
 `rules/platform/` and a row in that section's marker table. It has
 no `Base:` line and a `## Housekeeping and Audits` section;
 `instructions-test.sh` holds its prefixed headings to the sections
@@ -85,7 +85,7 @@ One whose commands are not `sh` — Windows — carries its checks
 there in full, because the skills' baseline references are
 written for `sh`.
 
-A role (`rules/os-detection.md` → Roles) gets a file in
+A role (`rules/first-detection.md` → Roles) gets a file in
 `rules/role/`. It changes no command, only expectations and
 ratings, so it uses no override prefixes: each section says which
 rule, expectation or check it changes, by name.

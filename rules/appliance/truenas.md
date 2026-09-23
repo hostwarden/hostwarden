@@ -11,7 +11,7 @@ vocabulary (`systemctl`, `journalctl`), but most of its
 instructions for changing the system are **wrong here**: the
 TrueNAS middleware owns the configuration and renders the system
 files from its database. This file applies on top of the base
-(`rules/os-detection.md` → Appliances).
+(`rules/os-detection.md` → Layers).
 
 The host usually holds data that exists nowhere else. A wrong move
 on a pool is not undone by a reinstall.

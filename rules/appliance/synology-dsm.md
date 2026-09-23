@@ -30,14 +30,14 @@ system rather than trust it.
 - **This file covers DSM 7.2 and later 7.x releases**, the ones
   whose `/etc.defaults/VERSION` carries `os_name="DSM"`. On DSM 7.0
   or 7.1, both past their end of life, on 6 or earlier and on 8 or
-  later, stop (`rules/os-detection.md` → Appliances).
+  later, stop (`rules/os-detection.md` → Layers).
 - `/etc.defaults/VERSION` holds `key="value"` lines, among them
   `majorversion`, `minorversion`, `productversion` (e.g. `7.2.2`),
   `buildnumber`, `smallfixnumber` and `os_name="DSM"`, the last
   confirmed from DSM 7.2 on. Synology does not document the file; Salt's grains
   (`salt/grains/core.py`) and Tailscale
   (`hostinfo/hostinfo_linux.go`) read the version from it. Step 1
-  of `rules/os-detection.md` prints it; later connections read it
+  of `rules/first-detection.md` prints it; later connections read it
   with `cat /etc.defaults/VERSION`.
 - Synology names a release `<productversion>-<buildnumber>`, and a
   later fix to it `Update <n>`, which is `smallfixnumber`
@@ -577,7 +577,7 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   - a check that needed root and did not run, named as unchecked.
 - DSM keeps these settings where the shell cannot read them without
   an undocumented API, so they are settings only the web UI shows
-  (`rules/os-detection.md` → Appliances): the update setting; a data
+  (`rules/os-detection.md` → Layers): the update setting; a data
   scrubbing schedule for every pool that supports it; snapshot
   schedules; Hyper Backup tasks and their last result (the
   backup-presence check's `Backup:` line); the configuration backup;

@@ -5,9 +5,9 @@ Runs on every housekeeping run, on every host.
 ## On a host without a `Hypervisor:` line
 
 Run the `@hypervisor` lines of the step-1 probe
-(`rules/os-detection.md`) in the first batch; on Windows the
+(`rules/first-detection.md`) in the first batch; on Windows the
 `vmms` line of `rules/os/windows.md` → Version Detection. A
-candidate is settled as `rules/os-detection.md` → Hypervisors
+candidate is settled as `rules/first-detection.md` → Hypervisors
 says, and a new hypervisor gets its full inventory
 (`rules/hypervisors.md`) in this run.
 

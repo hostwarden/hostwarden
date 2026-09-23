@@ -23,10 +23,10 @@ repositories on GitHub where the docs are silent.
   Slackware. Unraid 8 is announced on a Fedora base (uCore) and is
   not covered
   (<https://unraid.net/blog/unraid-8-announced>). When the version
-  is 8 or later, stop (`rules/os-detection.md` → Appliances).
+  is 8 or later, stop (`rules/os-detection.md` → Layers).
 - `/etc/unraid-version` holds one line, `version="<version>"`
   (`unraid/api`, `get-unraid-version-sync.ts`). Step 1 of
-  `rules/os-detection.md` prints it; later connections read it with
+  `rules/first-detection.md` prints it; later connections read it with
   `cat /etc/unraid-version`.
 - Releases come as Stable, Release Candidate (`-rc.<n>`) and Beta
   (`-beta.<n>`)

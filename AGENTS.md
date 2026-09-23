@@ -277,7 +277,8 @@ trigger — not a request from the user.
 
 - Changing anything on a host whose memory has a
   `Config management:` or `Provisioned by:` line, or a file whose
-  header says a tool manages it → `rules/config-management.md`
+  header says a tool manages it →
+  `rules/config-management-changes.md`
 - Editing any config file → `rules/backups.md`
 - Installing or upgrading any software →
   `rules/version-check.md`, for the stable version to install.

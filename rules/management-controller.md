@@ -16,7 +16,7 @@ where a check below would be easier with one.
 
 Every host gets a `Management:` line, because every host can have
 its SSH cut. Detection below and the two audit checks are bare
-metal only (`rules/os-detection.md` → Virtualization); on a
+metal only (`rules/first-detection.md` → Virtualization); on a
 virtual machine or a container the line is filled by The rescue
 path instead, since a guest has no controller of its own.
 

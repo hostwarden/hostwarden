@@ -8,7 +8,7 @@ SSH is its control domain, dom0: a CentOS 7 userland with security
 fixes backported by the XCP-ng team, a patched 4.19 kernel, and the
 XAPI toolstack (<https://docs.xcp-ng.org/releases/release-8-3/>).
 This file applies on top of the base (`rules/os-detection.md` →
-Appliances). Dom0 is not a general-purpose server: every VM on the
+Layers). Dom0 is not a general-purpose server: every VM on the
 host, and in a pool every other host, depends on it.
 
 XCP-ng: "day to day, nobody should log into a host directly"

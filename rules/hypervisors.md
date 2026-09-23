@@ -1,6 +1,6 @@
 # Hypervisors and Their Guests
 
-Every guest on a hypervisor (`rules/os-detection.md` → Hypervisors)
+Every guest on a hypervisor (`rules/first-detection.md` → Hypervisors)
 is inventoried without being asked for, running or not, and every
 guest with memory of its own records which host it runs on. The
 inventory comes from the hypervisor's manager, never from SSH into
@@ -43,7 +43,7 @@ entry then starts with its manager (`incus: prod/web`), and
 into one
 bundled call (`rules/ssh-connections.md`). On an appliance, its
 file's **Inventory** entry gives every command, and nothing below
-applies (`rules/os-detection.md` → Hypervisors). Elsewhere:
+applies (`rules/first-detection.md` → Hypervisors). Elsewhere:
 
 - **libvirt:** always `virsh -c qemu:///system`: without it, a
   non-root `virsh` opens the user's own session and lists nothing.
@@ -104,7 +104,7 @@ network stack.
 
 Every jail host's call starts with the services that start jails
 at boot, which are also what makes a candidate a hypervisor
-(`rules/os-detection.md` → Hypervisors), and with the running
+(`rules/first-detection.md` → Hypervisors), and with the running
 jails of every manager and the MACs and addresses of those with
 `vnet`:
 
@@ -489,9 +489,8 @@ the link. Often only one side ever is — a VM at a provider, a
 hypervisor someone else runs — and that is normal, never a
 finding.
 
-- **A cloud VM** (`Virtualization: amazon (VM)`, `google`, or a
-  provider after the kind, `kvm (VM, Hetzner)`) runs on its
-  provider: `Runs on: Amazon EC2 (cloud)`, `Runs on: Hetzner
+- **A cloud VM** (a provider after the kind, `Virtualization:
+  kvm (VM, Hetzner)`) runs on its provider: `Runs on: Hetzner
   (cloud)`, with no keys and no question. It is settled before
   anything below.
 - **MAC addresses** — the guest reads its own without privileges
@@ -499,7 +498,7 @@ finding.
   reads them from the guest's configuration. Compare them in
   lowercase with colons.
 - **UUID**, from the source in the UUID column of
-  `rules/os-detection.md` → Virtualization for the
+  `rules/first-detection.md` → Virtualization for the
   `Virtualization:` type. A type without one, `unknown (VM)` and
   containers included, links by MAC alone; a FreeBSD jail links
   as below.

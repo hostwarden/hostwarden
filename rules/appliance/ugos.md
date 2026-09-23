@@ -38,7 +38,7 @@ host, not as documented behaviour.
 ## Version Detection
 
 - **This file covers UGOS Pro 1.x.** When the version is 2 or
-  later, stop (`rules/os-detection.md` → Appliances).
+  later, stop (`rules/os-detection.md` → Layers).
 - **The older UGOS (without "Pro") is not covered either.** UGREEN
   moved those NAS models to UGOS Pro, and after the switch the old
   storage can only be mounted as external storage (article 412).
@@ -51,7 +51,7 @@ host, not as documented behaviour.
 - On the host, `/etc/os-release` carries it as `OS_VERSION`, beside
   `OS_IS_BETA` for a beta build (community:
   `runlevel1977-del/UgreenNASAdmin`, which reads both). Step 1 of
-  `rules/os-detection.md` prints both lines; later connections read
+  `rules/first-detection.md` prints both lines; later connections read
   them with:
   ```
   grep -E "^OS_(VERSION|IS_BETA)=" /etc/os-release

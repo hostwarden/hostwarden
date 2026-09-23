@@ -776,12 +776,13 @@ fi
 
 # --- appliance files hold to their contract ---------------------
 # An appliance file is read on top of its family file the way an
-# override is (rules/os-detection.md -> Appliances). A `Replace:` or
+# override is (rules/os-detection.md -> Layers). A `Replace:` or
 # `Remove:` that names nothing in the base takes nothing out, and the
 # family's advice then stands where it is wrong; detection reaches
-# only the files its marker table lists. Whether the Base file exists
-# is the pointer check's job above.
-report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
+# only the files the marker table of rules/first-detection.md
+# lists. Whether the Base file exists is the pointer check's job
+# above.
+report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/first-detection.md" \
   "$LOAD_AWK"'
   function done() {
     if (rel == "") return
@@ -806,7 +807,7 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
     done(); FM = ""; based = ha = hw = hwline = 0; base = ""
     rel = substr(FILENAME, length(root) + 1)
     if (!index(text(table), "`" rel "`"))
-      print rel ": not in the marker table of rules/os-detection.md"
+      print rel ": not in the marker table of rules/first-detection.md"
   }
   fenced($0) { next }
   FNR == hwline && /^Hardware: (vendor|any)$/ { hw = 1 }
@@ -834,13 +835,13 @@ report "$(awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" \
 
 # --- platform files hold to theirs -------------------------------
 # A platform file applies to whichever family detection found
-# (rules/os-detection.md -> Platforms), so a `Replace:` or `Remove:`
+# (rules/os-detection.md -> Layers), so a `Replace:` or `Remove:`
 # may only name a section that every family file has; one only some
 # have takes nothing out on the others, silently.
 # The family list goes in through the environment: awk -v rejects a
 # value with a newline in it.
 report "$(FAMILIES="$(printf '%s\n' "$ROOT"/rules/os/*.md)" \
-  awk -v root="$ROOT/" -v table="$ROOT/rules/os-detection.md" "$LOAD_AWK"'
+  awk -v root="$ROOT/" -v table="$ROOT/rules/first-detection.md" "$LOAD_AWK"'
   function done() {
     if (rel == "") return
     if (based) print rel ": a Base line, but it has no fixed base"
@@ -858,7 +859,7 @@ report "$(FAMILIES="$(printf '%s\n' "$ROOT"/rules/os/*.md)" \
     done(); FM = ""; based = ha = 0
     rel = substr(FILENAME, length(root) + 1)
     if (!index(t, "`" rel "`"))
-      print rel ": not in the marker table of rules/os-detection.md"
+      print rel ": not in the marker table of rules/first-detection.md"
   }
   fenced($0) { next }
   /^Base: / { based = 1 }
