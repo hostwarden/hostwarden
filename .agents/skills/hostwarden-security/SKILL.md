@@ -62,6 +62,8 @@ applies before any of this runs.
 
 ## Scope and limits
 
+- Several hosts in one request run as `rules/multi-host.md` says,
+  which follows this skill for each host.
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
   FreeBSD and macOS are covered by the references below; each
   one has a section per family where the commands differ.

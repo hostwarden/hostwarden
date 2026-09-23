@@ -21,11 +21,11 @@ workflows by naming the file —
 
 What is Claude Code only: the taboo guard hook and the
 repo conventions in `.claude/rules/`. Elsewhere the
-prose rules are the entire safety layer. The fleet
-audit's per-host subagents are a capability, not a
-brand: a harness that can run agents or parallel tool
-calls fans out the same way, and one that cannot walks
-the hosts in turn — same tables either way.
+prose rules are the entire safety layer. The per-host
+subagents of the fleet audit and of a task on several
+servers are Claude Code's: elsewhere the same work walks
+the hosts in turn, and only the time and the context it
+takes differ.
 
 OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` turns
 off every `.claude` fallback, and Hostwarden still works
@@ -43,7 +43,7 @@ directly. `CLAUDE.md` stays anyway: it imports
 `AGENTS.md` with `@AGENTS.md`, which covers the setups
 where the direct read does not happen, and it carries
 the handful of things that exist only here — the guard
-hook, the session-start hooks, the subagent. Keep both.
+hook, the session-start hooks, the subagents. Keep both.
 
 ```
 claude
@@ -53,7 +53,7 @@ claude
 
 The Code tab of the Claude desktop app (macOS,
 Windows) runs the same Claude Code: `AGENTS.md`, the
-skills, the subagent and every hook in
+skills, the subagents and every hook in
 `.claude/settings.json` work there as they do in the
 terminal, taboo guard included. Four things need
 attention.

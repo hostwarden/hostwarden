@@ -117,6 +117,10 @@ is missing and the command to install it.
 - **Housekeeping and security audits** per server,
   and a **fleet audit** that shows where your
   servers disagree.
+- **One task on several servers** — a question, a
+  check or a change — with identical answers
+  printed once and changes tried on one host
+  first.
 - **Email reports**, sent from your workstation or
   from the server.
 - **Plan first**: explore, draft a plan, change

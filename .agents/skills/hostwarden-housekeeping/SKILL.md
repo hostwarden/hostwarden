@@ -143,6 +143,8 @@ Read on demand, only when the relevant section applies:
 
 ## Scope and limits
 
+- Several hosts in one request run as `rules/multi-host.md` says,
+  which follows this skill for each host.
 - Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
   FreeBSD and macOS are covered by the baseline references
   above.

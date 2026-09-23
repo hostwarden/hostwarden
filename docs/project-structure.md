@@ -57,6 +57,8 @@ contrib/
   agents/              — Subagent definitions
     hostwarden-host-probe.md — Probes one host for the fleet
                          audit and returns one row
+    hostwarden-host-task.md — Runs one task on one host when a
+                         request spans several
     hostwarden-reviewer.md — Reviews a change to Hostwarden
                          for defects before a second reviewer does
   rules/               — Conventions for working on this repo,
@@ -119,6 +121,8 @@ contrib/
                          from a server (SKILL.md)
     hostwarden-fleet-audit/   — Cross-server policy drift audit
                          (SKILL.md + references/)
+    hostwarden-multi-host/ — One question, check or change
+                         on several servers (SKILL.md)
     hostwarden-os-install/    — Install, replace or dual-boot an
                          OS, with the disk, EFI and cloud-image
                          work that comes with it
@@ -230,6 +234,9 @@ rules/                 — Upstream rule files (git-tracked)
                          hand
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
+  multi-host.md        — One task on several hosts: one
+                         subagent each, grouped answers,
+                         a canary for changes
   session-start.md     — Preferences and overrides to
                          load before the session does
                          anything else

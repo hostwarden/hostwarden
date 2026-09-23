@@ -373,6 +373,41 @@ writes one audit-trail line to each journal). Use it after
 fixing a config bug on one server to find which others
 carry the same bug, or as a periodic consistency check.
 
+## Several servers at once
+
+Ask one question, run one check or roll out one change on
+several servers:
+
+```
+ ❯ Which kernel runs on web1, web2 and web3?
+ ❯ Run housekeeping on web1 and db1
+ ❯ Prüf auf allen Servern, ob nginx läuft
+```
+
+Each host gets its own subagent, which runs the full
+first-connection pipeline for that host — blacklist, read-only
+list, host key, activity check — and returns a short answer.
+Hostwarden prints identical answers once, with the hosts that
+gave them, so twenty hosts that agree take one line and the
+outlier stands out. A host never connected before gets its first
+connection in the main session first, since it needs your
+answers. Hosts behind one jump host run one after another, and so
+do the members of a cluster in a change.
+
+A change asks once, naming every host and a proposed canary
+host. The canary runs alone; only when its result matches what
+was expected do the others follow, in Claude Code all at once
+apart from hosts that have to wait their turn, such as those
+behind one jump host. A surprise stops every host that has not
+started yet: at the canary, the whole rollout; later, only the
+hosts still waiting. Each host the change reached gets its own
+journal line and memory. The rollout is written down as a plan
+in `memory/plans/` until every host is done, so a later session
+can finish it. A change to the firewall, the network or a login
+shell runs one host after another in the main session instead,
+each with the SSH safety net and its own questions.
+`/hostwarden-multi-host` starts it by name.
+
 ## Fleet read
 
 An operations host — an always-on machine that runs
