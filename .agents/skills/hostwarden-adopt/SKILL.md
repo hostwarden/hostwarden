@@ -128,8 +128,11 @@ leads, the host confirms them.
    one that no rule reads. Sort it instead, item by item, into the
    one target its kind has below; never into a file of your own
    making. Read the index and each file's front matter, and the body
-   only where those do not say what it is. An item that holds two
-   kinds is split. Propose every item's target in one list, grouped
+   only where those do not say what it is. The `type` is a first
+   hint, not the answer: `feedback` is mostly how the agent should
+   work, `project` a standard, a fact or a plan, `reference` a
+   pointer that goes with the host or network it names. An item that
+   holds two kinds is split. Propose every item's target in one list, grouped
    by target, and ask once; the user moves items between groups or
    drops them in the answer. A later run lists the same entries
    again, since the old checkout never changes: an item whose content
