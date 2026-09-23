@@ -411,8 +411,10 @@ entry:
   is not read: its entry is removed, and so is
   Heinzel's copy, which holds the same credential and
   never goes into `notes/` or anywhere else in the
-  workspace; the old checkout keeps it. The report
-  names the file as one to rebuild under
+  workspace; the old checkout keeps it, untouched.
+  `memory.md` gets `- Note: not copied: <old
+  checkout>/memory/<path> (holds a credential)`, and
+  the report names the file as one to rebuild under
   `rules/deployed-files.md` → Secrets.
 - **Missing on the host.** The entry is removed, and
   the master moves to the host's `notes/` with the

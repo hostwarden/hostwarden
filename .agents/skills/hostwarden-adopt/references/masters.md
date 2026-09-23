@@ -76,7 +76,9 @@ comments and the file itself.
   write-up, a finished plan, notes about Heinzel itself, and any
   file `rules/secrets.md` counts as a secret, found by its name or
   a `grep -l` and never read: removed from this workspace before
-  the commit and named in the report; the old checkout keeps it.
+  the commit and named in the report; the old checkout keeps it,
+  untouched. A credential file also gets its pointer line (Moving,
+  below), so it is never lost from sight.
 
 ## Moving
 
@@ -98,7 +100,10 @@ A note that nothing points to is deleted (`rules/server-memory.md`
 → Notes and evidence), so each note this pass writes gets a line
 where the host's first connection finds it: under `## Facts` in
 its inventory, or in its `memory.md` where it has one —
-`- Note: notes/<file> (<what it is>, from Heinzel)`.
+`- Note: notes/<file> (<what it is>, from Heinzel)`. A credential
+file gets the same line with its path in the old checkout instead:
+`- Note: not copied: <old checkout>/memory/<path> (holds a
+credential)`.
 
 An emptied Heinzel directory is removed with `rmdir`, which fails
 on anything left; what is left is named in the report.
