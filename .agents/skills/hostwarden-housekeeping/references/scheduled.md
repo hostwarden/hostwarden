@@ -43,7 +43,9 @@ unattended run cannot:
 - how the host is reached when SSH is gone, where
   nothing on it answers that
   (`rules/management-controller.md` → Provider
-  console) — persisted as the `Management:` line;
+  console), or where a controller was found without
+  an address (→ A controller without an address) —
+  persisted in the `Management:` line;
 - which machines a UPS powers, when the host has one
   (`references/usb-devices.md`);
 - any first-connection onboarding for a new host.

@@ -5,12 +5,14 @@ failures, memory errors and thermal events, often before the OS
 notices and always while the OS was not running. Read it on a
 host whose `Management:` line names a BMC this host can reach.
 
-Settle that line first where `memory.md` has none — on any host,
-guest included, as `rules/management-controller.md` → When it
-applies says, since this run is a calm moment and the rescue path
-is not. A scheduled run (`references/scheduled.md`) records
-`unknown (not asked)` rather than putting a question to a
-console nobody is watching, and names it in the report.
+Settle that line first where `memory.md` has none, or has one
+`rules/management-controller.md` → When it applies names as
+unsettled — on any host, guest included, as that section says,
+since this run is a calm moment and the rescue path is not. A
+scheduled run (`references/scheduled.md`) records
+`unknown (not asked)`, or a controller without its address,
+rather than putting a question to a console nobody is watching,
+and names it in the report.
 
 The **check** below then runs only where the line names a
 reachable BMC; anything else gives `ipmitool` no device node to
