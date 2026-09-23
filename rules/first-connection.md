@@ -56,12 +56,9 @@ skip it.
    is never worth a line. Where one applies, read
    `rules/decisions.md` before proposing anything or
    rating a finding. A first connection
-   is one to a host with no `memory.md` yet. That
-   includes a host taken over from Heinzel, whose
-   directory holds Heinzel's `heinzel-memory.md`
-   instead: its `memory.md` is written as
-   `rules/heinzel-takeover.md` → Heinzel's memory
-   says.
+   is one to a host with no `memory.md` yet; where
+   its directory holds `heinzel-memory.md`, read
+   `rules/heinzel-takeover.md` → Heinzel's memory.
 7. **Activity check.** Every connection, not just
    the first. See `rules/activity-check.md`; what
    else goes into its call, and on which connection,

@@ -369,27 +369,12 @@ a Windows guest on any of them (reached over OpenSSH only), and
 every stopped guest stay in `guests.md` alone until they are
 connected to by name.
 
-**A guest still in the Heinzel checkout is taken over, not
-registered.** Where `memory/user.md` has a
-`Taken over from heinzel: <date> (<path>)` line, a guest with no
-memory directory here but one in that checkout's `memory/servers/`
-is left out: a directory registration created would make a later
-`bin/hostwarden-heinzel-takeover --server` for it keep this
-clone's version and copy nothing, and the guest's Heinzel memory
-and changelog would never come across. Match with what step 1
-below matches against the access lists — the names, their first
-labels and the IP addresses — against the directory names there
-and one `grep -H '^- IP:'` over their `memory.md` files, read once
-for all guests, before entering any. Where the path holds no
-Heinzel checkout any more, nothing is left out.
-
-The `hostwarden-heinzel-takeover` skill takes such guests over
-with their host (its step 9). Outside it, `not registered` lists
-each as `in the Heinzel checkout`, and one question after the
-report offers to take them over, which is the explicit request
-that skill needs. A no is recorded in each entry of `guests.md`,
-`in the Heinzel checkout, not taken over (user, <date>)`, and
-not asked again.
+**Taken over from Heinzel.** A memory directory that holds
+`heinzel-memory.md` and no `memory.md` goes through steps 3 and 4
+below as `rules/heinzel-takeover.md` → Before its first connection
+says. Where `memory/user.md` has a `Taken over from heinzel:` line,
+read → Guests in the Heinzel checkout there before entering any
+guest: it leaves some guests out.
 
 Per guest, after the user's request is answered and announced in
 one line (*"Registering 7 guests of pve1.example.com through
@@ -457,13 +442,8 @@ one line (*"Registering 7 guests of pve1.example.com through
    `rules/server-memory.md` says for two guests of one hostname
    (`web-pve1-105`). Where the existing directory has neither
    keys nor a matching `IP:`, ask the user before writing
-   anything. A directory taken over from Heinzel that nothing has
-   connected to has no `memory.md`: the `- IP:` of its
-   `heinzel-memory.md` counts here, and a directory the
-   takeover just copied for this guest is this guest.
-4. Write `memory.md` as `rules/server-memory.md` says — for a
-   directory taken over from Heinzel, as
-   `rules/heinzel-takeover.md` → Heinzel's memory says — with
+   anything.
+4. Write `memory.md` as `rules/server-memory.md` says, with
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. The
    SSH user and the DNS check follow on its first SSH connection,
@@ -490,8 +470,7 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   read inside through pct exec: 101 web1, 102 db1, …
   read inside through qm guest exec: 105 app1, …
   not registered: 110 mail-old (stopped), 120 win1 (Windows),
-    121 fw1 (VM, no agent), 130 old-db (blacklisted),
-    140 wiki (in the Heinzel checkout)
+    121 fw1 (VM, no agent), 130 old-db (blacklisted)
   failed: 131 ci1 (OS detection: timeout; nothing written)
   written: a read-only: journal line in 16 guests (102 db1: no
     logger); 15 new memory directories, 2 existing ones given Runs on:,
@@ -509,8 +488,7 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   its name.
 - `not registered` names every guest of the inventory that has
   no memory of its own now, templates excepted, with the reason
-  this section or step 1 or 3 gives, a guest left to the Heinzel
-  checkout included. A guest step 3 left out was
+  this section or step 1 or 3 gives. A guest step 3 left out was
   read inside, and its entry says so.
 - `failed` names a guest whose probe failed, with the step, the
   error in a few words, and whether its memory directory was
@@ -520,16 +498,12 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   (`rules/changelog.md` → Journal Headlines).
 - `findings` holds one line per finding, led by the memory
   directory it was recorded in, or by ID and name for a guest
-  step 3 left out, which has no memory to record it. A registered
-  guest's Heinzel finds are left to their own question; one step
-  3 left out has them here.
+  step 3 left out, which has no memory to record it.
 - A line with nothing to list is left out.
 
-Questions follow in their own form: Stopped Guests above,
-guests in the Heinzel checkout as above and, where the Heinzel
-check found anything, one question for the host and its
-registered guests together (`rules/heinzel-takeover.md` → A host
-and its guests).
+Questions follow in their own form: Stopped Guests above, then
+Heinzel's, where the Heinzel check found anything
+(`rules/heinzel-takeover.md` → A host and its guests).
 
 ## Linking Guest and Host
 

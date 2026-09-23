@@ -13,9 +13,7 @@ are there.
 ## On first connection
 
 What counts as a first connection:
-`rules/first-connection.md` step 6. A host taken
-over from Heinzel is one; what Heinzel remembered
-never stands in for this probe.
+`rules/first-connection.md` step 6.
 
 0. **Check access control and DNS alias.** For remote
    servers: check blacklist, then read-only list

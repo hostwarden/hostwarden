@@ -19,22 +19,22 @@ left, no `deployed.md` entry reads `sha256 unverified`,
 and `memory/user.md` has neither a
 `Taken over from heinzel:` nor a
 `Heinzel names on hosts:` line. At that point delete
-this file and `rules/heinzel-takeover.md`, drop step
-8 from `rules/first-connection.md`, the `heinzel` tag
-from `rules/activity-check.md`, the old backup paths
-from `rules/backups.md`, the `heinzel-*` rename loop in
-`bin/hostwarden-migrate`, and the
-`hostwarden-heinzel-takeover` skill, together with what
-names Heinzel's checkout or `heinzel-memory.md` in
-`rules/hypervisors.md` → Registering Guests,
-`rules/dns-aliases.md` and `rules/first-connection.md`
-step 6, `rules/deployed-files.md` → Unverified
-entries and its line in the housekeeping reference
-on deployed files. Written down here
-because a transition nobody ends becomes permanent
-by default.
+this file, `rules/heinzel-takeover.md`, the
+`hostwarden-heinzel-takeover` skill with its script,
+`contrib/heinzel-coexistence/` and the `heinzel-*`
+rename loop in `bin/hostwarden-migrate`, then remove
+every other mention of the transition that
+`git grep -il heinzel -- AGENTS.md rules .agents .claude docs README.md`
+lists: step 8 of `rules/first-connection.md`, the
+`heinzel` tag in every journal read-back, the old
+backup paths, and the one-line pointers here and
+there. Heinzel as Hostwarden's origin stays: the
+README's credit and licence notice, porting from
+Heinzel (`.claude/rules/repo-release.md`) and its
+`upstream` remote. Written down here because a
+transition nobody ends becomes permanent by default.
 
-**Not the `MAP` table in that script.** Those rows move
+**Not the `MAP` table in `bin/hostwarden-migrate`.** Those rows move
 overrides whose topic changed address in a Hostwarden
 release, which has nothing to do with Heinzel and
 everything to do with how far behind a given installation
