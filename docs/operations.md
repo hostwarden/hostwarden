@@ -518,9 +518,9 @@ The migration renames skill overrides in
   entries as well, so earlier work stays visible.
 - Point Hostwarden at your old checkout — "my
   Heinzel is in ~/heinzel, take it over", or
-  `/hostwarden-adopt ~/heinzel` in Claude Code. The copy
-  itself is a script — `bin/hostwarden-adopt <path>`
-  moves access lists, overrides, the host keys in
+  `/hostwarden-heinzel-takeover ~/heinzel` in Claude Code. The
+  copy itself is a script — `bin/hostwarden-heinzel-takeover
+  <path>` moves access lists, overrides, the host keys in
   `memory/known_hosts` and every server's memory
   across and renames what is found by name. Heinzel's
   memory of a host arrives as `heinzel-memory.md`,
@@ -562,7 +562,7 @@ The migration renames skill overrides in
   decisions as decision records, runs
   the network profile, checks the leads, and on a
   hypervisor inventories and registers the guests —
-  and adopts the guests still in your Heinzel
+  and takes over the guests still in your Heinzel
   checkout together with it, if you say so. It ends
   with what each host lacks against the baseline and
   asks which to take on first. With "only copy", the
@@ -587,7 +587,7 @@ The migration renames skill overrides in
   first, and it says which old backups the retention
   cleanup would then delete. On a hypervisor whose
   guests it registers, it asks once for the host and
-  the guests together; a guest answered with "adopt"
+  the guests together; a guest answered with "take over"
   is moved on its next connection that may change
   it, after one more question. New config backups go
   to `/var/backups/hostwarden/`, or the directory an
@@ -600,7 +600,7 @@ The migration renames skill overrides in
 - SSH sockets live in `~/.cache/hostwarden`.
 - Host keys come from `memory/known_hosts`
   ([Features → Host keys](features.md#host-keys)).
-  `bin/hostwarden-adopt` copies the host keys your
+  `bin/hostwarden-heinzel-takeover` copies the host keys your
   Heinzel checkout kept there. Without them, each host's key is
   imported from your own `~/.ssh/known_hosts` on its
   first connection.

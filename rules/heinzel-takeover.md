@@ -1,4 +1,4 @@
-# Adopting What Heinzel Left Behind
+# Taking Over What Heinzel Left Behind
 
 Read this when `rules/heinzel-legacy.md` found
 something on a host. Moving files on a live server is
@@ -26,13 +26,14 @@ heinzel state on this host:
 
 Four answers:
 
-1. **Adopt and rename** — move Heinzel's fixed paths
-   (below) and give every artifact whose name says
-   `heinzel` its Hostwarden name, with every
+1. **Take over and rename** — move Heinzel's fixed
+   paths (below) and give every artifact whose name
+   says `heinzel` its Hostwarden name, with every
    reference to it (§ Rename to Hostwarden's name).
-2. **Adopt, keep the names** — move the fixed paths;
-   scripts, units, cron files and config directories
-   keep their names and are recorded as they are.
+2. **Take over, keep the names** — move the fixed
+   paths; scripts, units, cron files and config
+   directories keep their names and are recorded as
+   they are.
 3. **Leave** — nothing moves; Hostwarden keeps
    reading the old paths (`rules/backups.md`).
 4. **Later** — record a dated deferral (below) so
@@ -48,7 +49,7 @@ an old name would fail on its next run, which the
 next connection checks.
 
 `memory/user.md` may carry the user's answer from the
-takeover (`hostwarden-adopt` skill):
+takeover (`hostwarden-heinzel-takeover` skill):
 `Heinzel names on hosts: rename` makes answer 1 the
 recommended one, `keep` answer 2; without the line,
 neither is. Ask all the same: every host is its own
@@ -62,27 +63,26 @@ are deleted by the next cleanup
 
 ```
 24 files, 9 of them older than 30 days — those 9
-will be deleted by the next cleanup. Adopt anyway?
+will be deleted by the next cleanup. Take them over anyway?
 ```
 
 Use the retention window that is actually configured
 for this host, not the default. If the user wants the
-old ones kept, adopt the rest and leave those, or
+old ones kept, take over the rest and leave those, or
 raise the window in
 `memory/servers/<hostname>/rules.md`.
 
 ## Not while Heinzel is still in use
 
-If the user says both tools are in use, adoption is
+If the user says both tools are in use, a takeover is
 premature — Heinzel recreates its backup directory on
 its next run. Report the find, say why it waits, and
 record a deferral. Recent Heinzel entries in the
 activity check do not settle it: hosts often move over
 right after their last Heinzel session, so ask whether
-Heinzel still runs before deferring. A `watcher:`
-line under `heinzel` settles nothing either: it is a
-script Heinzel left, which runs whether Heinzel does
-or not.
+Heinzel still runs before deferring. A `watcher:` line
+under `heinzel` settles nothing either: it is a script
+Heinzel left, which runs whether Heinzel does or not.
 
 Point the user at `contrib/heinzel-coexistence/`:
 three rule overrides for their Heinzel checkout that
@@ -116,16 +116,16 @@ once the same way. Each machine's memory records its
 own outcome line (Record, below).
 
 Leaving and waiting are recorded in each machine
-now. Adopting, with the names renamed or kept, runs
-now on the host only: registration never changes a
-guest, so a guest keeps that answer as a deferral
-that says which of the two it was. Its next
-connection that may change it asks again, for that
-guest alone, with the recorded answer as the
+now. Taking over, with the names renamed or kept,
+runs now on the host only: registration never
+changes a guest, so a guest keeps that answer as a
+deferral that says which of the two it was. Its
+next connection that may change it asks again, for
+that guest alone, with the recorded answer as the
 recommended one:
 
 ```markdown
-- heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)
+- heinzel legacy: deferred 2026-09-20 (answered at registration: keep)
 - heinzel legacy: deferred 2026-09-20 (answered at registration: rename)
 ```
 
@@ -204,7 +204,7 @@ as it is:
 Then one line for the outcome of the check:
 
 ```markdown
-- heinzel legacy: adopted 2026-09-20 (24 backups, 0 left)
+- heinzel legacy: taken over 2026-09-20 (24 backups, 0 left)
 - heinzel legacy: renamed 2026-09-20 (24 backups, 3 names)
 - heinzel legacy: left in place (/var/backups/heinzel/)
 - heinzel legacy: deferred 2026-09-20 (heinzel still in use)
@@ -236,7 +236,7 @@ is a worklist and gets deleted once it is empty.
 Log the change like any other (`rules/changelog.md`):
 
 ```
-logger -t hostwarden "[<operator> as <unix-user>] Adopted heinzel state: \
+logger -t hostwarden "[<operator> as <unix-user>] Took over heinzel state: \
   /var/backups/heinzel -> /var/backups/hostwarden \
   (24 files)"
 logger -t hostwarden "[<operator> as <unix-user>] Renamed heinzel artifacts: \
@@ -246,10 +246,11 @@ logger -t hostwarden "[<operator> as <unix-user>] Renamed heinzel artifacts: \
 
 ## Heinzel's memory
 
-A host adopted from Heinzel (`hostwarden-adopt`)
-arrives with Heinzel's `memory.md` as
+A host taken over from Heinzel
+(`hostwarden-heinzel-takeover`) arrives with
+Heinzel's `memory.md` as
 `memory/servers/<hostname>/heinzel-memory.md` and no
-`memory.md`. Its first connection — the adoption's
+`memory.md`. Its first connection — the takeover's
 onboarding, or whichever session reaches it first —
 is a first connection in every step of
 `rules/first-connection.md`, and writes `memory.md`
@@ -265,7 +266,7 @@ current state, and split up by that first connection
 — nothing of it is left as prose. Once `memory.md` is
 written and each part below has its place, delete
 it. The workspace keeps it in its history, since the
-adoption committed it. The Heinzel entries in
+takeover committed it. The Heinzel entries in
 `changelog.log` stay as they are, the start of the
 host's history.
 
@@ -305,7 +306,7 @@ these:
 3. **What the Heinzel check confirmed** — Record
    above.
 4. **The inventory's `## Facts`** — what the
-   adoption sorted out of Heinzel's other memory for
+   takeover sorted out of Heinzel's other memory for
    this host, under the same test as the standing
    facts of 2; a decision there goes the way of the
    decisions below. An open plan becomes
@@ -364,10 +365,10 @@ Two kinds of fact have another place:
 
 ## Heinzel's copies
 
-The adoption rebuilds the copies Heinzel kept of
+The takeover rebuilds the copies Heinzel kept of
 files on its hosts into masters, each recorded as an
 unverified entry (`rules/deployed-files.md` →
-Unverified entries; `hostwarden-adopt`,
+Unverified entries; `hostwarden-heinzel-takeover`,
 `references/masters.md`). The Heinzel check settles
 them from the host (`rules/heinzel-legacy.md` →
 Detect); nothing on the host changes for that. Per

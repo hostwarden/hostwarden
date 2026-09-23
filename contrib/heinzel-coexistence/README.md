@@ -45,8 +45,8 @@ Heinzel reads `all.md` once per session and
 directory is gitignored there, so this stays local
 unless the user shares custom rules deliberately.
 
-The `hostwarden-adopt` skill offers to do this for
-you, following this section.
+The `hostwarden-heinzel-takeover` skill offers to
+do this for you, following this section.
 
 ## What they change
 
@@ -57,7 +57,7 @@ you, following this section.
 - `backups.md` — Heinzel looks in
   `/var/backups/hostwarden/` as well, and does not
   report its own backup directory as lost when
-  Hostwarden has adopted it.
+  Hostwarden has taken it over.
 - `all.md` — the general rules of the parallel phase:
   server memory is a hint rather than a fact, the
   other tool's files are not litter to clean up, and

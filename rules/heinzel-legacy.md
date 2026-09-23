@@ -7,7 +7,7 @@ the old name.
 
 This file is the detection half, run **on the first
 connection to a host**. On a hit, read
-`rules/heinzel-adoption.md` for what to do with what
+`rules/heinzel-takeover.md` for what to do with what
 was found. No hit, no second file, nothing recorded,
 nothing said — that is the normal case.
 
@@ -16,16 +16,16 @@ nothing said — that is the normal case.
 The transition is over once no host memory carries a
 `heinzel legacy:` line, no `heinzel-inventory.md` is
 left, no `deployed.md` entry reads `sha256 unverified`,
-and `memory/user.md` has neither an
-`Adopted from heinzel:` nor a
+and `memory/user.md` has neither a
+`Taken over from heinzel:` nor a
 `Heinzel names on hosts:` line. At that point delete
-this file and `rules/heinzel-adoption.md`, drop step
+this file and `rules/heinzel-takeover.md`, drop step
 8 from `rules/first-connection.md`, the `heinzel` tag
 from `rules/activity-check.md`, the old backup paths
 from `rules/backups.md`, the `heinzel-*` rename loop in
-`bin/hostwarden-migrate`, and the `hostwarden-adopt`
-skill, together with what names Heinzel's
-checkout or `heinzel-memory.md` in
+`bin/hostwarden-migrate`, and the
+`hostwarden-heinzel-takeover` skill, together with what
+names Heinzel's checkout or `heinzel-memory.md` in
 `rules/hypervisors.md` → Registering Guests,
 `rules/dns-aliases.md` and `rules/first-connection.md`
 step 6, `rules/deployed-files.md` → Unverified
@@ -71,12 +71,12 @@ memory and changelog, not on the host.
 **Read the leads first.**
 `memory/servers/<hostname>/heinzel-inventory.md`, if
 it exists, holds what memory and changelog say this
-host carries; the `hostwarden-adopt` skill writes it
-when a Heinzel installation is taken over. Every
-entry is a lead, not a fact
+host carries; the `hostwarden-heinzel-takeover` skill
+writes it when a Heinzel installation is taken over.
+Every entry is a lead, not a fact
 (`rules/verify-before-reporting.md`), except those
 under `## Facts`: they are no artifacts to probe for,
-and `rules/heinzel-adoption.md` → Heinzel's memory
+and `rules/heinzel-takeover.md` → Heinzel's memory
 takes them.
 
 **Then probe the host in one call,** in the activity
@@ -113,7 +113,7 @@ would confirm units the lead never meant. A lead that names no path is
 looked for by what its record does name — the
 schedule, the command, the directory it writes to —
 and stays open when nothing matches: report it, and
-record it as `rules/heinzel-adoption.md` → Record
+record it as `rules/heinzel-takeover.md` → Record
 says.
 
 **Heinzel's copies join as well.** The path of each
@@ -121,7 +121,7 @@ unverified entry in the host's `deployed.md`, and in
 its cluster's, goes into the probe of
 `rules/deployed-files.md` → Drift, nested in the
 same bundle under the same `sudo -n`, and
-`rules/heinzel-adoption.md` → Heinzel's copies
+`rules/heinzel-takeover.md` → Heinzel's copies
 settles it — whatever the answer to the rest of the
 check.
 
@@ -151,7 +151,7 @@ check did not run. Say so and record
 
 A deferral keeps the check eligible on later
 connections
-(`rules/heinzel-adoption.md` → Record), so the next
+(`rules/heinzel-takeover.md` → Record), so the next
 session that does have root actually looks. Recording
 nothing would not: the check is otherwise
 first-connection only.
@@ -180,11 +180,12 @@ unless it changed:
   guest is not read-only, which through its host
   includes the host's entry
   (`rules/first-connection.md` → Via-host mode,
-  `rules/heinzel-adoption.md` → A host and its
+  `rules/heinzel-takeover.md` → A host and its
   guests).
 - `answered at onboarding: …` — this session is not
-  an adoption's onboarding, which asks it again itself
-  once its report is out (`hostwarden-adopt`).
+  a takeover's onboarding, which asks it again itself
+  once its report is out
+  (`hostwarden-heinzel-takeover`).
 - any reason — the user asks, or the recorded date is
   more than 90 days old.
 
@@ -202,7 +203,7 @@ the changelog claims it, report it and leave it.
 
 ## On a hit
 
-Read `rules/heinzel-adoption.md`. It covers the
+Read `rules/heinzel-takeover.md`. It covers the
 report, the question, moving the fixed paths,
 giving what a session created Hostwarden's name when
 the user chooses it, and what gets recorded in
