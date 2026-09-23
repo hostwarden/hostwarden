@@ -159,6 +159,7 @@ else
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
 step "fleet-read wrapper" sh scripts/fleet-read-test.sh
+step "fleet run" sh scripts/fleet-run-test.sh
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point

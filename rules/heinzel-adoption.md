@@ -370,3 +370,51 @@ configuration, so each edit needs its own approval. Key material
 under `~/heinzel-keys/` is reported, never touched,
 moved or re-permissioned (`AGENTS.md` → Critical
 Safety Rules).
+
+## On an operations host
+
+Heinzel may also run headless on a machine of its own, with
+timers or cron jobs that start a Heinzel checkout there: a
+nightly fleet housekeeping, often other workers, perhaps a
+remote-control session. On the fleet's hosts it leaves a
+forced-command wrapper that a key line in root's authorized keys
+names (`command="/usr/local/sbin/heinzel-…"`), often a signers
+file under `/etc/heinzel/`, and daily journal lines under the tag
+`heinzel`.
+
+Report it; change nothing unasked:
+
+- **On that machine,** each unit or cron job, what it starts and
+  when. It is Heinzel still in use, so the machine's
+  `heinzel legacy:` line is a deferral,
+  `(heinzel still in use, runs from this host)`. Stopping or
+  disabling a job is a service change, and the operator's call.
+  Heinzel's checkout, keys and secret files stay where they are
+  (`rules/secrets.md`).
+- **Jobs that are not housekeeping** — a mailbox triage, a
+  remote-control session — are the operator's own automation
+  (`rules/operations-host.md` → What it is not): recorded in that
+  machine's memory, and left running.
+- **On each fleet host,** the wrapper, the signers file, and how
+  many key lines name the wrapper, read with `grep -c` only. None
+  of it is renamed, moved or removed while a key line names it: a
+  rename would have to change the key line, which only the
+  operator writes. It is recorded as a fact of the host.
+
+Then offer to point the fleet at Hostwarden, each step its own
+yes:
+
+1. An operations host of Hostwarden's, on the same machine or
+   another (`rules/operations-host.md` → Setting one up).
+2. Fleet read on each host (`hostwarden-fleet-read` skill), beside
+   Heinzel's wrapper: the operator adds a second key line, and both
+   work at once.
+3. A `--dry-run` of the fleet run, compared with Heinzel's last
+   report.
+4. The operator stops Heinzel's timers, then removes Heinzel's key
+   lines. Once `grep -c` finds none naming the old wrapper, it and
+   its signers file are Heinzel leftovers on that host, removed
+   when the user agrees.
+
+Until step 4 both runs write to every journal, Heinzel under
+`heinzel` and Hostwarden under `hostwarden`.

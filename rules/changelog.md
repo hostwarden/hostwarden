@@ -191,3 +191,6 @@ remote?"* — because it sends hostnames and the network's
 layout off this machine. After a yes, later pushes in the
 same session go without asking. A no stands for the rest
 of the session; the commits wait for the next one.
+`Workspace push: always` in `memory/user.md` is a yes
+given once for every session on this machine; an
+operations host has it (`rules/operations-host.md`).

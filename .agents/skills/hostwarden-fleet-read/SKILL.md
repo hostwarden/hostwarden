@@ -19,10 +19,12 @@ description: Set up, check or remove fleet read — the least-privilege
 **Overrides.** Load them before anything else, key
 `hostwarden-fleet-read`, per `rules/overrides.md`.
 
-An operations host — an always-on machine that runs Hostwarden
-without anyone at the keyboard — reaches each host with one key of
-its own. On the host, that key is forced to `fleet-read`, a wrapper
-that accepts exactly two requests:
+An operations host (`rules/operations-host.md`) — an always-on
+machine that runs Hostwarden without anyone at the keyboard —
+reaches each host with one key of its own, and its fleet run
+(`bin/hostwarden-fleet-run`) uses nothing else. On the host, that
+key is forced to `fleet-read`, a wrapper that accepts exactly two
+requests:
 
 - **collect** — run a bundle of read-only checks, but only one the
   operator signed for the namespace `fleet-read` and whose

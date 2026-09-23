@@ -168,6 +168,12 @@ you the report:
 email me the report" >> ~/hostwarden-cron.log 2>&1
 ```
 
+This runs on your workstation. An always-on machine
+that should do it for the whole fleet while the
+workstation sleeps is an operations host instead, with
+its own least-privilege access
+([Running Hostwarden in production](operations.md#an-operations-host)).
+
 Two rules: run the exact prompt **interactively
 once** first, so the email recipient, sending path,
 and other one-time questions are answered and stored

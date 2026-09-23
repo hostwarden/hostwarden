@@ -11,8 +11,11 @@ Plain list — one entry per line. An optional leading
 can be a hostname (matched against the target
 hostname) or an IP address (matched against the
 resolved IP). IPs are the most robust form — prefer
-them. Files are created on first need — do not
-pre-create them.
+them. In `memory/readonly.md` only, the entry `*`
+matches every host, the local machine included: an
+operations host's list holds it
+(`rules/operations-host.md`). Files are created on
+first need — do not pre-create them.
 
 ```markdown
 # Example
@@ -30,7 +33,7 @@ For both files, the check is (stop at the first
 match):
 
 1. If the file does not exist, skip (nothing to
-   check).
+   check). In `memory/readonly.md`, is `*` listed?
 2. Is the target hostname, or the name `ssh -G`
    with the standard options maps it to (`rules/dns-aliases.md` → Detection
    step 1), listed?

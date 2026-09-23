@@ -87,6 +87,10 @@ cat /etc/os-release
 
 sec 'baseline-linux.md: Disk Usage'
 df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
+
+sec 'floors'
+df -P -x tmpfs -x devtmpfs -x overlay -x squashfs \
+  | awk 'NR > 1 { sub(/%/, "", $5); print "disk", $5, $6 }'
 ```
 
 - `valid-until` is at most a year ahead; the operator may choose
@@ -96,6 +100,18 @@ df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
 - Every section opens with `sec`, naming the reference and its
   heading exactly, so whoever reads the output can find the
   thresholds that apply.
+
+The last section is `floors`, in lines the fleet run checks on its
+own, whatever the verdict says (`bin/hostwarden-fleet-run`):
+
+- `disk <percent used> <mount point>` for every file system the
+  disk check covers;
+- `cert <days left> <name>` for every certificate the certificate
+  check finds, negative once expired;
+- `firewall inactive <why>` only when no packet filter of any kind
+  is active — none of ufw, firewalld, nftables with a table,
+  iptables rules, pf or the appliance's own. Where that is not
+  certain, no line: the verdict decides.
 
 The bundle and its signature together must stay under 256 KiB, the
 wrapper's input limit.

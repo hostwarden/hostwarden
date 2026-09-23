@@ -372,6 +372,9 @@ decide what the key can do:
 - signing each bundle, with the command Hostwarden
   gives you.
 
+On the operations host, `bin/hostwarden-fleet-run`
+uses it every night
+([Running Hostwarden in production](operations.md#an-operations-host)).
 A signed bundle stops running on its `valid-until`
 date, and Hostwarden tells you when its checks have
 changed since it was built. Whoever takes over the
