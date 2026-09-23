@@ -399,8 +399,9 @@ one line (*"Registering 7 guests of pve1.example.com through
 Registration never changes a guest, whatever the probe finds:
 findings go into its memory and into the report below.
 
-**The report.** Once the last guest is done, and before any
-question registration raises, report in this form:
+**The report.** Once the last guest is done, step 3's questions
+answered and acted on, and before any other question
+registration raises, report in this form:
 
 ```
 Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
@@ -424,8 +425,8 @@ Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
   its name.
 - `not registered` names every guest of the inventory that has
   no memory of its own now, templates excepted, with the reason
-  this section or step 1 or 3 gives: a guest waiting for step 3's
-  question was read inside, and says so.
+  this section or step 1 or 3 gives. A guest step 3 left out was
+  read inside, and its entry says so.
 - `failed` names a guest whose probe failed, with the step, the
   error in a few words, and whether its memory directory was
   written.
@@ -434,8 +435,8 @@ Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
   own question.
 - A line with nothing to list is left out.
 
-Questions follow in their own form: step 3's, Stopped Guests
-above, and, where the Heinzel check found anything, one question
+Questions follow in their own form: Stopped Guests above and,
+where the Heinzel check found anything, one question
 for the host and its registered guests together
 (`rules/heinzel-adoption.md` → A host and its guests).
 
