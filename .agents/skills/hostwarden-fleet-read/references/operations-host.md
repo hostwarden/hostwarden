@@ -63,8 +63,9 @@ the checkout. A run, in order:
    machine, with the key line present and not blacklisted, sends
    the signed bundle and collects its output, four hosts at a time;
 3. has a model judge each output with no tools, no MCP server and
-   an empty directory, and holds the verdict to the bundle's floors
-   and the host's memory (the script's header says how);
+   an empty directory, and holds the verdict to the bundle's floors,
+   the host's memory and the decisions that apply to it
+   (`rules/decisions.md`; the script's header says how);
 4. writes one read-only line to each host's journal through the
    wrapper and the same line to its changelog, commits those
    files, and pushes;
@@ -76,10 +77,15 @@ Its exit status is `2` when a CRITICAL is not explained by the
 host's memory, and `1` when the run failed, a host was not read or
 got no verdict — a connection refused, a host key missing from the
 workspace, the `claude` login expired — or the report could not be
-mailed. Each of those is a WARN
-in the report as well, and checks the model could not
-make are listed under "Not checked" and counted in the subject. A
-unit can be told to alert on either status.
+mailed. Each of those is a WARN in the report as well, and checks
+the model could not make are listed under "Not checked" and
+counted in the subject. A unit can be told to alert on either
+status.
+
+A finding that a decision applying to the host settles is not an
+issue (`rules/decisions.md` → Rating findings): the report lists it
+under "Decided", with "revisit due" once the decision's `Revisit:`
+date has passed, and it raises no alarm.
 
 ```ini
 # /etc/systemd/system/hostwarden-fleet-run.service
@@ -167,7 +173,8 @@ operator's:
    the name in every key line.
 6. `bin/hostwarden-fleet-run --no-judge` shows what each host
    returns, `--dry-run` shows the report; neither updates the
-   checkouts. Then the two units.
+   checkouts, so run `bin/hostwarden-ssh-config` once before them.
+   Then the two units.
 
 Record the role in its memory, the timer and the report address
 included, as for anything else the host runs.

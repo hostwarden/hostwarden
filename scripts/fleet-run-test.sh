@@ -47,6 +47,7 @@ mkdir -p "$FR/src" "$FR/files/etc/fleet-read"
 git -C "$M" init --quiet
 : >"$M/.hostwarden-workspace"
 cp "$REPO/templates/workspace/.gitignore" "$M/.gitignore"
+mkdir -p "$M/decisions"
 cat >"$M/user.md" <<EOF
 # Preferences
 # Operator name: Your Full Name
@@ -55,7 +56,8 @@ Fleet key: $TMP/fleet-key
 Workspace push: always
 EOF
 : >"$TMP/fleet-key"
-printf -- '- bad1.example.com\n' >"$M/blacklist.md"
+printf -- '- bad1.example.com\n- jumped2.example.com-hop.example.com\n' \
+  >"$M/blacklist.md"
 
 ssh-keygen -q -t ed25519 -N '' -C signer -f "$TMP/signer"
 printf 'fleet-read namespaces="fleet-read" %s\n' "$(cat "$TMP/signer.pub")" \
@@ -86,6 +88,18 @@ server db1.example.com 'waiting for the key line' ''
 server part1.example.com 'key line present' ''
 server nojudge1.example.com 'key line present' ''
 server jumped1.example.com 'key line present' ''
+server jumped2.example.com 'key line present' ''
+server port1.example.com 'key line present' '- SSH port: 2222'
+server dec1.example.com 'key line present' ''
+server dec2.example.com 'key line present' ''
+printf '%s\n' '# Decisions — dec1' 'Applies to: hosts dec1.example.com' '' \
+  '## No local firewall' '- Decided: alice, 2026-09-18' \
+  '- Why: The provider filters every packet in front of it.' \
+  '- Settles: baseline → Firewall' '- Revisit: 2026-01-01' \
+  >"$M/decisions/dec1.md"
+sed -i.bak '2s/.*/Applies to: hosts dec1.example.com, dec2.example.com/' \
+  "$M/decisions/dec1.md" && rm -f "$M/decisions/dec1.md.bak"
+ln -s web1.example.com "$M/servers/alias1.example.com"
 server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
@@ -95,6 +109,7 @@ git -C "$M" add -A && git -C "$M" commit --quiet -m init
 git init --bare --quiet "$TMP/remote.git"
 git -C "$M" remote add origin "$TMP/remote.git"
 git -C "$M" push --quiet -u origin HEAD
+sh "$R/bin/hostwarden-ssh-config" || { echo "FAIL: no ssh_config"; exit 1; }
 
 # --- the stand-ins ----------------------------------------------
 S="$TMP/bin"
@@ -103,8 +118,14 @@ cat >"$S/ssh" <<EOF
 #!/bin/sh
 case " \$* " in *" -G "*)
   for a; do last=\$a; done
+  last=\${last#*@}
   echo "hostname \$last"
-  case \$last in jumped1.*) echo "proxyjump alice@bad1.example.com:22" ;; esac
+  echo "user root"
+  echo "port 22"
+  case \$last in
+  jumped1.*) echo "proxyjump alice@bad1.example.com:22" ;;
+  jumped2.*) echo "proxyjump %r@%n-hop.example.com" ;;
+  esac
   exit 0 ;;
 esac
 for a; do host=\$verb; verb=\$a; done
@@ -137,6 +158,15 @@ if printf '%s' "\$p" | grep -q 'output of the check on nojudge1'; then
   echo '{"type":"result","is_error":true,"result":"login expired"}'
   exit 1
 fi
+if printf '%s' "\$p" | grep -q 'output of the check on dec1'; then
+  printf '%s\n' "\$p" >"$TMP/prompt-dec1"
+  cat "$TMP/verdict-dec1"
+  exit 0
+fi
+if printf '%s' "\$p" | grep -q 'output of the check on dec2'; then
+  cat "$TMP/verdict-dec2"
+  exit 0
+fi
 printf '%s\n' "\$p" >"$TMP/prompt"
 printf '%s\n' "\$*" >"$TMP/claude-args"
 cat "$TMP/verdict"
@@ -152,6 +182,23 @@ cat >"$TMP/verdict" <<'EOF'
    "quote":"The provider filters every packet in front of it"},
   {"severity":"INFO","code":"disk-full","text":"/var nearly full",
    "class":"known","quote":"a quote that memory.md does not contain"}]}}
+EOF
+
+cat >"$TMP/verdict-dec1" <<'EOF'
+{"type":"result","is_error":false,"structured_output":{"report":"",
+ "findings":[
+  {"severity":"WARN","code":"firewall-inactive","text":"no firewall",
+   "class":"decided","quote":"No local firewall"},
+  {"severity":"WARN","code":"made-up","text":"made up",
+   "class":"decided","quote":"A heading no decision has"}]}}
+EOF
+cat >"$TMP/verdict-dec2" <<'EOF'
+{"type":"result","is_error":false,"structured_output":{"report":"",
+ "findings":[
+  {"severity":"WARN","code":"firewall-inactive","text":"no firewall",
+   "class":"decided","quote":"No local firewall"},
+  {"severity":"WARN","code":"decision-conflict","class":"new",
+   "text":"No local firewall contradicts Firewall on every host"}]}}
 EOF
 
 run() { PATH="$S:$PATH" sh "$R/bin/hostwarden-fleet-run" "$@" >"$TMP/out" 2>"$TMP/err"; }
@@ -176,6 +223,20 @@ has "$TMP/out" "WARN	nojudge1.example.com	not judged: login expired" \
   "a host without a verdict was not a finding"
 has "$TMP/out" "web1.example.com	version-check" "a skipped check was not named"
 [ -e "$TMP/state" ] && bad "a dry run created the state directory" || ok
+has "$TMP/out" "WARN	port1.example.com	not read: ssh would use port 22, memory records 2222" \
+  "another port was not refused"
+[ -e "$TMP/collect-port1.example.com" ] && bad "a host on another port was reached" || ok
+has "$TMP/out" "dec1.example.com	no firewall — DECIDED No local firewall — revisit due" \
+  "a finding an applying decision settles was not listed as decided"
+lacks "$TMP/out" "WARN	dec1.example.com	no firewall" "a decided finding stayed an issue"
+has "$TMP/prompt-dec1" "----- scope: group (decisions/dec1.md)" \
+  "the judge was not told a decision's scope"
+has "$TMP/out" "WARN	dec2.example.com	no firewall" \
+  "a decision named in a conflict still settled a finding"
+has "$TMP/out" "WARN	dec1.example.com	made up" \
+  "a verdict citing a heading no decision has was accepted"
+lacks "$TMP/out" "alias1.example.com" "a DNS alias was read beside its host"
+[ -e "$TMP/collect-alias1.example.com" ] && bad "a DNS alias was reached" || ok
 has "$TMP/out" "CRITICAL	two1.example.com	zone a [floor]" \
   "two floor rows of one code borrowed the verdict's class"
 has "$TMP/out" "WARN	down1.example.com	not read (exit 255): ssh: connect to host" \
@@ -187,6 +248,8 @@ has "$TMP/out" "db1.example.com(waiting for the key line)" \
 has "$TMP/out" "bad1.example.com(blacklisted)" "a blacklisted host was not named"
 has "$TMP/out" "jumped1.example.com(blacklisted)" \
   "a host behind a blacklisted jump host was not refused"
+has "$TMP/out" "jumped2.example.com(blacklisted)" \
+  "a jump host named through %r and %n was not expanded before the check"
 [ -e "$TMP/collect-jumped1.example.com" ] \
   && bad "a host behind a blacklisted jump host was reached" || ok
 [ -e "$TMP/collect-bad1.example.com" ] && bad "a blacklisted host was reached" || ok
@@ -220,7 +283,7 @@ has "$M/servers/web1.example.com/changelog.log" \
 has "$M/servers/down1.example.com/changelog.log" "not read (exit 255): ssh" \
   "the unreachable host has no changelog line"
 case $(git -C "$M" log -1 --format=%s) in
-  *"read-only: fleet housekeeping, 4 critical, 4 warning"*) ok ;;
+  *"read-only: fleet housekeeping, 4 critical, 8 warning"*) ok ;;
   *) bad "the workspace commit is missing: $(git -C "$M" log -1 --format=%s)" ;;
 esac
 [ -z "$(git -C "$M" status --porcelain)" ] && ok \
@@ -238,6 +301,19 @@ lacks "$TMP/out" "all ok" "an unjudged host was reported all ok"
 run --dry-run --host down1.example.com
 rc=$?
 [ "$rc" = 1 ] && ok || bad "an unread host did not exit 1 (rc $rc)"
+
+# --- --no-judge fails on an unread host --------------------------
+run --no-judge --host down1.example.com
+rc=$?
+[ "$rc" = 1 ] && ok || bad "--no-judge on an unread host did not exit 1 (rc $rc)"
+
+# --- a dry run writes no ssh_config -------------------------------
+mv "$M/ssh_config" "$TMP/ssh_config.saved"
+run --dry-run --host web1.example.com
+rc=$?
+[ "$rc" = 1 ] && [ ! -e "$M/ssh_config" ] && ok \
+  || bad "a dry run generated ssh_config (rc $rc)"
+mv "$TMP/ssh_config.saved" "$M/ssh_config"
 
 # --- a dry run leaves both checkouts alone ------------------------
 # check-updates.sh is not in this checkout: a call would show up in
