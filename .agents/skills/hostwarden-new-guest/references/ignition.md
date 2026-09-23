@@ -328,16 +328,24 @@ call:
 sleep 120
 ```
 
-Then log in once, as `SKILL.md` → After creation step 2 says. A
-refused or timed-out connection reached no sshd and counts for
-nothing; try once more after a minute, then report. A guest that
+Then log in, as `SKILL.md` → After creation step 2 says. A slow
+guest may still be booting, so keep going within the same first-boot
+window the other paths wait, about ten minutes in all:
+
+- a refused or timed-out connection reached no sshd and counts for
+  nothing — try again a minute later;
+- a login sshd rejects is the one outcome never retried: it counts
+  towards fail2ban, and a wrong key stays wrong. Stop and read why.
+
+When the window is over without a login, report it. A guest that
 never answers has an Ignition failure on its console, which the
 hypervisor shows: read it there rather than guessing, then fix the
 Butane file and create the guest again.
 
 Hostwarden has no family file for an image-based CoreOS. Detection
 knows that and stops at its no-family path
-(`rules/os-detection.md`, step 2): generic commands, extra
+(`rules/first-detection.md` → On first connection, step 2): generic
+commands, extra
 verify-before-running care, and the user told. Record
 `- Origin: <image file>` and `- Baseline: <version> (created
 <date>)` as usual, and say in one line at the hand-over that the

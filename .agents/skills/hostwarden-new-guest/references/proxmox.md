@@ -164,8 +164,10 @@ an empty disk, no cloud-init drive, no `import-from`, no
 answer file (`references/answer-files.md`). Before the creation
 above still gives the ID, the capacity and the defaults.
 
-Both ISOs go on a storage with `iso` content, `local`'s
-`/var/lib/vz/template/iso/` by default. Copy the answer ISO there
+Both ISOs go on one storage with `iso` content, `<iso storage>`
+below: `local`, with `/var/lib/vz/template/iso/`, by default, or
+the one `pvesm status --content iso --enabled 1` names. It is
+chosen apart from `<storage>`, the VM disk's. Copy the answer ISO there
 first with `scp`, built on the workstation as
 `references/seed-iso.md` says. Then one call downloads the
 installer ISO there, verifies it with a keyring of its own as
@@ -178,8 +180,8 @@ qm create <vmid> --name web1 --memory 2048 --cores 2 \
   --cpu x86-64-v2-AES --scsihw virtio-scsi-pci --ostype l26 \
   --net0 virtio,bridge=vmbr0 --agent enabled=1 --onboot 1 &&
 qm set <vmid> --scsi0 <storage>:20 &&
-qm set <vmid> --ide2 local:iso/<installer iso>,media=cdrom &&
-qm set <vmid> --ide3 local:iso/<answer iso>,media=cdrom &&
+qm set <vmid> --ide2 <iso storage>:iso/<installer iso>,media=cdrom &&
+qm set <vmid> --ide3 <iso storage>:iso/<answer iso>,media=cdrom &&
 qm set <vmid> --boot 'order=scsi0;ide2'
 ```
 
