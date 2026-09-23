@@ -55,7 +55,7 @@ contrib/
     hostwarden-host-probe.md — Probes one host for the fleet
                          audit and returns one row
     hostwarden-reviewer.md — Reviews a change to Hostwarden
-                         for defects before Codex does
+                         for defects before a second reviewer does
   rules/               — Conventions for working on this repo,
                          loaded only when those files are read
   hooks/

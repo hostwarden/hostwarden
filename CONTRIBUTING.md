@@ -37,10 +37,11 @@ macOS); `bin/hostwarden-lab` runs disposable containers with it.
 What only a full VM can answer goes to a test clone
 ([docs/operations.md](docs/operations.md#operations-and-development)).
 
-The [Codex CLI](https://github.com/openai/codex), signed in,
-is optional: with it, an agent session runs the Codex review of its
+The CLI of the second reviewer — currently the
+[Codex CLI](https://github.com/openai/codex), signed in — is
+optional: with it, an agent session runs the second review of its
 pull request locally instead of asking for one on GitHub
-([pull-requests.md](.claude/rules/pull-requests.md#codex)).
+([pull-requests.md](.claude/rules/pull-requests.md#the-second-review)).
 
 ## Checks
 

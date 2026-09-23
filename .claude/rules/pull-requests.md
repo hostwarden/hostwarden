@@ -2,8 +2,8 @@
 paths:
   - "CONTRIBUTING.md"
 description: How a pull request to Hostwarden goes from open to
-  merged — checks in CI only, Codex rounds, merge readiness,
-  rebasing stacks. For work on this repository, never for a
+  merged — checks in CI only, the own and the second review,
+  merge readiness, rebasing stacks. For work on this repository, never for a
   managed host.
 ---
 
@@ -38,36 +38,80 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 
 ## Review
 
+Two reviews, in this order. The own review is where the quality is
+made; the second review checks it with a model of another family,
+whose blind spots differ.
+
+Which second reviewer, and for which pull requests, is set here
+and nowhere else:
+
+- **Second reviewer:** Codex (→ Codex, below).
+- **Required:** on every pull request.
+
+Changing either line is a change to this file. Another reviewer
+gets a subsection like Codex's, with how it is run locally, how it
+is asked on GitHub, and what a completed, clean and stopped run
+look like.
+
+### The own review
+
 The review for defects runs in a context of its own, never in the
 session that wrote the change: that session reads the change as it
 meant it, and a reviewer that did not write it reads it as a model
 on a production server will. In Claude Code that is the
 `hostwarden-reviewer` subagent; elsewhere, a fresh session whose
-instructions are that file's body. In the Codex CLI such a session
-draws on the Codex quota, so there the Codex round is the review
-and the reviewer passes below are skipped.
-
-Codex runs are the scarce resource: they draw on one weekly quota,
-locally and on GitHub alike. A question a Claude reviewer can
-answer never costs a Codex run.
-
-### Before Codex
+instructions are that file's body. Where that session would run on
+the second reviewer's own quota — Codex reviewing for Codex — the
+second review is the review and the own passes are skipped.
 
 1. `/simplify`, for reuse and clarity.
 2. `hostwarden-reviewer` on the branch against its base, for
    defects. Fix what it reports with steps 1 to 3 of a fix commit
    (below), everything as in rounds 1 and 2.
-3. Lift the draft status, then request round 1.
+3. Push, lift the draft status, and request the second review
+   where it is required.
+
+### The second review
+
+A second reviewer's runs draw on a quota and are the scarce
+resource. A question the own review can answer never costs one.
+
+- **Local, where the reviewer's CLI is installed and signed in.**
+  Push first, so the SHA it reviews exists on the pull request, and
+  run it on a detached worktree of that SHA, so nothing the session
+  changes meanwhile reaches the review. Post the result as one pull
+  request comment whose first line is exactly
+
+      Second review (<reviewer>, local) on `<full head sha>`: <k> findings
+
+  with `1 finding` or `no findings` where that fits, and the
+  reviewer's text below it unchanged. That comment is the record
+  whoever merges reads. Answer the findings in one further comment,
+  a line each: "<title> — fixed in <sha>", "not a bug: …" or
+  "deferred to a follow-up PR".
+- **On GitHub otherwise,** only when asked: a reviewer that runs
+  there on its own would repeat a local run. Answer every thread
+  the same way and resolve it.
+- Write a reviewer's handle only in the comment that asks it for a
+  review. In a pull request body, a commit message or an answer, a
+  mention starts it as well; write the name without the `@`.
+- **A run that did not complete** reviewed nothing: it is no round,
+  and nothing is posted for it. Retry once when the reason is
+  transient, a network error or a timeout. Any other reason — the
+  usage limit, a lost sign-in, a missing environment, an option
+  the CLI rejects — goes to whoever merges with the reviewer's own
+  message, and they decide whether to wait, fix it, or merge
+  without the second review. The other path draws on the same
+  quota and is no way around a limit.
+- Stacked pull requests are each reviewed against their own base,
+  so their rounds run in parallel.
 
 ### Codex
 
-- **Local, where the Codex CLI is installed and signed in**
-  (`codex login status` exits 0). Push first, so the SHA the run
-  reviews exists on the pull request. Run it in a detached
-  worktree of that SHA, so nothing the session changes meanwhile
-  reaches the review, and in the background — it takes minutes.
-  `<run>` is `<pr>-<n>`, the pull request's number and the round's,
-  plus a suffix for a repeated attempt:
+- **Local:** `codex login status` exits 0. `<run>` is
+  `<pr>-<n>`, the pull request's number and the round's, plus a
+  suffix for a repeated attempt. Run in the background — it takes
+  minutes:
 
       git worktree add --detach <scratch>/codex-<run> <head sha> &&
         codex exec -C <scratch>/codex-<run> review \
@@ -75,37 +119,20 @@ answer never costs a Codex run.
         --ephemeral -o <scratch>/codex-<run>.md \
         > <scratch>/codex-<run>.log 2>&1
 
-  Remove the worktree once it exits, whatever the outcome. Only a
-  run that exited 0 and left a file that is not empty completed.
-  Post its file as one pull request comment whose first line is
-  exactly
-
-      Codex review (local) on `<full head sha>`: <k> findings
-
-  with `1 finding` or `no findings` where that fits, and the file
-  below it unchanged. That comment is the record whoever merges
-  reads. Answer the findings in one further comment, a line each:
-  "<title> — fixed in <sha>", "not a bug: …" or "deferred to a
-  follow-up PR".
-- **On GitHub otherwise.** Codex (`chatgpt-codex-connector`)
-  reviews there only when asked: the repository's automatic
-  reviews are off, so a local run is never repeated there. Comment
-  `@codex review` once the draft status is lifted, and again for
-  each later round. Answer every thread the same way and resolve
-  it.
-- **A run that did not complete** reviewed nothing: it is no round,
-  and nothing is posted for it. Locally its log says why; on
-  GitHub the connector replies instead of reviewing. When the usage
-  limit stopped it, the pull request waits: report it to whoever
-  merges, with the reset time where the message names one, and
-  they decide whether to wait or merge without Codex. The other
-  path draws on the same quota and is no way around it.
-- Stacked pull requests are each reviewed against their own base,
-  so their rounds run in parallel.
+  Remove the worktree once it exits, whatever the outcome. The run
+  completed only when it exited 0 and left `<run>.md` not empty;
+  otherwise `<run>.log` says why.
+- **On GitHub:** the connector `chatgpt-codex-connector`. Automatic
+  reviews are off for this repository; a comment `@codex review`
+  asks for one. It has completed when the "Codex Review Summary"
+  comment shows "✅ Completed" next to the head SHA, not
+  "🔄 Running". A clean pass leaves no review, only a "Didn't find
+  any major issues" comment. When it cannot run, the connector
+  replies with the reason instead of a summary.
 
 ### Rounds
 
-A round is a completed Codex review that produced findings, local
+A round is a completed second review that produced findings, local
 or on GitHub; both count toward the same cap. Every status message
 names its number.
 
@@ -117,14 +144,15 @@ names its number.
   merges, with one line on its impact, and they decide.
 
 Deferred findings are listed in the pull request body under
-`## Deferred Codex findings`.
+`## Deferred review findings`.
 
 ### A fix commit
 
 A finding names one case; the defect is usually a class. Fixing
 only the case named is what brings the same finding back in the
 next round. Each time `hostwarden-reviewer` is given findings
-below, it also gets those of the pull request's earlier rounds.
+below, it also gets every earlier finding on the pull request, its
+own included.
 
 1. Give the findings to `hostwarden-reviewer` as a sweep. It names
    each one's class and every sibling in the repository.
@@ -136,28 +164,34 @@ below, it also gets those of the pull request's earlier rounds.
    `hostwarden-reviewer`, with the findings it answers. Fix what
    it reports at the current round's level by amending the same
    commit, at most three passes; what remains goes into the next
-   Codex round as it is.
-4. Push. After a Codex round, request the next one. Never request
-   one after only answering findings, or after a rebase.
+   round as it is.
+4. Push. After a round, request the next one. Never request one
+   after only answering findings, or after a rebase.
+
+A second-review finding is one the own review missed. When the
+sweep puts it in no class of `hostwarden-reviewer`, or in a class
+whose questions would not have led there, list it in the pull
+request body under `## Missed by the own review`, with the class
+it needs. Those lists are what sharpens the reviewer, in a pull
+request of its own, and what shows whether the second review is
+still needed on every pull request.
 
 A finding against a guard hook follows `repo-release.md` → Guard
 findings.
 
 ## Merge-ready
 
-- Codex has completed on the current head: on GitHub, the "Codex
-  Review Summary" comment shows "✅ Completed" next to that SHA,
-  not "🔄 Running", and a clean pass leaves no review, only a
-  "Didn't find any major issues" comment; locally, the record
-  comment names that SHA.
+- Where the second review is required, it has completed on the
+  current head: on GitHub as its reviewer's subsection says, or
+  locally with a record comment naming that SHA.
 - No unresolved thread, every local finding answered, CI green, not
   a draft, and GitHub reports the pull request CLEAN.
-- After any rebase, conflicts included, no new Codex review is
-  requested or awaited if Codex had completed on the pre-rebase
-  head with nothing open. The session checks its own conflict
+- After any rebase, conflicts included, no new second review is
+  requested or awaited if it had completed on the pre-rebase head
+  with nothing open. The session checks its own conflict
   resolution instead: `git range-diff` against the pre-rebase
-  head and green CI. Only a new fix commit of its own needs Codex
-  again.
+  head and green CI. Only a new fix commit of its own needs the
+  second review again.
 - Once a pull request is reported ready, push no new commit without
   telling whoever merges, or an unreviewed head gets merged.
 - The merge is `gh pr merge --squash --match-head-commit <sha>`.

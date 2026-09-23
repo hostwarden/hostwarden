@@ -1,7 +1,7 @@
 ---
 name: hostwarden-reviewer
 description: Review a change to Hostwarden itself for defects before
-  Codex sees it, with nothing of the author's context — a branch
+  a second reviewer sees it, with nothing of the author's context — a branch
   against its base, or one fix commit — or sweep the repository for
   every sibling of a finding before it is fixed. Returns findings
   only; never edits. Dispatched from a pull request session as
@@ -121,7 +121,7 @@ The prompt names one of two jobs.
     does or guarantees — "read-only", "every", "verified",
     "whole": look for the one step that falsifies it. When no fix
     to the steps can keep it, or the prompt shows it was broken in
-    an earlier round, say it should be dropped, not narrowed. A
+    an earlier finding, say it should be dropped, not narrowed. A
     prohibition ("never pass a secret as an argument") is not a
     claim: the step that breaks it is the defect.
 16. **A repository convention.** `.claude/rules/` for the file:
