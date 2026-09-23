@@ -76,8 +76,10 @@ every platform, whichever check reports it:
   finding.
 - **`none`.** The finding stands.
 - **A line.** Work out which ports still reach the host in that
-  family: the ports it listens on publicly (the security skill's
-  `references/listening-services.md`), minus those a DNAT hands
+  family: every port it listens on at an address other than
+  loopback, private and VPN addresses included (the security
+  skill's `references/listening-services.md` lists them), minus
+  those a DNAT hands
   to a guest first (the `Inbound` lines of a current Traffic
   flow profile, `rules/network.md`), minus what the line blocks.
   The line blocks a port only where it stands in front of every

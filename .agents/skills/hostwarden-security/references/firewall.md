@@ -19,10 +19,13 @@ server is **CRITICAL** — aligned with the housekeeping severity.
 Four variants count as a firewall: ufw, firewalld, native
 nftables (`nftables.service` loading `/etc/nftables.conf`,
 installed on Debian with the unit off), and iptables without a
-manager on the legacy backend. Check them in that order and
-judge the host by the first one that is active. Report
-**CRITICAL** "No active firewall" only when none of the four
-is.
+manager on the legacy backend. Check all four: a packet has to
+pass every one that is loaded, so a family is filtered when any
+of them drops its input by default, and an active one that does
+not changes nothing for it. Report **CRITICAL** "No active
+firewall" only when none of the four drops by default in either
+family; an active variant that is not default deny gets only its
+own WARN below.
 
 `references/firewall-nftables-docker.md` checks the variants
 after ufw and firewalld. Run its Docker check whenever

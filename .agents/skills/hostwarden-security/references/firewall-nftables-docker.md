@@ -52,7 +52,9 @@ filter nothing on their own.
 - Service active, not default deny → **WARN** "nftables
   input policy is not deny". But if its input chains hold
   no rules at all (Debian's stock `/etc/nftables.conf`),
-  nothing is filtered: **CRITICAL** "No active firewall"
+  nothing is filtered: **CRITICAL** "No active firewall",
+  unless another variant drops by default
+  (`references/firewall.md` → Linux)
 - Default deny, but `nftables.service` inactive and nothing
   in `is-enabled` reloads it → **WARN** "nftables rules will
   not survive a reboot"
