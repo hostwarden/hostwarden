@@ -90,10 +90,8 @@ when:
 - the user says a tool manages the host.
 
 As a non-root user, `/root`, root's crontab and parts of `/etc` are
-unreadable, `2>/dev/null` makes that look like absence, and
-`launchctl list` shows the calling user's domain rather than the
-system daemons a macOS agent is installed as. Run the probe
-through `sudo -n sh -c` where sudo is available
+unreadable, and `2>/dev/null` makes that look like absence. Run the
+probe through `sudo -n sh -c` where sudo is available
 (`rules/privilege-escalation.md`). Where it is not, say the check
 was partial, and record
 `Config management: unknown (privileged paths unread, <date>)` only

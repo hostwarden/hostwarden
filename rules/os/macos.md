@@ -104,14 +104,24 @@ Rules for macOS (Apple Silicon and Intel).
 ## Service Manager
 
 - macOS uses `launchd` / `launchctl`, not systemd.
-- **Enabled services:** `launchctl list` prints the jobs loaded in
-  the caller's domain, one per line: PID (`-` when not running),
-  last exit status, label. As root, or with `sudo -n`, that is the
-  system daemons; as a user, only that user's agents.
-- **Service status:** `launchctl list <label>` prints the job with
-  a `"PID"` line while it runs, and exits non-zero when no such job
-  is loaded; a system daemon needs `sudo -n`. A Homebrew service
-  also answers `brew services info <name>`.
+- **Enabled services:** the services block of
+  `launchctl print <domain>`, one job per line: PID (`0` when not
+  running), last exit status (`-` before its first exit), label.
+  `<domain>` is `system`, the system daemons, unless the caller
+  names `gui/<uid>` for a user's agents. The output is not a
+  stable format, so the listing fails when it finds no block
+  rather than printing nothing. It fails for `gui/<uid>` as well
+  when that user has no login session, and then no agent of
+  theirs is loaded:
+  ```
+  launchctl print <domain> | awk '/^\tservices = \{/ {s = 1; next}
+    s && /^\t\}/ {exit} s {n++; print} END {exit !n}'
+  ```
+- **Service status:** `launchctl print <domain>/<label>` exits 0
+  while the job is loaded, and prints `state = running` while it
+  runs: `| awk '$1 == "state" {print $3; exit}'` keeps the word.
+  A bare name is a `system` label. A Homebrew service also answers
+  `brew services info <name>`.
 - Plist locations:
   - System daemons: `/Library/LaunchDaemons/`
   - System agents: `/Library/LaunchAgents/`
@@ -145,9 +155,24 @@ Rules for macOS (Apple Silicon and Intel).
   - Disabled? The list names enabled jobs too, so
     match the state, `true` on older releases, and
     the label as a fixed string, since dots and
-    brackets in it would otherwise act as a pattern:
-    `launchctl print-disabled <domain> | grep -F
-    -e '"<label>" => disabled' -e '"<label>" => true'`
+    brackets in it would otherwise act as a pattern.
+    `print-disabled` fails for a `gui/<uid>` whose
+    user has no login session, yet that user's
+    disabled jobs stay disabled at the next login, so
+    a failure is no answer: read launchd's own record
+    `R` then (`disabled.plist` for `system`), readable
+    by any user. With neither read, the state is
+    `unknown`, never enabled:
+    ```
+    R=/private/var/db/com.apple.xpc.launchd/disabled.<uid>.plist
+    if L=$(launchctl print-disabled <domain>) ||
+       L=$(plutil -p "$R"); then
+      printf '%s\n' "$L" | grep -qF -e '"<label>" => disabled' \
+        -e '"<label>" => true' && echo disabled || echo enabled
+    else
+      echo unknown
+    fi
+    ```
   - Load: `sudo launchctl bootstrap <domain> <plist>`
   - Unload: `sudo launchctl bootout <domain> <plist>`
   - Disable: `sudo launchctl disable <domain>/<label>`

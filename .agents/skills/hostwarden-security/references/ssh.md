@@ -90,10 +90,11 @@ do not assume the compiled default.
 systemsetup -getremotelogin 2>/dev/null
 ```
 
-Or check via launchctl:
+Or check whether launchd has sshd loaded in the `system` domain
+(`rules/os/macos.md` → Service Manager); exit 0 means on:
 
 ```bash
-sudo launchctl list com.openssh.sshd 2>/dev/null
+launchctl print system/com.openssh.sshd >/dev/null 2>&1
 ```
 
 - If Remote Login is **off** → **INFO** "Remote Login (SSH) is
