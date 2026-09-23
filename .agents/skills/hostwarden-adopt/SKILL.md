@@ -79,8 +79,8 @@ leads, the host confirms them.
    read or copy out of it yourself, beyond `bin/hostwarden-adopt`,
    never goes through a link, a DNS alias to a sibling host in
    `memory/servers/` aside (`rules/dns-aliases.md`): a link may point
-   anywhere, at a credential too. It stays where it is and is named
-   in the report.
+   anywhere, at a credential too. The link stays where it is and is
+   named in the report.
 
 3. **Ask once, before the copy.** Name the hosts the run takes and
    what follows the copy:

@@ -19,6 +19,14 @@ Heinzel's copies).
 - The `not copied:` entries of step 4 that hold such files, copied
   out of the old checkout by this pass.
 
+A link in the old checkout is never followed (step 2), so the links
+are found before any of these is read. One `find <source>… -type l`
+over every source in the old checkout lists each source that is a
+link and every link below one; a source with anything listed is
+neither read nor copied, and is named in the report.
+`bin/hostwarden-adopt` does the same for whole host directories: it
+skips a host that has a link.
+
 ## Where each kind goes
 
 Decide from the records step 6 has just read, the file's own header
@@ -82,19 +90,12 @@ comments and the file itself.
 
 ## Moving
 
-`mkdir -p` and `mv -n` inside the workspace, `cp -RP` out of the
+`mkdir -p` and `mv -n` inside the workspace, `cp -RPn` out of the
 old checkout; never overwrite. Hash the workspace's masters once per
 run, and look each copy up there before placing it: one at the same
 host path with the same hash is the same artifact, and the host gets
 an entry for that master instead of a second copy. Equal bytes at
 another host path are a different file.
-
-A link in the old checkout is never followed (step 2). Before the
-first copy, one `find <source>… -type l` over every source lists
-each source that is a link and every link below one; a source with
-anything listed is not copied and is named in the report.
-`bin/hostwarden-adopt` does the same for whole host directories: it
-skips a host that has a link.
 
 A master already at the target stays, with its entry. Of two
 Heinzel copies of one host path that differ, the one the latest
