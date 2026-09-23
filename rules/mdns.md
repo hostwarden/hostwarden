@@ -37,13 +37,16 @@ echo "== dns ${1:-primary}"
 dig +short +time=2 +tries=1 ${1:+@$1} ${2:+-p} $2 A <name>
 echo "dns-exit=$?"
 echo "== mdns"
-dns-sd -G v4 <name> & sleep 2; kill $!
+dns-sd -fmc -G v4 <name> & sleep 2; kill $!
 ```
 
-The address lines under `== dns` are unicast DNS. A `dns-sd`
-`Add` line with a non-zero `IF` column came from the link; `IF` 0
-is unicast DNS again, and a line ending `No Such Record` is no
-answer.
+The address lines under `== dns` are unicast DNS. `-fmc` keeps
+`dns-sd` to multicast, so each `Add` line it prints is an mDNS
+answer, except one ending `No Such Record`, which is none. The
+`IF` column names the interface, not the protocol. One exception:
+where `/etc/hosts` holds the name (the `awk` under Comparing),
+mDNSResponder answers from that file and never asks the link, so
+the mDNS side is unread.
 
 On Linux, the system resolver asks mDNS only through a module on
 the `hosts:` line of `/etc/nsswitch.conf` or through resolved's
@@ -163,7 +166,8 @@ is written again only when IP Verification finds no overlap.
 Where only mDNS answers and IP Verification found no overlap, a
 name conflict can be the cause as well: the host in memory may
 have renamed itself. Ask the same mDNS source for
-`<host>-2.local`, `-3` and so on while one answers; an answer with
+`<host>-2.local`, `-3` and so on while one answers — on macOS
+with `dns-sd -fmc -G v4` as above, read the same way; an answer with
 an address in `- IP:` is the host in memory under its new name,
 and IP Verification's question names that.
 
