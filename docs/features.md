@@ -45,7 +45,12 @@ container or jail, and a Proxmox VM with its guest agent — then
 gets memory of its own, named by its hostname, read-only
 and without you naming each one. That is the only time
 Hostwarden goes through the hypervisor unasked; after
-that, SSH comes first as always.
+that, SSH comes first as always. Afterwards it tells you
+which guests it read inside and through which command,
+which it left out and why, what it wrote (one read-only
+journal line in each guest, memory on your side), and
+what it found. The first SSH connection to each guest
+stays yours.
 
 For stopped guests it asks you once, in one list, why
 they are off: on purpose, retired, not in service yet,

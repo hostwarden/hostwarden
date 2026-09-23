@@ -397,7 +397,53 @@ one line (*"Registering 7 guests of pve1.example.com through
    call, and a line in its local changelog (`rules/changelog.md`).
 
 Registration never changes a guest, whatever the probe finds:
-findings go into its memory and are reported in one line each.
+findings go into its memory and into the report below.
+
+**The report.** Once the last guest is done, step 3's questions
+answered and acted on, and before any other question
+registration raises, report in this form:
+
+```
+Registered 17 of 22 guests of pve1.example.com, read-only, no SSH:
+  read inside through pct exec: 101 web1, 102 db1, …
+  read inside through qm guest exec: 105 app1, …
+  not registered: 110 mail-old (stopped), 120 win1 (Windows),
+    121 fw1 (VM, no agent), 130 old-db (blacklisted)
+  failed: 131 ci1 (OS detection: timeout; nothing written)
+  written: a read-only: journal line in 16 guests (102 db1: no
+    logger); 15 new memory directories, 2 existing ones given Runs on:,
+    guests.md, the local changelog
+  next, only with you: the first SSH connection to each guest
+  findings:
+    db1.example.com: no automatic security updates
+    app1.example.com: Ansible manages /etc/nginx
+```
+
+- One `read inside` line per command
+  `rules/system-containers.md` → Reaching It used; a guest is
+  named by its ID and name as the inventory lists them, a jail by
+  its name.
+- `not registered` names every guest of the inventory that has
+  no memory of its own now, templates excepted, with the reason
+  this section or step 1 or 3 gives. A guest step 3 left out was
+  read inside, and its entry says so.
+- `failed` names a guest whose probe failed, with the step, the
+  error in a few words, and whether its memory directory was
+  written.
+- `written` counts the journal lines that were written and names
+  each registered guest whose logger failed
+  (`rules/changelog.md` → Journal Headlines).
+- `findings` holds one line per finding, led by the memory
+  directory it was recorded in, or by ID and name for a guest
+  step 3 left out, which has no memory to record it. A registered
+  guest's Heinzel finds are left to their own question; one step
+  3 left out has them here.
+- A line with nothing to list is left out.
+
+Questions follow in their own form: Stopped Guests above and,
+where the Heinzel check found anything, one question
+for the host and its registered guests together
+(`rules/heinzel-adoption.md` → A host and its guests).
 
 ## Linking Guest and Host
 

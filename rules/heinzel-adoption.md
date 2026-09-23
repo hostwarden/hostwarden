@@ -57,6 +57,43 @@ three rule overrides for their Heinzel checkout that
 make it read both journal tags, treat its memory as a
 lead, and leave Hostwarden's files alone.
 
+## A host and its guests
+
+When a hypervisor host registers its guests in the
+same session, the host's finds and every registered
+guest's make one report and one question, asked where
+`rules/hypervisors.md` → Registering Guests places
+it. A machine without finds is not listed:
+
+```
+heinzel state on pve1.example.com and 3 of its guests:
+  pve1.example.com:
+    /var/backups/heinzel/ — 24 files, oldest 61 days
+  web1.example.com:
+    /var/backups/heinzel/ — 6 files, oldest 12 days
+  db1.example.com:
+    /root/heinzel-scratch/ — 2 files, oldest 40 days
+  app1.example.com:
+    heinzel entries in the journal, last 3 days ago
+```
+
+One answer covers every machine listed, or the user
+answers per machine, as in `rules/hypervisors.md` →
+Stopped Guests; whether Heinzel still runs is asked
+once the same way. Each machine's memory records its
+own outcome line (Record, below).
+
+Leaving and waiting are recorded in each machine
+now. Adopting runs now on the host only: registration
+never changes a guest, so a guest keeps that answer
+as a deferral. Its next connection that may change
+it asks again, for that guest alone, with the
+recorded answer as the recommended one:
+
+```markdown
+- heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)
+```
+
 ## Move the fixed paths
 
 Never overwrite. `mv -n` keeps a same-named file at

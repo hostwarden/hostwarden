@@ -453,7 +453,11 @@ The migration renames skill overrides in
   reports what Heinzel left there — config backups,
   scratch directories — and offers to move it under
   the new name. It asks first, and it says which old
-  backups the retention cleanup would then delete.
+  backups the retention cleanup would then delete. On
+  a hypervisor whose guests it registers, it asks once
+  for the host and the guests together; a guest
+  answered with "adopt" is moved on its next connection
+  that may change it, after one more question.
   New config backups go to
   `/var/backups/hostwarden/`, or the directory an
   appliance's rules name.
