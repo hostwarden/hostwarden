@@ -702,6 +702,17 @@ first_boot_only() {
   [ "$FB_ALL" -gt 0 ] && [ "$FB_ALL" -eq "$FB_UNDER" ]
 }
 
+image_write_targets() {
+  # image_write_targets -- the command line with the local side of
+  # virt-customize's --copy-in and --upload (LOCAL:REMOTE) dropped.
+  # That side is only read, so copying the host's own sshd_config
+  # into an image as a reference is a read of it; what is left names
+  # the paths the image is written at. A LOCAL that itself holds a
+  # colon is left in place and still counts, which errs on asking.
+  printf '%s' "$CMD" \
+    | sed -E "s/(--(copy-in|upload)([[:space:]]+|=)[\"']?)[^:[:space:]\"']+:/\\1:/g"
+}
+
 first_boot_ask() {
   # first_boot_ask <what> -- the ask tier (ask_for below) for a
   # write that only a guest's first boot may make.
@@ -1707,7 +1718,8 @@ if [ "$HAS_SSHD" -eq 1 ]; then
     || hit "(^|[^[:alnum:]_-])$EDITOR([^[:alnum:]_-]|\$)" \
     || hit "(^|[^[:alnum:]_-])($CLOBBER|cp)([^[:alnum:]_-]|\$)" \
     || { hit "(^|[^[:alnum:]_.-])$IMAGETOOL([^[:alnum:]_.-]|\$)" \
-         && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)"; } \
+         && hit "(^|[[:space:]])(--copy-in|--upload|--write|--edit|--ssh-inject|write|upload|copy-in|edit)([[:space:]]|=)" \
+         && image_write_targets | grep -Eq "$SSHD"; } \
     || hit '(^|[^[:alnum:]_.-])(virt-edit|virt-copy-in)([^[:alnum:]_.-]|$)' \
     || writes_to "$SSHD"
   then

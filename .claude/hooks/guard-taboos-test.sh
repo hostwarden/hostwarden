@@ -534,6 +534,19 @@ check_mode deny default \
 check_mode ask default "virt-edit -a $FB_IMG /etc/ssh/sshd_config -e s/a/b/"
 check_mode ask default "virt-copy-in -a $FB_IMG 10.conf /etc/ssh/sshd_config.d"
 check_mode deny default "virt-edit -d web1 /etc/ssh/sshd_config -e s/a/b/"
+# The local side of --copy-in and --upload is only read: the host's
+# sshd_config copied into an image elsewhere is no write to sshd's
+# config. The image side under /etc/ssh still asks, and a host write
+# beside it is still denied.
+check_mode pass default "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp"
+check_mode pass default \
+  "virt-customize -a $FB_IMG --upload /etc/ssh/sshd_config:/root/sshd_config.host"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config.d/x.conf:/etc/ssh/sshd_config.d"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in=10.conf:/etc/ssh/sshd_config.d"
+check_mode deny default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp; cp a /etc/ssh/sshd_config"
 # The ask is decided last: a taboo anywhere after a first-boot write
 # in the same line is still that taboo's deny.
 check_mode deny default \
