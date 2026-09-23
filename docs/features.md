@@ -383,13 +383,16 @@ do the members of a cluster in a change.
 
 A change asks once, naming every host and a proposed canary
 host. The canary runs alone; only when its result matches what
-was expected do the others follow. The first surprise stops every
-host that has not started, and each host the change reached gets
-its own journal line and memory. The rollout is written down as a
-plan in `memory/plans/` until every host is done, so a later
-session can finish it. A change to the firewall, the network or a
-login shell runs one host after another in the main session
-instead, each with the SSH safety net and its own questions.
+was expected do the others follow, in Claude Code all at once
+apart from hosts that have to wait their turn, such as those
+behind one jump host. A surprise stops every host that has not
+started yet: at the canary, the whole rollout; later, only the
+hosts still waiting. Each host the change reached gets its own
+journal line and memory. The rollout is written down as a plan
+in `memory/plans/` until every host is done, so a later session
+can finish it. A change to the firewall, the network or a login
+shell runs one host after another in the main session instead,
+each with the SSH safety net and its own questions.
 `/hostwarden-multi-host` starts it by name.
 
 ## Fleet read

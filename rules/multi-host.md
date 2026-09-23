@@ -20,12 +20,16 @@ conversation and returns a short answer.
    "all servers", the hosts the fleet audit lists
    (`.agents/skills/hostwarden-fleet-audit/SKILL.md` → Workflow,
    step 1), without its grouping.
-2. **One machine, one entry.** Two names that lead to the same host
-   directory — an alias symlinked to its host, an address that is
-   a host's `- IP:` line, a `Reached as:` destination beside its
-   directory's name — are one target, under the name the user gave
-   first. Two agents on one machine would share this session's
-   register entry and never see each other.
+2. **One machine, one entry.** Names whose `memory/servers/`
+   entries lead to the same directory — an alias symlinked to a
+   host in the list, or two aliases of one host that is not — are
+   one target, under the name the user gave first. Only the symlink
+   counts: `rules/dns-aliases.md` writes it once the host key
+   proves the two names one machine, and a shared address or
+   `Reached as:` destination proves nothing — sites reuse private
+   ranges, and WSL instances share their Windows host's name. Two
+   agents on one machine would share this session's register entry
+   and never see each other.
 3. **Sort out, from files here, before anything connects.** A host
    on the blacklist (`rules/access-control.md`) gets no agent: list
    it as skipped. For a change, so does a host on the read-only
@@ -36,12 +40,17 @@ conversation and returns a short answer.
 4. **First connections here.** A host gets its first connection in
    this session, one host at a time, before any agent starts, when
    it has no `memory/servers/<host>/` yet, no key in
-   `memory/known_hosts`, or no SSH user where it needs one — a
-   `Mode: via` guest needs none, since it logs in as its host's
-   user, and a host with a `Reached as:` line is looked up under
-   that destination. The SSH user interview, alias detection and a
-   host key may all need the user, and an agent has none to ask.
-   Then it joins the others as a known host.
+   `memory/known_hosts` under the name `rules/host-keys.md` gives
+   it, or no SSH user in `memory/user.md`. A host with a
+   `Reached as:` line is looked up under that destination on its
+   `SSH port:` (`[<name>]:<port>` off port 22). A `Mode: via` guest
+   needs neither key nor user, since it logs in through its host,
+   and neither does the local machine (`AGENTS.md` → Local mode).
+   The SSH user interview, alias detection and a host key may all
+   need the user, and an agent has none to ask. Then the host joins
+   the others as a known host, and step 2 runs again for it: alias
+   detection may just have found it to be a host already in the
+   list.
 
 ## The task
 
@@ -84,8 +93,9 @@ Each task prompt stands on its own, because the agent sees nothing
 of this conversation:
 
 - the host as named, its SSH user, and the lines of its `memory.md`
-  that say how it is reached: `Mode: via`, `Runs on:`,
-  `Reached as:`, `SSH port:`;
+  that say how it is reached: `Mode:`, `Runs on:`, `Reached as:`,
+  `SSH port:`. For the local machine, that it runs in local mode
+  and has no SSH user;
 - the mode, and for `skill` which one;
 - the task, the commands you expect it to take if you know them,
   and the answer's shape;
@@ -222,7 +232,10 @@ and the guard and the taboos hold on every one of them.
 4. **The canary alone.** Dispatch it and compare what it returns
    with the expected results from step 1. Anything else is a
    surprise.
-5. **Then the rest**, as → Dispatch and → Order say.
+5. **Then the rest**, as → Dispatch and → Order say. Where agents
+   run them, they start together, apart from the hosts → Order puts
+   in sequence, so the canary is what catches a surprise before the
+   others start.
 6. **After a surprise** — at the canary, or among the rest a
    `stopped:`, `partial:` or `blocked:` host or an agent that
    returned no status — no host that has not started yet starts.
