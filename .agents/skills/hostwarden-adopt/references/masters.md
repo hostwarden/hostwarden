@@ -82,12 +82,21 @@ comments and the file itself.
 
 ## Moving
 
-`mkdir -p` and `mv -n` inside the workspace, `cp` out of the old
-checkout; never overwrite. Hash the workspace's masters once per
+`mkdir -p` and `mv -n` inside the workspace, `cp -RP` out of the
+old checkout; never overwrite. Hash the workspace's masters once per
 run, and look each copy up there before placing it: one at the same
 host path with the same hash is the same artifact, and the host gets
 an entry for that master instead of a second copy. Equal bytes at
 another host path are a different file.
+
+Never follow a link out of the old checkout. It may point anywhere,
+at a credential too, and a `cp` that follows it puts the target into
+the committed workspace. Before each copy, `find <source> -type l`
+lists the source itself when it is a link and every link below it;
+a source with anything listed is not copied at all, stays where it
+is, and is named in the report. The host directories the copy
+brought in hold no links: `bin/hostwarden-adopt` skips a host that
+has one.
 
 A master already at the target stays, with its entry. Of two
 Heinzel copies of one host path that differ, the one the latest
