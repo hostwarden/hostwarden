@@ -12,9 +12,10 @@ or the stand-in that file names); without one they print
 
 The probe reads hook scripts and never runs them, and it prints
 only the lines of a script that change routes, rules, filters or
-kernel settings: a line that names a key, a password, a token or
-`ip xfrm` stays out, since such a script can carry a secret
-(`rules/secrets.md`).
+kernel settings. Such a line can carry a secret
+(`rules/secrets.md`), so a command other than a network tool is
+cut to its name (`curl ...`), and a line that names a key, a
+password, a token or `ip xfrm` stays out altogether.
 
 BusyBox `ip` has no `-br`, and Alpine ships no `ss` or `curl`
 by default: where a section comes back empty for that reason,
@@ -66,9 +67,36 @@ grep -hE '^[[:space:]]*(auto|allow-hotplug|iface) ' $ifs 2>/dev/null
 # dispatcher scripts no package installed.
 h='^[[:space:]]*(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]'
 x='xfrm|key|pass|secret|token|psk'
+# A command is printed whole only when it is a network tool, a
+# netfilter call through a variable, an assignment of an address,
+# interface or tool, or a write to /proc/sys; any other keeps its
+# name alone, since its arguments can carry a credential.
+t='^(ip|ip6?tables(-legacy)?(-restore)?|nft|sysctl|ebtables|arptables'
+t="$t|bridge|brctl|tc|ipset|route|firewall-cmd|ufw|conntrack)\$"
+v='(ip6?tables|nft)[^[:space:]]*|[0-9.]+(/[0-9]+)?|[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?'
+v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
+va="^[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?\$"
+rd='{ pre = ""; l = $0
+  if (match(l, /^[^:]*:[0-9]+:/)) {
+    pre = substr(l, 1, RLENGTH); l = substr(l, RLENGTH + 1) }
+  sub(/^[[:space:]]+/, "", l); hk = ""
+  if (l ~ /^(pre-up|up|post-up|down|pre-down|post-down)[[:space:]]/) {
+    hk = l; sub(/[[:space:]].*/, "", hk)
+    sub(/^[^[:space:]]+[[:space:]]+/, "", l); hk = hk " " }
+  n = split(l, sg, /[[:space:]]*(;|&&|\|\|?)[[:space:]]*/); o = ""
+  for (i = 1; i <= n; i++) {
+    c = sg[i]; w = c; sub(/[[:space:]].*/, "", w)
+    sub(/=.*/, "=", w); b = w; sub(/.*\//, "", b)
+    if (!(b ~ t || c ~ va \
+      || c ~ /^"?\$\{?[A-Za-z_]+\}?"?[[:space:]]+-[tAIDNPF]/ \
+      || (b == "echo" && c ~ />[[:space:]]*\/proc\/sys\//)))
+      c = w " ..."
+    o = o (i > 1 ? "; " : "") c }
+  print pre hk o }'
 hl=$(grep -HnE "$h" $ifs 2>/dev/null)
 echo "## hooks"
-[ -n "$hl" ] && printf '%s\n' "$hl" | grep -viE "$x"
+[ -n "$hl" ] && printf '%s\n' "$hl" | grep -viE "$x" \
+  | awk -v t="$t" -v va="$va" "$rd"
 hs=$(printf '%s\n' "$hl" | cut -d: -f3- \
   | grep -oE '(^|[[:space:];&|])/[^[:space:];&|]+' | sed 's|^[^/]*||' \
   | grep -vE '^/(usr/)?s?bin/|^/(proc|sys|dev)/')
@@ -95,14 +123,12 @@ done
 hs=$(printf '%s\n' $hs | sort -u)
 echo "scripts: $(printf '%s ' $hs)"
 # Commands that change something, and assignments whose value is
-# a netfilter tool, an address or an interface name.
+# a netfilter tool, an address or an interface name ($va).
 p='^[[:space:]]*([a-z/]*/)?(ip6?tables(-legacy)?(-restore)?|nft|ip'
 p="$p|sysctl|ebtables|arptables|bridge|brctl|tc|ipset|route"
 p="$p|firewall-cmd|ufw|conntrack|wg|wg-quick)[[:space:]]"
 p="$p|^[[:space:]]*((\\.|source|sh|bash|exec)[[:space:]]+)?/[A-Za-z0-9_./-]+"
 p="$p|^[[:space:]]*\"?\\\$\{?[A-Za-z_]+\}?\"?[[:space:]]+-[tAIDNPF]"
-v='(ip6?tables|nft)[^[:space:]]*|[0-9.]+(/[0-9]+)?|[0-9a-f]*:[0-9a-f:]*(/[0-9]+)?'
-v="$v|(eth|en|br|vmbr|bond|vlan|wg|tun|tap|veth|wl)[a-z0-9.]*"
 p="$p|^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?($v)[\"']?[[:space:]]*\$"
 p="$p|/proc/sys/|-j (DNAT|SNAT|MASQUERADE|REDIRECT|NETMAP)"
 if [ -z "$hs" ]; then :
@@ -124,7 +150,8 @@ else
     echo "$f:$w (other: $o)"
   done'
   $S sh -c "$q" sh $hs
-  $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x"
+  $S grep -HnE "$p" $hs 2>/dev/null | grep -viE "$x" \
+    | awk -v t="$t" -v va="$va" "$rd"
 fi
 if command -v networkctl >/dev/null 2>&1; then
   networkctl list --no-pager --no-legend \
