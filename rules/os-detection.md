@@ -42,7 +42,12 @@ On first connection, step 1, or on a known host the
 short one On subsequent connections below names.
 `ssh` joins the quoted pieces with spaces into one
 command line. In local mode, run the same commands
-without `ssh`.
+without `ssh`. Going without stdin, it types nothing
+into a menu. Because the login shell is not always
+sh, every later call goes through the bundle from
+`rules/ssh-connections.md` → Bundle commands:
+`sh -s`, whatever `Shell:` records, or the one the
+Windows file names.
 
 Keep its shape: single quotes, so the local shell
 does not expand `$$`; no redirects, `&&` or `$(…)`,

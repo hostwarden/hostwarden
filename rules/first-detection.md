@@ -55,15 +55,13 @@ are there.
    **The second line is the shell** (compare its
    basename; macOS may print `-zsh` or a path). Record
    it per SSH user in server memory (`Shell: csh
-   (root)`). Because the login shell is not always sh,
-   every later call goes through the `sh -s` bundle
-   from `rules/ssh-connections.md` → Bundle commands,
-   whatever the shell; only this probe goes without
-   stdin, so nothing is ever typed into a menu. An
-   error in place of the second line (busybox `ps`
-   rejects `-p`) means reading the shell from the SSH
-   user's line in `/etc/passwd` in the next call;
-   record `Shell: unknown` only if that fails too. A
+   (root)`); every later call goes through `sh -s`
+   whatever it is (`rules/os-detection.md` → The
+   first call). An error in place of the second line
+   (busybox `ps` rejects `-p`) means reading the
+   shell from the SSH user's line in `/etc/passwd` in
+   the next call; record `Shell: unknown` only if that
+   fails too. A
    shell that rejects the whole line (fish rejects
    `$$`) records `Shell: unknown`, and then the probe
    goes again through `sh -s`.
