@@ -121,7 +121,7 @@ case $NAME in
     die "memory/user.md needs 'Operator: <this host's handle>'" ;;
 esac
 git -C "$M" show '@{upstream}:operators.md' 2>/dev/null \
-  | grep -Eq "^- $NAME[[:space:]]*\$" \
+  | grep -Eq "^- ${NAME}[[:space:]]*\$" \
   || die "Operator: $NAME is not in the remote's memory/operators.md yet"
 KEY=$(user_line 'Fleet key')
 KEY=${KEY:-$HOME/.ssh/id_fleet_read}
