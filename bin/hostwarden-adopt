@@ -617,17 +617,18 @@ fi
 CR=$(printf '\r')
 US=$(printf '\037')
 
-# user_line <key> <file>: the first line of <file>
-# that sets <key>, without a leading "- ", or nothing.
+# user_line <id> <file>: the first line of <file> that
+# sets <id>, or nothing. The id is the text before ": "
+# with its list form: "- Default" is a host named
+# Default, "Default" the default user (rules/ssh-user.md).
 # A commented line sets nothing: the template ships its
 # preferences as comments.
 user_line() {
   while IFS= read -r ul_line || [ -n "$ul_line" ]; do
     ul_line=${ul_line%"$CR"}
     case "$ul_line" in '#'*|'') continue ;; esac
-    ul_item=${ul_line#- }
-    if [ "${ul_item%%: *}" = "$1" ]; then
-      printf '%s\n' "$ul_item"
+    if [ "${ul_line%%: *}" = "$1" ]; then
+      printf '%s\n' "$ul_line"
       return 0
     fi
   done < "$2"
@@ -658,17 +659,18 @@ case " $SHARED_PENDING " in
         esac
         UM_ITEM=${UM_LINE#- }
         case "$UM_ITEM" in *': '*) ;; *) continue ;; esac
-        UM_KEY=${UM_ITEM%%: *}
+        UM_ID=${UM_LINE%%: *}
+        UM_KEY=${UM_ID#- }
         # This script writes that line itself.
         [ "$UM_KEY" = "Adopted from heinzel" ] && continue
         # The first line for a key decides, as for the
         # agent that reads the file.
-        case "$UM_SEEN" in *"$NL$UM_KEY$NL"*) continue ;; esac
-        UM_SEEN="$UM_SEEN$UM_KEY$NL"
-        UM_HAVE=$(user_line "$UM_KEY" "$UM_DST")
+        case "$UM_SEEN" in *"$NL$UM_ID$NL"*) continue ;; esac
+        UM_SEEN="$UM_SEEN$UM_ID$NL"
+        UM_HAVE=$(user_line "$UM_ID" "$UM_DST")
         if [ -n "$UM_HAVE" ]; then
-          [ "$UM_HAVE" = "$UM_ITEM" ] \
-            || UM_DIFF="$UM_DIFF  $UM_KEY: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
+          [ "$UM_HAVE" = "$UM_LINE" ] \
+            || UM_DIFF="$UM_DIFF  $UM_ID: \"${UM_HAVE#*: }\" here, \"${UM_ITEM#*: }\" in the old checkout$NL"
           continue
         fi
         case "$UM_ITEM" in
