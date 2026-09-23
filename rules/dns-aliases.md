@@ -23,9 +23,11 @@ symlink):
    the call logs in as, prints the name
    ssh will really connect to, without connecting:
    ```
-   ssh -F "<checkout>/memory/ssh_config" -G <user>@<hostname> 2>/dev/null | \
+   ssh -F "<checkout>/memory/ssh_config" -G -l '<user>' <hostname> 2>/dev/null | \
      awk '$1=="hostname"{print $2}'
    ```
+   `-l` quoted keeps a Windows `domain\user` whole
+   (`rules/ssh-user.md` → Host-specific options).
    Every `ssh -G` below carries the same `-F`.
    Resolve that name. Ask the system resolver, not
    DNS directly: only it sees `/etc/hosts`, the

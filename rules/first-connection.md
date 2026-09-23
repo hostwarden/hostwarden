@@ -23,10 +23,11 @@ skip it.
    this user. Once the user is chosen, compare the
    `hostname` and `proxyjump` lines of its `ssh -G`
    output with the default user's. Where one differs,
-   rerun the blacklist check for the target and each
-   hop, and the read-only check for the target, as
-   the chosen user, before any SSH call. A port that
-   differs is step 4's.
+   rerun the blacklist check for the target as the
+   chosen user and for each hop as its own login user
+   (`rules/access-control.md` → Server Blacklist), and
+   the read-only check for the target, before any SSH
+   call. A port that differs is step 4's.
 4. **DNS check.** New hostname (no
    `memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP

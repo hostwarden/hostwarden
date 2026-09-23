@@ -75,8 +75,11 @@ host before the target. Where the `proxyjump` line of
 `ssh -G <user>@<hostname>` with the standard options,
 for the user the call will log in as, names hops, run
 the lookup above for each hop as well, by the name
-that line gives it. A listed hop blocks the target:
-name the hop and refuse, as above.
+that line gives it and as the hop's own login user:
+the one its `[user@]host` names, else the `user` line
+of `ssh -G` for that hop. A `Match user` block can
+map a hop elsewhere for that user alone. A listed hop
+blocks the target: name the hop and refuse, as above.
 
 ## Read-Only Servers
 
