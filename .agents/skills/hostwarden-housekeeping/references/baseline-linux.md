@@ -49,11 +49,15 @@ df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 ```bash
 grep -E '^(MemTotal|MemAvailable|SwapTotal|SwapFree|Zswap|Zswapped):' \
   /proc/meminfo
-grep -sE '^(size|c_min) ' /proc/spl/kstat/zfs/arcstats
 cat /proc/swaps
-grep -sH . /sys/module/zswap/parameters/enabled \
-  /sys/block/zram*/comp_algorithm /sys/block/zram*/mm_stat
-cat /proc/pressure/memory 2>/dev/null || true
+f=/proc/spl/kstat/zfs/arcstats
+if [ -e $f ]; then grep -E '^(size|c_min) ' $f; fi
+for f in /sys/module/zswap/parameters/enabled \
+  /sys/block/zram*/comp_algorithm /sys/block/zram*/mm_stat \
+  /proc/pressure/memory; do
+  if [ -e "$f" ]; then grep -H . "$f"; fi
+done
+true
 ```
 
 None of it needs root. `/proc/meminfo` and `/proc/swaps` count in
@@ -61,7 +65,12 @@ KiB, `mm_stat` in bytes. A file that is missing prints nothing and
 is an answer, not a failed check: no `enabled` line, a kernel
 without zswap; no `Zswapped:` line, one older than that counter; no
 pressure lines, one without pressure stall information or booted
-with it off; no ARC lines, no ZFS.
+with it off; no ARC lines, no ZFS. A file that exists but cannot be
+read prints `grep`'s error instead: that part did not run, and the
+report says so rather than reading it as absent. An unreadable ARC
+means available memory is unknown, and the available-memory
+finding is not raised on `MemAvailable:` alone. The closing `true`
+keeps such an error from failing the call.
 
 Available memory is `MemAvailable:`, plus, on ZFS, the ARC above
 its minimum (`size` − `c_min`, in bytes, 0 when negative). The
@@ -100,10 +109,11 @@ for both: the report says so and raises no disk swap finding.
 - **WARN** if swap in use on disk > 50% of the disk swap devices'
   size. Never judge the total swap figure: zram and zswap both
   fill it with pages that are still in RAM.
-- **WARN** if a zram swap device is > 90% full — `Used` against
-  its `Size`, or, where the fourth `mm_stat` field (`mem_limit`)
-  is not 0, the third field against it. Its next pages go to a
-  disk swap device of lower priority or to the OOM killer.
+- **WARN** if a zram swap device is > 90% full by either limit —
+  `Used` against its `Size`, and, where the fourth `mm_stat` field
+  (`mem_limit`) is not 0, the third field against it. Once it
+  reaches either, its next pages go to a disk swap device of lower
+  priority or to the OOM killer.
 - **WARN** if zswap is on while a zram device is swap: zswap
   compresses pages on their way into zram, which compresses them
   again. The fix is `zswap.enabled=0` on the kernel command line.
