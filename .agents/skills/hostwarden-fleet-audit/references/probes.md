@@ -163,24 +163,24 @@ only.
 privilege prefix. Without one, `sshd -G` prints the same without
 the host keys (OpenSSH 9.3 and newer) where sshd's configuration
 files are readable; emit the sentinel when it fails too. A `-f` on
-the running daemon's command line is carried over, as in
-`.agents/skills/hostwarden-security/references/ssh.md` → sshd's
-Effective Configuration, which also reads a second daemon's file:
+a running daemon's command line is carried over, the same
+extraction the security audit's SSH reference uses; where several
+daemons run, the row reads one of them:
 
 ```bash
 PATH=$PATH:/usr/sbin:/usr/local/sbin
 F=$(ps ax -o args= \
-  | sed -n 's/^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-f \([^ ]*\).*/\2/p' \
-  | sort -u | head -n 1)
+  | grep '^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-[[:alpha:]]' \
+  | sed -e 's/^[^ ]*sshd:\{0,1\} \(.* \)\{0,1\}-f \([^ ]*\).*/\2/' \
+    -e t -e 's/.*/default/' | sort -u | head -n 1)
 set --
-[ -z "$F" ] || { set -- -f "$F"; echo "sshd-f $F"; }
+[ "${F:-default}" = default ] || { set -- -f "$F"; echo "sshd-f $F"; }
 if [ "$SUDO" = "-" ]; then
-  OUT=$(sshd "$@" -G 2>/dev/null) || OUT="unknown(needs-root)"
+  OUT=$(sshd "$@" -G 2>/dev/null) || { echo "unknown(needs-root)"; OUT=; }
 else
   OUT=$($SUDO sshd "$@" -T 2>/dev/null)
 fi
 printf '%s\n' "$OUT" | grep -i \
-    -e '^unknown(needs-root)$' \
     -e '^permitrootlogin ' \
     -e '^passwordauthentication ' \
     -e '^pubkeyauthentication ' \

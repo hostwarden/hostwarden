@@ -10,16 +10,15 @@ Every sshd check in this file judges the values sshd really uses,
 read once per host with the probe below; on macOS, only once
 Remote Login is on (→ SSH Password Authentication — macOS).
 `sshd_config` and `sshd_config.d/*.conf` in `/etc/ssh` are not all
-there is: an `Include` can name any file (RHEL's crypto policy in
-`/etc/crypto-policies`, macOS's `/etc/ssh/crypto.conf`), openSUSE
-keeps its configuration in `/usr/etc/ssh`, FreeBSD's package in
-`/usr/local/etc/ssh`, and a daemon started with `-f` reads another
-file entirely.
+there is: an `Include` can name any file, a family can keep the
+configuration elsewhere, and a daemon started with `-f` reads
+another file entirely. `rules/os/<family>.md` → sshd says where
+this family keeps it and where a `-f` is set, and names a family
+whose files only root can read.
 
 - `sshd -G` prints the effective configuration without loading the
   host keys (OpenSSH 9.3 and newer), so it needs no root wherever
-  the configuration files are readable. Debian's and Ubuntu's are;
-  RHEL's (mode 0600) and openSUSE's (0640) are not.
+  the configuration files are readable.
 - `sshd -T` prints the same after loading the host keys, so it
   needs root. The probe falls back to it for older OpenSSH.
 - `-dd` adds a debug line for every file read, includes followed:
@@ -33,8 +32,11 @@ file entirely.
 - Since OpenSSH 10.4 both print keywords in mixed case
   (`PasswordAuthentication`), so always filter with `grep -i`.
 
-The grep takes every keyword this file and the blocklistd check in
-`references/intrusion-prevention.md` judge:
+The last grep takes every keyword this file and the blocklistd
+check in `references/intrusion-prevention.md` judge. The one before
+it lists the `Match` blocks (→ Match blocks below). Run the probe
+and the SSH client check below in one bundle
+(`rules/ssh-connections.md` → Bundle commands):
 
 ```bash
 PATH=$PATH:/usr/sbin:/usr/local/sbin
@@ -51,8 +53,10 @@ for F in $FS; do
     printf '%s\n' "$OUT" | tr -d '\r' | grep -v '^debug' | tail -n 2
     continue
   }
-  printf '%s\n' "$OUT" | tr -d '\r' \
-    | sed -n 's/.*load_server_config: filename /reads: /p' | sort -u
+  R=$(printf '%s\n' "$OUT" | tr -d '\r' \
+    | sed -n 's/.*load_server_config: filename //p' | sort -u)
+  [ -z "$R" ] || { printf 'reads: %s\n' $R
+    grep -Hin '^[[:space:]]*match[[:space:]]' $R; }
   printf '%s\n' "$OUT" | grep -iE \
     -e '^(passwordauthentication|kbdinteractiveauthentication) ' \
     -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
@@ -64,9 +68,9 @@ done
 The `reads:` lines are what the rest of this file calls the files
 sshd reads. Where no sshd runs yet — launchd on macOS starts one
 per connection, a socket unit on the first — a `-f` sits in the
-service definition instead; `rules/os/<family>.md` → sshd says
-where, and names the tool that checksums a file sshd reads when it
-has to be compared with a backup or another host's copy.
+service definition instead, where `rules/os/<family>.md` → sshd
+says. That section also names the tool that checksums a file sshd
+reads, for comparing it with a backup or another host's copy.
 
 When both runs fail, the probe prints sshd's own reason, such as
 `Permission denied` or `no hostkeys available`. Read the files then
@@ -85,24 +89,18 @@ read the files in its configuration directory, not `/etc/ssh`.
 The probe prints the values outside every `Match` block. A block
 changes them for the users, groups or addresses its condition
 names, so a `Match Address` that allows passwords from one network
-is exactly what the probe leaves out. List the blocks in the files
-sshd reads:
-
-```bash
-grep -Hin '^[[:space:]]*match[[:space:]]' <files sshd reads>
-```
+is exactly what the probe leaves out. The probe lists the blocks,
+`<file>:<line>:Match …`.
 
 For each block, ask sshd for the values a connection it matches
 gets: a user, group member or address its condition names, with
-the probe's `-f` where it had one. `-C` works only with `-T`, so
-this needs root; without it, list the blocks under Skipped
-(`references/unprivileged.md`).
+the probe's `-f` where it had one, and filter the output with the
+probe's last grep. All blocks go in one bundle. `-C` works only
+with `-T`, so this needs root; without it, list the blocks under
+Skipped (`references/unprivileged.md`).
 
 ```bash
-sshd -T -C user=<user>,host=<name>,addr=<address> | grep -iE \
-  -e '^(passwordauthentication|kbdinteractiveauthentication) ' \
-  -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
-  -e '^(permitrootlogin|x11forwarding) '
+sshd -T -C user=<user>,host=<name>,addr=<address>
 ```
 
 OpenSSH 8.1 and newer accept any of the three. Older releases
@@ -135,18 +133,13 @@ INFO instead of the warning below.
 
 ### Fallback (config files)
 
-When the probe gets no values, read the files directly: the main
-file — the one a `-f` names, `/etc/ssh/sshd_config`, or on
-openSUSE `/usr/etc/ssh/sshd_config` where the first does not
-exist — and every file its `Include` lines name. Without root,
-RHEL's and openSUSE's are unreadable too.
+When the probe gets no values, read the files directly, in one
+call: the main file — the one a `-f` names, or the family's
+default (`rules/os/<family>.md` → sshd) — and every file its
+`Include` lines name, followed the same way.
 
 ```bash
-# Main config
-cat /etc/ssh/sshd_config 2>/dev/null
-
-# Drop-in configs (OpenSSH 8.2+)
-cat /etc/ssh/sshd_config.d/*.conf 2>/dev/null
+cat <main file> <files its Include lines name> 2>/dev/null
 ```
 
 Parse the files for `PasswordAuthentication`,
@@ -156,12 +149,8 @@ compiled defaults as comments, so a keyword that is only commented
 out there keeps the default: both of the latter `yes`. The first
 obtained value wins (`sshd_config(5)`), so a drop-in included
 at the top overrides the main file; sshd's own output is
-authoritative.
-
-**Important:** On OpenSSH 8.8+, some distros default
-`PasswordAuthentication` to `no` via drop-in files in
-`/etc/ssh/sshd_config.d/`. Always check the effective value —
-do not assume the compiled default.
+authoritative. Some distributions set `PasswordAuthentication no`
+in a drop-in, so never assume the compiled default.
 
 - Judge the effective values as above
 - If the files are unreadable → note in the report that the
@@ -197,11 +186,7 @@ fallback, on every family.
 
 ### PermitRootLogin
 
-Fallback, over the files the fallback read:
-
-```bash
-grep -i '^[[:space:]]*PermitRootLogin' <files sshd reads> 2>/dev/null
-```
+Fallback: parse from the files the fallback read.
 
 - `yes` or `prohibit-password` → **INFO** (root SSH is normal in
   Hostwarden — this is informational only)
@@ -263,17 +248,19 @@ check that would notice a man in the middle is off for every
 target in that scope.
 
 Read the system configuration and each account's own, and the
-same options given on a command line in a crontab. As root this
-covers every account; without root, the session user's file and
-what else is readable (`references/unprivileged.md`). On macOS,
-the homes come from
-`dscl . -list /Users NFSHomeDirectory | sed 's/^[^ ]* *//'`
-instead of the `getent` line.
+same options given on a command line in a crontab, in the bundle
+of the sshd probe. As root this covers every account; without
+root, the session user's file and what else is readable
+(`references/unprivileged.md`). macOS has no `getent`, so its
+homes come from `dscl`. The crontab directories cover every
+family's spool, as `rules/file-naming-changes.md` lists them.
 
 ```bash
-U=$(getent passwd | cut -d: -f6 | sort -u | while read -r h; do
-  [ -f "$h/.ssh/config" ] && echo "$h/.ssh/config"
-done)
+U=$(if command -v getent >/dev/null; then getent passwd | cut -d: -f6
+  else dscl . -list /Users NFSHomeDirectory | sed 's/^[^ ]* *//'
+  fi | sort -u | while read -r h; do
+    [ -f "$h/.ssh/config" ] && echo "$h/.ssh/config"
+  done)
 grep -Hin -e '^[[:space:]]*\(host\|match\|include\)[[:space:]]' \
   -e '^[[:space:]]*\(stricthostkeychecking\|userknownhostsfile\)' \
   /etc/ssh/ssh_config /etc/ssh/ssh_config.d/*.conf \
@@ -282,7 +269,7 @@ grep -Hin -e '^[[:space:]]*\(host\|match\|include\)[[:space:]]' \
 grep -rIin -e 'stricthostkeychecking[= ]*\(no\|off\)' \
   -e 'userknownhostsfile[= ]*/dev/null' \
   /etc/crontab /etc/cron.d /var/spool/cron /var/cron/tabs \
-  /etc/crontabs 2>/dev/null
+  /var/at/tabs /etc/crontabs 2>/dev/null
 ```
 
 An option belongs to the nearest `Host` or `Match` line above it

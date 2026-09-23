@@ -8,10 +8,9 @@ its config file fallback. For firewall checks, attempt the command
 
 Many checks in this audit work without root:
 
-- **Works unprivileged:** `sshd -G` (OpenSSH 9.3 and newer, where
-  sshd's configuration files are readable, which RHEL's and
-  openSUSE's are not), SSH config file parsing, the session user's
-  own SSH client configuration,
+- **Works unprivileged:** `sshd -G` where sshd's configuration
+  files are readable (`references/ssh.md`), SSH config file
+  parsing, the session user's own SSH client configuration,
   multiple UID 0 accounts, system accounts with login shells,
   listening services (without process names on Linux), all sysctl
   checks, world-writable system files, SUID/SGID audit, mount
