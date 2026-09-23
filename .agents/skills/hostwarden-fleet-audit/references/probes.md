@@ -36,7 +36,7 @@ answers whether a syslog daemon runs, which decides whether the
 audit-trail line was written (`rules/os/alpine.md` → Logs).
 
 On macOS, every probe below has a **macOS** variant that
-replaces it. The privilege prefix below applies unchanged, but
+replaces it. The privilege prefix applies unchanged, but
 the root account is disabled on a Mac and sudo usually asks for
 a password, so `$SUDO` is often `-`: expect
 `unknown(needs-root)` cells rather than a partial row. A key
@@ -45,7 +45,7 @@ only the other families have is `n/a (macOS)`.
 On FreeBSD, every probe below has a **FreeBSD** variant that
 replaces it, and `rules/os/freebsd.md` is the reference for what
 the commands print. Open the FreeBSD bundle with the privilege
-prefix below, so `$SUDO` is set for every probe, and with
+prefix, so `$SUDO` is set for every probe, and with
 `SVC=$(service -e)`, which the variants grep instead of calling
 `service -e` again. On an appliance, `service -e` misses the
 services the vendor starts itself: take the time daemon and the
@@ -56,29 +56,15 @@ housekeeping baseline,
 `.agents/skills/hostwarden-housekeeping/references/baseline-freebsd.md`.
 
 **Privilege handling.** The sshd and firewall probes need
-root. Work out the prefix once, at the top of the bundle —
-never an interactive prompt, BatchMode allows none; `doas` is
-Alpine's default (`rules/os/alpine.md` → Privileges):
-
-```bash
-if [ "$(id -u)" = "0" ]; then
-  SUDO=""
-elif sudo -n true 2>/dev/null; then
-  SUDO="sudo -n"
-elif doas -n true 2>/dev/null; then
-  SUDO="doas -n"
-else
-  SUDO="-"
-fi
-```
-
-(`$SUDO` is intentionally unquoted below so an empty value
-disappears; `-` marks "no privilege path".) Without one, a
-probe must emit the sentinel `unknown(needs-root)` instead of
-a degraded answer — an active ufw must never be reported as
-`none` just because the probe lacked permission to read its
-state. See `references/output-format.md` for how the sentinel
-is rendered and why it is excluded from drift detection.
+root. Open the bundle with the privilege prefix from
+`rules/privilege-escalation.md` → Stand-ins for sudo: it sets
+`$SUDO` once, with `doas`, Alpine's default, as a stand-in.
+Where `$SUDO` is `-`, a probe emits the sentinel
+`unknown(needs-root)` instead of a degraded answer — an active
+ufw must never be reported as `none` just because the probe
+lacked permission to read its state. See
+`references/output-format.md` for how the sentinel is rendered
+and why it is excluded from drift detection.
 
 **Containers.** In a container, the active time service and
 `NTPSynchronized` (section 6), and a pending reboot read from
@@ -88,44 +74,18 @@ Owns), so the uptime criteria do not apply there.
 
 ## 1. Unattended-upgrades (Debian/Ubuntu)
 
-```bash
-apt-config dump 2>/dev/null | grep \
-  -e '^APT::Periodic::Update-Package-Lists ' \
-  -e '^APT::Periodic::Unattended-Upgrade ' \
-  -e '^Unattended-Upgrade::Origins-Pattern::' \
-  -e '^Unattended-Upgrade::Allowed-Origins::' \
-  -e '^Unattended-Upgrade::Mail ' \
-  -e '^Unattended-Upgrade::MailReport ' \
-  -e '^Unattended-Upgrade::Automatic-Reboot ' \
-  -e '^Unattended-Upgrade::Automatic-Reboot-WithUsers ' \
-  -e '^Unattended-Upgrade::Automatic-Reboot-Time ' \
-  -e '^Unattended-Upgrade::Remove-Unused-Kernel-Packages ' \
-  -e '^Unattended-Upgrade::Remove-Unused-Dependencies '
-# Ubuntu: Pro coverage decides what the security runs can
-# install (rules/os/debian.md → Ubuntu Pro and ESM).
-if command -v pro >/dev/null 2>&1; then
-  pro status --format json 2>/dev/null | python3 -c '
-import json, sys
-s = json.load(sys.stdin)
-print("pro.attached=%s" % s["attached"])
-for v in s["services"]:
-    print("pro.%s=%s" % (v["name"], v.get("status", "not-attached")))'
-else
-  echo "pro=n/a"
-fi
-```
-
-Row keys to extract for the table:
+Run the Debian/Ubuntu probe from the housekeeping baseline,
+`.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`
+→ Automatic Security Updates, and on Ubuntu the probe from its
+Ubuntu Release and Support section too. Their output carries
+the rows; the baseline's verdicts are housekeeping's, not the
+audit's:
 
 - `APT::Periodic::Update-Package-Lists`
 - `APT::Periodic::Unattended-Upgrade`
-- Origins count (number of `Origins-Pattern::` plus
-  `Allowed-Origins::` entries)
-- Origins cover the security archive (yes/no): Debian
-  lists it in `Origins-Pattern` as
-  `codename=${distro_codename}-security`, Ubuntu in
-  `Allowed-Origins` as
-  `${distro_id}:${distro_codename}-security`
+- Origins count — the `origins.count=` line
+- Origins cover the security archive — `yes` for
+  `origins=ok`, `no` for `origins=MISSING …`
 - `Mail`
 - `MailReport` (or legacy `MailOnlyOnError`)
 - `Automatic-Reboot`
@@ -134,7 +94,9 @@ Row keys to extract for the table:
   preferred fleet policy)
 - `Remove-Unused-Kernel-Packages`
 - Pro attached, and esm-infra, esm-apps, livepatch
-  enabled (Ubuntu; `n/a` elsewhere or without `pro`)
+  enabled — the `attached=` line and the service lines
+  (Ubuntu; `n/a` elsewhere and where the probe prints
+  `pro=absent`)
 
 Highlight as drift: Pro attached on some Ubuntu hosts but
 not others, or different ESM services enabled.
