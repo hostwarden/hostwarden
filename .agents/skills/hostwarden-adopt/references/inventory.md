@@ -53,7 +53,15 @@ hostwarden-adopt. Not verified against the host.
 
 ## Accounts
 - deploy — created 2026-04-01 for the CI deployment
+
+## Facts
+- Maintenance window Sunday 02:00–04:00, from Heinzel's
+  auto-memory (maintenance-windows.md, 2026-08-17)
 ```
+
+`## Facts` holds what the adoption sorted out of Heinzel's other
+memory for this host (the skill's step 4): facts, not leads. Each
+keeps its source file and date.
 
 ## Verification is the host's job
 

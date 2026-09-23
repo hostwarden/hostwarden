@@ -299,6 +299,10 @@ these:
      Heinzel.
 3. **What the Heinzel check confirmed** — Record
    above.
+4. **The inventory's `## Facts`** — what the
+   adoption sorted out of Heinzel's other memory for
+   this host, under the same test as the standing
+   facts of 2.
 
 History is not carried: incidents, what was done
 when, versions that were current then, how a problem

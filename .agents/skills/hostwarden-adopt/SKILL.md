@@ -94,7 +94,12 @@ leads, the host confirms them.
    `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
    `hostwarden-<skill>.md` renames. It
    keeps this clone's version of anything that already holds user
-   data and says so; `--list` shows the plan without copying.
+   data and says so; `--list` shows the plan without copying. A
+   `user.md` of this clone's own is the exception: it gains the lines
+   it lacks — language, operator name, per-server SSH users — and a
+   key the two set differently is kept here and reported. Put each
+   of those to the user in the report; change `user.md` only on
+   their answer.
 
    **Host by host** if the user wants to move gradually:
    `--server <host>` (repeatable) takes single hosts,
@@ -113,6 +118,41 @@ leads, the host confirms them.
    wherever it applies. A `known_hosts` the script left in the old
    checkout — it held a private key — is one of them; name the path,
    never its content (`rules/secrets.md`).
+
+   **What the copy leaves behind.** Each `not copied:` line names
+   something in the old `memory/` that has no place here as it is —
+   most often Claude's own auto-memory from Heinzel sessions (a
+   directory of topic files with `name`, `description` and a `type`
+   in their front matter, and a `MEMORY.md` index), besides notes and
+   plans. Copying it whole would leave a second memory beside this
+   one that no rule reads. Sort it instead, item by item: read the
+   index and each file's front matter, and the body only where those
+   do not say what it is. Propose one target per item, in one list
+   grouped by target, and ask once; the user moves items between
+   groups or drops them in the answer:
+
+   - **An override** in `memory/custom-rules/` — a standard every
+     server should meet goes to `baseline.md`, which
+     `hostwarden-baseline` measures against; a rule about one topic
+     to that topic's file; the rest to `all.md` (`rules/overrides.md`).
+   - **`memory/network.md`** — a fact about the network or about
+     several hosts (`rules/server-memory.md` → Cross-server facts).
+   - **One host's facts** — under `## Facts` in that host's
+     `heinzel-inventory.md`, for its first connection to check
+     (`references/inventory.md`). A host still in the old checkout
+     gets nothing yet: its facts are sorted again when it is
+     adopted.
+   - **A proposal for Hostwarden itself** — a lesson that belongs in
+     the shipped rules. Name it in the report for a pull request from
+     a development checkout; nothing is written here.
+   - **Drop** — history, a finished plan, anything about Heinzel
+     itself.
+
+   A file or directory that is no memory at all, such as brand
+   assets, stays in the old checkout and is named in the report.
+   Never read a file that looks like it holds credentials; name it
+   (`rules/secrets.md`). What is written joins the workspace commit
+   of step 6.
 
 5. **Leave the facts in memory alone.** Each host's `memory.md`
    arrives as `heinzel-memory.md`, byte for byte, and stays that way
@@ -321,7 +361,9 @@ leads, the host confirms them.
     checked, before anything is moved.
     ```
 
-    Add a line for each file an override needs and this clone lacks
+    Add a line for each file an override needs and this clone lacks,
+    each `user.md` key the two checkouts set differently, what was
+    left in the old checkout and each proposal for Hostwarden itself
     (step 4), and for each host still in the old checkout after a
     partial run. Say which of the two states the installation is in:
     Hostwarden alone, or both tools in parallel. In the parallel case

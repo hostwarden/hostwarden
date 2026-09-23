@@ -442,7 +442,13 @@ The migration renames skill overrides in
   across and renames what is found by name. Heinzel's
   memory of a host arrives as `heinzel-memory.md`,
   unchanged, until the host's onboarding splits it up;
-  the workspace's history keeps the original. The skill
+  the workspace's history keeps the original. A
+  `user.md` you already have gains the lines it lacks,
+  and a value the two set differently is shown to you,
+  not chosen. Whatever else your old `memory/` holds —
+  Claude's auto-memory from Heinzel sessions, notes —
+  is sorted item by item into overrides, the network
+  notes or a host's memory, with one question. The skill
   then reads it and the changelogs into a per-host
   list of leads: the scripts, configs, units and cron
   jobs your sessions improvised, and asks whether
