@@ -23,7 +23,8 @@ locations:
 - `/home/deploy/<app>` — when no system path fits
 - `/usr/local/www/<app>` — web applications on FreeBSD
 - on macOS, `/Users/deploy/<app>`, or under the Homebrew prefix
-  (`$(brew --prefix)/var/www/<app>`) for a Homebrew web server
+  (`$HB/var/www/<app>`, `HB` as `rules/os/macos.md` → Package
+  Manager finds it) for a Homebrew web server
 
 Do not grant ownership of directories outside the
 deployment target.

@@ -298,8 +298,8 @@ say so.
 
 ## Directory Conventions
 
-- Homebrew prefix: detect with `brew --prefix`
-  (`/opt/homebrew/` on Apple Silicon,
+- Homebrew prefix: `$HB`, found as Package Manager
+  says (`/opt/homebrew/` on Apple Silicon,
   `/usr/local/` on Intel)
 - Home directories: `/Users/<name>`; a new account's primary
   group is `staff` (GID 20), there is no per-user group
@@ -309,7 +309,7 @@ say so.
   (`log show`)
 - Application support: `~/Library/Application Support/`
 - Homebrew configs:
-  `$(brew --prefix)/etc/` (e.g. nginx config)
+  `$HB/etc/` (e.g. nginx config)
 
 ## Sharing
 
@@ -355,8 +355,8 @@ port alone:
   against this and it can break file permissions in
   the Homebrew prefix.
 - **Homebrew path varies by architecture** — always
-  use `brew --prefix` rather than hardcoding
-  `/usr/local/` or `/opt/homebrew/`.
+  use `$HB` from Package Manager rather than
+  hardcoding `/usr/local/` or `/opt/homebrew/`.
 - **SIP restrictions** — cannot modify protected
   system directories (`/System/`, `/usr/`, `/bin/`,
   `/sbin/`). This is by design.

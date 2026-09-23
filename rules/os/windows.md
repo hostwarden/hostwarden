@@ -736,10 +736,10 @@ Policy included — rule ID, profile, protocol, local port, remote
 and local addresses. The ID is `Name` where Windows set it, a
 built-in rule's (its group a `@` resource string) or a GUID; a
 name someone chose is free text like the display name and shows
-as `custom rule <n>`:
+as `rule <n>`:
 
 ```powershell
-try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $i = 0; $r | ForEach-Object { $i++; $id = if ($_.Group -like '@*' -or $_.Name -match '^\{?[0-9A-Fa-f-]{36}\}?$') { $_.Name } else { "custom rule $i" }; $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $id, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
+try { $r = @(Get-NetFirewallRule -PolicyStore ActiveStore -Direction Inbound -Enabled True -Action Allow -ErrorAction Stop); "rules: $($r.Count)"; $i = 0; $r | ForEach-Object { $i++; $id = if ($_.Group -like '@*' -or $_.Name -match '^\{?[0-9A-Fa-f-]{36}\}?$') { $_.Name } else { "rule $i" }; $pf = $_ | Get-NetFirewallPortFilter; $af = $_ | Get-NetFirewallAddressFilter; $app = ($_ | Get-NetFirewallApplicationFilter).Program; $svc = ($_ | Get-NetFirewallServiceFilter).Service; '{0} | {1} | {2} {3} | from {4} | to {5} | program {6} | service {7}' -f $id, $_.Profile, $pf.Protocol, $pf.LocalPort, ($af.RemoteAddress -join ','), ($af.LocalAddress -join ','), $app, $svc } } catch { "failed: $_" }
 ```
 
 Judge only the rules of the profile in use (Firewall above). A
