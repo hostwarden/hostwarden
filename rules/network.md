@@ -264,10 +264,15 @@ IPv6 puts a unique local address on its bridge on any host.
 - `v6-only`: no IPv4 default route. Add `+ NAT64` when the
   probe's DNS64 line answers, `+ 464XLAT` with an IPv4 address
   on a CLAT interface.
-- `v4 + ULA`: IPv6 only inside the site (`fd00::/8`).
-- Append `v6 broken` when a global address and a default route
-  exist but the IPv6 egress test fails, and `no v6 route` when a
-  global address exists without a default route.
+- `v4 + ULA`: IPv6 addresses from `fd00::/8` only. Without an
+  IPv6 default route, IPv6 stays inside the site and has no
+  global egress by design: record the failed IPv6 egress test,
+  but the stack is not broken. With one, a router is meant to
+  translate it (NAT66, NPTv6), which the host cannot see.
+- Append `v6 broken` when an IPv6 default route exists, with a
+  global address or a ULA, but the IPv6 egress test fails, and
+  `no v6 route` when a global address exists without a default
+  route.
 
 Address ranges that are easy to misread:
 
@@ -276,6 +281,10 @@ Address ranges that are easy to misread:
 - `169.254.0.0/16` as the only IPv4 address means DHCP failed.
 - `fc00::/8` is undefined (only `fd00::/8` is ULA), and
   site-local, 6to4 and Teredo addresses are legacy.
+- `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`,
+  `2001:db8::/32` and `3fff::/20` are reserved for documentation
+  and never belong on a real host: one there was copied from an
+  example.
 
 ## Findings
 

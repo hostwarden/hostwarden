@@ -44,7 +44,12 @@ A value other than `none` is the path, through that jump host
 or command. Otherwise the server address is:
 
 - an address of a VPN agent on the host → **that VPN**
-  (`rules/mesh-vpn.md`);
+  (`rules/mesh-vpn.md`), and its own SSH server rather than
+  sshd where that file's This session came in through one
+  says so. Tailscale's server answers inside the agent, past
+  the host firewall, so a fresh login through it proves
+  nothing about a firewall change: test on a path to sshd, or
+  say in step 1 that none was tested;
 - `127.0.0.1` or `::1` → **a local tunnel**, such as Cloudflare
   Tunnel or a port forward;
 - a private or unique local address → **LAN** or a site VPN,

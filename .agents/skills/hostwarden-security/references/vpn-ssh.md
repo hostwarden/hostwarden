@@ -1,8 +1,10 @@
 # SSH Servers in VPN Agents
 
-Read when `references/ssh.md` → SSH servers past sshd finds an
-agent. These logins never touch `sshd_config`, `authorized_keys`,
-sshd's CA trust, fail2ban, the sshd log or `last`.
+Unrecorded ways in below applies on every host; the rest, when
+`references/ssh.md` → SSH servers past sshd finds an agent that
+serves SSH itself. These logins never touch `sshd_config`,
+`authorized_keys`, sshd's CA trust, fail2ban, the sshd log or
+`last`.
 
 | Agent | Its SSH | Closing port 22 stops it |
 |---|---|---|
@@ -24,6 +26,7 @@ configuration its own process names. A line for an agent without
 an SSH server of its own falls through the `case`.
 
 ```bash
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
 args() { { tr '\0' ' ' < "/proc/$1/cmdline"; } 2>/dev/null \
   || ps -o args= -p "$1" 2>/dev/null; }
 cfg() { args "$1" | sed -nE "s|.* --?$2[= ]([^ ]+).*|\\1|p"; }
@@ -80,6 +83,7 @@ line says `Disabled`, Nebula where the loop above printed
 and Newt for each PID whose `disable-ssh` count was 0:
 
 ```bash
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
 # args() as in the probe above.
 # Tailscale, "RunSSH": true — the rules compiled for this node
 T=$(printf '\t')
@@ -179,3 +183,25 @@ One report line per agent found, as `VPN SSH`:
 
 Where each agent's policy lives, and who may change it:
 `rules/mesh-vpn.md` → Per agent.
+
+## Unrecorded ways in
+
+What both blocks of `rules/mesh-vpn.md` → Probe (no root) found,
+the agents without an SSH server of their own and the overlay
+interfaces included, and the SSH state read above, are held
+against the host's `## Mesh VPN` section as `rules/mesh-vpn.md` →
+Memory says. One report line, as `VPN recorded`:
+
+- A way in nobody recorded → **WARN**, naming it
+- A macOS VPN app that the probe reads as off → **INFO**, naming
+  it: no way in while it stays off. One whose state could not be
+  read is **INFO** "VPN app unchecked"
+- Everything found recorded, with the SSH state this audit read
+  → OK
+- Nothing found → OK, "no mesh VPN"; where the probe's
+  `hidepid=` or `see_other_uids=0` line says `ps` saw only the
+  user's own processes, **INFO** "agents unchecked" instead
+
+Stopping an agent the user does not want is theirs to decide: it
+can cut the path this session came in on
+(`rules/ssh-safety-net.md`).

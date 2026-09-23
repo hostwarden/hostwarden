@@ -185,6 +185,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Baseline check:`        | `baseline.md`               | baseline measured|
 | `Network:`               | `network.md`                | first connection |
 | `Access:`                | `ssh-safety-net.md`         | paths tested     |
+| `Access:` (agent SSH)    | `mesh-vpn.md`               | activity check   |
 | `API read:`              | `appliance-api.md`          | access set up    |
 | `API write:`             | `appliance-api.md`          | access set up    |
 | `API path:`              | `appliance-api.md`          | access set up    |

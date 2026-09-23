@@ -624,14 +624,17 @@ report "$(scan \
   | grep -vE ': 100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.' \
   | grep -vE ': 255\.')" "an RFC 5737 documentation address"
 
-# IPv6. Only 2001:db8::/32 is documentation space (RFC 3849).
-# Matching every colon-hex string would catch timestamps and MAC
-# addresses, so this looks for the global-unicast shape, including
-# the compressed forms that end in `::` -- which is why `tag`
-# splits on `: ` and not on a final colon.
+# IPv6. Only 2001:db8::/32 is documentation space for examples
+# (RFC 3849). Matching every colon-hex string would catch
+# timestamps and MAC addresses, so this looks for the
+# global-unicast shape, including the compressed forms that end in
+# `::` -- which is why `tag` splits on `: ` and not on a final
+# colon. RFC 9637's 3fff::/20 passes only as the bare prefix, which
+# rules/network.md names as a range never to find on a host.
 report "$(scan \
   | tag_i '\b[23][0-9a-f]{3}:[0-9a-f]*(:[0-9a-f]*)+' \
-  | grep -vE ': 2001:0?db8:')" "an RFC 3849 documentation address"
+  | grep -vE ': 2001:0?db8:' \
+  | grep -vE ': 3fff::$')" "an RFC 3849 documentation address"
 
 # Mail addresses outside the reserved domains.
 #
