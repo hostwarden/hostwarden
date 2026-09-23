@@ -362,12 +362,15 @@ means no recent traffic.
   shook hands more than 5 minutes ago (may indicate connectivity
   issues)
 - Only Tailscale, NetBird and ZeroTier have a connected state
-  this check reads. Nebula, `dnclient`, Newt and `cloudflared`
-  are reported as running, and WireGuard by its handshakes, never
+  this check reads, the Tailscale app on macOS through the CLI in
+  its bundle. Nebula, `dnclient`, Newt and `cloudflared` are
+  reported as running, WireGuard by its handshakes, and the
+  WireGuard app on macOS by its `scutil --nc list` state, never
   as connected
 - **unchecked**, never OK: an agent inside a container, ZeroTier
-  without root, and a Nebula expiry that `rules/mesh-vpn.md` →
-  Per agent leaves `unchecked`
+  without root, a macOS app whose state neither `scutil` nor its
+  CLI gave, and a Nebula expiry that `rules/mesh-vpn.md` → Per
+  agent leaves `unchecked`
 - Report each agent's state in one line, and WireGuard's
   interface names and peer handshake ages
 

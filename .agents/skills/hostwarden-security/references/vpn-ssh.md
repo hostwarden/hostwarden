@@ -26,6 +26,7 @@ configuration its own process names. A line for an agent without
 an SSH server of its own falls through the `case`.
 
 ```bash
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
 args() { { tr '\0' ' ' < "/proc/$1/cmdline"; } 2>/dev/null \
   || ps -o args= -p "$1" 2>/dev/null; }
 cfg() { args "$1" | sed -nE "s|.* --?$2[= ]([^ ]+).*|\\1|p"; }
@@ -82,6 +83,7 @@ line says `Disabled`, Nebula where the loop above printed
 and Newt for each PID whose `disable-ssh` count was 0:
 
 ```bash
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
 # args() as in the probe above.
 # Tailscale, "RunSSH": true — the rules compiled for this node
 T=$(printf '\t')
@@ -191,6 +193,9 @@ against the host's `## Mesh VPN` section as `rules/mesh-vpn.md` →
 Memory says. One report line, as `VPN recorded`:
 
 - A way in nobody recorded → **WARN**, naming it
+- A macOS VPN app that the probe reads as off → **INFO**, naming
+  it: no way in while it stays off. One whose state could not be
+  read is **INFO** "VPN app unchecked"
 - Everything found recorded, with the SSH state this audit read
   → OK
 - Nothing found → OK, "no mesh VPN"; where the probe's

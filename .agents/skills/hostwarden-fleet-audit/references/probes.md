@@ -753,7 +753,10 @@ agent inside a container shows only its process; its row reads
 
 Row keys:
 
-- Agents running and overlay interfaces
+- Agents running, overlay interfaces, and on macOS the apps
+  active (`rules/mesh-vpn.md` → Probe (no root)); an app read as
+  off counts as no membership, one whose state could not be read
+  as `unchecked`
 - Per agent: connected (`BackendState` and `Online`, `Daemon
   status` and `Management`) and login expiry (`KeyExpiry`,
   `Session expires`), as `rules/mesh-vpn.md` → Per agent reads

@@ -56,6 +56,7 @@ if [ "$(id -u)" != 0 ]; then
   [ "$(sysctl -n security.bsd.see_other_uids 2>/dev/null)" = 0 ] \
     && echo "see_other_uids=0"
 fi
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
 o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
 for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
              || ifconfig -l 2>/dev/null; } \
@@ -67,12 +68,18 @@ for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
 done
 ls -d /Applications/Tailscale.app /Applications/WireGuard.app \
   2>/dev/null
-if command -v tailscale >/dev/null 2>&1; then
-  tailscale ip 2>&1
-  tailscale status --json --peers=false 2>&1 \
+command -v scutil >/dev/null 2>&1 \
+  && scutil --nc list 2>/dev/null | grep -i -e wireguard -e tailscale
+ts=$(command -v tailscale)
+[ -n "$ts" ] || [ ! -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ] \
+  || ts=/Applications/Tailscale.app/Contents/MacOS/Tailscale
+if [ -n "$ts" ]; then
+  export TAILSCALE_BE_CLI=1
+  "$ts" ip 2>&1
+  "$ts" status --json --peers=false 2>&1 \
     | grep -e '"BackendState"' -e '"Online"' -e '"KeyExpiry"' \
       -e '"Expired"'
-  tailscale debug prefs 2>&1 | sed -n '/"ControlURL"/p; /"RunSSH"/p;
+  "$ts" debug prefs 2>&1 | sed -n '/"ControlURL"/p; /"RunSSH"/p;
     /"AdvertiseRoutes": null/p; /"AdvertiseRoutes": \[\]/p;
     /"AdvertiseRoutes": \[$/,/]/p'
 fi
@@ -91,8 +98,26 @@ has no process, so the loop finds the overlay interfaces by name
 (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`,
 Tailscale's `tailscale0`) and prints each one's addresses, which
 is what ties this session's `SSH_CONNECTION` address to a VPN.
-On macOS the names say little (`utun*`) and the `ls` finds the
-apps instead.
+On macOS the names say little (`utun*`), and the apps run network
+extensions rather than a process the first block knows. The `ls`
+shows an app installed; `scutil --nc list` says whether its
+tunnel runs. `(Connected)`, `(Connecting)` and `(Disconnecting)`
+are active, `(Disconnected)` is off, and `(Invalid)` or
+`(Unknown)` is `unchecked`. Tailscale's own CLI settles it where
+`scutil` shows no entry: `BackendState` `Running` is active,
+another state off. The WireGuard app keeps one entry per tunnel
+and has no CLI: with no entry it has no tunnel set up, which is
+off too. The App Store app has no CLI on the `PATH`, so the block
+calls the one inside the app, with `TAILSCALE_BE_CLI=1`, which
+keeps it from opening the app's window. That CLI answers only the
+user whose desktop session runs the app, or an admin for the
+standalone app; where it errors and `scutil` gave no state
+either, the app is `unchecked`, never off.
+
+A non-interactive SSH session on macOS has neither Homebrew
+prefix on its `PATH`, where the open-source `tailscaled`'s and
+NetBird's CLIs sit, so this block and every other that calls them
+start by appending `/opt/homebrew/bin` and `/usr/local/bin`.
 
 An agent inside a container with its own network namespace shows
 its process but not its interface or CLI. Name the container
@@ -231,18 +256,19 @@ prints one `not read` line instead:
 keep() { awk -v m="$1" '{ l[NR % m] = $0 } END {
   if (NR > m) print "earlier: " NR - m
   for (i = NR - m + 1; i <= NR; i++) if (i > 0) print l[i % m] }'; }
-if command -v tailscale >/dev/null 2>&1 \
-   || command -v netbird >/dev/null 2>&1; then
+PATH=$PATH:/opt/homebrew/bin:/usr/local/bin
+tsd=; pgrep -x tailscaled >/dev/null 2>&1 && tsd=1
+if [ -n "$tsd" ] || command -v netbird >/dev/null 2>&1; then
   echo "SSH_CONNECTION=$SSH_CONNECTION"
-  if command -v tailscale >/dev/null 2>&1; then
+  if [ -n "$tsd" ]; then
     tailscale ip 2>&1; tailscale debug prefs 2>&1 | grep '"RunSSH"'
   fi
 fi
 if [ "$SUDO" = - ]; then
-  { command -v tailscale || command -v netbird || pgrep -x newt; } \
+  { [ -n "$tsd" ] || command -v netbird || pgrep -x newt; } \
     >/dev/null 2>&1 && echo "agent SSH logins not read: no root"
 else
-  if command -v tailscale >/dev/null 2>&1; then
+  if [ -n "$tsd" ]; then
     if [ -d /run/systemd/system ]; then
       { $SUDO journalctl _COMM=tailscaled --since "7 days ago" \
           --no-pager -q -o short-iso \
@@ -292,6 +318,8 @@ fi
   whether this session came in through an agent's SSH server
   (This session came in through one), correct the line, in
   either direction.
+- The Tailscale part keys on a running `tailscaled`: the macOS
+  apps run none, serve no SSH and leave no login to read.
 - Tailscale writes one line per SSH session, and every call
   over a shared connection is one, Hostwarden's own included, so
   the block prints one line per tailnet login and local account:
@@ -366,11 +394,12 @@ Mark what needed root and was not read as `unchecked`.
 A way in nobody recorded is an agent that runs or an overlay
 interface that is up, from either block of the probe, or an
 agent's SSH server that is on, while this section has no line
-for it or records it off or `unchecked`. A Headscale server is none: it is a
-control server, recorded in `memory/network.md`. On macOS the
-`utun` interfaces the system makes itself are none either; only
-the apps the `ls` finds count there. Ask the user whether it
-belongs, and record it once they say it does. The
+for it or records it off or `unchecked`. A Headscale server is
+none: it is a control server, recorded in `memory/network.md`.
+On macOS the `utun` interfaces the system makes itself are none
+either, and neither is an app that is installed but not active
+(Probe above); only an active app counts there. Ask the user
+whether it belongs, and record it once they say it does. The
 `- Network:` line in `memory.md` names the agents
 (`rules/network.md` → Where it goes).
 
