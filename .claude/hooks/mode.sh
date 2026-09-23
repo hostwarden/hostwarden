@@ -45,8 +45,9 @@
 #                           — sets HOSTWARDEN_REFUSAL to why <tool>
 #                             is refused in development, so the
 #                             guard and the shim say the same
-#   hostwarden_git_batch    — sets up git to reach the workspace's
-#                             remote without ever prompting
+#   hostwarden_git_batch [<repo>]
+#                           — sets up git to reach <repo>'s remote
+#                             (none: a clone's) without ever prompting
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
@@ -74,7 +75,8 @@ hostwarden_mode() {
       read -r hm_common < "$hm_git/commondir"
       case $hm_common in
       ../..) HOSTWARDEN_MAIN=${hm_git%/*/*/*} ;;
-      *) HOSTWARDEN_MAIN=$(cd "$hm_git" && cd "$hm_common/.." 2>/dev/null && pwd) ;;
+      *) HOSTWARDEN_MAIN=$(cd "$hm_git" && cd "$hm_common/.." 2>/dev/null \
+           && pwd) ;;
       esac
       HOSTWARDEN_MODE=worktree
     fi
@@ -134,9 +136,18 @@ hostwarden_git_batch() {
   # and ours fill in what they left open. GIT_SSH_COMMAND outranks
   # core.sshCommand and GIT_SSH, so either of those, where set, is
   # the command ours are appended to — a mirror's deploy key, say.
-  [ -n "${GIT_SSH_COMMAND:-}" ] \
-    || GIT_SSH_COMMAND=$(git config core.sshCommand 2>/dev/null) \
-    || GIT_SSH_COMMAND=${GIT_SSH:-}
+  # core.sshCommand is read from the repository the caller contacts,
+  # never from another one: the workspace in memory/ can use a key
+  # the checkout around it does not. Without one, as before a clone,
+  # only the user's and the system's setting count.
+  if [ -z "${GIT_SSH_COMMAND:-}" ]; then
+    if [ -n "${1:-}" ]; then
+      GIT_SSH_COMMAND=$(git -C "$1" config core.sshCommand 2>/dev/null)
+    else
+      GIT_SSH_COMMAND=$(git config --global core.sshCommand 2>/dev/null \
+        || git config --system core.sshCommand 2>/dev/null)
+    fi || GIT_SSH_COMMAND=${GIT_SSH:-}
+  fi
   GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
 -o ConnectTimeout=5 -o ControlMaster=auto \
 -o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \

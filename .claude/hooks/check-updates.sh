@@ -38,7 +38,7 @@ fi
 # Never hang the SessionStart hook on a prompt (HTTPS remote with
 # an expired token, an unknown host key). Fail fast instead and let
 # the user fix it.
-hostwarden_git_batch
+hostwarden_git_batch .
 GIT_ASKPASS=${GIT_ASKPASS:-true}
 export GIT_ASKPASS
 

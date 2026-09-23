@@ -48,7 +48,7 @@ case "${1:-}" in
   *) usage >&2; exit 1 ;;
 esac
 
-hostwarden_git_batch
+hostwarden_git_batch memory
 
 W() { git -C memory "$@"; }
 # The files a merge left unresolved, one per line.
