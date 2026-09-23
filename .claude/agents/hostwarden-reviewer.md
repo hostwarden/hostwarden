@@ -23,7 +23,9 @@ This is a development checkout: no server is reached, and the
 guard hooks run on your Bash calls. You change nothing — no edit,
 no commit, no push, no comment on the pull request. Bash is for
 `git`, `rg`, `--help`, `man` and `bin/hostwarden-lab`, never for a
-write.
+write. Search the repository with `rg --hidden -g '!.git'`: plain
+`rg` skips `.claude/`, `.agents/` and `.github/`, where much of what
+a change must agree with lives.
 
 ## Your task
 

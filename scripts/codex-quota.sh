@@ -2,18 +2,41 @@
 # codex-quota.sh — how much of the Codex usage limits is left, read
 # through the local Codex CLI without spending any of it.
 #
-# Usage: sh scripts/codex-quota.sh
+# Usage: sh scripts/codex-quota.sh [--model <slug>]
+#
+# Exit status 3 is a usage error.
 #
 # Prints one line, one part per limit the CLI's account has. Exit
-# status: 0 when a local run can start, 1 when the shared limit is
-# reached (a model-specific one is only reported), 2 when it cannot
-# be read (no CLI, not signed in with ChatGPT, no or an unreadable
-# answer). GitHub reviews have a code-review limit of their own
-# that the CLI does not show.
+# status: 0 when the backend allows ordinary usage, 1 when it does
+# not, 2 when that cannot be told (no CLI, not signed in with
+# ChatGPT, no or an unreadable answer, no verdict in it). Where the
+# backend gives no verdict, a limit window at 100 % still reads as
+# reached; nothing reads as available without the verdict. GitHub
+# reviews have a code-review limit of their own that the CLI does
+# not show.
+#
+# With --model, the line also says when that model retires and what
+# replaces it, or that a newer model of its line exists (the model
+# catalog's `upgrade` field, and slugs of the form
+# <family>-<version>-<line>). That never changes the exit status.
 #
 # The CLI's app server answers account/rateLimits/read for the
 # account it is signed in to; that is a read of the account, not a
 # model turn, so it costs nothing.
+
+# A usage error exits 3, never with a verdict's status.
+usage() {
+  echo "usage: sh scripts/codex-quota.sh [--model <slug>]" >&2
+  exit 3
+}
+MODEL=''
+case $# in
+  0) ;;
+  1) case $1 in --model=?*) MODEL=${1#--model=} ;; *) usage ;; esac ;;
+  2) [ "$1" = --model ] && [ -n "$2" ] || usage; MODEL=$2 ;;
+  *) usage ;;
+esac
+export MODEL
 
 command -v codex >/dev/null 2>&1 \
   || { echo "codex quota: unknown (no codex CLI)"; exit 2; }
@@ -21,7 +44,7 @@ command -v python3 >/dev/null 2>&1 \
   || { echo "codex quota: unknown (no python3)"; exit 2; }
 
 exec python3 - <<'PY'
-import json, subprocess, sys, threading, time
+import json, os, re, subprocess, sys, threading, time
 
 def done(msg, rc):
     print("codex quota: " + msg)
@@ -56,7 +79,8 @@ def read():
     return None
 
 def used(w):
-    return float(w.get("usedPercent") or 0)
+    u = w.get("usedPercent")
+    return float(u) if isinstance(u, (int, float)) else None
 
 def window(w):
     mins = w.get("windowDurationMins")
@@ -67,11 +91,43 @@ def window(w):
     at = w.get("resetsAt")
     reset = time.strftime("%Y-%m-%d %H:%M %Z", time.localtime(at)) \
         if isinstance(at, (int, float)) else "unknown"
-    return "%s %d%% used, resets %s" % (span, used(w), reset)
+    u = used(w)
+    return "%s %s used, resets %s" \
+        % (span, "%d%%" % u if u is not None else "?%", reset)
 
 def windows(snap):
     return [w for w in (snap.get("primary"), snap.get("secondary"))
             if isinstance(w, dict)]
+
+def model_note(slug):
+    """Retirement or a newer model of the slug's line, or None."""
+    try:
+        out = subprocess.run(["codex", "debug", "models"], text=True,
+                             capture_output=True, timeout=20).stdout
+        models = json.loads(out)["models"]
+    except Exception:
+        return "model %s: catalog unreadable" % slug
+    by = {m.get("slug"): m for m in models if isinstance(m, dict)}
+    if slug not in by:
+        return "model %s: not in the catalog" % slug
+    up = by[slug].get("upgrade") or {}
+    if up.get("model"):
+        return "model %s retires %s, successor %s" \
+            % (slug, up.get("retirement_at") or "soon", up["model"])
+    pat = re.compile(r"^(.+?)-(\d+(?:\.\d+)*)-(.+)$")
+    mine = pat.match(slug)
+    if not mine:
+        return None
+    ver = lambda v: tuple(int(x) for x in v.split("."))
+    newer = sorted((ver(m.group(2)), s) for s in by
+                   for m in [pat.match(s or "")]
+                   if m and m.group(1) == mine.group(1)
+                   and m.group(3) == mine.group(3)
+                   and ver(m.group(2)) > ver(mine.group(2))
+                   and by[s].get("visibility") == "list")
+    if newer:
+        return "model %s: newer in its line: %s" % (slug, newer[-1][1])
+    return None
 
 # The app server is experimental: an answer this cannot read is
 # "cannot tell", never "limit reached".
@@ -99,14 +155,23 @@ try:
     free = (result.get("rateLimitResetCredits") or {}).get("availableCount")
     if free:
         summary += " | reset credits available: %d" % free
-    # The backend's own verdict first: the protocol says not to infer
-    # recovery from percentages or reset times.
-    if result.get("ordinaryUsageAllowed") is False \
-            or shared.get("rateLimitReachedType") \
-            or shared.get("spendControlReached") \
-            or any(used(w) >= 100 for w in windows(shared)):
+    if os.environ.get("MODEL"):
+        note = model_note(os.environ["MODEL"])
+        if note:
+            summary += " | " + note
+    # The backend's verdict decides: the protocol says not to infer
+    # recovery from percentages or reset times. The other fields
+    # count only where it gives none, and then only towards
+    # "reached".
+    allowed = result.get("ordinaryUsageAllowed")
+    if allowed is True:
+        done(summary, 0)
+    if allowed is False:
         done("limit reached: " + summary, 1)
+    if shared.get("rateLimitReachedType") or shared.get("spendControlReached") \
+            or any((used(w) or 0) >= 100 for w in windows(shared)):
+        done("limit reached: " + summary, 1)
+    done("unknown (no verdict from the backend): " + summary, 2)
 except Exception as e:
     done("unknown (%s: %s)" % (type(e).__name__, e), 2)
-done(summary, 0)
 PY
