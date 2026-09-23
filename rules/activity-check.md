@@ -50,6 +50,8 @@ Where each condition is:
   Pools).
 - **A guest's link keys:** on a VM or container whose memory has no
   `Runs on:` line (`rules/hypervisors.md` → Linking Guest and Host).
+  A guest registered through its host reads them with OS detection
+  instead (`rules/hypervisors.md` → Registering Guests).
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line
   (`rules/os-detection.md` → On subsequent connections).
