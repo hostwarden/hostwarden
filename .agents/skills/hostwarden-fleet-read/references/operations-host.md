@@ -155,8 +155,10 @@ operator's:
 2. Clone Hostwarden into the account's home, and
    `bin/hostwarden-init --clone <workspace remote>` — the operator
    gives the account a key that may push there.
-3. The personal files above, with an `Operator:` handle
-   `memory/operators.md` does not hold yet.
+3. The personal files above, with an `Operator:` handle of the
+   machine's own that the remote's `memory/operators.md` does not
+   hold yet. One it holds belongs to a person or another machine,
+   the operator's own included, and is never taken.
 4. The operator makes the fleet key and logs `claude` in. The first
    `claude` session there reserves the handle
    (`rules/session-start.md` → The operator handle).

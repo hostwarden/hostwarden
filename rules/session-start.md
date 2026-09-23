@@ -93,9 +93,7 @@ next one asks again. A handle the list already holds as theirs,
 their own unpushed reservation included, still needs the list on
 the remote to carry it before it is written. An `Operator:` line
 the user wrote themselves that the list lacks is reserved the same
-way, without a question; one the list holds gets the question
-whether it is theirs, and where it is not, the session records
-`user` and asks for another handle to replace it.
+way, without a question.
 
 ## What not to ask
 
