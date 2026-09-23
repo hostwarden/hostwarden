@@ -122,8 +122,7 @@ the remote path converge here.
 
    **Resolve `<Operator name>`** in this order, stop at the
    first hit. Never fabricate a name from a short handle
-   like `root` or `admin`, and never take the `Operator:`
-   handle for it (`rules/ssh-user.md` → Operator):
+   like `root`, `admin` or the `Operator:` line:
 
    1. `Operator name:` line in
       `memory/servers/<host>/memory.md` (per-host override,

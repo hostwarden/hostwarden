@@ -31,8 +31,8 @@ Detect the current OS user with `whoami`
 
 ### Case A — fresh install, server already specified
 
-`memory/user.md` has no `Default:` line — or does
-not exist — **and** the user has already named a specific server
+`memory/user.md` has no `Default:` line **and** the
+user has already named a specific server
 (`<hostname>`). Ask **one** combined question so
 the user doesn't get two near-identical pickers
 in a row. Make it explicit in the question text
@@ -73,9 +73,8 @@ write both in a single file write.
 
 ### Case B — fresh install, no server specified yet
 
-`memory/user.md` has no `Default:` line and the
-user ran
-`claude` / `opencode` with no target in mind.
+`memory/user.md` has no `Default:` line and the user
+ran `claude` / `opencode` with no target in mind.
 Ask only for the default:
 *"Which SSH username should Hostwarden use by
 default?"* with the same three options. Write
@@ -157,23 +156,29 @@ for the person running Hostwarden — one word, lower
 case letters, digits and hyphens: `Operator: alice`.
 It is what `<operator>` stands for wherever
 Hostwarden records who did something: the journal
-prefix `[<operator> as <unix-user>]` and its mirror
-in `changelog.log` (`rules/changelog.md`), a
-decision's `Decided:` (`rules/decisions.md`), and a
-`Planned:` line (`rules/heinzel-adoption.md` →
-Heinzel's memory).
+prefix, a decision's `Decided:`, a `Planned:` line.
 
 - **Team mode** — the workspace has a remote
   (`rules/server-memory.md` → Personal versus
-  shared): the line is required, and each teammate's
-  `user.md`, which is personal, carries a handle of
-  their own. Where it is missing,
+  shared): the line is required, one handle per
+  teammate. Where teammates share a login such as
+  `root`, `<unix-user>` cannot tell them apart; the
+  handle does. Where it is missing,
   `rules/session-start.md` asks for it.
 - **Solo** — no remote: the line is optional. Where
   it is missing, `<operator>` is `user`.
 
-`Operator name:` is a different line: the full name
-the email signature carries (`hostwarden-email`),
-and nothing else uses it. Never stand one in for the
-other — neither the full name as `<operator>` nor
-the handle in a signature.
+The handle leaves the workstation: it is written
+into the journal of every host a session changes,
+which keeps it for as long as the host retains its
+logs and wherever they are shipped, and into the
+shared workspace. It is personal data wherever it
+identifies someone, so it is the person's own pick:
+initials or a code are as good as a name. Never
+propose a full name or derive the handle from
+`Operator name:`. A handle changed later does not
+reach entries already written.
+
+`Operator name:` is the full name for the email
+signature (`hostwarden-email`) and nothing else.
+Neither line stands in for the other.

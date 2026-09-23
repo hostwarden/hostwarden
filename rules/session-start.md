@@ -62,15 +62,16 @@ what to do with it, and it is not "carry on".
 
 ## The operator handle
 
-When the workspace has a remote and `memory/user.md` has no
-`Operator:` line, ask for it once the reads are in, before anything
-else, in one question of its own:
-*"Which short handle should Hostwarden record as yours in journal
-entries and decisions?"* Offer the workstation's login (`id -un`)
-and `Other…`. Write the answer as `Operator: <handle>` under
+Where `rules/ssh-user.md` → Operator requires the `Operator:` line
+and `memory/user.md` has none, ask for it once the reads are in,
+before anything else, in one question of its own and in that
+file's interview format:
+*"Which short handle should Hostwarden record as yours? It goes
+into the journal of every server you change and into the shared
+workspace, so initials or a code will do."* Offer the current OS
+user and `Other…`. Write the answer as `Operator: <handle>` under
 `# Preferences` in `memory/user.md`, creating the file or the
-heading where it lacks them, and ask no more about it
-(`rules/ssh-user.md` → Operator). Without a remote, ask nothing.
+heading where it lacks them.
 
 ## What not to ask
 

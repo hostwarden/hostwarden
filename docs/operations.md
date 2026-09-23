@@ -331,15 +331,20 @@ that keeps updating.
    (e.g. `/servers/my-laptop/`). Alone on several
    machines, you may want your SSH usernames on all
    of them: delete the `/user.md` line.
-5. With a remote, Hostwarden asks each of you once
-   for a short handle, such as `alice`, and keeps it
-   as `Operator:` in your `user.md`. It names you in
+5. Hostwarden asks each of you once for a short
+   handle, such as `alice`, and keeps it as
+   `Operator:` in your `user.md`. It names you in
    every journal entry (`[alice as root] …`) and
    every decision you record, so the team can tell
-   whose work is whose; pick one no teammate uses.
-   Your full name, `Operator name:`, stays for the
-   email signature. Without a remote, both are
-   optional.
+   whose work is whose, even when you all log in
+   as `root`; pick one no teammate uses. It lands
+   in the servers' journals, which keep it as long
+   as their logs are retained and wherever they are
+   shipped, so choose what you are comfortable
+   with there: initials or a code serve as well as
+   a name, and changing it later does not rewrite
+   old entries. Your full name, `Operator name:`,
+   stays for the email signature.
 6. Every workspace commit is scanned for secrets by
    [betterleaks](https://github.com/betterleaks/betterleaks),
    and every push scans the whole history again. A
