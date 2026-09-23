@@ -159,6 +159,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Sudo:`, `Root SSH:`     | `privilege-escalation.md`   | privileged use   |
 | `Privilege mode:`        | `privilege-escalation.md`   | privileged use   |
 | `Root-equivalent group:` | `privilege-escalation.md`   | group found      |
+| `Accounts:`              | `accounts.md`               | accounts probed  |
 | `Doas:`                  | `os/alpine.md`              | privileged use   |
 | `WSL root:`              | `platform/wsl.md`           | privileged use   |
 | `Management:`            | `management-controller.md`  | first need       |

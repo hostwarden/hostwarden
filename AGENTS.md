@@ -317,6 +317,9 @@ trigger — not a request from the user.
 - Growing, rebuilding or repairing storage — a file system, RAID,
   LVM, ZFS or Btrfs → `rules/storage.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
+- Creating or removing an account, a group or a sudo rule, or
+  letting a host's people log in with user certificates →
+  `rules/accounts.md`
 - A system container or VM as the target, or creating, changing,
   snapshotting, stopping or deleting one on its host (LXC, Incus,
   LXD, Proxmox, libvirt) → `rules/system-containers.md`

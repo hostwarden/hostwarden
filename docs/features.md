@@ -383,7 +383,11 @@ Check security configuration on any server:
 ```
 
 Hostwarden checks SSH password authentication settings,
-firewall status, and reports issues by severity.
+firewall status, where accounts and sudo rules come from (local
+files, a directory such as AD or FreeIPA, or an agent) and who can
+become root without a password, and reports issues by severity.
+Where accounts come from is recorded in the host's memory as one
+`Accounts:` line.
 
 ## Fleet audit
 
@@ -395,7 +399,8 @@ Compare key policies across every server Hostwarden knows about:
 ```
 
 Hostwarden probes unattended-upgrades, sshd effective config,
-firewall posture, MTA, time sync, auto-reboot behaviour and,
+firewall posture, MTA, time sync, auto-reboot behaviour,
+accounts and sudo rules and,
 on Ubuntu, Pro/ESM coverage and needrestart's restart mode
 on each host in `memory/servers/`, then renders a
 side-by-side table that highlights where servers disagree.

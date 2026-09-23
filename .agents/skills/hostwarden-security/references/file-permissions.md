@@ -100,7 +100,8 @@ find /etc /usr /var -xdev -exec stat -c '%u %g %n' {} + \
 ```
 
 Accounts from a directory service (LDAP, SSSD) are not in
-`/etc/passwd`; where server memory records one, check a hit with
+`/etc/passwd`; where the `Accounts:` line in server memory names a
+directory (`rules/accounts.md` → Memory), check a hit with
 `getent passwd <uid>` before reporting it.
 
 **OpenWrt:** skipped. Its busybox has neither the flags nor `stat`

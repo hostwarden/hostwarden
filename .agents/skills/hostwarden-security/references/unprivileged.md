@@ -31,6 +31,13 @@ Many checks in this audit work without root:
   group membership, or for the session user's own rootless
   containers.
 
+Accounts and sudo (`references/accounts-sudo.md`): the account
+source and the local accounts work unprivileged, and so do the
+SSH user's own sudo rules (`sudo -n -l`, filtered as
+`rules/accounts-probe.md` → The Sudo Model says). The sudoers files,
+other accounts' rules (`sudo -l -U`), `sssctl`, SSSD's access
+rule and other accounts' `.ssh` need root.
+
 On FreeBSD, root is needed for `sshd -T`, `/etc/master.passwd`,
 the pf and ipfw rules, and `/var/log/setuid.today`.
 

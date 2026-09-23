@@ -138,6 +138,20 @@ read that file's section on access in
 only login, as on Unraid, offer that account and
 `Other…`.
 
+## Account Model
+
+When the recorded user does not fit the host's `Accounts:` line
+(`rules/accounts.md` → What It Means for Hostwarden) — `root`
+where admins use personal accounts and sudo, a personal account
+where the host admits admins only through a role account — say so
+once and ask whether to switch. Never switch on your own; the new
+name goes through the per-server question above, and its answer
+replaces the `- <hostname>:` entry. A user who keeps the recorded
+name gets the offer to record that as a decision
+(`rules/decisions.md` → Writing one). Once one is recorded, the
+question is not asked again (`rules/decisions.md` → Rating
+findings).
+
 ## User Language
 
 **File:** `memory/user.md` (same file as SSH

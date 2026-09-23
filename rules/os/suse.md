@@ -111,6 +111,19 @@ Maintenance), all enabled by the preset
 - Logs: `/var/log/`
 - Nginx config: `/etc/nginx/conf.d/`
 
+## Vendor Defaults under /usr
+
+openSUSE Leap 16 and Tumbleweed ship some defaults under `/usr`
+rather than `/etc`: `/usr/etc/nsswitch.conf`, `/usr/etc/sudoers`
+(mode `0444`), `/usr/etc/login.defs`, `/usr/lib/pam.d/`. A file
+of the same name in `/etc` replaces the default, and
+`sudo -V` as root names both sudoers paths,
+`/etc/sudoers:/usr/etc/sudoers`. Probes read both, `/etc` first.
+Edit only in `/etc`: an update overwrites `/usr`. `visudo -c`
+calls the `0444` vendor file bad permissions and exits 1; sudo
+still reads it, and that alone is not a finding. Leap 15 keeps
+them in `/etc`.
+
 ## Notes
 
 - openSUSE Tumbleweed is a rolling release — package

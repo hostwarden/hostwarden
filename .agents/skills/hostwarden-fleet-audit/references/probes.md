@@ -19,7 +19,8 @@ echo "###meshvpn###"; <mesh VPN probe>
 ```
 
 Then split the output on `###<key>###` markers to fill the
-comparison table.
+comparison table. The accounts probe (section 9) is the one
+exception: it runs in a second call of its own.
 
 The commands below are the family defaults. Where the loaded
 OS file covers a category — its Automatic Security Updates,
@@ -36,15 +37,16 @@ runlevels from it rather than calling OpenRC again. It also
 answers whether a syslog daemon runs, which decides whether the
 audit-trail line was written (`rules/os/alpine.md` → Logs).
 
-On macOS, every probe below but section 8 has a **macOS**
-variant that replaces it. The privilege prefix applies unchanged, but
+On macOS, every probe below but sections 8 and 9 has a **macOS**
+variant that replaces it; section 9 carries its own in
+`rules/accounts-probe.md`. The privilege prefix applies unchanged, but
 the root account is disabled on a Mac and sudo usually asks for
 a password, so `$SUDO` is often `-`: expect
 `unknown(needs-root)` cells for what sudo does not cover,
 rather than a partial row. A key
 only the other families have is `n/a (macOS)`.
 
-On FreeBSD, every probe below but section 8 has a **FreeBSD**
+On FreeBSD, every probe below but sections 8 and 9 has a **FreeBSD**
 variant that replaces it, and `rules/os/freebsd.md` is the reference for what
 the commands print. Open the FreeBSD bundle with the privilege
 prefix, so `$SUDO` is set for every probe, and with the loaded OS
@@ -842,3 +844,72 @@ security audit, which asks the user and records the answer.
 Who may be admitted, and what it takes to fix, is the security
 audit's (`.agents/skills/hostwarden-security/references/vpn-ssh.md`
 → Findings); this table compares.
+
+## 9. Accounts and sudo
+
+The probe is `rules/accounts-probe.md` → Probe, as written there,
+the macOS part included, in an SSH call of its own after the
+bundle, opened with the same privilege prefix: it names a key
+path, and the bundle's `awk` beside it would have the taboo guard
+deny both. The audit-trail line stays in the bundle. FreeBSD and
+Alpine run the probe unchanged.
+
+Row keys:
+
+- Account source: `files`, or the directory (`sss`, `ldap`,
+  `winbind`) with its daemon state and realm; macOS: the
+  `CSPSearchPath` nodes.
+- `login-policy` and `permitted-groups` from `realm list`.
+- Directory access rule — per SSSD domain `access_provider` and
+  its groups or filter, nslcd's `pam_authz_search`, pam_winbind's
+  `require_membership_of` — and whether it admits every directory
+  user as `rules/accounts-probe.md` → Where Accounts Come From says.
+- `sudoers:` line (absent: files only), and the sudo the `sudo:`
+  line names: sudo-rs reads the files only, whatever that line
+  says.
+- mkhomedir: on or off.
+- Rules with `ALL` as the command, per user or `%group`, with
+  their run-as and `NOPASSWD` marked, root rules apart
+  (`rules/accounts-probe.md` → The Sudo Model).
+- Rules with `NOPASSWD` on selected commands, as the probe prints
+  them: arguments withheld, never copied from anywhere else.
+- Members of each `%group` a sudoers rule names and each `:group`
+  a doas rule names, and whether the group is `local` or from the
+  `directory`.
+- `skipped:` sudoers files.
+- Local accounts, `name:uid`; which of them have keys is a
+  per-host question for `hostwarden-security`, not a cell here.
+- `Defaults` of `!authenticate`, `targetpw` or `rootpw`, which
+  change whose password sudo asks for, if any, and
+  `runas_default`.
+- Model: the `Accounts:` line from each host's `memory.md`,
+  `(unset)` where it has none.
+
+Highlight as drift:
+
+- Different account sources or models on hosts that should admit
+  the same admins.
+- A directory host whose daemon is not active, or that admits all
+  directory users (realm, SSSD, nslcd or winbind access rule)
+  while the others restrict them.
+- `NOPASSWD: ALL` as root on some hosts but not others, or granted
+  to different groups. A rule with another run-as target is
+  compared apart.
+- A local sudo rule for a named user on one directory host: a
+  hand-made exception the directory does not control.
+- mkhomedir on some directory hosts but not others.
+- A local account on some hosts only, or one name with different
+  UIDs on different hosts: files on shared storage then belong to
+  someone else. With a team roster in `memory/network.md`
+  (`rules/accounts.md` → Team Accounts), each host against it:
+  missing, extra, other UID or GID.
+- A different `sudoers.d` file on hosts with the same `Accounts:`
+  model.
+- A probe that contradicts the `Accounts:` line: the memory is
+  stale. Report it; the audit does not update memory.
+
+Warnings, one host at a time: every rating of
+`.agents/skills/hostwarden-security/references/accounts-sudo.md`
+at WARN or CRITICAL, from all three of its sections. A host that
+admits every directory user, or whose directory daemon is not
+active, is a warning even where every other host does the same.

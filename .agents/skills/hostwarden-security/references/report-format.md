@@ -12,6 +12,8 @@ OS: Debian 12 (Bookworm)
 
 WARN      SSH allows password authentication
 WARN      Tailscale SSH admits root by accept
+WARN      deploy (runs myapp) has NOPASSWD ALL (root)
+WARN      deploy is a local account with sudo on a directory host
 INFO      macOS Application Firewall disabled
 
 ### Checks
@@ -28,6 +30,12 @@ VPN SSH             WARN — Tailscale SSH admits root by accept
 VPN recorded        OK — Tailscale in network.md, SSH on
 Empty passwords     OK — no accounts with empty password
 UID 0 accounts      OK — only root
+Account source      OK — SSSD, AD example.com, online
+Sudo rules          WARN — deploy NOPASSWD ALL (root); INFO —
+                    %sudo NOPASSWD ALL (root): alice, bob
+Local accounts      WARN — deploy (sudo, keys); rescue (sudo,
+                    keys) DECIDED — Break-glass account rescue
+                    (user, 2026-09-18)
 Listening services  OK — no databases on 0.0.0.0
 ASLR                OK — randomize_va_space = 2
 IP forwarding       OK — disabled
