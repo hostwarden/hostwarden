@@ -18,7 +18,7 @@ Many checks in this audit work without root:
   `rc-service`), macOS checks (SIP, FileVault, Gatekeeper).
 - **Needs root:** `sshd -T`, evaluating sshd's `Match` blocks
   (`sshd -T -C`), other accounts' SSH client configuration and the
-  crontabs under `/var/spool/cron`, empty password accounts
+  crontabs other than the session user's, empty password accounts
   (`/etc/shadow`), listening services with process names on Linux
   (`ss -tulnp`), cron directory permissions (some dirs may be
   unreadable), and the container audit — except with `docker`

@@ -65,7 +65,11 @@ finding. See `rules/version-check.md`.
 
 ## sshd
 
-- Unit `sshd.service`. Its `ExecStart` adds `$OPTIONS` from
+- Unit `sshd.service`. The package also ships `sshd.socket`
+  (`Accept=yes`), which, when enabled instead, starts one
+  `sshd@.service` (`sshd -i $OPTIONS`) per connection: no listener
+  runs, and its `ListenStream` lines, not `Port`, are the ports.
+- `sshd.service`'s `ExecStart` adds `$OPTIONS` from
   `/etc/sysconfig/sshd`, where a `-f`, `-o` or `-p` can sit. On
   RHEL 8 it adds `$CRYPTO_POLICY` too: `-o` options that set the
   ciphers, MACs and key exchange from the crypto policy, which

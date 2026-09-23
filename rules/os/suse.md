@@ -62,7 +62,12 @@ Enterprise Server (SLES).
 
 ## sshd
 
-- Unit `sshd.service`. Its `ExecStart` adds `$SSHD_OPTS` from
+- Unit `sshd.service`. The package also ships `sshd.socket`
+  (`Accept=yes`), which, when enabled instead, starts one
+  `sshd@.service` (`sshd -i $SSHD_OPTS`) per connection: no
+  listener runs, and its `ListenStream` lines, not `Port`, are the
+  ports.
+- `sshd.service`'s `ExecStart` adds `$SSHD_OPTS` from
   `/etc/sysconfig/ssh`, where a `-f`, `-o` or `-p` can sit.
 - Configuration: without an `/etc/ssh/sshd_config`, as openSUSE
   Leap 16 and Tumbleweed ship, sshd reads

@@ -165,23 +165,28 @@ the host keys (OpenSSH 9.3 and newer) where sshd's configuration
 files are readable; emit a sentinel when a run fails. The daemon
 is picked as the security audit's SSH reference picks it: a root
 process whose parent is PID 1 and whose program is an sshd, run as
-its own binary with its own `-f`. Where several run, the row reads
-the one on the default file, or else the first `-f` one, and the
-`sshd-f` line says so (on FreeBSD with jails, add `-J 0` to the
-`ps`):
+its own binary with its own `-f`, and `ps` runs with the privilege
+prefix and, on FreeBSD, with `-J 0` to leave jails out. Every
+daemon's command line goes into the row. Where several run, the row
+reads the one on the default file, or else the first `-f` one:
 
 ```bash
 PATH=$PATH:/usr/sbin:/usr/local/sbin
-L=$(ps ax -o user=,ppid=,args= | sed -n 's/^root  *1  *//p' \
-  | sed 's/^[^ ]*sshd[^ /]*: //' \
+case $(uname -s) in FreeBSD) J='-J 0' ;; *) J= ;; esac
+PFX=$SUDO; [ "$PFX" != "-" ] || PFX=
+C=$($PFX ps ax $J -o user=,ppid=,args= | sed -n 's/^root  *1  *//p' \
+  | sed -e 's/^[^ ]*sshd[^ /]*: //' -e 's/ \[listener\].*//' \
   | grep -e '^[^ ]*sshd[^ /]* ' -e '^[^ ]*sshd[^ /]*$' \
-  | sed -e 's/^\([^ ]*\) \(.* \)\{0,1\}-[[:alpha:]]*f *\([^ ]*\).*/\1 \3/' \
+  | LC_ALL=C sort -u)
+printf '%s\n' "$C" | grep . | sed 's/^/sshd-cmd /'
+L=$(printf '%s\n' "$C" \
+  | sed -e 's/^\([^ ]*\) \(.* \)\{0,1\}-[46DdeGiqRrTt]*f *\([^ ]*\).*/\1 \3/' \
     -e t -e 's/^\([^ ]*\).*/\1 default/' | LC_ALL=C sort -u)
 D=$(printf '%s\n' "$L" | grep ' default$' | head -n 1)
 [ -n "$D" ] || D=$(printf '%s\n' "$L" | head -n 1)
 set -- ${D:-sshd default}
 B=$1; F=$2; set --
-N=$(printf '%s\n' "$L" | grep -c .)
+N=$(printf '%s\n' "$C" | grep -c .)
 [ "$N" -gt 0 ] || echo "sshd-daemons none visible, row reads $B"
 [ "$N" -le 1 ] || echo "sshd-daemons $N, row reads $B"
 [ "$F" = default ] || { set -- -f "$F"; echo "sshd-f $F"; }
@@ -217,7 +222,9 @@ to read, and the report names the host as reading one of several.
 `sshd-daemons none visible` means no listener runs (launchd, a
 socket unit) or, without root, that the process list hides it;
 the row then reads the default file, and without root the report
-says a `-f` could not be seen.
+says a `-f` could not be seen. `sshd-cmd` is a daemon's command
+line: a `-p` or `-o Port=` there overrides `port` for that
+daemon, and hosts whose command lines differ are drift.
 A host whose sshd column is `unknown(needs-root)` or
 `unknown(sshd-failed)` is reported as such, never as "defaults".
 
@@ -255,10 +262,10 @@ fi
 `all users`, or the members and nested groups (Administrators
 is a nested group). Hosts that differ are drift.
 
-**FreeBSD** runs the probe unchanged, `-J 0` added where jails
-run: it takes the binary from the running daemon. Where none is
-visible, it replaces the `sshd` in `${D:-sshd default}` with the
-full path of the one `rules/os/freebsd.md` → sshd says is enabled
+**FreeBSD** runs the probe unchanged: it takes the binary from
+the running daemon. Where none is visible, it replaces the `sshd`
+in `${D:-sshd default}` with the full path of the one
+`rules/os/freebsd.md` → sshd says is enabled
 (`/usr/local/sbin/sshd` when `$SVC` has
 `openssh_enable="YES"`). A FreeBSD host that
 accepts passwords by `.agents/skills/hostwarden-security/references/ssh.md`
@@ -357,7 +364,8 @@ Row keys for the table:
 - Default policy (deny incoming required)
 - Number of open ports / services
 - Whether the SSH port is open (must be yes: 22, or each
-  `port` from section 2)
+  `port` from section 2, and each `-p` or `-o Port=` of an
+  `sshd-cmd` line)
 - `nftables.enabled=enabled` next to an active ufw or
   firewalld, or on Alpine awall (WARN: the unit flushes their
   rules; Alpine's `/etc/nftables.nft` starts with

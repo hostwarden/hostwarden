@@ -26,21 +26,24 @@ whose files only root can read.
   hence the `tr`.
 - The daemons are the root processes whose parent is PID 1 and
   whose program is an sshd: the host's own listeners. Session
-  processes, a container's daemon and any process an unprivileged
-  account names `sshd` stay out, so no path a user controls reaches
-  a root run. Each daemon is run as its own binary (Alpine's
-  `sshd.pam`, FreeBSD's package in `/usr/local/sbin`) with its own
-  `-f`, attached or clustered forms included; without one, sshd
-  reads its default file.
+  processes, a Linux container's daemon and any process an
+  unprivileged account names `sshd` stay out. On FreeBSD a jail's
+  daemon has PID 1 as its parent too, so `ps` gets `-J 0` there,
+  host processes only. That way no path a user or a guest controls
+  reaches a root run. Each daemon is run as its own binary
+  (Alpine's `sshd.pam`, FreeBSD's package in `/usr/local/sbin`)
+  with its own `-f`, clustered forms such as `-Df` included;
+  without one, sshd reads its default file.
 - The `daemon:` lines show each command line whole. A `-o` or `-p`
   there overrides the file for its keyword and neither run shows
   it, so judge that keyword from the `daemon:` line.
 - `daemon: none visible` means no listener runs — launchd on macOS
-  starts sshd per connection, a socket unit on the first — or,
-  without root, that the process list hides other users' processes.
-  The probe then runs `sshd` with its default file, and a `-f` can
-  only come from the service definition (`rules/os/<family>.md` →
-  sshd); without root, say that it is unknown.
+  starts sshd per connection, a socket unit on the first or on
+  every connection — or, without root, that the process list hides
+  other users' processes. The probe then runs `sshd` with its
+  default file, and a `-f` can only come from the service
+  definition (`rules/os/<family>.md` → sshd); without root, say
+  that it is unknown.
 - Since OpenSSH 10.4 both print keywords in mixed case
   (`PasswordAuthentication`), so always filter with `grep -i`.
 
@@ -48,18 +51,17 @@ The last grep takes every keyword this file and the blocklistd
 check in `references/intrusion-prevention.md` judge. The one before
 it lists the `Match` blocks (→ Match blocks below). Run the probe
 and the SSH client check below in one bundle
-(`rules/ssh-connections.md` → Bundle commands). On FreeBSD with
-jails, add `-J 0` to the `ps`, which then lists host processes
-only:
+(`rules/ssh-connections.md` → Bundle commands):
 
 ```bash
 PATH=$PATH:/usr/sbin:/usr/local/sbin
-D=$(ps ax -o user=,ppid=,args= | sed -n 's/^root  *1  *//p' \
+case $(uname -s) in FreeBSD) J='-J 0' ;; *) J= ;; esac
+D=$(ps ax $J -o user=,ppid=,args= | sed -n 's/^root  *1  *//p' \
   | sed 's/^[^ ]*sshd[^ /]*: //' \
   | grep -e '^[^ ]*sshd[^ /]* ' -e '^[^ ]*sshd[^ /]*$')
 printf '%s\n' "${D:-none visible}" | sed 's/^/daemon: /'
 printf '%s\n' "${D:-sshd}" \
-  | sed -e 's/^\([^ ]*\) \(.* \)\{0,1\}-[[:alpha:]]*f *\([^ ]*\).*/\1 \3/' \
+  | sed -e 's/^\([^ ]*\) \(.* \)\{0,1\}-[46DdeGiqRrTt]*f *\([^ ]*\).*/\1 \3/' \
     -e t -e 's/^\([^ ]*\).*/\1 default/' | sort -u \
   | while read -r B F; do
   set --
@@ -274,34 +276,46 @@ its SSH client accepts. `StrictHostKeyChecking no` (or `off`,
 man in the middle is off for every target in that scope.
 
 Read the system configuration and each account's own, and the
-same options given on a command line in a scheduled job — the
-crontabs and cron directories, Alpine's `/etc/periodic`, the
-system's own systemd units, macOS's launchd directories, whose
-binary plists the grep reads as `Binary file … matches` — in the
-bundle of the sshd probe. As root this covers every
-account; without root, the session user's file and what else is
-readable (`references/unprivileged.md`). macOS has no `getent`, so
-its homes come from `dscl`.
+same options where other programs hand them to ssh: a scheduled
+job's command line (crontabs and cron directories, `at` jobs,
+periodic scripts, the system's own systemd units and the
+environment files they read in `/etc/default` and
+`/etc/sysconfig`, macOS's launchd directories, whose binary plists
+the grep reads as `Binary file … matches`), git's `core.sshCommand`
+in `/etc/gitconfig` and each `~/.gitconfig`, and Ansible's
+`host_key_checking` in `/etc/ansible/ansible.cfg`. Run it in the
+bundle of the sshd probe. As root this covers every account;
+without root, the session user's files and what else is readable
+(`references/unprivileged.md`), and every file the greps could not
+read shows as `Permission denied`. macOS has no `getent`, so its
+homes come from `dscl`.
 
 ```bash
-U=$(if command -v getent >/dev/null; then getent passwd | cut -d: -f6
+H=$(if command -v getent >/dev/null; then getent passwd | cut -d: -f6
   else dscl . -list /Users NFSHomeDirectory | sed 's/^[^ ]* *//'
-  fi | sort -u | while read -r h; do
-    [ -f "$h/.ssh/config" ] && echo "$h/.ssh/config"
+  fi | sort -u)
+U=$(for h in $H; do [ -f "$h/.ssh/config" ] && echo "$h/.ssh/config"
   done)
+G=$(for h in $H; do [ -f "$h/.gitconfig" ] && echo "$h/.gitconfig"
+  done)
+echo "client configs:" $U
 grep -Hin -e '^[[:space:]]*\(host\|match\|include\)[[:space:]]' \
   -e '^[[:space:]]*\(stricthostkeychecking\|userknownhostsfile\)' \
   /etc/ssh/ssh_config /etc/ssh/ssh_config.d/* \
   /usr/etc/ssh/ssh_config /usr/etc/ssh/ssh_config.d/* \
-  /usr/local/etc/ssh/ssh_config $U 2>/dev/null
+  /usr/local/etc/ssh/ssh_config $U 2>&1 | grep -v 'No such file'
 grep -rin -e 'stricthostkeychecking[= ]*\(no\|off\|false\)' \
   -e 'userknownhostsfile[= ]*\(/dev/null\|none\)' \
+  -e '^[[:space:]]*host_key_checking[[:space:]]*=[[:space:]]*\(false\|no\|0\)' \
   /etc/crontab /etc/anacrontab /etc/cron.d /etc/cron.hourly \
   /etc/cron.daily /etc/cron.weekly /etc/cron.monthly \
   /usr/local/etc/cron.d /var/spool/cron /var/cron/tabs \
-  /var/at/tabs /etc/crontabs /etc/periodic /etc/systemd/system \
-  /etc/systemd/user /usr/local/lib/systemd/system \
-  /Library/LaunchDaemons /Library/LaunchAgents 2>/dev/null
+  /var/at/tabs /var/at/jobs /etc/crontabs /etc/periodic \
+  /usr/local/etc/periodic /etc/systemd/system /etc/systemd/user \
+  /usr/local/lib/systemd/system /etc/default /etc/sysconfig \
+  /Library/LaunchDaemons /Library/LaunchAgents \
+  /etc/gitconfig $G /etc/ansible/ansible.cfg 2>&1 \
+  | grep -v 'No such file'
 ```
 
 An option belongs to the nearest `Host` or `Match` line above it
@@ -321,7 +335,8 @@ for `Host unix/* vsock/* machine/*`, reached through
 `systemd-ssh-proxy` rather than the network.
 
 - `StrictHostKeyChecking no`, `off` or `false` in any other scope,
-  or on a scheduled job's command line → **WARN** "SSH client
+  on a scheduled job's command line, in a git `sshCommand`, or
+  Ansible's `host_key_checking` off → **WARN** "SSH client
   accepts any host key", naming the account, the file and the
   `Host` or `Match` line: `WARN SSH client accepts any host key
   (root, Host backup.example.com)`
@@ -330,7 +345,9 @@ for `Host unix/* vsock/* machine/*`, reached through
   command line → **WARN**, the same way
 - `StrictHostKeyChecking accept-new` → **INFO**: the first
   connection to each target is not checked
-- Otherwise OK, saying what was read: `OK — none in ssh_config,
-  3 accounts' ~/.ssh/config, cron, systemd units`. A job that
-  calls a script is not followed into it, and a user's own
-  systemd units and launch agents under their home are not read.
+- Otherwise OK, saying what was read, the count from the
+  `client configs:` line: `OK — none in ssh_config, 3
+  ~/.ssh/config, cron, systemd units`. A file the greps could not
+  read goes under Skipped, not into the OK. A job that calls a
+  script is not followed into it, and a user's own systemd units
+  and launch agents under their home are not read.

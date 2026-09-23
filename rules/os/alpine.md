@@ -277,9 +277,11 @@ runs `apk upgrade` counts.
 - Three binaries: `/usr/sbin/sshd`, and `sshd.pam` or `sshd.krb5`
   from their packages. The script starts `sshd.krb5` when the
   configuration turns on Kerberos or GSSAPI authentication,
-  `sshd.pam` when it says `UsePAM yes`. Plain `sshd` has no PAM and
-  rejects `UsePAM`, so read the configuration with the binary that
-  runs.
+  `sshd.pam` when it says `UsePAM yes`. Plain `sshd` has no PAM: it
+  warns `Unsupported option UsePAM`, succeeds, and prints no
+  `usepam` line. So read the configuration with the binary that
+  runs, and with no daemon running, with `sshd.pam` where it is
+  installed and the configuration says `UsePAM yes`.
 - Configuration: `/etc/ssh/sshd_config`, readable by every account,
   which includes `sshd_config.d/*.conf` near its top.
 - Auth log: syslog, as Logs below describes — `/var/log/messages`,
