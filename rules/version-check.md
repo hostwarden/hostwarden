@@ -82,7 +82,10 @@ Node.js Current).
    all installed software with version numbers.
 2. **Web search** for the current stable version
    of each item being checked. Use official
-   project sites or release pages.
+   project sites or release pages. Search once per
+   piece of software per session, and reuse that
+   result and its source URL for every host that
+   runs it.
 3. **Compare** installed vs current.
 4. **Classify** the result:
    - `UP TO DATE` — installed version matches or

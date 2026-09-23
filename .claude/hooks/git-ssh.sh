@@ -14,20 +14,10 @@
 # $GIT_SSH_COMMAND form; beyond that, the prose rule in AGENTS.md
 # is the whole protection.
 
-# Every Hostwarden shim goes, not only this checkout's: a session
-# started from inside another one carries both on PATH.
-P=
-set -f
-IFS=:
-for d in $PATH; do
-  case "$d" in
-  */.claude/hooks/shim) ;;
-  *) P="$P${P:+:}$d" ;;
-  esac
-done
-unset IFS
-set +f
-PATH=$P
+# shellcheck source=mode.sh
+. "${0%/*}/mode.sh"
+hostwarden_path_without_shim
+PATH=$HOSTWARDEN_PATH
 export PATH
 C=${HOSTWARDEN_GIT_SSH_COMMAND:-$(git config core.sshCommand)}
 # The same form git uses: the command string, then the arguments.

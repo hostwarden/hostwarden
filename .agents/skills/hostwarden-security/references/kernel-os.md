@@ -2,13 +2,10 @@
 
 These checks read sysctl values. No root needed.
 
-**Containers.** Where `Virtualization:` in memory names a
-container, the kernel is the host's (`rules/system-containers.md`)
-and a kernel-wide sysctl returns the host's value. In a Linux
-container, skip ASLR and SUID Core Dumps and report them
-`n/a (container)`; IP Forwarding and ICMP Redirect Acceptance come
-from its own network namespace and are judged as below. A FreeBSD
-jail is covered under FreeBSD.
+**Containers.** Which sysctls a container or jail owns, and how
+the rest read, is `rules/system-containers.md` → What the Host
+Owns: in a Linux container, ASLR and SUID Core Dumps are the
+host's, IP Forwarding and ICMP Redirect Acceptance its own.
 
 ## ASLR (Address Space Layout Randomization)
 
@@ -83,12 +80,9 @@ sysctl kern.elf64.aslr.enable kern.elf64.aslr.pie_enable \
 | the five `security.bsd` keys | `1` → **INFO**, one line naming them |
 | `kern.randompid` | `0` → **INFO**, on the same line |
 
-- In a jail, only these keys are its own: `kern.securelevel`;
-  `security.bsd.unprivileged_proc_debug`; and, where
-  `security.jail.vnet` is `1`, the `net.inet*` keys. Every other
-  key, `kern.elf32.aslr.*` below included, reads
-  `n/a (container)`, and the INFO line names
-  `unprivileged_proc_debug` alone.
+- In a jail, every key but its own (Containers above),
+  `kern.elf32.aslr.*` below included, reads `n/a (container)`,
+  and the INFO line names `unprivileged_proc_debug` alone.
 - ASLR is on by default on 64-bit platforms. On a 32-bit one
   (`uname -p` shows `i386` or `armv7`) read `kern.elf32.aslr.*`,
   off by default there: **INFO**.

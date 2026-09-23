@@ -3,15 +3,17 @@
 #
 # Usage:
 #   hostwarden-update               Update: pull main, or move to
-#                                the newest release on the line
-#                                this checkout follows
+#                                   the newest release on the line
+#                                   this checkout follows
 #   hostwarden-update --check       Show current version and
-#                                check for updates
-#   hostwarden-update --follow L    Follow release line L, a major
-#                                (1) or a major.minor (1.2)
+#                                   check for updates
+#   hostwarden-update --follow L    Follow release line L: 1 for
+#                                   every 1.x.y, 1.2 for 1.2.x
+#                                   only; the auto-update moves on
 #   hostwarden-update --pin VER     Pin to a version tag
-#                                (e.g. --pin v0.1.0)
+#                                   (e.g. --pin v0.1.0)
 #   hostwarden-update --unpin       Return to main and pull
+#   hostwarden-update --help        Show this help
 set -e
 
 # Find the repo root (this script lives in bin/).
@@ -66,41 +68,28 @@ show_changelog_section() {
   fi
 }
 
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
+}
+
 case "${1:-}" in
-  --help|-h)
-    echo "Usage: hostwarden-update [--check|--follow L|--pin VER|--unpin]"
-    echo ""
-    echo "  (no args)    Pull latest from main, or move to the newest"
-    echo "               release on the line this checkout follows"
-    echo "  --check      Show version and update status"
-    echo "  --follow L   Follow release line L: 1 for every 1.x.y,"
-    echo "               1.2 for 1.2.x only; the auto-update moves on"
-    echo "  --pin VER    Pin to a version tag (e.g. v0.1.0)"
-    echo "  --unpin      Return to main and pull latest"
-    exit 0 ;;
+  --help|-h) usage; exit 0 ;;
 esac
 
-# Without git, or outside a clone, every git call below fails and
-# --check would report a detached HEAD: the wrong cause. The top
-# of a clone, too, not merely inside one: unpacked into some other
-# repository, git would pull that one.
+# Without git every git call below fails and --check would report
+# a detached HEAD: the wrong cause.
 if ! command -v git >/dev/null 2>&1; then
   echo "hostwarden-update: git is not installed" >&2
   exit 1
 fi
-# And a clone of hostwarden: unpacked at the top of some other
-# checkout, the first test passes, but git does not track this
-# script there.
-if [ "$(git rev-parse --show-toplevel 2>/dev/null)" != "$(pwd -P)" ] \
-    || ! git ls-files --error-unmatch bin/hostwarden-update \
-      >/dev/null 2>&1; then
+# shellcheck source=../.claude/hooks/follow.sh
+. .claude/hooks/follow.sh
+if ! hostwarden_clone_top; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2
   exit 1
 fi
-
-# shellcheck source=../.claude/hooks/follow.sh
-. .claude/hooks/follow.sh
 FOLLOW=$(hostwarden_follow)
 
 # follow_target <line> — sets TAG to the newest release on the

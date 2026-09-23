@@ -9,8 +9,7 @@ sessions.
 ## When to run
 
 After reading the server memory file and before
-starting any requested work. This applies to every
-connection, not just the first of the day.
+starting any requested work.
 
 ## How to check
 
@@ -32,18 +31,36 @@ journalctl --no-pager -q -o short-iso | head -1
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
-user's own entries. When connected as non-root, run
-both lines as `sudo -n journalctl …` first. If sudo
-is unavailable, run the first line without `-q`,
-watch for the "not seeing messages from other users"
-hint, and tell the user the check may be incomplete.
+user's own entries. When connected as non-root, try
+sudo and fall back in the same call:
+
+```
+if sudo -n true 2>/dev/null; then
+  sudo -n journalctl -t hostwarden -t heinzel \
+    --since "7 days ago" --no-pager -q
+  sudo -n journalctl --no-pager -q -o short-iso | head -1
+else
+  echo "no sudo"
+  journalctl -t hostwarden -t heinzel --since "7 days ago" \
+    --no-pager
+  journalctl --no-pager -q -o short-iso | head -1
+fi
+```
+
+Where server memory's `Sudo:` line records sudo as
+unavailable or unusable, run the `else` branch alone.
+After `no sudo`, watch for the "not seeing messages
+from other users" hint that the missing `-q` lets
+through, and tell the user the check may be
+incomplete.
 
 Without a `## Logs` section and without systemd, tell
 the user the check could not run.
 
-If the command returns nothing — and it actually ran,
-and nothing limited what it can see —
-skip silently: no activity to report.
+If the command returns nothing under either tag —
+and it actually ran, and nothing limited what it can
+see — say nothing. Do not report "no recent
+activity": silence means no news.
 
 An empty result only means "no activity" when the
 command succeeded. If it errored, was shadowed by a
@@ -209,22 +226,10 @@ Recent activity (last 7 days):
 ```
 
 The heading is neutral and every line names its
-journal tag. A host can carry entries from before the
-rename and from a Heinzel session running right now,
-and labelling either as Hostwarden's would credit
-this tool with work it did not do.
+journal tag, so no Heinzel entry is credited to
+Hostwarden.
 
 - Group related entries when possible.
 - Keep it concise — summarize, don't dump raw logs.
 - If there are more than 10 entries, summarize the
   oldest and show the most recent 5 in detail.
-
-## No activity
-
-Only when the journal has no entries under *either*
-tag, say nothing. Do not report "no recent activity"
-— silence means no news. Entries tagged `heinzel`
-alone are activity like any other: they are what a
-host looked like before the rename, and suppressing
-them would hide the very history the dual-tag read
-exists for.

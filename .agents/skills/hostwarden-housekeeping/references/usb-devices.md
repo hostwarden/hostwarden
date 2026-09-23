@@ -2,9 +2,8 @@
 
 Which USB devices a host depends on, and whether the one that
 matters most, a UPS, is watched by anything. Runs on every
-housekeeping run, except where the host's `Virtualization:` line
-records a container: a container sees the USB bus of the machine
-underneath and would report that machine's devices as its own.
+housekeeping run, except in a container, whose USB bus is the
+host's (`rules/system-containers.md` → What the Host Owns).
 A virtual machine runs it too, since a device passed through to it
 is real. On Windows the form in `rules/os/windows.md` →
 Housekeeping applies instead.

@@ -30,8 +30,7 @@ system rather than trust it.
 - **This file covers DSM 7.2 and later 7.x releases**, the ones
   whose `/etc.defaults/VERSION` carries `os_name="DSM"`. On DSM 7.0
   or 7.1, both past their end of life, on 6 or earlier and on 8 or
-  later, stop: tell the user that Hostwarden has no rules for this
-  release, and change nothing on the host.
+  later, stop (`rules/os-detection.md` → Appliances).
 - `/etc.defaults/VERSION` holds `key="value"` lines, among them
   `majorversion`, `minorversion`, `productversion` (e.g. `7.2.2`),
   `buildnumber`, `smallfixnumber` and `os_name="DSM"`, the last
@@ -154,13 +153,11 @@ system rather than trust it.
   each published port not bound to `127.0.0.1` or `[::1]` with the
   DSM firewall rule the user reads for it; a port no rule denies on
   an interface that allows by default is the finding.
-- **Firewall changes are the user's, in the web UI.** This file
-  names no revert for them, so under `rules/ssh-safety-net.md` the
-  user applies the change with physical access ready. Before any
-  rule is added or tightened, name every port that has to stay
-  open: the SSH port from the Terminal page, and the DSM web ports
-  under Control Panel → Login Portal (DSM's help signs in on 5000
-  over HTTP).
+- **Firewall changes are the user's, in the web UI** (no revert:
+  `rules/ssh-safety-net.md`). Before any rule is added or
+  tightened, name every port that has to stay open: the SSH port
+  from the Terminal page, and the DSM web ports under Control
+  Panel → Login Portal (DSM's help signs in on 5000 over HTTP).
 - **Automatic updates.** There is no `unattended-upgrades`. DSM's
   own setting, Update Settings on the system update tab of Control
   Panel → Update & Restore, offers "Automatically install important
@@ -176,10 +173,8 @@ system rather than trust it.
   package's state. `rules/service-reload.md` still decides when to
   ask.
 - **Network changes over SSH.** Addresses, bonds and routes are set
-  under Control Panel → Network, and this file names no revert for
-  them: a network change is the user's to make in the web UI with
-  physical access ready (`rules/ssh-safety-net.md`). Never run
-  `synonet`.
+  under Control Panel → Network (no revert:
+  `rules/ssh-safety-net.md`). Never run `synonet`.
 
 ## Configuration
 
@@ -581,9 +576,8 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
     (Storage);
   - a check that needed root and did not run, named as unchecked.
 - DSM keeps these settings where the shell cannot read them without
-  an undocumented API. Ask the user once, record the answers in
-  server memory with the date, and name them as unchecked when the
-  record is older than three months: the update setting; a data
+  an undocumented API, so they are settings only the web UI shows
+  (`rules/os-detection.md` → Appliances): the update setting; a data
   scrubbing schedule for every pool that supports it; snapshot
   schedules; Hyper Backup tasks and their last result (the
   backup-presence check's `Backup:` line); the configuration backup;

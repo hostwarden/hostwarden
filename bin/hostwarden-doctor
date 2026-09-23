@@ -41,6 +41,8 @@ has() { command -v "$1" >/dev/null 2>&1; }
 # one of the tools this is about to report missing.
 case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
 ROOT=$(cd "$ROOT" && pwd)
+# shellcheck source=../.claude/hooks/mode.sh
+. "$ROOT/.claude/hooks/mode.sh"
 MISE_TOOLS=''
 if [ -f "$ROOT/mise.dev.toml" ]; then
   while IFS= read -r l; do
@@ -157,18 +159,11 @@ probe() {
 any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
 
 # An ssh on PATH that is not the shim (.claude/hooks/shim.sh): the
-# one git-ssh.sh hands a push to, with the same walk. Only looked
+# one git-ssh.sh hands a push to, on the same PATH. Only looked
 # for, never run.
 real_ssh() {
-  set -f
-  IFS=:
-  for d in $PATH; do
-    case "$d" in */.claude/hooks/shim) continue ;; esac
-    [ -x "${d:-.}/ssh" ] && { unset IFS; set +f; return 0; }
-  done
-  unset IFS
-  set +f
-  return 1
+  hostwarden_path_without_shim
+  (PATH=$HOSTWARDEN_PATH && command -v ssh >/dev/null)
 }
 
 # Every call shares one connection (AGENTS.md → SSH Options).
@@ -203,8 +198,6 @@ mail_ok() {
   [ "$OS" = Darwin ] || return 0
   launchctl print system/com.apple.postfix.master
 }
-
-attach_ok() { has file && has base64; }
 
 # The drives under /mnt are Windows' own filesystem: slow for git,
 # and without Unix permissions unless mounted with metadata.
@@ -300,7 +293,7 @@ else
   att=''
   has file || att='file'
   has base64 || att="$att base64"
-  probe feat "email attachments from this workstation" "$att" attach_ok
+  probe feat "email attachments from this workstation" "$att" test -z "$att"
   # hostwarden-deploy-user: references/ssh-key.md
   probe feat "SSH keys for a deploy user" ssh-keygen has ssh-keygen
   # rules/ssh-unreachable.md

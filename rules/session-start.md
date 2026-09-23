@@ -51,10 +51,6 @@ not a managed host.
 
 ## What to say
 
-The greeting comes before any of this, and `AGENTS.md` → Session
-Start has the words: it has to be said before the first read, and
-this file is itself a read. Do not repeat it here.
-
 Missing files are normal on a fresh install; "No such file" is not
 an error.
 
@@ -71,7 +67,5 @@ missing *and* the session is about to reach a machine, follow the
 three-option interview in `rules/ssh-user.md` exactly, one question
 at a time.
 
-A session in a development checkout reaches no machine and needs
-no SSH user, so it never gets here. Nor does an operations session
-that only reads or discusses the instruction set: no machine, no
-interview.
+An operations session that only reads or discusses the instruction
+set reaches no machine, so it gets no interview.

@@ -5,19 +5,13 @@ connection — and on every local-mode session, with
 the remote-only steps skipped — before any
 user-requested command.
 
-**There is no "quick question" exception.** `df -h`,
-`uptime`, `uname -a`, and every other "one-liner"
-runs this pipeline first. If following the pipeline
-will visibly delay the answer, say so up front
-("first-contact onboarding on this host — one
-moment") — don't skip.
+When the pipeline will visibly delay the answer to a
+one-liner, say so up front ("first-contact
+onboarding on this host — one moment") rather than
+skip it.
 
 ## Order
 
-0. **Worktree check.** Once per session: refuse
-   to reach any machine from a linked git
-   worktree. See `rules/access-control.md` →
-   Linked Worktrees.
 1. **Blacklist check.** Refuse if listed. See
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
@@ -62,13 +56,12 @@ moment") — don't skip.
 ## Local mode
 
 In local mode (`localhost`, the user's own
-hostname), run step 0, then skip steps 1–4 — they
-are remote-only (see `AGENTS.md` → How It Works →
-Local mode). Still run OS detection, server memory,
-activity check, and the Heinzel legacy check — on
-the workstation the latter looks at scheduled runs
-instead of backup directories
-(`rules/heinzel-adoption.md`).
+hostname), skip steps 1–4 — blacklist, read-only
+list, SSH user and DNS check are remote-only. Still
+run OS detection, server memory, activity check, and
+the Heinzel legacy check — on the workstation the
+latter looks at scheduled runs instead of backup
+directories (`rules/heinzel-adoption.md`).
 
 ## Via-host mode
 

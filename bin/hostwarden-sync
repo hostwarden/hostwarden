@@ -37,8 +37,8 @@ cd "$REPO_DIR"
 . .claude/hooks/mode.sh
 
 usage() {
-  awk '/^# hostwarden-sync/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' \
-    "$SCRIPT_DIR/hostwarden-sync"
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
 }
 
 hostwarden_mode "$REPO_DIR"

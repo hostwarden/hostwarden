@@ -18,12 +18,12 @@ set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-SELF="$SCRIPT_DIR/$(basename "$0")"
 ORIG_PWD=$(pwd)
 cd "$REPO_DIR"
 
 usage() {
-  awk '/^# hostwarden-backup/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
 }
 
 # Resolve a user-supplied path against the directory

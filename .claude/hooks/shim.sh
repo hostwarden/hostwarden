@@ -1,22 +1,17 @@
 # shellcheck shell=sh
 # shim.sh — stands in for every tool that reaches a server, in a
 # development session. .claude/hooks/shim/ holds one small script
-# per tool — ssh, scp, sftp, mosh, sudo, sudoedit, doas, pkexec,
-# and ansible, ansible-playbook, ansible-pull, ansible-console,
-# terraform and tofu, which open their own connections to servers
-# or a cloud — that sources this file, and session-mode.sh puts that directory
-# first on the PATH of every Bash call through $CLAUDE_ENV_FILE.
-# Subagents inherit it. Scripts rather than links, so a checkout
-# without symbolic links gets a working shim too.
+# per tool, named after it, that sources this file, and
+# session-mode.sh puts that directory first on the PATH of every
+# Bash call through $CLAUDE_ENV_FILE. Subagents inherit it. Scripts
+# rather than links, so a checkout without symbolic links gets a
+# working shim too.
 #
 # Under WSL the Windows PATH is appended to the Linux one, so
-# Windows programs are found by name as well. Those that reach a
-# server or administer the machine have a script here too:
-# ssh.exe, scp.exe, sftp.exe, sudo.exe and runas.exe; wsl.exe,
-# which starts any distribution as root; powershell.exe, pwsh.exe
-# and cmd.exe, which reach all of Windows. The drives under /mnt
-# ignore case, so SSH.EXE finds the real binary; guard-mode.sh
-# refuses every spelling but the one here.
+# Windows programs are found by name as well; those that reach a
+# server or administer the machine have a script in shim/ too. The
+# drives under /mnt ignore case, so SSH.EXE finds the real binary;
+# guard-mode.sh refuses every spelling but the one in shim/.
 #
 # Sourced, never executed, so it carries no shebang and tells
 # ShellCheck its dialect with the directive above instead. $0 is

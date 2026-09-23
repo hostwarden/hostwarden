@@ -21,56 +21,10 @@ Enterprise Server (SLES).
 
 ## Firewall
 
-- **Expected:** `firewalld`
-- Check status: `firewall-cmd --state`
-- List rules: `firewall-cmd --list-all`
-- Add rule: `firewall-cmd --add-service=http`, kept with
-  `--permanent` once tested (see the safety net below)
-- Reload: `firewall-cmd --reload`
+- **Expected:** `firewalld`, with the commands, the safety net
+  and the default-zone check of `rules/firewalld.md`.
 - Some systems may use SuSEfirewall2 (older) — if so,
   flag it to the user as it's deprecated.
-- **Critical:** before `systemctl start firewalld` on
-  a remote host, verify the `ssh` service is in the
-  active/default zone's permanent config:
-  `firewall-cmd --permanent --zone=<zone>
-  --list-services`. Add it if missing:
-  `firewall-cmd --permanent --zone=<zone>
-  --add-service=ssh`. Starting `firewalld` without it
-  cuts off the SSH session immediately. The `ssh`
-  service covers port 22 only: add every other port
-  sshd listens on with `--add-port=<port>/tcp`
-  (`AGENTS.md` → Critical Safety Rules).
-- Changes over SSH go through `rules/ssh-safety-net.md`.
-  Make them without `--permanent` first, so that
-  `firewall-cmd --reload` is the revert: it replaces the
-  runtime configuration with the permanent one. Loaded
-  rules against the files (step 2 there):
-  `diff <(firewall-cmd --list-all-zones)
-  <(firewall-cmd --permanent --list-all-zones)`: any output
-  but an `interfaces:` line is runtime-only state the revert
-  discards too, possibly the rule SSH depends on. Settle it
-  with the user before the change. `--reload` binds every
-  interface to its zone again, NetworkManager's included
-  (<https://github.com/firewalld/firewalld/blob/main/src/firewall/core/fw.py>,
-  `reload`). Once a fresh login works, repeat the
-  commands with `--permanent`, then
-  `firewall-cmd --check-config`. Never
-  `--runtime-to-permanent`: it saves every runtime-only
-  rule, not just this change
-  (<https://firewalld.org/documentation/man-pages/firewall-cmd.html>).
-  A change made with
-  `--permanent` (the zone target, a service added before
-  starting firewalld) reverts by restoring the backed-up
-  `/etc/firewalld/`, then `firewall-cmd --reload`.
-  Starting firewalld reverts with
-  `systemctl stop firewalld`.
-- Verify the default zone drops unsolicited traffic:
-  `firewall-cmd --get-default-zone` (should be `public`).
-  Then `firewall-cmd --info-zone=public` — the target
-  should be `default` (which means reject). If the zone
-  target is `ACCEPT`, fix with
-  `firewall-cmd --permanent --zone=public
-  --set-target=default` and `firewall-cmd --reload`.
 
 ## Automatic Security Updates
 

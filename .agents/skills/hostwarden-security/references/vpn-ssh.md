@@ -14,48 +14,49 @@ sshd's CA trust, fail2ban, the sshd log or `last`.
 
 ## Probe (no root)
 
-The loop repeats the discovery of `references/ssh.md` and reads
-each agent from the process it belongs to, so two Newt
-connectors are judged apart and a tunnel is read from the
-configuration its own process names.
+The loop reads the `<pid> <program>` lines that
+`references/ssh.md` → SSH servers past sshd printed, pasted in
+place of the placeholder, and reads each agent from the process
+it belongs to, so two Newt connectors are judged apart and a
+tunnel is read from the configuration its own process names. A
+line for an agent without an SSH server of its own falls through
+the `case`.
 
 ```bash
-A='tailscaled|netbird|newt|nebula|dnclient|cloudflared'
 args() { { tr '\0' ' ' < "/proc/$1/cmdline"; } 2>/dev/null \
   || ps -o args= -p "$1" 2>/dev/null; }
 cfg() { args "$1" | sed -nE "s|.* --?$2[= ]([^ ]+).*|\\1|p"; }
-ps -Ao pid=,comm= 2>/dev/null \
-  | sed -E 's|^[[:space:]]+||; s|^([0-9]+)[[:space:]]+.*/|\1 |' \
-  | grep -E "^[0-9]+ ($A)$" \
-  | while read -r p prog; do
-    case $prog in
-      tailscaled)
-        tailscale debug prefs 2>&1 \
-          | grep -e '"RunSSH"' -e '"OperatorUser"' ;;
-      netbird)
-        netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile' ;;
-      newt)
-        printf 'newt %s disable-ssh=%s\n' "$p" \
-          "$(args "$p" | grep -cE -- ' --?disable-ssh( |=|$)')" ;;
-      cloudflared)
-        printf 'cloudflared %s token-arg=%s\n' "$p" \
-          "$(args "$p" | grep -cE -- ' --?token( |=)')"
-        c=$(cfg "$p" config)
-        if [ -n "$c" ]; then set -- "$c"
-        else set -- /etc/cloudflared/*.y*ml \
-          /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml; fi
-        grep -Hn 'ssh://' "$@" 2>/dev/null ;;
-      nebula|dnclient)
-        c=$(cfg "$p" config)
-        [ -n "$c" ] || c=/etc/nebula/config.yml
-        for f in "$c" "$c"/*.yml "$c"/*.yaml; do
-          [ -f "$f" ] || continue
-          [ -r "$f" ] || { echo "== $f unreadable"; continue; }
-          echo "== $f"
-          sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f"
-        done ;;
-    esac
-  done
+while read -r p prog; do
+  case $prog in
+    tailscaled)
+      tailscale debug prefs 2>&1 \
+        | grep -e '"RunSSH"' -e '"OperatorUser"' ;;
+    netbird)
+      netbird status 2>&1 | grep -e '^SSH Server' -e '^Profile' ;;
+    newt)
+      printf 'newt %s disable-ssh=%s\n' "$p" \
+        "$(args "$p" | grep -cE -- ' --?disable-ssh( |=|$)')" ;;
+    cloudflared)
+      printf 'cloudflared %s token-arg=%s\n' "$p" \
+        "$(args "$p" | grep -cE -- ' --?token( |=)')"
+      c=$(cfg "$p" config)
+      if [ -n "$c" ]; then set -- "$c"
+      else set -- /etc/cloudflared/*.y*ml \
+        /usr/local/etc/cloudflared/*.y*ml ~/.cloudflared/*.y*ml; fi
+      grep -Hn 'ssh://' "$@" 2>/dev/null ;;
+    nebula|dnclient)
+      c=$(cfg "$p" config)
+      [ -n "$c" ] || c=/etc/nebula/config.yml
+      for f in "$c" "$c"/*.yml "$c"/*.yaml; do
+        [ -f "$f" ] || continue
+        [ -r "$f" ] || { echo "== $f unreadable"; continue; }
+        echo "== $f"
+        sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f"
+      done ;;
+  esac
+done <<'EOF'
+<the <pid> <program> lines, one per agent>
+EOF
 ```
 
 The `grep -c` lines count, never print (`rules/secrets.md`);

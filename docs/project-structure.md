@@ -1,6 +1,8 @@
 # Project structure
 
 ```
+README.md              — What Hostwarden is and how to start
+LICENSE                — The licence
 VERSION                — Current version number (semver)
 CHANGELOG.md           — Release history
 CONTRIBUTING.md        — Setup, checks, and where changes go
@@ -33,6 +35,11 @@ scripts/
                          on push
 mise.dev.toml          — Pinned versions of the tools check.sh
                          needs
+.github/               — CI and release workflows, and the
+                         ruleset for main
+contrib/
+  heinzel-coexistence/ — Overrides that teach a Heinzel
+                         checkout about Hostwarden
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   agents/              — Subagent definitions
@@ -56,11 +63,31 @@ mise.dev.toml          — Pinned versions of the tools check.sh
     guard-settings.sh  — PreToolUse hook that keeps the
                          guard's off switch out of settings
                          files and its session records
+    mode.sh            — Development or operations, defined
+                         once for the hooks and bin/
+    guard-mode.sh      — PreToolUse hook that holds a session
+                         to its mode: no server from
+                         development, no edit to shipped files
+                         in operations
+    guard-mode-test.sh — Dev-only fixture matrix for the mode
+                         guard (run by scripts/check.sh)
+    session-mode.sh    — SessionStart hook that announces the
+                         mode, a linked worktree included, and
+                         puts the shim on PATH in development
+    shim.sh, shim/     — Stand-ins for ssh, sudo and the other
+                         tools that reach a server, in a
+                         development session
+    git-ssh.sh         — GIT_SSH_COMMAND in development, so
+                         git push reaches the real ssh
     check-skills.sh    — SessionStart hook that reports a
                          .claude/skills link that is not one
-    check-session.sh   — SessionStart hook that reports a
-                         linked worktree, and records and
+    check-session.sh   — SessionStart hook that records and
                          reports a guard that is off
+    authoring-conventions.sh — PostToolUse hook that names the
+                         authoring rules when an instruction
+                         file or a bin/ script is edited
+    corpus.sh          — The instruction corpus the two test
+                         matrices walk, defined once
     instructions-test.sh — Dev-only structural checks on the
                          instruction layer (run by scripts/check.sh)
   skills/              — Symlink to .agents/skills/, because
@@ -123,6 +150,8 @@ rules/                 — Upstream rule files (git-tracked)
     zimaos.md          — ZimaOS (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt
+  firewalld.md         — firewalld commands and safety net
+                         for the RHEL and SUSE families
   appliance-api.md     — Reading and changing an appliance
                          through its web API
   tls-pinning.md       — Pinning a self-signed appliance
@@ -185,10 +214,32 @@ rules/                 — Upstream rule files (git-tracked)
                          keys/passwords, metadata only
   service-reload.md    — Service reload/restart policy
                          (auto-proceed rules + opt-out)
+  hypervisors.md       — Guest inventory and linking guest
+                         and host
+  system-containers.md — LXC, Incus, LXD, Proxmox and jails
+                         as servers: reaching and changing
+                         them
+  parallel-sessions.md — The session register that shows who
+                         else is changing a host
+  server-check-handoff.md — How a development session gets
+                         a live server's answer
+  network.md           — A host's network profile and what
+                         counts as a finding there
+  network-probe.md     — The read-only probes behind
+                         network.md
+  mesh-vpn.md          — Mesh VPNs and tunnels: membership,
+                         login expiry, what cuts a host off
+  file-naming-changes.md — Renames, moves and retention
+                         changes: find what matches on them
+  heinzel-legacy.md    — Finding the state Heinzel left on a
+                         host
+  heinzel-adoption.md  — Adopting what that check found
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 templates/workspace/   — What bin/hostwarden-init puts
                          into a new workspace
+                         (.gitattributes, .gitignore,
+                         .hostwarden-workspace)
 templates/memory/      — Templates to copy into memory/
   MEMORY.md            — Index for server memory
   user.md.example      — SSH username template (copy to

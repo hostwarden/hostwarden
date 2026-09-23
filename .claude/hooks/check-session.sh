@@ -30,8 +30,8 @@ REC="$CACHE/guard-off-$SID"
 if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ] && [ -n "$SID" ]; then
   case "$(field source)" in
     startup|resume|"")
-      mkdir -p "$HOME/.cache" && { [ -d "$CACHE" ] || mkdir -m 700 "$CACHE"; } \
-        && : > "$REC" ;;
+      # shellcheck disable=SC2174 # 0700 is for $CACHE alone
+      mkdir -p -m 700 "$CACHE" && : > "$REC" ;;
   esac
 fi
 if [ -n "$SID" ] && [ -e "$REC" ]; then

@@ -10,9 +10,10 @@ the undo is armed on the host before the change, and runs
 on its own unless a working login cancels it.
 
 The loaded OS or appliance file names three commands for
-its tool: a **check** that changes nothing, the **apply**,
-and the **revert**. Where it names no revert, do not apply
-over SSH: the user applies the change with the console
+its tool, itself or in a file it points to such as
+`rules/firewalld.md`: a **check** that changes nothing, the
+**apply**, and the **revert**. Where it names no revert, do
+not apply over SSH: the user applies the change with the console
 `rules/management-controller.md` → The rescue path names
 already open. A tool that arms its own timed revert when it
 applies names an **apply and arm** and a **confirm**

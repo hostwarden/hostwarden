@@ -44,9 +44,8 @@ is QNAP's own.
   <https://www.qnap.com/en/product/status>, Operating System tab).
   QuTS hero h6.0 is a new major release
   (<https://www.qnap.com/en/release-notes/quts_hero/overview/h6.0.0>).
-  On a 4.x, on h6 or later, and on any QTS 6: stop, tell the user
-  that Hostwarden has no rules for this release, and change nothing
-  on the host.
+  On a 4.x, on h6 or later, and on any QTS 6, stop
+  (`rules/os-detection.md` → Appliances).
 - The version lives in the `[System]` section of
   `/etc/config/uLinux.conf`, read with QNAP's `getcfg`:
   ```
@@ -190,14 +189,12 @@ is QNAP's own.
   `references/firewall-nftables-docker.md` does not apply: list
   each published port not bound to `127.0.0.1` or `[::1]` with the
   QuFirewall profile or Allow/Deny List entry the user reads for
-  it. A
-  QuFirewall change is the user's in the app, with local access to
-  the device ready: this file names no revert for it
-  (`rules/ssh-safety-net.md`).
+  it. A QuFirewall change is made in the app (no revert:
+  `rules/ssh-safety-net.md`).
 - **Network changes over SSH.** Addresses, bonds and virtual
   switches belong to Network & Virtual Switch in the web UI
-  (`network-amp-virtual-switch-01995E24.html`). They are the user's
-  to make there, with local access ready.
+  (`network-amp-virtual-switch-01995E24.html`), with no revert
+  (`rules/ssh-safety-net.md`).
 - **Automatic security updates.** There is no
   `unattended-upgrades`. The firmware updater has its own policy
   (see Updates); a policy that neither installs nor notifies is the
@@ -548,19 +545,17 @@ is QNAP's own.
     NAS that backs up with HBS 3 or another App Center app looks
     unprotected. Ask instead (see the settings below), and rate the
     `Backup:` line from that.
-- **Settings only the web UI shows.** Ask the user once, record the
-  answers in server memory with the date, and name them as
-  unchecked when the record is older than three months: the
-  firmware update policy; the scrub schedule and the date of the
-  last scrub per storage pool; the backup app in use, its tasks,
-  their schedule, their destination and the last successful run —
-  a task that copies to the NAS itself is reported as a local copy,
-  not as a backup, since QNAP's ransomware guidance asks for one off
-  the device; the autorun, Console
-  Management and UPnP settings; myQNAPcloud published services; and
-  the snapshot schedule and, on QTS, the status of every storage
-  pool; and the last
-  Security Center and Malware Remover results.
+- **Settings only the web UI shows**, asked for as
+  `rules/os-detection.md` → Appliances says: the firmware update
+  policy; the scrub schedule and the date of the last scrub per
+  storage pool; the backup app in use, its tasks, their schedule,
+  their destination and the last successful run — a task that
+  copies to the NAS itself is reported as a local copy, not as a
+  backup, since QNAP's ransomware guidance asks for one off the
+  device; the autorun, Console Management and UPnP settings;
+  myQNAPcloud published services; the snapshot schedule and, on
+  QTS, the status of every storage pool; and the last Security
+  Center and Malware Remover results.
 - **Exposure is the security audit's headline finding.** QNAP's
   advisory on DeadBolt (QSA-22-24,
   <https://www.qnap.com/en/security-advisory/qsa-22-24>) answers it

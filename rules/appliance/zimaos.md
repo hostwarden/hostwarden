@@ -44,8 +44,7 @@ third party says so; check it on the live host before relying on it.
   builds
   (<https://www.zimaspace.com/docs/developer/v-1-4-0>).
 - **This file covers ZimaOS 1.x.** When `VERSION_ID` is 2 or later,
-  stop: tell the user that Hostwarden has no rules for this release
-  yet, and change nothing on the host.
+  stop (`rules/os-detection.md` → Appliances).
 - Record in server memory: `Appliance: ZimaOS <version>`, and `beta`
   after it when the version carries a `-beta` suffix.
 
@@ -106,13 +105,11 @@ third party says so; check it on the live host before relying on it.
   nothing here says such rules survive a reboot. Exposure is the
   finding: a port forward to the web UI or SSH, and remote access
   (see Housekeeping and Audits).
-- **Network changes over SSH.** Addresses are set in the web UI,
-  and a static address that no longer fits is reset with an empty
-  `_ResetNetwork` file on a USB stick
+- **Network changes over SSH.** Addresses are set in the web UI
+  (no revert: `rules/ssh-safety-net.md`), and a static address that
+  no longer fits is reset with an empty `_ResetNetwork` file on a
+  USB stick
   (<https://www.zimaspace.com/docs/zimaos/reset-network-settings>).
-  This file names no revert for a network change: it is the user's
-  to make in the web UI with console access ready
-  (`rules/ssh-safety-net.md`).
 - **Automatic security updates.** There is no `unattended-upgrades`.
   OS updates are offered in the web UI (see Updates). Pending
   updates are the finding.

@@ -54,8 +54,8 @@ mode**:
 - **No user prompt.** Use the current OS user.
 - **Sudo still applies.** Probe `sudo -n true` as usual. If sudo is
   unavailable, enter unprivileged mode (no root SSH fallback).
-- Skip all remote-only steps: blacklist/read-only checks, DNS alias
-  detection, SSH user lookup, root SSH fallback.
+- Skip the remote-only steps (`rules/first-connection.md` → Local
+  mode).
 
 ### Remote mode (SSH)
 
@@ -97,10 +97,9 @@ before a firewall counts you out: `rules/ssh-connections.md`.
 ## Before Any Remote Command
 
 **Follow `rules/first-connection.md`.** It is the ordered pipeline
-that runs on every remote connection, and on every local-mode
-session with the remote-only steps skipped. It names each step's
-file: access control, DNS aliases, SSH user, OS detection, server
-memory, activity check, Heinzel legacy.
+that runs on every remote connection and every local-mode session.
+It names each step's file: access control, DNS aliases, SSH user,
+OS detection, server memory, activity check, Heinzel legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
 `uname -a` and every other one-liner run the pipeline first.
