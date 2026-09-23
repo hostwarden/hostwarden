@@ -20,24 +20,17 @@
 
 ROOT=$(cd "${0%/*}/../.." && pwd)
 
+# shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
+# The fields are read as text (json.sh), because a workstation is
+# whatever the user runs Hostwarden from and this hook may not assume
+# jq or python3 is on it; a hook whose whole job is to speak up must
+# not fall silent where they are missing. A path carrying an escape
+# is one no case below matches anyway.
+# shellcheck source=json.sh
+. "$ROOT/.claude/hooks/json.sh"
 
-# field <key> <class> — the value of <key> in the hook's JSON input,
-# if it consists of <class> alone. Read as text with sed, because a
-# workstation is whatever the user runs Hostwarden from and this
-# hook may not assume jq or python3 is on it; a hook whose whole
-# job is to speak up must not fall silent where they are missing.
-# Sound for the two keys asked for: `file_path` and `session_id`
-# each occur once as a key, a quote inside a string value is
-# escaped, and a path carrying an escape is one no case below
-# matches anyway.
-field() {
-  printf '%s' "$INPUT" \
-    | sed -n "s/.*\"$1\"[[:blank:]]*:[[:blank:]]*\"\($2*\)\".*/\1/p" \
-    | head -1
-}
-
-FILE=$(field file_path '[^"]')
+FILE=$(hook_field file_path '[^"]')
 [ -n "$FILE" ] || exit 0
 
 # Repo-relative, so a path outside the project cannot match.
@@ -57,7 +50,7 @@ esac
 # did not send means no dedup is possible, and saying it once too
 # often beats not saying it at all — so does a marker that cannot
 # be written.
-SESSION=$(field session_id '[A-Za-z0-9_-]')
+SESSION=$(hook_session_id)
 if [ -n "$SESSION" ]; then
   MARK="$HOME/.cache/hostwarden/authoring-$SESSION"
   [ -e "$MARK" ] && exit 0

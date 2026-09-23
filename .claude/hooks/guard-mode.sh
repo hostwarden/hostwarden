@@ -4,11 +4,11 @@
 #
 # Holds a session to the mode mode.sh determines:
 #
-#   development, worktree — ssh, scp, sftp, mosh, sudo, sudoedit,
-#     doas and pkexec are refused, and so are the configuration
-#     tools that reach servers or a cloud on their own: ansible,
-#     ansible-playbook, ansible-pull, ansible-console, terraform
-#     and tofu. The shim does most of it
+#   development, worktree — the tools in shim/ are refused: remote
+#     logins and copies, privilege tools, and the configuration
+#     tools that reach servers or a cloud on their own. That list
+#     is the one to extend; guard-mode-test.sh holds the prefilter
+#     below and T and W to it. The shim does most of it
 #     (shim.sh): session-mode.sh puts it first on PATH, so the
 #     tools refuse wherever they are started from, rsync's own
 #     ssh included. This hook denies the forms that go past a
@@ -103,25 +103,31 @@
 # evade this guard.
 
 ROOT=${0%/*}/../..
+# Without mode.sh or json.sh the guard can tell no mode and write no
+# deny, and a hook that fails to start lets the call through (bash
+# as sh leaves a failed . with status 1): exit 2 blocks it instead,
+# as in guard-taboos.sh and guard-settings.sh.
+for f in mode.sh json.sh; do
+  if [ ! -f "$ROOT/.claude/hooks/$f" ]; then
+    echo "hostwarden mode guard: $f is missing beside $0" >&2
+    exit 2
+  fi
+done
 # shellcheck source=mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=json.sh
+. "$ROOT/.claude/hooks/json.sh"
 hostwarden_mode "$ROOT"
 
 INPUT=$(cat)
 
 # emit <message> — the JSON decision on stdout; blocks in all
-# permission modes. The message is escaped here, without jq, so it
-# may carry a path or a piece of the command as it is; a control
-# character, which JSON would need escaped too, becomes a space.
+# permission modes. hook_deny (json.sh) escapes the message, so it
+# may carry a path or a piece of the command as it is.
 emit() {
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"%s Blocked in all ' \
-    "$(printf '%s' "$1" | tr '\001-\037' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
-  printf 'permission modes. Explain this to the user; do not '
-  printf 'rephrase the command or pick another tool to evade the '
-  printf 'guard."}}\n'
-  exit 0
+  hook_deny "$1 Blocked in all permission modes. Explain this to the \
+user; do not rephrase the command or pick another tool to evade the \
+guard."
 }
 deny() {
   emit "hostwarden mode guard: $1 (AGENTS.md - Development or Operations)."
@@ -134,7 +140,7 @@ deny() {
 # engine or a VM manager holds none of the forms this hook denies.
 # That is nearly every call, and it ends here without a single
 # process. A Monitor call is rare and
-# always goes on.
+# always goes on. The tool names below are shim/'s, as in T and W.
 if [ "$HOSTWARDEN_MODE" != operations ]; then
   case "$INPUT" in
   *'"tool_name"'*'"Monitor"'*) ;;
@@ -182,15 +188,10 @@ if command -v jq >/dev/null 2>&1; then
     WD=\(.cwd // "") CMD=\(.tool_input.command // "")"' 2>/dev/null)"
 else
   JQ=
-  # field <name> — the value of "name":"...", when it is simple.
-  field() {
-    printf '%s' "$INPUT" | tr '\n' ' ' | sed -n \
-      "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\\([^\"\\\\]*\\)\".*/\\1/p"
-  }
-  TOOL=$(field tool_name)
-  P=$(field file_path)
-  [ -n "$P" ] || P=$(field notebook_path)
-  WD=$(field cwd)
+  TOOL=$(hook_field tool_name)
+  P=$(hook_field file_path)
+  [ -n "$P" ] || P=$(hook_field notebook_path)
+  WD=$(hook_field cwd)
 fi
 
 if [ "$HOSTWARDEN_MODE" = operations ]; then

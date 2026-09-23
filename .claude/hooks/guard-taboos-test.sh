@@ -22,7 +22,7 @@ if [ -z "${GUARD_OPS:-}" ]; then
   for t in ops dev; do
     mkdir -p "$GUARD_TREES/$t/.claude/hooks"
     cp "$CLAUDE_DIR/hooks/guard-taboos.sh" "$CLAUDE_DIR/hooks/mode.sh" \
-      "$GUARD_TREES/$t/.claude/hooks/"
+      "$CLAUDE_DIR/hooks/json.sh" "$GUARD_TREES/$t/.claude/hooks/"
   done
   mkdir -p "$GUARD_TREES/ops/.git" "$GUARD_TREES/ops/memory"
   : > "$GUARD_TREES/ops/memory/.hostwarden-workspace"
@@ -391,6 +391,84 @@ check dev-deny 'virsh undefine web'
 check dev-deny 'qm destroy 100'
 check dev-deny 'ssh root@nas1.example.com "zpool destroy tank"'
 check dev-deny 'ssh root@nas1.example.com "lvextend -L +1G vg0/root"'
+# FreeBSD jails, by Bastille, iocage, jail(8) and the rc scripts
+# that start them: the same ask, and the same deny without a
+# human.
+check deny 'bastille stop web'
+check_mode ask default 'bastille stop web'
+check deny 'bastille destroy web'
+check_mode ask default 'bastille destroy web'
+check deny 'bastille destroy -f web'
+check_mode ask default 'bastille destroy -f web'
+check deny 'iocage stop web'
+check_mode ask default 'iocage stop web'
+check deny 'iocage stop ALL'
+check_mode ask default 'iocage stop ALL'
+check deny 'iocage destroy -f web'
+check_mode ask default 'iocage destroy -f web'
+check deny 'jail -r web'
+check_mode ask default 'jail -r web'
+check deny 'jail -R web'
+check_mode ask default 'jail -R web'
+check deny 'jail -rc web'
+check_mode ask default 'jail -rc web'
+check deny 'jail -f /etc/jail.conf -r web'
+check_mode ask default 'jail -f /etc/jail.conf -r web'
+check deny '/usr/sbin/jail -r web'
+check_mode ask default '/usr/sbin/jail -r web'
+check deny 'service jail stop'
+check_mode ask default 'service jail stop'
+check deny 'service jail stop web'
+check_mode ask default 'service jail stop web'
+check deny 'service jail onestop web'
+check_mode ask default 'service jail onestop web'
+check deny 'service bastille stop'
+check_mode ask default 'service bastille stop'
+check deny 'service iocage stop'
+check_mode ask default 'service iocage stop'
+check deny '/etc/rc.d/jail stop web'
+check_mode ask default '/etc/rc.d/jail stop web'
+check deny 'ssh root@bsd1 "bastille stop web"'
+check_mode ask default 'ssh root@bsd1 "bastille stop web"'
+check deny 'ssh root@bsd1 "iocage destroy -f web"'
+check_mode ask default 'ssh root@bsd1 "iocage destroy -f web"'
+check dev-deny 'bastille stop web'
+check dev-deny 'iocage destroy -f web'
+check dev-deny 'jail -r web'
+check dev-deny 'service jail stop web'
+check_mode deny bypassPermissions 'bastille destroy web'
+check_mode ask auto 'iocage stop web'
+# A jail restarts through a stop, so it asks the same way.
+check deny 'bastille restart web'
+check_mode ask default 'bastille restart web'
+check deny 'iocage restart web'
+check_mode ask default 'iocage restart web'
+check deny 'jail -rc web'
+check_mode ask default 'jail -rc web'
+check deny 'service jail restart'
+check_mode ask default 'service jail restart'
+check deny 'service jail restart web'
+check_mode ask default 'service jail restart web'
+check deny 'service jail onerestart web'
+check_mode ask default 'service jail onerestart web'
+check deny 'service jail forcerestart web'
+check_mode ask default 'service jail forcerestart web'
+check deny 'service bastille restart'
+check_mode ask default 'service bastille restart'
+check deny 'service iocage restart'
+check_mode ask default 'service iocage restart'
+check deny '/etc/rc.d/jail restart web'
+check_mode ask default '/etc/rc.d/jail restart web'
+check deny '/usr/local/etc/rc.d/bastille restart'
+check_mode ask default '/usr/local/etc/rc.d/bastille restart'
+check deny 'ssh root@bsd1 "service jail restart web"'
+check_mode ask default 'ssh root@bsd1 "service jail restart web"'
+check dev-deny 'bastille restart web'
+check dev-deny 'service jail restart web'
+check_mode deny bypassPermissions 'iocage restart web'
+check_mode ask auto 'service jail onerestart web'
+check pass 'bastille restart --help'
+check pass 'service jail status web'
 for m in acceptEdits plan auto; do
   check_mode ask "$m" 'pct stop 105'
 done
@@ -1091,6 +1169,30 @@ check pass 'xe vm-uninstall --help'
 check pass 'lxc-stop -h'
 check pass 'lxc-destroy --help'
 check pass 'incus stop -h'
+# Jail reads, starts and the help form pass.
+check pass 'jls'
+check pass 'jls -N'
+check pass 'jls -n name path host.hostname'
+check pass 'bastille list'
+check pass 'bastille list all'
+check pass 'iocage list'
+check pass 'iocage list -l'
+check pass 'iocage get -a web'
+check pass 'iocage snaplist web'
+check pass 'iocage snapshot -n snap0 web'
+check pass 'bastille zfs web snapshot snap0'
+check pass 'bastille start web'
+check pass 'iocage start web'
+check pass 'service jail start web'
+check pass 'service jail status'
+check pass 'jexec web service nginx stop'
+check pass 'bastille cmd web service nginx stop'
+check pass 'iocage exec web service nginx stop'
+check pass 'jail -c web'
+check pass 'sysrc jail_enable jail_list'
+check pass 'bastille destroy --help'
+check pass 'iocage stop -h'
+check pass "jail -f /etc/jail.conf -e '|'"
 check_mode pass default 'incus delete --help'
 check_mode pass default 'pct destroy --help'
 # The help form exempts its own invocation only.
@@ -1817,7 +1919,7 @@ settings_case pass 'Bash: sed on settings without the key' \
 # Without CLAUDE_PROJECT_DIR the hook finds the project from its own
 # path, also when it runs by bare name from its directory.
 mkdir -p "$SET/.claude/hooks"
-cp "$SGUARD" "$SET/.claude/hooks/"
+cp "$SGUARD" "$CLAUDE_DIR/hooks/json.sh" "$SET/.claude/hooks/"
 SED_JSON=$(json_for "sed -i 's/0/1/' .claude/settings.local.json")
 for RUN in "sh $SET/.claude/hooks/guard-settings.sh" \
   "cd $SET/.claude/hooks && sh guard-settings.sh"; do
@@ -1989,7 +2091,7 @@ CSESSION="$CLAUDE_DIR/hooks/check-session.sh"
 REPO=$(mktemp -d)
 for d in main wt rel sep sub; do
   mkdir -p "$REPO/$d/.claude/hooks"
-  cp "$CSESSION" "$REPO/$d/.claude/hooks/"
+  cp "$CSESSION" "$CLAUDE_DIR/hooks/json.sh" "$REPO/$d/.claude/hooks/"
 done
 for w in wt rel; do
   mkdir -p "$REPO/main/.git/worktrees/$w"
@@ -2147,11 +2249,21 @@ check_dev deny 'HOSTWARDEN_GUARD_DISABLE=1 true'
 # Without mode.sh beside it the guard cannot tell its mode, and a
 # guard that cannot tell stays full.
 NOMODE=$(mktemp -d)
-cp "$GUARD_DEV" "$NOMODE/"
+cp "$GUARD_DEV" "$CLAUDE_DIR/hooks/json.sh" "$NOMODE/"
 OUT=$(json_for 'mkfs.ext4 /dev/sda1' \
   | env -u HOSTWARDEN_GUARD_DISABLE sh "$NOMODE/guard-taboos.sh")
 expect "the guard went local without mode.sh to tell its mode" \
   denied "$OUT"
+# Without json.sh it can write no decision, and a hook that fails
+# to start lets the call through; exit 2 blocks it instead, for
+# guard-settings.sh too, once a call gets past its prefilter.
+rm "$NOMODE/json.sh"
+cp "$SGUARD" "$NOMODE/"
+for g in guard-taboos.sh guard-settings.sh; do
+  json_for 'cat notes/settings.json' | env -u HOSTWARDEN_GUARD_DISABLE \
+    sh "$NOMODE/$g" >/dev/null 2>&1
+  expect "$g without json.sh did not exit 2" [ $? -eq 2 ]
+done
 rm -rf "$NOMODE"
 
 # --- drain the queued fixtures ---------------------------------

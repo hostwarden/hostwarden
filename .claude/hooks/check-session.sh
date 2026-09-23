@@ -16,19 +16,17 @@
 #    and may only take a record away. The notice at every start is
 #    also how the operator sees that the setting took effect.
 
+# shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
-
-field() {
-  printf '%s' "$INPUT" \
-    | sed -n "s/.*\"$1\"[[:blank:]]*:[[:blank:]]*\"\([A-Za-z0-9_-]*\)\".*/\1/p" \
-    | head -1
-}
+case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
+# shellcheck source=json.sh
+. "$HERE/json.sh"
 
 CACHE="$HOME/.cache/hostwarden"
-SID=$(field session_id)
+SID=$(hook_session_id)
 REC="$CACHE/guard-off-$SID"
 if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ] && [ -n "$SID" ]; then
-  case "$(field source)" in
+  case "$(hook_field source '[A-Za-z0-9_-]')" in
     startup|resume|"")
       # shellcheck disable=SC2174 # 0700 is for $CACHE alone
       mkdir -p -m 700 "$CACHE" && : > "$REC" ;;

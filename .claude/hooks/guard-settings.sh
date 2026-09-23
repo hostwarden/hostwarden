@@ -50,25 +50,28 @@ case "$TI" in
   *) exit 0 ;;
 esac
 
+# $0 has no slash when the hook runs as `sh guard-settings.sh` from
+# its own directory; dirname gave "." there, and so does this.
+case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
+# Without json.sh no deny can be written, and a hook that fails to
+# start lets the call through: exit 2 blocks it instead.
+if [ ! -f "$HERE/json.sh" ]; then
+  echo "hostwarden guard: json.sh is missing beside $0" >&2
+  exit 2
+fi
+# shellcheck source=json.sh
+. "$HERE/json.sh"
+
 deny() {
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"hostwarden guard: '
-  printf 'HOSTWARDEN_GUARD_DISABLE and its session records belong to '
-  printf 'the operator, who sets the variable by hand before a session '
-  printf 'starts (AGENTS.md - Critical Safety Rules). Blocked in all '
-  printf 'permission modes. Explain this to the user; do not look for '
-  printf 'another way to write it. docs/ai-tools.md - Claude Code Desktop '
-  printf 'describes what the operator does."}}\n'
-  exit 0
+  hook_deny "hostwarden guard: $V and its session records belong to \
+the operator, who sets the variable by hand before a session starts \
+(AGENTS.md - Critical Safety Rules). Blocked in all permission modes. \
+Explain this to the user; do not look for another way to write it. \
+docs/ai-tools.md - Claude Code Desktop describes what the operator does."
 }
 
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'
 RECORD_RE='guard-off-'
-
-# $0 has no slash when the hook runs as `sh guard-settings.sh` from
-# its own directory; dirname gave "." there, and so does this.
-case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
 
 # A settings file this session loads that already carries the
 # variable. Two files, test and grep, no parsing of paths.

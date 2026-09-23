@@ -13,6 +13,36 @@
 
 HOOKS="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HOOKS/../.." && pwd)"
+
+# bash_json <command> [tool] — for Bash, or the tool named.
+bash_json() {
+  printf '%s' "$1" | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
+}
+
+# Child of drain below, judging a batch of queued hook fixtures:
+# four arguments each, the expectation, the checkout, the tool (or
+# JSON) and the command (or the whole input). One line per fixture,
+# ok or FAIL. It exits before anything below runs, or each child
+# would build the checkouts again.
+if [ "${1:-}" = --verdict ]; then
+  shift
+  while [ $# -ge 4 ]; do
+    in=$4
+    [ "$3" = JSON ] || in=$(bash_json "$4" "$3")
+    out=$(printf '%s' "$in" | sh "$2/.claude/hooks/guard-mode.sh")
+    case "$out" in
+    *'"permissionDecision":"deny"'*) got=deny ;;
+    *) got=pass ;;
+    esac
+    if [ "$got" = "$1" ]; then echo ok
+    else echo "FAIL: [$1, got $got] ${2##*/}: $in"
+    fi
+    shift 4
+  done
+  [ $# -eq 0 ] || echo "FAIL: a batch ended mid-fixture ($# arguments left)"
+  exit 0
+fi
+SELF="$HOOKS/${0##*/}"
 PASS=0
 FAIL=0
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-mode-test.XXXXXX")
@@ -47,7 +77,8 @@ checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/rules"
   cp "$HOOKS/mode.sh" "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" \
-    "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$c/.claude/hooks/"
+    "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$HOOKS/json.sh" \
+    "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$c/.claude/hooks/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
     "$REPO/bin/hostwarden-backup" "$REPO/bin/hostwarden-lab" "$c/bin/"
@@ -88,10 +119,6 @@ rm "$ARC/memory/.hostwarden-workspace"
 fails "init made a workspace outside a git clone" sh "$ARC/bin/hostwarden-init"
 
 # --- guard-mode.sh ---------------------------------------------
-# bash_json <command> [tool] — for Bash, or the tool named.
-bash_json() {
-  printf '%s' "$1" | jq -Rs --arg t "${2:-Bash}" '{tool_name:$t,tool_input:{command:.}}'
-}
 edit_json() {
   jq -n --arg p "$1" \
     '{tool_name:"Edit",tool_input:{file_path:$p,old_string:"ssh a",new_string:"ssh b"}}'
@@ -100,17 +127,37 @@ write_json() {
   jq -n --arg p "$1" '{tool_name:"Write",tool_input:{file_path:$p,content:"x"}}'
 }
 
-# verdict <expect> <checkout> <json>
-verdict() {
-  out=$(printf '%s' "$3" | sh "$2/.claude/hooks/guard-mode.sh")
-  if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then
-    got=deny
-  else
-    got=pass
-  fi
-  if [ "$got" = "$1" ]; then ok; else bad "[$1, got $got] $(basename "$2"): $3"; fi
+# Hook fixtures are queued, not run: each is an independent call of
+# the hook, and one after the other they took ~24 s. drain runs the
+# queue in parallel batches. A fixture that depends on a file the
+# test changes later is drained before the change.
+QUEUE="$TMP/queue"
+: > "$QUEUE"
+NQ=0
+JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+# queue <expect> <checkout> <tool or JSON> <command or input> —
+# none of them empty: BSD xargs drops an empty field, and the count
+# in drain then fails.
+queue() {
+  printf '%s\0%s\0%s\0%s\0' "$1" "$2" "$3" "$4" >> "$QUEUE"
+  NQ=$((NQ + 1))
 }
-cmd() { verdict "$1" "$2" "$(bash_json "$3")"; }
+drain() {
+  [ "$NQ" -gt 0 ] || return 0
+  res=$(xargs -0 -n 100 -P "$JOBS" sh "$SELF" --verdict < "$QUEUE")
+  dn=$(printf '%s\n' "$res" | grep -c '^ok$')
+  df=$(printf '%s\n' "$res" | grep -c '^FAIL: ')
+  PASS=$((PASS + dn))
+  FAIL=$((FAIL + df))
+  [ "$df" -eq 0 ] || printf '%s\n' "$res" | grep -v '^ok$'
+  [ $((dn + df)) -eq "$NQ" ] \
+    || bad "$NQ fixtures queued, only $((dn + df)) judged"
+  : > "$QUEUE"
+  NQ=0
+}
+# verdict <expect> <checkout> <json>
+verdict() { queue "$1" "$2" JSON "$3"; }
+cmd() { queue "$1" "$2" Bash "$3"; }
 edit() { verdict "$1" "$2" "$(edit_json "$3")"; }
 write() { verdict "$1" "$2" "$(write_json "$3")"; }
 
@@ -252,7 +299,7 @@ edit pass "$DEV" "$DEV/rules/backups.md"
 # documented for Bash only, so is a bare tool at the start of a
 # segment. A watch that reaches no server passes, and so does a
 # WebSocket watch, which starts no shell.
-mon() { verdict "$1" "$2" "$(bash_json "$3" Monitor)"; }
+mon() { queue "$1" "$2" Monitor "$3"; }
 mon deny "$DEV" '/usr/bin/ssh server1.example.com tail -f /var/log/syslog'
 mon deny "$DEV" 'PATH=/usr/bin:/bin ssh server1.example.com uptime'
 mon deny "$DEV" 'command -p ssh server1.example.com'
@@ -557,6 +604,7 @@ write pass "$OPS" "$OPS/memory/servers/server2.example.com/memory.md"
 # A link in memory/ that leads to a shipped file is that file.
 ln -s ../rules/backups.md "$OPS/memory/sneaky.md"
 edit deny "$OPS" "$OPS/memory/sneaky.md"
+drain
 rm "$OPS/memory/sneaky.md"
 # ...and so is the end of a chain too long to follow.
 ln -s ../rules/backups.md "$OPS/memory/l0"
@@ -564,6 +612,7 @@ for n in 1 2 3 4 5 6 7 8 9 10 11; do
   ln -s "l$((n - 1))" "$OPS/memory/l$n"
 done
 edit deny "$OPS" "$OPS/memory/l11"
+drain
 rm "$OPS"/memory/l*
 # A DNS alias links to another host's directory in memory/.
 mkdir -p "$OPS/memory/servers/web1.example.com"
@@ -591,6 +640,7 @@ nojq pass "$DEV" "$(edit_json "$DEV/rules/backups.md")"
 nojq deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
 nojq pass "$OPS" "$(edit_json "$OPS/memory/servers/server1.example.com/memory.md")"
 nojq pass "$OPS" "$(bash_json 'ssh server1.example.com true')"
+drain
 
 # --- session-mode.sh -------------------------------------------
 says() {
@@ -644,6 +694,12 @@ nw=$(sed -n 's/^ *W = "^(\([^)]*\))\[\.\]exe\$"$/\1/p' "$HOOKS/guard-mode.sh" \
   | tr '|' '\n' | grep -c .)
 [ "$n" -eq $((nt + nw)) ] && [ "$nt" -gt 0 ] && [ "$nw" -gt 0 ] && ok \
   || bad "shim/ holds $n tools, the guard names $nt and $nw .exe"
+# The prefilter in front of T and W lists the tools a third time: a
+# path to each one gets past it to the parse, which denies.
+for f in "$HOOKS"/shim/*; do
+  cmd deny "$DEV" "/opt/x/${f##*/} server1.example.com"
+done
+drain
 # session <checkout> <env file> [VAR=value...] — session-mode.sh
 # as Claude Code runs it at session start.
 session() {
