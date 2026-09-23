@@ -44,6 +44,39 @@ host certificates from your own CA need no per-host
 lines. Hostwarden supports them and does not ask you
 to run a CA.
 
+## Reaching a host
+
+Every SSH call passes one file, `memory/ssh_config`,
+which Hostwarden writes for your machine at every
+session start. Your own `~/.ssh/config` keeps working:
+it is read after Hostwarden's settings, for whatever
+they leave open, such as a key file or your user name
+on a host.
+
+A server that answers on another port, only through a
+jump host, or at an address its name does not resolve
+to goes into `memory/ssh_hosts`, in ssh_config syntax:
+
+```
+Host db1 db1.example.com
+  HostName 192.0.2.30
+  Port 2222
+  ProxyJump jump.example.com
+```
+
+Only `Host`, `HostName`, `Port`, `ProxyJump` and
+`HostKeyAlias` are accepted. In a team the file is
+shared, and those five cannot run a command on a
+teammate's machine; a file with any other line is left
+out whole until the line is fixed. SSH usernames stay
+in `memory/user.md`, which is personal. A jump host
+gets the same host-key check and shared connection as
+the server behind it.
+
+Port forwardings are never stored. A session that
+needs one opens it on its own connection and closes it
+when it is done.
+
 ## Memory across sessions
 
 After working on a machine, Hostwarden remembers it.

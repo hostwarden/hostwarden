@@ -326,7 +326,8 @@ that keeps updating.
    for you.
 4. Personal files never reach the remote:
    `memory/.gitignore` names `user.md`,
-   `blacklist.md`, `readonly.md` and `opencode.json`.
+   `blacklist.md`, `readonly.md`, `opencode.json` and
+   `ssh_config`.
    Add your own machine's hostname directory there
    (e.g. `/servers/my-laptop/`). Alone on several
    machines, you may want your SSH usernames on all
@@ -396,6 +397,10 @@ the backup.
   decisions
 - `known_hosts` — the SSH host keys of your servers
   ([Features → Host keys](features.md#host-keys))
+- `ssh_hosts` — other ports, addresses and jump hosts
+  ([Features → Reaching a host](features.md#reaching-a-host))
+- `ssh_config` — written from `ssh_hosts` for this
+  machine at every session start; never edit it
 - `custom-rules/` — your global rule overrides
 - `decisions/` — your decisions about a group of
   hosts, or all of them
@@ -431,8 +436,9 @@ rejected.
 With a shared workspace, most of `memory/` lives on
 its remote already. The personal files that
 `memory/.gitignore` keeps off it still need this
-backup. The archive leaves out `memory/.git`; a
-restore sets the workspace up first.
+backup. The archive leaves out `memory/.git` and
+`memory/ssh_config`; a restore sets the workspace up
+first and writes `ssh_config` for the new checkout.
 
 ## Moving over from Heinzel
 

@@ -36,7 +36,8 @@ host or `ProxyCommand` hides the path behind it; check on the
 workstation, without connecting:
 
 ```bash
-ssh -G <user>@<hostname> | grep -i -e '^proxyjump ' -e '^proxycommand '
+ssh -F "<checkout>/memory/ssh_config" -G <user>@<hostname> |
+  grep -i -e '^proxyjump ' -e '^proxycommand '
 ```
 
 A value other than `none` is the path, through that jump host

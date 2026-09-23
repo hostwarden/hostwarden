@@ -182,6 +182,10 @@ EOF
   chmod +x "$HOOK"
 fi
 
+# The file every SSH call passes with -F (AGENTS.md → SSH
+# Options), now that memory/ is the workspace it lives in.
+sh bin/hostwarden-ssh-config || true
+
 if [ "$WAS" = operations ]; then
   echo "hostwarden: memory/ is already the workspace"
 else

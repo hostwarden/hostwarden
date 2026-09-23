@@ -36,7 +36,9 @@ either into a silent success.
   job on the host (`nohup`, `systemd-run`, `daemon`)
   and read its log at an interval of minutes.
 - `ProxyJump` costs a connection to the jump host
-  **and** one to the target.
+  **and** one to the target. Both are shared
+  afterwards, since the jump host reads the same file
+  (`rules/ssh-config.md` → Jump Hosts).
 
 ## 2. Share connections
 
@@ -54,12 +56,14 @@ which are never shared.
 
 ### Why these values
 
-Keep them as they are:
+`bin/hostwarden-ssh-config` writes them into
+`memory/ssh_config`. Keep them as they are:
 
-- **Command line, not `~/.ssh/config`:** works on
-  every machine without setup and overrides a
-  `ControlMaster` block the user keeps for
-  themselves.
+- **Hostwarden's own file, ahead of `~/.ssh/config`:**
+  works on every machine without setup, reaches a jump
+  host, and wins over a `ControlMaster` block the user
+  keeps for themselves, since ssh keeps the first value
+  it finds.
 - **`~/.cache/hostwarden/`, not `~/.ssh/` or `/tmp`:**
   the taboo guard reads any path under `.ssh/` as key
   material and would block every remote `rm`, `mv` or
@@ -83,17 +87,17 @@ Keep them as they are:
 For an access test, and for the single retry after a
 call that hangs:
 
-    ssh -o ControlMaster=no -o ControlPath=none \
-      <standard options> …
+    ssh -F "<checkout>/memory/ssh_config" \
+      -o ControlMaster=no -o ControlPath=none …
 
-Put them **in front of** the standard options, never
-after. For a repeated option SSH keeps the first value
-it sees, so a `ControlMaster=no` added after
-`ControlMaster=auto` changes nothing and the call
-still rides the shared master — which is the one
-thing these options exist to prevent. Everything
-else, the host-key check included, stays as on every
-other call.
+An option given with `-o` wins over the file, so the
+call opens a login of its own instead of riding the
+shared master. Everything else, the host-key check
+included, stays as on every other call. A jump host
+reads only the file and keeps sharing: the login
+tested is the target's, and a retry through a stale
+jump host master hangs until the keepalives retire
+it, 45 seconds at most.
 
 Use them for:
 
@@ -132,9 +136,9 @@ that host finish, then repeat the call as usual.
   Hostwarden sessions and scripts on the same local
   account use the same socket path, and
   `ssh -O exit`/`-O stop` ends their sessions too.
-  For experiments, use a complete option set with its
-  own path (e.g. `~/.cache/hostwarden/test-%C`) and close
-  only that one.
+  For experiments, add a path of their own
+  (`-o ControlPath=~/.cache/hostwarden/test-%C`) and
+  close only that one.
 - **Login records understate activity.** `last`,
   `who` and the sshd log show one login for many
   calls. Use `rules/activity-check.md` to judge

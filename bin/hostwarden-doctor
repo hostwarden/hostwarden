@@ -170,9 +170,9 @@ real_ssh() {
 # -G parses the options and connects to nothing; -F /dev/null
 # leaves the user's config, and any Match exec in it, out.
 ssh_shares() {
-  ssh -F /dev/null -G -o ControlMaster=auto \
-    -o "ControlPath=$HOME/.cache/hostwarden/ssh-%C" \
-    -o ControlPersist=10m example.invalid
+  set --
+  for o in $HOSTWARDEN_SSH_OPTIONS; do set -- "$@" -o "$o"; done
+  ssh -F /dev/null -G "$@" example.invalid
 }
 
 # .claude/skills and every DNS alias are links, and git writes a

@@ -156,7 +156,8 @@ Layers).
    dozen near-simultaneous logins to one machine, which is
    what rate limiting and fail2ban exist to stop — and
    being locked out of the jump host locks you out of
-   everything behind it. Read `ssh -G <user>@<host>` for
+   everything behind it. Read `ssh -G <user>@<host>`, with
+   the standard options from `AGENTS.md` → SSH Options, for
    each target before dispatching — with the user from
    step 2, because a `Match user` block can select the
    jump host, and without it `ssh -G` reports a different

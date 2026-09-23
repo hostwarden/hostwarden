@@ -42,12 +42,14 @@ does.
 ## Before the First Connection
 
 The end of step 4 of `rules/first-connection.md`, once per host
-and session, with no connection to the host. `ssh -G
-<user>@<host>`, run without Hostwarden's options, prints the name
-ssh looks the key up by: its `hostkeyalias` line where there is
-one, else its `hostname` line. Off port 22, the name is
-`[<name>]:<port>`, with the port from the same output. Look it
-up:
+and session, with no connection to the host.
+`ssh -F "/srv/hostwarden/memory/ssh_config" -G <user>@<host>`
+prints the name ssh looks the key up by: its `hostkeyalias` line
+where there is one, else its `hostname` line. Off port 22, the
+name is `[<name>]:<port>`, with the port from the same output. A
+`proxyjump` line other than `none` names jump hosts, and each
+needs its key first, looked up the same way (Jump Hosts below).
+Look it up:
 
 ```bash
 ssh-keygen -F web1.example.com -f "/srv/hostwarden/memory/known_hosts"
@@ -107,7 +109,7 @@ call and commits once.
 
 ### 2. The user's own known_hosts
 
-The files the same `ssh -G` output names on its
+The files `ssh -G <user>@<host>`, run without `-F`, names on its
 `userknownhostsfile` and `globalknownhostsfile` lines: the
 user's own configuration, so these keys are the trust the user
 already had on this machine. Read each file with `ssh-keygen -F`
@@ -162,19 +164,20 @@ session inside it to read the key through takes option 1 without
 the question, and says so in one line.
 
 For options 1 and 2, one fresh login records the key the host
-offers into the cache file. The options in front replace the
-standard options' sharing, known_hosts files and check, since ssh
-keeps the first value it sees; a shared connection would skip the
-key exchange and record nothing. The cache file comes first,
-because ssh writes a new key into the first file, and the
+offers into the cache file. Its `-o` options win over the file's
+sharing, known_hosts files and check; a shared connection would
+skip the key exchange and record nothing. The cache file comes
+first, because ssh writes a new key into the first file, and the
 workspace's second, so an `@revoked` line there still refuses the
-key (`was revoked`: stop and tell the user):
+key (`was revoked`: stop and tell the user). The options do not
+reach a jump host, which is checked as on every call:
 
 ```bash
-ssh -o ControlMaster=no -o ControlPath=none \
+ssh -F "/srv/hostwarden/memory/ssh_config" \
+  -o ControlMaster=no -o ControlPath=none \
   -o 'UserKnownHostsFile=~/.cache/hostwarden/hostkey.web1.example.com "/srv/hostwarden/memory/known_hosts"' \
   -o StrictHostKeyChecking=accept-new -o HashKnownHosts=no \
-  <standard options> root@web1.example.com true
+  root@web1.example.com true
 ssh-keygen -lf ~/.cache/hostwarden/hostkey.web1.example.com
 ```
 
@@ -271,25 +274,8 @@ a changed key.
 
 ## Jump Hosts
 
-Options on the command line do not reach a `ProxyJump` host
-(`man ssh` → `-J`), so it would be checked against the user's
-own known_hosts. Reach a jump host with `ProxyCommand` instead,
-so the standard options apply to both:
-
-```bash
-ssh <standard options> \
-  -o ProxyCommand="ssh <inner options> -W %h:%p root@jump.example.com" \
-  root@web1.example.com
-```
-
-The inner options are the standard options with two spellings
-changed, because the command passes through the outer ssh's `%`
-expansion and a second shell:
-
-- the `ControlPath` as `~/.cache/hostwarden/ssh-<id>-%%C`: the outer
-  ssh knows no `%C` there (`unknown key %C`), and `%%` reaches the
-  inner ssh as `%`;
-- the known_hosts file as
-  `-o 'UserKnownHostsFile=\"<checkout>/memory/known_hosts\"'`: the
-  escaped quotes survive the outer double quotes and keep a path
-  with a space in one piece for the inner ssh.
+A jump host's key is checked against `memory/known_hosts` as the
+target's is, whether `memory/ssh_hosts` or the user's own
+configuration names it. One missing from the file fails the call
+with `Host key verification failed` before the target is reached:
+get its key first, as for any host.

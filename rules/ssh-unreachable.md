@@ -22,7 +22,7 @@ modes count every rejected login
 For too many keys the fix is on the client:
 `IdentitiesOnly yes` and one `IdentityFile` for the
 host in `~/.ssh/config`; check with
-`ssh -G <host> | grep -i identit`.
+`ssh -F "<checkout>/memory/ssh_config" -G <host> | grep -i identit`.
 
 A refused login ends before OS detection, which
 loads the appliance file. When server memory has an

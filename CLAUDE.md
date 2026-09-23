@@ -34,10 +34,11 @@ tool reads. This file adds only what exists here and nowhere else.
   refuses them by name as well. `git push` reaches the real `ssh`
   through `GIT_SSH_COMMAND`, which is `.claude/hooks/git-ssh.sh`.
 - **SessionStart hooks have already run.** They have:
-  - in an operations checkout, checked for repo updates and
-    pulled the workspace;
-  - created `~/.cache/hostwarden` with mode 0700, the `mkdir`
-    under `AGENTS.md` → SSH Options;
+  - in an operations checkout, checked for repo updates,
+    pulled the workspace and written `memory/ssh_config`
+    (`AGENTS.md` → SSH Options);
+  - created `~/.cache/hostwarden` with mode 0700, where the
+    shared SSH connections keep their sockets;
   - run `bin/hostwarden-doctor --quiet`, whose output, if any,
     names the workstation tools that are missing;
   - reported a linked worktree or a guard that is off, if either

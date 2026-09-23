@@ -32,7 +32,7 @@ match):
 1. If the file does not exist, skip (nothing to
    check).
 2. Is the target hostname, or the name `ssh -G`
-   maps it to (`rules/dns-aliases.md` → Detection
+   with the standard options maps it to (`rules/dns-aliases.md` → Detection
    step 1), listed?
 3. Resolve the target's IP(s)
    (`rules/dns-aliases.md` → Detection step 1).

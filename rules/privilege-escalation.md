@@ -100,8 +100,8 @@ shared root connection opened earlier would answer
 even if root login has been disabled since:
 
 ```
-ssh -o ControlMaster=no -o ControlPath=none \
-  <standard options> root@hostname "id" 2>&1
+ssh -F "<checkout>/memory/ssh_config" \
+  -o ControlMaster=no -o ControlPath=none root@hostname "id" 2>&1
 ```
 
 - **Works:** record `- Root SSH: available`.

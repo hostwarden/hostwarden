@@ -51,6 +51,8 @@
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
+#   HOSTWARDEN_SSH_OPTIONS  — the connection options every SSH call
+#                             carries, as Key=value words
 
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_mode() {
@@ -121,11 +123,26 @@ $hr_why. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - Development \
 or Operations)."
 }
 
+# Connection sharing and keepalives (rules/ssh-connections.md → Why
+# these values), written once: bin/hostwarden-ssh-config turns them
+# into memory/ssh_config, hostwarden_git_batch into -o options, and
+# the doctor checks that ssh accepts them. No word holds a space.
+# The generator puts the checkout's checksum into ControlPath; the
+# workspace remote keeps this plain one, so its master, checked
+# against the user's own known_hosts, is never shared with a
+# managed host's.
+# shellcheck disable=SC2034 # read by whoever sources this file
+HOSTWARDEN_SSH_OPTIONS="BatchMode=yes ConnectTimeout=5 \
+ControlMaster=auto ControlPath=~/.cache/hostwarden/ssh-%C \
+ControlPersist=10m ServerAliveInterval=15 ServerAliveCountMax=3"
+
 # The workspace's remote is reached by init --clone and by sync,
 # often from a session-start hook. Never wait for a prompt there:
 # not for a credential, not for a host key. An SSH remote gets the
-# options AGENTS.md → SSH Options sets for every connection,
-# keepalives included, so a dead link cannot hold the session.
+# sharing and keepalives AGENTS.md → SSH Options sets for every
+# connection, so a dead link cannot hold the session, but not its
+# -F file: the remote is no managed host, and its key is checked
+# against the user's own known_hosts (rules/host-keys.md).
 hostwarden_git_batch() {
   GIT_TERMINAL_PROMPT=0
   # Only the socket directory needs 0700; ~/.cache keeps the umask.
@@ -160,10 +177,10 @@ hostwarden_git_batch() {
     unset GIT_SSH_COMMAND
     return 0
   fi
-  GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
--o ConnectTimeout=5 -o ControlMaster=auto \
--o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \
--o ServerAliveInterval=15 -o ServerAliveCountMax=3"
+  GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-ssh}
+  for hw_o in $HOSTWARDEN_SSH_OPTIONS; do
+    GIT_SSH_COMMAND="$GIT_SSH_COMMAND -o $hw_o"
+  done
   export GIT_SSH_COMMAND
 }
 
