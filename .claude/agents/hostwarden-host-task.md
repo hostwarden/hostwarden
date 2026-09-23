@@ -5,7 +5,7 @@ description: Run one task on one managed host — a question, an
   return a short answer in the shape the task asks for. Invoked
   when one request spans several hosts, one instance per host, as
   rules/multi-host.md says, never on its own.
-tools: Bash, Read, Edit, Write
+tools: Bash, Read, Edit, Write, WebSearch, WebFetch
 model: inherit
 permissionMode: default
 color: green
