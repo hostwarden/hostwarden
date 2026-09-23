@@ -534,6 +534,49 @@ check_mode deny default \
 check_mode ask default "virt-edit -a $FB_IMG /etc/ssh/sshd_config -e s/a/b/"
 check_mode ask default "virt-copy-in -a $FB_IMG 10.conf /etc/ssh/sshd_config.d"
 check_mode deny default "virt-edit -d web1 /etc/ssh/sshd_config -e s/a/b/"
+# The local side of --copy-in and --upload is only read: the host's
+# sshd_config copied into an image elsewhere is no write to sshd's
+# config. The image side under /etc/ssh still asks, and a host write
+# beside it is still denied.
+check_mode pass default "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp"
+check_mode pass default \
+  "virt-customize -a $FB_IMG --upload /etc/ssh/sshd_config:/root/sshd_config.host"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config.d/x.conf:/etc/ssh/sshd_config.d"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in=10.conf:/etc/ssh/sshd_config.d"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/etc/ssh"
+# Quotes on either side are the shell's and change nothing.
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:'/etc/ssh'"
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in \"sshd_config\":\"/etc/ssh\""
+check_mode pass default \
+  "virt-customize -a $FB_IMG --copy-in '/etc/ssh/sshd_config':'/tmp'"
+# A copy into sshd's directory asks whatever the local file is
+# called, and so does one into dropbear's; a copy into a directory
+# dropbear's config shares with everything else asks only when the
+# line names dropbear.
+check_mode ask default "virt-customize -a $FB_IMG --copy-in sshd_config.d:/etc/ssh"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in x.conf:/etc/ssh/sshd_config.d"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in keys:/etc/dropbear"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in dropbear:/etc/default"
+check_mode pass default "virt-customize -a $FB_IMG --copy-in grub:/etc/default"
+# Every directory sshd keeps its config or keys in counts, and so does
+# the path a copy only puts together where it lands.
+check_mode ask default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/usr/local/etc/ssh"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in x:/etc/config/ssh"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in x:/conf/sshd"
+check_mode ask default "virt-customize -a $FB_IMG --upload x:/ProgramData/ssh/sshd_config"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in ssh:/etc"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in ./ssh/:/usr/local/etc"
+check_mode ask default "virt-customize -a $FB_IMG --copy-in sshd_extra:/etc"
+check_mode pass default "virt-customize -a $FB_IMG --copy-in /etc/ssh/ssh_config:/root"
+check_mode deny default "virt-customize -d web1 --copy-in sshd_config.d:/etc/ssh"
+check_mode deny default \
+  "virt-customize -a $FB_IMG --copy-in /etc/ssh/sshd_config:/tmp; cp a /etc/ssh/sshd_config"
 # The ask is decided last: a taboo anywhere after a first-boot write
 # in the same line is still that taboo's deny.
 check_mode deny default \

@@ -131,7 +131,10 @@ sha256sum /var/lib/vz/snippets/<vmid>-user.yaml \
   copied; the file stays.
 - `--ipconfig0` always, `ip=dhcp` included: Proxmox VE writes no
   network configuration for a NIC without one. With `ip=dhcp`,
-  leave `gw=` out.
+  leave `gw=` out. The one exception is a static Flatcar guest,
+  whose address is a networkd unit in its Ignition config and which
+  gets no `--ipconfig0` (`references/ignition.md` → A static
+  address).
 - `qm disk resize` sets the size; cloud-init grows the root
   filesystem into it at first boot. It never shrinks.
 - The `cicustom:` line must name both snippets, and their
