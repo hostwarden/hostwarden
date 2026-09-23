@@ -2,8 +2,9 @@
 paths:
   - "CONTRIBUTING.md"
 description: How a pull request to Hostwarden goes from open to
-  merged — checks in CI only, Codex review, merge readiness,
-  rebasing. For work on this repository, never for a managed host.
+  merged — checks in CI only, Codex rounds, merge readiness,
+  rebasing stacks. For work on this repository, never for a
+  managed host.
 ---
 
 # Pull requests
@@ -35,11 +36,24 @@ one to two.
   is not a draft. Lift the draft status yourself as soon as
   `/simplify` and `/code-review --fix` are done; a comment
   `@codex review` starts another review.
-- A round is a completed Codex review that produced findings. Work
-  rounds 1 and 2 fully. From round 3, only a P0 or P1 blocks; a P2 or
-  P3 is answered "not a bug: <reason>" or "deferred to a follow-up PR",
-  and the deferred ones are listed in the PR body under
+- Stacked pull requests may all be out of draft at once: Codex
+  reviews each against its base, so their rounds run in parallel.
+- A round is a completed Codex review that produced findings. Every
+  status message names its number.
+  - Rounds 1 and 2: fix everything, one commit per round.
+  - Round 3: fix only a P0 or P1, in one commit. A P2 or P3 is
+    answered "not a bug: <reason>" or "deferred to a follow-up PR".
+  - Round 4, the review of the round-3 fix, is final: nothing is
+    fixed, everything is deferred. A P0 or P1 there goes to
+    whoever merges, with one line on its impact, and they decide.
+
+  Deferred findings are listed in the PR body under
   `## Deferred Codex findings`.
+- Before each fix commit, read the code around the fix, not only
+  the line flagged: the late P1s mostly came from the previous
+  round's fix.
+- After the first review, comment `@codex review` only after a fix
+  commit, never after only answering threads or after a rebase.
 - A finding against a guard hook follows `repo-release.md` → Guard
   findings.
 - Answer every Codex thread — "fixed in <sha>", "not a bug: …" or,
@@ -71,12 +85,18 @@ one to two.
 - Rebase on `origin/main`; never merge `main` in, whatever Auto-fix
   suggests, and never as a fallback. Squash your own commits first
   when many conflicts are likely. Push with `--force-with-lease`.
-- A stacked branch whose base was squash-merged is rebased with
-  the command below; `git log --oneline origin/main..HEAD` must then
-  show only the branch's own commits.
+- A stacked branch whose base was squash-merged is rebased onto
+  `origin/main` from its fork point: the last commit of the base
+  that really lies under the branch. Note it when the stack is
+  created, or read it from `git reflog show <branch>`.
+  `git merge-base <branch> <old-base-head>` is not it: once the
+  base is squashed away it finds an old `main` commit, and the
+  rebase replays the base's commits with conflicts, as on #111.
 
-      git rebase --onto origin/main \
-        $(git merge-base <branch> <old-base-head>) <branch>
+      git rebase --onto origin/main <fork-point> <branch>
+
+  `git log --oneline origin/main..HEAD` must then show only the
+  branch's own commits.
 
 - A pull request that touches `.claude/hooks/` resolves a rebase
   conflict in a separate worktree or scratch clone, never in the
