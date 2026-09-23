@@ -117,7 +117,7 @@ is QNAP's own.
   and that a root command needs `admin`, enabled temporarily
   (<https://www.qnap.com/en/how-to/faq/article/sudoers-and-superuser-access-via-ssh-to-disable-admin-account>,
   2022); its startup FAQ, on the other hand, starts QTS 5.x commands
-  with `sudo -i`. Probe `sudo -n true` as usual
+  with `sudo -i`. Run the sudo probe as usual
   (`rules/privilege-escalation.md`) and record what it answers. Never
   edit a sudoers file here: it lives in the RAM root and is
   rebuilt at boot.

@@ -39,7 +39,8 @@ On macOS, every probe below has a **macOS** variant that
 replaces it. The privilege prefix applies unchanged, but
 the root account is disabled on a Mac and sudo usually asks for
 a password, so `$SUDO` is often `-`: expect
-`unknown(needs-root)` cells rather than a partial row. A key
+`unknown(needs-root)` cells for what sudo does not cover,
+rather than a partial row. A key
 only the other families have is `n/a (macOS)`.
 
 On FreeBSD, every probe below has a **FreeBSD** variant that
@@ -66,7 +67,11 @@ root. Open the bundle with the privilege prefix from
 Where `$SUDO` is `-`, a probe emits the sentinel
 `unknown(needs-root)` instead of a degraded answer — an active
 ufw must never be reported as `none` just because the probe
-lacked permission to read its state. See
+lacked permission to read its state. A cell keeps the sentinel
+only after the reruns that file requires where `$SUDO` is `-`:
+each section sudo covers is sent again whole, with
+`SUDO="sudo -n"`, and the probes appended on its answers with
+it. See
 `references/output-format.md` for how the sentinel is rendered
 and why it is excluded from drift detection.
 

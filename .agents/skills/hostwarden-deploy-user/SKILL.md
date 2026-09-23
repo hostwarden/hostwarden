@@ -142,8 +142,18 @@ without one, ask which application the account deploys:
 ```bash
 id deploy && getent passwd deploy
 ls -ld <deploy-target> 2>/dev/null
-sudo -n cat /etc/sudoers.d/deploy 2>/dev/null
+sudo -n -l -U deploy |
+  sed -E 's#([ ,!:^])(/[^ ,]*) .*#\1\2 <rest withheld>#'
 ```
+
+The last line is sudo's own listing of the account's rules,
+through the filter of `rules/privilege-escalation.md` → Sudo:
+it withholds every argument from the first command that has
+one, since an argument can carry a secret, where printing the
+sudoers file would not. Judge the commands it names; where the
+scope `references/harden.md` asks for depends on the arguments,
+say they were not read. `-U` needs sudo for `ALL`; where it is
+refused, say the rules were not read.
 
 On macOS the first line is the `dscl` read from Verify above.
 

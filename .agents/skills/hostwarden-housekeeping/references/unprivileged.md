@@ -2,7 +2,8 @@
 
 When running in unprivileged mode (no sudo, no root SSH), run
 every check that works as a regular user and skip those that
-require root.
+require root. Beside mixed sudo, skip only what it does not cover
+(`rules/privilege-escalation.md` → Mixed Mode).
 
 At the end of the report, add a section:
 
@@ -23,12 +24,14 @@ containers.
 Backup presence: most probes survive without root —
 `command -v`, `systemctl list-timers`, and `/etc/cron.d` is
 usually world-readable. The root crontab (`crontab -l` as
-root) and `/var/spool/cron` are not; report those as
-"skipped: needs root" and never escalate just for this
-check.
+root) and `/var/spool/cron` are not; where sudo does not cover
+them (`rules/privilege-escalation.md` → Mixed Mode), report
+those as "skipped: needs root" and never escalate just for
+this check.
 
 USB inventory: the Linux and macOS probes need no root. FreeBSD's
-`usbconfig` does; report it as "skipped: needs root". NUT's
+`usbconfig` does; where sudo does not cover it, report it as
+"skipped: needs root". NUT's
 `upsmon.conf` is readable for the `nut` group, so the UPS check
 tries the direct read first and `sudo -n` after it
 (`references/service-checks.md` → UPS); only when both fail is

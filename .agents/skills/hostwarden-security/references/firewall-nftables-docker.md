@@ -68,7 +68,9 @@ says `nf_tables`, Native nftables above judges them. Where it
 says `legacy`, or names no backend, `nft` shows nothing of them,
 and this check reads them. As root, or with `$SUDO` from
 `rules/privilege-escalation.md` → Stand-ins for sudo in front of
-each read; a family whose `filter` table the proc file does not
+each read, or with `sudo -n` in front of each where only that
+file's Mixed Mode covers every command this check runs; a family
+whose `filter` table the proc file does not
 list has no rules and is not read, so that nothing loads the
 module:
 

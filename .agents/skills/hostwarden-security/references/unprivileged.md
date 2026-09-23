@@ -3,8 +3,10 @@
 When running in unprivileged mode (no sudo, no root SSH), run the
 sshd probe in `references/ssh.md` as it stands: its `sshd -G` needs
 no root where the files are readable, and where they are not, use
-its config file fallback. For firewall checks, attempt the command
-— some firewall status commands work without root.
+its config file fallback; beside mixed sudo, only for what it does
+not cover (`rules/privilege-escalation.md` → Mixed Mode). For
+firewall checks, attempt the command — some firewall status
+commands work without root.
 
 Many checks in this audit work without root:
 

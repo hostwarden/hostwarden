@@ -31,7 +31,9 @@ An `- IP:` that no longer matches stays with
   a `managed by` line while its `network.md` has no
   `## Management`, or whose profile is marked
   `unchecked (needs root)` while memory records a working
-  `Sudo: passwordless` or `Doas: passwordless`
+  `Sudo: passwordless` or `Doas: passwordless`, or a `Sudo:`
+  line that covers every command a section with reads marked so
+  runs under `$SUDO`, as a rerun needs
   (`rules/privilege-escalation.md` → Stand-ins for sudo). The
   root SSH fallback is never tried for it, and where the probe
   finds that line no longer true, it corrects the line as that
@@ -50,7 +52,8 @@ An `- IP:` that no longer matches stays with
     names that owner: `- Network: managed by TrueNAS middleware`.
   - **Windows:** nothing is probed, written or looked for.
 
-  What was not read for want of a privilege path is marked
+  What was not read for want of a privilege path, after the
+  reruns sudo covers, is marked
   `unchecked (needs root)`, in the profile and on the line; a
   read that fails with one is `unread`. An overlay interface is
   named on the line (`overlay: wg0`); `rules/mesh-vpn.md` waits

@@ -127,10 +127,10 @@ under pressure.
   without your explicit approval.
 - **Least privilege** — uses a normal user when
   possible, `sudo` only when necessary, root only
-  as a last resort. If neither sudo nor root SSH
-  is available, works in unprivileged mode and
-  produces a sysadmin report for tasks that need
-  root.
+  as a last resort. For a task neither sudo nor
+  root SSH can run, works in unprivileged mode and
+  produces a sysadmin report for the tasks that
+  need root.
 - **No borrowed rights** — what a session may not
   do or see, no other session, subagent, scheduled
   job or someone else's token does for it. Hostwarden

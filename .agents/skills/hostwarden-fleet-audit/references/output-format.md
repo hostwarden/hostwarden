@@ -59,7 +59,8 @@ Three sentinels mark a cell that holds nothing to compare, and
 none of them is drift:
 
 - `unknown(needs-root)` — the probe could not run for lack of
-  privileges (see "Privilege handling" in
+  privileges, sudo's covered reruns included (see "Privilege
+  handling" in
   `references/probes.md`). Render it as `needs root`.
 - `unknown(sshd-failed)` — sshd refused to print its
   configuration although the probe ran as root
@@ -94,9 +95,9 @@ the affected hosts once in a one-line note under the table,
 e.g.:
 
 ```
-host2: sshd and firewall state unreadable (no root, no
-passwordless sudo or doas) — re-run with a privileged user
-for full coverage.
+host2: sshd and firewall state unreadable (no root, and no
+sudo or doas that runs everything without a password) —
+re-run with a privileged user for full coverage.
 ```
 
 ## Drift detected

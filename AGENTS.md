@@ -52,8 +52,9 @@ Hostwarden operates in **local mode**:
 
 - **No SSH.** Commands run directly in the shell.
 - **No user prompt.** Use the current OS user.
-- **Sudo still applies.** Probe `sudo -n true` as usual. If sudo is
-  unavailable, enter unprivileged mode (no root SSH fallback).
+- **Sudo still applies.** Probe it as usual
+  (`rules/privilege-escalation.md`). If sudo is unavailable, enter
+  unprivileged mode (no root SSH fallback).
 - Skip the remote-only steps (`rules/first-connection.md` → Local
   mode).
 
@@ -65,9 +66,9 @@ Hostwarden operates in **local mode**:
   non-root account or when root is not required.
 - **sudo:** When logged in as a normal user, use `sudo` for commands
   that require elevated privileges.
-- **Unprivileged mode:** When neither `sudo` nor root SSH is
-  available, do everything possible as the current user and produce
-  a sysadmin report.
+- **Unprivileged mode:** When neither `sudo` nor root SSH can run
+  what is needed, do everything possible as the current user and
+  produce a sysadmin report.
 
 **Always use the least amount of privileges needed.**
 

@@ -359,17 +359,25 @@ entry is lost. When no `rc-status` line shows a syslog daemon as
 
 Alpine's default is `doas` (main); `sudo` is in community.
 `doas` stands in for sudo (`rules/privilege-escalation.md` →
-Stand-ins for sudo). Send this probe in place of the sudo probe:
+Stand-ins for sudo). Its probe line goes into the call of that
+file's sudo probe:
 
 ```
-command -v sudo && sudo -n true && echo sudo=ok
 command -v doas && doas -n true && echo doas=ok
 ```
 
-Judge each tool by its own `=ok` line, never by the exit status
-of the whole call: the last command decides that. Record the sudo
-line as that file says, and `- Doas: passwordless` or
-`- Doas: requires password (unusable)` next to it.
+`doas=ok` → record `- Doas: passwordless`, otherwise
+`- Doas: requires password (unusable)`, next to the sudo line.
+doas prints no listing, so the probe sees only whether `true` runs:
+a `nopass` rule for other commands only reads as unusable, and one
+that lets `true` alone run, or a `deny` rule after a `nopass` one,
+reads as passwordless. doas has no mixed mode here; a doas refusal
+at run time adds `except (refused) <command>` to the Doas line, as
+`rules/privilege-escalation.md` → Mixed Mode does for sudo. A doas
+refusal is exactly `doas: Authentication required` or
+`doas: Operation not permitted`. Any other `doas:` line, such as
+`doas: nft: command not found`, is an error of the call, and the
+same words without the prefix are the command's own error.
 
 `doas -n` fails unless the matching rule in `/etc/doas.conf` or
 `/etc/doas.d/*.conf` says `nopass`; a `persist` rule does not help

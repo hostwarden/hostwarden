@@ -139,10 +139,10 @@ equivalents where these commands do not exist
 are usually unreadable as an ordinary user, and
 `2>/dev/null` makes "permission denied" look exactly
 like "not there". As a non-root user, run the paths
-line through `sudo -n` if sudo is available
-(`rules/privilege-escalation.md`).
+line through `sudo -n` if sudo covers `ls`
+(`rules/privilege-escalation.md` → Mixed Mode).
 
-If it is not available, the privileged half of the
+If it does not, the privileged half of the
 check did not run. Say so and record
 
 ```markdown

@@ -9,7 +9,9 @@ the netfilter reads in section F. Where the probe says
 `<privilege prefix>`, put the snippet from
 `rules/privilege-escalation.md` → Stand-ins for sudo: it sets
 `$SUDO`, and without a privilege path those reads print
-`unknown(needs-root)`.
+`unknown(needs-root)`, or nothing, until the reruns that file
+requires send each section sudo covers again whole, with its
+variables and filters.
 
 The probe reads hook scripts and never runs them, and it prints
 only the lines of a script that change routes, rules, filters or
