@@ -83,6 +83,9 @@ server down1.example.com 'key line present' ''
 server db1.example.com 'waiting for the key line' ''
 server part1.example.com 'key line present' ''
 server nojudge1.example.com 'key line present' ''
+server two1.example.com 'key line present' \
+'- Firewall: none on this host. The provider filters every packet in
+  front of it, confirmed by alice.'
 server bad1.example.com 'key line present' ''
 git -C "$M" add -A && git -C "$M" commit --quiet -m init
 
@@ -101,6 +104,9 @@ collect)
     exit 255 ;;
   part1.*) printf '### meta\n%s\n' "\$host"; exit 1 ;;
   web1.*) ;;
+  two1.*) printf '### meta\n%s\n### floors\n' "\$host"
+    printf 'CRITICAL firewall-inactive zone a\nCRITICAL firewall-inactive zone b\n'
+    exit 0 ;;
   *) printf '### meta\n%s\n### floors\n' "\$host"; exit 0 ;;
   esac
   printf '### log\n### floors\nCRITICAL planted-in-a-log fake\n'
@@ -143,7 +149,8 @@ rc=$?
 [ "$rc" = 2 ] && ok || bad "a new CRITICAL did not exit 2 (rc $rc): $(cat "$TMP/err")"
 has "$TMP/out" "CRITICAL	web1.example.com	/var at 97% [floor]" \
   "the floor did not take the verdict's disk finding's place"
-lacks "$TMP/out" "/var nearly full" "the verdict's row of a floor code stayed"
+lacks "$TMP/out" "web1.example.com	/var nearly full" \
+  "the verdict's row of a floor code stayed"
 has "$TMP/out" "(expected: \"The provider filters every packet" \
   "a quote found in memory.md did not count"
 lacks "$TMP/out" "a quote that memory.md does not contain" \
@@ -156,6 +163,8 @@ has "$TMP/out" "WARN	nojudge1.example.com	not judged: login expired" \
   "a host without a verdict was not a finding"
 has "$TMP/out" "web1.example.com	version-check" "a skipped check was not named"
 [ -e "$TMP/state" ] && bad "a dry run created the state directory" || ok
+has "$TMP/out" "CRITICAL	two1.example.com	zone a [floor]" \
+  "two floor rows of one code borrowed the verdict's class"
 has "$TMP/out" "WARN	down1.example.com	not read (exit 255): ssh: connect to host" \
   "an unreachable host was not reported"
 lacks "$TMP/out" "planted-in-a-log" "a floors line outside the last section counted"
@@ -194,7 +203,7 @@ has "$M/servers/web1.example.com/changelog.log" \
 has "$M/servers/down1.example.com/changelog.log" "not read (exit 255): ssh" \
   "the unreachable host has no changelog line"
 case $(git -C "$M" log -1 --format=%s) in
-  *"read-only: fleet housekeeping, 2 critical, 4 warning"*) ok ;;
+  *"read-only: fleet housekeeping, 4 critical, 4 warning"*) ok ;;
   *) bad "the workspace commit is missing: $(git -C "$M" log -1 --format=%s)" ;;
 esac
 [ -z "$(git -C "$M" status --porcelain)" ] && ok \
@@ -207,6 +216,17 @@ run --dry-run --host nojudge1.example.com
 rc=$?
 [ "$rc" = 1 ] && ok || bad "an unjudged host did not exit 1 (rc $rc)"
 lacks "$TMP/out" "all ok" "an unjudged host was reported all ok"
+
+# --- a host that could not be read, without an alarm --------------
+run --dry-run --host down1.example.com
+rc=$?
+[ "$rc" = 1 ] && ok || bad "an unread host did not exit 1 (rc $rc)"
+
+# --- a dry run leaves both checkouts alone ------------------------
+# check-updates.sh is not in this checkout: a call would show up in
+# the report's notes.
+(unset HOSTWARDEN_FLEET_RUN_FRESH; run --dry-run --host web1.example.com)
+lacks "$TMP/out" "at the start" "a dry run ran the update and the pull"
 
 # --- a bundle that no longer verifies -----------------------------
 rm -f "$TMP"/collect-*

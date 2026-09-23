@@ -110,7 +110,12 @@ means the signers file on the host and the one the bundle was
 signed against differ, `expired` that the bundle needs rebuilding.
 
 The run through the real key, from the operations host, is that
-host's to make — its first scheduled run shows it. A login refused
+host's to make — its first scheduled run shows it. It connects with
+the SSH options of `AGENTS.md` → SSH Options and checks the host's
+key against the workspace's `memory/known_hosts`, which this
+session's pipeline filled (`rules/host-keys.md`) and the workspace
+carries to the operations host: commit and push it before that
+run, or the host is not read. A login refused
 there, with this check passed, is the `from=` address or the key
 line.
 

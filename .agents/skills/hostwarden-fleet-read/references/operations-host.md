@@ -70,9 +70,10 @@ the checkout. A run, in order:
    or nears its date, and a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
-host's memory, and `1` when the run failed or a host got no
-verdict — the `claude` login expired, say. A host without a verdict
-is a WARN in the report as well, and checks the model could not
+host's memory, and `1` when the run failed or a host was not read
+or got no verdict — a connection refused, a host key missing from
+the workspace, the `claude` login expired. Each of those is a WARN
+in the report as well, and checks the model could not
 make are listed under "Not checked" and counted in the subject. A
 unit can be told to alert on either status.
 
@@ -113,7 +114,7 @@ control — reaches no managed host: the fleet key opens only the
 wrapper. It reads the workspace and the reports, and works on the
 operations host itself in local mode, read-only like every host.
 What it cannot do, it reports; it never asks a session on the
-operator's workstation to do it instead.
+operator's workstation to do it instead (`rules/borrowed-rights.md`).
 
 ## What it is not
 
@@ -156,7 +157,8 @@ operator's:
    (`references/install.md`), with this machine's `Fleet name:` as
    the name in every key line.
 6. `bin/hostwarden-fleet-run --no-judge` shows what each host
-   returns, `--dry-run` shows the report; then the two units.
+   returns, `--dry-run` shows the report; neither updates the
+   checkouts. Then the two units.
 
 Record the role in its memory, the timer and the report address
 included, as for anything else the host runs.
