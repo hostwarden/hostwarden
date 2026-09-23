@@ -128,36 +128,72 @@ A sourcing script, a logrotate stanza or a backup
 include list finds the file by a path nobody wrote
 down, and a symlink or a runlevel link finds it by
 a target that no content search reads. As root or
-through `sudo -n`, in one call:
+through `sudo -n`, in one call
+(`rules/ssh-connections.md` → Bundle commands):
 
 ```
-grep -rIl '<old-stem>' /etc /usr/local/bin \
-  /usr/local/sbin /usr/local/etc /usr/local/lib/systemd \
-  /opt /root /home/*/bin /home/*/.config \
-  /Users/*/bin /Users/*/Library/LaunchAgents \
-  /var/spool/cron /var/cron/tabs /var/at/tabs \
-  2>/dev/null || true
-find /etc /usr/local /opt /root /home/*/bin \
-  /home/*/.config /Users/*/bin -type l \
-  -exec ls -l {} + 2>/dev/null | grep '<old-stem>' || true
+roots=""; plists=""; links=""
+for d in /etc /usr/local/bin /usr/local/sbin /usr/local/etc \
+  /usr/local/lib/systemd /opt /root /var/spool/cron \
+  /var/cron/tabs /var/at/tabs /home/*/bin /home/*/.config \
+  /Users/*/bin; do
+  [ -d "$d" ] && roots="$roots $d"
+done
+for d in /Library/LaunchDaemons /Library/LaunchAgents \
+  /Users/*/Library/LaunchAgents; do
+  [ -d "$d" ] && plists="$plists $d"
+done
+for d in /etc /usr/local /opt /root /home/*/bin \
+  /home/*/.config /Users/*/bin; do
+  [ -d "$d" ] && links="$links $d"
+done
+echo "##roots$roots$plists"; echo "##link-roots$links"
+echo "##content"; grep -rIl '<old-stem>' $roots; echo "##rc $?"
+if [ -n "$plists" ]; then
+  echo "##plists"; grep -rl '<old-stem>' $plists; echo "##rc $?"
+fi
+t=$(mktemp)
+echo "##links"; find $links $plists -type l -exec ls -l {} + >"$t"
+echo "##rc $?"; grep '<old-stem>' "$t"; echo "##rc $?"; rm -f "$t"
 ```
 
-The `grep`'s line of spool directories holds every
-user's crontab: `/var/spool/cron/` with its `crontabs/`
-(Debian, Ubuntu) and `tabs/` (SUSE) subdirectories,
-the directory itself on RHEL and Fedora,
+Only directories that exist reach `grep` and `find`
+— a pattern that matches nothing stays as it is and
+fails the `[ -d ]` test — so a path a host lacks
+costs nothing, and neither command's errors are
+hidden. Read each `##rc`. For a `grep`, `0` found
+something, `1` found nothing; for the `find`, the
+first `##rc` under `##links`, only `0` is clean.
+Anything else means a part was not searched — say
+which, and rename nothing until it has been. The
+`find` writes to a file rather than into the pipe:
+`sh` has no `pipefail`, and behind a pipe only
+`grep`'s status would reach `$?`. The launchd
+directories are searched without `-I`: launchd reads
+binary plists too, and `-I` would skip them. The
+link search takes all of `/usr/local`, not only the
+parts whose content is read: a stable link such as
+`/usr/local/libexec/job` can point at the renamed
+file from anywhere under it, and the caller names
+only the link. Listing links reads directory entries
+alone, so the wider root costs little.
+
+The spool directories hold every user's crontab:
+`/var/spool/cron/` with its `crontabs/` (Debian,
+Ubuntu) and `tabs/` (SUSE) subdirectories, the
+directory itself on RHEL and Fedora,
 `/var/cron/tabs/` on FreeBSD, `/var/at/tabs/` on
-macOS; Alpine's `/etc/crontabs/` is under `/etc`. A
-path a host lacks costs nothing. Add the scheduler's
-own places where `rules/os/<family>.md` names more:
-launchd plists, FreeBSD's `periodic.conf`. BusyBox
-`grep` has no `--exclude-dir` and BusyBox `find` no
-`-lname`, which is why the search excludes nothing
-and lists links through `ls -l`. `grep -r` does not
-follow a link, so a link in a user's `bin` is found
-only by the `find`; both searches cover the home
-roots, `/home` on Linux and FreeBSD, `/Users` on
-macOS.
+macOS; Alpine's `/etc/crontabs/` is under `/etc`.
+The launchd directories are macOS's
+(`rules/os/macos.md` → Service Manager). Add the
+scheduler's own places where `rules/os/<family>.md`
+names more, such as FreeBSD's `periodic.conf`.
+BusyBox `grep` has no `--exclude-dir` and BusyBox
+`find` no `-lname`, which is why the search excludes
+nothing and lists links through `ls -l`. `grep -r`
+does not follow a link, so a link — in a user's
+`bin`, or a plist linked into `LaunchAgents` — is
+found only by the `find`.
 
 `-l` prints file names only. Read the hits that can
 be consumers, in one call. Never read a hit in key
@@ -249,18 +285,14 @@ the runlevels `rc-update show` listed before
 A launchd job keeps its states too. launchd goes on
 running the definition it loaded, whatever happens to
 the file, so moving and rewriting a plist is not
-enough. Read whether the job is loaded
-(`launchctl list <label>` succeeds) and whether it is
-disabled (`launchctl print-disabled system`, or
-`gui/<uid>` for an agent). Unload it from the old
-plist before the file moves, and load the renamed
-plist only if it was loaded (`rules/os/macos.md`) —
-through `sudo` for a daemon, as its user for an
-agent. The `Label` changes with the name, and
-launchd records a disabled job by its label, so a
-job that was disabled is disabled again under the new
-one: `launchctl disable system/<new-label>`, or
-`gui/<uid>/<new-label>` for an agent.
+enough. With the commands and the domain from
+`rules/os/macos.md` → Service Manager: read whether
+the job is loaded and whether it is disabled, unload
+it from the old plist before the file moves, and
+load the renamed plist only if it was loaded. The
+`Label` changes with the name, and launchd records a
+disabled job by its label, so a job that was disabled
+is disabled again under the new one.
 
 **Verify, in one call.** The changed files and the
 renamed paths hold no old name except those left on
@@ -269,9 +301,10 @@ purpose; each changed script passes its shell's `-n`;
 each unit and launchd job is back in the states read
 before, and a timer that was active shows its next
 run under the new name in `systemctl list-timers`, as
-a cron job does in its crontab and a loaded launchd
-job in `launchctl list`; the old unit is gone from
-`systemctl list-unit-files`. Report it in one line.
+a cron job does in its crontab; a launchd job that
+was loaded is found under its new label; the old
+unit is gone from `systemctl list-unit-files`.
+Report it in one line.
 When a check fails, say which, and offer the way
 back: the § 2 map replayed backwards, the backups
 restored.
