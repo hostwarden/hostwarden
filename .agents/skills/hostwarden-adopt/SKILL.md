@@ -90,8 +90,9 @@ leads, the host confirms them.
 4. **Copy the state.** `bin/hostwarden-adopt <path>` does it: shared
    state — access lists, service policy, overrides, network and
    housekeeping notes, and `memory/known_hosts` with its host-key
-   records only, no comments — then every server's memory, then `bin/hostwarden-migrate`
-   for the `heinzel-<skill>.md` → `hostwarden-<skill>.md` renames. It
+   records only, no comments — then every server's memory, then
+   `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
+   `hostwarden-<skill>.md` renames. It
    keeps this clone's version of anything that already holds user
    data and says so; `--list` shows the plan without copying.
 
