@@ -5,11 +5,11 @@
 # Usage: sh scripts/codex-quota.sh
 #
 # Prints one line, one part per limit the CLI's account has. Exit
-# status: 0 when a local run can start, 1 when the shared `codex`
-# limit is reached (a model-specific one is only reported), 2 when
-# it cannot be read (no CLI, not signed in with ChatGPT, no or an
-# unreadable answer). GitHub reviews have a code-review limit of
-# their own that the CLI does not show.
+# status: 0 when a local run can start, 1 when the shared limit is
+# reached (a model-specific one is only reported), 2 when it cannot
+# be read (no CLI, not signed in with ChatGPT, no or an unreadable
+# answer). GitHub reviews have a code-review limit of their own
+# that the CLI does not show.
 #
 # The CLI's app server answers account/rateLimits/read for the
 # account it is signed in to; that is a read of the account, not a
@@ -55,15 +55,23 @@ def read():
         p.wait()
     return None
 
+def used(w):
+    return float(w.get("usedPercent") or 0)
+
 def window(w):
     mins = w.get("windowDurationMins")
-    span = {10080: "weekly", 300: "5h"}.get(mins) \
-        or ("%s min" % mins if mins else "window")
+    span = ("%dd" % (mins // 1440) if mins % 1440 == 0 else
+            "%dh" % (mins // 60) if mins % 60 == 0 else
+            "%d min" % mins) if isinstance(mins, int) and mins > 0 \
+        else "window"
     at = w.get("resetsAt")
     reset = time.strftime("%Y-%m-%d %H:%M %Z", time.localtime(at)) \
         if isinstance(at, (int, float)) else "unknown"
-    return "%s %d%% used, resets %s" \
-        % (span, float(w.get("usedPercent") or 0), reset)
+    return "%s %d%% used, resets %s" % (span, used(w), reset)
+
+def windows(snap):
+    return [w for w in (snap.get("primary"), snap.get("secondary"))
+            if isinstance(w, dict)]
 
 # The app server is experimental: an answer this cannot read is
 # "cannot tell", never "limit reached".
@@ -75,38 +83,29 @@ try:
         err = answer["error"] if isinstance(answer["error"], dict) else {}
         done("unknown (%s)" % err.get("message", "error"), 2)
     result = answer.get("result") or {}
-    buckets = result.get("rateLimitsByLimitId") \
-        or {"codex": result.get("rateLimits")}
+    # rateLimits is the shared limit reviews run on; the others are
+    # model-specific and only reported.
+    shared = result.get("rateLimits")
+    buckets = result.get("rateLimitsByLimitId") or {"codex": shared}
     buckets = {k: v for k, v in buckets.items() if isinstance(v, dict)}
-    if not buckets:
+    if not isinstance(shared, dict) or not buckets:
         done("unknown (no limit in the answer; signed in with ChatGPT?)", 2)
-    parts, reached = [], []
-    for name, snap in sorted(buckets.items()):
-        wins = [w for w in (snap.get("primary"), snap.get("secondary"))
-                if isinstance(w, dict)]
-        parts.append("%s: %s" % (name, "; ".join(window(w) for w in wins)
-                                 or "no window reported"))
-        # Only the shared bucket decides: a model-specific one, such
-        # as a fast model's, can be used up while reviews still run.
-        # The backend's own verdict first: the protocol says not to
-        # infer recovery from percentages or reset times.
-        if name == "codex" and (snap.get("rateLimitReachedType")
-                                or snap.get("spendControlReached")
-                                or any(float(w.get("usedPercent") or 0) >= 100
-                                       for w in wins)):
-            reached.append(name)
-    summary = " | ".join(parts)
+    summary = " | ".join(
+        "%s: %s" % (name, "; ".join(window(w) for w in windows(snap))
+                    or "no window reported")
+        for name, snap in sorted(buckets.items()))
     # Redeeming a reset credit is the person's decision; this only
     # says that one exists.
     free = (result.get("rateLimitResetCredits") or {}).get("availableCount")
     if free:
-        summary += " | %d reset credit%s available" \
-            % (free, "" if free == 1 else "s")
-    if reached or result.get("ordinaryUsageAllowed") is False:
-        done("limit reached (%s): %s"
-             % (", ".join(reached) or "usage not allowed", summary), 1)
-except SystemExit:
-    raise
+        summary += " | reset credits available: %d" % free
+    # The backend's own verdict first: the protocol says not to infer
+    # recovery from percentages or reset times.
+    if result.get("ordinaryUsageAllowed") is False \
+            or shared.get("rateLimitReachedType") \
+            or shared.get("spendControlReached") \
+            or any(used(w) >= 100 for w in windows(shared)):
+        done("limit reached: " + summary, 1)
 except Exception as e:
     done("unknown (%s: %s)" % (type(e).__name__, e), 2)
 done(summary, 0)

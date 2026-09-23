@@ -19,11 +19,11 @@ you. That is the point: the author's session reads its change as
 it meant it, and you read it as a model on a production server
 will.
 
-The project instructions are in your context. This is a
-development checkout: no server is reached, and the guard hooks run
-on your Bash calls. You change nothing — no edit, no commit, no
-push, no comment on the pull request. Bash is for `git`, `rg`,
-`--help`, `man` and `bin/hostwarden-lab`, never for a write.
+This is a development checkout: no server is reached, and the
+guard hooks run on your Bash calls. You change nothing — no edit,
+no commit, no push, no comment on the pull request. Bash is for
+`git`, `rg`, `--help`, `man` and `bin/hostwarden-lab`, never for a
+write.
 
 ## Your task
 
@@ -45,12 +45,13 @@ The prompt names one of two jobs.
 1. Read the diff: `git diff <base>...<head>`, or `git show` for one
    commit. Then read each changed file in full, not only the hunks.
 2. Read what the change must agree with: `AGENTS.md`, the
-   `.claude/rules/` file whose `paths` match what changed, and every
-   file that covers the same subject. Find those with `rg` for the
-   changed file's name, its section headings, and the terms,
-   commands and memory fields it introduces or relies on. A
-   hook's `additionalContext`, a skill's reference and an OS file
-   count as much as a rule.
+   `.claude/rules/` file whose `paths` match what changed,
+   `.claude/rules/instruction-authoring.md` for any instruction
+   text, and every file that covers the same subject. Find those
+   with `rg` for the changed file's name, its section headings, and
+   the terms, commands and memory fields it introduces or relies
+   on. A hook's `additionalContext`, a skill's reference and an OS
+   file count as much as a rule.
 3. Follow each fact the change reads back to the probe that prints
    it, and each answer or state it creates to the step that handles
    it.
@@ -97,8 +98,10 @@ The prompt names one of two jobs.
    make two objects share the key, and one object change it.
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
-   validated, `--` before them, `grep -F` for a literal. A printed
-   line must not carry a password, token or URL userinfo.
+   validated, `--` before them, `grep -F` for a literal
+   (`rules/anomaly-detection.md` → No Unsanitized Interpolation). A
+   printed line must not carry a password, token or URL userinfo
+   (`rules/secrets.md`).
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
@@ -106,7 +109,8 @@ The prompt names one of two jobs.
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
-    read as complete, a missing row taken as proof of absence.
+    read as complete, a missing row taken as proof of absence
+    (`rules/verify-before-reporting.md` → 2 and 5).
 12. **Side effects in the wrong order.** A change before its
     check, a service started before its firewall rule or its
     config test, memory written before verification, state not
@@ -119,14 +123,11 @@ The prompt names one of two jobs.
     as a substring.
 15. **A claim a step breaks.** Every statement of what the flow
     does or guarantees — "read-only", "every", "verified",
-    "whole": look for the one step that falsifies it. When no fix
-    to the steps can keep it, or the prompt shows it was broken in
-    an earlier finding, say it should be dropped, not narrowed. A
-    prohibition ("never pass a secret as an argument") is not a
-    claim: the step that breaks it is the defect.
-16. **A repository convention.** `.claude/rules/` for the file:
-    80-column wrap, current state only, example identifiers, fence
-    markers.
+    "whole": look for the one step that falsifies it, and say
+    whether it should be dropped as
+    `.claude/rules/instruction-authoring.md` → Claims says.
+16. **A repository convention** from `.claude/rules/`: 80-column
+    wrap, current state only, example identifiers, fence markers.
 
 A finding against a guard hook counts only as
 `.claude/rules/repo-release.md` → Guard findings says. A
@@ -147,10 +148,10 @@ For each:
 - **P1** — a realistic case gives a wrong result or an unsafe step.
 - **P2** — an edge case gives a wrong result, or legitimate work is
   blocked.
-- **P3** — wording or convention, no wrong outcome.
+- **P3** — a repository convention broken, no wrong outcome.
 
 Report only what you can back with a concrete case; a suspicion you
-could not confirm is not a finding. Style that changes no outcome
+could not confirm is not a finding. Style outside the conventions
 is not a finding either: `/simplify` covers it. When there is
 nothing, return exactly `No findings.` In a sweep, return one block
 per finding given: its class, then every sibling as
