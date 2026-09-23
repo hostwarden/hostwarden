@@ -94,9 +94,30 @@ see, never from a name alone. A jail without a network
 stack of its own has no MAC, and links by its path or by
 name and IP address together.
 
-## ZFS and btrfs
+## Disks, ZFS and btrfs
 
-On a host with ZFS pools or btrfs, Hostwarden records the settings
+On bare metal, Hostwarden records each disk once — type, bus,
+size, model, serial and firmware — in
+`memory/servers/<host>/storage.md`, so a failing disk is known by
+the serial you replace it by. Housekeeping reads SMART on every
+bare-metal Linux and FreeBSD host, and says when a disk appears,
+disappears, or its error counts grow. Where `smartctl` is not
+installed, it says the disks went unchecked rather than calling
+them healthy.
+
+It also checks whether the storage gets its routine care: TRIM on
+flash, the periodic check of an md RAID array, ZFS and btrfs
+scrubs, and `smartd` watching the disks between runs. Which of
+these a distribution schedules by itself differs — Alpine
+schedules none, and openSUSE scrubs only the btrfs filesystem at
+`/` — so this is part of the server baseline: housekeeping
+reports what is missing with the command that would turn it on,
+and bringing a server up to the baseline sets it up, one asked
+step at a time. A new VM gets its TRIM schedule at creation.
+Nothing is set up on an appliance that schedules these in its own
+web UI.
+
+On a host with ZFS pools or btrfs, Hostwarden also records the settings
 that decide how the storage behaves, once, in
 `memory/servers/<host>/storage.md`: each pool's layout, TRIM,
 compatibility and features not yet enabled, the dataset properties
@@ -120,7 +141,8 @@ What every server is expected to have is written down in
 one place, `rules/baseline.md`: a firewall that denies
 incoming traffic by default and keeps SSH open, automatic
 security updates, time sync, SSH by key only, a persistent
-journal, the guest agent in a VM, and a backup. The
+journal, storage maintenance on a schedule, the guest agent in a
+VM, and a backup. The
 security audit and housekeeping measure every server
 against it. Ask Hostwarden to bring a server up to the
 baseline, and it lists what is missing and applies it one

@@ -547,7 +547,7 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   for d in /sys/block/sd* /sys/block/sata* /sys/block/sas* /sys/block/nvme*n* /sys/block/nvc*; do
     [ -e "$d" ] || continue
     echo "== ${d##*/}"
-    smartctl -n standby -H -A /dev/${d##*/} | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
+    smartctl -n standby -i -H -A /dev/${d##*/} | grep -E "Serial Number|Firmware Version|result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Critical Warning|Available Spare|Media and Data|Percentage Used"
   done
   grep -c -E "Out of memory|I/O error" /var/log/messages
   /usr/local/bin/docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Label "com.docker.compose.project"}}'

@@ -282,6 +282,25 @@ Record which one in server memory.
 - Check: `mount` — UFS shows as `ufs`.
 - `fsck` for filesystem checks (not `e2fsck`).
 
+### Storage Maintenance
+
+What FreeBSD schedules by itself (`rules/baseline.md` → Storage
+Maintenance):
+
+- **ZFS:** `daily_scrub_zfs_enable` and `daily_trim_zfs_enable` in
+  `/etc/periodic.conf`, both `NO` by default
+  ([periodic.conf](https://github.com/freebsd/freebsd-src/blob/main/usr.sbin/periodic/periodic.conf)).
+- **UFS:** TRIM is a flag of the filesystem, shown by `tunefs -p`
+  as `trim: (-t)`, and trims every freed block as it goes; no
+  periodic job trims UFS. `tunefs -t enable` needs the filesystem
+  unmounted or read-only
+  ([tunefs(8)](https://man.freebsd.org/cgi/man.cgi?query=tunefs&sektion=8)).
+- **SMART:** the smartmontools package adds `smartd_enable` for
+  rc.conf and a daily report, `daily_status_smart_devices` in
+  `/etc/periodic.conf` (`AUTO` for every disk); both are off until
+  set
+  ([sysutils/smartmontools](https://github.com/freebsd/freebsd-ports/tree/main/sysutils/smartmontools)).
+
 ## Logs
 
 **The syslog stream** is every line the host still keeps of the log

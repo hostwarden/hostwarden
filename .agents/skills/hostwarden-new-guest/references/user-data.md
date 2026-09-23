@@ -81,6 +81,12 @@ family file's way:
 - **Journal:** a `journald.conf.d` drop-in with
   `Storage=persistent`. Debian and Ubuntu keep the journal
   already; the RHEL family does not.
+- **Storage Maintenance:** in a VM, `fstrim.timer` enabled under
+  `runcmd:`. Debian's, Ubuntu's and RHEL 10's images have it on
+  already and the line costs nothing; RHEL 9's do not
+  (`rules/os/rhel.md` → Storage Maintenance). Left out in a
+  container. The section's other parts have nothing to act on at
+  creation.
 - **Guest Agent:** `qemu-guest-agent` in a VM; none of the
   official images has it. Its unit starts when the hypervisor's
   agent device appears, so `runcmd:` starts it once rather than
@@ -140,6 +146,7 @@ runcmd:
   - [systemctl, restart, systemd-journald]
   - [ufw, allow, OpenSSH]
   - [ufw, --force, enable]
+  - [systemctl, enable, --now, fstrim.timer]
 final_message: "hostwarden-baseline debian-3 applied"
 ```
 
@@ -185,6 +192,7 @@ runcmd:
   - [firewall-offline-cmd, --add-service=ssh]
   - [systemctl, enable, --now, firewalld]
   - [systemctl, enable, --now, dnf-automatic-install.timer]
+  - [systemctl, enable, --now, fstrim.timer]
 ```
 
 ## Passwords

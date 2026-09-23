@@ -130,6 +130,25 @@ check (`rules/activity-check.md`) still sees Hostwarden's lines
 after a reboot. Hosts without systemd log to files and need
 nothing here. Checked by housekeeping's Journal.
 
+## Storage Maintenance
+
+Storage gets its routine care on a schedule: a filesystem on a
+disk that accepts TRIM is trimmed, by `fstrim` on a timer or by
+the `discard` mount option; an md RAID array is checked and
+watched; a ZFS pool and a btrfs filesystem are scrubbed; and on
+bare metal `smartd` watches the disks. Their alerts go to root,
+so Mail Relay decides whether anyone reads them. The family
+file's Storage Maintenance section names each mechanism and what
+the distribution already enables. A container runs none: its
+storage is its host's. Checked by housekeeping's
+`references/storage-maintenance.md` and
+`.agents/skills/hostwarden-housekeeping/references/smart.md` →
+Between Runs.
+
+At a guest's creation only TRIM applies: an array, a pool or a
+disk of its own comes later, and housekeeping then finds what
+its schedule lacks.
+
 ## Guest Agent
 
 A VM runs its hypervisor's guest agent, and the hypervisor has it

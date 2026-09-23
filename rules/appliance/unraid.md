@@ -448,7 +448,7 @@ security audit reads from files.
   zpool list -H -o name,cap,health
   for d in $(sed -n 's/^device="\(..*\)"/\1/p' /var/local/emhttp/disks.ini); do
     echo "== $d"
-    smartctl -n standby -H -A /dev/$d | grep -E "result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Media and Data|Percentage Used"
+    smartctl -n standby -i -H -A /dev/$d | grep -E "Serial Number|Firmware Version|result:|Health Status:|Device is in|Reallocated_Sector|Current_Pending|Offline_Uncorrectable|Reported_Uncorrect|grown defect list|Critical Warning|Available Spare|Media and Data|Percentage Used"
   done
   for f in /var/log/plugins/*.plg; do
     p=${f##*/}; t=/tmp/plugins/$p

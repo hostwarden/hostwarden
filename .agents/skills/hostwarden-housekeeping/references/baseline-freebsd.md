@@ -30,7 +30,9 @@ df -h -t nodevfs,fdescfs,procfs,tmpfs,nullfs
 On ZFS, `df` shows each dataset against the pool's free space, so
 the pool is the number that counts: its fill level, health, errors
 and scrub age, and the pool's settings, are
-`references/zfs-btrfs.md`.
+`references/zfs-btrfs.md`. The disks' own health on bare metal is
+`references/smart.md`, and whether scrubs and TRIM are scheduled
+`references/storage-maintenance.md`.
 
 ## Memory and Swap
 

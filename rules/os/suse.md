@@ -67,6 +67,24 @@ Enterprise Server (SLES).
   may have configured things in non-standard ways. Check
   existing config before assuming defaults.
 
+## Storage Maintenance
+
+What openSUSE schedules by itself (`rules/baseline.md` → Storage
+Maintenance), all enabled by the preset
+([default-SUSE.preset](https://build.opensuse.org/public/source/SUSE:SLFO:1.2/systemd-presets-common-SUSE/default-SUSE.preset)):
+
+- **TRIM:** `fstrim.timer`, weekly, from `util-linux-systemd`.
+- **md RAID:** `mdcheck_start.timer` and `mdmonitor-oneshot.timer`.
+- **btrfs:** `btrfsmaintenance` with `btrfs-scrub.timer` (monthly)
+  and `btrfs-balance.timer` (weekly); its TRIM is off. It works
+  only on the mount points `/etc/sysconfig/btrfsmaintenance` names,
+  `/` by default, so a second btrfs filesystem goes unscrubbed
+  until `BTRFS_SCRUB_MOUNTPOINTS` lists it
+  ([btrfsmaintenance](https://github.com/kdave/btrfsmaintenance/blob/master/sysconfig.btrfsmaintenance)).
+- **SMART:** `smartd.service`. Its default configuration runs a
+  short self-test daily and a long one on the first Sunday of the
+  month, the only family that schedules self-tests.
+
 ## Directory Conventions
 
 - Config files: `/etc/`

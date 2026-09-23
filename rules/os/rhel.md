@@ -72,6 +72,32 @@ finding. See `rules/version-check.md`.
 - Do **not** disable SELinux without discussing with the
   user. Prefer adding proper SELinux policies.
 
+## Storage Maintenance
+
+What Fedora and the RHEL family schedule by themselves
+(`rules/baseline.md` → Storage Maintenance):
+
+- **TRIM:** `fstrim.timer`, weekly, enabled by the preset on
+  Fedora and RHEL 10 and its rebuilds; RHEL 9 and its rebuilds
+  install it disabled
+  ([c10s preset](https://gitlab.com/redhat/centos-stream/rpms/centos-stream-release/-/raw/c10s/90-default.preset)).
+- **md RAID:** `raid-check.timer`, Sundays at 01:00, runs
+  `/usr/sbin/raid-check` as `/etc/sysconfig/raid-check` configures
+  it (`ENABLED`, `CHECK`); enabled by default. The upstream
+  `mdcheck_*` timers are installed and disabled
+  ([Fedora mdadm](https://src.fedoraproject.org/rpms/mdadm/raw/rawhide/f/mdadm.spec)).
+  `mdmonitor.service` watches arrays and mails as
+  `/etc/mdadm.conf` says.
+- **ZFS:** not from the distribution. The OpenZFS packages bring
+  `zfs-scrub-monthly@<pool>.timer` and `zfs-trim-monthly@<pool>.timer`,
+  not enabled.
+- **btrfs:** Fedora packages `btrfsmaintenance`, disabled, with its
+  settings in `/etc/sysconfig/btrfsmaintenance`. RHEL has no
+  btrfs.
+- **SMART:** `smartd.service`, installed with a "Server" install
+  and not with a minimal one, and enabled. The default
+  `DEVICESCAN -H` line watches health and schedules no self-tests.
+
 ## Directory Conventions
 
 - Config files: `/etc/`
