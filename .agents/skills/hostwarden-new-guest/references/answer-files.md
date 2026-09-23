@@ -57,6 +57,8 @@ Syntax: <https://pykickstart.readthedocs.io/en/latest/>.
 ```
 text
 network --bootproto=static --ip=192.0.2.21 --netmask=255.255.255.0 --gateway=192.0.2.1 --nameserver=192.0.2.53 --hostname=web1.example.com --activate
+lang en_US.UTF-8
+keyboard --vckeymap=us
 timezone Europe/Berlin --utc
 clearpart --all --initlabel
 autopart
@@ -76,6 +78,8 @@ cloud-init
   `ksvalidator` reads a backslash-wrapped `network` line as three
   commands and rejects two of them, so `network` stays long even
   where that passes 80 characters.
+- `lang` and `keyboard` are required commands; without them anaconda
+  stops at localization before it installs anything.
 - `clearpart --all --initlabel` and `autopart` answer Installation
   Destination, which anaconda otherwise leaves open and waits at:
   the new guest's empty disk gets a fresh label and the automatic
