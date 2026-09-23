@@ -143,7 +143,10 @@ or raise the rate limit or the IPS threshold there.
 Do not probe with `nc -z` or `ssh-keyscan`: fail2ban
 (modes `ddos` and `aggressive`) and sshd's
 `PerSourcePenalties` count a connection that never
-logs in. A successful login counts for neither.
+logs in. A successful login counts for neither. The
+only `ssh-keyscan` Hostwarden runs is on a server
+against itself (`rules/ssh-ca.md` → Host Certificate),
+never from the workstation.
 
 ## A guest on a known host
 

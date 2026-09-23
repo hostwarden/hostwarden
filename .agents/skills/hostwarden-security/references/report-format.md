@@ -20,7 +20,7 @@ SSH password auth   WARN — PasswordAuthentication yes
 SSH weak algos      OK — no weak algorithms found
 SSH root login      INFO — PermitRootLogin yes
 SSH client          OK — none in ssh_config, 2 ~/.ssh/config, cron
-SSH host cert       OK — served, CA SHA256:Cxr4…, 23 days left, renewed
+SSH host cert       OK — presented, CA SHA256:Cxr4…, 23 days left, renewed
                     by ssh-cert-renew.timer
 SSH user CA         INFO — no RevokedKeys; root via principal ops
 Firewall            OK — ufw active, default deny

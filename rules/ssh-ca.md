@@ -97,9 +97,17 @@ date '+now: %Y-%m-%dT%H:%M:%S'
 
 The serving one reads sshd's effective configuration from `OUT`,
 as User CA Trust below does, and runs in the same place, once per
-daemon: its `hostcertificate` lines name what that daemon
-presents, its `hostkey` lines the keys they must belong to.
-`sshd -G` prints them without root from OpenSSH 9.3 on.
+daemon: its `hostcertificate` lines name what that daemon is
+configured to present, its `hostkey` lines the keys they must
+belong to. `sshd -G` prints them without root from OpenSSH 9.3
+on. Both come from the files on disk, and sshd presents what it
+loaded at its last start or reload, so the probe also asks the
+running daemon, from the server to itself: `ssh-keyscan -c`
+prints the certificates it presents. That is the one place
+Hostwarden runs `ssh-keyscan`, never from the workstation
+(`rules/ssh-unreachable.md`). Its connections never log in and
+count toward sshd's `PerSourcePenalties`, so it runs once per
+daemon and run, never in a loop.
 
 ```bash
 printf '%s\n' "${OUT:-}" | grep -i '^hostkey ' | cut -d' ' -f2- \
@@ -109,19 +117,75 @@ printf '%s\n' "${OUT:-}" | grep -i '^hostkey ' | cut -d' ' -f2- \
 done
 [ -n "${SUDO+x}" ] || { [ "$(id -u)" = 0 ] && SUDO= || SUDO=-; }
 R=$SUDO; [ "$R" != - ] || R=
+if [ -z "${KP:-}${KA:-}" ]; then
+  L=$(printf '%s\n' "${OUT:-}" | grep -i '^listenaddress ' | cut -d' ' -f2)
+  W=$(printf '%s\n' "$L" | grep -m 1 '^0\.0\.0\.0:')
+  [ -n "$W" ] || W=$(printf '%s\n' "$L" | head -n 1)
+  KP=${W##*:}; KA=${W%:*}; KA=${KA#\[}; KA=${KA%\]}
+fi
+case ${KA:-} in 0.0.0.0|'') KA=127.0.0.1 ;; ::) KA=::1 ;; esac
+K=
+if ! command -v ssh-keyscan >/dev/null 2>&1; then
+  echo "presented: unchecked (no ssh-keyscan)"
+else
+  S=$(ssh-keyscan -c -t ed25519,ecdsa,rsa -p "${KP:-22}" "$KA" 2>&1)
+  if ! printf '%s\n' "$S" | grep -q '^# '; then
+    echo "presented: unchecked (no answer on $KA:${KP:-22})"
+  elif printf '%s\n' "$S" | grep -q -- '-cert-v01@'; then
+    K=$(printf '%s\n' "$S" | grep -- '-cert-v01@')
+    printf '%s\n' "$K" | ssh-keygen -L -f /dev/stdin
+  else K=none; echo "presented: none"; fi
+fi
 printf '%s\n' "${OUT:-}" | grep -i '^hostcertificate ' \
   | cut -d' ' -f2- | while read -r c; do
-  if $R test -e "$c"; then echo "served: $c"
+  if $R test -r "$c"; then
+    b=$($R cut -d' ' -f2 "$c")
+    if [ -z "$K" ] || [ -z "$b" ]; then
+      echo "served: $c (presented unchecked)"
+    elif printf '%s\n' "$K" | grep -qF "$b"; then echo "served: $c"
+    else echo "served: $c NOT PRESENTED"; fi
     $R ssh-keygen -L -f "$c"
   elif [ "$SUDO" = - ]; then echo "served: $c unchecked (no root)"
   else echo "served: $c MISSING"; fi
 done
+KP=; KA=
 ```
+
+The address is the daemon's IPv4 wildcard `listenaddress` where
+it has one, read as `127.0.0.1` — the IPv6 one comes first in the
+output and fails where IPv6 is off — else its first one, `::`
+read as `::1`. Whether the daemon answered is the `# ` banner
+line, which OpenSSH before 10 writes to stderr, hence the `2>&1`.
+Where the daemon's `daemon:` or `sshd-cmd` line carries a `-p` or
+an `-o Port=`/`-o ListenAddress=`, which override the file and
+`OUT` does not show, the probe's first run scanned the port in
+the file, for all it could know: those `daemon:` and `sshd-cmd`
+lines print in the same call. Its presented lines for that daemon
+do not count. Run the serving probe again for that daemon in the
+next call, with its `OUT` and with `KP` and `KA` set from the
+command line: the probe keeps them and clears them at its end. A
+`ListenAddress` with an `rdomain` cannot be reached this way, and
+the presented certificate reads `unchecked`. A run without `OUT` —
+housekeeping — sets `KP` to the port the host's `SSH port:` line
+names, once it has checked that the value is a number, so the
+probe scans loopback there, and compares with the file its
+`SSH host cert:` line names.
 
 Read from the two:
 
+- **Presented:** the certificates `ssh-keyscan -c` printed are what
+  clients get; every rating below is made on them. A file compares
+  with them byte for byte — serial numbers do not tell
+  certificates apart, since `ssh-keygen -s` writes 0 unless told
+  otherwise. `served:` alone is a file the daemon presents.
+  `NOT PRESENTED` is a file configured but not what the daemon
+  sends: renewed or installed without a reload of sshd.
+  `presented: none` is a daemon that answered with no certificate
+  at all. No answer, no `ssh-keyscan` (Alpine's `openssh-server`
+  does not bring it), or an `rdomain` leaves the presented
+  certificate `unchecked`, and the file is rated with that said.
 - **Served, or not:** a certificate a `served:` line names — for
-  any daemon — is served. A `hostcert:` file no `served:` line
+  any daemon — is configured. A `hostcert:` file no `served:` line
   names is not, where every daemon's configuration was read, and
   `serving unknown` where one was not. A run that never reads it —
   housekeeping, or OpenSSH before 9.3 without root — takes the
@@ -132,10 +196,12 @@ Read from the two:
   of letters, digits and `._/-` only: a memory value is data
   (`rules/anomaly-detection.md`).
 - **Type** says `host certificate`.
-- **Public key:** its fingerprint equals one `hostkey:` line's,
-  the key sshd pairs it with. Without a `hostkey:` line — no
-  `.pub` beside the key, or no `OUT` — the match is `unchecked`;
-  the certificate's name says nothing about its key.
+- **Public key:** a presented certificate belongs to a key the
+  daemon loaded, since sshd pairs them itself. For a file that is
+  not presented, its fingerprint must equal one `hostkey:` line's;
+  without a `hostkey:` line — no `.pub` beside the key, or no
+  `OUT` — the match is `unchecked`, and the certificate's name
+  says nothing about its key.
 - **Signing CA:** compared with the host CAs in
   `memory/network.md`.
 - **Principals:** every name a client verifies the host by. That
@@ -150,9 +216,10 @@ Read from the two:
   for the call to the CA software and the reload of sshd that must
   follow it. sshd serves the certificate it loaded at its last
   start or reload, so a job without the reload leaves the old one
-  in service. macOS starts sshd per connection and needs none. A
-  root crontab is not public: where no line names a job, ask the
-  user what renews the certificate before rating it.
+  in service, which `NOT PRESENTED` shows. macOS starts sshd per
+  connection and needs none. A root crontab is not public: where
+  no line names a job, ask the user what renews the certificate
+  before rating it.
 - **`clientca`:** the host CAs this server trusts when it opens
   SSH connections itself, for every account on it (Using the CA
   Everywhere), from ssh's default global known-hosts files. A
@@ -165,15 +232,20 @@ Read from the two:
   `Match` applies to those targets only. `ssh -G` is not used for
   it: it runs the command of a `Match exec` line.
 
-Findings for a served certificate:
+Findings, rated on the presented certificate, or on the served
+file where the presented one is `unchecked`:
 
-- Expired, not yet valid, or matching none of sshd's host keys →
-  **CRITICAL**: clients that know the host only through the CA
-  stop connecting.
+- Expired, not yet valid, or, for a file, matching none of sshd's
+  host keys → **CRITICAL**: clients that know the host only
+  through the CA stop connecting.
 - `MISSING`, checked with root: sshd names a certificate that is
   not there → **CRITICAL**: it serves the plain key, with the same
   effect. Without root, a file the SSH user cannot see reads
   `unchecked (no root)`, never `MISSING`.
+- `presented: none` where a certificate is configured →
+  **CRITICAL**, for the same reason.
+- `NOT PRESENTED` → **WARN**: the file on disk is not in service;
+  a reload of sshd, which is the user's, puts it there.
 - Less than a third of its lifetime left → **WARN**: the renewal
   is overdue.
 - `forever` → **WARN**: it can only be revoked on every client.
@@ -204,6 +276,13 @@ root alone, and the globs run in a root shell, since homes and
 the privilege prefix, which sets `$SUDO`; where nothing set it,
 the probe's first line treats the run as one without root rather
 than read root's files as the SSH user.
+
+These values come from the files on disk. The files they name —
+the CA keys, the principals files, the revocation list — sshd
+reads at every login, so their content is live; a directive
+changed since sshd's last start or reload is not, and nothing
+outside sshd shows what it loaded. A finding on a directive holds
+from the next reload at the latest, and says so.
 
 ```bash
 [ -n "${SUDO+x}" ] || { [ "$(id -u)" = 0 ] && SUDO= || SUDO=-; }
@@ -310,8 +389,9 @@ What it shows:
 Findings:
 
 - `RevokedKeys` set, and the file missing or unreadable →
-  **CRITICAL**: sshd refuses every public key login. Tell the user
-  at once; the console is the way in
+  **CRITICAL**: sshd refuses every public key login, now or from
+  its next reload where the directive is new. Tell the user at
+  once; the console is the way in
   (`rules/management-controller.md` → The rescue path).
 - The CA signing key on the host → **WARN**.
 - One CA signs host and user certificates → **WARN**.
@@ -415,7 +495,9 @@ cannot write reports the gap.
 
 Per host, in `memory/servers/<hostname>/memory.md`, one line per
 direction, only where present. `SSH host cert:` names a
-certificate sshd serves, never one that only lies on disk:
+certificate sshd serves, never one that only lies on disk, and
+its `valid to` is the presented certificate's where the probe
+read it:
 
 ```markdown
 - SSH host cert: ed25519 /etc/ssh/ssh_host_ed25519_key-cert.pub,

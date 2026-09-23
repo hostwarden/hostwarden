@@ -336,7 +336,8 @@ principals (`rules/ssh-ca.md` → Host Certificate).
 
 `Host key verification failed` on a name a CA line covers points
 at the certificate. The client prints the reason just before it:
-`Certificate invalid: expired`, because its renewal stopped, or
+`Certificate invalid: expired`, because its renewal stopped or
+renewed the file without a reload of sshd, or
 `Certificate invalid: name is not a listed principal`, because it
 does not name this host. Where no reason shows, the single retry
 with the fresh-login options and `-v`

@@ -226,9 +226,10 @@ fingerprinted on the workstation as that file says. Their
 `hostcert`, `clientca`, `userca`, `krl` and `cert-authority`
 lines, and the
 `trustedusercakeys`, `authorizedprincipals…` and `revokedkeys`
-values, are rows of the same table; for a host certificate sshd
-serves, its signing CA and the end of its `Valid:` line, and a
-certificate that is not served is a note, not a row. With
+values, are rows of the same table; for a host certificate, the
+signing CA and the end of the `Valid:` line of the one the daemon
+presents, a `NOT PRESENTED` file beside it, and a certificate
+that is not served as a note, not a row. With
 `sshd -G`, the host certificate rows need no root; the client CA
 rows never do, and are filled on a host whose sshd column is
 `unknown(needs-root)`; after
@@ -288,7 +289,9 @@ Highlight as drift:
   cannot revoke at all; list them too.
 - Served host certificates on some hosts but not others,
   or signed by different CAs. One that ends much earlier
-  than the rest usually has a renewal job that stopped.
+  than the rest usually has a renewal job that stopped,
+  or one that renewed the file without a reload of sshd
+  (`NOT PRESENTED`).
 - A different `clientca`, or none, on hosts whose memory
   says they open SSH connections to others.
 

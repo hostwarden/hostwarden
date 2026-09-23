@@ -208,7 +208,10 @@ for it, the user's own list, the user's answer. It never scans
 (`nc -z`, `nmap`, `ssh-keyscan`): several ports in a row on one
 host look like a port scan to psad, portsentry and a provider's
 IPS, and each connection that does not log in counts for fail2ban
-(`rules/ssh-connections.md` → Avoid failed logins).
+(`rules/ssh-connections.md` → Avoid failed logins). The one
+`ssh-keyscan` Hostwarden runs is on a server against its own
+sshd, to read the host certificate it presents
+(`rules/ssh-ca.md` → Host Certificate).
 
 First read which host the error names. Behind a jump host,
 `connect to host jump.example.com port 22: Connection refused` is
