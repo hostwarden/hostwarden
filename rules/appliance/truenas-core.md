@@ -37,10 +37,13 @@ Configuration Model).
 
 ## Replace: Service Manager
 
-- `service <name> status` is fine for reading. Services are
-  started, stopped and enabled in the web UI (Services), never with
-  `service`, `sysrc` or `/etc/rc.conf`: the middleware renders
-  their configuration.
+- **Enabled services:** `midclt call service.query` lists the
+  services the middleware manages, with `enable` for the start at
+  boot and `state`.
+- **Service status:** `service <name> status`, as on FreeBSD.
+- Services are started, stopped and enabled in the web UI
+  (Services), never with `service`, `sysrc` or `/etc/rc.conf`: the
+  middleware renders their configuration.
 
 ## Replace: Filesystem
 
@@ -71,10 +74,15 @@ Configuration Model).
 ## Housekeeping and Audits
 
 - The release is the finding: an operating system without updates.
-  Report it first, in every housekeeping report and audit.
+  Report it first, in every housekeeping report and audit. It
+  replaces the FreeBSD baseline's Release Support, Pending Updates
+  and Update Notification.
 - Change nothing unless the user asks for a specific change, and
   then only through the web UI: never `sysrc`, `pkg` or a file the
   middleware renders.
 - The migration to the Linux edition is a major upgrade through the
   web UI. Hand it to the user with the migration notes of the
   target release; never start it yourself.
+- Fleet audit: the services are the middleware's (Replace: Service
+  Manager), so the time row is read with `ntpq -pn` alone and the
+  MTA rows are `n/a (TrueNAS CORE)`.

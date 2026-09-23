@@ -195,7 +195,11 @@ configuration; the app prints it in its log. Never read it out of
 
 ## Housekeeping and Audits
 
-- The Linux baseline does not apply (see What Does Not Apply).
+- The Linux baseline does not apply (see What Does Not Apply), and
+  neither do the containers references of the housekeeping and
+  security skills (`references/containers.md`) or the Home
+  Assistant section of the housekeeping skill's
+  `references/service-checks.md`: `ha` is the check, below.
   Housekeeping reads, in one call — a non-root login prefixes
   `sudo -n` (The `ha` CLI):
   ```

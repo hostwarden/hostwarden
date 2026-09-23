@@ -235,13 +235,21 @@ runs `apk upgrade` counts.
 ## Service Manager
 
 - OpenRC, started from busybox `init`. There is no `systemctl`.
-- Status: `rc-service <service> status`. Overview of the current
-  runlevel: `rc-status`. Services that crashed: `rc-status
-  --crashed`.
+- **Enabled services:** `rc-update show` prints each service that
+  starts at boot with the runlevels it starts in. It reads the
+  runlevel directories and is cheap enough for every connection;
+  `rc-status` is not, since it writes a dependency cache on the way.
+- **Service status:** `rc-service <service> status` prints
+  `status: started` and exits 0 while the service runs, 3 when it is
+  stopped, and 1 with `does not exist` for an unknown name. A script
+  that only loads something and exits, such as `nftables`, reads
+  `started` once it has run.
+- Overview of the current runlevel: `rc-status`. Services that
+  crashed: `rc-status --crashed`.
 - Start, stop, restart: `rc-service <service> start|stop|restart`.
 - Enable at boot: `rc-update add <service> default` (`boot` for
   filesystems, logging and the firewall). Disable:
-  `rc-update del <service> <runlevel>`. List: `rc-update show`.
+  `rc-update del <service> <runlevel>`.
 - Scripts live in `/etc/init.d/`, their settings in
   `/etc/conf.d/<service>`. A script owned by a package is replaced
   on upgrade: change the `conf.d` file, not the script.
@@ -269,7 +277,7 @@ Alpine logs through syslog, to `/var/log/messages`:
   which does not survive a reboot: read it with `logread`. The
   buffer holds 16 KB unless `-C<size_kb>` says otherwise, so on a
   busy host it may reach back minutes rather than to the boot:
-  the read-back below prints its oldest line first.
+  the read-back below prints its oldest line.
 - **syslog-ng** or **rsyslog** where installed. Alpine's
   syslog-ng writes `/var/log/messages` as `root:adm` 0640, plus
   `auth.log`, `kern.log` and others; logrotate compresses older
@@ -281,29 +289,42 @@ then names `tmpfs`.
 
 Kernel messages: `dmesg`.
 
+**The syslog stream** is every line the host still keeps of the log
+`logger` writes to, oldest first. Define it once in a call that
+reads it:
+
+```
+syslog_stream() {
+  if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
+  then logread
+  else set -- /var/log/messages.0 /var/log/messages
+    [ -e "$1" ] || shift
+    cat "$@"
+  fi
+}
+```
+
+It exits non-zero, with the reason on stderr, when it could not read
+the log: `logread` without a buffer, or `cat` refused a file.
+
 Hostwarden's journal entries (`rules/changelog.md`) are read back
-from there, both tags (`rules/activity-check.md`), in one call
-that also shows whether a syslog daemon runs:
+from it, both tags (`rules/activity-check.md`), in one call that
+also shows whether a syslog daemon runs:
 
 ```
 rc-status -a | grep syslog
-if grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null
-then logread | head -1; logread | grep -E "hostwarden|heinzel" | tail -20
-elif [ -r /var/log/messages ]; then
-  cat /var/log/messages.0 /var/log/messages 2>/dev/null | head -1
-  grep -hE "hostwarden|heinzel" /var/log/messages.0 \
-    /var/log/messages 2>/dev/null | tail -20
-else echo "messages: not readable"; fi
+syslog_stream | head -1
+syslog_stream | grep -E "hostwarden|heinzel" | tail -20
 date
 ```
 
 This shows the last 20 matches, not a strict 7-day window; the
-`head -1` lines and `date` bound it (`rules/activity-check.md` →
+`head -1` line and `date` bound it (`rules/activity-check.md` →
 How far back it reached).
-`messages: not readable` means the check has not run: as a user
-outside `wheel` (busybox) or `adm` (syslog-ng), run it through
-`doas -n` or `sudo -n`, and otherwise tell the user the activity
-check could not see the log.
+An error from `logread` or `cat` means the check has not run: as a
+user outside `wheel` (busybox) or `adm` (syslog-ng), send the call
+through `doas -n sh -s` or `sudo -n sh -s`, and otherwise tell the
+user the activity check could not see the log.
 
 **`logger` succeeds even when nothing is listening.** Busybox
 `logger` exits 0 whether or not a syslog daemon runs, and the

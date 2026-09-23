@@ -387,8 +387,10 @@ directory.
 
 ## Services and Logs
 
-- Services are systemd units. Ubiquiti documents no unit list, and
-  names differ between releases: find the application's units with
+- Services are systemd units, read with the Enabled services and
+  Service status forms of `rules/os/debian.md` → Service Manager.
+  Ubiquiti documents no unit list, and names differ between
+  releases: find the application's units with
   `systemctl list-units --type=service 'unifi*' 'uos*'` before
   naming one.
 - **Restart nothing Ubiquiti ships.** Applications restart from the

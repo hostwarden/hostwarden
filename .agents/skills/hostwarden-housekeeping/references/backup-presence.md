@@ -97,10 +97,13 @@ Two caveats to carry into the report:
 tmutil destinationinfo
 tmutil latestbackup 2>/dev/null
 tmutil listbackups 2>/dev/null | tail -1
-launchctl list | grep -iE 'backup|arq|restic|ccc'
+P='backup|arq|restic|ccc'; <Enabled services> | grep -iE "$P"
 ls /Applications 2>/dev/null \
   | grep -iE 'arq|carbon copy|backblaze'
 ```
+
+`<Enabled services>` here and under FreeBSD is the loaded OS file's
+Service Manager → Enabled services, with `P` set first.
 
 With `Full disk access: off` in memory, the `tmutil`
 lines are skipped (`rules/os/macos.md` → Privacy
@@ -134,7 +137,7 @@ cat /etc/periodic.conf /etc/periodic.conf.local 2>/dev/null \
   | awk -F= '{ sub(/^[[:space:]]+/, "", $1); v[$1] = $2 }
       END { for (k in v) if (tolower(v[k]) ~ /^["\047]?yes/) print k }' \
   | grep -oiE 'backup|snapshot' | sort | uniq -c
-service -e | grep -iE 'zrepl|sanoid|bacula|bareos'
+P='zrepl|sanoid|bacula|bareos'; <Enabled services> | grep -iE "$P"
 # root's crontab needs root: as a normal user, sudo -n crontab …
 
 # ZFS snapshots, newest last

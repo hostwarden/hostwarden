@@ -502,17 +502,27 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   written` in server memory; a read-back that failed decides
   nothing. The file is not documented as readable by
   administrators; read it with root where the session has it.
-- The activity check reads back, oldest file first so `tail` keeps
-  the newest lines:
+- **The syslog stream** is `/var/log/messages` and its rotations,
+  oldest file first:
   ```
-  for f in $(ls -tr /var/log/messages*); do
-    case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac
-  done | grep -E "hostwarden|heinzel" | tail -20
-  f=$(ls -tr /var/log/messages* | head -1)
-  case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac | head -1
+  syslog_stream() {
+    L=$(ls -tr /var/log/messages*) || return
+    for f in $L; do
+      case $f in *.gz) zcat "$f" ;; *.xz) xzcat "$f" ;; *) cat "$f" ;; esac \
+        || return
+    done
+  }
+  ```
+  It exits non-zero, with the reason on stderr, when a file could
+  not be listed or read.
+- The activity check reads back, so that `tail` keeps the newest
+  lines:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   date
   ```
-  The second part and `date` bound the result
+  The `head -1` line and `date` bound the result
   (`rules/activity-check.md` → How far back it reached). An error,
   a permission denied included, means the check did not run.
 

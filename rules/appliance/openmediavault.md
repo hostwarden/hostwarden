@@ -370,7 +370,9 @@ under `deb/openmediavault/` there).
   list, or monitoring turned off.
 - **Pending updates:** `apt-get -s --auto-remove dist-upgrade`,
   and
-  `conf.system.apt.updates` for unattended upgrades.
+  `conf.system.apt.updates` for unattended upgrades. They replace
+  the Linux baseline's Pending Security Updates and Automatic
+  Security Updates.
 - **Notifications:** check whether mail is set up without printing
   the SMTP password:
   ```

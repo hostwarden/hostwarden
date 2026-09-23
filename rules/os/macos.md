@@ -104,6 +104,14 @@ Rules for macOS (Apple Silicon and Intel).
 ## Service Manager
 
 - macOS uses `launchd` / `launchctl`, not systemd.
+- **Enabled services:** `launchctl list` prints the jobs loaded in
+  the caller's domain, one per line: PID (`-` when not running),
+  last exit status, label. As root, or with `sudo -n`, that is the
+  system daemons; as a user, only that user's agents.
+- **Service status:** `launchctl list <label>` prints the job with
+  a `"PID"` line while it runs, and exits non-zero when no such job
+  is loaded; a system daemon needs `sudo -n`. A Homebrew service
+  also answers `brew services info <name>`.
 - Plist locations:
   - System daemons: `/Library/LaunchDaemons/`
   - System agents: `/Library/LaunchAgents/`

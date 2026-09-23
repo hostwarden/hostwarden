@@ -359,8 +359,11 @@ never replaces it.
 
 ## Replace: Service Manager
 
-- `systemctl status`, `journalctl -u` and `systemctl is-active` are
-  fine for reading.
+- **Enabled services:** `systemctl list-unit-files --no-legend`, as
+  on Debian, for reading; `midclt call service.query` below is the
+  middleware's view of the services it manages.
+- **Service status:** `systemctl is-active <unit>`.
+- `systemctl status` and `journalctl -u` are fine for reading.
 - **Start, stop, reload and restart services through the
   middleware**, which renders their config first:
   `midclt call service.query` lists them with `enable` and `state`;
@@ -580,7 +583,9 @@ never replaces it.
   - **SMART**: TrueNAS polls SMART itself and reports trouble
     through alerts. Read `smartctl -a /dev/<disk>` only when an
     alert names a disk.
-  - **Pending update** and a pending reboot (see Updates).
+  - **Pending update** and a pending reboot (see Updates). They
+    replace the Linux baseline's Pending Security Updates and
+    Automatic Security Updates.
   - **Snapshot and replication tasks**: `state` is an object; a
     task whose `state.state` is `ERROR` is WARN, reported with
     `state.error` and `state.datetime`. Pools with data and no

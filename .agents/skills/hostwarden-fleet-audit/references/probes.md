@@ -45,12 +45,16 @@ only the other families have is `n/a (macOS)`.
 On FreeBSD, every probe below has a **FreeBSD** variant that
 replaces it, and `rules/os/freebsd.md` is the reference for what
 the commands print. Open the FreeBSD bundle with the privilege
-prefix, so `$SUDO` is set for every probe, and with
-`SVC=$(service -e)`, which the variants grep instead of calling
-`service -e` again. On an appliance, `service -e` misses the
-services the vendor starts itself: take the time daemon and the
-MTA from its `## Housekeeping and Audits` section instead. A key
-only the other family has is `n/a (FreeBSD)`
+prefix, so `$SUDO` is set for every probe, and with the loaded OS
+file's Service Manager → Enabled services, kept for the variants to
+grep:
+
+```bash
+P='^(openssh|ntpd|chronyd|openntpd|sendmail|postfix|smtpd|exim)_enable$'
+SVC=$(<Enabled services listing>)
+```
+
+A key only the other family has is `n/a (FreeBSD)`
 (`references/output-format.md`). Rows and verdicts match the
 housekeeping baseline,
 `.agents/skills/hostwarden-housekeeping/references/baseline-freebsd.md`.
@@ -218,8 +222,8 @@ is a nested group). Hosts that differ are drift.
 
 **FreeBSD** runs the probe with `sshd` replaced by the full path
 of the one `rules/os/freebsd.md` → sshd says is enabled
-(`/usr/local/sbin/sshd` when `$SVC` lists
-`/usr/local/etc/rc.d/openssh`). A FreeBSD host that
+(`/usr/local/sbin/sshd` when `$SVC` has
+`openssh_enable="YES"`). A FreeBSD host that
 accepts passwords by `.agents/skills/hostwarden-security/references/ssh.md`
 next to hosts that do not is drift.
 
@@ -440,15 +444,18 @@ unit. Never propose installing an MTA on a Mac
 
 ```bash
 awk '$1 == "sendmail" {print $2}' /etc/mail/mailer.conf
-echo "$SVC" | grep -E '/(sendmail|postfix|smtpd|exim)$' \
-  | while read -r s; do "$s" status; done
+echo "$SVC" \
+  | sed -nE 's/^(sendmail|postfix|smtpd|exim)_enable="[Yy][Ee][Ss]"$/\1/p' \
+  | while read -r s; do <Service status> "$s"; done
 hostname -f
 ```
 
 The `mailer.conf` target — the program path only, never the
 arguments, which can carry a credential — stands in for the
-package and the symlink. An enabled rc script is the active unit only when its
-`status` says it is running; enabled but stopped is drift.
+package and the symlink. An enabled MTA is the active unit only
+when its Service status (`<Service status>`, from the loaded OS
+file's Service Manager) says it is running; enabled but stopped is
+drift.
 
 ## 5. Network
 
@@ -575,7 +582,7 @@ link target. The clock offset is housekeeping's
 **FreeBSD** has no `timedatectl`:
 
 ```bash
-echo "$SVC" | grep -E '/(ntpd|chronyd|openntpd)$'
+echo "$SVC" | grep -E '^(ntpd|chronyd|openntpd)_enable="[Yy][Ee][Ss]"'
 ntpq -pn 2>/dev/null | grep '^\*'
 chronyc tracking 2>/dev/null | grep '^Leap status'
 ntpctl -s status 2>/dev/null

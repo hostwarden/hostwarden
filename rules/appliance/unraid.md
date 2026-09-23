@@ -89,10 +89,10 @@ repositories on GitHub where the docs are silent.
   and no automatic OS update. Pending updates are the finding (see
   Updates).
 - **systemd and the journal.** Services are Slackware rc scripts in
-  `/etc/rc.d/`, generated from settings on the boot device. Read
-  their state with `/etc/rc.d/rc.<name> status`; change a service's
-  settings on the web UI page that owns it. `rules/service-reload.md`
-  still decides when to ask.
+  `/etc/rc.d/`, generated from settings on the boot device. Service
+  status: `/etc/rc.d/rc.<name> status`. There is no Enabled
+  services listing. Change a service's settings on the web UI page
+  that owns it. `rules/service-reload.md` still decides when to ask.
 
 ## Configuration
 
@@ -401,19 +401,25 @@ security audit reads from files.
   (<https://docs.unraid.net/unraid-os/troubleshooting/diagnostics/capture-diagnostics-and-logs/>).
   Do not turn it on for Hostwarden's sake.
 - `logger -t hostwarden` lands in `/var/log/syslog`
-  (`rules/changelog.md`). The activity check reads back, oldest file
-  first so `tail` keeps the newest lines, and takes the rotated
-  `syslog.1` along where it exists:
+  (`rules/changelog.md`). **The syslog stream** is that file, after
+  the rotated `syslog.1` where it exists:
   ```
-  for f in /boot/logs/syslog-previous /var/log/syslog.1 /var/log/syslog; do
-    [ -e "$f" ] && grep -hE "hostwarden|heinzel" "$f"
-  done | tail -20
-  for f in /var/log/syslog.1 /var/log/syslog; do
-    [ -e "$f" ] && { head -1 "$f"; break; }
-  done
+  syslog_stream() {
+    set -- /var/log/syslog.1 /var/log/syslog
+    [ -e "$1" ] || shift
+    cat "$@"
+  }
+  ```
+  The activity check reads back, oldest file first so `tail` keeps
+  the newest lines, with the mirror's `syslog-previous` in front of
+  the stream:
+  ```
+  { [ ! -e /boot/logs/syslog-previous ] || cat /boot/logs/syslog-previous
+    syslog_stream; } | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   date
   ```
-  The second loop and `date` bound the result
+  The `head -1` line and `date` bound the result
   (`rules/activity-check.md` → How far back it reached).
   `/var/log/syslog` and `syslog.1` reach back at most to the boot,
   less once rotation has dropped older files. `syslog-previous`

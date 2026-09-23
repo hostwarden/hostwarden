@@ -200,13 +200,14 @@ writers.
 ## Ansible runs
 
 Read Ansible's module runs in the same call as the journal, with the
-same privileges. With systemd, Ansible logs them with the field
-`MODULE=basic.py`, or under the identifier `ansible-<module>` where
-the host lacks Python's systemd bindings; both are looked up in the
-journal's index, never by scanning it. Without systemd, the syslog
-fallback writes the identifier to `/var/log/messages` (FreeBSD,
-Alpine), or to busybox's ring buffer where Alpine's `syslogd` runs
-with `-C` (`rules/os/alpine.md` → Logs):
+same privileges, from the same source as the read-back above. Where
+the loaded OS file's `## Logs` section defines the syslog stream,
+Ansible's syslog fallback has written the identifier
+`ansible-<module>` there, and the call defines `syslog_stream` as
+that section gives it. Otherwise, with systemd, Ansible logs its runs
+with the field `MODULE=basic.py`, or under the identifier
+`ansible-<module>` where the host lacks Python's systemd bindings;
+both are looked up in the journal's index, never by scanning it:
 
 ```
 S='
@@ -227,20 +228,16 @@ S='
     if (bad) print "check failed: " bad " lines were not log entries"
     else if (n) print n " module runs, " f " to " l ", last " lm
   }'
-if [ -d /run/systemd/system ]; then
+if command -v syslog_stream >/dev/null 2>&1; then
+  { syslog_stream 2>&1 || echo "syslog stream not read"; } \
+    | grep -e " Invoked with " -e "^syslog stream not read" | awk "$S"
+elif [ -d /run/systemd/system ]; then
   ids=$(journalctl -F SYSLOG_IDENTIFIER 2>&1 \
     | sed -n 's/^\(ansible-[A-Za-z0-9_.]*\)$/SYSLOG_IDENTIFIER=\1/p')
   journalctl --since "7 days ago" --no-pager -q -o short-iso \
     MODULE=basic.py ${ids:++} $ids 2>&1 | awk "$S"
-elif grep -q "^SYSLOGD_OPTS=.*-C" /etc/conf.d/syslog 2>/dev/null; then
-  { logread 2>&1 || echo "logread failed"; } \
-    | grep -e " Invoked with " -e "logread failed" | awk "$S"
-elif [ -f /var/log/messages ]; then
-  for f in /var/log/messages.0 /var/log/messages; do
-    [ -f "$f" ] && grep -h " Invoked with " "$f"
-  done 2>&1 | awk "$S"
 else
-  echo "not read: no journal and no /var/log/messages"
+  echo "not read: no syslog stream and no journal"
 fi
 ```
 
@@ -253,9 +250,12 @@ identifiers made of letters, digits, dots and underscores become
 matches, since any process can write an identifier and an unquoted
 one with spaces would turn into options.
 `+` joins the two kinds of match, so the entries come in time order.
-A `check failed:` line means the read did not run. `not read:` —
-macOS — is worth saying only when the host's
-memory has a `Config management: ansible` line.
+A stream that could not be read adds `syslog stream not read`,
+which is counted the same way, since its own error lines are
+filtered out with every other line that is not a run. A
+`check failed:` line means the read did not run. `not read:` —
+macOS, and an appliance without either — is worth saying only when
+the host's memory has a `Config management: ansible` line.
 
 Report the line as activity. A last run inside the last 15 minutes
 may still be going on: treat it like a live Heinzel entry above

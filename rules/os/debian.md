@@ -309,6 +309,12 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-
 ## Service Manager
 
 - `systemctl` (systemd)
+- **Enabled services:** `systemctl list-unit-files --no-legend`
+  prints every unit file with its state; `enabled` marks one that
+  starts at boot. It reads unit files, not services, and is cheap
+  enough for every connection.
+- **Service status:** `systemctl is-active <unit>` prints `active`
+  and exits 0 while the unit runs.
 - Check service: `systemctl status <service>`
 - Logs: `journalctl -u <service>`
 

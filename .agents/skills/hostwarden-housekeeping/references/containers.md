@@ -10,9 +10,7 @@ their findings. Everything here reads; nothing prunes, pulls,
 restarts or updates.
 
 **The appliance file wins** (`rules/containers.md`): use the engine
-binary it names and leave out the checks it excludes. On Home
-Assistant OS this file does not run: `ha` is the check
-(`rules/appliance/haos.md`).
+binary it names and leave out the checks it excludes.
 
 ## Probe
 

@@ -367,11 +367,16 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
 - `logger -t hostwarden` uses facility `user`, which
   `/etc/rsyslog.d/xenserver.conf` routes to `/var/log/user.log`
   (<https://github.com/xcp-ng/xcp-ng-release/blob/8.3/src/common/etc/rsyslog.d/xenserver.conf>).
-  Keep `logger`'s default facility. The activity check reads it
-  back, oldest file first so the last matches are the newest:
+  Keep `logger`'s default facility. **The syslog stream** is that
+  file and its rotations, oldest file first:
   ```
-  zcat -f $(ls -tr /var/log/user.log*) | grep -E "hostwarden|heinzel" | tail -20
-  zcat -f $(ls -tr /var/log/user.log* | head -1) | head -1
+  syslog_stream() { L=$(ls -tr /var/log/user.log*) && zcat -f $L; }
+  ```
+  The activity check reads it back, so that the last matches are
+  the newest:
+  ```
+  syslog_stream | grep -E "hostwarden|heinzel" | tail -20
+  syslog_stream | head -1
   date
   ```
 - On some Dell servers the installer creates no separate `/var/log`
@@ -396,7 +401,9 @@ Source: <https://docs.xcp-ng.org/management/backup/>.
 
 ## Housekeeping and Audits
 
-- **Pending updates:** `yum check-update -q`; they are the finding.
+- **Pending updates:** `yum check-update -q`; they are the finding,
+  and replace the Linux baseline's Pending Security Updates and
+  Automatic Security Updates.
   It exits 100 when updates are pending and 0 when none are; only
   another code is a failed check.
   Xen Orchestra reads the same list through the `updater.py`

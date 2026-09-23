@@ -43,7 +43,9 @@ only the `ps` and `ls` lines run, to keep its owners current:
 for rt in docker podman nerdctl; do
   command -v "$rt" >/dev/null 2>&1 && "$rt" --version 2>&1
 done
-systemctl is-active docker podman.socket containerd 2>/dev/null
+for s in docker podman.socket containerd; do
+  echo "$s: $(<Service status> "$s" 2>/dev/null)"
+done
 ps -C conmon,rootlesskit -o user= 2>/dev/null | sort -u
 getent passwd | awk -F: '{print $6}' | sort -u | while read -r h; do
   ls -d "$h/.local/share/containers" "$h/.local/share/docker" \
@@ -51,9 +53,10 @@ getent passwd | awk -F: '{print $6}' | sort -u | while read -r h; do
 done
 ```
 
-On Alpine, `rc-service docker status` replaces the `systemctl` line,
-and busybox `ps` has no `-C`: `ps -o user,comm | grep -E
-'conmon|rootlesskit'` reads the same (`rules/busybox.md`).
+`<Service status>` is the loaded OS file's Service Manager →
+Service status. On Alpine, busybox `ps` has no `-C`:
+`ps -o user,comm | grep -E 'conmon|rootlesskit'` reads the same
+(`rules/busybox.md`).
 
 - `docker --version` answering `podman version …` is the
   `podman-docker` shim: treat the host as Podman.
