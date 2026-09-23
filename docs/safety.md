@@ -27,7 +27,9 @@ under pressure.
   repair and destroy (`fsck`, `btrfs rescue`,
   `mdadm --create`, `lvremove`, `zpool destroy`, a ZFS
   rewind, …), deleting
-  or overwriting SSH keys, writes to `sshd_config`
+  or overwriting SSH keys, deleting, moving or
+  re-permissioning sshd's revocation list, writes to
+  `sshd_config`
   or to dropbear's configuration, and their Windows
   counterparts, over SSH or under WSL (`diskpart`,
   `Format-Volume`, `bcdedit /set`, `shutdown /s`,
