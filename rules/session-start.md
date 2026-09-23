@@ -79,14 +79,18 @@ reserved before it is used: add its line, commit that file alone
 (`bin/hostwarden-sync commit "Operator: <handle>"
 memory/operators.md`) and push it (`rules/changelog.md` → The
 Workspace). A push the remote turns down means someone else pushed
-first: pull, and check the list again. Where the user declines the
-push, say that the handle is not reserved until a later push
-carries it.
+first: pull, check the list again, and push again.
 
-Then write `Operator: <handle>` under `# Preferences` in
-`memory/user.md`, creating the file or the heading where it lacks
-them. An `Operator:` line the user wrote themselves that the list
-lacks is reserved the same way, without a question.
+Only once a push has carried the reservation to the remote, write
+`Operator: <handle>` under `# Preferences` in `memory/user.md`,
+creating the file or the heading where it lacks them. Where the
+user declines the push or it cannot get through, write nothing
+there and say so: the session records `user` until then, and the
+next one asks again. A handle the list already holds as theirs,
+their own unpushed reservation included, still needs the list on
+the remote to carry it before it is written. An `Operator:` line
+the user wrote themselves that the list lacks is reserved the same
+way, without a question.
 
 ## What not to ask
 

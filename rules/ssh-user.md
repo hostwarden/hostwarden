@@ -162,10 +162,12 @@ prefix, a decision's `Decided:`, a `Planned:` line.
   (`rules/server-memory.md` → Personal versus
   shared): the line is required, one handle per
   teammate, reserved in the shared
-  `memory/operators.md`. Where teammates share a login such as
-  `root`, `<unix-user>` cannot tell them apart; the
-  handle does. Where it is missing,
-  `rules/session-start.md` asks for it.
+  `memory/operators.md`. Where teammates share a
+  login such as `root`, `<unix-user>` cannot tell
+  them apart; the handle does. Where it is missing,
+  `rules/session-start.md` asks for it and reserves
+  it; until the reservation reaches the remote,
+  `<operator>` is `user`.
 - **Solo** — no remote: the line is optional. Where
   it is missing, `<operator>` is `user`.
 
