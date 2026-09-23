@@ -132,10 +132,10 @@ unless it changed:
   longer shows Heinzel entries.
 - `privileged paths unread` — this session can read
   them, through sudo or as root.
-- `answered at registration: …` — this session
-  reached the guest over its own SSH
-  (`rules/heinzel-adoption.md` → A host and its
-  guests).
+- `answered at registration: …` — this session may
+  change the guest: any connection other than a
+  registration (`rules/heinzel-adoption.md` → A host
+  and its guests).
 - any reason — the user asks, or the recorded date is
   more than 90 days old.
 

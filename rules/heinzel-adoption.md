@@ -60,14 +60,10 @@ lead, and leave Hostwarden's files alone.
 ## A host and its guests
 
 When a hypervisor host registers its guests in the
-same session (`rules/hypervisors.md` → Registering
-Guests), the host's finds and every registered
-guest's make one report and one question, not one
-per machine. Hold the host's question until
-registration is done and its report is out. The
-report groups the finds by machine, the host first,
-each guest under its memory directory; a machine
-without finds is not listed:
+same session, the host's finds and every registered
+guest's make one report and one question, asked where
+`rules/hypervisors.md` → Registering Guests places
+it. A machine without finds is not listed:
 
 ```
 heinzel state on pve1.example.com and 3 of its guests:
@@ -81,19 +77,17 @@ heinzel state on pve1.example.com and 3 of its guests:
     heinzel entries in the journal, last 3 days ago
 ```
 
-Ask in the picker form of `rules/service-reload.md`
-→ Prompt Shape When Asking, where one answer covers
-every machine listed or the user answers per
-machine. Whether Heinzel still runs is one question
-for all of them: the answer holds for each machine
-it was given for, and each one's memory records its
+One answer covers every machine listed, or the user
+answers per machine, as in `rules/hypervisors.md` →
+Stopped Guests; whether Heinzel still runs is asked
+once the same way. Each machine's memory records its
 own outcome line (Record, below).
 
-Adopting changes a machine. On the host it runs now.
-Registration never changes a guest, so a guest keeps
-the answer as a deferral that names it. Its first
-SSH connection asks again, for that guest alone, with
-the recorded answer as the recommended one:
+On the host, adoption runs now. A guest keeps the
+answer as a deferral, since registration never
+changes it. Its next connection that may change it
+asks again, for that guest alone, with the recorded
+answer as the recommended one:
 
 ```markdown
 - heinzel legacy: deferred 2026-09-20 (answered at registration: adopt)

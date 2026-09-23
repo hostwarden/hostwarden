@@ -213,8 +213,8 @@ Hard ceilings:
 - Answer to a question: 3 lines.
 - Result of an action: 1 line.
 - Email body: the report block, plus at most 5 lines around it.
-- Findings: the format from the skill, nothing added before or after
-  it.
+- Findings or a report: the format of the skill or rule that defines
+  one, nothing added before or after it.
 - Recommendations: one line each, at most 3, and only when something
   is actually wrong.
 
