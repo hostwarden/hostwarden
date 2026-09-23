@@ -104,6 +104,8 @@ Rules for macOS (Apple Silicon and Intel).
 ## Service Manager
 
 - macOS uses `launchd` / `launchctl`, not systemd.
+- Reading the `system` domain needs no root: `man launchctl`
+  lets anyone read or query it and reserves changes to root.
 - **Enabled services:** the services block of
   `launchctl print <domain>`, one job per line: PID (`0` when not
   running), last exit status (`-` before its first exit), label.
@@ -117,9 +119,14 @@ Rules for macOS (Apple Silicon and Intel).
   launchctl print <domain> | awk '/^\tservices = \{/ {s = 1; next}
     s && /^\t\}/ {exit} s {n++; print} END {exit !n}'
   ```
-- **Service status:** `launchctl print <domain>/<label>` exits 0
-  while the job is loaded, and prints `state = running` while it
-  runs: `| awk '$1 == "state" {print $3; exit}'` keeps the word.
+- **Service status:** exits 0 while the job is loaded, a status
+  `launchctl` sets and not its text, which is no API. It prints
+  only the job's `state` (`running` while it runs), `pid` and
+  `last exit code`:
+  ```
+  J=$(launchctl print <domain>/<label>) && printf '%s\n' "$J" |
+    awk '/^\t(state|pid|last exit code) = / {sub(/^\t/, ""); print}'
+  ```
   A bare name is a `system` label. A Homebrew service also answers
   `brew services info <name>`.
 - Plist locations:

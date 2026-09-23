@@ -430,14 +430,13 @@ Highlight as drift:
 **macOS** ships Postfix, which launchd starts on demand, so
 compare whether its job is loaded, not whether it runs; only the
 exit status of `launchctl print` counts, its output is not a
-stable interface. An empty relay host means direct delivery.
+stable interface. The read needs no root (`rules/os/macos.md` →
+Service Manager). An empty relay host means direct delivery.
 
 ```bash
 ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
 postconf -h relayhost 2>/dev/null | sed "s/^/relayhost=/"
-if [ "$SUDO" = "-" ]; then
-  echo "loaded=unknown(needs-root)"
-elif $SUDO launchctl print system/com.apple.postfix.master >/dev/null 2>&1; then
+if launchctl print system/com.apple.postfix.master >/dev/null 2>&1; then
   echo "loaded=yes"
 else
   echo "loaded=no"
