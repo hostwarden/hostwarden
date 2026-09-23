@@ -21,7 +21,7 @@ one has to log in by hand first.
   `# <date> <names>: <source>`. The sources are the ones
   Getting a Key and DNS Aliases below name:
   `pct exec 105 on pve1.example.com`,
-  `imported from ~/.ssh/known_hosts on <workstation>`,
+  `imported from <files> on <workstation>`,
   `first use`, `console (user)`, `alias of web1.example.com`.
 - **Written by a command, never typed.** A key copied out of
   the conversation by hand is one wrong character away from
@@ -118,18 +118,33 @@ call and commits once.
 The files `ssh -G <user>@<host>`, run without `-F`, names on its
 `userknownhostsfile` and `globalknownhostsfile` lines: the
 user's own configuration, so these keys are the trust the user
-already had on this machine. Read each file with `ssh-keygen -F`
-only:
+already had on this machine. Read every one of them with
+`ssh-keygen -F` only, one lookup per file, each appending to the
+cache file: ssh checks a host against all of them together, and a
+`@revoked` line in one refuses a key another holds. In one call,
+empty the cache file first, since an interrupted option 2 below
+can leave an unverified key in it; then give each file its own
+lookup on its own line, never chained with `&&`, since `grep`
+fails on a file without the host and would skip the rest, and
+print the cache file's line count after each. A count that grows
+names a file that gave lines; a missing file prints
+`Cannot stat` and gives none. For the two default user files:
 
 ```bash
-ssh-keygen -F web1.example.com -f ~/.ssh/known_hosts |
-  grep -v -e '^#' -e '^@cert-authority' \
-  > ~/.cache/hostwarden/hostkey.web1.example.com
+f=~/.cache/hostwarden/hostkey.web1.example.com
+: > "$f"
+ssh-keygen -F web1.example.com -f ~/.ssh/known_hosts 2>/dev/null |
+  grep -v -e '^#' -e '^@cert-authority' >> "$f"
+wc -l < "$f"
+ssh-keygen -F web1.example.com -f ~/.ssh/known_hosts2 2>/dev/null |
+  grep -v -e '^#' -e '^@cert-authority' >> "$f"
+wc -l < "$f"
 ```
 
 Then append as in source 1, with
-`imported from ~/.ssh/known_hosts on <workstation>` as the
-source, where `<workstation>` is `hostname -s`. No question; say
+`imported from <files> on <workstation>` as the source, where
+`<files>` are the files that gave lines, comma-separated, and
+`<workstation>` is `hostname -s`. No question; say
 in one line what was imported. A hashed line stays hashed and
 still matches, and a `@revoked` line comes along as it is. A
 `@cert-authority` line, which the filter above leaves out, trusts
@@ -185,11 +200,12 @@ ssh -F "/srv/hostwarden/memory/ssh_config" \
   -o StrictHostKeyChecking=accept-new -o HashKnownHosts=no \
   -o PreferredAuthentications=none -o ForwardAgent=no \
   -o ClearAllForwardings=yes \
-  root@web1.example.com true
+  alice@web1.example.com true
 ssh-keygen -lf ~/.cache/hostwarden/hostkey.web1.example.com
 ```
 
-This is option 2's call: until the fingerprints match, the host
+It logs in as the user being looked up, never as root in its
+place. This is option 2's call: until the fingerprints match, the host
 gets no key, no agent and no forwarding, and the call ends in
 `Permission denied`, as it should. That is one failed login
 (`rules/ssh-connections.md` → Avoid failed logins): once per host,

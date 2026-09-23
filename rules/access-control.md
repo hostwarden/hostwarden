@@ -36,7 +36,9 @@ match):
    check). In `memory/readonly.md`, is `*` listed?
 2. Is the target hostname, or the name
    `rules/dns-aliases.md` → Detection step 1 maps it
-   to, listed?
+   to, listed? The target is the name without a port
+   the user wrote with it (`rules/ssh-config.md` → A
+   Port the User Names).
 3. Resolve the target's IP(s)
    (`rules/dns-aliases.md` → Detection step 1).
    Is a resolved IP listed?

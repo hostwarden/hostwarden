@@ -47,8 +47,8 @@ remote machines happens over SSH.
 ### Local mode
 
 When the target is `localhost`, the user's own hostname, or
-otherwise clearly the local machine, Hostwarden operates in **local
-mode**:
+otherwise clearly the local machine, with no port written after it,
+Hostwarden operates in **local mode**:
 
 - **No SSH.** Commands run directly in the shell.
 - **No user prompt.** Use the current OS user.

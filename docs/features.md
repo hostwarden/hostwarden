@@ -40,8 +40,12 @@ not in it gets its key in this order:
    (`pct exec`, `qm guest exec`, `incus exec`, …) has
    its key read inside. Registering a hypervisor's guests
    and creating a new one record their keys this way.
-2. **From your own `~/.ssh/known_hosts`**, imported
-   with a note saying so.
+2. **From the known_hosts files your own ssh reads**
+   (`~/.ssh/known_hosts`, the system-wide
+   `/etc/ssh/ssh_known_hosts` and any others your ssh
+   configuration names), imported with a note saying
+   so. Keys an administrator put in the system-wide
+   file reach the workspace this way too.
 3. **Otherwise it asks:** accept the key on first use,
    compare it with the fingerprint you read at the
    console, or stop.
@@ -86,6 +90,15 @@ out whole until the line is fixed. SSH usernames stay
 in `memory/user.md`, which is personal. A jump host
 gets the same host-key check and shared connection as
 the server behind it.
+
+A port you give with the host — `web1.example.com:2222`,
+`ssh://alice@web1.example.com:2222` or `-p 2222` —
+becomes such a block. When port 22 of a new server
+refuses the connection, Hostwarden tries the ports you
+list as `Alternative SSH ports:` in `memory/user.md`,
+and 2222 where your known_hosts has a key for it,
+those with a key first; then it asks. It never scans for a port, and after a
+timeout it tries no other port on its own.
 
 Port forwardings are never stored. A session that
 needs one opens it on its own connection and closes it

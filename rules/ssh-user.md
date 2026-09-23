@@ -10,7 +10,11 @@ The file has two parts for SSH users:
   entries.
 
 Beside them, under `# Preferences`, it holds the
-language and the operator handle (both below).
+language and the operator handle (both below), and
+under `# SSH Ports` an optional
+`Alternative SSH ports: 52222, 2222` line: the ports
+the user runs sshd on instead of 22, in the order
+`rules/ssh-config.md` → Finding the Port tries them.
 
 ## Interview format
 
