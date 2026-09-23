@@ -69,9 +69,12 @@ file's interview format:
 *"Which short handle should Hostwarden record as yours? It goes
 into the journal of every server you change and into the shared
 workspace, so initials or a code will do."* Offer the current OS
-user and `Other…`. Write the answer as `Operator: <handle>` under
-`# Preferences` in `memory/user.md`, creating the file or the
-heading where it lacks them.
+user where it fits the handle's format, and `Other…`. Where
+`[<handle> as ` already stands in a `changelog.log` under
+`memory/servers/`, ask whether those entries are theirs; if not,
+the handle is taken. Write the answer as `Operator: <handle>`
+under `# Preferences` in `memory/user.md`, creating the file or
+the heading where it lacks them.
 
 ## What not to ask
 

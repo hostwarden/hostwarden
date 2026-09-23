@@ -124,11 +124,13 @@ Layers).
    - the hostname and the SSH user, and for a via-host
      guest its `Mode: via` and `Runs on:` lines;
    - which probe categories to run, and the journal line
-     from step 6. Not the probe commands: the agent reads
-     `references/probes.md` itself, and a fleet of a dozen
-     hosts would otherwise carry the same 8 KB thirteen
-     times — once here and once per prompt — for commands
-     this session never runs;
+     from step 6 with its prefix filled in
+     (`rules/changelog.md` → Entry format). Not the probe
+     commands: the agent reads `references/probes.md`
+     itself, and a fleet of a dozen hosts would otherwise
+     carry the same 8 KB thirteen times — once here and
+     once per prompt — for commands this session never
+     runs;
    - **that its row comes back keyed** by the row keys
      `references/probes.md` lists, which the agent reads
      there. Agents told only "return the structured row"
@@ -215,7 +217,8 @@ Layers).
 
 6. **Log to the system journal** on each audited host:
 
-       logger -t hostwarden "fleet-audit: read-only policy probe"
+       logger -t hostwarden \
+         "[<operator> as <unix-user>] fleet-audit: read-only policy probe"
 
    (One line per host — this is an audit trail, not a
    change record.) It rides the probe call from step 3 —

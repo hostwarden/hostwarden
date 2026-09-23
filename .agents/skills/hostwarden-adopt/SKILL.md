@@ -96,11 +96,10 @@ leads, the host confirms them.
    keeps this clone's version of anything that already holds user
    data and says so; `--list` shows the plan without copying. A
    `user.md` of this clone's own is the exception: it gains the lines
-   it lacks — language, operator name and handle, per-server
-   SSH users — and a
-   key the two set differently is kept here and reported. Put each
-   of those to the user in the report; change `user.md` only on
-   their answer.
+   it lacks — language, operator name and handle, per-server SSH
+   users — and a key the two set differently is kept here and
+   reported. Put each of those to the user in the report; change
+   `user.md` only on their answer.
 
    **Host by host** if the user wants to move gradually:
    `--server <host>` (repeatable) takes single hosts,
