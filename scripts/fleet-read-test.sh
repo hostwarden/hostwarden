@@ -69,45 +69,47 @@ rc=$?
 [ -e "$TMP/ran" ] && ok || bad "a signed bundle did not run"
 grep -qx ran "$TMP/out" && ok || bad "a signed bundle's output was lost"
 
-# rejected <what> — the last collect refused, and nothing ran.
-rejected() {
+# refused <what> — the command just before refused, and nothing
+# ran.
+refused() {
+  rc=$?
   if [ "$rc" = 1 ] && [ ! -e "$TMP/ran" ]; then ok
   else bad "$1 was not refused (rc $rc)"; fi
 }
 
 cp "$TMP/in" "$TMP/tampered"
 echo 'echo extra' >>"$TMP/tampered"
-collect "$TMP/tampered"; rc=$?; rejected "a changed bundle"
+collect "$TMP/tampered"; refused "a changed bundle"
 
 bundle "$B" 2999-12-31
 sign other fleet-read "$B" && input "$B"
-collect "$TMP/in"; rc=$?; rejected "a bundle signed by an unlisted key"
+collect "$TMP/in"; refused "a bundle signed by an unlisted key"
 
 sign good other-namespace "$B" && input "$B"
-collect "$TMP/in"; rc=$?; rejected "a signature for another namespace"
+collect "$TMP/in"; refused "a signature for another namespace"
 
-collect "$B"; rc=$?; rejected "an unsigned bundle"
+collect "$B"; refused "an unsigned bundle"
 
 bundle "$B" 2000-01-01
 sign good fleet-read "$B" && input "$B"
-collect "$TMP/in"; rc=$?; rejected "an expired bundle"
+collect "$TMP/in"; refused "an expired bundle"
 grep -q 'expired' "$TMP/err" && ok || bad "expiry was not named"
 
 bundle "$B" ''
 sign good fleet-read "$B" && input "$B"
-collect "$TMP/in"; rc=$?; rejected "a bundle without valid-until"
+collect "$TMP/in"; refused "a bundle without valid-until"
 
 bundle "$B" 2999-12-31
 sign good fleet-read "$B"
 cp "$B.sig" "$TMP/in"
-collect "$TMP/in"; rc=$?; rejected "a signature without a bundle"
+collect "$TMP/in"; refused "a signature without a bundle"
 head -n 3 "$B.sig" >"$TMP/in"
 cat "$B" >>"$TMP/in"
-collect "$TMP/in"; rc=$?; rejected "an unterminated signature"
+collect "$TMP/in"; refused "an unterminated signature"
 
 input "$B"
 head -c 300000 /dev/zero | tr '\0' '#' >>"$TMP/in"
-collect "$TMP/in"; rc=$?; rejected "input over the size limit"
+collect "$TMP/in"; refused "input over the size limit"
 
 # Nothing is left in the temporary directory's parent.
 before=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'tmp.*' 2>/dev/null | wc -l)
@@ -117,11 +119,6 @@ after=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'tmp.*' 2>/dev/null | wc -l)
 [ "$before" = "$after" ] && ok || bad "collect left its temporary directory"
 
 # --- the command line -----------------------------------------
-refused() {
-  rc=$?
-  if [ "$rc" = 1 ] && [ ! -e "$TMP/ran" ]; then ok
-  else bad "$1 was not refused (rc $rc)"; fi
-}
 input "$B"
 for cmd in 'collect x' 'collect;id' 'sh' '' 'log collect'; do
   rm -f "$TMP/ran"

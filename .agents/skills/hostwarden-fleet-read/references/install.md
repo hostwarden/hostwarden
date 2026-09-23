@@ -47,12 +47,8 @@ artifact, registered first (`rules/parallel-sessions.md`):
 - `/etc/fleet-read/allowed_signers`, from
   `files/etc/fleet-read/allowed_signers`, mode 644, owned by root.
 
-`/etc/fleet-read/` is created first with `install -d -m 755`. The
-group is `wheel` on FreeBSD and macOS. Both land in the host's
-`deployed.md` with the source `fleet/fleet-read`.
-
-Several hosts in one request are one list the user approves at
-once; each is still its own change, with its own pipeline run.
+`/etc/fleet-read/` is created first with `install -d -m 755`. Both
+land in the host's `deployed.md` with the source `fleet/fleet-read`.
 
 ## 3. The operations host's name and address
 

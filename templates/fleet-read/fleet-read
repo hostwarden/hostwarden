@@ -83,9 +83,8 @@ collect)
   [ "$(date -u +%Y%m%d)" -le "$(echo "$UNTIL" | tr -d -)" ] \
     || fail "bundle expired on $UNTIL"
   cd /
-  RC=0
-  sh "$DIR/bundle" </dev/null || RC=$?
-  exit "$RC"
+  # set -e passes the bundle's exit status on; the trap cleans up.
+  sh "$DIR/bundle" </dev/null
   ;;
 log)
   LINE=$(head -c 1024 | head -n 1 | LC_ALL=C tr -cd '[:print:]' \

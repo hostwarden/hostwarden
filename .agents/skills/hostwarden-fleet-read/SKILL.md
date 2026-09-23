@@ -89,18 +89,11 @@ user agrees.
 
 ## Setting up a host
 
-`references/install.md`. In short: the host must have OpenSSH 8.1
-or later and let root log in with a key; the session deploys the
-wrapper and the signers file, the operator adds the key line, and a
-check run proves the chain.
+`references/install.md`. The host needs OpenSSH 8.1 or later.
 
 ## Building and signing a bundle
 
-`references/bundle.md`. A bundle is built per baseline reference
-the fleet needs — `linux`, `freebsd`, `macos` — plus one per
-appliance or platform whose own file changes a check. It is rebuilt
-when the housekeeping references changed since it was built, when
-its date comes near, or on request.
+`references/bundle.md`.
 
 ## Changing the signing key
 

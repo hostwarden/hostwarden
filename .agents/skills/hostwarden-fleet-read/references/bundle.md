@@ -134,8 +134,7 @@ mv src/linux.next.sh src/linux.sh &&
 mv src/linux.next.sh.sig src/linux.sh.sig
 ```
 
-`Good "fleet-read" signature` comes before the moves. Commit the
-bundle and its signature together (`rules/changelog.md` → The
+Commit the bundle and its signature together (`rules/changelog.md` → The
 Workspace), with the bundle's name and date in the message.
 
 A `.next.sh` that sits unsigned is named whenever this skill runs.
