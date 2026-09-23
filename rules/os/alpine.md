@@ -235,9 +235,11 @@ runs `apk upgrade` counts.
 ## Service Manager
 
 - OpenRC, started from busybox `init`. There is no `systemctl`.
-- **Enabled services:** `rc-update show` prints each service that
-  starts at boot with the runlevels it starts in. It reads the
-  runlevel directories and is cheap enough for every connection;
+- **Enabled services:** `rc-update show sysinit boot default`
+  prints each service that starts at boot with the runlevels it
+  starts in; the three names keep a custom or shutdown runlevel out,
+  since only these start at boot. It reads the runlevel directories
+  and is cheap enough for every connection;
   `rc-status` is not, since it writes a dependency cache on the way.
 - **Service status:** `rc-service <service> status` prints
   `status: started` and exits 0 while the service runs, 3 when it is

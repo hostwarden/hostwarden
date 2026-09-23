@@ -229,23 +229,32 @@ S='
     if (bad) print "check failed: " bad " lines were not log entries"
     else if (n) print n " module runs, " f " to " l ", last " lm
   }'
+r=
 if command -v syslog_stream >/dev/null 2>&1; then
+  r=1; printf 'syslog: '
   { syslog_stream 2>&1 || echo "syslog stream not read"; } \
     | grep -e " Invoked with " -e "^syslog stream not read" | awk "$S"
-elif [ -d /run/systemd/system ]; then
+  echo
+fi
+if [ -d /run/systemd/system ]; then
+  r=1; printf 'journal: '
   ids=$(journalctl -F SYSLOG_IDENTIFIER 2>&1 \
     | sed -n 's/^\(ansible-[A-Za-z0-9_.]*\)$/SYSLOG_IDENTIFIER=\1/p')
   journalctl --since "7 days ago" --no-pager -q -o short-iso \
     MODULE=basic.py ${ids:++} $ids 2>&1 | awk "$S"
-else
-  echo "not read: no syslog stream and no journal"
+  echo
 fi
+[ -n "$r" ] || echo "not read: no syslog stream and no journal"
 ```
 
-It prints one line or nothing, never a log line itself: the
-arguments after `Invoked with` can carry values the module did not
-mark secret (`rules/secrets.md`), and so can the indented lines a
-multi-line message continues on, which are skipped. Any other line
+Both sources are read where both exist, since a module with
+systemd's Python bindings writes to the journal alone and one
+without them to syslog. It prints one line per source, `syslog:` or
+`journal:` followed by the count or by nothing, never a log line
+itself: the arguments after `Invoked with` can carry values the
+module did not mark secret (`rules/secrets.md`), and so can the
+indented lines a multi-line message continues on, which are
+skipped. Any other line
 that is not an entry, an error included, is only counted. Only
 identifiers made of letters, digits, dots and underscores become
 matches, since any process can write an identifier and an unquoted
