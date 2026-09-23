@@ -26,7 +26,10 @@ not have: assume nothing beyond it.
    - **Read-only** — in `read` and `skill`, carry on:
      `rules/access-control.md` allows inspection and the journal
      line. In `change`, stop at that check and return
-     `skipped: read-only`.
+     `skipped: read-only` — unless the read-only mode comes from the
+     host's OS file alone, not from `memory/readonly.md`, that file
+     allows exactly this change after the user's yes, and the
+     prompt says it was given.
    - **A step that says to stop and ask** — stop before the task
      and return `blocked:` with what it found: live IPs that no
      longer match memory (`rules/dns-aliases.md`; on a workstation,

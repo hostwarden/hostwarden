@@ -33,24 +33,32 @@ conversation and returns a short answer.
 3. **Sort out, from files here, before anything connects.** A host
    on the blacklist (`rules/access-control.md`) gets no agent: list
    it as skipped. For a change, so does a host on the read-only
-   list and one whose `OS:` line names a family whose file makes
-   every host read-only, such as Windows (`rules/os/windows.md`).
+   list, and one whose `OS:` line names a family whose file makes
+   every host read-only, such as Windows (`rules/os/windows.md`) —
+   unless the change is one that file allows after the user's yes
+   and the host is not on the read-only list as well.
    This is a first cut from files alone; each agent runs the full
    checks again, jump hosts included.
 4. **First connections here.** A host gets its first connection in
    this session, one host at a time, before any agent starts, when
-   it has no `memory/servers/<host>/` yet, no key in
-   `memory/known_hosts` under the name `rules/host-keys.md` gives
-   it, or no SSH user in `memory/user.md`. A host with a
-   `Reached as:` line is looked up under that destination on its
-   `SSH port:` (`[<name>]:<port>` off port 22). A `Mode: via` guest
-   needs neither key nor user, since it logs in through its host,
-   and neither does the local machine (`AGENTS.md` → Local mode).
-   The SSH user interview, alias detection and a host key may all
-   need the user, and an agent has none to ask. Then the host joins
-   the others as a known host, and step 2 runs again for it: alias
-   detection may just have found it to be a host already in the
-   list.
+   it has no `memory/servers/<host>/` yet or no SSH user in
+   `memory/user.md`. A host whose key, or the key of a jump host on
+   its way, is missing from `memory/known_hosts` gets the key here,
+   as `rules/host-keys.md` → Before the First Connection and
+   Getting a Key say: by the name `ssh -G` prints for the user that
+   logs in, its `hostkeyalias` or else its `hostname`, and each hop
+   by its own. A host with a `Reached as:` line is looked up under
+   that destination, with `-p` and its `SSH port:`. A `Mode: via`
+   guest is checked through its host, and the local machine needs
+   neither key nor user (`AGENTS.md` → Local mode). Where the task
+   may need root on a host whose sudo is unusable and whose memory
+   has no `Root SSH:` line — any `skill`, and a `read` or `change`
+   that needs root — root's endpoint is checked too
+   (`rules/privilege-escalation.md`). The SSH user interview, alias
+   detection and a host key may all need the user, and an agent has
+   none to ask. Then the host joins the others as a known host, and
+   step 2 runs again for it: alias detection may just have found it
+   to be a host already in the list.
 
 ## The task
 
@@ -253,7 +261,10 @@ and the guard and the taboos hold on every one of them.
 2. Register (`rules/parallel-sessions.md`) with the session's token.
    Where that file says to stop or to let the user decide — no
    `registered` line, another live entry — remove your entry if the
-   call made one, then ask.
+   call made one, then ask. On a host whose OS file says it has no
+   register, the `starting` and `done` journal lines of
+   `rules/parallel-sessions.md` → Hosts without a register take the
+   place of registering here and deregistering in step 6.
 3. Run the steps in order, the backups in them first, reloads as
    `rules/service-reload.md` says. After each step, compare the
    result with the expected one.
