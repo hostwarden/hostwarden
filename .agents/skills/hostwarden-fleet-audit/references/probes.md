@@ -271,12 +271,16 @@ Highlight as drift:
   have one. A CA trusted through a `cert-authority` line
   counts as trusted, for that account.
 - A different `krl` checksum on hosts that trust the same
-  user CA — the checksum of what the list revokes, so two
-  hosts that build the same list agree: a revocation did not
-  reach every host, and a
-  revoked certificate still works on the others. A host
-  whose `krl` line is an error has the lockout of
-  `rules/ssh-ca.md` → User CA Trust: **CRITICAL**.
+  user CA: the lists differ. Either a revocation did not
+  reach every host, and a revoked certificate still works
+  on some, or each host builds its own list, whose
+  checksum always differs (`rules/ssh-ca.md` → User CA
+  Trust). Report it as that question for the user; where
+  the CA's line in `memory/network.md` already says
+  `KRL built per host`, the row lists the checksums
+  without a verdict. A host whose `krl`
+  line says `missing` has that file's lockout:
+  **CRITICAL**.
   Hosts that trust a user CA without `revokedkeys`
   cannot revoke at all; list them too.
 - Host certificates on some hosts but not others, or

@@ -69,14 +69,19 @@ for c in /etc/ssh/*-cert.pub /usr/local/etc/ssh/*-cert.pub; do
   ssh-keygen -L -f "$c"
   ssh-keygen -lf "${c%-cert.pub}.pub"
 done
-for f in $(ssh -G localhost 2>/dev/null \
-  | grep -i '^globalknownhostsfile ' | cut -d' ' -f2-); do
+for f in /etc/ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts2 \
+  /usr/local/etc/ssh/ssh_known_hosts /usr/local/etc/ssh/ssh_known_hosts2; do
   [ -e "$f" ] || continue
   grep '^@cert-authority' "$f" | while read -r m p k; do
     echo "clientca: $f $p $(printf '%s\n' "$k" | ssh-keygen -lf - \
       | cut -d' ' -f2)"
   done
 done
+grep -Hin -e '^[[:space:]]*globalknownhostsfile' \
+  -e '^[[:space:]]*host[[:space:]]' -e '^[[:space:]]*match[[:space:]]' \
+  /etc/ssh/ssh_config /etc/ssh/ssh_config.d/* \
+  /usr/etc/ssh/ssh_config /usr/etc/ssh/ssh_config.d/* \
+  /usr/local/etc/ssh/ssh_config 2>/dev/null
 systemctl list-timers --all --no-pager 2>/dev/null \
   | grep -iE 'cert|ssh|renew|step|vault|bao' | sed 's/^/renewal: /'
 grep -lisE 'ssh.*cert|cert.*ssh|step ssh|/sign|renew' /etc/crontab \
@@ -116,7 +121,15 @@ from the output:
   user what renews the certificate before rating it.
 - **`clientca`:** the host CAs this server trusts when it opens
   SSH connections itself, for every account on it (Using the CA
-  Everywhere).
+  Everywhere), from ssh's default global known-hosts files. A
+  `GlobalKnownHostsFile` setting replaces those defaults, and the
+  first one ssh reads wins. The probe prints each with the `Host`
+  and `Match` lines around it: one outside every block, or under
+  `Host *`, names the files the server really uses — read their
+  `@cert-authority` lines the same way, in the next call, and the
+  defaults' lines do not count. One under another `Host` or
+  `Match` applies to those targets only. `ssh -G` is not used for
+  it: it runs the command of a `Match exec` line.
 
 Findings:
 
@@ -146,11 +159,15 @@ Effective Configuration, or the fleet audit's, which hold it in
 audit's probe sets `OUT` inside its loop, which runs in a
 pipeline, so this probe goes inside that loop, before its `done`;
 the fleet audit's sets it once, and this probe follows it. The
-key file, the list and the principals files may be
-readable by root alone, and the globs run in a root shell, since
-homes and `.ssh` directories are closed to the SSH user.
+key file, the list and the principals files may be readable by
+root alone, and the globs run in a root shell, since homes and
+`.ssh` directories are closed to the SSH user. The call opens with
+the privilege prefix, which sets `$SUDO`; where nothing set it,
+the probe's first line treats the run as one without root rather
+than read root's files as the SSH user.
 
 ```bash
+[ -n "${SUDO+x}" ] || { [ "$(id -u)" = 0 ] && SUDO= || SUDO=-; }
 if [ -z "${OUT:-}" ]; then
   echo "sshd's configuration unread: user CA unchecked"
 else
@@ -169,11 +186,9 @@ else
       case $CA in *.pub) $SUDO ls -l "${CA%.pub}" 2>&1 ;; esac
     fi
     if [ -n "$RK" ] && [ "$RK" != none ]; then
-      if ! $SUDO test -r "$RK"; then echo "krl: missing $RK"
-      elif L=$($SUDO ssh-keygen -Q -l -f "$RK" 2>/dev/null); then
-        echo "krl: entries $(printf '%s\n' "$L" \
-          | grep -v -e '^# Generated at' -e '^# KRL version' | cksum)"
-      else echo "krl: file $($SUDO cksum "$RK" | cut -d' ' -f1,2)"; fi
+      if $SUDO test -r "$RK"; then
+        echo "krl: $($SUDO cksum "$RK" | cut -d' ' -f1,2)"
+      else echo "krl: missing $RK"; fi
     fi
     case $P in
       ''|none) ;;
@@ -184,23 +199,38 @@ else
 fi
 ```
 
-A `cert-authority` line in `authorized_keys` is read in a call
-that runs neither `ssh-keygen` nor an interpreter, which the taboo
-guard refuses next to a key path. In the fleet audit that is a
-call of its own, since its bundle runs `awk`:
+A `cert-authority` line in `authorized_keys` is read in a call of
+its own, which runs neither `ssh-keygen` nor an interpreter — the
+taboo guard refuses either next to a key path — and whose output
+goes into a cache file on the workstation:
 
 ```bash
-$SUDO sh -c 'grep -Hn cert-authority /root/.ssh/authorized_keys* \
+ssh -F "/srv/hostwarden/memory/ssh_config" root@web1.example.com \
+  "sh -c 'grep -Hn cert-authority /root/.ssh/authorized_keys* \
   /var/root/.ssh/authorized_keys* /home/*/.ssh/authorized_keys* \
-  /Users/*/.ssh/authorized_keys* 2>/dev/null'
+  /Users/*/.ssh/authorized_keys* 2>/dev/null'" \
+  > ~/.cache/hostwarden/certauth.web1.example.com
 ```
 
-Where `authorizedkeysfile` names another path, grep that one too;
-homes elsewhere, from a directory service for one, are not in the
-globs. Fingerprint each line's key on the workstation, from the
-output, with no key path in the command:
-`printf '%s\n' '<the key type and key>' | ssh-keygen -lf -`. Such
-a line is user CA trust like `TrustedUserCAKeys`, for that
+With a non-root SSH user, the privilege prefix goes in front of
+`sh -c` inside the quotes; without one, the call reads only the
+SSH user's own file, and its result is `unchecked (no root)`,
+never "no `cert-authority` line". Where `authorizedkeysfile`
+names another path, grep that one too; homes elsewhere, from a
+directory service for one, are not in the globs. The lines are
+the host's data: the call that fingerprints them reads the file
+and names no key path, and nothing from it is typed into a
+command. `ssh-keygen -lf` reads each line with its options once
+the `grep -H` prefix is off, in the file's order:
+
+```bash
+f=~/.cache/hostwarden/certauth.web1.example.com
+cat "$f"
+sed 's/^[^:]*:[0-9]*://' "$f" | ssh-keygen -lf -
+rm -f "$f"
+```
+
+Such a line is user CA trust like `TrustedUserCAKeys`, for that
 account only.
 
 What it shows:
@@ -221,11 +251,15 @@ What it shows:
   root and of the SSH user by hand. Report which principals reach
   root. A principals command cannot be evaluated from outside:
   name it and its user.
-- **Revocation list:** the `krl` line carries a checksum of what
-  it revokes (`entries`, the KRL's listing without the lines that
-  name its version and when it was generated, so two hosts that
-  build the same list agree), or of a plain key list (`file`).
-  `missing` is the lockout the Terms describe.
+- **Revocation list:** the `krl` line carries the file's
+  checksum and size. One list copied to every host gives the same
+  checksum everywhere. A KRL built on each host carries the time
+  it was built, so its checksum differs even where the revocations
+  match, and `ssh-keygen -Q -l`, which lists them, prints them
+  differently across OpenSSH releases; the CA's line then says
+  `KRL built per host` on the user's word, and the lists are
+  compared by the user. `missing`, with root, is the lockout the
+  Terms describe.
 - **One CA for both directions:** a user CA fingerprint equal to
   the host certificate's signing CA.
 - **`Match` blocks** change these values per account or address,
@@ -376,7 +410,9 @@ answer, leaves it a finding.
 `rules/host-keys.md` → Host Certificates, `no` included, so it is
 made once. A CA rotation the user announces is part of the line
 until it is done, `rotating to SHA256:… since 2026-09-23`: the
-audits accept both CAs meanwhile.
+audits accept both CAs meanwhile. `KRL built per host`, also on
+the user's word, says each host builds its own revocation list
+(User CA Trust).
 
 The onboarding, the security audit and housekeeping write or
 refresh a host's lines when they probe it; the fleet audit only

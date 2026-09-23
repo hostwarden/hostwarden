@@ -59,14 +59,18 @@ same rule; what keeps root out; the lifetime.
     "${S:-/etc/step-ca}/config/ca.json"
   ```
 
-  Every provisioner that can sign SSH certificates is a way to
+  Every provisioner that signs user certificates is a way to
   one. OIDC: its `groups` and `domains`, and `admins`, who may
   request any principal. JWK (what `step ca init --ssh` creates),
-  X5C, SSHPOP, K8sSA and the cloud identity types: the requester
-  names the principals, so whoever holds the JWK password or the
-  accepted credential gets root unless a template or a policy
-  says otherwise. `policy.ssh.user` with a `deny` for root, or an
-  `allow` list without it, keeps root out for all of them;
+  X5C, K8sSA and Nebula: the requester names the principals, so
+  whoever holds the JWK password or the accepted credential gets
+  root unless a template or a policy says otherwise. JWK signs
+  host certificates as well: the finding on one rule signing both.
+  SSHPOP only renews and rekeys certificates that exist, and the
+  AWS, GCP and Azure identity provisioners sign host certificates
+  only (<https://smallstep.com/docs/step-ca/provisioners/>).
+  `policy.ssh.user` with a `deny` for root, or an `allow` list
+  without it, keeps root out for all of them;
   `claims.maxUserSSHCertDuration` is the lifetime. With
   `enableAdmin: true` the provisioners live in the CA's database:
   ask the user for the same fields.

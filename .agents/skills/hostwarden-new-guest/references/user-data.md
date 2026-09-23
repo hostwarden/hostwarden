@@ -234,19 +234,17 @@ c=~/.cache/hostwarden/ca.web2.example.com.pub
 r=~/.cache/hostwarden/krl.web2.example.com.b64
 grep -c . "$c"; ssh-keygen -lf "$c"
 grep -c '[^A-Za-z0-9+/=]' "$r"
-base64 -d < "$r" > "$r.bin"
-ssh-keygen -Q -l -f "$r.bin" \
-  | grep -v -e '^# Generated at' -e '^# KRL version' | cksum
+base64 -d < "$r" | cksum
 ```
 
 `ssh-keygen -lf` must print one fingerprint per line of the file,
 each one a CA of the user's in `memory/network.md` whose scope
 covers the guest; a line it skips is not a key, and the file is
-not used. The second count must be 0, and the checksum the one
-the `krl` rows of the other hosts in that scope share
-(`rules/ssh-ca.md` → User CA Trust). For a plain key list, which
-`-Q -l` refuses, compare `cksum < "$r.bin"` with their `file`
-checksum instead. Delete the three cache files once the copy is
+not used. The second count must be 0, and the checksum and size
+the `krl` row of the host they came from, which the other hosts
+in that scope share (`rules/ssh-ca.md` → User CA Trust); where the
+CA's line says `KRL built per host`, the user says which host's
+list the guest takes. Delete both cache files once the copy is
 filled. The editing tool writes the copy
 with the placeholder lines `CA-KEY` and `KRL-BASE64`, and the
 checked files take their place as data, never as a program. Each

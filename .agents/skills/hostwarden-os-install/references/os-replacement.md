@@ -78,14 +78,15 @@ system before it is wiped. Store it in
   you want to avoid host key change warnings. A host
   certificate (`*-cert.pub`) goes with its key; a new
   key needs a newly signed one
-- SSH CA trust, from the host's `SSH user CA:` line
-  (`rules/ssh-ca.md`): the CA's public key, the
+- SSH CA trust: run the Host Certificate and User CA
+  Trust probes of `rules/ssh-ca.md` now, whatever the
+  host's memory says — a missing `SSH user CA:` line
+  proves nothing. They name the CA's public key, the
   principals files and the revocation list. The new
-  system gets it at first boot where a user CA of the
-  user's covers the host
+  system gets them at first boot where a user CA of
+  the user's covers the host
   (`references/cloud-image.md`, the nocloud image
-  steps); without it,
-  certificate logins stop
+  steps); without them, certificate logins stop
 
 **Never store private key material anywhere
 under the Hostwarden repo.** `pre-replacement.md`
