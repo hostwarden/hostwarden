@@ -3,14 +3,16 @@ name: hostwarden-adopt
 argument-hint: "[path to the old Heinzel checkout]"
 description: Take over an existing Heinzel installation — copy its
   memory, access lists and overrides into this Hostwarden clone,
-  rename what is found by name, and build a per-host inventory of the
-  scripts, configs, units and cron jobs Heinzel left on the servers.
-  Can run host by host, with the shared state moved first. Use when
-  the user says "übernimm mein altes Heinzel", "migrate my Heinzel
-  setup", "mein Heinzel liegt in <pfad>, mach es dir zu eigen", "nimm
-  erstmal nur server X mit", or points at a Heinzel directory and asks
-  to take it over. Touches no server. Needs an explicit request —
-  a session that merely mentions Heinzel is not one.
+  rename what is found by name, build a per-host inventory of the
+  scripts, configs, units and cron jobs Heinzel left on the servers,
+  and ask whether those should get Hostwarden's names on the hosts
+  too. Can run host by host, with the shared state moved first. Use
+  when the user says "übernimm mein altes Heinzel", "migrate my
+  Heinzel setup", "mein Heinzel liegt in <pfad>, mach es dir zu
+  eigen", "nimm erstmal nur server X mit", or points at a Heinzel
+  directory and asks to take it over. Touches no server. Needs an
+  explicit request — a session that merely mentions Heinzel is not
+  one.
 ---
 
 # hostwarden-adopt
@@ -125,7 +127,26 @@ leads, the host confirms them.
    This writes into the old tree, so it needs an explicit yes. On a
    no, say the directory is there when they change their mind.
 
-7. **Report.** Per host one line: state copied, inventory entries
+7. **Ask how the names on the hosts should end up.** Scripts, units,
+   cron files and config directories that Heinzel sessions created
+   carry names like `heinzel-backup.sh` or `/etc/heinzel/`. Ask once
+   which way the user leans:
+
+   - **Rename** — on each host, give them Hostwarden's name and
+     rewrite every reference to them. A missed reference would break
+     a job on its next run, which is why every reference is searched
+     for first and the next connection checks the run.
+   - **Keep** — the names stay. Heinzel's own backup and scratch
+     directories are still offered for the move.
+   - **Per host** — decide on each host's first connection.
+
+   Record `Heinzel names on hosts: rename` or `keep` in
+   `memory/user.md`; per host records nothing. What the line does on
+   a host is `rules/heinzel-adoption.md` → Report, then ask. A line
+   already there is shown, and replaced only when the user changes
+   the answer.
+
+8. **Report.** Per host one line: state copied, inventory entries
    found. Then the totals, and the one thing the user has to decide:
    nothing on any server has changed yet, and the first connection to
    each host will report what it finds there and ask.
@@ -135,6 +156,7 @@ leads, the host confirms them.
    web1.example.com   — memory, 3 changelog entries, 4 leads
    db1.example.com    — memory, 0 leads
    ...
+   Names on the hosts: rename, proposed on each first connection.
    Nothing on the servers was touched. The first connection to
    each host verifies its leads and asks before moving anything.
    ```
@@ -176,9 +198,10 @@ summarizing it.
 
 - **No server contact.** Not even a read-only probe. The
   first-connection pipeline owns that.
-- **No renaming on hosts.** A script keeps its name until every
-  caller is known — see `rules/heinzel-adoption.md` § "An improvised
-  script keeps its name".
+- **No renaming on hosts from here.** Step 7 only records which way
+  the user leans. The rename runs on each host after its own
+  question — `rules/heinzel-adoption.md` § "Rename to Hostwarden's
+  name".
 - **No scheduled runs.** Heinzel's cron lines and timers on the
   workstation are reported under `rules/heinzel-adoption.md` § "On
   the workstation (local mode)", and change only with explicit

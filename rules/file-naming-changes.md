@@ -106,3 +106,192 @@ to the user because they are easy to miss:
   long those are kept, which is a data protection
   question, not a disk space one. Raise it; offer
   truncation at rotation time; let the user decide.
+
+## 5. Renaming scripts, units and cron files
+
+A cron file calls that script tonight: a rename that
+misses one caller breaks the job silently, and the
+failure surfaces weeks later as a missing backup.
+§ 1 and § 2 apply in full; this is what a rename of
+a script, unit, cron file or config directory adds.
+
+Never renamed, whatever it is called: SSH
+configuration and key material (`AGENTS.md` →
+Critical Safety Rules), a file a configuration
+management tool owns — that tool renames it or
+nothing does (`rules/config-management.md`) — and
+user accounts and groups, which own files, homes and
+sudo rules far beyond one script.
+
+**Search for the name, not only the paths you know.**
+A sourcing script, a logrotate stanza or a backup
+include list finds the file by a path nobody wrote
+down, and a symlink or a runlevel link finds it by
+a target that no content search reads. As root or
+through `sudo -n`, in one call:
+
+```
+grep -rIl '<old-stem>' /etc /usr/local/bin \
+  /usr/local/sbin /usr/local/etc /usr/local/lib/systemd \
+  /opt /root /home/*/bin /home/*/.config \
+  /Users/*/bin /Users/*/Library/LaunchAgents \
+  /var/spool/cron /var/cron/tabs /var/at/tabs \
+  2>/dev/null || true
+find /etc /usr/local /opt /root /home/*/bin \
+  /home/*/.config /Users/*/bin -type l \
+  -exec ls -l {} + 2>/dev/null | grep '<old-stem>' || true
+```
+
+The `grep`'s line of spool directories holds every
+user's crontab: `/var/spool/cron/` with its `crontabs/`
+(Debian, Ubuntu) and `tabs/` (SUSE) subdirectories,
+the directory itself on RHEL and Fedora,
+`/var/cron/tabs/` on FreeBSD, `/var/at/tabs/` on
+macOS; Alpine's `/etc/crontabs/` is under `/etc`. A
+path a host lacks costs nothing. Add the scheduler's
+own places where `rules/os/<family>.md` names more:
+launchd plists, FreeBSD's `periodic.conf`. BusyBox
+`grep` has no `--exclude-dir` and BusyBox `find` no
+`-lname`, which is why the search excludes nothing
+and lists links through `ls -l`. `grep -r` does not
+follow a link, so a link in a user's `bin` is found
+only by the `find`; both searches cover the home
+roots, `/home` on Linux and FreeBSD, `/Users` on
+macOS.
+
+`-l` prints file names only. Read the hits that can
+be consumers, in one call. Never read a hit in key
+material, a file `rules/secrets.md` names, a config
+backup or a scratch directory — none of them runs
+anything; the name is enough.
+
+A reference that must not be rewritten keeps the
+name it points at: a `command=` in an
+`authorized_keys` file, a `ForceCommand` in sshd's
+configuration, a line a configuration management
+tool writes. Say which artifact stays and why before
+touching the rest. Renaming it anyway breaks
+whatever logs in through that key.
+
+Then read each script being renamed for names it
+derives from itself — `$0`, `basename`, a variable
+holding the old stem — which move a lock file, a log
+file or a journal tag without any reference saying
+so.
+
+A consumer can live on another host: a backup server
+that pulls the dump directory, a monitoring check.
+Search `memory/` on the workstation for each old
+path. A hit elsewhere is part of the same change,
+with that host's own question, or the rename waits.
+
+**Pick the moment.** Nothing being renamed may run
+meanwhile: the job is not active
+(`systemctl is-active`) and its next run is not
+minutes away. `pgrep -f` matches the shell SSH starts
+for the probe, whose command line carries the same
+name; bracket one letter so the pattern does not
+match itself (`pgrep -f '[b]ackup.sh'`). Renaming a
+service that runs all the time stops and starts it,
+so ask as for a restart (`rules/service-reload.md`).
+
+**Rename, then rewrite the references.** `mv -n`
+each path from the § 2 map, and back up every file
+whose content will change (`rules/backups.md`). In
+every file the search found, replace each old path
+and unit name as a whole string: the unit's
+`ExecStart`, the cron line, the logrotate stanza, the
+script that sources the config, and each symlink,
+re-pointed. A user's crontab is rewritten through
+`crontab -u <user>`, never by editing the spool file,
+which cron may not reread. A comment that merely
+mentions the old name stays.
+
+A systemd unit comes back in the state it had, never
+in a better one: a timer someone disabled on purpose
+stays disabled, so the rename cannot start a job
+that was meant to be dormant. Read both states of
+each unit first, disable it before its file moves so
+its `.wants/` links go, and restore exactly those
+states under the new name. A masked unit is not
+renamed at all: its file is a link to `/dev/null`,
+and the mask is a decision someone made. A drop-in
+directory (`<old>.service.d/`) moves with the unit.
+A timer starts the service of its own name unless it
+says `Unit=`, so a pair is renamed together, and each
+of the two keeps its own states: a service can be
+enabled into a target of its own besides being
+started by the timer. A service without a timer is
+handled the same way, and one that runs all the time
+is stopped here too — the restart asked for above.
+For a timer pair, both units in every command:
+
+```
+systemctl is-enabled <old>.timer <old>.service
+systemctl is-active <old>.timer <old>.service
+systemctl stop <old>.timer <old>.service
+systemctl disable <old>.timer <old>.service
+mv -n /etc/systemd/system/<old>.timer \
+  /etc/systemd/system/<new>.timer
+mv -n /etc/systemd/system/<old>.service \
+  /etc/systemd/system/<new>.service
+systemctl daemon-reload
+```
+
+Then `systemctl enable` each new unit whose old one
+said `enabled`, and `systemctl start` each one that
+said `active`; `static` and `disabled` get no
+`enable`. OpenRC's runlevel links are restored the
+same way: `rc-update del`, then `rc-update add` into
+the runlevels `rc-update show` listed before
+(`rules/os/alpine.md`).
+
+A launchd job keeps its states too. launchd goes on
+running the definition it loaded, whatever happens to
+the file, so moving and rewriting a plist is not
+enough. Read whether the job is loaded
+(`launchctl list <label>` succeeds) and whether it is
+disabled (`launchctl print-disabled system`, or
+`gui/<uid>` for an agent). Unload it from the old
+plist before the file moves, and load the renamed
+plist only if it was loaded (`rules/os/macos.md`) —
+through `sudo` for a daemon, as its user for an
+agent. The `Label` changes with the name, and
+launchd records a disabled job by its label, so a
+job that was disabled is disabled again under the new
+one: `launchctl disable system/<new-label>`, or
+`gui/<uid>/<new-label>` for an agent.
+
+**Verify, in one call.** The changed files and the
+renamed paths hold no old name except those left on
+purpose; each changed script passes its shell's `-n`;
+`systemd-analyze verify` accepts each renamed unit;
+each unit and launchd job is back in the states read
+before, and a timer that was active shows its next
+run under the new name in `systemctl list-timers`, as
+a cron job does in its crontab and a loaded launchd
+job in `launchctl list`; the old unit is gone from
+`systemctl list-unit-files`. Report it in one line.
+When a check fails, say which, and offer the way
+back: the § 2 map replayed backwards, the backups
+restored.
+
+**The first run is the proof,** and it comes after
+the session. For every job that will run, leave an
+item in the host's `todo.md`
+(`rules/server-memory.md` → Session to-do list) with
+the job and when it next runs; a unit left disabled
+gets none:
+
+```markdown
+- [ ] First run of db-dump.timer after rename, due 2026-09-21 03:00
+```
+
+The connection that finds it due reads the run — the
+unit's result (`systemctl status`, `journalctl -u`
+since the rename), cron's line in the system log, the
+job's own log — and ticks the item when it
+succeeded. A failure, or a complaint about a path
+that no longer exists, is reported with the map and
+the fix offered: the missed reference rewritten, or
+the way back. Both are changes and are asked.
