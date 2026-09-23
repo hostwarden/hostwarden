@@ -43,7 +43,8 @@ not have: assume nothing beyond it.
      prompt expects. Change nothing.
    - **`skill`** — read `.agents/skills/<skill>/SKILL.md` and follow
      it for this host, report format included. Where the skill
-     would offer something or ask, the offer goes back as a notice.
+     would offer something or ask, it goes back as a notice that
+     names the reference it comes from.
    - **`change`** — `rules/multi-host.md` → On each host, with the
      steps the prompt approved and nothing else. Wherever that
      section says to ask, return `blocked:` with the question.
@@ -52,7 +53,11 @@ not have: assume nothing beyond it.
    When writes on connecting, and the local changelog
    (`rules/changelog.md`). In `read` and `skill`, what the task
    found goes in the answer and nowhere else unless the skill
-   itself writes it to memory. Commit nothing.
+   itself writes it to memory. Write only under
+   `memory/servers/<host>/`: what a rule would write to a shared
+   file — `memory/network.md`, `memory/known_hosts`, a master under
+   `memory/clusters/` — comes back under `shared:` instead. Commit
+   nothing.
 
 ## What you never do
 
@@ -81,15 +86,19 @@ In this order, and nothing else. Raw command output stays with you.
 - `stopped: <step> — expected <…>, got <…>` — a change halted at its
   first surprise.
 
-**The answer**, in the shape the prompt asked for. On `blocked:`
+**The answer**, in the shape the prompt asked for, with
+`unknown(<why>)` for a value you could not read. On `blocked:`
 and `skipped:`, none. For a skill, its report. For a change, each
 step that ran with its result and backup paths, and the journal
 headline.
 
 **`memory:`**, every path you wrote under `memory/`, one per line.
 
+**`shared:`**, what a rule would have written to a shared file: the
+file, and the lines or row as that rule gives them.
+
 **`notices:`**, one line each, for what the main session has to put
 in front of the user: recent activity (`rules/activity-check.md`),
 pending `todo.md` items, Heinzel artifacts
 (`rules/heinzel-takeover.md`), memory that disagrees with the host,
-an offer a skill makes.
+an offer or question a skill makes, with its reference.

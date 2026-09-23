@@ -378,7 +378,8 @@ Hostwarden prints identical answers once, with the hosts that
 gave them, so twenty hosts that agree take one line and the
 outlier stands out. A host never connected before gets its first
 connection in the main session first, since it needs your
-answers. Hosts behind one jump host run one after another.
+answers. Hosts behind one jump host run one after another, and so
+do the members of a cluster in a change.
 
 A change asks once, naming every host and a proposed canary
 host. The canary runs alone; only when its result matches what

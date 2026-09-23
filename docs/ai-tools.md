@@ -23,10 +23,9 @@ What is Claude Code only: the taboo guard hook and the
 repo conventions in `.claude/rules/`. Elsewhere the
 prose rules are the entire safety layer. The per-host
 subagents of the fleet audit and of a task on several
-servers are a capability, not a brand: a harness that
-can run agents or parallel tool calls fans out the same
-way, and one that cannot walks the hosts in turn — same
-answers either way.
+servers are Claude Code's: elsewhere the same work walks
+the hosts in turn, and only the time and the context it
+takes differ.
 
 OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` turns
 off every `.claude` fallback, and Hostwarden still works
