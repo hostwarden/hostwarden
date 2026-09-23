@@ -131,7 +131,12 @@ hostwarden_git_batch() {
   mkdir -p -m 700 "$HOME/.cache/hostwarden"
   # Appended to a command the user set, not replaced by it: ssh
   # takes the first value it sees, so their own options still win,
-  # and ours fill in what they left open.
+  # and ours fill in what they left open. GIT_SSH_COMMAND outranks
+  # core.sshCommand and GIT_SSH, so either of those, where set, is
+  # the command ours are appended to — a mirror's deploy key, say.
+  [ -n "${GIT_SSH_COMMAND:-}" ] \
+    || GIT_SSH_COMMAND=$(git config core.sshCommand 2>/dev/null) \
+    || GIT_SSH_COMMAND=${GIT_SSH:-}
   GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
 -o ConnectTimeout=5 -o ControlMaster=auto \
 -o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \

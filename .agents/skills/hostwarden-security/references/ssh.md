@@ -168,5 +168,5 @@ those, `tailscaled`, `netbird`, `newt`, `nebula`, `dnclient` and
 `cloudflared` serve SSH themselves.
 
 No line for one of these six → OK, nothing more to check.
-Otherwise read `references/vpn-ssh.md`, which works from the lines
-this printed.
+Otherwise read `references/vpn-ssh.md`, which reads each of those
+agents from its own process.

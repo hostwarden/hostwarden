@@ -14,19 +14,22 @@ sshd's CA trust, fail2ban, the sshd log or `last`.
 
 ## Probe (no root)
 
-The loop reads the `<pid> <program>` lines that
-`references/ssh.md` → SSH servers past sshd printed, pasted in
-place of the placeholder, and reads each agent from the process
-it belongs to, so two Newt connectors are judged apart and a
-tunnel is read from the configuration its own process names. A
-line for an agent without an SSH server of its own falls through
-the `case`.
+The loop reads the `<pid> <program>` lines of the first block of
+`rules/mesh-vpn.md` → Probe (no root), run again in this same call
+in place of the placeholder rather than pasted from the earlier
+one: a PID from an earlier call may belong to another process by
+now. It reads each agent from the process it belongs to, so two
+Newt connectors are judged apart and a tunnel is read from the
+configuration its own process names. A line for an agent without
+an SSH server of its own falls through the `case`.
 
 ```bash
 args() { { tr '\0' ' ' < "/proc/$1/cmdline"; } 2>/dev/null \
   || ps -o args= -p "$1" 2>/dev/null; }
 cfg() { args "$1" | sed -nE "s|.* --?$2[= ]([^ ]+).*|\\1|p"; }
-while read -r p prog; do
+{
+  <the first block of rules/mesh-vpn.md → Probe (no root)>
+} | while read -r p prog; do
   case $prog in
     tailscaled)
       tailscale debug prefs 2>&1 \
@@ -54,9 +57,7 @@ while read -r p prog; do
         sed -n '/^sshd:/,/^[^[:space:]#]/p' "$f"
       done ;;
   esac
-done <<'EOF'
-<the <pid> <program> lines, one per agent>
-EOF
+done
 ```
 
 The `grep -c` lines count, never print (`rules/secrets.md`);

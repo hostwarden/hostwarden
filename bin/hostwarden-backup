@@ -8,11 +8,11 @@
 #   hostwarden-backup                Create a backup in CWD
 #   hostwarden-backup -o <path>      Write to an explicit path
 #   hostwarden-backup --list         Dry run: list what would
-#                                 be archived
+#                                    be archived
 #   hostwarden-backup --restore <f>  Extract <f> into repo root
-#                                 (refuses to overwrite
-#                                 existing memory/ content
-#                                 unless --force is also set)
+#                                    (refuses to overwrite
+#                                    existing memory/ content
+#                                    unless --force is also set)
 #   hostwarden-backup --help         Show this help
 set -e
 

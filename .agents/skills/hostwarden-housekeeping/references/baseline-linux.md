@@ -405,7 +405,9 @@ for cert in /etc/letsencrypt/live/*/cert.pem; do
     >/dev/null && continue
   if openssl x509 -checkend 604800 -noout -in "$cert" \
     >/dev/null; then echo "$domain: expires within 30 days"
-  else echo "$domain: expires within 7 days"; fi
+  elif openssl x509 -checkend 0 -noout -in "$cert" \
+    >/dev/null; then echo "$domain: expires within 7 days"
+  else echo "$domain: expired"; fi
 done
 ```
 
@@ -422,7 +424,7 @@ echo | openssl s_client -connect localhost:443 \
   | openssl x509 -enddate -noout 2>/dev/null
 ```
 
-- **CRITICAL** if any cert expires in < 7 days
+- **CRITICAL** if any cert has expired or expires in < 7 days
 - **WARN** if any cert expires in < 30 days
 
 ## Kernel: Running vs Installed

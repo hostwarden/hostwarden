@@ -24,13 +24,6 @@ fi
 hostwarden_mode "${0%/*}/../.."
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
 
-# Never hang the SessionStart hook on a prompt (HTTPS remote with
-# an expired token, an unknown host key). Fail fast instead and let
-# the user fix it.
-hostwarden_git_batch
-GIT_ASKPASS=${GIT_ASKPASS:-true}
-export GIT_ASKPASS
-
 # bin/hostwarden-doctor, beside this hook, reports a missing git.
 command -v git >/dev/null 2>&1 || exit 0
 # shellcheck source=follow.sh
@@ -41,6 +34,13 @@ if ! hostwarden_clone_top; then
     "to get updates"
   exit 0
 fi
+
+# Never hang the SessionStart hook on a prompt (HTTPS remote with
+# an expired token, an unknown host key). Fail fast instead and let
+# the user fix it.
+hostwarden_git_batch
+GIT_ASKPASS=${GIT_ASKPASS:-true}
+export GIT_ASKPASS
 
 # A pin or another branch is the user's choice and stays; a
 # release line moves the checkout off whatever it is on.
