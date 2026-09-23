@@ -124,7 +124,9 @@ lines continue the previous entry. Use the labels
 `Detail:`, `Rollback:`, `Verify:`, `Flags:` as
 applicable — skip empty ones.
 
-Trim entries older than 2 years when writing.
+Trim entries older than 2 years when writing, except
+one a standing line in `memory.md` still points to
+(below).
 
 ### Standing lines
 

@@ -134,6 +134,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Journal:`, `API port:`  | `appliance/synology-dsm.md` | first use        |
 | `Sudo:`, `Root SSH:`     | `privilege-escalation.md`   | privileged use   |
 | `Privilege mode:`        | `privilege-escalation.md`   | privileged use   |
+| `Root-equivalent group:` | `privilege-escalation.md`   | group found      |
 | `Doas:`                  | `os/alpine.md`              | privileged use   |
 | `WSL root:`              | `platform/wsl.md`           | privileged use   |
 | `Management:`            | `management-controller.md`  | first need       |

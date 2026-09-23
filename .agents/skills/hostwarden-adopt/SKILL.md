@@ -104,6 +104,13 @@ leads, the host confirms them.
    Its existence is what makes the first connection check the leads;
    no status line is needed for that.
 
+   A connection reads only the last seven days of a host's
+   `changelog.log` (`rules/changelog.md` → Reading it), so a copied
+   host's older `Flags:` and `Rollback:` lines would go unread. In
+   the same pass, add each one that no later entry lifts or undoes
+   to that host's `memory.md` as a standing line, as
+   `rules/changelog.md` → Standing lines says.
+
    Read the **old checkout's** copy of a host's files whenever this
    clone kept its own — the leads live in the records that were not
    copied.
