@@ -231,7 +231,8 @@ Passes, here and on a fix commit, run like this:
   did not complete.
 - **On GitHub:** the connector `chatgpt-codex-connector`. Automatic
   reviews are off for this repository, so it never repeats a local
-  run; a comment `@codex review` asks for one. It has completed
+  run; a comment `@codex review` asks for one, on a draft too, so
+  the order is the same on both paths. It has completed
   when the "Codex Review Summary" comment shows "✅ Completed" next
   to the head SHA, not "🔄 Running". A clean pass leaves no review,
   only a "Didn't find any major issues" comment. When it cannot
@@ -317,8 +318,15 @@ agent can do is done:
 - CI is green on the current head, and
   `gh pr view <n> -R jpawlowski/hostwarden --json mergeable` shows
   `MERGEABLE`;
-- a stacked pull request's base is out of draft already, since
-  whoever merges takes a stack from the bottom.
+- a stacked pull request's base is merged, and it has been
+  retargeted and rebased onto `hostwarden/main` (→ After a merge,
+  → Updating a branch): until then it stays a draft, since its
+  base can still change under it. A fresh `hostwarden-reviewer`
+  then checks the rebased branch against `hostwarden/main` once,
+  since its reviews never saw the base's final state. Its findings
+  take the level of the child's last round, that of rounds 1 and 2
+  where it had none (→ Rounds): fixed in a fix commit where that
+  level fixes them, deferred otherwise.
 
 The lift is `gh pr ready <n> -R jpawlowski/hostwarden`.
 

@@ -82,5 +82,5 @@ An agent opens its pull request as a draft and keeps it one
 through its reviews, the fixes and CI. Lifting the draft hands it
 to whoever merges, who reviews it and decides whether it is merged
 ([pull-requests.md](.claude/rules/pull-requests.md#lifting-the-draft)).
-A stacked pull request is lifted after its base and merged after
-it.
+A stacked pull request stays a draft until its base is merged
+and it sits on `main`.
