@@ -17,12 +17,13 @@ symlink):
 1. **Resolve the IP(s) the way `ssh` does.** First
    apply the SSH client config: a `Host` block in
    `memory/ssh_hosts` or `~/.ssh/config` can point
-   anywhere through `HostName`. `ssh -G` with the
-   standard options (`AGENTS.md` → SSH Options)
-   prints the name ssh will really connect to,
-   without connecting:
+   anywhere through `HostName`, a `Match user` block
+   for one user only. `ssh -G` with the standard
+   options (`AGENTS.md` → SSH Options), for the user
+   the call logs in as, prints the name
+   ssh will really connect to, without connecting:
    ```
-   ssh -F "<checkout>/memory/ssh_config" -G <hostname> 2>/dev/null | \
+   ssh -F "<checkout>/memory/ssh_config" -G <user>@<hostname> 2>/dev/null | \
      awk '$1=="hostname"{print $2}'
    ```
    Every `ssh -G` below carries the same `-F`.

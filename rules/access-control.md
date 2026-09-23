@@ -34,9 +34,9 @@ match):
 
 1. If the file does not exist, skip (nothing to
    check). In `memory/readonly.md`, is `*` listed?
-2. Is the target hostname, or the name `ssh -G`
-   with the standard options maps it to (`rules/dns-aliases.md` → Detection
-   step 1), listed?
+2. Is the target hostname, or the name
+   `rules/dns-aliases.md` → Detection step 1 maps it
+   to, listed?
 3. Resolve the target's IP(s)
    (`rules/dns-aliases.md` → Detection step 1).
    Is a resolved IP listed?
@@ -50,6 +50,10 @@ If nothing resolves, fall back to exact string
 matching and tell the user explicitly that the
 IP-level check could not be performed. Err on the
 side of caution for anything ambiguous.
+
+On a first connection the user is chosen only after
+both checks; `rules/first-connection.md` step 3 says
+when they run again for the chosen one.
 
 ## Server Blacklist
 
@@ -71,13 +75,8 @@ host before the target. Where the `proxyjump` line of
 `ssh -G <user>@<hostname>` with the standard options,
 for the user the call will log in as, names hops, run
 the lookup above for each hop as well, by the name
-that line gives it: a `Match user` block can give one
-user a hop the others do not use. On a first
-connection the user is chosen only after this check:
-read it for the default user here, and again for the
-chosen one (`rules/first-connection.md`, step 3). A
-listed hop blocks the target: name the hop and
-refuse, as above.
+that line gives it. A listed hop blocks the target:
+name the hop and refuse, as above.
 
 ## Read-Only Servers
 
