@@ -360,6 +360,33 @@ writes one audit-trail line to each journal). Use it after
 fixing a config bug on one server to find which others
 carry the same bug, or as a periodic consistency check.
 
+## Several servers at once
+
+Ask one question, run one check or roll out one change on
+several servers:
+
+```
+ ❯ Which kernel runs on web1, web2 and web3?
+ ❯ Run housekeeping on web1 and db1
+ ❯ Prüf auf allen Servern, ob nginx läuft
+```
+
+Each host gets its own subagent, which runs the full
+first-connection pipeline for that host — blacklist, read-only
+list, host key, activity check — and returns a short answer.
+Hostwarden prints identical answers once, with the hosts that
+gave them, so twenty hosts that agree take one line and the
+outlier stands out. A host never connected before gets its first
+connection in the main session first, since it needs your
+answers. Hosts behind one jump host run one after another.
+
+A change asks once, naming every host and a proposed canary
+host. The canary runs alone; only when its result matches what
+was expected do the others follow. The first surprise stops every
+host that has not started, and each host the change reached gets
+its own journal line and memory. `/hostwarden-multi-host` starts
+it by name.
+
 ## Fleet read
 
 An operations host — an always-on machine that runs

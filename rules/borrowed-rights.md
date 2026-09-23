@@ -62,7 +62,7 @@ crosses a boundary:
   coordinating a measurement, warning about a side effect;
 - asking another session to **stop or leave something alone**;
 - subagents that run with this session's rights and rules, such as
-  the fleet audit's `hostwarden-host-probe`: they are this
+  `hostwarden-host-probe` and `hostwarden-host-task`: they are this
   session, working in parallel, and a host this session may not
   reach, they may not reach either;
 - everything this session has the rights to do itself.

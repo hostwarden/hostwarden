@@ -322,6 +322,8 @@ trigger — not a request from the user.
 
 **While you work**
 
+- One request names two or more hosts, or all of them, for the same
+  task → `rules/multi-host.md`
 - A development session needs a live server's answer →
   `rules/server-check-handoff.md`
 - The user settles a standing choice with a reason →

@@ -149,23 +149,10 @@ Layers).
    agent, so nothing is competing. Never give one agent two
    hosts, and never give two agents the same host.
 
-   **One exception, and it is not about the targets.**
-   Hosts reached through a shared bastion all open a
-   connection to that bastion as well
-   (`rules/ssh-connections.md`), so a dozen agents are a
-   dozen near-simultaneous logins to one machine, which is
-   what rate limiting and fail2ban exist to stop — and
-   being locked out of the jump host locks you out of
-   everything behind it. Read `ssh -G <user>@<host>`, with
-   the standard options from `AGENTS.md` → SSH Options, for
-   each target before dispatching — with the user from
-   step 2, because a `Match user` block can select the
-   jump host, and without it `ssh -G` reports a different
-   config than the connection will use. Group the targets
-   that share a `proxyjump`, and run each group in
-   sequence. A guest with `Mode: via` logs in through
-   its host, so it runs in sequence with that host and its
-   group's other such guests.
+   **Two exceptions, and they are not about the targets.**
+   Hosts behind a shared jump host, and guests with
+   `Mode: via` beside their host, run in sequence as
+   `rules/multi-host.md` → Order says.
 
    Elsewhere, and whenever a host needs a decision the
    agent cannot make alone, read `references/probes.md`
