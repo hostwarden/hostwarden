@@ -81,13 +81,19 @@ under pressure.
   own `/etc/ssh`, and anything under `/mnt`, stay
   blocked either way (`hostwarden-new-guest`).
 - **Storage changes only on your say** — growing a
-  volume, swapping a disk in an array or pool,
-  deleting a snapshot (`lvextend`, `mdadm --add`,
-  `zpool replace`, `zfs destroy pool/fs@snap`, …) get
-  the same prompt, and the same block where none can
-  reach you. Repairs stay a taboo: when storage fails,
-  Hostwarden reads, asks about your backup and hands
-  the repair command to you (`rules/storage.md`).
+  volume or file system, deactivating a volume,
+  swapping a disk in an array or pool, rebalancing a
+  whole Btrfs file system, deleting a snapshot
+  (`lvextend`, `resize2fs`, `lvchange -an`,
+  `mdadm --add`, `zpool replace`,
+  `btrfs balance start`, `zfs destroy pool/fs@snap`,
+  …) get the same
+  prompt, and the same block where none can reach
+  you. Repairs and shrinking a file system stay a
+  taboo: when storage fails, Hostwarden reads, asks
+  about your backup and hands the repair command to
+  you (`rules/storage.md`). Looking a tool up —
+  `man fsck`, `which e2fsck`, `--help` — is free.
 - **Verifies before it reports** — a finding that
   something is missing, broken, or "gone since the
   reboot" gets confirmed against the live system
