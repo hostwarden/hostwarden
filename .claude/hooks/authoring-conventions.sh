@@ -20,6 +20,7 @@
 
 ROOT=$(cd "${0%/*}/../.." && pwd)
 
+# shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
 # The fields are read as text (json.sh), because a workstation is
 # whatever the user runs Hostwarden from and this hook may not assume

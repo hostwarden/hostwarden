@@ -16,6 +16,7 @@
 #    and may only take a record away. The notice at every start is
 #    also how the operator sees that the setting took effect.
 
+# shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
 case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
 # shellcheck source=json.sh
