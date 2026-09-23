@@ -76,7 +76,10 @@ The prompt names one of two jobs.
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
    managers or loggers can be active at once; "the first one found
-   wins" is a defect there.
+   wins" is a defect there. Where two fields answer the same
+   question, the one their source says decides must win. The value
+   that decides is the one the output shows. A fallback for an
+   optional field claims only what it can show.
 3. **A step that reads data nothing produces.** Every field the
    text uses must be printed by a probe the same flow runs. Every
    answer, state and outcome it creates must have a step that
@@ -95,7 +98,9 @@ The prompt names one of two jobs.
 7. **A literal where a recorded value belongs, or ambient
    configuration taking over.** Ports, storage, pools, paths,
    UID ranges, architectures; the user's `ssh_config`, `PATH`,
-   locale, proxy and tool contexts.
+   locale, proxy and tool contexts, and a name resolved at run
+   time: a remote, a ref (`origin/main`), a default zone, profile
+   or network.
 8. **An identity key that is not unique or not stable.** Try to
    make two objects share the key, and one object change it.
 9. **Untrusted data or a secret reaching a command or the
@@ -107,7 +112,10 @@ The prompt names one of two jobs.
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
-    and to a run that stopped half way.
+    and to a run that stopped half way. If the session ends after
+    any step, can a later one find the full text of each item it
+    must still act on, in the repository, memory, the pull request
+    or an issue?
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
