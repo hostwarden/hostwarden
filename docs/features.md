@@ -40,8 +40,12 @@ not in it gets its key in this order:
    (`pct exec`, `qm guest exec`, `incus exec`, …) has
    its key read inside. Registering a hypervisor's guests
    and creating a new one record their keys this way.
-2. **From your own `~/.ssh/known_hosts`**, imported
-   with a note saying so.
+2. **From the known_hosts files your own ssh reads**
+   (`~/.ssh/known_hosts`, the system-wide
+   `/etc/ssh/ssh_known_hosts` and any others your ssh
+   configuration names), imported with a note saying
+   so. Keys an administrator put in the system-wide
+   file reach the workspace this way too.
 3. **Otherwise it asks:** accept the key on first use,
    compare it with the fingerprint you read at the
    console, or stop.

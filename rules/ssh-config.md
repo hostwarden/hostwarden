@@ -80,10 +80,12 @@ host too. Never copy it unasked.
    above a pattern that also matches it.
 2. Run `bin/hostwarden-ssh-config`. Any output names a failing
    line: fix it before going on.
-3. Check what ssh will do, without connecting:
+3. Check what ssh will do, without connecting, as the user the
+   calls log in as, since a `Match user` block can change the
+   answer:
 
    ```bash
-   ssh -F "/srv/hostwarden/memory/ssh_config" -G root@db1.example.com |
+   ssh -F "/srv/hostwarden/memory/ssh_config" -G alice@db1.example.com |
      grep -E '^(hostname|port|proxyjump|hostkeyalias) '
    ```
 
@@ -234,8 +236,9 @@ failed: Connection refused`.
 Look for the ports of `Alternative SSH ports:` in
 `memory/user.md` (`rules/ssh-user.md`) and for 2222, under the
 name `rules/host-keys.md` → Before the First Connection looks the
-host up by, in `memory/known_hosts` and in the user's own files
-that its Getting a Key source 2 names. One call:
+host up by, in `memory/known_hosts` and in each of the user's own
+files that its Getting a Key source 2 names; the example shows the
+first default of those. One call:
 
 ```bash
 for p in 52222 2222; do
@@ -254,10 +257,11 @@ tries these ports first.
 
 Step 1's ports first, then those of `Alternative SSH ports:` in
 their order: each port once, at most three in all. Each try is one
-call that runs nothing:
+call that runs nothing, as the user `rules/first-connection.md`
+step 3 chose, never as root in its place:
 
 ```bash
-ssh -F "/srv/hostwarden/memory/ssh_config" -p 52222 root@web1.example.com true
+ssh -F "/srv/hostwarden/memory/ssh_config" -p 52222 alice@web1.example.com true
 ```
 
 - **`Connection refused`, or a `No route to host` at once:** the
@@ -330,11 +334,13 @@ it is done:
 
 ```bash
 ssh -F "/srv/hostwarden/memory/ssh_config" -O forward \
-  -L 127.0.0.1:8443:127.0.0.1:443 root@web1.example.com
+  -L 127.0.0.1:8443:127.0.0.1:443 alice@web1.example.com
 ssh -F "/srv/hostwarden/memory/ssh_config" -O cancel \
-  -L 127.0.0.1:8443:127.0.0.1:443 root@web1.example.com
+  -L 127.0.0.1:8443:127.0.0.1:443 alice@web1.example.com
 ```
 
+- **Name the shared connection's own user:** its socket is kept
+  per user, so another user's `-O` finds no connection.
 - **Bind to `127.0.0.1`,** never to every address: other machines
   on the network would reach the host through the workstation.
 - **Cancel it, never close the master for it:** other sessions'

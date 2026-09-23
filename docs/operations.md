@@ -603,8 +603,9 @@ The migration renames skill overrides in
   ([Features → Host keys](features.md#host-keys)).
   `bin/hostwarden-heinzel-takeover` copies the host keys your
   Heinzel checkout kept there. Without them, each host's key is
-  imported from your own `~/.ssh/known_hosts` on its
-  first connection.
+  imported from the known_hosts files your own ssh
+  reads, such as `~/.ssh/known_hosts`, on its first
+  connection.
 - Scheduled runs (cron, systemd timers) need the new
   path and script names.
 - Heinzel running headless on a machine of its own,
