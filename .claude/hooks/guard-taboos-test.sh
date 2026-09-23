@@ -459,6 +459,13 @@ check_mode deny default \
 check_mode deny default "scp a.conf root@h:$FB_LXC; tofu destroy"
 check_mode deny default \
   "rm /var/lib/lxc/web4/rootfs/etc/ssh/ssh_host_ed25519_key; ansible-playbook site.yml"
+# virt-sysprep deletes host keys by default without naming a path.
+check_mode ask default "virt-sysprep -a $FB_IMG"
+check_mode ask default "virt-sysprep -a $FB_IMG --operations machine-id"
+check_mode deny bypassPermissions "virt-sysprep -a $FB_IMG"
+check_mode deny default "virt-sysprep -d web1"
+check_mode deny default "virt-sysprep -a $FB_IMG; ansible-playbook site.yml"
+check_mode deny default "virt-sysprep -a $FB_IMG && cat /etc/hostname"
 # A key further down a guest root than /etc/ssh is not covered.
 check_mode deny default "rm /var/lib/lxc/web4/rootfs/root/.ssh/authorized_keys"
 check_mode deny default "rm /var/lib/lxc/web4/rootfs/../../../../etc/ssh/ssh_host_ed25519_key"

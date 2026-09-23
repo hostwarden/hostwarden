@@ -1158,6 +1158,22 @@ then
 allowed"
   fi
 fi
+# virt-sysprep deletes an image's SSH host keys by default (its
+# ssh-hostkeys operation) and names no key path, so the rule above
+# never sees it. Every invocation counts as that deletion: on an
+# image opened with -a, alone on the line, it is the first-boot ask
+# like any other key change in a guest that never ran; anywhere
+# else it is denied. An --operations list without ssh-hostkeys is
+# asked about all the same - the prompt costs one click, and
+# telling the lists apart is a parser this hook does not need.
+if hit '(^|[^[:alnum:]_.-])virt-sysprep([^[:alnum:]_.-]|$)'; then
+  if first_boot_only "$KEY"; then
+    first_boot_ask "removing an image's SSH host keys with virt-sysprep"
+  else
+    deny "virt-sysprep removes SSH host keys by default - only on a \
+disk image opened with -a, alone on the line, and only with a prompt"
+  fi
+fi
 # A truncating redirect needs no command at all: : > key.
 if hit ">[[:space:]]*[\"']?[^[:space:];|&]*$KEYPRIV"; then
   deny "redirecting onto an SSH key file truncates it"
