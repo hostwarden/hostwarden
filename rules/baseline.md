@@ -123,6 +123,35 @@ run (`AGENTS.md` → Critical Safety Rules). On a running server,
 Hostwarden reports what differs and gives the user the change to
 make.
 
+## SSH CA
+
+Only for the user's CAs, the ones `memory/network.md` records
+under `## SSH CAs`, and only on the hosts each one's scope covers
+(`rules/ssh-ca.md` → Memory); without one, this section expects
+nothing. A CA found on a host that is not the user's is a
+finding, never an expectation.
+
+- **A user CA:** sshd trusts it, with the principals setup and
+  the revocation list the other hosts in its scope use for it,
+  and that list exists. Where those hosts differ, ask which to
+  follow.
+- **A host CA:** the server presents a valid host certificate from
+  it that names the server's names. A server that opens SSH
+  connections itself trusts the host CA in its global known-hosts
+  file.
+
+Checked by the security audit
+(`.agents/skills/hostwarden-security/references/ssh.md` → SSH CA),
+housekeeping's SSH Host Certificate, and the fleet audit.
+
+A new guest trusts the user CAs whose scope covers it from its
+first boot (`hostwarden-new-guest`); its host certificate comes
+after the first login (`rules/ssh-ca.md` → Using the CA
+Everywhere). On a running server, Hostwarden reports what differs
+and gives the user the lines to add; the global known-hosts line
+of a server that connects out it adds itself, when the user says
+yes.
+
 ## Journal
 
 On a host with systemd, the journal is persistent, so the activity
@@ -228,7 +257,8 @@ A host's `# baseline` block is not part of any of it: the guest
 has no memory yet, and the hypervisor's is about the hypervisor.
 
 What one guest adds at creation — its names, a password the user
-asked for — is never part of a numbered file. The guest's memory
+asked for, the SSH CA trust its scope gives it — is never part of
+a numbered file. The guest's memory
 records the version it was created with and names such an
 addition, `- Baseline: debian-3 (created 2026-09-22, password)`,
 and a server brought up to the baseline later

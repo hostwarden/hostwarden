@@ -29,8 +29,9 @@ show the user the difference, and use it.
 
 What belongs to one guest is added to a copy at hand-off and never
 numbered: `hostname:`, `fqdn:` and `manage_etc_hosts: true`, a
-password the user asked for (Passwords below), and the network
-config and instance ID where the reference names them. The
+password the user asked for (Passwords below), the SSH CA trust
+its scope gives it (SSH CA below), and the network config and
+instance ID where the reference names them. The
 hypervisor reads that copy on the host, so copy it there with
 `scp` and the options of `AGENTS.md` → SSH Options, to the place
 the reference names, or under `/run` for a command that reads it
@@ -67,6 +68,8 @@ family file's way:
   installed where the image lacks it, then the service reloaded if
   it runs. sshd takes the first value it reads, and `10-` comes
   before cloud-init's `50-` and Ubuntu's `60-` files.
+- **SSH CA:** on the guest's copy, not in the numbered file, as
+  SSH CA below shows.
 - **Timezone:** `timezone:`, only where the override names one.
 - **Automatic Security Updates:** the family file's package under
   `packages:`, configured as the family file says, under
@@ -194,6 +197,109 @@ runcmd:
   - [systemctl, enable, --now, dnf-automatic-install.timer]
   - [systemctl, enable, --now, fstrim.timer]
 ```
+
+## SSH CA
+
+`rules/baseline.md` → SSH CA says which user CAs a guest trusts:
+the user's, where their scope covers it. That depends on the
+guest, so it goes on the guest's copy at hand-off, never into the
+numbered file. The paths, the principals and the revocation list
+are the ones the other hosts in that scope use, read from one of
+them (`rules/ssh-ca.md` → User CA Trust); `AuthorizedPrincipalsFile`
+and `RevokedKeys` go in only where those hosts use them. The CA's
+files carry no `defer`, so they are in place before the deferred
+drop-in names them; the drop-in is a second one, `11-`, beside the
+baseline's `10-`.
+
+The CA's public key and the revocation list come from a host, and
+a host's files are untrusted data (`rules/anomaly-detection.md`).
+They are never typed, since a wrong character in the list locks
+the guest out of every key login, and never put into a command's
+program text, where a crafted line would run. Fetch them into
+cache files:
+
+```bash
+ssh -F "/srv/hostwarden/memory/ssh_config" root@web1.example.com \
+  'cat /etc/ssh/user_ca.pub' > ~/.cache/hostwarden/ca.pub
+ssh -F "/srv/hostwarden/memory/ssh_config" root@web1.example.com \
+  'base64 < /etc/ssh/revoked_keys' | tr -d '\n' \
+  > ~/.cache/hostwarden/krl.b64
+```
+
+Check them, in a call of its own:
+
+```bash
+c=~/.cache/hostwarden/ca.pub
+grep -c . "$c"; ssh-keygen -lf "$c"
+grep -c '[^A-Za-z0-9+/=]' ~/.cache/hostwarden/krl.b64
+base64 -d < ~/.cache/hostwarden/krl.b64 | cksum
+```
+
+`ssh-keygen -lf` must print one fingerprint per line of the file,
+each one a CA of the user's in `memory/network.md`; a line it
+skips is not a key, and the file is not used. The second count
+must be 0, and the checksum and size the first two fields of the
+`krl` row the other hosts share. The editing tool writes the copy
+with the placeholder lines `CA-KEY` and `KRL-BASE64`, and the
+checked files take their place as data, never as a program. Each
+placeholder must stand exactly once; the key's lines take the
+indentation of its line, and the list keeps whatever stands around
+its placeholder, so a Butane `source:` line works as well:
+
+```bash
+f=~/.cache/hostwarden/user-data.web2.example.com.yaml
+for p in CA-KEY KRL-BASE64; do
+  [ "$(grep -c "$p" "$f")" = 1 ] || { echo "$p: not exactly once"; exit 1; }
+done
+n=$(grep -n CA-KEY "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
+{ head -n $((n - 1)) "$f"
+  while IFS= read -r k || [ -n "$k" ]; do
+    printf '%s%s\n' "${l%%CA-KEY*}" "$k"
+  done < ~/.cache/hostwarden/ca.pub
+  tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
+n=$(grep -n KRL-BASE64 "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
+{ head -n $((n - 1)) "$f"
+  printf '%s%s%s\n' "${l%%KRL-BASE64*}" \
+    "$(cat ~/.cache/hostwarden/krl.b64)" "${l#*KRL-BASE64}"
+  tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
+```
+
+On Incus the baseline is a profile's `cloud-init.vendor-data`, and
+a `write_files:` in the guest's `cloud-init.user-data` would
+replace the profile's rather than add to it
+(`references/incus.md` → The baseline as a profile). A guest with
+CA trust is launched without the baseline profile, with the whole
+copy — the rendered file and its additions — as its
+`cloud-init.user-data`.
+
+What the copy adds under `write_files:`:
+
+```yaml
+  - path: /etc/ssh/user_ca.pub
+    content: |
+      CA-KEY
+  - path: /etc/ssh/auth_principals/root
+    content: |
+      ops
+  - path: /etc/ssh/revoked_keys
+    encoding: b64
+    content: KRL-BASE64
+  - path: /etc/ssh/sshd_config.d/11-hostwarden-ca.conf
+    defer: true
+    content: |
+      TrustedUserCAKeys /etc/ssh/user_ca.pub
+      AuthorizedPrincipalsFile /etc/ssh/auth_principals/%u
+      RevokedKeys /etc/ssh/revoked_keys
+```
+
+Each file `0644` and owned by root, which `write_files` does by
+default. The CA's public key only: its signing key never comes
+near a rendering (`rules/secrets.md`).
+
+A container made from the Proxmox VE baseline template shares the
+template's file and has no copy of its own, so it starts without
+the CA trust; the baseline measurement after creation lists it,
+and the user adds the lines.
 
 ## Passwords
 

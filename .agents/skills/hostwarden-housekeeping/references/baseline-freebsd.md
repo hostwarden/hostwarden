@@ -284,6 +284,10 @@ echo | openssl s_client -connect localhost:443 \
 - **CRITICAL** if any cert expires in < 7 days
 - **WARN** if any cert expires in < 30 days
 
+## SSH Host Certificate
+
+As `references/baseline-linux.md` → SSH Host Certificate.
+
 ## Critical Services: Running Binary vs Installed
 
 An update replaces the file on disk while the running daemon keeps

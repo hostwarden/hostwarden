@@ -62,11 +62,14 @@ checkout) and stop.
    mode, run `hostwarden-baseline` steps 1 and 2 — its overrides and
    the measurement, read-only — and not its question. A decision the
    pipeline offers to record is asked before the measurement, so a
-   section it settles is not listed as missing. A guest registered
-   through its host is measured on its first SSH connection or by
-   housekeeping. A Proxmox VE node without a `Baseline template:` line
-   (`rules/appliance/proxmox-ve.md` → Guests) has that on its report
-   line: a container created there starts without the baseline.
+   section it settles is not listed as missing. The Host Certificate
+   and User CA Trust probes of `rules/ssh-ca.md` run with it, and
+   record what they find as its Memory section says. A guest
+   registered through its host is measured on its first SSH
+   connection or by housekeeping. A Proxmox VE node without a
+   `Baseline template:` line (`rules/appliance/proxmox-ve.md` →
+   Guests) has that on its report line: a container created there
+   starts without the baseline.
 
 5. **Close the host.** Any other question whose answers only get
    recorded — stopped guests, anything else the pipeline's rules

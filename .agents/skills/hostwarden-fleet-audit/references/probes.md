@@ -217,6 +217,19 @@ printf '%s\n' "$OUT" | grep -i \
     -e '^port '
 ```
 
+After it, in the same section, run the Host Certificate probe
+of `rules/ssh-ca.md` and, where `$SUDO` is not `-`, its User CA
+Trust probe, which reuses `OUT`. Their `hostcert`, `clientca`,
+`userca` and `krl` lines, and the
+`trustedusercakeys`, `authorizedprincipals…` and `revokedkeys`
+values, are rows of the same table; for a host certificate, its
+signing CA and the end of its `Valid:` line. The host certificate
+and client CA rows need no root and are filled on a host whose
+sshd column is `unknown(needs-root)`; after
+`unknown(sshd-failed)` the CA rows read the same, never
+"defaults" or "no user CA". What these rows find stays in the
+report: the fleet audit writes no memory.
+
 Row keys: each line is `key value`. Since OpenSSH 10.4
 the keys are mixed case (`PermitRootLogin`), so compare
 them without regard to case. Compare column-by-column.
@@ -249,6 +262,26 @@ Highlight as drift:
 - Any host with `permitrootlogin yes` while others use
   `prohibit-password` or `forced-commands-only`.
 - Mismatched `port` values across the fleet.
+- A different `userca` fingerprint, principals setup or
+  `revokedkeys` path on hosts that should admit the same
+  people, and a host with no user CA among hosts that
+  have one.
+- A different `krl` checksum on hosts that trust the same
+  user CA: a revocation did not reach every host, and a
+  revoked certificate still works on the others. A host
+  whose `krl` line is an error has the lockout of
+  `rules/ssh-ca.md` → User CA Trust: **CRITICAL**.
+  Hosts that trust a user CA without `revokedkeys`
+  cannot revoke at all; list them too.
+- Host certificates on some hosts but not others, or
+  signed by different CAs. One that ends much earlier
+  than the rest usually has a renewal job that stopped.
+- A different `clientca`, or none, on hosts whose memory
+  says they open SSH connections to others.
+
+During a CA rotation two fingerprints show on some hosts;
+that is drift only until the rotation is done, as the CA's
+line in `memory/network.md` says.
 
 **macOS** runs the probe unchanged
 (`.agents/skills/hostwarden-security/references/ssh.md` →

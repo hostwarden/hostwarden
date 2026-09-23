@@ -64,8 +64,10 @@ ssh-keygen -F web1.example.com -f "/srv/hostwarden/memory/known_hosts"
 `/srv/hostwarden` stands for this checkout's absolute path here
 and below, the `<checkout>` of `AGENTS.md` → SSH Options. Any
 output, a plain key or a line marked `CA`, means the host is
-known: connect. No output means Getting a Key comes first, or DNS
-Aliases for a name the DNS check has just found to be an alias.
+known: connect — except for a host whose `SSH host cert:` line
+names a CA, which Host Certificates below checks first. No output
+means Getting a Key comes first, or DNS Aliases for a name the DNS
+check has just found to be an alias.
 
 ## Getting a Key
 
@@ -289,17 +291,50 @@ with `-R`: a hashed line names one host only.
 
 A `@cert-authority` line covers every host whose name matches
 its pattern and whose certificate that CA signed. Such a host
-needs no line of its own. Hostwarden reads these lines and never
-proposes a CA: not in a finding, not in the baseline, not in a
-recommendation. Whether to run one is the user's decision, as
-configuration management is (`rules/config-management.md`).
+needs no line of its own. An SSH CA the user already runs is
+audited and used as `rules/ssh-ca.md` says; building one is the
+user's decision, which Hostwarden neither proposes nor helps
+with.
+
+Before the first connection to a host whose `SSH host cert:` line
+names a CA, the CA lines of Before the First Connection's lookup
+must name that CA. Off port 22, look up the plain name as well:
+ssh accepts a CA line for either `[<name>]:<port>` or `<name>`,
+while `ssh-keygen -F` finds only the form it is given.
+
+```bash
+for n in '[web1.example.com]:2222' web1.example.com; do
+  ssh-keygen -F "$n" -f "/srv/hostwarden/memory/known_hosts" |
+    grep '^@cert-authority' | cut -d' ' -f3- | ssh-keygen -lf -
+done
+```
+
+- **The CA's fingerprint is among them:** connect. During a CA
+  rotation two lines print, and one match is enough.
+- **None:** the host is known by a plain key only, or not at all.
+  Offer the host CA's line, for the patterns its scope in
+  `memory/network.md` names, never `*`, each in both forms:
+  `*.example.com,[*.example.com]:*`. It comes from the user's own
+  known_hosts as source 2 of Getting a Key imports it, or from the
+  user; written as The File says, and only on a yes. A no leaves
+  the plain key working.
+- **Only other CAs:** the workspace trusts another CA for this
+  name — an unfinished rotation, or a wrong line. Connect to
+  nothing, and tell the user both fingerprints.
+
+The certificate must list the name looked up here among its
+principals (`rules/ssh-ca.md` → Host Certificate).
 
 `Host key verification failed` on a name a CA line covers points
-at the certificate: expired because its renewal stopped, or not
-naming this host among its principals. The single retry with the
-fresh-login options and `-v` (`rules/ssh-unreachable.md`) shows
-which. That is a finding for the host, reported in one line. Get
-a plain key for it only when the user asks.
+at the certificate. The client prints the reason just before it:
+`Certificate invalid: expired`, because its renewal stopped, or
+`Certificate invalid: name is not a listed principal`, because it
+does not name this host. Where no reason shows, the single retry
+with the fresh-login options and `-v`
+(`rules/ssh-unreachable.md`) shows which. That is a finding for
+the host, reported in one line; Hostwarden cannot log in to fix
+it, and the user renews the certificate. Get a plain key for it
+only when the user asks.
 
 ## DNS Aliases
 

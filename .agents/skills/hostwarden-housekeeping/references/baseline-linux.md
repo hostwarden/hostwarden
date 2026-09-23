@@ -526,6 +526,14 @@ echo | openssl s_client -connect localhost:443 \
 - **CRITICAL** if any cert has expired or expires in < 7 days
 - **WARN** if any cert expires in < 30 days
 
+## SSH Host Certificate
+
+Only where the host's memory has an `SSH host cert:` line, or a
+host CA of the user's covers the host (`rules/ssh-ca.md` →
+Terms). Run the Host Certificate probe of
+`rules/ssh-ca.md`, which needs no root, in the same call as the
+TLS check above, and rate it with the findings listed there.
+
 ## Kernel: Running vs Installed
 
 Check whether a reboot is needed for a kernel update.

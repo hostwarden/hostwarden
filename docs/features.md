@@ -59,8 +59,44 @@ overwritten until you say so.
 
 `@cert-authority` lines work in the same file, so SSH
 host certificates from your own CA need no per-host
-lines. Hostwarden supports them and does not ask you
-to run a CA.
+lines.
+
+## SSH certificates and your CA
+
+If you already run an SSH CA — `ssh-keygen` with a
+script, step-ca, Vault or OpenBao, Teleport — Hostwarden
+audits it and uses it wherever it sets up SSH trust. It
+does not build a CA for you, never signs a certificate,
+and never touches a CA signing key or the configuration
+of an sshd that runs. A CA it finds on a server is only
+a finding until you confirm it as yours; only then is it
+carried anywhere.
+
+- **Audit:** each host certificate's expiry, names and
+  renewal job; which user CA each server trusts, its
+  principals and its revocation list, and whether that
+  list exists, since a missing one locks out every key
+  login. Where it can read them, the CA's issuing rules:
+  who gets a certificate, for which accounts, for how
+  long.
+- **Fleet audit:** which CA and which revocation list
+  every server trusts, so a revocation that missed a
+  server stands out.
+- **Your workstation:** every host with a host
+  certificate is covered by its CA's line in
+  `memory/known_hosts`. A missing line is offered;
+  another CA for the same name stops the connection.
+- **Servers that connect to others** get the host CA's
+  line in their global known-hosts file when you say
+  yes.
+- **New guests** trust your user CA from their first
+  boot. Their host keys are handed to you to sign;
+  installing the certificate is yours.
+- **Baseline:** once you confirm a CA as yours and say
+  which servers it covers, a server there that does
+  not trust it, or has no revocation list where the
+  others have one, is a finding, and you get the lines to
+  add.
 
 ## Reaching a host
 
