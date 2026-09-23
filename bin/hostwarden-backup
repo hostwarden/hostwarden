@@ -8,22 +8,22 @@
 #   hostwarden-backup                Create a backup in CWD
 #   hostwarden-backup -o <path>      Write to an explicit path
 #   hostwarden-backup --list         Dry run: list what would
-#                                 be archived
+#                                    be archived
 #   hostwarden-backup --restore <f>  Extract <f> into repo root
-#                                 (refuses to overwrite
-#                                 existing memory/ content
-#                                 unless --force is also set)
+#                                    (refuses to overwrite
+#                                    existing memory/ content
+#                                    unless --force is also set)
 #   hostwarden-backup --help         Show this help
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-SELF="$SCRIPT_DIR/$(basename "$0")"
 ORIG_PWD=$(pwd)
 cd "$REPO_DIR"
 
 usage() {
-  awk '/^# hostwarden-backup/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
 }
 
 # Resolve a user-supplied path against the directory

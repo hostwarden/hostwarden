@@ -179,19 +179,10 @@ guest has no such mechanism, the files are the user's to place
    user asked for goes into the guest's `rules.md` as
    `## Add: SSH Login` under `# baseline`: "password login, asked
    for at creation", and SSH with it too where they asked for that.
-5. **Verify the baseline** in one bundled call, with `sudo -n`
-   before `sshd -T` where the SSH user is not root
-   (`rules/privilege-escalation.md`):
-
-   ```bash
-   sshd -T | grep -iE \
-     '^(passwordauthentication|kbdinteractiveauthentication|permitrootlogin) '
-   timedatectl show --property=NTPSynchronized --property=Timezone
-   ls -d /var/log/journal
-   ```
-
-   with the firewall's status command and the updater's timer
-   from the family file. Then the backup, from the host: on
+5. **Verify the baseline** on the guest as `hostwarden-baseline`
+   step 2 measures it: the check each section of
+   `rules/baseline.md` names, in as few bundled calls as they
+   allow. The backup is looked up from the host instead: on
    Proxmox VE a job in `/etc/pve/jobs.cfg` with `all 1` or this
    guest's ID, elsewhere the hypervisor's own backup schedule or
    the guest's as

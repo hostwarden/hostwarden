@@ -376,6 +376,41 @@ one line (*"Registering 7 guests of pve1.example.com through
    (Linking below), the activity check with its
    configuration-management probe, and the Heinzel check where it
    applies. What they find is recorded as they say.
+
+   A step whose probe is the same for several guests of one
+   manager runs for all of them in one call to the host: a loop
+   over the IDs that passed step 1, with a marker line before
+   each guest's output and its exit status after it. OS detection
+   is one probe for every guest; the activity check and the
+   Heinzel check loop over the guests whose detected OS gives them
+   the same probe. The probe travels as an argument, each guest's
+   stdin is `/dev/null`, since `sh -s` reads the rest of the loop
+   from the same stdin, and `timeout` keeps one hanging guest from
+   stalling the rest. The markers carry a nonce drawn on the host,
+   which no guest sees, so a guest's own output cannot pass for a
+   marker (`rules/anomaly-detection.md`), and the exit line starts
+   on a line of its own even after output without a final newline:
+
+   ```bash
+   ssh … root@pve1.example.com 'sh -s' <<'EOS'
+   n=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+   P=$(cat <<'EOP'
+   …
+   EOP
+   )
+   for id in 105 106 107; do
+     printf '@guest %s %s\n' "$n" "$id"
+     timeout 60 pct exec "$id" -- sh -c "$P" </dev/null
+     printf '\n@exit %s %s\n' "$n" "$?"
+   done
+   EOS
+   ```
+
+   For `qm guest exec`, each pass reads the answer as
+   `rules/system-containers.md` → Reaching It says. Only a line
+   with the nonce is a marker. A guest whose exit status is not 0
+   (a timeout included), or whose marker has no output after it,
+   gets the step again on its own.
 3. The hostname names the memory directory. Where one exists
    already and its `Guest identity:` or its `IP:` matches this
    guest, it is the same server: add only `Runs on:` and the

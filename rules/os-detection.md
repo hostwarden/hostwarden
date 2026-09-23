@@ -286,6 +286,17 @@ does not name applies as the base wrote it.
 `Appliance: …` in server memory, in the form the
 appliance file gives.
 
+Where the appliance file's Version Detection names the
+releases it covers and says to stop on the others,
+stop on such a release: tell the user that Hostwarden
+has no rules for it, and change nothing on the host.
+
+Where the appliance file lists settings only its web
+UI shows, ask the user for them once, record the
+answers in server memory with the date, and name a
+setting as unchecked when its record is older than
+three months.
+
 The line under `Base:` says whose hardware the
 appliance runs on. `Hardware: any` is an OS that
 installs on ordinary machines and in VMs.

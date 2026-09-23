@@ -323,10 +323,8 @@ under `deb/openmediavault/` there).
   `netplan try` on them tests a file OMV will overwrite. Configure
   interfaces only through OMV.
 - Interfaces, bonds and VLANs are changed under
-  Network > Interfaces. This file names no revert for them, so
-  under `rules/ssh-safety-net.md` the user applies the change,
-  with console access ready: `omv-firstaid` restores a working
-  interface there.
+  Network > Interfaces (no revert: `rules/ssh-safety-net.md`).
+  `omv-firstaid` on the console restores a working interface.
 
 ## Add: Service Manager
 

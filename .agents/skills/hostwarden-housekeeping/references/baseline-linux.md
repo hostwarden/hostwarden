@@ -14,12 +14,10 @@ unchanged; the others would fail on OpenRC or busybox
 Run `rc-status -a` and `rc-status --crashed` once, in the first
 call: failed services and time sync read from that output.
 
-**Containers.** A system container — `Virtualization:` in
-memory names a container — runs on its host's kernel and clock
-(`rules/system-containers.md`). There, skip NTP / Time Sync and
-Kernel: Running vs Installed and report them `n/a (container)`;
-Livepatch's kernel state and needrestart's kernel lines raise
-nothing either.
+**Containers.** In a container, NTP / Time Sync, Kernel: Running
+vs Installed, Livepatch, needrestart's kernel lines and CPU
+Microcode check what the host owns
+(`rules/system-containers.md` → What the Host Owns).
 
 ## Backup Presence
 
@@ -121,7 +119,6 @@ dnf check-update --quiet 2>/dev/null \
   | grep -c "^\S"
 
 # Security-only subset.
-dnf updateinfo --security 2>/dev/null
 dnf check-update --security --quiet 2>/dev/null \
   | grep -c "^\S"
 ```
@@ -285,18 +282,12 @@ What housekeeping does with the answer is below.
   `systemctl is-enabled nftables` says `enabled`: the
   stock `/etc/nftables.conf` flushes their rules.
 
-**Docker** (when `command -v docker` finds it):
-
-```bash
-docker ps --format '{{.Names}} {{.Ports}}'
-```
-
-- **WARN** for each published port (`->`) not bound to
-  `127.0.0.1` or `[::1]`: Docker routes it past ufw and
-  firewalld. OK if a `DOCKER-USER` rule restricts it (same
-  reference), or if server memory records the port as
-  meant to be public. When the user confirms that, add it
-  there so the next run stays quiet.
+**Docker** (when `command -v docker` finds it): run the probe
+from the same reference → Docker published ports, and judge
+it by the severities there. Housekeeping adds one exception: a
+port that server memory records as meant to be public is OK.
+When the user confirms that for a port, add it there so the
+next run stays quiet.
 
 - **CRITICAL** if the firewall is inactive or not installed
 
@@ -371,15 +362,10 @@ profile is offered rather than rebuilt inside the inspection.
 Check for recent critical events:
 
 ```bash
-# OOM kills in the last 7 days
+# OOM kills and disk errors in the last 7 days, one pass
 journalctl --since "7 days ago" -k \
-  --grep="Out of memory" --no-pager -q 2>/dev/null \
-  | wc -l
-
-# Disk errors in the last 7 days
-journalctl --since "7 days ago" -k \
-  --grep="I/O error" --no-pager -q 2>/dev/null \
-  | wc -l
+  --grep="Out of memory|I/O error" --no-pager -q 2>/dev/null \
+  | grep -oE "Out of memory|I/O error" | sort | uniq -c
 
 # Failed SSH auth in the last 24 hours
 journalctl --since "24 hours ago" -u ssh -u sshd \
@@ -411,31 +397,23 @@ Only check if the server runs a web server or any TLS-enabled
 service (check `memory.md` for nginx, Apache, etc.).
 
 ```bash
-# Check all certs in /etc/letsencrypt/live/
-for cert in /etc/letsencrypt/live/*/cert.pem; do
-  domain=$(basename "$(dirname "$cert")")
-  expiry=$(openssl x509 -enddate -noout \
-    -in "$cert" 2>/dev/null \
-    | cut -d= -f2)
-  days=$(( ($(date -d "$expiry" +%s) \
-    - $(date +%s)) / 86400 ))
-  echo "$domain: ${days}d remaining"
-done
-```
-
-**Alpine:**
-
-```bash
 for cert in /etc/letsencrypt/live/*/cert.pem; do
   [ -r "$cert" ] || { echo "$cert: not readable"; continue; }
   domain=$(basename "$(dirname "$cert")")
+  echo "$domain: $(openssl x509 -enddate -noout -in "$cert")"
   openssl x509 -checkend 2592000 -noout -in "$cert" \
     >/dev/null && continue
   if openssl x509 -checkend 604800 -noout -in "$cert" \
     >/dev/null; then echo "$domain: expires within 30 days"
-  else echo "$domain: expires within 7 days"; fi
+  elif openssl x509 -checkend 0 -noout -in "$cert" \
+    >/dev/null; then echo "$domain: expires within 7 days"
+  else echo "$domain: expired"; fi
 done
 ```
+
+`-checkend` does the date arithmetic, so the loop needs no GNU
+`date` and runs on Alpine's busybox as well; the `notAfter=` line
+gives the date the report counts the days to.
 
 If no Let's Encrypt certs exist, try checking via the listening
 port:
@@ -446,7 +424,7 @@ echo | openssl s_client -connect localhost:443 \
   | openssl x509 -enddate -noout 2>/dev/null
 ```
 
-- **CRITICAL** if any cert expires in < 7 days
+- **CRITICAL** if any cert has expired or expires in < 7 days
 - **WARN** if any cert expires in < 30 days
 
 ## Kernel: Running vs Installed

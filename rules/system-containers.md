@@ -92,6 +92,32 @@ memory. Find them with
 prints what is set on the instance alone, and a key the guest
 inherits from a profile is missing.
 
+## What the Host Owns
+
+Where `Virtualization:` in memory names a container, a system
+container or a FreeBSD jail, these belong to the host, and a probe
+run inside reads the host's state as if it were the guest's:
+
+- **The clock:** the time service and whether it is synchronised.
+- **The running kernel:** its version, a pending reboot read from
+  it (running against installed kernel, Livepatch's kernel state,
+  needrestart's kernel lines, a missing module directory for
+  `uname -r`), and the boot time and uptime.
+- **Kernel-wide sysctls.** A Linux container's own are those of
+  its network namespace, IP forwarding and ICMP redirect
+  acceptance among them. A jail's own are `kern.securelevel`,
+  `security.bsd.unprivileged_proc_debug` and, where
+  `security.jail.vnet` is `1`, the `net.inet*` keys.
+- **The USB bus:** a container sees the host's devices.
+- **CPU microcode**, which the host kernel loads.
+
+A check of one of these does not run in a container. Its line
+reads `n/a (container)` and is never a finding; the USB inventory
+and the microcode check report nothing at all. What the
+container's own packages and files write stays its own and is
+checked as usual: the timezone, the userland version,
+`/var/run/reboot-required`.
+
 ## Changes
 
 Creating and changing guests is ordinary work on the host;

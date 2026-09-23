@@ -18,47 +18,26 @@
 # saying; saying it after every Edit call is noise, and noise is
 # what gets instructions ignored.
 
-SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$SELF_DIR/../.." && pwd)"
+ROOT=$(cd "${0%/*}/../.." && pwd)
 
 INPUT=$(cat)
 
+# field <key> <class> — the value of <key> in the hook's JSON input,
+# if it consists of <class> alone. Read as text with sed, because a
+# workstation is whatever the user runs Hostwarden from and this
+# hook may not assume jq or python3 is on it; a hook whose whole
+# job is to speak up must not fall silent where they are missing.
+# Sound for the two keys asked for: `file_path` and `session_id`
+# each occur once as a key, a quote inside a string value is
+# escaped, and a path carrying an escape is one no case below
+# matches anyway.
 field() {
-  # field <dotted.path> — one value out of the hook's JSON input.
-  #
-  # Three readers, because a workstation is whatever the user
-  # runs Hostwarden from and this hook may not assume any one
-  # interpreter is on it. Without the sed branch a host with
-  # neither jq nor python3 loses the pointer and says nothing
-  # about it, which is the one failure a hook whose whole job is
-  # to speak up must not have.
-  if command -v jq >/dev/null 2>&1; then
-    printf '%s' "$INPUT" \
-      | jq -r --arg p "$1" \
-        'getpath($p | split(".")) | strings // ""' 2>/dev/null
-  elif command -v python3 >/dev/null 2>&1; then
-    printf '%s' "$INPUT" | python3 -c '
-import json, sys
-d = json.load(sys.stdin)
-for k in sys.argv[1].split("."):
-    d = d.get(k) if isinstance(d, dict) else None
-    if d is None:
-        break
-print(d if isinstance(d, str) else "")
-' "$1" 2>/dev/null
-  else
-    # No parser, so match the leaf key as text. Sound for the two
-    # keys this hook asks for: `file_path` and `session_id` each
-    # occur once in the event, and a value carrying an escape is
-    # a path no case below matches anyway.
-    K="${1##*.}"
-    printf '%s' "$INPUT" | tr ',{' '\n\n' \
-      | sed -n "s/.*\"$K\"[[:blank:]]*:[[:blank:]]*\"\([^\"]*\)\".*/\1/p" \
-      | head -1
-  fi
+  printf '%s' "$INPUT" \
+    | sed -n "s/.*\"$1\"[[:blank:]]*:[[:blank:]]*\"\($2*\)\".*/\1/p" \
+    | head -1
 }
 
-FILE=$(field tool_input.file_path)
+FILE=$(field file_path '[^"]')
 [ -n "$FILE" ] || exit 0
 
 # Repo-relative, so a path outside the project cannot match.
@@ -72,16 +51,23 @@ case "$REL" in
   *) exit 0 ;;
 esac
 
-# Session-scoped marker. A session id the harness did not send
-# means no dedup is possible, and saying it once too often beats
-# not saying it at all.
-SESSION=$(field session_id)
-STATE="${TMPDIR:-/tmp}/hostwarden-authoring-$(id -u)"
+# Session-scoped marker, in the directory a SessionStart hook
+# creates with mode 0700; the id is letters, digits, _ and - or
+# nothing, so it is safe as a file name. A session id the harness
+# did not send means no dedup is possible, and saying it once too
+# often beats not saying it at all — so does a marker that cannot
+# be written.
+SESSION=$(field session_id '[A-Za-z0-9_-]')
 if [ -n "$SESSION" ]; then
-  mkdir -p "$STATE" 2>/dev/null || exit 0
-  MARK="$STATE/$(printf '%s' "$SESSION" | tr -c 'A-Za-z0-9_-' '_')"
+  MARK="$HOME/.cache/hostwarden/authoring-$SESSION"
   [ -e "$MARK" ] && exit 0
-  : > "$MARK" 2>/dev/null || exit 0
+  # shellcheck disable=SC2174 # 0700 is for the last directory alone
+  { : > "$MARK"; } 2>/dev/null \
+    || { mkdir -p -m 700 "${MARK%/*}" && : > "$MARK"; } 2>/dev/null
+  # Markers of sessions long gone; once per session, so it costs
+  # the edits after the first nothing.
+  find "${MARK%/*}" -name 'authoring-*' -mtime +2 -exec rm -f {} + \
+    2>/dev/null
 fi
 
 cat <<'JSON'

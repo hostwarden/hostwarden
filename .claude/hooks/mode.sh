@@ -29,9 +29,9 @@
 #                worktree is removed.
 #
 # Cheap on purpose: the guard asks on every tool call, so this is
-# file tests, with a process only inside a linked worktree — and
-# it sets variables rather than printing, so the caller needs no
-# subshell either.
+# file tests, with a process only for a linked worktree whose paths
+# git did not write the usual way — and it sets variables rather
+# than printing, so the caller needs no subshell either.
 #
 # Expects nothing. Defines:
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
@@ -45,8 +45,12 @@
 #                           — sets HOSTWARDEN_REFUSAL to why <tool>
 #                             is refused in development, so the
 #                             guard and the shim say the same
-#   hostwarden_git_batch    — sets up git to reach the workspace's
-#                             remote without ever prompting
+#   hostwarden_git_batch [<repo>]
+#                           — sets up git to reach <repo>'s remote
+#                             (none: a clone's) without ever prompting
+#   hostwarden_path_without_shim
+#                           — sets HOSTWARDEN_PATH to PATH without
+#                             any Hostwarden shim directory (shim.sh)
 
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_mode() {
@@ -55,15 +59,25 @@ hostwarden_mode() {
   # directory it names holds a `commondir` file pointing at the
   # shared git directory, whose parent is the main checkout. A
   # submodule has a .git file too, but no commondir: it is no
-  # clone of its own, so it is development. Only this rare branch
-  # starts a process (cd resolves relative and drive-letter paths).
+  # clone of its own, so it is development. The usual pair, an
+  # absolute gitdir and a commondir of ../.., resolves as text; only
+  # anything else starts a process (cd resolves relative and
+  # drive-letter paths).
   if [ -f "$1/.git" ]; then
     HOSTWARDEN_MODE=development
     read -r hm_git < "$1/.git"
-    hm_git=$(cd "$1" && cd "${hm_git#gitdir: }" 2>/dev/null && pwd)
+    hm_git=${hm_git#gitdir: }
+    case $hm_git in
+    /*) ;;
+    *) hm_git=$(cd "$1" && cd "$hm_git" 2>/dev/null && pwd) ;;
+    esac
     if [ -n "$hm_git" ] && [ -f "$hm_git/commondir" ]; then
       read -r hm_common < "$hm_git/commondir"
-      HOSTWARDEN_MAIN=$(cd "$hm_git" && cd "$hm_common/.." 2>/dev/null && pwd)
+      case $hm_common in
+      ../..) HOSTWARDEN_MAIN=${hm_git%/*/*/*} ;;
+      *) HOSTWARDEN_MAIN=$(cd "$hm_git" && cd "$hm_common/.." 2>/dev/null \
+           && pwd) ;;
+      esac
       HOSTWARDEN_MODE=worktree
     fi
   elif [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]; then
@@ -119,10 +133,54 @@ hostwarden_git_batch() {
   mkdir -p -m 700 "$HOME/.cache/hostwarden"
   # Appended to a command the user set, not replaced by it: ssh
   # takes the first value it sees, so their own options still win,
-  # and ours fill in what they left open.
+  # and ours fill in what they left open. GIT_SSH_COMMAND outranks
+  # core.sshCommand, so that, where set, is the command ours are
+  # appended to — a mirror's deploy key, say. It is read from the
+  # repository the caller contacts, never from another one: the
+  # workspace in memory/ can use a key the checkout around it does
+  # not. Without one, as before a clone, only the user's and the
+  # system's setting count.
+  # An unset key makes `git config` fail, which must not end a
+  # caller running under `set -e`.
+  if [ -z "${GIT_SSH_COMMAND:-}" ]; then
+    if [ -n "${1:-}" ]; then
+      GIT_SSH_COMMAND=$(git -C "$1" config core.sshCommand 2>/dev/null) \
+        || GIT_SSH_COMMAND=
+    else
+      GIT_SSH_COMMAND=$(git config --global core.sshCommand 2>/dev/null \
+        || git config --system core.sshCommand 2>/dev/null) \
+        || GIT_SSH_COMMAND=
+    fi
+  fi
+  export GIT_TERMINAL_PROMPT
+  # A GIT_SSH program with nothing above it stays in charge: git runs
+  # it as a bare path, and plink or a wrapper may take no ssh
+  # options at all. An empty GIT_SSH_COMMAND would outrank it too.
+  if [ -z "$GIT_SSH_COMMAND" ] && [ -n "${GIT_SSH:-}" ]; then
+    unset GIT_SSH_COMMAND
+    return 0
+  fi
   GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes \
 -o ConnectTimeout=5 -o ControlMaster=auto \
 -o ControlPath=~/.cache/hostwarden/ssh-%C -o ControlPersist=10m \
 -o ServerAliveInterval=15 -o ServerAliveCountMax=3"
-  export GIT_TERMINAL_PROMPT GIT_SSH_COMMAND
+  export GIT_SSH_COMMAND
+}
+
+# Every Hostwarden shim goes, not only this checkout's: a session
+# started from inside another one carries both on PATH. Parameter
+# expansion only, so the doctor can use it before it knows which
+# tools exist, and a caller's `set -f` and IFS stay as they were.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_path_without_shim() {
+  HOSTWARDEN_PATH=
+  hp_rest=$PATH:
+  while [ -n "$hp_rest" ]; do
+    hp_dir=${hp_rest%%:*}
+    hp_rest=${hp_rest#*:}
+    case $hp_dir in
+    */.claude/hooks/shim) ;;
+    *) HOSTWARDEN_PATH=$HOSTWARDEN_PATH${HOSTWARDEN_PATH:+:}$hp_dir ;;
+    esac
+  done
 }

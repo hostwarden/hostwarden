@@ -254,8 +254,8 @@ included
   adopted devices takes a while; a device still provisioning when
   the object is read back is not a failure.
 - Firewall policies and zones, port forwards and the network or
-  VLAN the session comes from are changes that can touch the way in;
-  UniFi names no revert for them.
+  VLAN the session comes from are changes that can touch the way in
+  (no revert: `rules/ssh-safety-net.md`).
 - Device restarts and PoE power cycles interrupt clients: ask each
   time, name the device and what hangs off it.
 
@@ -382,10 +382,8 @@ directory.
   read only its chain (`nft list chain …`, or `iptables-save` through
   `grep`), and never base a change on it.
 - Rules, port forwards and zones change in the application, after
-  asking, and fall under `rules/ssh-safety-net.md` with no revert
-  (see Network API → Writing): name what reaches SSH and the UniFi
-  OS web UI, and the user applies the change with a second way in
-  ready.
+  asking, with no revert (`rules/ssh-safety-net.md`; Network API →
+  Writing): name what reaches SSH and the UniFi OS web UI.
 
 ## Services and Logs
 

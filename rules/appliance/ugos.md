@@ -38,8 +38,7 @@ host, not as documented behaviour.
 ## Version Detection
 
 - **This file covers UGOS Pro 1.x.** When the version is 2 or
-  later, stop: tell the user that Hostwarden has no rules for this
-  release yet, and change nothing on the host.
+  later, stop (`rules/os-detection.md` → Appliances).
 - **The older UGOS (without "Pro") is not covered either.** UGREEN
   moved those NAS models to UGOS Pro, and after the switch the old
   storage can only be mounted as external storage (article 412).
@@ -153,12 +152,11 @@ host, not as documented behaviour.
   writes its own rules on the same host, and UGOS does not know
   about a hand-made one.
 - **Network changes over SSH.** Addresses, link aggregation and
-  bridges are set under Control Panel → Network, and this file
-  names no revert for them: a network change is the user's to make
-  in the web UI (`rules/ssh-safety-net.md`). UGREEN's recovery is
-  Control Panel → Update & Restore → Reset network, or the RESET
-  button held for five seconds, which restores the network settings
-  and leaves the data alone (articles 110 and 294).
+  bridges are set under Control Panel → Network (no revert:
+  `rules/ssh-safety-net.md`). UGREEN's recovery is Control Panel →
+  Update & Restore → Reset network, or the RESET button held for
+  five seconds, which restores the network settings and leaves the
+  data alone (articles 110 and 294).
 - **Services.** `systemctl status`, `systemctl is-active` and
   `journalctl -u` read as on Debian. The vendor's own services are
   units named `*_serv` (community: `runlevel1977-del/UgreenNASAdmin`

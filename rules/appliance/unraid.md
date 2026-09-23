@@ -23,8 +23,7 @@ repositories on GitHub where the docs are silent.
   Slackware. Unraid 8 is announced on a Fedora base (uCore) and is
   not covered
   (<https://unraid.net/blog/unraid-8-announced>). When the version
-  is 8 or later, stop: tell the user that Hostwarden has no rules
-  for this release yet, and change nothing on the host.
+  is 8 or later, stop (`rules/os-detection.md` → Appliances).
 - `/etc/unraid-version` holds one line, `version="<version>"`
   (`unraid/api`, `get-unraid-version-sync.ts`). Step 1 of
   `rules/os-detection.md` prints it; later connections read it with
@@ -85,9 +84,7 @@ repositories on GitHub where the docs are silent.
 - **Network changes over SSH.** Addresses, bonds and bridges are set
   under Settings → Network Settings
   (<https://docs.unraid.net/unraid-os/getting-started/set-up-unraid/customize-unraid-settings/>),
-  and this file names no revert for them: a network change is the
-  user's to make in the web UI with console access ready
-  (`rules/ssh-safety-net.md`).
+  with no revert (`rules/ssh-safety-net.md`).
 - **Automatic security updates.** There is no `unattended-upgrades`
   and no automatic OS update. Pending updates are the finding (see
   Updates).

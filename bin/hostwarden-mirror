@@ -29,8 +29,8 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 UPSTREAM=https://github.com/jpawlowski/hostwarden.git
 
 usage() {
-  awk '/^# hostwarden-mirror/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' \
-    "$SCRIPT_DIR/hostwarden-mirror"
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
 }
 
 while [ $# -gt 0 ]; do

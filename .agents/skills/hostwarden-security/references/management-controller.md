@@ -21,24 +21,21 @@ controller's own UI by the user.
 
 ## Probe
 
+The network settings come from the `ipmitool lan print` line of
+`rules/management-controller.md` → Detection, filter included
+(why it is filtered on the host is said there): where detection
+ran in this same session, reuse its output; otherwise run that
+line in the same bundle as these:
+
 ```
-ipmitool lan print | grep -E \
-  '^(IP Address|Subnet Mask|802\.1q VLAN ID|Cipher Suite Priv Max)'
 ipmitool user list
 ipmitool channel getaccess 1 | grep -E \
   '^(User ID|User Name|Privilege Level|Enable Status)'
 ```
 
-Both filters run on the host. `lan print`'s full output carries
-`SNMP Community String` in the clear, and a secret never reaches
-the conversation or a report (`rules/secrets.md`); `getaccess`
-prints a nine-line block per user slot, of which four lines are
-read. The `lan print` filter is character for character the one
-in `rules/management-controller.md` → Detection, so where
-detection ran in this same session its output is reused instead —
-two different filters would have dropped `Cipher Suite Priv Max`
-and left the cipher-suite finding below with nothing to read. `channel getaccess
-<channel>` reads every user on that channel; 1 is the usual LAN
+`getaccess` prints a nine-line block per user slot, of which the
+filter reads four, on the host. `channel getaccess <channel>`
+reads every user on that channel; 1 is the usual LAN
 channel, and `ipmitool channel info <n>` says what a channel is
 where 1 turns out to be something else. It is the read-only
 counterpart of `setaccess`, which is a write and is out of

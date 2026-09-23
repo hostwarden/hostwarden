@@ -20,6 +20,11 @@ servers some agents bring are the security audit's
 
 ## Probe (no root)
 
+The agents first, one `<pid> <program>` line each. The security
+audit runs this block alone for the agents that serve SSH
+themselves (`.agents/skills/hostwarden-security/references/ssh.md`
+→ SSH servers past sshd):
+
 ```bash
 a='tailscaled|headscale|netbird|zerotier-one|nebula|dnclient'
 a="$a|newt|cloudflared|wireguard-go|netclient|openvpn"
@@ -27,6 +32,22 @@ a="$a|charon(-systemd)?"
 ps -Ao pid=,comm= 2>/dev/null \
   | sed -E 's|^[[:space:]]+||; s|^([0-9]+)[[:space:]]+.*/|\1 |' \
   | grep -E "^[0-9]+ ($a)$"
+```
+
+`comm` is the program each PID runs, never a command line, so a
+`vim /etc/nebula` is not a hit, and no argument is printed, since
+one can hold a token (`rules/secrets.md`). `ps -Ao pid=,comm=`
+runs on Linux, Alpine's BusyBox, FreeBSD and macOS, where `comm`
+is a full path that the `sed` reduces to the program. Where `ps`
+takes neither `-A` nor `-o` — OpenWrt's BusyBox
+(`rules/busybox.md`) — run plain `ps w` instead and read the PID
+and the program out of its columns; what reads these lines needs
+both.
+
+Then, in the same call, the overlay interfaces and what the
+agents' own CLIs report:
+
+```bash
 o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
 for i in $({ ip -br link 2>/dev/null || ip link show 2>/dev/null \
              || ifconfig -l 2>/dev/null; } \
@@ -54,13 +75,8 @@ if command -v netbird >/dev/null 2>&1; then
 fi
 ```
 
-One `<pid> <program>` line per agent, the same form the security
-audit reads (`.agents/skills/hostwarden-security/references/ssh.md`
-→ SSH servers past sshd), which also says what to do where
-BusyBox `ps` takes neither `-A` nor `-o`. No argument is printed,
-since one can hold a token (`rules/secrets.md`), and BusyBox `ip`
-has no `-br`, hence the fallbacks below. Kernel WireGuard has no
-process, so the second loop finds the overlay interfaces by name
+BusyBox `ip` has no `-br`, hence the fallbacks. Kernel WireGuard
+has no process, so the loop finds the overlay interfaces by name
 (wg-quick's `wg0`, Netmaker's `netmaker`, NetBird's `wt0`,
 Tailscale's `tailscale0`) and prints each one's addresses, which
 is what ties this session's `SSH_CONNECTION` address to a VPN.

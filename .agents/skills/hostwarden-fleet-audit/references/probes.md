@@ -80,16 +80,11 @@ a degraded answer — an active ufw must never be reported as
 state. See `references/output-format.md` for how the sentinel
 is rendered and why it is excluded from drift detection.
 
-**Containers.** A system container or a FreeBSD jail —
-`Virtualization:` in memory names a container — runs on its
-host's kernel and clock (`rules/system-containers.md`). So
-the rows that describe those read `n/a (container)`, and
-none of them is a warning here: the active time service and
-`NTPSynchronized` (section 6), and a pending reboot read
-from the kernel and the boot time and uptime (section 7), so
-the uptime criteria do not apply there. The timezone and
-`/var/run/reboot-required`, which the container's own
-packages write, stay its own.
+**Containers.** In a container, the active time service and
+`NTPSynchronized` (section 6), and a pending reboot read from
+the kernel and the boot time and uptime (section 7) are what
+the host owns (`rules/system-containers.md` → What the Host
+Owns), so the uptime criteria do not apply there.
 
 ## 1. Unattended-upgrades (Debian/Ubuntu)
 

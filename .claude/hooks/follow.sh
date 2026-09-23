@@ -22,6 +22,18 @@
 #   hostwarden_follow_tag L    — prints the highest vX.Y.Z tag on
 #                                line L this clone knows, or
 #                                nothing
+#   hostwarden_clone_top       — true at the top of a clone that
+#                                tracks Hostwarden
+
+# Outside a clone every git call fails, and the caller would blame
+# something else, a detached HEAD for one. Unpacked into some other
+# repository, git would pull that one, and unpacked at the top of
+# another checkout, the first test passes but git does not track
+# bin/hostwarden-update there.
+hostwarden_clone_top() {
+  [ "$(git rev-parse --show-toplevel 2>/dev/null)" = "$(pwd -P)" ] \
+    && git ls-files --error-unmatch bin/hostwarden-update >/dev/null 2>&1
+}
 
 hostwarden_follow() {
   git config --local --get hostwarden.follow 2>/dev/null || true

@@ -9,11 +9,10 @@ severities. On an appliance, its `## Housekeeping and Audits`
 section replaces Release Support, Pending Updates and Update
 Notification below.
 
-**Jails.** A jail — `Virtualization:` in memory names a
-container — runs on its host's kernel and clock
-(`rules/system-containers.md`). There, skip Time Sync and report
-it and the kernel lines of Kernel and Userland: Running vs
-Installed `n/a (container)`.
+**Jails.** In a jail, Time Sync and the kernel lines of Kernel
+and Userland: Running vs Installed check what the host owns
+(`rules/system-containers.md` → What the Host Owns); the
+userland lines stay the jail's own.
 
 ## Backup Presence
 
