@@ -22,7 +22,7 @@ if [ -z "${GUARD_OPS:-}" ]; then
   for t in ops dev; do
     mkdir -p "$GUARD_TREES/$t/.claude/hooks"
     cp "$CLAUDE_DIR/hooks/guard-taboos.sh" "$CLAUDE_DIR/hooks/mode.sh" \
-      "$GUARD_TREES/$t/.claude/hooks/"
+      "$CLAUDE_DIR/hooks/json.sh" "$GUARD_TREES/$t/.claude/hooks/"
   done
   mkdir -p "$GUARD_TREES/ops/.git" "$GUARD_TREES/ops/memory"
   : > "$GUARD_TREES/ops/memory/.hostwarden-workspace"
@@ -1817,7 +1817,7 @@ settings_case pass 'Bash: sed on settings without the key' \
 # Without CLAUDE_PROJECT_DIR the hook finds the project from its own
 # path, also when it runs by bare name from its directory.
 mkdir -p "$SET/.claude/hooks"
-cp "$SGUARD" "$SET/.claude/hooks/"
+cp "$SGUARD" "$CLAUDE_DIR/hooks/json.sh" "$SET/.claude/hooks/"
 SED_JSON=$(json_for "sed -i 's/0/1/' .claude/settings.local.json")
 for RUN in "sh $SET/.claude/hooks/guard-settings.sh" \
   "cd $SET/.claude/hooks && sh guard-settings.sh"; do
@@ -1989,7 +1989,7 @@ CSESSION="$CLAUDE_DIR/hooks/check-session.sh"
 REPO=$(mktemp -d)
 for d in main wt rel sep sub; do
   mkdir -p "$REPO/$d/.claude/hooks"
-  cp "$CSESSION" "$REPO/$d/.claude/hooks/"
+  cp "$CSESSION" "$CLAUDE_DIR/hooks/json.sh" "$REPO/$d/.claude/hooks/"
 done
 for w in wt rel; do
   mkdir -p "$REPO/main/.git/worktrees/$w"
@@ -2147,11 +2147,21 @@ check_dev deny 'HOSTWARDEN_GUARD_DISABLE=1 true'
 # Without mode.sh beside it the guard cannot tell its mode, and a
 # guard that cannot tell stays full.
 NOMODE=$(mktemp -d)
-cp "$GUARD_DEV" "$NOMODE/"
+cp "$GUARD_DEV" "$CLAUDE_DIR/hooks/json.sh" "$NOMODE/"
 OUT=$(json_for 'mkfs.ext4 /dev/sda1' \
   | env -u HOSTWARDEN_GUARD_DISABLE sh "$NOMODE/guard-taboos.sh")
 expect "the guard went local without mode.sh to tell its mode" \
   denied "$OUT"
+# Without json.sh it can write no decision, and a hook that fails
+# to start lets the call through; exit 2 blocks it instead, for
+# guard-settings.sh too, once a call gets past its prefilter.
+rm "$NOMODE/json.sh"
+cp "$SGUARD" "$NOMODE/"
+for g in guard-taboos.sh guard-settings.sh; do
+  json_for 'cat notes/settings.json' | env -u HOSTWARDEN_GUARD_DISABLE \
+    sh "$NOMODE/$g" >/dev/null 2>&1
+  expect "$g without json.sh did not exit 2" [ $? -eq 2 ]
+done
 rm -rf "$NOMODE"
 
 # --- drain the queued fixtures ---------------------------------

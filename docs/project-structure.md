@@ -65,6 +65,9 @@ contrib/
                          files and its session records
     mode.sh            — Development or operations, defined
                          once for the hooks and bin/
+    json.sh            — The hook input read as text, and a
+                         deny or ask written, defined once
+                         for the hooks
     guard-mode.sh      — PreToolUse hook that holds a session
                          to its mode: no server from
                          development, no edit to shipped files

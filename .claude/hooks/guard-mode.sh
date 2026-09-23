@@ -105,23 +105,19 @@
 ROOT=${0%/*}/../..
 # shellcheck source=mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=json.sh
+. "$ROOT/.claude/hooks/json.sh"
 hostwarden_mode "$ROOT"
 
 INPUT=$(cat)
 
 # emit <message> — the JSON decision on stdout; blocks in all
-# permission modes. The message is escaped here, without jq, so it
-# may carry a path or a piece of the command as it is; a control
-# character, which JSON would need escaped too, becomes a space.
+# permission modes. hook_deny (json.sh) escapes the message, so it
+# may carry a path or a piece of the command as it is.
 emit() {
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"deny",'
-  printf '"permissionDecisionReason":"%s Blocked in all ' \
-    "$(printf '%s' "$1" | tr '\001-\037' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
-  printf 'permission modes. Explain this to the user; do not '
-  printf 'rephrase the command or pick another tool to evade the '
-  printf 'guard."}}\n'
-  exit 0
+  hook_deny "$1 Blocked in all permission modes. Explain this to the \
+user; do not rephrase the command or pick another tool to evade the \
+guard."
 }
 deny() {
   emit "hostwarden mode guard: $1 (AGENTS.md - Development or Operations)."
@@ -182,15 +178,10 @@ if command -v jq >/dev/null 2>&1; then
     WD=\(.cwd // "") CMD=\(.tool_input.command // "")"' 2>/dev/null)"
 else
   JQ=
-  # field <name> — the value of "name":"...", when it is simple.
-  field() {
-    printf '%s' "$INPUT" | tr '\n' ' ' | sed -n \
-      "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\\([^\"\\\\]*\\)\".*/\\1/p"
-  }
-  TOOL=$(field tool_name)
-  P=$(field file_path)
-  [ -n "$P" ] || P=$(field notebook_path)
-  WD=$(field cwd)
+  TOOL=$(hook_field tool_name)
+  P=$(hook_field file_path)
+  [ -n "$P" ] || P=$(hook_field notebook_path)
+  WD=$(hook_field cwd)
 fi
 
 if [ "$HOSTWARDEN_MODE" = operations ]; then

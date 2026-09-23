@@ -77,7 +77,8 @@ checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/rules"
   cp "$HOOKS/mode.sh" "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" \
-    "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$c/.claude/hooks/"
+    "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$HOOKS/json.sh" \
+    "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$c/.claude/hooks/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
     "$REPO/bin/hostwarden-backup" "$REPO/bin/hostwarden-lab" "$c/bin/"

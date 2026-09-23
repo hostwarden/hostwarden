@@ -195,11 +195,20 @@
 
 INPUT=$(cat)
 
+case $0 in */*) HOOKDIR=${0%/*} ;; *) HOOKDIR=. ;; esac
+# Without json.sh the guard could neither read the session nor say
+# deny, and a hook that fails to start lets the call through: exit
+# 2 blocks it instead.
+if [ ! -f "$HOOKDIR/json.sh" ]; then
+  echo "hostwarden guard: json.sh is missing beside $0" >&2
+  exit 2
+fi
+# shellcheck source=json.sh
+. "$HOOKDIR/json.sh"
+
 # Operator-level override: inherited at launch, and recorded then.
 if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
-  SID=$(printf '%s' "$INPUT" \
-    | sed -n 's/.*"session_id"[[:blank:]]*:[[:blank:]]*"\([A-Za-z0-9_-]*\)".*/\1/p' \
-    | head -1)
+  SID=$(hook_session_id)
   if [ -n "$SID" ] && [ -e "$HOME/.cache/hostwarden/guard-off-$SID" ]; then
     exit 0
   fi
@@ -207,11 +216,8 @@ fi
 
 decide() {
   # decide <deny|ask> <reason> -- the JSON decision on stdout, then
-  # done. Reasons must stay plain ASCII without quotes/backslashes.
-  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-  printf '"permissionDecision":"%s",' "$1"
-  printf '"permissionDecisionReason":"hostwarden guard: %s"}}\n' "$2"
-  exit 0
+  # done (json.sh).
+  hook_decision "$1" "hostwarden guard: $2"
 }
 
 deny() {
@@ -810,7 +816,6 @@ esac
 # admin, so they apply in both.
 REACH='(^|[^[:alnum:]_.-])(ssh|scp|sftp|mosh|rsync|sudo|sudoedit|doas|pkexec|run0|su|osascript|runas|gsudo|docker|podman|nerdctl|lima|limactl|colima|orb|orbctl|multipass|vagrant|lxc|lxc-[[:alpha:]]+|incus|pct|qm|xe|midclt|machinectl|systemd-nspawn|virsh|kubectl|aws|gcloud|az|hcloud|doctl|wsl|wslconfig|powershell|pwsh)(\.exe)?([^[:alnum:]_.-]|$)|cmd\.exe|GIT_SSH_COMMAND'
 SCOPE=full
-case $0 in */*) HOOKDIR=${0%/*} ;; *) HOOKDIR=. ;; esac
 if [ -f "$HOOKDIR/mode.sh" ]; then
   # shellcheck source=mode.sh
   . "$HOOKDIR/mode.sh"
@@ -1710,7 +1715,6 @@ case "$CMD" in
   WINPIPE="${WINSSHDIR}([^[:alnum:]_.-][^;&]*)?\\|[[:space:]]*($WINCLOBBER)([^[:alnum:]_.-]|\$)"
   WINACL="(^|[^[:alnum:]_.-])icacls(\\.exe)?[[:space:]][^;&|]*${WINSSHB}[^;&|]*[[:space:]]/(grant|deny|remove|reset|setowner|inheritance|setintegritylevel|restore|substitute)"
   if hit_i "($WINDEL)|($WINPIPE)|($WINACL)"; then
-    # deny() writes the reason into JSON as it is: no backslash.
     deny "deleting, moving, overwriting or re-permissioning Windows' \
 OpenSSH files under ProgramData/ssh is never allowed (reading them \
 is fine: type, Get-Content, icacls without a change)"
