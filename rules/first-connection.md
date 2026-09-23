@@ -20,10 +20,18 @@ skip it.
 3. **SSH user lookup** (first connection only). See
    `rules/ssh-user.md`. It comes before the DNS check
    because the alias comparison reads the port for
-   this user. Once the user is chosen, run step 1's
-   jump-host lookup again for that user where its
-   `proxyjump` line differs from the one step 1 read,
-   before any SSH call.
+   this user. Once the user is chosen, compare the
+   `hostname` and `proxyjump` lines of its `ssh -G`
+   output with the output steps 1–2 read, never with
+   a default this step has just written, and the
+   `proxyjump` line with its tokens expanded
+   (`rules/access-control.md` → Server Blacklist):
+   `%r` alone makes it differ. Where one differs,
+   rerun the blacklist check for the target as the
+   chosen user and for each hop as its own login user
+   (`rules/access-control.md` → Server Blacklist), and
+   the read-only check for the target, before any SSH
+   call. A port that differs is step 4's.
 4. **DNS check.** New hostname (no
    `memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP

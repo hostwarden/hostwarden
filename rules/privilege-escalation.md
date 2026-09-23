@@ -106,7 +106,9 @@ ssh -F "<checkout>/memory/ssh_config" \
 
 First compare `ssh -F "<checkout>/memory/ssh_config" -G
 root@hostname` with the same output for the SSH user, on the
-`hostname`, `port`, `hostkeyalias` and `proxyjump` lines. Where
+`hostname`, `port`, `hostkeyalias` and `proxyjump` lines, the
+last with its tokens expanded (`rules/access-control.md` →
+Server Blacklist): a `%r` in it names root's hop login. Where
 one differs, a `Match user root` block sends root another way:
 run steps 1–4 of `rules/first-connection.md` for root's endpoint,
 blacklist, read-only list, DNS check and host key, and for each

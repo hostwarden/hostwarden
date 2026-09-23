@@ -120,7 +120,11 @@ administrator may be renamed or carry a localized
 name: drop option 2 and ask for the account under
 `Other…` — a domain account as `domain\user`, which
 the SSH call then passes quoted with `-l`
-(`rules/os/windows.md` → Notes).
+(`rules/os/windows.md` → Notes). So does every
+`ssh -G` a rule writes as `<user>@<host>`: a user
+with a `\` or `@` in it goes in as
+`-l '<user>' <host>`, or the shell eats the `\` and
+ssh reads the endpoint of another user.
 
 The per-server question comes before OS detection
 loads an appliance file. When server memory has an

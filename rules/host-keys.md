@@ -49,7 +49,9 @@ prints the name ssh looks the key up by: its `hostkeyalias` line
 where there is one, else its `hostname` line. Off port 22, the
 name is `[<name>]:<port>`, with the port from the same output. A
 `proxyjump` line other than `none` names jump hosts, and each
-needs its key first, looked up the same way (Jump Hosts below).
+needs its key first, looked up the same way as its own login
+user (`rules/access-control.md` → Server Blacklist, Jump Hosts
+below).
 Another user on the same host, such as root for
 `rules/privilege-escalation.md`, is looked up again: a
 `Match user` block can give that user another endpoint, which
