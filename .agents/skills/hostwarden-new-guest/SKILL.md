@@ -180,9 +180,10 @@ guest has no such mechanism, the files are the user's to place
    `- Origin: cloud image (Debian 13 genericcloud)` or
    `- Origin: <pveam template>`, and `- Baseline:` as
    `rules/baseline.md` → Rendered Versions says. A password the
-   user asked for goes into the guest's `rules.md` as
-   `## Add: SSH Login` under `# baseline`: "password login, asked
-   for at creation", and SSH with it too where they asked for that.
+   user asked for is a decision in the guest's `decisions.md`
+   (`rules/decisions.md`): `## Password login`, with the user's
+   reason, settling `baseline → SSH Login` for password login, and
+   for SSH with it too where they asked for that.
 5. **Verify the baseline** on the guest as `hostwarden-baseline`
    step 2 measures it: the check each section of
    `rules/baseline.md` names, in as few bundled calls as they

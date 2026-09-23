@@ -201,6 +201,16 @@ Layers).
    them into "Drift detected" and never let an empty drift
    section stand for an empty report.
 
+   Each probe returns its host's `decided:` and `decision:`
+   lines with the warnings, as `.claude/agents/hostwarden-host-probe.md`
+   → What you return describes them; probing one host after
+   another here, write the same lines from each host's pipeline
+   step 6. A disagreement a host's decision
+   settles is no drift for that host, and it goes with the
+   `decided:` lines into a "Decided" section after the two
+   (`references/output-format.md` → Decided). A drift entry never
+   suggests what a decision rules out.
+
    Do not change anything.
 
 6. **Log to the system journal** on each audited host:

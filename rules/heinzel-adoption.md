@@ -279,13 +279,6 @@ these:
      host can show is checked against this
      connection's probes first; one only a person
      knows keeps the date of its record.
-   - Decisions the user made, with `(user, <date>)`,
-     the date of Heinzel's record. One that changes
-     what a rule does on this host — no automatic
-     reboots, a pinned version — is offered as a
-     block in the host's `rules.md`
-     (`rules/overrides.md`) once the user's request
-     is answered, and written only on a yes.
    - The `Flags:` and `Rollback:` lines of
      `changelog.log` that no later entry lifts or
      undoes (`rules/changelog.md` → Standing lines).
@@ -302,11 +295,35 @@ these:
 4. **The inventory's `## Facts`** — what the
    adoption sorted out of Heinzel's other memory for
    this host, under the same test as the standing
-   facts of 2. An open plan becomes
+   facts of 2; a decision there goes the way of the
+   decisions below. An open plan becomes
    `- Planned: <what> (user, <date>)`, removed once
    it is done or the user drops it. Once written,
    the section leaves the inventory, which is then
    empty when no lead is left.
+
+Two kinds of standing text are not facts and never
+go into `memory.md`. Collect them from
+`heinzel-memory.md` and the inventory's `## Facts`,
+and offer them in one list once the user's request is
+answered, written only on a yes; the user drops or
+moves items in the answer:
+
+- **Decisions the user made** — an entry each, in
+  the place and form `rules/decisions.md` gives,
+  carried over from Heinzel. Heinzel's reasoning
+  where it runs longer than the entry holds, the
+  options weighed and the numbers, goes into the
+  entry's `Details:` file rather than being lost
+  with the prose.
+- **How to work on this host** — a warning before a
+  risky step, a procedure that differs from the
+  shipped one: an override block in the host's
+  `rules.md`, under the shipped file whose moment it
+  belongs to (`rules/overrides.md`). A decision that
+  changes what Hostwarden does gets its block the
+  same way, with its `Decision:` pointer
+  (`rules/decisions.md` → Decisions and overrides).
 
 History is not carried: incidents, what was done
 when, versions that were current then, how a problem

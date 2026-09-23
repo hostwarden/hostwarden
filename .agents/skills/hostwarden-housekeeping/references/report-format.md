@@ -47,6 +47,10 @@ Versions   2 updates available (see below)
 - The **Swap** line is what the family baseline's Memory and Swap
   check reports, by kind; a host without swap reads
   `Swap       none`.
+- **A finding a decision settles** (`rules/decisions.md` →
+  Rating findings) reads `DECIDED — <heading> (<who>, <date>)`
+  on its line, never under Issues:
+  `Firewall   DECIDED — No local firewall (user, 2026-09-18)`.
 - Severity levels:
   - `CRITICAL` — needs immediate attention
   - `WARN` — should be addressed soon

@@ -29,10 +29,13 @@ the gaps the user picks. The pipeline in
    reference, in as few bundled calls as they allow, and list what
    is missing, one line per section. A section the host's
    appliance, platform or role file replaces is measured by that
-   file. Record the result as `- Baseline check: <date>, missing
-   <sections>` (`rules/baseline.md` → Rendered Versions), or
-   `complete`.
-3. **Ask** which to apply, in one question.
+   file, and a section one of the host's decisions settles is
+   listed as decided, with the decision's heading. Record the
+   result in the `Baseline check:` line (`rules/baseline.md` →
+   Rendered Versions).
+3. **Ask** which to apply, in one question. A section the user
+   turns down with a reason is the moment to offer recording it as
+   a decision (`rules/decisions.md` → Writing one).
 4. **Apply** one section at a time, each under the rules
    `AGENTS.md` → Where the Rest Lives → Before you change something
    names for it.

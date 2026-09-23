@@ -3,7 +3,9 @@
 Each server: `memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
 optionally `rules.md` (per-server rule
-overrides — see `rules/overrides.md`), on a
+overrides — see `rules/overrides.md`), optionally
+`decisions.md` (the user's decisions about it —
+see `rules/decisions.md`), on a
 hypervisor `guests.md`, its guest inventory
 (`rules/hypervisors.md`), and on a host with ZFS
 pools or btrfs `storage.md`, their settings
@@ -292,7 +294,9 @@ gateway, a VPN subnet, which machine holds the
 backup target, which UPS powers which machines — go
 in `memory/network.md`, created
 on first need. Current facts only; it is a picture
-of now, not a history.
+of now, not a history. A choice the user made about
+several hosts is a decision instead, under
+`memory/decisions/` (`rules/decisions.md`).
 
 Management controller addresses go there too, under
 `## Management controllers`
@@ -313,9 +317,10 @@ anyone's local machine. The workspace's own
 directory has to be added there by hand.
 
 **Shared in team mode:** everything else —
-`memory/servers/*/` with each host's `rules.md` and
-its masters, `memory/clusters/*/`, `memory/fleet/`,
-`memory/tools/`, `memory/plans/`, `memory/known_hosts`
+`memory/servers/*/` with each host's `rules.md`,
+its masters and `decisions.md`, `memory/clusters/*/`,
+`memory/decisions/`, `memory/fleet/`, `memory/tools/`,
+`memory/plans/`, `memory/known_hosts`
 (`rules/host-keys.md`),
 `memory/network.md`, `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.

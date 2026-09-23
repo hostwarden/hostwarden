@@ -61,13 +61,20 @@ anyway", "yes, use apt", etc.):
   `(user override: <what was overridden>)`
 - Do not repeat the same suggestion for the same
   task in this session.
+- Where the user gives a reason that will hold
+  beyond this task, offer to record it as a
+  decision (`rules/decisions.md` → Writing one),
+  which keeps the suggestion from coming back in
+  later sessions.
 
 ## Suggestion Tiers
 
 ### Always Suggest
 
 These patterns are almost never correct. Always
-raise them, even if the user seems sure:
+raise them, even if the user seems sure, unless
+one of the user's decisions settles it
+(`rules/decisions.md`):
 
 - `chmod 777` or `chmod -R 777`
 - `curl | bash` (or `wget | sh`) as root for

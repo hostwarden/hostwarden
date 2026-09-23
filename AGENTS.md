@@ -332,6 +332,8 @@ trigger — not a request from the user.
 
 - A development session needs a live server's answer →
   `rules/server-check-handoff.md`
+- The user settles a standing choice with a reason →
+  `rules/decisions.md`
 - A secret is anywhere near the command → `rules/secrets.md`
 - `Host key verification failed`, or a host key that changed →
   `rules/host-keys.md`, never a manual login
@@ -373,7 +375,8 @@ denies by default, automatic security updates, and the rest
 listed there. Flag what is missing. Never add a second firewall
 manager on top of one already there
 (`rules/service-class-check.md`). Appliance, platform and role
-files say what counts instead.
+files say what counts instead, and the user's decisions what is
+meant to be missing (`rules/decisions.md`).
 
 **Skills, and one file not to read**
 

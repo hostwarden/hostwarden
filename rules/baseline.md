@@ -16,8 +16,10 @@ The user's additions and changes are an override
 `# baseline` block in `memory/servers/<hostname>/rules.md` for one
 host. Read both before acting on this file. An override of *what*
 is expected goes there; one of *how* a check runs goes to that
-check's own file. The sections Admin Keys to Monitoring below are
-empty until an override fills them:
+check's own file. A section a host is meant to go without is a
+decision instead (`rules/decisions.md`), which the checks read as
+settled. The sections Admin Keys to Monitoring below are empty
+until an override fills them:
 
     ## Add: Admin Keys
     - alice: ssh-ed25519 AAAAC3Nza… alice@example.com
@@ -214,7 +216,9 @@ and a server brought up to the baseline later
 `- Baseline: retrofitted 2026-09-22`. A measurement against it
 gets a line of its own beside that one, which it never replaces:
 `- Baseline check: 2026-09-22, missing firewall, backup`, or
-`- Baseline check: 2026-09-22, complete`. The next measurement
-rewrites it. A deviation the user chose
-at creation goes into the guest's `rules.md` as an `## Add:` under
-`# baseline`, so the audits take it as intended.
+`- Baseline check: 2026-09-22, complete`, with
+`; decided firewall` after either for the sections a decision
+settles (`rules/decisions.md`). The next measurement rewrites it.
+A deviation the user chose at creation is a decision in the
+guest's `decisions.md` that settles its section, so the audits
+take it as intended.
