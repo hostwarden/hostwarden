@@ -276,12 +276,18 @@ no unit, so there the prefix and recurrence decide.
 - **It is not activity**, and never a live session,
   however fresh its last entry.
 - **Report it** in one line after the sessions'
-  entries (What to show), on every connection until
-  it logs under its own tag:
+  entries (What to show), with the span the
+  classifier measured, not the window asked for:
   *"Watcher on the session tag heinzel:
-  heinzel-backup.service, 2016 entries in 7 days."*
-  A prefixed entry from a service is a script that
-  imitates a session: say so.
+  heinzel-backup.service, 2016 entries from
+  2026-09-16 to 2026-09-23."* A prefixed entry from a
+  service is a script that imitates a session: say
+  so.
+- **Stop once it is retagged.** A watcher whose last
+  entry predates the change that gave it its own tag
+  (`rules/changelog.md`, that change's entry) is
+  history until the window lets go of it: leave it
+  out.
 - **Retagging it is a change** to the script: asked,
   and done as `rules/deployed-files.md` → Naming on
   the host says, or `rules/heinzel-adoption.md` for a
