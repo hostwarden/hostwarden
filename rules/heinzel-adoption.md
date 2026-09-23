@@ -302,7 +302,9 @@ these:
 4. **The inventory's `## Facts`** — what the
    adoption sorted out of Heinzel's other memory for
    this host, under the same test as the standing
-   facts of 2.
+   facts of 2. An open plan becomes
+   `- Planned: <what> (user, <date>)`, removed once
+   it is done or the user drops it.
 
 History is not carried: incidents, what was done
 when, versions that were current then, how a problem

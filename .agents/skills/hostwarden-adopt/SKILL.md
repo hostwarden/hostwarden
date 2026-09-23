@@ -125,31 +125,43 @@ leads, the host confirms them.
    directory of topic files with `name`, `description` and a `type`
    in their front matter, and a `MEMORY.md` index), besides notes and
    plans. Copying it whole would leave a second memory beside this
-   one that no rule reads. Sort it instead, item by item: read the
-   index and each file's front matter, and the body only where those
-   do not say what it is. Propose one target per item, in one list
-   grouped by target, and ask once; the user moves items between
-   groups or drops them in the answer:
+   one that no rule reads. Sort it instead, item by item, into the
+   one target its kind has below; never into a file of your own
+   making. Read the index and each file's front matter, and the body
+   only where those do not say what it is. An item that holds two
+   kinds is split. Propose every item's target in one list, grouped
+   by target, and ask once; the user moves items between groups or
+   drops them in the answer.
 
-   - **An override** in `memory/custom-rules/` — a standard every
-     server should meet goes to `baseline.md`, which
-     `hostwarden-baseline` measures against; a rule about one topic
-     to that topic's file; the rest to `all.md` (`rules/overrides.md`).
-   - **`memory/network.md`** — a fact about the network or about
-     several hosts (`rules/server-memory.md` → Cross-server facts).
-   - **One host's facts** — under `## Facts` in that host's
-     `heinzel-inventory.md`, for its first connection to check
-     (`references/inventory.md`). A host still in the old checkout
-     gets nothing yet: its facts are sorted again when it is
-     adopted.
-   - **A proposal for Hostwarden itself** — a lesson that belongs in
-     the shipped rules. Name it in the report for a pull request from
-     a development checkout; nothing is written here.
-   - **Drop** — history, a finished plan, anything about Heinzel
-     itself.
+   - **A standard every server should meet** — packages, updates,
+     time zone, mail route, what a new host always gets:
+     `memory/custom-rules/baseline.md`, which `hostwarden-baseline`
+     measures against (`rules/baseline.md`).
+   - **How the agent should work** — a correction, a preference, a
+     "never propose this again": an override
+     (`rules/overrides.md`), in the file of the rule or skill it
+     changes, `memory/custom-rules/all.md` where it changes none.
+   - **A fact about one host**, a decision about it or an open plan
+     for it: under `## Facts` in that host's `heinzel-inventory.md`
+     (`references/inventory.md`), which its first connection checks
+     and carries into `memory.md`, a plan as `- Planned: …`. A host
+     still in the old checkout gets nothing yet: its items are sorted
+     again when it is adopted.
+   - **A fact about the network or several hosts** — sites, VPNs,
+     break-glass access, a firewall between sites, which host backs
+     up which: `memory/network.md` (`rules/server-memory.md` →
+     Cross-server facts).
+   - **About the operator** — language, name, how they want to be
+     written to: `memory/user.md`, under `# Preferences`, where
+     `rules/session-start.md` reads it; the rest is dropped.
+   - **A lesson that belongs in the shipped rules**: a proposal for
+     Hostwarden itself, named in the report for a pull request from a
+     development checkout. Nothing is written here.
+   - **Anything else** — history, a finished or estate-wide plan,
+     anything about Heinzel itself, and whatever is no memory at all,
+     such as brand assets: it stays in the old checkout and the
+     report names it.
 
-   A file or directory that is no memory at all, such as brand
-   assets, stays in the old checkout and is named in the report.
    Never read a file that looks like it holds credentials; name it
    (`rules/secrets.md`). What is written joins the workspace commit
    of step 6.

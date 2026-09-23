@@ -57,11 +57,12 @@ hostwarden-adopt. Not verified against the host.
 ## Facts
 - Maintenance window Sunday 02:00–04:00, from Heinzel's
   auto-memory (maintenance-windows.md, 2026-08-17)
+- Planned: move the database to db2 (user, 2026-08-20)
 ```
 
 `## Facts` holds what the adoption sorted out of Heinzel's other
-memory for this host (the skill's step 4): facts, not leads. Each
-keeps its source file and date.
+memory for this host (the skill's step 4): facts, decisions and open
+plans, not leads. Each keeps its source file and date.
 
 ## Verification is the host's job
 
