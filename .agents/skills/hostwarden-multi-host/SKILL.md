@@ -18,37 +18,17 @@ description: Run one question, command or change on several managed
 
 # hostwarden-multi-host
 
-One task, several hosts. `rules/multi-host.md` holds the procedure —
-targets, dispatch, order, merging, the change rule. Read it first;
-this is the workflow around it.
+One task, several hosts.
 
 ## Workflow
 
 1. **Load overrides**, key `hostwarden-multi-host`, per
    `rules/overrides.md`.
-2. **Targets**, as `rules/multi-host.md` → Targets says: the hosts
-   named, or every known host for "all". New hosts get their first
-   connection here before anything else.
-3. **The task.** Decide the mode:
-   - `read` — a question or a command that only inspects;
-   - `skill` — housekeeping or a security audit;
-   - `change` — anything that writes to a host.
-
-   Then write the task and the shape of the answer, so every host
-   answers alike: `kernel: <release>`, one line per mount as
-   `<mount> <use%>`, `nginx: active|inactive|absent`. A command that
-   differs by family is named by what it has to find, and each agent
-   takes its family's form.
-4. **A change** goes through `rules/multi-host.md` → Changes on
-   several hosts before any agent starts: prepared here, one
-   question naming every host and the canary, then the canary alone.
-5. **Dispatch** as `rules/multi-host.md` → Dispatch and → Order say.
-6. **Report** as `rules/multi-host.md` → Merging the answers says,
-   and nothing around it (`AGENTS.md` → Talking to Humans). A change
-   ends with one line per host it reached.
-7. **Record.** Each agent wrote its own journal line, changelog and
-   memory. Commit each host's paths as its agent returns, then push
-   once (`rules/changelog.md` → The Workspace).
+2. **Follow `rules/multi-host.md`** from its first section to its
+   last: targets, the task and its answer's shape, the change rule
+   where the task writes, dispatch, and the merged answers.
+3. **Report** as that file → Merging the answers says, and nothing
+   around it (`AGENTS.md` → Talking to Humans).
 
 ## Example
 
