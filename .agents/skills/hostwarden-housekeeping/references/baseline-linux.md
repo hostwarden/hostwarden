@@ -45,7 +45,10 @@ df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 - **CRITICAL** if any filesystem > 95% used
 
 ZFS pools and btrfs filesystems have their own fill levels,
-health and settings: `references/zfs-btrfs.md`.
+health and settings: `references/zfs-btrfs.md`. The disks' own
+health on bare metal is `references/smart.md`, and whether TRIM,
+RAID checks and scrubs are scheduled
+`references/storage-maintenance.md`.
 
 ## Memory and Swap
 

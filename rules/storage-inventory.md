@@ -1,14 +1,17 @@
-# Storage Inventory: ZFS and Btrfs
+# Storage Inventory
 
 A ZFS pool and a btrfs filesystem behave by their own settings.
 A property set years ago decides whether a write the application
 was told is safe really is (`sync`), how much RAM the pool needs
 (`dedup`), and whether the boot loader and older systems can
-still read it (feature flags). None of that shows in `df`. So a
-host with either records its settings once, in
+still read it (feature flags). None of that shows in `df`, and
+neither does which disk is which when one of them fails. So a
+host records its disks and those settings once, in
 `memory/servers/<hostname>/storage.md`, and housekeeping compares
 the host against that record
-(`.agents/skills/hostwarden-housekeeping/references/zfs-btrfs.md`).
+(`.agents/skills/hostwarden-housekeeping/references/zfs-btrfs.md`,
+`references/smart.md` and `references/storage-maintenance.md`
+there).
 
 The record holds settings, never state: pool health, fill level,
 errors and scrub age change by the hour and are read fresh by
@@ -27,6 +30,13 @@ The lines after `@storage` in the step-1 probe
 - A number above `0`: that many btrfs mounts. FreeBSD and macOS
   answer with an error, which means none.
 
+The disks are recorded on bare metal (`Virtualization:` says so):
+a VM's disks are the hypervisor's, and their SMART and serial
+numbers belong to it. A VM that its host's `Passthrough:` line
+gives a disk or a disk controller
+(`.agents/skills/hostwarden-housekeeping/references/passthrough.md`)
+is treated as bare metal for those disks.
+
 The inventory is written for Linux and FreeBSD. On macOS,
 `/dev/zfs` from OpenZFS on OS X is noted in memory and nothing
 here runs. A system container (`Virtualization:` names a
@@ -35,11 +45,41 @@ nothing there. The host's inventory covers them.
 
 ## When
 
-- **First connection:** the inventory rides in the activity-check
-  call (`rules/activity-check.md` → What rides in this call) when
-  `@storage` found either.
+- **First connection:** the ZFS and btrfs inventory rides in the
+  activity-check call (`rules/activity-check.md` → What rides in
+  this call) wherever `@storage` found either.
 - **Housekeeping:** every run, and the first inventory of a host
-  whose memory has no `Storage:` line.
+  whose memory has no `Storage:` line. The disks are read there
+  and only there, with SMART
+  (`.agents/skills/hostwarden-housekeeping/references/smart.md`
+  → The Disk List).
+
+## Disks
+
+**Linux**, without root:
+
+```sh
+lsblk -dnP -o NAME,TYPE,SIZE,ROTA,TRAN,DISC-GRAN,MODEL,SERIAL,REV \
+  | grep 'TYPE="disk"' | grep -vE 'NAME="(zram|nbd|ram)'
+```
+
+Model and serial come from udev or sysfs
+([lsblk(8)](https://man7.org/linux/man-pages/man8/lsblk.8.html)).
+`ROTA="1"` is a spinning disk; with `0` it is flash, NVMe where
+`TRAN` says `nvme`. `DISC-GRAN` above `0B` means the disk accepts
+TRIM ([sysfs-block](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/Documentation/ABI/stable/sysfs-block)).
+`REV` is the firmware of a SATA or SAS disk and is empty for NVMe;
+the SMART probe's `Firmware Version` line fills it in.
+
+**FreeBSD**, `geom disk list`: `Name`, `Mediasize`, `descr` (the
+model), `ident` (the serial) and `rotationrate` — `0` for flash,
+the RPM for a spinning disk, `unknown` where the disk does not
+say ([geom_disk.c](https://github.com/freebsd/freebsd-src/blob/main/sys/geom/geom_disk.c)).
+
+Record one line per disk under `## Disks`: name, type, bus, size,
+model, serial and firmware. The serial is what a disk is replaced
+by (`rules/storage.md` → Before a Change); a device name can move
+between boots.
 
 ## ZFS
 
@@ -191,6 +231,12 @@ a different one on a later run is not a change:
 - ARC: max 8 GiB (/etc/modprobe.d/zfs.conf), min default;
   RAM 32 GiB
 
+## Disks
+- nvme0n1: NVMe, 1 TB, Samsung SSD 990 PRO 1TB, serial
+  S7XXNJ0W000001, fw 4B2QJXD7
+- sda: HDD, SATA, 8 TB, WDC WD80EFZZ-68BTXN0, serial
+  WD-CA0000001, fw 81.00A81; reallocated 8 (2026-09-23)
+
 ## ZFS pool tank
 - Layout: raidz2 × 6; special mirror × 2; logs mirror × 2;
   cache × 1; ashift 12 (all vdevs)
@@ -209,8 +255,11 @@ a different one on a later run is not a change:
 - Quotas: off
 ```
 
-`memory.md` carries one line that names the file:
-`- Storage: ZFS tank, rpool; btrfs /srv (storage.md)`.
+`memory.md` carries one line that names the file and what it
+covers: `- Storage: disks; ZFS tank; btrfs /srv (storage.md)`.
+Whoever changes what the file covers — a disk list written, a
+pool or filesystem added or gone — changes the line with it:
+housekeeping picks its ZFS and btrfs checks by it.
 
 A value the user explained — `sync=disabled` on scratch data,
 dedup on a pool that earns it — carries the reason the way a

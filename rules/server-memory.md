@@ -7,12 +7,13 @@ overrides — see `rules/overrides.md`), optionally
 `decisions.md` (the user's decisions about it —
 see `rules/decisions.md`), on a
 hypervisor `guests.md`, its guest inventory
-(`rules/hypervisors.md`), and on a host with ZFS
-pools or btrfs `storage.md`, their settings
-(`rules/storage-inventory.md`). A host adopted from
-Heinzel has `heinzel-memory.md` until its first
-connection and `heinzel-inventory.md` until its
-leads are checked (`rules/heinzel-adoption.md`).
+(`rules/hypervisors.md`), and on bare metal or a
+host with ZFS pools or btrfs `storage.md`, its disks
+and their settings (`rules/storage-inventory.md`). A
+host adopted from Heinzel has `heinzel-memory.md`
+until its first connection and `heinzel-inventory.md`
+until its leads are checked
+(`rules/heinzel-adoption.md`).
 Until that first connection writes `memory.md`, the
 address checks — the DNS check and alias detection
 (`rules/dns-aliases.md`), a guest's registration
@@ -142,7 +143,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Arch:`, `RAM:`, `Disk:` | `first-detection.md`        | first connection |
 | `Virtualization:`        | `first-detection.md`        | first connection |
 | `Hypervisor:`            | `first-detection.md`        | first connection |
-| `Storage:`               | `storage-inventory.md`      | first connection |
+| `Storage:`               | `storage-inventory.md`      | inventory taken  |
 | `Installation:`          | `os/windows.md`             | first connection |
 | `PowerShell:`, `Admin:`  | `os/windows.md`             | first connection |
 | `Full disk access:`      | `os/macos.md`               | first connection |

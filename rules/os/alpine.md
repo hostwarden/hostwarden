@@ -354,6 +354,19 @@ line as that file says, and `- Doas: passwordless` or
 over non-interactive SSH. `doas` takes `-u <user>` and `-s`; it has
 no `-i` or `-E`.
 
+## Storage Maintenance
+
+Alpine schedules no storage maintenance (`rules/baseline.md` →
+Storage Maintenance). busybox `crond` runs the scripts in
+`/etc/periodic/{15min,hourly,daily,weekly,monthly}`, and no package
+puts a TRIM, RAID check or scrub there
+([crontab](https://git.alpinelinux.org/aports/plain/main/alpine-baselayout/crontab)).
+A weekly TRIM is a script in `/etc/periodic/weekly/` that runs
+`fstrim -a` from the `fstrim` package (util-linux); busybox's
+`fstrim` takes one mount point and has no `-a`. `smartd` comes as
+an OpenRC service in `smartmontools-openrc`, and the md monitor
+as `mdadm` in `mdadm-openrc`.
+
 ## Directory Conventions
 
 - Config files: `/etc/`

@@ -47,9 +47,13 @@ applies before any of this runs.
    line on every host and reads the event log where there is a
    BMC. The `@storage` lines of the step-1 probe run in the
    first batch; where they find ZFS or btrfs, or memory has a
-   `Storage:` line, `references/zfs-btrfs.md` runs too. A host
-   with a `deployed.md`, or a member of a cluster with one, gets
-   the drift check from `references/deployed-files.md`. An
+   `Storage:` line, `references/zfs-btrfs.md` runs too. On
+   Linux and FreeBSD, `references/storage-maintenance.md` runs
+   on every host but a system container, and
+   `references/smart.md` on bare metal and in a VM its host
+   passes a disk to. A host with a `deployed.md`, or a member of
+   a cluster with one, gets the drift check from
+   `references/deployed-files.md`. An
    override of `rules/baseline.md` changes what the checks
    that measure it expect, and where one fills the sections left
    empty there, `rules/baseline.md` → The Sections an Override
@@ -105,8 +109,13 @@ Read on demand, only when the relevant section applies:
   PCI or USB device or a directory, the `Passthrough:` line, and
   a bind mount whose share is not mounted.
 - `references/smart.md` — the `smartctl` probe, how to read
-  SATA, SAS and NVMe output, and its findings. Only when an
-  appliance's section sends you there.
+  SATA, SAS and NVMe output, its findings, and whether `smartd`
+  watches between runs. On bare metal, and where an appliance's
+  section sends you there.
+- `references/storage-maintenance.md` — whether TRIM, the md
+  RAID check and ZFS and btrfs scrubs are scheduled, what each
+  distribution ships, and the offer to schedule what is
+  missing.
 - `references/bmc-event-log.md` — the `Management:` line on every
   host, and on a bare-metal one the BMC's System Event Log, which
   carries power supply, fan, memory and thermal failures the OS

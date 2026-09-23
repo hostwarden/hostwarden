@@ -304,6 +304,9 @@ finding of this run.
         target: ../usr/share/zoneinfo/Europe/Berlin
   ```
 - **Journal:** the drop-in above.
+- **Storage Maintenance:** `fstrim.timer` under `systemd.units`
+  with `enabled: true`; the section's other parts have nothing to
+  act on at creation.
 - **Guest Agent:** not in either image. On Fedora CoreOS it is an
   OS extension, installed by a systemd unit that runs `rpm-ostree`
   and needs a reboot

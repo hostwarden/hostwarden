@@ -3,8 +3,9 @@ name: hostwarden-baseline
 argument-hint: "[hostname]"
 description: Bring an existing server up to the Hostwarden server
   baseline — firewall with default deny, automatic security
-  updates, time sync, key-only SSH, persistent journal, guest
-  agent, backup, and the user's own additions such as admin keys,
+  updates, time sync, key-only SSH, persistent journal, storage
+  maintenance (TRIM, RAID checks, scrubs, smartd), guest agent,
+  backup, and the user's own additions such as admin keys,
   timezone, mail relay and monitoring agent. Lists what is missing,
   then applies it one asked step at a time. Use when the user asks
   to "bring web1 up to the baseline", "apply the baseline to

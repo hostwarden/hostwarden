@@ -28,7 +28,7 @@ condition, and what to do with the result.
 | Heinzel's leftovers | conditional | `rules/heinzel-legacy.md` |
 | The guest listing | first; daily | `rules/hypervisors.md` |
 | A guest's link keys | conditional | `rules/hypervisors.md` |
-| The ZFS and btrfs inventory | first | `rules/storage-inventory.md` |
+| The storage inventory | first | `rules/storage-inventory.md` |
 | Windows Version Detection | every but the first | `rules/os-detection.md` |
 | Who manages the network | first; conditional | `rules/network.md` |
 
@@ -54,9 +54,9 @@ Where each condition is:
   `Runs on:` line (`rules/hypervisors.md` → Linking Guest and Host).
   A guest registered through its host reads them with OS detection
   instead (`rules/hypervisors.md` → Registering Guests).
-- **The ZFS and btrfs inventory:** where the `@storage` lines of
-  the first probe found either (`rules/storage-inventory.md` →
-  When); later connections leave it to housekeeping.
+- **The storage inventory:** where the `@storage` lines of the
+  first probe found ZFS or btrfs (`rules/storage-inventory.md` →
+  When); the disks and every later connection are housekeeping's.
 - **Who manages the network:** on a host whose memory lacks it,
   as `rules/network.md` → When defines.
 - **Windows Version Detection:** without its hardware part, unless

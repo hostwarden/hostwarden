@@ -573,6 +573,35 @@ and unattended-upgrades:
 
 Sources: https://snapcraft.io/docs/how-to-guides/manage-snaps/manage-updates/
 
+## Storage Maintenance
+
+What Debian and Ubuntu schedule by themselves
+(`rules/baseline.md` → Storage Maintenance):
+
+- **TRIM:** `fstrim.timer`, weekly, enabled with util-linux
+  ([debian/rules](https://salsa.debian.org/debian/util-linux/-/raw/debian/trixie/debian/rules)).
+- **md RAID:** the mdadm package enables `mdcheck_start.timer`
+  (the first Sunday of the month, 01:00), `mdcheck_continue.timer`
+  (daily, resuming a check in slices of six hours) and
+  `mdmonitor-oneshot.timer` (a daily scan that mails root). No
+  cron job runs a check; `checkarray` is shipped and nothing
+  schedules it
+  ([mdadm](https://sources.debian.org/src/mdadm/4.4-11/debian/rules/)).
+  Ubuntu Server installs mdadm.
+- **ZFS:** `/etc/cron.d/zfsutils-linux` trims the first Sunday of
+  the month and scrubs the second. The pool's root dataset opts
+  out with `org.debian:periodic-trim` or `org.debian:periodic-scrub`
+  set to `disable`; trim's default, `auto`, trims only pools of
+  NVMe disks. OpenZFS's `zfs-scrub-monthly@<pool>.timer` and
+  `zfs-trim-monthly@<pool>.timer` are installed and not enabled.
+- **btrfs:** `btrfsmaintenance` is packaged and installed
+  disabled; its settings are in `/etc/default/btrfsmaintenance`.
+- **SMART:** smartmontools is not part of a default install. Its
+  unit is `smartmontools.service`, with `smartd.service` as an
+  alias: enable it by the real name, since systemd enables no
+  unit by an alias. The default `DEVICESCAN` line schedules no
+  self-tests.
+
 ## Directory Conventions
 
 - Config files: `/etc/`

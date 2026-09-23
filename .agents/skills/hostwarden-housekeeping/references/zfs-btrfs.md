@@ -1,7 +1,8 @@
 # ZFS and Btrfs
 
-Runs where `@storage` found ZFS or btrfs, or memory has a
-`Storage:` line (`rules/storage-inventory.md` → Detection). The
+Runs where `@storage` found ZFS or btrfs, or the `Storage:` line
+in memory names either (`rules/storage-inventory.md` →
+Detection). The
 inventory from that file runs in one call with the health reads
 below; health is read fresh, and settings are compared with
 `memory/servers/<hostname>/storage.md` and rated.
@@ -29,8 +30,8 @@ Detection), so nothing below is read.
   `zpool status` lists read, write or checksum errors
 - **INFO** if the `scan:` line shows the last scrub older than 35
   days, or none. The age answers for whatever schedules scrubs;
-  on FreeBSD that is `daily_scrub_zfs_enable` in
-  `/etc/periodic.conf`, off by default.
+  what would schedule one is `references/storage-maintenance.md`
+  → Scrubs.
 - **WARN** for a pool `storage.md` records that a `zpool list`
   which exited 0 no longer shows, handled as a guest that is not
   listed (`rules/hypervisors.md` → Changes Between Connections):
@@ -69,7 +70,9 @@ are the only record of past errors.
   left" while `df` still shows free space. The remedy is a
   filtered balance, which moves data and is the user's decision
   (`rules/storage.md` → Before a Change).
-- **INFO** if the last scrub is older than 35 days, or none.
+- **INFO** if the last scrub is older than 35 days, or none;
+  what would schedule one is `references/storage-maintenance.md`
+  → Scrubs.
 - **WARN** for a filesystem `storage.md` records that is no longer
   mounted, handled as the missing pool above.
 
@@ -77,7 +80,8 @@ are the only record of past errors.
 
 Compare what the inventory read with `storage.md`, report the
 differences as `rules/hypervisors.md` → Changes Between
-Connections does, and rewrite the file. A host without a
+Connections does, and change the file only where something
+differs. A host without a
 `storage.md` gets it written now and reports no differences; the
 ratings below still run. Btrfs filesystems are matched by UUID,
 pools by name:
@@ -105,9 +109,13 @@ A value that carries a reason from the user is reported as
   product is the RAM the table wants.
   - **WARN** if that exceeds half of the ARC's `c_max`, which
     also has to hold the data it caches: the table stops fitting,
-    and writes wait for it to be read from disk. A pool with a
-    `dedup` or `special` vdev keeps the table on flash: **INFO**
-    there.
+    and writes wait for it to be read from disk. **INFO** instead
+    where the table sits on a `dedup` or `special` vdev whose
+    disks the Disks section of `storage.md` records as flash,
+    matched by the
+    serial that a `/dev/disk/by-id` name in `zpool status`
+    carries, or by device name; a vdev on spinning disks, or on
+    disks the record does not have, keeps the WARN.
   - **INFO** if the pool's `dedupratio` is below 1.10x: dedup
     costs RAM and write speed and saves almost nothing here.
 - **`sync=disabled`** on a dataset or zvol: **WARN**. ZFS then
@@ -130,13 +138,16 @@ A value that carries a reason from the user is reported as
   none, `(untrimmed)` for one never trimmed, and
   `completed at <date>` for the last TRIM. **INFO** for a pool
   with autotrim `off`, a vdev that supports TRIM, and no TRIM
-  completed in the last 35 days. A periodic trim — Debian's
-  `zfsutils-linux` cron job, a `zfs-trim-monthly@<pool>` timer —
-  shows here as a recent one and raises nothing.
+  completed in the last 35 days. A periodic trim shows here as a
+  recent one and raises nothing; which one the family ships is
+  its file's Storage Maintenance section.
 - **Special or dedup vdev less redundant than the data vdevs** —
-  a single disk in the `special` or `dedup` class of a mirror or
-  raidz pool: **WARN**. The pool's metadata lives there and
-  nowhere else, so losing that disk loses the pool; OpenZFS says
+  a `special` or `dedup` vdev that survives fewer failed disks
+  than the data vdevs do: **WARN**. A mirror of *n* disks
+  survives *n* − 1, raidz*N* survives *N*, a single disk none; a
+  two-way special mirror beside raidz2 data is one short. The
+  pool's metadata lives there and nowhere else, so losing that
+  vdev loses the pool; OpenZFS says
   the class's redundancy should match the data vdevs'
   ([zpoolconcepts(7)](https://openzfs.github.io/openzfs-docs/man/master/7/zpoolconcepts.7.html)),
   and `zpool add` refuses the mismatch unless forced.
@@ -170,8 +181,10 @@ A value that carries a reason from the user is reported as
   or the filesystem was mounted degraded and wrote new chunks as
   `single`; either way part of the data has less redundancy than
   the rest.
-- **Metadata or system `single` or `RAID0` on more than one
-  device:** **WARN**. One lost device takes the whole filesystem.
+- **Metadata or system `single`, `DUP` or `RAID0` on more than
+  one device:** **WARN**. `DUP` keeps both copies on the same
+  device ([mkfs.btrfs](https://btrfs.readthedocs.io/en/latest/mkfs.btrfs.html)),
+  so one lost device takes the whole filesystem.
 - **`RAID5` or `RAID6`:** **WARN**, for data and metadata alike.
   The btrfs status page marks them unstable and not for
   production, and never for metadata, which belongs on `RAID1` or
