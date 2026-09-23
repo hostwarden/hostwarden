@@ -120,8 +120,13 @@ QUEUE=$(mktemp)
 trap 'rm -rf "$QUEUE" "$QUEUE.in" "$GUARD_TREES"' EXIT INT TERM
 NCHECKS=0
 # One core is the floor, not the default: a machine that will not
-# say how many it has still runs the matrix, just no faster.
+# say how many it has still runs the matrix, just no faster. Off
+# CI, half the cores is the ceiling: on a workstation, other
+# sessions and endpoint protection inspecting every process need the
+# rest.
 JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+[ -n "${CI:-}" ] || JOBS=$((JOBS / 2))
+[ "$JOBS" -ge 1 ] || JOBS=1
 
 check() {
   # Queued, not run. Every fixture is an independent invocation of
