@@ -405,14 +405,17 @@ password only where some rule has `NOPASSWD`.
 list can name root: `ALL`, `root`, `#0`, a `%group` whose members
 include root (FreeBSD's `wheel` and macOS's `admin` do; the
 probe's `root groups:` line lists them all), a `Runas_Alias`
-holding any of these, or no run-as at all while `Defaults runas_default` is
-unset or root. `(backup)`, a list or alias of other accounts and
+holding any of these, or no run-as at all while
+`Defaults runas_default` is unset or root — unless the list
+excludes root, as `(ALL, !root)` does
+(`rules/privilege-escalation.md` → Mixed Mode reads run-as lists
+the same way). `(backup)`, a list or alias of other accounts and
 groups without root, and `(:group)`, which sets only the group and
 runs as the calling user, do not; such a rule gives what its
-targets can do. A
-run-as applies to every command after it on the same line, up to
-the next one: `deploy ALL=(backup) NOPASSWD: /x, (root) ALL`
-holds both. For doas, a rule without `as`, or `as root`, is root.
+targets can do. A run-as applies to every command after it on the
+same line, up to the next one:
+`deploy ALL=(backup) NOPASSWD: /x, (root) ALL` holds both. For
+doas, a rule without `as`, or `as root`, is root.
 A rule that runs as root is a root rule below and in the ratings.
 
 **What to note per user or group:**

@@ -47,13 +47,16 @@ With an IdP behind the CA, access is limited in three places:
   IdP. Ask the user to confirm that people cannot edit the claims
   that become principals, such as their email or username: a
   person who can rename themselves `root` gets a certificate for
-  root (`rules/accounts.md` → Certificate Logins).
+  root (`rules/accounts.md` → Certificate Logins). What the CA
+  itself lets people get is read as `rules/ssh-ca-issuing.md`
+  says.
 - **Who may log in here** (the host): the directory's access rule
   (`rules/accounts-probe.md` → Where Accounts Come From).
 
 **Offboarding:** the person is disabled in the IdP first, so no
 new certificate is issued, then the certificates still valid are
-revoked; otherwise the last one lasts to its end.
+revoked in the hosts' revocation list (`rules/ssh-ca.md` →
+Terms); otherwise the last one lasts to its end.
 
 ## Connecting Hosts to the Directory
 
@@ -75,12 +78,15 @@ each step asked:
    the person and their groups.
 3. **Sudo:** the same `%group` file on every host
    (`rules/accounts.md` → Changing Accounts or Sudo Rules).
-4. **sshd:** the CA's trust and `AuthorizedPrincipalsFile none`
+4. **sshd:** the user CA's trust (`rules/ssh-ca.md` → User CA
+   Trust) and `AuthorizedPrincipalsFile none`
    (`rules/accounts.md` → Certificate Logins). The directives go
    through the user, never into `sshd_config` by Hostwarden. On
    the first host, the principals `ssh-keygen -L -f <certificate>`
-   shows must contain the name `getent passwd` finds. The access
-   test uses the certificate of a person who never logged in
-   there, and the home must appear.
+   shows must contain the name `getent passwd` finds; where they
+   do not, `rules/ssh-ca-issuing.md` → When a Login Fails on the
+   Principal. The access test uses the certificate of a person who
+   never logged in there, and the home must appear.
 5. **Memory:** the `Accounts:` line (`rules/accounts.md` →
+   Memory), and the host's SSH CA lines (`rules/ssh-ca.md` →
    Memory).

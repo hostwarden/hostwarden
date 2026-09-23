@@ -53,19 +53,21 @@ resolves. `getent passwd <name>` (macOS:
 a person's first login. Which principals a certificate carries:
 `ssh-keygen -L -f <certificate>`.
 
-What sshd accepts, from `sshd -T` as root
-(`authorizedprincipalsfile`, `authorizedprincipalscommand`,
-`trustedusercakeys`):
+Which user CA sshd trusts, its principals files and its revocation
+list are read as `rules/ssh-ca.md` → User CA Trust says; a login
+refused on the principal, as `rules/ssh-ca-issuing.md` → When a
+Login Fails on the Principal says. For the accounts, two things
+follow:
 
-- `AuthorizedPrincipalsFile none`, sshd's default: the
-  certificate must name the account itself.
-- A principals file per account (`…/%u`): an account without its
-  file accepts no certificate. On a directory host that locks out
+- With `AuthorizedPrincipalsFile none`, sshd's default, a
+  certificate must name the account itself, so a principal named
+  like a local account (`root`, `deploy`) logs in as that account.
+  The CA's issuing rules must keep such names from people
+  (`rules/ssh-ca-issuing.md` → Findings).
+- A principals file per account (`…/%u`) admits no certificate for
+  an account without its file. On a directory host that locks out
   every person, so keep `none` there and give files only to role
   accounts, in a `Match User` block.
-- With `none`, a principal named like a local account (`root`,
-  `deploy`) logs in as that account: the CA must never sign such
-  names for people.
 
 The user CA's trust and these directives live in `sshd_config`,
 which Hostwarden never writes on a running sshd (`AGENTS.md` →
@@ -115,8 +117,8 @@ The fleet audit only reports a line its probe contradicts.
 - **Role account:** Hostwarden logs in as that account; root is
   the login itself or sudo from the shared account.
 - **Directory or local:** Hostwarden logs in as the user's own
-  personal account and depends on its sudo
-  (`rules/privilege-escalation.md`).
+  personal account and depends on its sudo, all of it or the
+  commands `rules/privilege-escalation.md` → Mixed Mode counts.
 
 Where the recorded SSH user does not fit the model,
 `rules/ssh-user.md` → Account Model asks.
@@ -180,7 +182,8 @@ that account; root stays for break-glass.
   the Mac's own management; Hostwarden does not create them. Then
   a fresh login with that person's certificate.
 - **Remove:** the user revokes the person's certificates at the
-  CA, or in the hosts' revocation list (KRL, `RevokedKeys`), then
+  CA, or in the hosts' revocation list (`rules/ssh-ca.md` →
+  Terms), then
   per host `userdel <name>` (`pw userdel` on FreeBSD, busybox
   `deluser` on Alpine). The home stays unless the user wants it
   gone (`-r`; `--remove-home` for `deluser`). Update the roster.
