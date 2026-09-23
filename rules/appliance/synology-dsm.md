@@ -518,8 +518,7 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   ```
   It exits non-zero, with the reason on stderr, when a file could
   not be listed or read.
-- The activity check reads back, oldest file first so that the
-  classifier keeps the newest sessions' entries:
+- The activity check reads back, oldest file first:
   ```
   syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
   syslog_stream | head -1

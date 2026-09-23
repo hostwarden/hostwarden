@@ -89,9 +89,9 @@ journalctl --no-pager -q -o short-iso | head -1
 ```
 
 Every read-back, the journal's and each `## Logs`
-section's, pipes what it read into `awk "$C"`: the
-classifier under Sessions and watchers below, defined
-at the top of the same call.
+section's but Windows', pipes what it read into
+`awk "$C"`, oldest entry first: the classifier under Sessions and
+watchers below, defined at the top of the same call.
 
 As a non-root user outside the `systemd-journal` /
 `adm` groups, `journalctl` silently shows only the
@@ -189,7 +189,8 @@ other: 3 lines name a tag, last: … hostwarden-backup: done
   unit, or `-` where the log names none, how many
   entries, the first and last, and the last text.
   Without a unit, entries whose text differs only in
-  digits count as one watcher.
+  digits count as one watcher. After ten, one line
+  counts the rest.
 - `other:` — lines that name a tag without being an
   entry under it: a watcher with its own tag
   `hostwarden-backup`, a login name in sshd's log.
@@ -202,17 +203,15 @@ other: 3 lines name a tag, last: … hostwarden-backup: done
   error, and is passed through as it came. An error
   means the check did not run.
 
-The classifier, defined once at the top of the call:
+The classifier:
 
 ```
 C='
-  function keep(   k, o, n) {
+  function keep(   o, n) {
     if (tag == "") return
     o = (u ~ /\.service$/ && u !~ /^(user@|(ssh|sshd|dropbear)[@.])/) ? u : "-"
-    n = m; gsub(/[0-9]+/, "#", n); k = tag " " o " " n
-    N++; T[N] = ts; G[N] = tag; M[N] = m; K[N] = k; cnt[k]++
-    if (o == "-" && m ~ /^\[[^]]+ as [^]]+\] /) P[N] = 1
-    if (o != "-") U[k] = o
+    n = m; gsub(/[0-9]+/, "#", n)
+    N++; T[N] = ts; M[N] = m; K[N] = tag " " o " " n; cnt[K[N]]++
     tag = ""
   }
   BEGIN {
@@ -247,20 +246,21 @@ C='
     keep()
     for (i = 1; i <= N; i++) {
       k = K[i]
-      if (!P[i] && !(k in U) && G[i] == "heinzel" && cnt[k] < 3) P[i] = 1
-      if (P[i]) { S[++s] = i; continue }
+      if (k ~ /^[a-z]+ - / && (M[i] ~ /^\[[^]]+ as [^]]+\] / ||
+          k ~ /^heinzel / && cnt[k] < 3)) { S[++s] = i; continue }
       if (!(k in F)) { F[k] = T[i]; Q[++q] = k }
       L[k] = T[i]; W[k] = M[i]
     }
     if (s > 20) print "earlier: " s - 20 " session entries"
     for (j = (s > 20 ? s - 19 : 1); j <= s; j++) {
-      i = S[j]; print "session: " T[i] " " G[i] " " M[i]
+      i = S[j]; split(K[i], f, " "); print "session: " T[i] " " f[1] " " M[i]
     }
-    for (j = 1; j <= q; j++) {
+    for (j = 1; j <= q && j <= 10; j++) {
       k = Q[j]; split(k, f, " ")
-      print "watcher: " f[1] " " (k in U ? U[k] : "-") " " cnt[k] "x, " \
-        F[k] " to " L[k] ", last: " W[k]
+      print "watcher: " f[1] " " f[2] " " cnt[k] "x, " F[k] " to " L[k] \
+        ", last: " W[k]
     }
+    if (q > 10) print "watcher: " q - 10 " more"
     if (other) print "other: " other " lines name a tag, last: " last
   }'
 ```
@@ -274,23 +274,14 @@ no unit, so there the prefix and recurrence decide.
 ### What to do with a watcher
 
 - **It is not activity**, and never a live session,
-  however fresh its last entry. Leave it out of What
-  to show except for the line below.
-- **Report it once**, as a finding:
-  *"Watcher on the session tag heinzel: cron.service,
-  2016 entries in 7 days — it should log under its
-  own tag."* A prefixed entry from a service is a
-  script that imitates a session: say so.
-- **Record it** in the host's `memory.md`, with what
-  found it and the script where known:
-
-      - Journal watcher: heinzel from cron.service,
-        /etc/cron.d/heinzel-backup (2026-09-23)
-
-  A watcher memory records is not reported again on
-  connection; housekeeping names it until it is gone
-  (`hostwarden-housekeeping`). Remove the line once
-  the watcher logs under its own tag.
+  however fresh its last entry.
+- **Report it** in one line after the sessions'
+  entries (What to show), on every connection until
+  it logs under its own tag:
+  *"Watcher on the session tag heinzel:
+  heinzel-backup.service, 2016 entries in 7 days."*
+  A prefixed entry from a service is a script that
+  imitates a session: say so.
 - **Retagging it is a change** to the script: asked,
   and done as `rules/deployed-files.md` → Naming on
   the host says, or `rules/heinzel-adoption.md` for a
@@ -470,9 +461,9 @@ Recent activity (last 7 days):
 
 The heading is neutral and every line names its
 journal tag, so no Heinzel entry is credited to
-Hostwarden. Only `session:` lines are listed; a
-watcher a memory line does not yet record follows as
-one line of its own (What to do with a watcher).
+Hostwarden. Only `session:` lines are listed; each
+watcher follows as one line of its own (What to do
+with a watcher).
 
 - Group related entries when possible.
 - Keep it concise — summarize, don't dump raw logs.

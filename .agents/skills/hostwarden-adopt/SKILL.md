@@ -403,10 +403,8 @@ leads, the host confirms them.
     checked, before anything is moved.
     ```
 
-    A watcher the activity check found on a session tag
-    (`rules/activity-check.md` → Sessions and watchers) gets a line
-    under its host, as for web1: a leftover to retag, never a sign
-    that Heinzel still runs.
+    A watcher the activity check found on a session tag gets a line
+    under its host, as for web1 (`rules/heinzel-adoption.md`).
 
     Add a line for each file an override needs and this clone lacks,
     each `user.md` key the two checkouts set differently, what was

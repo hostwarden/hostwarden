@@ -222,6 +222,6 @@ Log the version check per `rules/changelog.md`:
 
 ```bash
 logger -t hostwarden \
-  "Version check: 2 updates available \
+  "[<operator> as <unix-user>] Version check: 2 updates available \
 (Ollama, Node.js), 0 EOL"
 ```

@@ -250,10 +250,9 @@ stat -f '%SB %N' -t '%F %T' \
   /private/var/db/diagnostics/Persist/*.tracev3 | sort | head -1
 ```
 
-`$C` is the activity check's classifier, defined in the same call
-(`rules/activity-check.md` → Sessions and watchers). Where it puts
-every line under `other:`, it has not found the tag in this
-layout: that section says what to do.
+`$C` is the classifier (`rules/activity-check.md` → Sessions and
+watchers); where it puts every line under `other:`, that section
+says what to do.
 
 Two details that are not optional here:
 

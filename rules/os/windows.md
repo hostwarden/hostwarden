@@ -523,6 +523,11 @@ The event-log engine does the filtering, which keeps the check
 fast on a busy log. A non-administrator may need membership in
 `Event Log Reader`.
 
+The classifier (`rules/activity-check.md` → Sessions and
+watchers) is `awk` and does not run here, and the event log names
+no unit. An event whose message does not open with the session
+prefix is a watcher's: a script that writes under the source.
+
 Windows has no session register: the activity check reads
 none, and `rules/parallel-sessions.md` → Hosts without a
 register says what stands in for it before a change.

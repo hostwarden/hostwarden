@@ -320,11 +320,10 @@ syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
 date
 ```
 
-`$C` is the activity check's classifier, defined in the same call
-(`rules/activity-check.md` → Sessions and watchers); it keeps the
-last 20 sessions' entries and sums up the watchers. The stream is
-not cut to seven days: the `head -1` line and `date` bound it
-(`rules/activity-check.md` → How far back it reached).
+`$C` is the classifier (`rules/activity-check.md` → Sessions and
+watchers). The stream is not cut to seven days: the `head -1` line
+and `date` bound it (`rules/activity-check.md` → How far back it
+reached).
 An error from `logread` or `cat` means the check has not run: as a
 user outside `wheel` (busybox) or `adm` (syslog-ng), send the call
 through `doas -n sh -s` or `sudo -n sh -s`, and otherwise tell the

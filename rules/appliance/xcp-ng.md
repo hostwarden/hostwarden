@@ -372,8 +372,7 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   ```
   syslog_stream() { L=$(ls -tr /var/log/user.log*) && zcat -f $L; }
   ```
-  The activity check reads it back, oldest file first so that the
-  classifier keeps the newest sessions' entries:
+  The activity check reads it back, oldest file first:
   ```
   syslog_stream | grep -E "hostwarden|heinzel" | awk "$C"
   syslog_stream | head -1

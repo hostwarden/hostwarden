@@ -410,9 +410,8 @@ security audit reads from files.
     cat "$@"
   }
   ```
-  The activity check reads back, oldest file first so that the
-  classifier keeps the newest sessions' entries, with the mirror's
-  `syslog-previous` in front of the stream:
+  The activity check reads back, oldest file first, with the
+  mirror's `syslog-previous` in front of the stream:
   ```
   { [ ! -e /boot/logs/syslog-previous ] || cat /boot/logs/syslog-previous
     syslog_stream; } | grep -E "hostwarden|heinzel" | awk "$C"

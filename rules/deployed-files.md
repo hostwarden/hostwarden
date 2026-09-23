@@ -99,12 +99,10 @@ A script that logs uses its own name as its tag
 (`logger -t backup-usb-watch`), never `hostwarden` or `heinzel`,
 and never opens a message with a session's
 `[<operator> as <unix-user>] ` prefix. Those two tags and that
-prefix are the record of sessions: the activity check reads such an
-entry as a session's change, and a fresh one as a live session. A
-script that logs there anyway is reported as a watcher where the
-check can tell (`rules/activity-check.md` → Sessions and
-watchers), and passes for a session where it cannot. A deployed
-script that
+prefix are the record of sessions, and a script that uses them
+passes for a session wherever the activity check cannot tell it
+apart (`rules/activity-check.md` → Sessions and watchers). A
+deployed script that
 still logs under either tag gets its own the next time its master
 changes, or earlier as a change of its own when the user agrees;
 the tag is part of the master like every other byte.

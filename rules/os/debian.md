@@ -162,7 +162,7 @@ to the user immediately.
 
 ```bash
 logger -t hostwarden \
-  "Installed <package> from testing (pinned, \
+  "[<operator> as <unix-user>] Installed <package> from testing (pinned, \
 user override: stable had no option)"
 ```
 

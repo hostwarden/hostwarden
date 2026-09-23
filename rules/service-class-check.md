@@ -345,7 +345,7 @@ Log the outcome per `rules/changelog.md`:
 
 ```bash
 logger -t hostwarden \
-  "Declined <pkg> install on <host>: \
+  "[<operator> as <unix-user>] Declined <pkg> install on <host>: \
 <existing> already serves <class>"
 ```
 
@@ -353,7 +353,7 @@ or, on acceptance of option (b) or (c):
 
 ```bash
 logger -t hostwarden \
-  "Added <new> alongside <existing> as <class> \
+  "[<operator> as <unix-user>] Added <new> alongside <existing> as <class> \
 on <host> (user choice: <option>)"
 ```
 

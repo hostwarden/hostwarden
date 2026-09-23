@@ -184,10 +184,8 @@ bare `hostwarden`: the activity check reads that tag
 as a session's work (`rules/activity-check.md` →
 Sessions and watchers), and a nightly job would pass
 for one wherever its unit and its text do not give
-it away. Such a script is often found by the
-activity check before the inventory names it: a
-`watcher:` line under `heinzel` is a lead like any
-other, its unit or its text the way to the script.
+it away. A `watcher:` line under `heinzel` is a lead
+to such a script like any other.
 
 Afterwards the host's memory names the new paths —
 they are what is true now.
