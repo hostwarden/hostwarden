@@ -104,9 +104,16 @@ ssh -F "<checkout>/memory/ssh_config" \
   -o ControlMaster=no -o ControlPath=none root@hostname "id" 2>&1
 ```
 
-Run `rules/host-keys.md` → Before the First Connection for
-`root@hostname` first: a key missing for root's endpoint fails
-the probe before it logs in, and says nothing about root login.
+First compare `ssh -F "<checkout>/memory/ssh_config" -G
+root@hostname` with the same output for the SSH user. Where its
+`hostname`, `port` or `hostkeyalias` differs, a `Match user root`
+block sends root to another endpoint: run steps 1–4 of
+`rules/first-connection.md` for it, blacklist, read-only list,
+DNS check and host key. A different port is another machine
+until the user says otherwise (`rules/dns-aliases.md` → IP
+Verification): stop and ask. Either way, a host key missing for
+root's endpoint fails the probe before it logs in and says
+nothing about root login: get it first (`rules/host-keys.md`).
 
 - **Works:** record `- Root SSH: available`.
 - **Fails:** keep the recorded sudo line, add the

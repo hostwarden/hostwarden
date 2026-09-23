@@ -21,7 +21,8 @@
 #      by line;
 #   2. Match all with the standard options: connection sharing,
 #      keepalives, and the host key checked against
-#      memory/known_hosts alone (rules/host-keys.md);
+#      memory/known_hosts alone, with no other source and no
+#      rewriting by ssh itself (rules/host-keys.md);
 #   3. the user's own ~/.ssh/config, then /etc/ssh/ssh_config,
 #      which -F would otherwise leave out.
 #
@@ -200,7 +201,17 @@ trap 'rm -f "$TMP"' EXIT
   cat <<EOF
   UserKnownHostsFile "$KNOWN"
   GlobalKnownHostsFile /dev/null
+  UpdateHostKeys no
   StrictHostKeyChecking yes
+EOF
+  # KnownHostsCommand came with OpenSSH 8.5. An older ssh rejects
+  # the keyword and would fail every call, and it has no such
+  # source to switch off either (rules/ssh-connections.md).
+  if ssh -F /dev/null -G -o KnownHostsCommand=none example.invalid \
+      >/dev/null 2>&1; then
+    echo "  KnownHostsCommand none"
+  fi
+  cat <<EOF
   # The user's own configuration, for what the lines above leave
   # open: a User, an IdentityFile, a host only they reach.
   Include ~/.ssh/config

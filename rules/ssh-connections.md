@@ -81,18 +81,19 @@ which are never shared.
   dead network path after 45 seconds, whatever
   `~/.ssh/config` says. `ConnectTimeout` does not
   cover a call over an existing connection.
-- **The known_hosts options:** `memory/known_hosts`
+- **The known_hosts lines:** `memory/known_hosts`
   alone decides (`rules/host-keys.md`).
-  `GlobalKnownHostsFile=/dev/null` and
-  `KnownHostsCommand=none` switch off the other
+  `GlobalKnownHostsFile /dev/null` and
+  `KnownHostsCommand none` switch off the other
   sources an `ssh_config` can add, and
-  `UpdateHostKeys=no` keeps ssh from rewriting the
+  `UpdateHostKeys no` keeps ssh from rewriting the
   shared file behind the rule's back. An ssh older
   than OpenSSH 8.5 has no `KnownHostsCommand` and
-  rejects the option (`Bad configuration option`,
-  exit 255, before any connection): leave it out
-  there, since such an ssh has no source of that kind
-  to switch off. `bin/hostwarden-doctor` reports it.
+  rejects the keyword (`Bad configuration option`,
+  exit 255, before any connection), so the generator
+  writes it only where ssh accepts it: such an ssh
+  has no source of that kind to switch off.
+  `bin/hostwarden-doctor` reports the case.
 
 ### Fresh-login options
 

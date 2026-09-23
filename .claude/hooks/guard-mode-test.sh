@@ -984,6 +984,18 @@ git -C "$OPS/memory" check-ignore -q ssh_config && ok \
 id=$(printf %s "$OPS" | cksum | cut -d' ' -f1)
 grep -qxF "  ControlPath ~/.cache/hostwarden/ssh-$id-%C" "$CFG" && ok \
   || bad "memory/ssh_config shares masters with other checkouts"
+# memory/known_hosts alone decides: ssh rewrites nothing, and a
+# KnownHostsCommand is off wherever this ssh knows the keyword. One
+# that does not would reject the line and fail every call.
+grep -qxF "  UpdateHostKeys no" "$CFG" && ok \
+  || bad "memory/ssh_config lets ssh rewrite memory/known_hosts"
+if ssh -F /dev/null -G -o KnownHostsCommand=none example.invalid \
+    >/dev/null 2>&1; then
+  grep -qxF "  KnownHostsCommand none" "$CFG" && ok \
+    || bad "memory/ssh_config leaves a KnownHostsCommand on"
+elif grep -q KnownHostsCommand "$CFG"; then
+  bad "memory/ssh_config names KnownHostsCommand to an ssh that rejects it"
+else ok; fi
 # A workspace .gitignore older than the file: the clone's exclude
 # list keeps it out instead.
 cp "$OPS/memory/.gitignore" "$TMP/gi.orig"
