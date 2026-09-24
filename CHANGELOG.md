@@ -5,7 +5,10 @@
 Hostwarden grew out of [Heinzel](https://github.com/wintermeyer/heinzel)
 by Stefan Wintermeyer and branched off at Heinzel 2.22.0. It continues
 as an independent project, keeps Heinzel's history and still takes over
-Heinzel's improvements where they fit.
+Heinzel's improvements where they fit. Its home is
+[hostwarden/hostwarden](https://github.com/hostwarden/hostwarden),
+because GitHub offers the merge queue to a public repository only when
+an organization owns it.
 
 Hostwarden starts its own versioning at 1.0.0; Heinzel's numbers do not
 continue here. The entries below describe what is different from
