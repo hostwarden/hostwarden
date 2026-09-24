@@ -13,8 +13,8 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 
 ### What Hostwarden is
 
-- **Heinzel is now Hostwarden.** Scripts (`bin/hostwarden-*`), skills
-  (`hostwarden-*`), environment variables (`HOSTWARDEN_*`), the journal
+- **Everything carries Hostwarden's name.** Scripts
+  (`bin/hostwarden-*`), skills (`hostwarden-*`), environment variables (`HOSTWARDEN_*`), the journal
   tag on servers (`hostwarden`), the backup directories
   (`/var/backups/hostwarden/`, `~/.hostwarden-backups/`) and the SSH
   socket directory (`~/.cache/hostwarden`) carry the new name. A few
@@ -60,8 +60,9 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   also says which feature each missing tool switches off, and gives the
   install command for your package manager. It runs quietly at every
   session start and never installs anything. Under WSL it warns about a
-  clone under `/mnt` and names the usual cause when a Windows VPN does
-  not reach WSL.
+  clone under `/mnt` and an SSH key WSL cannot reach. When servers
+  behind a Windows VPN stop answering from WSL, the unreachable-host
+  check names WSL's network as the likely cause.
 - **The README is about getting started.** Everything deeper lives
   under `docs/`, indexed by `docs/README.md`: installation, AI tools,
   features, safety, automation, overrides, operations. `CONTRIBUTING.md`
@@ -69,29 +70,33 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 
 ### Safety
 
+The guard hooks run in Claude Code. In other tools the same rules reach
+the agent as instructions in `AGENTS.md`, and those are the whole
+protection there.
+
 - **The taboo guard sees more of what the agent does.** It judges
   Claude Code's Monitor tool, which runs shell commands in the
   background, exactly as it judges Bash. The edit tools are judged by
   the file they write: an SSH key, `authorized_keys`, a key store or
   sshd's configuration cannot be edited. A note that only mentions
   them stays editable. It applies to subagents too.
-- **The guard cannot fail open.** Every hook starts with `sh`: without
-  bash, Heinzel's guard never started, and Claude Code let every
-  command through without saying so. A guard whose helper file is
-  missing blocks instead of passing.
+- **The guard no longer fails open for want of bash.** Every hook starts
+  with `sh`: without bash, Heinzel's guard never started, and Claude Code
+  let every command through without saying so. A guard whose helper file
+  is missing blocks instead of passing.
 - **The guard can only be switched off before a session starts.**
   `HOSTWARDEN_GUARD_DISABLE` counts only for a session that started
   with it. A value that appears mid-session, for example through a
   settings file, changes nothing, and the agent cannot write the
   variable into a settings file. A session that starts with the guard
   off says so first.
-- **The guard asks where a block would be too much.** Stopping or
-  deleting a container, VM or jail, routine storage changes, and
-  writing sshd's configuration into a guest that has never started
-  bring a permission prompt showing the exact command, in auto mode
-  too. Where no prompt can reach a person, such as `claude -p` or
-  `bypassPermissions`, the guard denies them instead. A taboo in the
-  same command always wins.
+- **The guard asks where a block would be too much.** Stopping or deleting
+  a system container, VM or jail, routine storage changes, writing sshd's
+  configuration or keys into a guest that has never started, and clearing
+  its image's old host keys bring a permission prompt showing the exact
+  command, in auto mode too. Where no prompt can reach a person, such as
+  `claude -p` or `bypassPermissions`, the guard denies them instead. A
+  taboo in the same command always wins.
 - **Repairing or destroying storage is a taboo.** Heinzel blocked
   partition-table writes and whole-disk erases. Hostwarden adds `fsck`
   without `-n`, a writing `btrfs check`, `ntfsfix`, removing a volume
@@ -137,11 +142,11 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   files on disk as well as the live rules, so a reboot cannot bring the
   change back. Where nothing can be armed, the change is yours, with
   the console ready.
-- **Every port sshd listens on stays open.** Before a firewall is
-  enabled or tightened, Hostwarden reads all of them: from sshd's
-  effective configuration, a running daemon's own `-f`, `-p` or
-  `-o Port=`, and a socket unit. `ufw allow OpenSSH` alone covers only
-  22. The default incoming policy must be deny.
+- **sshd's ports are also read from the running daemon.** Before a
+  firewall is enabled or tightened, Hostwarden reads a running
+  daemon's own `-f` file, `-p` or `-o Port=` and a socket unit's
+  `ListenStream`, besides sshd's effective configuration, and keeps
+  every one of those ports open.
 - **Probes withhold what can carry a secret.** Cron lines, hooks,
   units, repository and configuration lines are read for their
   structure only. `sudo -l` output is cut before the arguments.
@@ -154,12 +159,11 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   job or token does for it, and a request from another session is not
   yours (`rules/borrowed-rights.md`).
 - **The sudo probe tells refusals apart.** `sudo -n -l` replaces
-  `sudo -n true`, so a user with passwordless sudo for selected
-  commands only is recorded as such, and is no longer sent to the root
-  SSH fallback. `doas` and `wsl.exe -u root` stand in for sudo where
-  that is how a host works. Membership in `docker`, `libvirt`,
-  `incus-admin` or `lxd` is recorded and used only for that group's
-  work.
+  `sudo -n true`, so a user with passwordless sudo for selected commands
+  only is recorded as such, and the commands sudo allows run through
+  sudo instead of the root SSH fallback. `doas` and `wsl.exe -u root` stand in for sudo
+  where that is how a host works. Membership in `docker`, `libvirt`,
+  `incus-admin` or `lxd` is recorded and used only for that group's work.
 
 ### Operations and development checkouts
 
@@ -167,14 +171,15 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   `bin/hostwarden-init` turns `memory/` into the workspace, a git
   repository of its own, and only a checkout with a workspace reaches a
   server. One without it — a fresh clone, a fork, every git worktree —
-  is for changing Hostwarden: `ssh`, `scp`, `sudo`, `ansible` and the
-  other tools that reach a server fail there however they are started,
-  while `git push` still works. A session-start hook names the mode.
-- **An operations checkout keeps Hostwarden's files read-only.** The
-  agent can change `memory/` and other ignored files, not the rules
-  or scripts, so a local edit cannot block the auto-update. A request
-  to change Hostwarden gets a pointer to a development checkout and a
-  pull request.
+  is for changing Hostwarden. In Claude Code, `ssh`, `scp`, `sudo`,
+  `ansible` and the other tools that reach a server fail there however
+  they are started, while `git push` still works; other tools get the
+  same rule as an instruction. A session-start hook names the mode.
+- **An operations checkout keeps Hostwarden's files read-only.** In Claude
+  Code the agent can change `memory/` and other ignored files, not the
+  rules or scripts, so a local edit cannot block the auto-update. A
+  request to change Hostwarden gets a pointer to a development checkout
+  and a pull request.
 - **A development session hands a server question over.** When it
   needs a fact from a live server, it asks a session in the operations
   checkout, which runs the access lists and the full pipeline and
@@ -199,7 +204,7 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 - **Teams share the workspace through a remote.** A private remote of
   its own (`bin/hostwarden-init --clone <url>` to join one) keeps a
   team, or one admin's several machines, in step. Heinzel's team mode,
-  which changed Hostwarden's own `.gitignore`, is gone. `user.md`, the
+  which changed the repository's own `.gitignore`, is gone. `user.md`, the
   blacklist and the read-only list stay personal; host memory, host
   keys, decisions and deployed files are shared. Host changelogs from
   two machines merge on their own. Every workspace commit is scanned
@@ -213,9 +218,9 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   first change, a session registers on the host itself in
   `/tmp/hostwarden/`, without root: who, from which workstation, doing
   what. Another live entry, a second window or a teammate, is named and
-  you decide. A session on the same machine can be messaged directly.
-  Read-only sessions register nothing. Windows hosts use journal
-  markers instead.
+  you decide. In Claude Code, a session on the same machine can be
+  messaged directly. Read-only sessions register nothing. Windows hosts
+  use journal markers instead.
 - **Standing decisions are recorded.** When you settle a standing
   choice with a reason, Hostwarden writes it down with who, when, why
   and what it covers: per host, per cluster or for a group of hosts
@@ -398,15 +403,30 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   failure points at the network (`rules/network.md`).
 - **Configuration management is respected.** Hostwarden detects
   Ansible, Puppet or OpenVox, Chef or Cinc, Salt, CFEngine and Rudder,
-  and Terraform or OpenTofu as the provisioner. A change inside a
+  and records Terraform or OpenTofu as the provisioner when you say a
+  host is theirs. A change inside a
   tool's scope goes into that tool's code: Hostwarden edits Ansible
   playbooks when asked, and records a change made by hand as not yet
   in the tool. It never pushes for a tool, and never runs `terraform`
   or `tofu`.
+- **Accounts follow the host's model.** Hostwarden records whether
+  admins log in through a role account, a directory, local accounts or
+  an agent, as one `Accounts:` line, and creates or removes accounts,
+  groups and sudo rules the way that model does. It also covers
+  certificate logins, team accounts through a user CA, and accounts
+  handed out on demand by an identity provider. It never writes to a
+  directory, an identity provider or a CA; it tells you what to create
+  there.
+- **Services in containers are changed where they are defined.** For
+  Docker, Podman and containerd, Hostwarden finds the compose file,
+  unit or tool that recreates a container and changes that, not the
+  running container, and asks before a restart, pull or removal. A
+  container an appliance's web UI owns is left to that UI, and
+  Kubernetes workloads are reported, never changed.
 
 ### An operations host
 
-- **Unattended housekeeping without a root key everywhere.** Fleet
+- **Unattended housekeeping with a key that can only read.** Fleet
   read (`/hostwarden-fleet-read`) gives an operations host's key two
   things on each server: running a bundle of read-only checks that you
   signed, and writing one read-only journal line. Hostwarden builds the
@@ -469,10 +489,11 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 - **Appliances get their own rules on top of the OS family.** Each is
   detected by a marker and recorded as `Appliance:` in memory. Its file
   replaces what the family file would get wrong: the updater, where
-  settings live, the firewall, the logs. Each appliance file names the
-  releases it covers, and on any other release Hostwarden stops before
-  changing anything. The fleet audit compares an appliance only with its
-  own kind. Covered:
+  settings live, the firewall, the logs. Where an appliance file names
+  the releases it covers (Synology DSM, QNAP, Unraid, UGOS Pro,
+  ZimaOS), Hostwarden stops on any other release before changing
+  anything; UniFi OS works read-only there. The fleet audit compares
+  an appliance only with its own kind. Covered:
   - **Proxmox VE:** always `dist-upgrade`; `pve-firewall`; the cluster
     and HA.
   - **OPNsense and pfSense:** the web UI and their own tools instead of
@@ -520,8 +541,8 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   `memory/servers/<host>/guests.md`, stopped ones and templates
   included. It asks once why stopped guests are off. Each running guest
   the hypervisor can enter gets memory of its own, read-only, and a
-  report says what was read, written and left out. Guests on TrueNAS
-  and Synology DSM are inventoried read-only.
+  report says what was read, written and left out. Guests on TrueNAS,
+  Synology DSM, Unraid and ZimaOS are inventoried read-only.
 - **Clusters are inventoried once.** A Proxmox VE cluster, an XCP-ng
   pool and an Incus or LXD cluster live in `memory/clusters/<name>/`
   with their members, HA state and guests. A guest's `Runs on:` follows
@@ -541,8 +562,9 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   your keys from the first boot; a password exists only if you ask, and
   the guest generates it. On Proxmox VE, containers come from a baseline
   template Hostwarden builds; housekeeping says when it is due for a
-  rebuild. For Unraid, ZimaOS,
-  TrueNAS and XCP-ng you get the web-UI steps and a seed ISO.
+  rebuild. For Unraid, ZimaOS and TrueNAS you get the web-UI steps
+  and a seed ISO; for XCP-ng, the user-data to paste into Xen
+  Orchestra.
 - **OS installation is a gated skill.** `hostwarden-os-install` covers
   replacing an OS, dual-boot, EFI boot entries, cloud images and
   partition staging. Its destructive steps need an explicit request, a
@@ -558,7 +580,8 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   sorts the rest of the old `memory/` with one question. It can run
   host by host. The copies Heinzel kept of files it deployed are
   rebuilt as masters, and a file holding credentials stays behind. It
-  never follows a link out of the old checkout. It then onboards each
+  names every link in the old `memory/` and reads through one only
+  after you agree. It then onboards each
   host read-only, unless you choose to only copy
   (`docs/operations.md` → Moving over from Heinzel).
 - **What Heinzel left on a host is found and offered.** Where Heinzel
@@ -580,7 +603,8 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   agent — nullmailer, dma or postfix as a null client — so a relay that
   is down for a minute does not lose a report. `msmtp` is installed
   only when asked for, or on a host that is recreated rather than
-  repaired. Only `sendmail` or `msmtp` counts as a mail transport.
+  repaired. `mail` or `mailx` alone no longer counts as a way to
+  send: the message goes through `sendmail` or `msmtp`.
 - **The email skill loads in stages.** Each step reads its own part
   when it gets there, and each part has its own override.
 
@@ -612,5 +636,3 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 - **Pull requests get two reviews:** the `hostwarden-reviewer`
   subagent, then a second reviewer of another model family
   (`.claude/rules/pull-requests.md`).
-- **A `VERSION` bump on `main` is the release:** the workflow tags
-  `vX.Y.Z`. Tags are never made by hand.
