@@ -10,7 +10,7 @@ ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 . "$ROOT/.claude/hooks/mode.sh"
 cd "$ROOT" || exit 0
 
-CANON=jpawlowski/hostwarden
+CANON=hostwarden/hostwarden
 # q <string> — single-quoted for the shell that sources the env file.
 q() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 
