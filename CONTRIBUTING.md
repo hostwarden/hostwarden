@@ -4,6 +4,47 @@ For anything beyond a small fix, open an issue first, so the
 approach is settled before the work is done. Security problems go
 privately, as [SECURITY.md](SECURITY.md) describes.
 
+## Issue dependencies
+
+When an issue only makes sense to implement after another one
+lands — it shares a file the other issue's pull request will
+change in an incompatible way, or it needs a memory line or a
+mechanism the other issue introduces — set GitHub's native
+`blocked by` link on it through the REST API, not a mention buried
+in the body:
+
+    gh api repos/hostwarden/hostwarden/issues/<blocking-n> --jq .id
+    gh api -X POST \
+      repos/hostwarden/hostwarden/issues/<later-n>/dependencies/blocked_by \
+      -F issue_id=<the first command's output>
+
+The `issue_id` the second call needs is the blocking issue's REST
+database id, not its number and not the GraphQL id
+`gh issue view --json id` returns — the first command is how to
+get it. Whoever opens the later issue checks open issues for a
+real dependency and sets it themselves, at the time of opening;
+the maintainer does not retrofit one onto an issue that is
+already open.
+
+A dependency is issue-level ordering an agent should notice before
+starting work on the later issue. It is not a substitute for:
+
+- **a checklist inside one issue**, for work that is genuinely one
+  piece split into steps rather than several independently
+  closeable pieces of work — the reason this project already
+  prefers a checklist over opening many small issues for one
+  change;
+- **a sub-issue**, rejected here for the same reason: it still
+  reads as one piece of work broken apart, where a dependency
+  links two pieces of work that stand on their own and close on
+  their own;
+- **a rebase-order decision between two pull requests**, when the
+  issues themselves are independent but their pull requests happen
+  to touch the same file — settled like any other conflict, by
+  whichever branch rebases second
+  ([pull-requests.md](.claude/rules/pull-requests.md) → Updating a
+  branch), never turned into an issue dependency.
+
 ## Setup
 
 Work in a development checkout: a clone of Hostwarden, or of your
