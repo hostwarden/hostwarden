@@ -49,10 +49,10 @@ on the second run; say so in the pull request body.
 
 A pull request with a user-visible change carries its changelog
 entry from its first commit on, so that both reviews read it: one
-file, `changelog.d/<branch>.md`, never an addition to
-`CHANGELOG.md`. What counts as user-visible, the file's form, and
-what a change to something not released yet does instead are in
-`repo-release.md` → CHANGELOG.md; the own review checks the
+file, `changelog.d/<date>-<slug>.md`, never an addition to
+`CHANGELOG.md`. What counts as user-visible, the file's name and
+form, and what a change to something not released yet does instead
+are in `repo-release.md` → CHANGELOG.md; the own review checks the
 fragment against it.
 
 ## The decision record

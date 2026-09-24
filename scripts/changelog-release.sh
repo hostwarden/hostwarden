@@ -30,7 +30,7 @@ usage() {
     scripts/changelog-release.sh
 }
 
-# Fragment names come from branch names, which carry no space.
+# Fragment names are a date and a slug, which carry no space.
 FRAGS=$(for f in changelog.d/*.md; do
   [ ! -e "$f" ] || printf '%s\n' "$f"
 done)
@@ -51,7 +51,7 @@ check() {
     \( -path 'changelog.d/*/*' -o ! -name '*.md' \))
   if [ -n "$STRAY" ]; then
     # shellcheck disable=SC2086 # one argument per file
-    printf '%s: a fragment is changelog.d/<branch>.md, / as -\n' \
+    printf '%s: a fragment is changelog.d/<date>-<slug>.md\n' \
       $STRAY >&2
     rc=1
   fi
