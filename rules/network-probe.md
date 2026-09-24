@@ -323,6 +323,43 @@ if command -v nmcli >/dev/null 2>&1; then
     [ -n "$r" ] && echo "nm $c: $r"
   done
 fi
+# Main-table routes beyond the default and the connected ones,
+# with a count; over 50, the count alone. `proto` names what wrote
+# each; a host route prints no prefix length and is left out. A
+# multipath (ECMP) route splits its prefix and each `nexthop` onto
+# its own line; they are kept as one route.
+for f in 4 6; do
+  ip -$f route show table main 2>/dev/null \
+    | grep -vE " dev (lo( |$)|($n)[^ ]*( |$))| proto kernel " \
+    | awk -v f="$f" '
+      /^[^[:space:]]/ { if (p != "") l[++c] = p; p = ($1 ~ /\//) ? $0 : ""
+        next }
+      p != "" { p = p " | " $0 }
+      END { if (p != "") l[++c] = p
+            if (c <= 50) for (i = 1; i <= c; i++) print "route" f " " l[i]
+            print "routes" f "=" c + 0 }'
+done
+# The host's own tagged interfaces: name@parent and `vlan … id`,
+# or the kernel's table where BusyBox ip has no `type`.
+{ ip -d link show type vlan 2>/dev/null \
+  || cat /proc/net/vlan/config 2>/dev/null; } \
+  | grep -E '^[0-9]+: |vlan protocol|^[^ |]+ +\| +[0-9]+ +\| '
+# Each default gateway's neighbour entry, one line per gateway
+# and device; an empty one means none.
+for f in 4 6; do
+  ip -$f route show default 2>/dev/null | awk '/ via / {
+      for (i = 1; i < NF; i++) { if ($i == "via") g = $(i + 1)
+        if ($i == "dev") d = $(i + 1) }
+      print g, d }' | sort -u | while read -r g d; do
+    echo "gw$f $g $d: $(ip -$f neigh show to "$g" dev "$d" 2>/dev/null)"
+  done
+done
+# Routing daemons, by program name; hidepid says whether ps saw
+# other users' processes.
+r='watchfrr|zebra|bgpd|ospf6?d|isisd|ripd|ripngd|babeld|bird6?|keepalived|vrrpd'
+echo "## routing daemons"
+[ "$(id -u)" != 0 ] && grep -o 'hidepid=[a-z0-9]*' /proc/mounts
+ps -Ao comm= 2>/dev/null | sed 's|.*/||' | sort -u | grep -xE "$r"
 
 echo "### C sysctl"
 echo "ip_forward=$(cat /proc/sys/net/ipv4/ip_forward)"
@@ -636,6 +673,31 @@ Reading **B (links, addresses, routes)**:
 - A default route with `proto ra` and `expires`
   lives only as long as Router Advertisements keep
   arriving.
+- **The `route4`/`route6` lines** are the main table beyond the
+  default route, connected routes, host routes, routes on `lo` or
+  a container interface, and every route whose first field is not
+  a prefix (`local`, `blackhole`, `unreachable` and the other
+  types). `routes<f>=<n>` counts them; over 50 it stands alone.
+  They are read as `rules/network-topology.md` → Edges and
+  Dynamic routing say. A multipath (ECMP) route's `nexthop` lines
+  stay joined to its prefix as one `| `-separated route, one edge
+  per next hop (Edges). BusyBox `ip` prints no `proto`: there, a
+  route without `via` whose prefix the address listing gives on
+  that device is a connected route, left out.
+- **The VLAN lines** name each tagged interface of the host's own
+  with its parent and tag: `eth0.10@eth0` then `vlan protocol
+  802.1Q id 10`, or the kernel table's `eth0.10 | 10 | eth0`.
+- **The `gw4`/`gw6` lines** give each default gateway's neighbour
+  entry. An `lladdr` with `REACHABLE`, `STALE`, `DELAY`, `PROBE`,
+  `PERMANENT` or `NOARP` is a known MAC, recorded on the profile's
+  `Default:` line (`rules/network.md` → Where it goes); `FAILED`,
+  `INCOMPLETE`, no `lladdr` or an empty entry is not known.
+- **The routing-daemon lines** name each routing program that
+  runs, one per line, read as `rules/network-topology.md` →
+  Dynamic routing says; `comm` is the program, never its command
+  line. A `hidepid=` line other than `hidepid=0` or `hidepid=off`
+  means `ps` saw only this user's processes: an empty list is then
+  `unchecked`, never none.
 
 Reading **C (kernel)**:
 
@@ -802,11 +864,26 @@ profile's `## Traffic flow` section (`rules/network.md`):
 sysrc -a | grep -E \
   -e '^(ifconfig_|ipv6_|defaultrouter|rtsold|gateway_enable)' \
   -e '^(resolv|local_unbound|dhclient|cloudinit|nuageinit)'
-ifconfig -a | grep -E '^[a-z]|inet6? |nd6 options|status:'
-netstat -rn -f inet | grep '^default'
-netstat -rn -f inet6 | grep '^default'
+ifconfig -a | grep -E '^[a-z]|inet6? |ether |vlan: |nd6 options|status:'
+# The routing tables without host entries (flag H), connected ones
+# (gateway link#) and lo0, with a count, over 50 the count alone;
+# then the default gateway's link-layer address.
+for f in inet inet6; do
+  o=$(netstat -rn -f $f | awk -v f="$f" 'NF >= 4 && $1 != "Destination" \
+    && $3 !~ /H/ && $2 !~ /^link#/ && $4 != "lo0" {
+      if ($1 == "default") { print "default-" f " " $2; next }
+      l[++c] = $0 }
+    END { if (c <= 50) for (i = 1; i <= c; i++) print "route-" f " " l[i]
+          print "routes-" f "=" c + 0 }')
+  printf '%s\n' "$o"
+  g=$(printf '%s\n' "$o" | sed -n "s/^default-$f //p" | head -1)
+  [ -n "$g" ] || continue
+  case $f in inet) arp -n "$g" ;; *) ndp -n "$g" ;; esac
+done
 sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding \
   net.inet6.ip6.accept_rtadv
+r='watchfrr|zebra|bgpd|ospf6?d|isisd|ripd|ripngd|babeld|bird6?|keepalived|vrrpd'
+ps -Ao comm= 2>/dev/null | sed 's|.*/||' | sort -u | grep -xE "$r"
 grep -E '^(nameserver|search|domain|options)' \
   /etc/resolv.conf
 hostname
@@ -824,6 +901,18 @@ grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
   with `rtsold_enable="YES"` is SLAAC.
 - `nd6 options` on each interface: `ACCEPT_RTADV`
   accepts RAs, `IFDISABLED` means IPv6 is off.
+- `ether` is each interface's MAC, and `vlan: <tag> … parent
+  interface: <if>` a tagged interface's tag and parent. Both
+  serve `rules/network-topology.md`: an appliance built on
+  FreeBSD gives its own interface MACs here for Range identity.
+- The `route-inet` and `route-inet6` lines are the tables without
+  host entries, connected routes and `lo0`, with the count line as
+  on Linux, and `default-inet`/`default-inet6` the default gateway.
+  `arp -n` and `ndp -n` give its link-layer address: `at <mac>` and
+  the `Linklayer Address` column are a known MAC, `-- no entry` or
+  `(incomplete)` is not known. The routing-daemon lines read as on
+  Linux; where `see_other_uids` is `0` and the probe ran without
+  root, an empty list is `unchecked`, as for mDNS below.
 - With `ip6.forwarding=1` FreeBSD ignores RAs by
   default. Check `sysctl -d net.inet6.ip6.rfc6204w3`
   on the host before relying on that knob.
@@ -845,14 +934,34 @@ grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
 ```bash
 networksetup -listnetworkserviceorder
 scutil --nwi
-ifconfig | grep -E '^[a-z]|inet6? '
+ifconfig | grep -E '^[a-z]|inet6? |ether |vlan: '
 route -n get default 2>/dev/null \
   | grep -E 'gateway|interface'
 route -n get -inet6 default 2>/dev/null \
   | grep -E 'gateway|interface'
+# The routing tables and the gateway's link-layer address, as on
+# FreeBSD.
+for f in inet inet6; do
+  o=$(netstat -rn -f $f | awk -v f="$f" 'NF >= 4 && $1 != "Destination" \
+    && $3 !~ /H/ && $2 !~ /^link#/ && $4 != "lo0" {
+      if ($1 == "default") { print "default-" f " " $2; next }
+      l[++c] = $0 }
+    END { if (c <= 50) for (i = 1; i <= c; i++) print "route-" f " " l[i]
+          print "routes-" f "=" c + 0 }')
+  printf '%s\n' "$o"
+  g=$(printf '%s\n' "$o" | sed -n "s/^default-$f //p" | head -1)
+  [ -n "$g" ] || continue
+  case $f in
+    inet) arp -n "$g" ;;
+    # macOS ndp has no single-host query: -an dumps every entry.
+    *) ndp -an | awk -v g="${g%%%*}" '$1 ~ "^" g "(%|$)"' ;;
+  esac
+done
 scutil --dns | grep -E '^resolver|nameserver|search domain|if_index' \
   | head -40
 sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding
+r='watchfrr|zebra|bgpd|ospf6?d|isisd|ripd|ripngd|babeld|bird6?|keepalived|vrrpd'
+ps -Ao comm= 2>/dev/null | sed 's|.*/||' | sort -u | grep -xE "$r"
 scutil --get LocalHostName
 scutil --get ComputerName
 defaults read /Library/Preferences/com.apple.mDNSResponder \
@@ -870,6 +979,14 @@ Automatic, Manual or Off for IPv6.
   (stable, not from the MAC).
 - `scutil --dns` shows the resolver order, including
   per-domain resolvers set by VPN clients.
+- `ether`, `vlan:`, the route, default and count lines and the
+  routing-daemon lines read as on FreeBSD; macOS shows every
+  user's processes. `arp -n` reads the same. macOS `ndp` has no
+  `ndp -n <address>` query, unlike FreeBSD's: `ndp -an` lists
+  every neighbour, matched here to the gateway's address with its
+  `%<zone>` suffix stripped for the match. A matching line's
+  second column is the link-layer address, `(incomplete)` where
+  none is known; any other line is no entry.
 - mDNSResponder always runs and answers for
   `<LocalHostName>.local`: record
   `mDNS responder: mDNSResponder (<name>.local)`.

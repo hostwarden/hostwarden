@@ -190,6 +190,8 @@ so does a host's `network.md` (`rules/network.md`).
 | `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
 | `Baseline check:`        | `baseline.md`               | baseline measured|
 | `Network:`               | `network.md`                | first connection |
+| `Site:`                  | `network-topology.md`       | user's answer    |
+| `Dynamic routing:`       | `network-topology.md`       | daemon found     |
 | `Access:`                | `ssh-safety-net.md`         | paths tested     |
 | `Access:` (agent SSH)    | `mesh-vpn.md`               | activity check   |
 | `API read:`              | `appliance-api.md`          | access set up    |
@@ -330,9 +332,9 @@ more is deleted. Secrets never go in a note
 
 ## Cross-server facts
 
-Facts that belong to no single host — a shared
-gateway, a VPN subnet, which machine holds the
-backup target, which UPS powers which machines — go
+Facts that belong to no single host — a mesh VPN
+network, which machine holds the backup target,
+which UPS powers which machines — go
 in `memory/network.md`, created
 on first need. Current facts only; it is a picture
 of now, not a history. A choice the user made about
@@ -342,8 +344,11 @@ several hosts is a decision instead, under
 Management controller addresses go there too, under
 `## Management controllers`
 (`rules/management-controller.md` → What to record),
-and the SSH CAs the hosts trust, under `## SSH CAs`
-(`rules/ssh-ca.md` → Memory).
+the SSH CAs the hosts trust, under `## SSH CAs`
+(`rules/ssh-ca.md` → Memory). The networks the
+hosts share — sites, IP ranges, gateways and the
+routes between them — go in `memory/topology.md`
+instead (`rules/network-topology.md` → The store).
 
 ## Personal versus shared
 
@@ -369,7 +374,8 @@ its masters and `decisions.md`, `memory/clusters/*/`,
 (`rules/host-keys.md`), `memory/ssh_hosts`
 (`rules/ssh-config.md`), `memory/operators.md` (the
 handles in use, `rules/session-start.md`),
-`memory/network.md`, `memory/housekeeping.md`,
+`memory/network.md`, `memory/topology.md`,
+`memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 
 When a teammate's session shows up in the activity

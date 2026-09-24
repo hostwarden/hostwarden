@@ -100,6 +100,10 @@ A profile whose `Probed:` date is older than 90 days is refreshed
 before it is relied on. The probes are in
 `rules/network-probe.md`, one call per family.
 
+A full profile is then folded into `memory/topology.md`
+(`rules/network-topology.md`); the light profile On connecting
+builds is not.
+
 ## Quick check
 
 Four read-only commands, no root, for a workflow that only needs
@@ -185,11 +189,11 @@ Probed: 2026-09-19
 
 ## IPv4
 - 203.0.113.10/32 static, public
-- Default: via 192.0.2.1 dev eth0
+- Default: via 192.0.2.1 dev eth0, MAC 00:00:5e:00:53:01
 
 ## IPv6
 - 2001:db8:1:2::1/64 static, GUA
-- Default: via fe80::1 dev eth0, static
+- Default: via fe80::1 dev eth0, static, MAC 00:00:5e:00:53:01
 - RA: networkd (userspace), kernel accept_ra 0
 - Forwarding: 0 · Temporary addrs: none
 
@@ -208,8 +212,18 @@ Probed: 2026-09-19
 - INFO: no PTR for 2001:db8:1:2::1
 ```
 
+The `Default:` lines carry the gateway's link-layer address where
+the probe's neighbour read gave one, as `rules/network-probe.md`
+reads it under Reading B, and `MAC not known` otherwise.
+
 A mesh VPN interface or agent in the probe loads
 `rules/mesh-vpn.md`, which adds a `## Mesh VPN` section.
+
+On a host whose memory has a `Dynamic routing:` line
+(`rules/network-topology.md` → Dynamic routing), the `## Stack`
+and `## Traffic flow` sections describe the routing table as of
+`Probed:`, and the profile says so with one line in `## Summary`:
+`- Routing: dynamic (FRR: bgpd) — routes as of Probed:`.
 
 Where When above calls for it, `## Traffic flow` follows
 `## IPv6`, and `## Management` names every hook line that sets
