@@ -125,22 +125,18 @@ sequence instead.
 - **A shared jump host.** Hosts reached through one bastion all log
   in to it as well, and a dozen near-simultaneous logins are what
   fail2ban exists to stop; locked out of the jump host, you are
-  locked out of everything behind it. Before dispatching, read
-  `ssh -G <user>@<host>` for every target in one local call, with
-  the standard options and the SSH user each will log in as, since
-  a `Match user` block can pick the jump host; for a host with a
-  `Reached as:` line, read it for that destination, and for a
-  `Mode: via` guest, for its host. Each hop of a `proxyjump` line,
-  and the host a `proxycommand` line connects through, is a jump
-  host; compare hops as `rules/access-control.md` → Server
-  Blacklist expands them, by the `hostname` their own `ssh -G`
-  prints, since one bastion can be written several ways. Take a
-  hop's `:port` off before that call: ssh matches `Host` blocks
-  against the whole `host:port`. Targets that share any jump host
-  form a group, and each group runs one host after another.
+  locked out of everything behind it. Before dispatching, run
+  `bin/hostwarden-impact radius --jumps <host>…` once, with every
+  target as named; it reads each way in as its SSH user takes it
+  (`rules/coordination.md` → Blast radius). Each `group <host>…`
+  line is one group: its targets share a jump host, or one is the
+  other's, and they run one host after another. An
+  `unreadable <host>` line is a target whose way in cannot be read:
+  it runs alone, after the others.
 - **Guests reached through their host.** A guest with `Mode: via`
   logs in through the host its `Runs on:` names, so it runs in
   sequence with that host and with that host's other such guests.
+  `--jumps` puts them in one group.
 - **In a change, hosts that depend on each other.** The members of
   one cluster or pool (a `Cluster:` line, `rules/hypervisors.md` →
   Clusters and Pools) run one after another, in the order their

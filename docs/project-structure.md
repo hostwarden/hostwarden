@@ -27,6 +27,8 @@ bin/
                             every SSH call passes with -F
   hostwarden-fleet-run    — An operations host's nightly
                             housekeeping through fleet read
+  hostwarden-impact       — What a reboot, restart or network
+                            change on a host reaches beyond it
   hostwarden-mirror       — Keep a mirror of hostwarden current
                             (for CI or cron)
   hostwarden-heinzel-takeover — Take over a Heinzel
@@ -70,6 +72,9 @@ scripts/
   wrap-test.sh         — Fixture matrix for bin/hostwarden-wrap
                          and its hook, under every awk there is
                          (run by scripts/check.sh)
+  impact-test.sh       — Fixture matrix for
+                         bin/hostwarden-impact (run by
+                         scripts/check.sh)
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
 mise.dev.toml          — Pinned versions of the tools check.sh
@@ -108,6 +113,9 @@ contrib/
                          files and its session records
     mode.sh            — Development or operations, defined
                          once for the hooks and bin/
+    hops.sh            — The jump hosts in front of a host,
+                         read from ssh -G, defined once for
+                         bin/
     json.sh            — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks

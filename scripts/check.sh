@@ -213,12 +213,20 @@ else
 fi
 # The fleet matrices read the wrapper, the runner and what it calls.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)$|^\.claude/hooks/mode\.sh$|^scripts/fleet-'
+    '^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)$|^\.claude/hooks/(mode|hops)\.sh$|^scripts/fleet-'
 then
   echo "== fleet matrices: nothing they read is pushed, skipped"
 else
   step "fleet-read wrapper" sh scripts/fleet-read-test.sh
   step "fleet run" sh scripts/fleet-run-test.sh
+fi
+# The radius matrix reads the impact script and what it sources.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops)\.sh$|^scripts/impact-'
+then
+  echo "== impact matrix: nothing it reads is pushed, skipped"
+else
+  step "impact radius" sh scripts/impact-test.sh
 fi
 step "review record" sh scripts/review-record-test.sh
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \

@@ -74,7 +74,8 @@ esac
 KNOWN="$REPO_DIR/memory/known_hosts"
 # Masters of their own for each checkout (rules/ssh-connections.md →
 # Why these values): %C does not say which known_hosts checked a key.
-ID=$(printf %s "$REPO_DIR" | cksum | cut -d' ' -f1)
+hostwarden_cache_dir "$REPO_DIR"
+ID=$HOSTWARDEN_CHECKOUT_ID
 case "$KNOWN" in *%*) KNOWN=$(printf '%s' "$KNOWN" | sed 's/%/%%/g') ;; esac
 
 # check <file> — the host blocks of <file>, rewritten one keyword

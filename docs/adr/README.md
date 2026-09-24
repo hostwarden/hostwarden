@@ -16,3 +16,4 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [The workspace marker decides the session mode](20260924-marker-decides-session-mode.md) | guard, development | — |
 | [The taboo guard is a backstop, not a sandbox](20260924-guard-is-a-backstop-not-a-sandbox.md) | guard | — |
 | [Convention files in `.claude/rules/` need no record behind them](20260924-cite-only-rules.md) | records, tooling | — |
+| [A script computes the blast radius, not the model](20260924-blast-radius-by-script.md) | coordination, multi-host | — |

@@ -184,6 +184,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Cluster:`               | `hypervisors.md`            | member found     |
 | `Runs on:`               | `hypervisors.md`            | guest linked     |
 | `Guest identity:`        | `hypervisors.md`            | guest linked     |
+| `Depends on:`            | `coordination.md`           | found, or told   |
 | `SSH: untested`          | `hypervisors.md`            | guest registered |
 | `Baseline:`              | `baseline.md`               | baseline applied |
 | `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
@@ -237,7 +238,8 @@ moves the date. A guest only registered through its hypervisor has
 (`rules/first-connection.md` step 9).
 
 Housekeeping refreshes `USB:`, `Passthrough:`, `Storage:` with
-`storage.md`, and `Backup:`. Such a line is stale once it is older
+`storage.md`, the entries of `Depends on:` it detects, and
+`Backup:`. Such a line is stale once it is older
 than 90 days: its age is the later of `Onboarded:` and
 `Housekeeping:`, which housekeeping writes as its step 6 says, or
 the line's own date where it carries one, such as
