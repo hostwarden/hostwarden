@@ -202,6 +202,7 @@ else
   step "release matrix" sh .claude/hooks/release-test.sh
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
+step "decision records" python3 scripts/decisions.py --check
 step "changelog fragments" sh scripts/changelog-release.sh --check
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
     | grep -q '^scripts/changelog-release'

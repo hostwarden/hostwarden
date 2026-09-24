@@ -76,7 +76,8 @@ skill, a rule under `rules/`, a `bin/` script, the documentation a
 user reads. A pull request that changes only how Hostwarden is
 developed — `.claude/rules/`, `.claude/agents/hostwarden-reviewer.md`,
 `.github/`, `scripts/`, the test matrices, `CONTRIBUTING.md`,
-`docs/project-structure.md` — needs no fragment, and neither does a
+`docs/project-structure.md`, `docs/architecture-decisions.md`,
+`docs/adr/` — needs no fragment, and neither does a
 change of wording that changes nothing a user does or sees.
 
 **What is unreleased describes the state that will ship, not the
@@ -105,7 +106,9 @@ is amended. A fragment committed after the bump, a pull request
 queued behind the release, ships after it and stays.
 
 `CHANGELOG.md` and its fragments are the only files in the
-repository where a change may be described *as a change*.
+repository where a change may be described *as a change*. The
+decision records in `docs/adr/` are history too, of why rather than
+what (`docs/architecture-decisions.md`).
 Instruction files describe the current state and nothing else: no
 "previously", no "this used to live in", no migration notes. A
 reader of `rules/backups.md` needs to know what to do, not what it

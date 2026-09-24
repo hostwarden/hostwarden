@@ -11,6 +11,8 @@ CONTRIBUTING.md        — Setup, checks, and where changes go
 SECURITY.md            — How to report a vulnerability
 docs/                  — Documentation beyond the README;
                          docs/README.md indexes it
+  adr/                 — Architecture decision records, one per
+                         file; README.md is their generated index
 AGENTS.md              — The instruction set, read by every
                          AGENTS-aware tool
 CLAUDE.md              — Imports AGENTS.md, plus the handful of
@@ -47,6 +49,8 @@ scripts/
   check.sh             — Everything CI checks, runnable locally
   codex-quota.sh       — What is left of the Codex usage limit,
                          read without spending any
+  decisions.py         — Writes and checks docs/adr/'s index
+                         (run by scripts/check.sh)
   review-record.sh     — Whether a pull request body records
                          the second review of its head
   review-record-test.sh — Its fixture matrix (run by

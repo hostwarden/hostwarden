@@ -58,6 +58,12 @@ Four mechanisms, one question each:
   `.claude/rules/`, with a `paths` glob that matches files a
   sysadmin session never reads.
 
+Why Hostwarden does something is none of these. A decision about
+Hostwarden itself, with the options it turned down, is a record in
+`docs/adr/` (`docs/architecture-decisions.md`), and the constraint
+it leaves goes where the four questions put it. Before changing a
+behaviour a record set, read `docs/adr/README.md`.
+
 A file keyed by a fact rather than a moment — the OS-family files
 — is reference data and lives in `rules/os/`. Reference data that
 several OS files share, such as `rules/busybox.md`, lives in
@@ -133,9 +139,10 @@ defect, and the prohibition stays.
 ## Layout
 
 - Wrap every `.md` at 80 characters. A URL or a command line that
-  cannot be broken may exceed it. `bin/hostwarden-wrap` rewraps
-  paragraphs, and its `--check` is the measure the layout test
-  applies; a heading, a table row or front matter over 80 is
+  cannot be broken may exceed it, and so may `docs/adr/README.md`,
+  which `scripts/decisions.py` generates. `bin/hostwarden-wrap`
+  rewraps paragraphs, and its `--check` is the measure the layout
+  test applies; a heading, a table row or front matter over 80 is
   shortened by hand.
 - One `#` title per file, matching what the file is called. A
   file whose job is to load another has no content to title —
