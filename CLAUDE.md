@@ -58,6 +58,13 @@ tool reads. This file adds only what exists here and nowhere else.
   in the operations checkout, the one command is
   `claude "<question>"`, run there — never a task chip, which starts
   in a new worktree.
+- **Markdown wraps itself.** `.claude/hooks/wrap-markdown.sh`, a
+  PostToolUse hook, runs `bin/hostwarden-wrap` on each `.md` an
+  edit tool writes, and after a shell command on each `.md` git
+  sees as changed or new: the checkout's in development, those in
+  `memory/` in operations. In operations it never rewraps a shipped
+  file. Leave the wrapping to it; its message names any line it
+  could not wrap.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.

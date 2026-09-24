@@ -728,28 +728,25 @@ report "$(scan \
 
 # --- every .md wraps at 80 -------------------------------------
 # .claude/rules/instruction-authoring.md → Layout: a URL or a
-# command line that cannot be broken may exceed it. So a fenced
-# line is skipped, and a URL or a link target is taken out before
-# the rest of its line is measured -- the prose around a link
-# still wraps.
-#
-# Characters, not bytes: an em dash is three bytes, and the awk
-# on a CI runner is not the awk on a Mac. The C locale makes every
-# awk count bytes, and dropping the UTF-8 continuation bytes first
-# turns that into a count of characters on all of them.
-report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
-  | LC_ALL=C xargs -0 awk -v root="$CORPUS_ROOT/" "$FENCE_AWK"'
-  FNR == 1 { FM = "" }
-  fenced($0) { next }
-  { s = $0
-    gsub(/\]\([^)]*\)/, "]", s)
-    gsub(/https?:\/\/[^ )>`]*/, "", s)
-    gsub(/[\200-\277]/, "", s)
-    if (length(s) > 80) {
-      n = FILENAME
-      if (index(n, root) == 1) n = substr(n, length(root) + 1)
-      print n ":" FNR " (" length(s) ")"
-    } }')" "wrapped at 80 characters"
+# command line that cannot be broken may exceed it. What counts as
+# a character and which lines are exempt is bin/hostwarden-wrap's
+# --check, the measure its rewrap fills to: were they two, the
+# wrap would leave lines this test fails, or move lines it passes.
+# A file it cannot read is named on stderr, which is kept apart:
+# xargs reports a finding and that failure with the same status.
+WRAPERR=$(mktemp)
+WRAP=$(corpus_files | grep '\.md$' | tr '\n' '\0' \
+  | xargs -0 sh "$ROOT/bin/hostwarden-wrap" --check 2> "$WRAPERR")
+if [ -s "$WRAPERR" ]; then
+  bad "bin/hostwarden-wrap --check: $(cat "$WRAPERR")"
+fi
+rm -f "$WRAPERR"
+report "$(printf '%s\n' "$WRAP" | sed '/^$/d' \
+  | CORPUS_ROOT="$CORPUS_ROOT/" awk '{ n = $0; r = ENVIRON["CORPUS_ROOT"]
+      if (index(n, r) == 1) n = substr(n, length(r) + 1)
+      print n }')" "wrapped at 80 characters"
+[ -z "$WRAP" ] || echo "  sh bin/hostwarden-wrap <file> rewraps a paragraph;" \
+  "a heading, a table row or front matter is shortened by hand"
 
 # --- the firewall listing filter has one text -------------------
 # rules/secrets.md -> Commands That Leak holds the filter that shows

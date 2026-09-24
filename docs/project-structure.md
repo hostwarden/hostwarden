@@ -36,6 +36,8 @@ bin/
   hostwarden-lab          — Disposable containers to try commands
                          on during development, and lab VMs
                          for a test clone
+  hostwarden-wrap         — Rewrap Markdown at 80 characters, or
+                         list the lines over it
 scripts/
   changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
                          at a release; checks its form in CI
@@ -54,6 +56,9 @@ scripts/
   fleet-run-test.sh    — Fixture matrix for
                          bin/hostwarden-fleet-run (run by
                          scripts/check.sh)
+  wrap-test.sh         — Fixture matrix for bin/hostwarden-wrap
+                         and its hook, under every awk there is
+                         (run by scripts/check.sh)
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
 mise.dev.toml          — Pinned versions of the tools check.sh
@@ -119,6 +124,9 @@ contrib/
     authoring-conventions.sh — PostToolUse hook that names the
                          authoring rules when an instruction
                          file or a bin/ script is edited
+    wrap-markdown.sh   — PostToolUse hook that rewraps at 80
+                         the .md a tool wrote, or git sees
+                         changed after a command
     corpus.sh          — The instruction corpus the two test
                          matrices walk, defined once
     instructions-test.sh — Dev-only structural checks on the
