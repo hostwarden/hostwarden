@@ -29,14 +29,12 @@ which before anything else, from the files, never from the remote:
   linked worktree, which never carries `memory/` and so has no
   access lists and no server memory. The session works on
   Hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
-  to a remote, no `sudo`, and no local mode either. Session Start
-  and the pipeline below do not apply. Server work is handed to an
-  operations checkout, never worked around. A container from
-  `bin/hostwarden-lab` is neither a server nor local mode: try a
-  command there rather than guess its syntax.
-
-A fork is a development checkout like any other; its pull requests
-go to `hostwarden/hostwarden`.
+  to a remote, no `sudo`, and no local mode either. Neither Session
+  Start nor the pipeline below applies, except
+  `rules/session-start.md` → Workstation tools. Server work is
+  handed to an operations checkout, never worked around. A
+  container from `bin/hostwarden-lab` is neither a server nor local
+  mode: try a command there rather than guess its syntax.
 
 ## How It Works
 
