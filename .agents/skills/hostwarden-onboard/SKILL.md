@@ -91,6 +91,8 @@ checkout) and stop.
    - `Passthrough:` — housekeeping's
      `.agents/skills/hostwarden-housekeeping/references/passthrough.md`,
      on a host with guests, up to its Memory.
+   - `Depends on:` — the probe of `rules/coordination.md` →
+     Dependencies, and the entries it finds.
    - **The disks** in `storage.md` — `rules/storage-inventory.md` →
      Disks and When.
    - `Accounts:` — `rules/accounts-probe.md` → Probe, in a call of

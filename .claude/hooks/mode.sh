@@ -51,6 +51,10 @@
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
+#   hostwarden_cache_dir <root>
+#                           — sets HOSTWARDEN_CHECKOUT_ID to <root>'s
+#                             checksum and HOSTWARDEN_CACHE to its
+#                             directory under ~/.cache/hostwarden
 #   HOSTWARDEN_SSH_OPTIONS  — the connection options every SSH call
 #                             carries, as Key=value words
 
@@ -121,6 +125,17 @@ workspace)"
 administers this machine, and \
 $hr_why. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - Development \
 or Operations)."
+}
+
+# A checkout's own name on this machine, the checksum of its
+# absolute path: memory/ssh_config names its SSH sockets with it,
+# and what bin/hostwarden-impact keeps between runs lives in the
+# directory it names, so two checkouts never read each other's.
+# The directory is created by whoever writes to it, at 0700.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_cache_dir() {
+  HOSTWARDEN_CHECKOUT_ID=$(printf %s "$1" | cksum | cut -d' ' -f1)
+  HOSTWARDEN_CACHE=$HOME/.cache/hostwarden/ws-$HOSTWARDEN_CHECKOUT_ID
 }
 
 # Connection sharing and keepalives (rules/ssh-connections.md → Why

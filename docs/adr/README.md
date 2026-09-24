@@ -23,3 +23,4 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Fleet read runs a signed bundle, not a shell](20260924-fleet-read-via-signed-bundle.md) | operations, access-control | — |
 | [A deployed file's master lives in the workspace](20260924-deployed-file-masters-in-workspace.md) | deployed-files, server-memory | — |
 | [Convention files in `.claude/rules/` need no record behind them](20260924-cite-only-rules.md) | records, tooling | — |
+| [A script computes the blast radius, not the model](20260924-blast-radius-by-script.md) | coordination, multi-host | — |

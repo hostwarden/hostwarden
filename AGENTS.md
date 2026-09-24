@@ -349,6 +349,8 @@ trigger — not a request from the user.
 - Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
 - A host that needs another port, address or jump host, or a
   port forwarding → `rules/ssh-config.md`
+- Asking what a reboot, restart or network change would hit →
+  `rules/coordination.md`
 
 **Before you report**
 

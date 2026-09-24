@@ -78,6 +78,8 @@ applies before any of this runs.
    `- Housekeeping: <date>`, or move its date. A run that skipped
    one that applies, for want of root or because the user left its
    section out, leaves the line as it is.
+   The probe of `rules/coordination.md` → Dependencies runs in the
+   first batch and renews the `Depends on:` line.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:

@@ -33,7 +33,8 @@ H="$R/.agents/skills/hostwarden-housekeeping/references"
 mkdir -p "$R/bin" "$R/.claude/hooks" "$H"
 cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" \
   "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$R/.claude/hooks/"
+cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
+  "$R/.claude/hooks/"
 printf 'Report format marker\n' >"$H/report-format.md"
 printf 'Baseline marker: CRITICAL if any filesystem > 95%%\n' \
   >"$H/baseline-linux.md"
