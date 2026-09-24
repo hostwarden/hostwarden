@@ -13,14 +13,14 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
 
 ### What Hostwarden is
 
-- **Everything carries Hostwarden's name.** Scripts
-  (`bin/hostwarden-*`), skills (`hostwarden-*`), environment variables (`HOSTWARDEN_*`), the journal
-  tag on servers (`hostwarden`), the backup directories
+- **Everything carries Hostwarden's name.** Scripts (`bin/hostwarden-*`),
+  skills (`hostwarden-*`), environment variables (`HOSTWARDEN_*`), the
+  journal tag on servers (`hostwarden`), the backup directories
   (`/var/backups/hostwarden/`, `~/.hostwarden-backups/`) and the SSH
   socket directory (`~/.cache/hostwarden`) carry the new name. A few
-  things still understand the old one. The activity check reads
-  `heinzel` journal entries as well as its own. A restore looks in
-  Heinzel's backup directories too. `HEINZEL_NO_UPDATE` still works.
+  things still understand the old one. The activity check reads `heinzel`
+  journal entries as well as its own. A restore looks in Heinzel's backup
+  directories too. `HEINZEL_NO_UPDATE` still works.
   `HEINZEL_GUARD_DISABLE` no longer switches the guard off.
 - **One instruction set for every AI tool.** The rules are in
   `AGENTS.md`, which Claude Code, OpenCode, Codex and Cursor read
@@ -161,9 +161,10 @@ protection there.
 - **The sudo probe tells refusals apart.** `sudo -n -l` replaces
   `sudo -n true`, so a user with passwordless sudo for selected commands
   only is recorded as such, and the commands sudo allows run through
-  sudo instead of the root SSH fallback. `doas` and `wsl.exe -u root` stand in for sudo
-  where that is how a host works. Membership in `docker`, `libvirt`,
-  `incus-admin` or `lxd` is recorded and used only for that group's work.
+  sudo instead of the root SSH fallback. `doas` and `wsl.exe -u root`
+  stand in for sudo where that is how a host works. Membership in
+  `docker`, `libvirt`, `incus-admin` or `lxd` is recorded and used only
+  for that group's work.
 
 ### Operations and development checkouts
 
@@ -340,19 +341,20 @@ protection there.
   inventory, then reports what the host lacks against the baseline. A
   host already known is probed in full again.
 - **Several hosts at once.** A question, check or change that names
-  several servers runs one subagent per host, each with the full
-  pipeline (`/hostwarden-multi-host`). Hosts that agree print once, so
-  the outlier stands out. A change is asked once for all hosts, runs
-  on a canary first, and stops at the first surprise. Firewall, network
-  and login-shell changes still go one host at a time.
-- **The fleet audit gives each host its own subagent** and returns one
-  comparison row per host, keeping the raw output out of the
-  conversation. It now covers the network stack and resolver, mesh
-  VPNs, accounts and sudo rules, SSH CA trust and, on Ubuntu, Pro, ESM
-  and needrestart. It has Alpine, FreeBSD and macOS variants of its
-  probes. A setting a family does not have reads `n/a`, not drift. Each
-  guest is listed under its hypervisor, and a difference you decided on
-  is shown as decided. Windows hosts are skipped.
+  several servers runs the full pipeline on each host, in Claude Code in
+  one subagent per host (`/hostwarden-multi-host`). Hosts that agree print
+  once, so the outlier stands out. A change is asked once for all hosts,
+  runs on a canary first, and stops at the first surprise. Firewall,
+  network and login-shell changes still go one host at a time.
+- **The fleet audit, in Claude Code, gives each host its own subagent**
+  and returns one comparison row per host, keeping the raw output out of
+  the conversation; elsewhere it probes one host after another. It now
+  covers the network stack and resolver, mesh VPNs, accounts and sudo
+  rules, SSH CA trust and, on Ubuntu, Pro, ESM and needrestart. It has
+  Alpine, FreeBSD and macOS variants of its probes. A setting a family
+  does not have reads `n/a`, not drift. Each guest is listed under its
+  hypervisor, and a difference you decided on is shown as decided. Windows
+  hosts are skipped.
 - **Housekeeping checks more.**
   - **Engines and services:** container engines (Docker, Podman,
     containerd), Home Assistant on an ordinary host, Pi-hole, AdGuard
@@ -426,13 +428,13 @@ protection there.
 
 ### An operations host
 
-- **Unattended housekeeping with a key that can only read.** Fleet
+- **Unattended housekeeping through signed read-only checks.** Fleet
   read (`/hostwarden-fleet-read`) gives an operations host's key two
   things on each server: running a bundle of read-only checks that you
-  signed, and writing one read-only journal line. Hostwarden builds the
-  bundle from its housekeeping checks and deploys the forced-command
-  wrapper. Making the key, authorizing it and signing each bundle stay
-  yours. A bundle stops working on its expiry date.
+  signed, and writing one read-only journal line.
+  Hostwarden builds the bundle from its housekeeping checks and deploys
+  the forced-command wrapper. Making the key, authorizing it and signing
+  each bundle stay yours. A bundle stops working on its expiry date.
 - **`bin/hostwarden-fleet-run` is the nightly run.** It updates
   Hostwarden and the workspace, reads every host through fleet read,
   has each result judged by Claude without tools, and mails the
