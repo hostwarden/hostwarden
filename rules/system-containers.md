@@ -87,10 +87,11 @@ Managing guests needs root on the host
 is the host's UID 0: record `- Container: privileged` in its
 memory. Find them with
 `grep -L '^unprivileged: 1' /etc/pve/lxc/*.conf` (Proxmox) or
-`security.privileged: "true"` in
-`incus config show <ct> --expanded`. Without `--expanded`, Incus
-prints what is set on the instance alone, and a key the guest
-inherits from a profile is missing.
+`incus config show <ct> --expanded | grep 'security.privileged:'`,
+never the whole output, which holds cloud-init user-data
+(`rules/secrets.md`). Without `--expanded`, Incus prints what is
+set on the instance alone, and a key the guest inherits from a
+profile is missing.
 
 ## What the Host Owns
 
@@ -147,7 +148,14 @@ asked first:
 - **A guest's cloud-init settings** — Proxmox VE's `--ipconfig`
   and `--cicustom` files without a fixed meta-data file, Incus's
   and LXD's `cloud-init.*` and `user.*` keys, a NIC's name there —
-  can give it a new instance ID. At its next boot cloud-init then
+  can give it a new instance ID. So can a new name: a Proxmox VE
+  VM's name is the hostname in the user-data Proxmox generates,
+  which the instance ID is a hash of, where `--cicustom` names no
+  `user=` file (`src/PVE/QemuServer/Cloudinit.pm` in
+  `qemu-server`); `incus rename` and LXD's `lxc rename` give an
+  instance a new `volatile.cloud-init.instance-id`
+  (`test/suites/cloud-init.sh` in `lxc/incus` and
+  `canonical/lxd`). At its next boot cloud-init then
   treats it as a new server: it regenerates the SSH host keys and
   runs `users` again. Name that before asking; where the guest's
   own configuration can make the change, make it there instead.

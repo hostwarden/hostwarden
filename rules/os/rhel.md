@@ -83,6 +83,11 @@ finding. See `rules/version-check.md`.
   `journalctl -u sshd`.
 - Checksum of a file: `sha256sum <file>`.
 
+## Networking
+
+- **Hostname:** `hostnamectl set-hostname <name>` writes the
+  static name to `/etc/hostname` and sets the running one.
+
 ## SELinux
 
 - RHEL-family systems typically have SELinux enabled.

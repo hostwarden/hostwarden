@@ -252,8 +252,15 @@ Source: <https://docs.xcp-ng.org/management/updates/>.
   destroyed" (<https://docs.xcp-ng.org/management/hosts-pools/>).
   Only on explicit request, after saying so.
 
-## Networking
+## Replace: Networking
 
+- **Hostname:** XAPI keeps it, never `hostnamectl`:
+  `xe host-set-hostname-live host-uuid=<uuid> host-name=<name>`
+  sets the name in XAPI's database and dom0's Linux hostname
+  together. It is not the host's `name-label`, which Xen
+  Orchestra and XO Lite show as the host's name: a rename changes
+  that too, `xe host-param-set uuid=<uuid> name-label=<name>`
+  (<https://docs.xcp-ng.org/appendix/cli_reference/>).
 - Networks, PIFs, bonds and VLANs: `xe network-list`,
   `xe pif-list params=uuid,device,IP,management,currently-attached`.
   Change them with `xe pif-reconfigure-ip` or

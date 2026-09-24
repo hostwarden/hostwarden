@@ -333,6 +333,8 @@ rules/                 — Upstream rule files (git-tracked)
                          login expiry, what cuts a host off
   file-naming-changes.md — Renames, moves and retention
                          changes: find what matches on them
+  host-rename.md       — Renaming a host: inventory, hand-overs,
+                         the order, memory and the old name
   heinzel-legacy.md    — Finding the state Heinzel left on a
                          host
   heinzel-takeover.md  — Taking over what that check found,

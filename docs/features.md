@@ -48,6 +48,7 @@ the operations host in
   - [Services in containers](#services-in-containers)
   - [Accounts](#accounts)
   - [Files Hostwarden deploys](#files-hostwarden-deploys)
+  - [Renaming a host](#renaming-a-host)
   - [Language runtimes and deploy users](#language-runtimes-and-deploy-users)
   - [Email reports](#email-reports)
 - [Working with others](#working-with-others)
@@ -1000,6 +1001,36 @@ master or the master goes back onto the host. Files
 you or a configuration management tool own stay where
 they are — Hostwarden keeps no second copy of them.
 Scripts for your own machine go in `memory/tools/`.
+
+### Renaming a host
+
+```
+ ❯ Rename web1.example.com to web2.example.com
+```
+
+A rename happens only when you ask, one host at a time.
+Hostwarden first lists what the old name reaches: the
+files under `/etc` that name it, certificates, cloud-init
+settings, memberships keyed by the node name, the places
+in memory, and what only you can change, such as DNS,
+the DHCP reservation, backups and monitoring. You add
+the new DNS name first; Hostwarden then sets the
+hostname and `/etc/hosts`, the references you agree to
+and, for a Proxmox VE container, its name on the
+hypervisor, and moves the host's memory to the new name.
+The old name stays an alias until you remove it from
+DNS. The host key does not change, sshd and
+certificates are left alone, and history keeps the old
+name.
+
+Some renames are yours: Windows and WSL, a Proxmox VE
+cluster node, an appliance that is named in its web
+interface, and a host joined to a directory. Hostwarden
+says so and updates memory once you have renamed it.
+It never renames an Incus or LXD instance, or a VM
+whose cloud-init drive takes its name, on the
+hypervisor: that would regenerate its SSH host keys at
+the next boot.
 
 ### Language runtimes and deploy users
 

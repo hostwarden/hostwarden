@@ -417,6 +417,11 @@ systemctl is-active systemd-networkd NetworkManager networking
   `/etc/network/interfaces` unless netplan or
   NetworkManager is installed.
 
+**Hostname:** `hostnamectl set-hostname <name>` writes the
+static name to `/etc/hostname` and sets the running one. Where
+cloud-init is active, set
+`preserve_hostname: true` first (cloud-init below).
+
 The procedure below is for netplan. For ifupdown or
 NetworkManager, the change goes through
 `rules/ssh-safety-net.md` only with a revert the user and
