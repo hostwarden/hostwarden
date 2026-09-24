@@ -1,5 +1,5 @@
 #!/bin/sh
-# pre-commit — keep a secret out of the commit being made. Only the
-# staged changes, so it is quick; the full history is scanned
-# before every push and in CI.
+# pre-commit — the cheap checks on the commit being made: its
+# secrets and its instruction layout. Only what is staged, so it is
+# quick; the full history is scanned before every push and in CI.
 exec sh "$(git rev-parse --show-toplevel)/scripts/check.sh" --pre-commit

@@ -85,8 +85,10 @@ user's machines, not a compatibility layer, and they stay.
 
 `.github/workflows/ci.yml` runs `scripts/check.sh` and nothing
 else; its `step` lines are the list of checks. Add a new check
-there, never to the workflow alone. An agent session runs only its
-secret scan on the workstation: `pull-requests.md` → Checks.
+there, never to the workflow alone. An agent session runs only
+`--pre-commit` on the workstation: `pull-requests.md` → Checks.
+`.github/workflows/review-record.yml` reads the pull request body
+instead of the tree (`pull-requests.md` → The review record).
 
 Tool versions are pinned in `mise.dev.toml` and kept current by
 Renovate. Setup, including the git hooks, is in
@@ -100,8 +102,17 @@ again, which would add a second one enforced beside the old:
     gh api -X PUT repos/<owner>/<repo>/rulesets/<id> \
       --input .github/rulesets/main.json
 
-Its required check is the `check` job in `ci.yml`, and
-`instructions-test.sh` fails when the two names part.
+It puts `main` behind the merge queue and requires the `check` and
+`review record` jobs; `instructions-test.sh` fails when a required
+name matches no job. `gh pr merge` puts a pull request into the
+queue through auto-merge, which the repository allows, set once:
+
+    gh api -X PATCH repos/<owner>/<repo> -F allow_auto_merge=true
+
+The queue takes no commit message of its own: a pull request of one
+commit lands as that commit, its title and message, which is why a
+pull request is squashed before its draft is lifted
+(`pull-requests.md` → Lifting the draft).
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays

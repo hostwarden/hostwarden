@@ -1,8 +1,9 @@
 #!/bin/sh
 # instructions-test.sh — dev-only structural checks on the
-# instruction layer. CI runs it through scripts/check.sh; an
-# agent session leaves it to CI (.claude/rules/pull-requests.md →
-# Checks). Not invoked by Claude Code at runtime.
+# instruction layer. CI runs it through scripts/check.sh, and
+# `check.sh --pre-commit` on what is staged
+# (.claude/rules/pull-requests.md → Checks). Not invoked by Claude
+# Code at runtime.
 #
 # What the content of an instruction says is a matter of judgement.
 # Where it lives is not, and neither is whether the mechanism that
@@ -784,30 +785,48 @@ report "$(corpus_files | grep '\.md$' | tr '\n' '\0' \
   "one firewall listing filter"
 
 # --- every required check is a CI job ---------------------------
-# The ruleset names the checks a pull request waits for, ci.yml
-# names the jobs that report them. Rename one without the other
-# and every pull request waits for a check that never comes.
+# The ruleset names the checks a pull request waits for, the
+# workflows name the jobs that report them. Rename one without the
+# other and every pull request waits for a check that never comes.
+# So does a job in a workflow that lacks a pull request trigger
+# (pull_request or pull_request_target) or merge_group: it never reports on the pull request, or
+# never in the queue. A trigger's branches or types filter is not
+# read.
 RULESET="$ROOT/.github/rulesets/main.json"
 CONTEXTS=$(sed -n 's/.*"context": *"\([^"]*\)".*/\1/p' "$RULESET" 2>/dev/null)
 if [ -z "$CONTEXTS" ]; then
   bad "main.json requires no check -- the ruleset is gone or this" \
       "check stopped matching"
 else
+  # What GitHub reports is a job's `name:` if it has one, else its
+  # key; and only under jobs: -- `on:` has two-space keys too.
+  JOBS=$(awk 'FNR == 1 { j = o = 0; k = "" }
+      { sub(/[ \t]*#.*/, "") }
+      # An event is a key under on:, or an item of on: [a, b].
+      /^on:/ { o = 1; t = $0; sub(/^on:/, "", t); gsub(/[][ \t]/, "", t)
+               n = split(t, e, ",")
+               for (i = 1; i <= n; i++) EV[FILENAME, e[i]] = 1 }
+      o && /^[^ ]/ && !/^on:/ { o = 0 }
+      o && /^  [a-z_]+:/ { t = $1; sub(/:$/, "", t); EV[FILENAME, t] = 1 }
+      /^jobs:/ { j = 1; next }
+      j && /^[^ ]/ { j = 0 }
+      j && /^  [A-Za-z0-9_-]+:/ { k = $1; sub(/:$/, "", k)
+                                 ctx[FILENAME, k] = k }
+      j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
+                              gsub(/["\047]/, "", n); ctx[FILENAME, k] = n }
+      END { for (x in ctx) { split(x, f, SUBSEP)
+                             if ((f[1], "merge_group") in EV \
+                                 && ((f[1], "pull_request") in EV \
+                                     || (f[1], "pull_request_target") in EV))
+                               print ctx[x] } }' \
+      "$ROOT"/.github/workflows/*.yml)
   # One context per line: a job name may hold spaces.
   while IFS= read -r ctx; do
-    # What GitHub reports is a job's `name:` if it has one, else its
-    # key; and only under jobs: -- `on:` has two-space keys too.
-    if awk '/^jobs:/ { j = 1; next }
-        j && /^[^ ]/ { j = 0 }
-        j && /^  [A-Za-z0-9_-]+:/ { k = $1; sub(/:$/, "", k); ctx[k] = k }
-        j && k && /^    name:/ { n = $0; sub(/^    name: */, "", n)
-                                gsub(/["\047]/, "", n); ctx[k] = n }
-        END { for (k in ctx) print ctx[k] }' \
-        "$ROOT/.github/workflows/ci.yml" | grep -qxF "$ctx"; then
+    if printf '%s\n' "$JOBS" | grep -qxF "$ctx"; then
       ok
     else
-      bad "main.json requires check '$ctx', which no job in" \
-        "ci.yml reports"
+      bad "main.json requires check '$ctx', which no job in a" \
+        "workflow on pull requests and merge_group reports"
     fi
   done <<EOF
 $CONTEXTS

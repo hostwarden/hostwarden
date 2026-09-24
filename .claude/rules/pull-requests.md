@@ -32,13 +32,16 @@ workstation starts tens of thousands of processes, endpoint
 protection inspects each, and parallel sessions compete for the
 cores; CI runs all of `scripts/check.sh` in one to two minutes.
 
-- Before each commit, a pull request session runs the one cheap
-  check, the secret scan of the staged changes:
-  `sh scripts/check.sh --pre-commit`. A credential caught there
-  never reaches the remote; CI finds it only after the push.
+- Before each commit, a pull request session runs the cheap
+  checks, which take seconds: `sh scripts/check.sh --pre-commit`,
+  the secret scan of the staged changes and `instructions-test.sh`
+  on exactly what is staged. A credential caught there never
+  reaches the remote; a line over 80 columns, a pointer at a
+  heading that is not there or a second word for an override fails
+  there, not in CI.
 - Beyond that, it runs neither `scripts/check.sh` nor a test script
-  (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
-  workstation. It pushes, waits with
+  (`guard-taboos-test.sh`, `instructions-test.sh` on its own, …) on
+  the workstation. It pushes, waits with
   `gh pr checks <number> -R hostwarden/hostwarden --watch`, and on
   a failure reads
   `gh run view <run-id> -R hostwarden/hostwarden --log-failed`.
@@ -49,6 +52,13 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 - A clone agents push from does not set up the git hooks from
   `CONTRIBUTING.md`: the pre-push hook would run the checks on
   every push.
+- CI runs `check` on every push to a pull request: on a draft what
+  `--pre-push` runs for its commits against the base, each matrix
+  only when they touch what it reads; out of draft and in
+  the merge queue all of `scripts/check.sh`. A push to `main` is
+  not checked again: what the queue merges is the commit it
+  checked. A commit that bypasses the queue is checked by hand,
+  `gh workflow run ci.yml -R hostwarden/hostwarden --ref main`.
 
 ## Review
 
@@ -116,8 +126,11 @@ Passes, here and on a fix commit, run like this:
   - wait for the reset;
   - take the other path, where its limit is a separate one;
   - skip the second review for this pull request from the current
-    head on: the body gets `## Second review skipped`, a line with
-    that head, the reason, the reset time and who decided;
+    head on: the body gets `## Second review skipped` and a line
+    `<sha>: <reason>, resets <time>; <who> decided`, the head's
+    SHA in full and `-` for a time where no limit resets. Each
+    later head the session records gets such a line too, the same
+    decision applied, not a new one taken;
   - stop.
 
   A skip holds for that pull request only.
@@ -158,7 +171,8 @@ Passes, here and on a fix commit, run like this:
   "deferred to a follow-up PR". On GitHub the answer goes in the
   finding's thread, which is then resolved; locally it is appended
   to the round's line, a clause per finding,
-  `<title> (<path:line>): class <n>, <answer>`.
+  `<title> (<path:line>): class <n>, <answer>`, the clauses
+  separated by `; `.
 - **Handles.** Write a reviewer's `@` handle only in the comment
   that asks it for a review. Anywhere else — a body, a commit or
   squash message, an answer, reviewer text quoted anywhere on
@@ -173,6 +187,36 @@ Passes, here and on a fix commit, run like this:
 - Stacked pull requests are each reviewed against their own base,
   so their rounds run in parallel; each lifts its draft as
   → Lifting the draft says.
+
+### The review record
+
+CI's `review record` check reads the pull request body whenever it
+or the head changes, and is required like `check`. A draft passes,
+and so does a pull request a bot opened, such as Renovate's: whoever
+merges reviews those. Otherwise the body needs one of:
+
+- a run line under `## Review` in the format above, `<left>`
+  included, or a skip line under `## Second review skipped`
+  (→ Capacity), that names the head's full SHA;
+- a rebase or squash line naming the head, its closing words
+  included (→ Merge-ready, → Lifting the draft), whose old head has
+  one of these in turn.
+
+Each local run's line with findings must carry one clause per
+finding, told apart by title and place, whose answer is "fixed in
+<sha>", "not a bug: <reason>" or "deferred to a follow-up PR"; the
+check does not know which round allows which. A GitHub run's
+answers are its threads, which it does not read. A heading in a
+fenced block is an example, not the record. It proves that the
+record exists, not that the review was good. CI runs the workflow
+and the checker as the default branch has them, so a pull request
+is held to the gate `main` has; a change to either counts once it
+is merged. It holds the second review
+to Required (→ Review); set to "on request", the check comes out of
+the ruleset. A pull request a person opened without an agent gets
+its record from the session whoever merges hands it to, which runs
+the second review on it as on its own, or from a skip line they
+decide on.
 
 ### Codex
 
@@ -308,7 +352,8 @@ agent can do is done:
 
 - the own review is through, and the second review, where it is
   required, has completed on the current head as → Merge-ready
-  counts it, a rebase included, or was skipped as under Capacity;
+  counts it, a rebase included, or was skipped as under Capacity
+  with a line for this head;
 - every finding is answered, in its thread or its round's line, no
   thread is unresolved, the deferred list is written, and the
   missed findings are in the reviewer's issue (→ Sharpening the
@@ -317,7 +362,21 @@ agent can do is done:
   review's deferred list, has already been put to them;
 - CI is green on the current head, and
   `gh pr view <n> -R hostwarden/hostwarden --json mergeable` shows
-  `MERGEABLE`;
+  `MERGEABLE`. That is a draft's scoped run: the lift starts the
+  full `check` and the `review record`, and the session waits for
+  both. A failure puts the pull request back into draft, and
+  whoever merges is told;
+- the branch is one commit on its base, whose message is the
+  squash text: the why, not only the what, since before 1.0.0 the
+  changelog is rewritten from the code, the pull requests and the
+  commit messages, and the trailers (`Ported-from:`,
+  `Co-Authored-By:`) at its end. The squash is
+  `git reset --soft $(git merge-base hostwarden/<base> HEAD)` and
+  one commit; its tree is the reviewed head's, which
+  `git diff <old sha> <new sha>` shows empty, and it is recorded
+  under `## Review` as
+  `squash, <new sha>: from <old sha>, tree unchanged`, both SHAs in
+  full. The body keeps the record and the deferred list;
 - a stacked pull request's base is merged, and it has been
   retargeted and rebased onto `hostwarden/main` (→ After a merge,
   → Updating a branch): until then it stays a draft, since its
@@ -339,21 +398,24 @@ finished with gets merged.
 - Where the second review is required, it has completed on the
   current head, as its subsection says for GitHub or with a
   `## Review` line naming that SHA, or it was skipped as under
-  Capacity.
+  Capacity with a line for that head.
 - No unresolved thread, every local finding answered in its
   round's line, CI green, not a draft, and GitHub reports the pull
   request CLEAN.
 - After any rebase, conflicts included, no new second review is
   requested or awaited if it had completed on the pre-rebase head
-  with nothing open. The session checks its own conflict
+  with nothing open, or was skipped there. The session checks its own conflict
   resolution instead: `git range-diff` against the pre-rebase
-  head and green CI. Only a new fix commit of its own needs the
-  second review again.
+  head and green CI. It records the rebase under `## Review` as
+  `rebase, <new sha>: from <old sha>, range-diff checked`, both
+  SHAs in full. Only a new fix commit of its own needs the second
+  review again.
 - The merge is
-  `gh pr merge <n> -R hostwarden/hostwarden --squash --match-head-commit <sha>`.
-  The squash message carries the why, not only the what: before
-  1.0.0 the changelog is rewritten from the code, the pull requests
-  and the commit messages.
+  `gh pr merge <n> -R hostwarden/hostwarden --squash --match-head-commit <sha>`,
+  which puts the pull request into the merge queue through
+  auto-merge (`repo-release.md` → CI). The queue merges it once the
+  required checks pass on its group, and takes no message of its
+  own: the one commit lands as it is (→ Lifting the draft).
 
 ## Updating a branch
 
