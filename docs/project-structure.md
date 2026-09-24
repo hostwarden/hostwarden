@@ -72,7 +72,8 @@ scripts/
 mise.dev.toml          — Pinned versions of the tools check.sh
                          needs
 .github/               — CI, review-record and release
-                         workflows, and the ruleset for main
+                         workflows, the ruleset for main, and
+                         the issue forms
 contrib/
   heinzel-coexistence/ — Overrides that teach a Heinzel
                          checkout about Hostwarden

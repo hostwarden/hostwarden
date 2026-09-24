@@ -1,0 +1,87 @@
+name: Feature request
+description: Something Hostwarden should do that it does not do
+  yet, or should do differently.
+labels: [enhancement]
+assignees: [jpawlowski]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **150 words, at most 200**, all fields together. One fact per
+        line; no preamble.
+
+        **Leave out anything real:** no production hostnames,
+        addresses, keys, tokens or memory files. Use the
+        [example identifiers](https://github.com/hostwarden/hostwarden/blob/main/.claude/rules/instruction-authoring.md#example-identifiers)
+        instead — `web1.example.com`, `192.0.2.10`, `alice`.
+
+        A security problem goes privately, never here:
+        [SECURITY.md](https://github.com/hostwarden/hostwarden/blob/main/SECURITY.md).
+        When this issue needs another one done first, or relates to
+        one, link it as
+        [CONTRIBUTING.md → Issue dependencies](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#issue-dependencies)
+        says.
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Existing issues
+      description: '`gh issue list -R hostwarden/hostwarden --state all
+        --limit 1000` lists them all. What to do when one covers this:
+        [CONTRIBUTING.md → Before opening an issue](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#before-opening-an-issue).'
+      options:
+        - label: I searched open and closed issues, and none covers
+            this, in whole or in part.
+          required: true
+  - type: input
+    id: tldr
+    attributes:
+      label: TL;DR
+      description: One sentence.
+      placeholder: Housekeeping reports how long each disk has been
+        asleep.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: A file and function, a command, a skill, a rule or
+        a setting.
+      placeholder: /hostwarden-housekeeping,
+        .agents/skills/hostwarden-housekeeping/references/smart.md → Findings
+    validations:
+      required: true
+  - type: textarea
+    id: now
+    attributes:
+      label: Now
+      description: What happens today.
+    validations:
+      required: true
+  - type: textarea
+    id: should
+    attributes:
+      label: Should
+      description: What should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: not-wanted
+    attributes:
+      label: Not wanted
+      description: What this explicitly does not ask for.
+      placeholder: No wake-up of a sleeping disk; no new skill.
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Sketch
+      description: The target state — a report excerpt, a
+        prompt and its answer, a mockup. An agent you work with can
+        draft one.
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What the change must keep or must not touch.

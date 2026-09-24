@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question
+    url: https://github.com/hostwarden/hostwarden/discussions
+    about: Ask in Discussions.
+  - name: Security problem
+    url: https://github.com/hostwarden/hostwarden/security/advisories/new
+    about: Report it privately, as SECURITY.md describes; never in a
+      public issue.

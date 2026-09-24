@@ -1,0 +1,124 @@
+name: Bug report
+description: Hostwarden did something its rules, skills or scripts
+  say it should not, or failed to do what they say.
+labels: [bug]
+assignees: [jpawlowski]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **150 words, at most 200**, all fields together. One fact per
+        line; no preamble.
+
+        **Leave out anything real:** no production hostnames,
+        addresses, keys, tokens or memory files. Use the
+        [example identifiers](https://github.com/hostwarden/hostwarden/blob/main/.claude/rules/instruction-authoring.md#example-identifiers)
+        instead — `web1.example.com`, `192.0.2.10`, `alice`.
+
+        A security problem goes privately, never here:
+        [SECURITY.md](https://github.com/hostwarden/hostwarden/blob/main/SECURITY.md).
+        When this issue needs another one done first, or relates to
+        one, link it as
+        [CONTRIBUTING.md → Issue dependencies](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#issue-dependencies)
+        says.
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Existing issues
+      description: '`gh issue list -R hostwarden/hostwarden --state all
+        --limit 1000` lists them all. What to do when one covers this:
+        [CONTRIBUTING.md → Before opening an issue](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#before-opening-an-issue).'
+      options:
+        - label: I searched open and closed issues, and none covers
+            this, in whole or in part.
+          required: true
+  - type: input
+    id: tldr
+    attributes:
+      label: TL;DR
+      description: One sentence.
+      placeholder: Housekeeping reports a disk in SLEEP mode as
+        unknown instead of asleep.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: A file and function, a command, a skill, a rule or
+        a setting.
+      placeholder: /hostwarden-housekeeping,
+        .agents/skills/hostwarden-housekeeping/references/smart.md → Findings
+    validations:
+      required: true
+  - type: textarea
+    id: now
+    attributes:
+      label: Now
+      description: What happens. Quote the output, redacted to example
+        identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: should
+    attributes:
+      label: Should
+      description: What should happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Target web1.example.com, Debian 13, one disk in standby.
+        2. Run /hostwarden-housekeeping.
+        3. The disk section lists sda as unknown.
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When
+      description: The time it happened, to the second, with the time
+        zone.
+      placeholder: "2026-09-24 14:03:27 +02:00"
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Hostwarden version
+      description: The output of `bin/hostwarden-update --check` in your
+        checkout. On `main`, add `git rev-parse --short HEAD`.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: ai-tool
+    attributes:
+      label: AI tool and model
+      placeholder: Claude Code with Claude Opus 5.5
+    validations:
+      required: true
+  - type: input
+    id: workstation-os
+    attributes:
+      label: Workstation OS
+      description: Where the AI tool runs.
+      placeholder: macOS 26; Ubuntu 24.04 in WSL 2 on Windows 11
+    validations:
+      required: true
+  - type: input
+    id: target-os
+    attributes:
+      label: Target host OS
+      description: The managed host's OS, or "local mode".
+      placeholder: Debian 13; FreeBSD 14; Proxmox VE 9
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What the change must keep or must not touch.
