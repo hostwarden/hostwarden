@@ -33,9 +33,21 @@ The prompt names one of two jobs.
 
 - **Review** `<base>..<head>` — a branch against its base, or the
   range of one fix commit. Report every defect the range introduces
-  or leaves reachable. With a fix range, the prompt also gives the
-  findings the fix answers: check that each is closed for its whole
-  class, not only for the case it named.
+  or leaves reachable. For a branch, the prompt also names the tier,
+  `light` or `full`, and your focus, which set what you read
+  (→ How you work) and which classes you go through:
+  - `consistency` — classes 4, 7, 8, 10, 12, 15 and 16: what the
+    change must agree with, what it claims, what it leaves behind;
+  - `commands` — classes 1, 2, 3, 5, 6, 9, 11, 13 and 14: what a
+    command, probe or parser does, reads and concludes.
+
+  A defect outside your focus that you come across is still a
+  finding; you only do not search for one. With a fix range, the
+  prompt instead gives the findings the fix answers, and a branch
+  review may get findings as well: check that each is closed for
+  its whole class, not only for the case it named. A fix range's
+  own hunks you review as a sweep reads (→ How you work), against
+  every class.
 - **Sweep** — the prompt gives findings that are not fixed yet.
   For each, name the class it belongs to (below) and list every
   other place in the repository where the same defect sits: every
@@ -47,22 +59,38 @@ The prompt names one of two jobs.
 1. Read the diff: `git diff <base>...<head>`, or `git show` for one
    commit. Then read each changed file in full, not only the hunks.
 2. Read what the change must agree with: `AGENTS.md`, the
-   `.claude/rules/` file whose `paths` match what changed,
+   `.claude/rules/` file whose `paths` match what changed, and
    `.claude/rules/instruction-authoring.md` for any instruction
-   text, and every file that covers the same subject. Find those
-   with `rg` for the changed file's name, its section headings, and
-   the terms, commands and memory fields it introduces or relies
-   on. A hook's `additionalContext`, a skill's reference and an OS
-   file count as much as a rule.
-3. Follow each fact the change reads back to the probe that prints
-   it, and each answer or state it creates to the step that handles
-   it.
-4. Check commands against the tool, never against memory: `--help`
-   and `man` here, `bin/hostwarden-lab exec <family> -- <command>`
-   for a Linux family, upstream documentation for the rest.
-   Cite what you checked.
-5. Go through the classes below for every hunk. Most findings come
-   from the first five.
+   text. Then, by job:
+   - `consistency` in the full tier: every file that covers the
+     same subject. Find those with `rg` for the changed file's name,
+     its section headings, and the terms, commands and memory fields
+     it introduces or relies on. A hook's `additionalContext`, a
+     skill's reference and an OS file count as much as a rule.
+   - `commands`: the OS, platform and appliance files the changed
+     commands run on, and every other place the same command, probe
+     or parser appears — `rg` for its name and the options it uses.
+   - A sweep, a fix range, and each finding the prompt gives: both
+     bullets above, for what the findings and the fix's hunks touch.
+     A continued reviewer reads only what it has not read yet.
+   - `consistency` in the light tier: each file the changed lines
+     name or make a claim about (class 15) — for a claim, the rule
+     or skill that does the work. No `rg` beyond those files, but
+     for a command the changed lines add or alter, read what the
+     `commands` bullet names.
+3. Follow each answer or state the change creates to the step that
+   handles it.
+4. With focus `commands`, in a sweep, in a fix range and for each
+   finding the prompt gives, follow each fact the change reads back
+   to the probe that prints it, and check commands against the tool,
+   never against memory: `--help` and `man` here,
+   `bin/hostwarden-lab exec <family> -- <command>` for a Linux
+   family, upstream documentation for the rest. Cite what you
+   checked.
+5. Go through your focus's classes for every hunk, every class in a
+   sweep, a fix range and a finding the prompt gives. In the light
+   tier, each command the changed lines add or alter goes through
+   step 4 and the `commands` classes as well.
 
 ## Classes
 

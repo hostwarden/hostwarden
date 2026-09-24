@@ -119,29 +119,74 @@ tool that picks the model per session, such as OpenCode, may run it
 on another family than the author's, and the own review then brings
 a second family's view as well.
 
+Its tier follows from the files the branch changes,
+`git diff --name-only hostwarden/<base>...HEAD`, and from nothing
+else:
+
+- **Light** when every one of them is in `docs/`, `README.md`,
+  `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `changelog.d/`
+  or `.claude/rules/` other than this file, a new file there
+  included. One reviewer with focus `consistency` reviews the
+  branch, and each command the changed lines add or alter as focus
+  `commands` would; no pass checks a fix and no sweep runs: the
+  session names a finding's class and looks for its siblings
+  itself, with `rg --hidden -g '!.git'` for its terms, and the next
+  round of the second review checks each fix.
+- **Full** otherwise, whatever the size: a single file outside that
+  list — this one, the reviewer's, one in a directory the list does
+  not name — makes the whole pull request full. Two reviewers,
+  started together, one with focus `commands` and one with focus
+  `consistency`, review the branch, and everything below runs as
+  written.
+
+Size is no trigger: it does not tell where depth pays. The defects
+full depth finds cluster in hooks, scripts, parsers and probes; the
+one a docs change typically carries, a claim another file does not
+bear out, is one the second review finds. This file and the
+reviewer's are full so that the review never judges a change to
+itself lightly.
+
+A light pull request turns full, and stays full, when a push would
+add a file outside the light list, or a round of the second review
+finds a P0 or P1. The two focused reviewers then review the whole
+range against `hostwarden/<base>` — before that push, or in place
+of the passes on that round's fix commit, given its findings and
+the sweep's siblings — and what they report is fixed at the current
+level (→ Rounds), in passes as below. The own review's line gains
+`, full from round <n>`, or `, full from <sha>` with the head that
+added the file. This is the author's step; no check enforces it.
+
 1. `/simplify`, for reuse and clarity.
 2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`,
-   told to check the changelog entry against `repo-release.md` →
-   CHANGELOG.md: there when the change is user-visible, and only
-   then. Its findings already name their class and siblings: fix
-   them all, then give it the branch again, in passes as below.
+   the prompt naming the tier and each reviewer's focus
+   (`.claude/agents/hostwarden-reviewer.md` → Your task). In the
+   full tier the session merges what the two return: a defect both
+   report at the same place is one finding, and that both found it
+   counts as confidence. The reviewer with focus `consistency` is
+   also told to check the changelog entry against `repo-release.md`
+   → CHANGELOG.md: there when the change is user-visible, and only
+   then. The findings already name their class and siblings: fix
+   them all, in the full tier in passes as below.
 3. Push. The pull request stays a draft; the second review
    follows where it is required.
 
-The results stay in the session; nothing of them is posted but
-the deferred list below.
+Of the results, only the deferred list below and one line under
+`## Review`, above the second review's lines, are posted, such as
+
+    Own review: full (bin/example, …), 2 focused, 1 fix pass, 3 findings
+
+`1 pass` in the light tier, at most three paths that decided the
+tier, and `1 finding` or `no findings` where that fits. The review
+record check does not read it (→ The review record): whoever
+merges compares the tier with the files.
+
 Passes, here and on a fix commit, run like this:
 
-- Up to three passes check the fixes. Each continues the reviewer
+- Up to three passes check the fixes. Each continues one reviewer
   that reported them — in Claude Code the same subagent
-  (`SendMessage`) — which knows the classes and siblings it named
-  and does not read the repository again.
-- Then one fresh reviewer checks the whole range, given nothing of
-  the earlier passes: a reviewer checking against its own list
-  misses what that list missed. What it reports is fixed at the
-  current level — in the fix commit when it checks one, otherwise
-  on the branch at the level of rounds 1 and 2 — and the second
-  review, where one follows, checks that fix.
+  (`SendMessage`) — given every finding the fixes answer, the other
+  focus's included. It knows the classes and siblings they name and
+  does not read the repository again.
 - What is still open after that is listed under
   `## Deferred review findings` as the own review's; a P0 or P1
   among it goes to whoever merges, with one line on its impact.
@@ -348,6 +393,9 @@ back in the next round.
 4. Push, then request the next round. Never request one after only
    answering findings.
 
+In a light pull request, steps 1 and 3 do not run
+(→ The own review).
+
 Each time a continued reviewer or a sweep is given findings, it
 also gets the earlier ones, the own review's included, a line each:
 title, class, `path:line`, answer. The own review's live only in
@@ -362,16 +410,15 @@ findings.
 A second-review finding is one the own review missed unless it is
 answered "not a bug" or the own review had already reported it, as
 far as the session knows.
-Before the session lifts the draft, it adds
-each missed finding to the one open issue titled "Sharpen
-hostwarden-reviewer": a checklist line with the pull request's
-number, the finding's title, its class from the answer, and the
-question that class lacked. It opens that issue when none is
-open. At three
+Before the session lifts the draft, it adds each missed finding to
+the one open issue titled "Sharpen hostwarden-reviewer": a checklist
+line with the pull request's number and its own review's tier, the
+finding's title, its class from the answer, and the question that
+class lacked. It opens that issue when none is open. At three
 unchecked lines, it proposes to the person a pull request that
-sharpens the reviewer and closes the issue, as a task chip where
-the tool has them. A new class is the exception; a question added
-to an existing one is the rule.
+sharpens the reviewer and closes the issue, as a task chip where the
+tool has them. A new class is the exception; a question added to an
+existing one is the rule.
 
 ## Lifting the draft
 
@@ -413,12 +460,12 @@ agent can do is done:
 - a stacked pull request's base is merged, and it has been
   retargeted and rebased onto `hostwarden/main` (→ After a merge,
   → Updating a branch): until then it stays a draft, since its
-  base can still change under it. A fresh `hostwarden-reviewer`
-  then checks the rebased branch against `hostwarden/main` once,
-  since its reviews never saw the base's final state. Its findings
-  take the level of the child's last round, that of rounds 1 and 2
-  where it had none (→ Rounds): fixed in a fix commit where that
-  level fixes them, deferred otherwise.
+  base can still change under it. The own review then runs once
+  more, fresh and at the pull request's tier, on the rebased branch
+  against `hostwarden/main`, since its reviews never saw the base's
+  final state. Its findings take the level of the child's last
+  round, that of rounds 1 and 2 where it had none (→ Rounds): fixed
+  in a fix commit where that level fixes them, deferred otherwise.
 
 The lift is `gh pr ready <n> -R hostwarden/hostwarden`.
 
