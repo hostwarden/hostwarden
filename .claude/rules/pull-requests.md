@@ -97,10 +97,15 @@ foreign `main` would put other commits into the review.
 It runs on every pull request, in a context of its own, never in
 the session that wrote the change. In Claude Code that is the
 `hostwarden-reviewer` subagent; elsewhere, a fresh session whose
-instructions are that file's body. A tool that picks the model per
-session, such as OpenCode, may run it on another family than the
-author's, and the own review then brings a second family's view as
-well.
+instructions are that file's body. In Claude Code it runs on Sonnet
+whatever model wrote the change, for the reason the second review
+pins its model (→ Codex); the session passes no `model` when it
+dispatches it, since that would win over the file's. Should the
+reviewer's issue (→ Sharpening the reviewer) show the own review
+missing more than before, the pin is the first thing to revisit. A
+tool that picks the model per session, such as OpenCode, may run it
+on another family than the author's, and the own review then brings
+a second family's view as well.
 
 1. `/simplify`, for reuse and clarity.
 2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`,
