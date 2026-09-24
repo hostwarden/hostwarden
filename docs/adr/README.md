@@ -10,6 +10,9 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | :--- | :--- | :--- |
 | [Windows Server as the only target, WSL as the workstation](20260924-windows-server-only.md) | platforms, windows | — |
 | [Development mode refuses server tools with a PATH shim](20260924-path-shim-over-parsing.md) | guard, development | — |
+| [An organization owns the repository, not a person](20260924-org-owned-for-merge-queue.md) | governance, ci | — |
 | [An unreadable jump path counts as a blacklisted hop](20260924-opaque-jump-path-is-listed.md) | access-control, ssh | — |
 | [No migrations or compatibility paths before 1.0.0](20260924-no-compat-before-1-0.md) | release | — |
+| [The workspace marker decides the session mode](20260924-marker-decides-session-mode.md) | guard, development | — |
+| [The taboo guard is a backstop, not a sandbox](20260924-guard-is-a-backstop-not-a-sandbox.md) | guard | — |
 | [Convention files in `.claude/rules/` need no record behind them](20260924-cite-only-rules.md) | records, tooling | — |

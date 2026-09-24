@@ -170,10 +170,8 @@ commit lands as that commit, its title and message, which is why a
 pull request is squashed before its draft is lifted
 (`pull-requests.md` → Lifting the draft).
 
-The repository belongs to the organization `hostwarden` because
-GitHub offers the merge queue to a public repository only when an
-organization owns it, and to a private one only when that
-organization is on GitHub Enterprise Cloud.
+The repository belongs to the organization `hostwarden`
+(`docs/adr/20260924-org-owned-for-merge-queue.md`).
 
 **A change to `.claude/hooks/guard-taboos.sh` without a new line in
 the fixture matrix is incomplete.** The matrix is how a taboo stays
