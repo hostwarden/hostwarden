@@ -81,7 +81,11 @@ The prompt names one of two jobs.
    hosts, other users' endpoints? A value from an
    effective-configuration dump (`sshd -T`): can a `Match` block
    change it per account, address or group, and does the rule read
-   it in the context it is applied to?
+   it in the context it is applied to? A free-text value a filter
+   withholds: can the same text reach the output in another form —
+   a section id, a key, an error message that quotes it — and does
+   the filter print only the fields it names rather than withhold
+   the ones it knows?
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
@@ -158,10 +162,15 @@ The prompt names one of two jobs.
    what does the check print where it is not written?
 6. **A tool that does not work as written.** Syntax, argument
    order, output format, and above all what it prints and returns
-   on pending, timeout, empty and error. A step that requires an
-   input or a placeholder exactly once: does every optional branch
-   the rule allows — no revocation list, no principals file —
-   still satisfy it?
+   on pending, timeout, empty and error. An on/off field — 0/1 or
+   true/false from an API, a flag in a config file or command
+   output: does the test compare it with every spelling of on and
+   off and with what a missing field defaults to, or rely on the
+   tool's truthiness — jq counts `0` as true — and does an off
+   value count as off everywhere the field is read? A step that
+   requires an input or a placeholder exactly once: does every
+   optional branch the rule allows — no revocation list, no
+   principals file — still satisfy it?
 7. **A literal where a recorded value belongs, or ambient
    configuration taking over.** Ports, storage, pools, paths,
    UID ranges, architectures; the user's `ssh_config`, `PATH`,
