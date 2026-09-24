@@ -40,6 +40,10 @@ bin/
                          for a test clone
   hostwarden-wrap         — Rewrap Markdown at 80 characters, or
                          list the lines over it
+lib/
+  markdown-blocks.awk  — Markdown's blocks as CommonMark reads
+                         them, for hostwarden-wrap and
+                         review-record.sh
 scripts/
   changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
                          at a release; checks its form in CI

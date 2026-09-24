@@ -39,11 +39,14 @@ jobs:
       && github.event.pull_request.user.type != 'Bot'
     runs-on: ubuntu-latest
     steps:
-      # No ref: the default branch's checker, never the pull request's.
+      # No ref: the default branch's checker and the block reader it
+      # runs, never the pull request's.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: scripts/review-record.sh
+          sparse-checkout: |
+            scripts/review-record.sh
+            lib/markdown-blocks.awk
           sparse-checkout-cone-mode: false
 
       - name: Read the record
