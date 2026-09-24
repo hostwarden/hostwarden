@@ -7,6 +7,15 @@
     "group:all",
     ":semanticCommitTypeAll(ci)"
   ],
-  "enabledManagers": ["github-actions", "mise"],
+  "enabledManagers": ["github-actions", "mise", "custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.claude/hooks/dev-tools\\.sh$/"],
+      "matchStrings": ["MISE_VERSION=(?<currentValue>v[0-9.]+)\\n"],
+      "depNameTemplate": "jdx/mise",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
   "minimumReleaseAge": "7 days"
 }
