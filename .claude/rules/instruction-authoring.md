@@ -139,11 +139,14 @@ defect, and the prohibition stays.
 ## Layout
 
 - Wrap every `.md` at 80 characters. A URL or a command line that
-  cannot be broken may exceed it, and so may `docs/adr/README.md`,
-  which `scripts/decisions.py` generates. `bin/hostwarden-wrap`
-  rewraps paragraphs, and its `--check` is the measure the layout
-  test applies; a heading, a table row or front matter over 80 is
-  shortened by hand.
+  cannot be broken may exceed it. `bin/hostwarden-wrap` rewraps
+  paragraphs and its `--check` is the measure the layout test
+  applies; a heading, a table row or front matter over 80 is
+  shortened by hand. A file whose first line marks it as generated
+  is passed through whole and unmeasured instead — `docs/adr/README.md`,
+  which `scripts/decisions.py --write` writes, is the one there is
+  today, and the layout test's corpus leaves it out for the same
+  reason.
 - One `#` title per file, matching what the file is called. A
   file whose job is to load another has no content to title —
   `CLAUDE.md` opens with its import — and does not get one.
