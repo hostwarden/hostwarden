@@ -9,7 +9,9 @@
 #   hostwarden-sync commit MSG [PATH...]
 #                                Commit PATHs (relative to the
 #                                workspace or under memory/), or
-#                                every change when none is named
+#                                every change when none is named,
+#                                its Markdown rewrapped at 80
+#                                (hostwarden-wrap --changed)
 #   hostwarden-sync push         Send local commits to the remote
 #   hostwarden-sync --help       Show this help
 #
@@ -141,6 +143,11 @@ commit)
   # to it: memory/servers/x and servers/x name the same file.
   [ "$#" -gt 0 ] || set -- .
   for p do shift; set -- "$@" "${p#memory/}"; done
+  # Markdown goes in wrapped at 80, whichever tool wrote it. What
+  # the wrap cannot mend is committed as it is: a journal entry
+  # matters more than its line lengths.
+  (cd memory && sh "$SCRIPT_DIR/hostwarden-wrap" --changed -- "$@") \
+    >/dev/null 2>&1 || true
   retry W add -- "$@"
   W diff --cached --quiet -- "$@" && exit 0
   retry W commit --quiet -m "$MSG" -- "$@"

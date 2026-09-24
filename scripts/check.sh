@@ -220,6 +220,13 @@ else
   step "fleet run" sh scripts/fleet-run-test.sh
 fi
 step "review record" sh scripts/review-record-test.sh
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^bin/hostwarden-(wrap|sync)$|^\.claude/hooks/(wrap-markdown|json|mode)\.sh$|^scripts/wrap-test\.sh$'
+then
+  echo "== markdown wrap matrix: nothing it reads is pushed, skipped"
+else
+  step "markdown wrap matrix" sh scripts/wrap-test.sh
+fi
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point

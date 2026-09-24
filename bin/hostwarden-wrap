@@ -1,0 +1,493 @@
+#!/bin/sh
+# hostwarden-wrap — wrap Markdown at 80 characters, as every .md in
+# Hostwarden and in its memory/ is written.
+#
+# Usage:
+#   hostwarden-wrap <file.md>...          Rewrap in place
+#   hostwarden-wrap --check <file.md>...  Only list the lines over 80
+#   hostwarden-wrap [--check] < in > out  The same as a filter
+#   hostwarden-wrap --changed [<path>...] Rewrap every .md that git
+#                                         sees as changed or new, in
+#                                         the repository here
+#   hostwarden-wrap --help                Show this help
+#
+# --changed takes only what is here as a plain file: not a link and
+# not a name git prints in quotes. Names are relative to the current
+# directory. No mode rewrites a file that holds a line of conflict
+# markers, `<<<<<<<` or `>>>>>>>`: it is left, unlisted, to whoever
+# resolves the merge.
+#
+# Prints `<file>: rewrapped` for each file it changed, and
+# `<file>:<line> (<width>)` for each line still over 80 — with
+# --check, for each line over 80 at all. Exit status: 0 when every
+# line fits, 1 when one is left over, 2 on a usage or file error.
+#
+# Only a paragraph is rewrapped, in a list item or a quote or not,
+# and only from its first line over 80: lines that fit stay as
+# they are, so a file somebody wrapped by hand keeps its breaks. The
+# list marker, the quote's `>` and the indentation stay, and the
+# continuation lines go under the item's text. A heading, a table,
+# a code block, an HTML block, a link reference definition and
+# YAML front matter are never touched; a line of one that is over
+# 80 is left for a person, and listed. So is a paragraph with a
+# tab or a carriage return in it.
+#
+# The width is what .claude/hooks/instructions-test.sh holds a line
+# to, since that test calls --check: characters, not bytes; a link
+# target `](…)` counts as `]`, and a URL as nothing; a line of a
+# code block, fenced or indented, is not measured. The blocks are
+# read as CommonMark 0.31.2 reads them, as scripts/review-record.sh
+# does, in portable awk.
+#
+# A new line never starts with what would open a block there — a
+# list marker, `#`, `>`, a fence, `<`, a `|` or a run of `=`, `-`,
+# `*` or `_` — nor with the `→` or `§` of a pointer at a heading,
+# which the layout test reads on the line of the file it names. A
+# word ending in `\` never ends a line, where it would break it.
+
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
+}
+
+CHECK='' CHANGED=''
+case ${1:-} in
+  -h|--help) usage; exit 0 ;;
+  --check) CHECK=1; shift ;;
+  --changed) CHANGED=1; shift ;;
+esac
+case ${1:-} in
+  --) shift ;;
+  -?*) usage >&2; exit 2 ;;
+esac
+
+# The block reader and the reflow. -v check=1 reflows nothing and
+# only measures. Output goes to the file named by -v out, or to
+# stdout when there is none; the findings to stdout, or to the file
+# named by -v rep.
+# shellcheck disable=SC2016 # awk, not shell
+WRAP_AWK='
+BEGIN {
+  MAX = 80
+  TAGS = "address|article|aside|base|basefont|blockquote|body|" \
+    "caption|center|col|colgroup|dd|details|dialog|dir|div|dl|" \
+    "dt|fieldset|figcaption|figure|footer|form|frame|frameset|" \
+    "h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|" \
+    "link|main|menu|menuitem|nav|noframes|ol|optgroup|option|" \
+    "p|param|search|section|summary|table|tbody|td|tfoot|th|" \
+    "thead|title|tr|track|ul"
+  SQ = "\047"
+  VAL = "([^ \t\"" SQ "=<>`]+|" SQ "[^" SQ "]*" SQ "|\"[^\"]*\")"
+  ATTR = "[ \t]+[a-z_:][a-z0-9_.:-]*([ \t]*=[ \t]*" VAL ")?"
+  OPEN7 = "^<[a-z][a-z0-9-]*(" ATTR ")*[ \t]*/?>[ \t]*$"
+  CLOSE7 = "^</[a-z][a-z0-9-]*[ \t]*>[ \t]*$"
+  LRD = "^\\[[^][]+\\]:"
+  PUNCT = "!\"#$%&" SQ "()*+,-./:;<=>?@[\\]^_`{|}~"
+  # A GFM table: a paragraph with a delimiter row in it is one.
+  DELIM = "^\\|?[ ]*:?-+:?[ ]*(\\|[ ]*:?-+:?[ ]*)*\\|?[ ]*$"
+  if (out == "") out = check ? "/dev/null" : "/dev/stdout"
+  if (rep == "") rep = check ? "/dev/stdout" : "/dev/stderr"
+}
+# width(s) -- what the layout test measures: characters, with a link
+# target counted as its `]` and a URL as nothing. The C locale makes
+# every awk count bytes; dropping the UTF-8 continuation bytes
+# turns that into characters on all of them.
+function width(s) {
+  gsub(/\]\([^)]*\)/, "]", s)
+  gsub(/https?:\/\/[^ )>`]*/, "", s)
+  gsub(/[\200-\277]/, "", s)
+  return length(s)
+}
+# emit(line, measured[, width]) -- one line of output, and a finding
+# when it is measured and over MAX; a width already taken is passed.
+function emit(l, m, w) {
+  ONR++
+  print l > out
+  if (!m) return
+  if (w == "") w = width(l)
+  if (w > MAX) { print NAME ":" ONR " (" w ")" > rep; LEFT = 1 }
+}
+# expand(s) -- tabs to spaces, to the next stop of four columns.
+function expand(s,   o, i, c, col) {
+  o = ""; col = 0
+  for (i = 1; i <= length(s); i++) {
+    c = substr(s, i, 1)
+    if (c != "\t") { o = o c; col++; continue }
+    do { o = o " "; col++ } while (col % 4)
+  }
+  return o
+}
+function spaces(n,   s) { s = ""; while (n-- > 0) s = s " "; return s }
+function scan() {
+  NN = POS
+  while (NN <= L && substr(LN, NN, 1) == " ") NN++
+  IND = NN - POS; BLANK = (NN > L)
+}
+function run(s, i, c,   k) {
+  k = 0
+  while (substr(s, i + k, 1) == c) k++
+  return k
+}
+# The prefix a new continuation line of the paragraph gets: the
+# second line`s own where it continues every container, else a
+# quote`s `> ` and a list item`s width of spaces for each.
+function cont(   i, s) {
+  if (PN >= 2 && !LAZY[2]) return PF[2]
+  s = ""
+  for (i = 1; i <= N; i++) s = s (CT[i] == "q" ? "> " : spaces(CW[i]))
+  return s
+}
+# A word that must not start a line: it would open a block there,
+# or split a pointer from the file it names.
+function nostart(w) {
+  return w ~ /^(#+|[-+*]|[0-9]+[.)]|=+|-+|:?-+:?|\*\*\*+|___+|→|§)$/ \
+    || w ~ /^(>|<|\||```|~~~)/
+}
+# spans() -- where the code spans of the paragraph stand, found as
+# CommonMark finds them: a run of backticks opens one only where a
+# run of the same length follows, across lines; otherwise it is
+# text. A backslash outside one escapes the ASCII punctuation after
+# it, itself included. IN[j, x] is set for each character x of line
+# j inside a span, its backticks included. Spaces or a backslash
+# that end a line inside a span make no hard break there.
+function spans(   j, x, y, n, m, T, L, OFF, J, X, i) {
+  T = ""; L = 0
+  for (j = 1; j <= PN; j++) {
+    for (x = 1; x <= length(P[j]); x++) { J[++L] = j; X[L] = x }
+    T = T P[j] (j < PN ? "\n" : "")
+    if (j < PN) { J[++L] = j; X[L] = 0 }
+  }
+  for (x = 1; x <= L; x++) {
+    if (substr(T, x, 1) == "\\" && index(PUNCT, substr(T, x + 1, 1))) {
+      x++; continue
+    }
+    if (substr(T, x, 1) != "`") continue
+    n = run(T, x, "`")
+    for (y = x + n; y <= L; y += m) {
+      if (substr(T, y, 1) != "`") { m = 1; continue }
+      m = run(T, y, "`")
+      if (m == n) break
+    }
+    if (y > L) { x += n - 1; continue }
+    for (i = x; i < y + n; i++) if (X[i]) IN[J[i], X[i]] = 1
+    x = y + n - 1
+  }
+  for (j = 1; j <= PN; j++)
+    if (HB[j] && IN[j, length(P[j])]) HB[j] = 0
+}
+# words(from, to) -- the words of lines `from` to `to` into
+# W[1..NW], each with the spaces before it in SEP and, where it
+# starts a line, the number of that line in S. Spaces are kept as
+# they came: a run of two or more inside a code span is part of its
+# word, since a break there would turn it into one space, and so are
+# the spaces that end a line inside one. Glued to the word before:
+# one that must not start a line, and the word after one ending in a
+# backslash.
+function words(from, to,   j, t, x, r, cur, sp, first) {
+  NW = 0
+  for (j = from; j <= to; j++) {
+    t = P[j]
+    cur = ""; sp = " "; first = 1
+    for (x = 1; x <= length(t); x++) {
+      if (substr(t, x, 1) != " ") { cur = cur substr(t, x, 1); continue }
+      r = run(t, x, " ")
+      if (IN[j, x] && (r > 1 || x + r > length(t))) {
+        cur = cur substr(t, x, r); x += r - 1; continue
+      }
+      if (x + r > length(t)) break
+      word(cur, sp, first ? j : 0)
+      first = 0; cur = ""; sp = substr(t, x, r); x += r - 1
+    }
+    word(cur, sp, first ? j : 0)
+  }
+}
+function word(w, sp, line) {
+  if (w == "") return
+  if (NW && (nostart(w) || W[NW] ~ /\\$/)) { W[NW] = W[NW] sp w; return }
+  W[++NW] = w; SEP[NW] = sp; S[NW] = line
+}
+# flush() -- the paragraph in P[1..PN], its prefixes in PF, printed:
+# as it came where it fits or cannot be rewrapped. A line over MAX
+# is filled from its first word; what it cannot hold goes onto the
+# next line of the paragraph where the two fit together, and onto
+# a line of its own where they do not. The lines after that are as
+# they came, each rewrapped the same way where it is over MAX. A
+# hard break, `\` or two spaces at the end of a line, stays where
+# it is: no word moves across it.
+function flush(   k, e, n, t, i, q, x, w, line, c, pre, hb, done, nk) {
+  if (!PN) return
+  if (check || NOWRAP) {
+    for (k = 1; k <= PN; k++) emit(RAW[k], 1)
+    PN = 0; NOWRAP = 0; return
+  }
+  c = cont()
+  spans()
+  k = 1
+  while (k <= PN) {
+    if ((w = width(RAW[k])) <= MAX) { emit(RAW[k], 1, w); k++; continue }
+    for (e = k; e < PN; e++) if (HB[e]) break
+    words(k, e); n = NW
+    hb = (HB[e] == 2) ? "  " : ""
+    pre = PF[k]; line = ""; i = 1; done = 0; nk = e + 1
+    while (i <= n) {
+      # Past the line over MAX, at the start of the next old line:
+      # the rest of the old one joins it where they fit together.
+      if (done && S[i] > k) {
+        if (line != "") {
+          for (q = i + 1; q <= n && !S[q]; q++) ;
+          t = line
+          for (x = i; x < q; x++) t = t SEP[x] W[x]
+          if (width(pre t (q > n ? hb : "")) <= MAX) { line = t; i = q }
+          emit(pre line (i > n ? hb : ""), 1); line = ""
+        }
+        if (i <= n) nk = S[i]
+        break
+      }
+      if (line == "") { line = W[i]; i++; continue }
+      # The last word carries the two spaces of a hard break.
+      if (width(pre line SEP[i] W[i] (i == n ? hb : "")) <= MAX) {
+        line = line SEP[i] W[i]; i++; continue
+      }
+      emit(pre line, 1); done = 1
+      pre = c; line = ""
+    }
+    if (line != "") emit(pre line hb, 1)
+    k = nk
+    delete W; delete S; delete SEP
+  }
+  PN = 0; NOWRAP = 0; delete IN
+}
+function closeleaf() { if (LEAF == "p") flush(); LEAF = "" }
+function open(m) {
+  closeleaf(); N = m
+  if (N && CT[N] == "l") HAS[N] = 1
+}
+function hstart(r, para,   l) {
+  l = tolower(r)
+  if (l ~ /^<(script|pre|textarea|style)([ >]|$)/) return 1
+  if (substr(r, 1, 4) == "<!--") return 2
+  if (substr(r, 1, 2) == "<?") return 3
+  if (substr(r, 1, 9) == "<![CDATA[") return 5
+  if (r ~ /^<![A-Za-z]/) return 4
+  if (l ~ ("^</?(" TAGS ")([ >]|/>|$)")) return 6
+  if (para) return 0
+  if (l ~ OPEN7 || l ~ CLOSE7) return 7
+  return 0
+}
+function hend(r) {
+  if (HT == 1) return tolower(r) ~ /<\/(script|pre|textarea|style)>/
+  if (HT == 2) return index(r, "-->")
+  if (HT == 3) return index(r, "?>")
+  if (HT == 4) return index(r, ">")
+  if (HT == 5) return index(r, "]]>")
+  return 0
+}
+function reset() {
+  N = 0; LEAF = ""; PN = 0; NOWRAP = 0; FRONT = 0; ONR = 0
+}
+function finish() { open(0) }
+FNR == 1 {
+  if (NR > 1) finish()
+  reset()
+  NAME = (name != "") ? name : FILENAME
+  # YAML front matter: from a first line `---` to the next `---`
+  # or `...`, as it came.
+  if ($0 == "---") { FRONT = 1; emit($0, 1); next }
+}
+FRONT {
+  if ($0 == "---" || $0 == "...") FRONT = 0
+  emit($0, 1); next
+}
+{
+  RAWL = $0
+  # A tab moves text by up to four columns, which the prefixes
+  # below would have to reproduce; such a line is read, not moved.
+  TAB = index($0, "\t") || index($0, "\r")
+  LN = $0
+  if (TAB) LN = expand(LN)
+  L = length(LN); POS = 1; M = 0
+  for (i = 1; i <= N; i++) {
+    scan()
+    if (CT[i] == "q") {
+      if (IND > 3 || substr(LN, NN, 1) != ">") break
+      POS = NN + 1
+      if (substr(LN, POS, 1) == " ") POS++
+    } else if (BLANK) {
+      if (!HAS[i]) break
+      POS = NN
+    } else if (IND >= CW[i]) POS += CW[i]
+    else break
+    M = i
+  }
+  scan()
+  if (M == N) {
+    if (LEAF == "f") {
+      if (IND <= 3 && (k = run(LN, NN, FC)) >= FL \
+        && substr(LN, NN + k) ~ /^ *$/) LEAF = ""
+      emit(RAWL, 0); next
+    }
+    if (LEAF == "i") {
+      if (IND >= 4 || BLANK) { emit(RAWL, 0); next }
+      LEAF = ""
+    }
+    if (LEAF == "h") {
+      if (BLANK && HT >= 6) LEAF = ""
+      else { if (hend(substr(LN, POS))) LEAF = ""; emit(RAWL, 1); next }
+    }
+  }
+  while (1) {
+    scan()
+    para = (M == N && LEAF == "p")
+    if (IND >= 4) {
+      if (LEAF == "p" || BLANK) break
+      open(M); LEAF = "i"; emit(RAWL, 0); next
+    }
+    r = substr(LN, NN); c = substr(r, 1, 1)
+    if (c == ">") {
+      open(M)
+      CT[++N] = "q"; M = N; POS = NN + 1
+      if (substr(LN, POS, 1) == " ") POS++
+      continue
+    }
+    if (c == "#" && (k = run(r, 1, "#")) <= 6 \
+      && (k == length(r) || substr(r, k + 1, 1) == " ")) {
+      open(M); emit(RAWL, 1); next
+    }
+    if ((c == "`" || c == "~") && (k = run(r, 1, c)) >= 3 \
+      && !(c == "`" && index(substr(r, k + 1), "`"))) {
+      open(M); LEAF = "f"; FC = c; FL = k; emit(RAWL, 0); next
+    }
+    if (c == "<" && (t = hstart(r, para))) {
+      open(M); LEAF = "h"; HT = t
+      if (hend(r)) LEAF = ""
+      emit(RAWL, 1); next
+    }
+    if (para && r ~ /^(=+|-+) *$/) {
+      # A setext heading: the paragraph above was its text.
+      NOWRAP = 1; flush(); LEAF = ""; emit(RAWL, 1); next
+    }
+    t = r; gsub(/ /, "", t)
+    if (t ~ /^(\*\*\*+|---+|___+)$/) {
+      open(M); emit(RAWL, 1); next
+    }
+    if (c == "-" || c == "+" || c == "*") { mw = 1; num = 1 }
+    else if (match(r, /^[0-9]+[.)]/) && RLENGTH <= 10) {
+      mw = RLENGTH; num = substr(r, 1, mw - 1) + 0
+    } else break
+    t = substr(r, mw + 1)
+    if (t != "" && substr(t, 1, 1) != " ") break
+    s = run(t, 1, " ")
+    if (para && (s == length(t) || num != 1)) break
+    pad = (s == length(t) || s >= 5) ? mw + 1 : mw + s
+    open(M)
+    CT[++N] = "l"; CW[N] = IND + pad; HAS[N] = 0; M = N
+    POS = NN + pad
+  }
+  if (BLANK) { open(M); emit(RAWL, 1); next }
+  if (LEAF == "p") {
+    add(M < N)
+    next
+  }
+  open(M)
+  LEAF = "p"; PN = 0; add(0)
+}
+# add(lazy) -- the current line as the next line of the paragraph.
+function add(lazy,   r) {
+  PN++
+  RAW[PN] = RAWL
+  PF[PN] = substr(LN, 1, NN - 1); P[PN] = substr(LN, NN)
+  LAZY[PN] = lazy
+  HB[PN] = (P[PN] ~ /  +$/) ? 2 : (P[PN] ~ /\\$/) ? 1 : 0
+  if (TAB) NOWRAP = 1
+  r = P[PN]
+  if (PN == 1 && r ~ LRD) NOWRAP = 1
+  if (r ~ /^\|/ || (r ~ /\|/ && r ~ DELIM)) NOWRAP = 1
+}
+END { if (NR) finish(); exit LEFT ? 1 : 0 }
+'
+
+# wrap <name> [awk -v assignment...] -- the awk above on stdin, in
+# the C locale, which the width needs.
+wrap() {
+  n=$1
+  shift
+  LC_ALL=C awk -v name="$n" -v check="$CHECK" "$@" "$WRAP_AWK"
+}
+
+if [ -n "$CHANGED" ]; then
+  git rev-parse --git-dir >/dev/null 2>&1 || {
+    echo "hostwarden-wrap: --changed needs a git repository" >&2
+    exit 2
+  }
+  # What differs from HEAD, or all of a repository without a commit
+  # yet, and what is new.
+  LIST=$( {
+    if git rev-parse -q --verify HEAD >/dev/null; then
+      git -c core.quotePath=false diff --relative --name-only \
+        --diff-filter=ACMRT HEAD -- "$@"
+    else
+      git -c core.quotePath=false ls-files -- "$@"
+    fi
+    git -c core.quotePath=false ls-files --others --exclude-standard -- "$@"
+  } | sort -u)
+  set --
+  while IFS= read -r f; do
+    case $f in \"*) continue ;; *.md) ;; *) continue ;; esac
+    [ -f "$f" ] && ! [ -L "$f" ] || continue
+    set -- "$@" "$f"
+  done <<LIST
+$LIST
+LIST
+  [ $# -gt 0 ] || exit 0
+elif [ $# -eq 0 ]; then
+  wrap -
+  exit $?
+fi
+
+# --check reads every file in one awk. A name that looks like an
+# assignment, a=b.md, would be taken for one there, so it is given
+# as ./a=b.md.
+rc=0
+if [ -n "$CHECK" ]; then
+  for f in "$@"; do
+    shift
+    if ! [ -f "$f" ] || ! [ -r "$f" ]; then
+      echo "hostwarden-wrap: cannot read $f" >&2
+      rc=2
+      continue
+    fi
+    case $f in [A-Za-z_]*=*) f=./$f ;; esac
+    set -- "$@" "$f"
+  done
+  [ $# -eq 0 ] || LC_ALL=C awk -v check=1 "$WRAP_AWK" "$@" || rc=$((rc > $? ? rc : $?))
+  exit $rc
+fi
+
+tmp=$(mktemp) || exit 2
+trap 'rm -f "$tmp" "$tmp.rep"' EXIT
+for f in "$@"; do
+  if ! [ -f "$f" ] || ! [ -r "$f" ] || ! [ -w "$f" ]; then
+    echo "hostwarden-wrap: cannot rewrite $f" >&2
+    rc=2
+    continue
+  fi
+  ! grep -qE '^(<<<<<<<|>>>>>>>)( |$)' "$f" || continue
+  # Both emptied first: awk writes nothing for an empty file, which
+  # would otherwise leave the last file's text to be copied in.
+  : > "$tmp"
+  : > "$tmp.rep"
+  wrap "$f" -v out="$tmp" -v rep="$tmp.rep" < "$f"
+  r=$?
+  if [ "$r" -gt 1 ]; then
+    rc=2
+    continue
+  fi
+  if ! cmp -s "$tmp" "$f"; then
+    # Written through rather than moved over it, so the file keeps
+    # its mode, its owner and its links.
+    cat "$tmp" > "$f" || { rc=2; continue; }
+    echo "$f: rewrapped"
+  fi
+  cat "$tmp.rep"
+  [ "$r" -le "$rc" ] || rc=$r
+done
+exit $rc

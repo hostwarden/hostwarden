@@ -49,6 +49,14 @@ jobs:
           # seven days.
           version: v2026.9.10
 
+      # The awks bin/hostwarden-wrap has to work with, which
+      # scripts/wrap-test.sh runs it under.
+      - name: Install awks
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            gawk mawk original-awk busybox
+
       # Add checks to scripts/check.sh, not here. A draft gets what a
       # push of its commits onto the base gets: every check but the
       # matrices whose files it leaves alone.

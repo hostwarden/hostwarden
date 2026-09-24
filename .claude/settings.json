@@ -103,6 +103,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/wrap-markdown.sh\"",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
