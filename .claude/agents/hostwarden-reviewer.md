@@ -118,7 +118,45 @@ The prompt names one of two jobs.
    sees as an example or not at all — fenced code, indented code,
    an HTML comment — for the line that opens and the line that
    closes each, and inside the list items and quotes that move
-   where a block starts? Check it against the spec, not memory.
+   where a block starts? Check it against the spec, not memory. A
+   step that reports what changed in a set of records (files,
+   entries, rows) by diffing two states: does it cover every way a
+   record changes — added, edited, deleted, renamed — or only the
+   one form (usually addition) the first test exercises? An
+   instruction that acts the same way on every reason a GitHub
+   issue was closed (duplicate, not planned, completed): does
+   treating them alike undo what one of those reasons already
+   accomplished — reopening a duplicate recreates the overlap it
+   was closed to remove? A transform meant to change only layout
+   (line breaks, indentation): does every byte whose meaning
+   depends on context survive it — a run of spaces inside a code
+   span, an escape — or does a split and join on whitespace
+   normalise them? The same question holds across line ends: does
+   the context an open code span carries reach the next line, so
+   the spaces the transform trims at a line end still belong to
+   it? An exclusion meant to skip one kind of entry (a CA trust
+   store, a cache): does it match by that kind — a link, a name —
+   or by a whole directory that also holds the entries the search
+   is for? An operation on a thing with more than one name field
+   (hostname, display name, label): does the step change every
+   field a user sees as that name, or only the one the command it
+   cites sets? A check that a name resolves to the right machine:
+   does it take every address family ssh may connect over — AAAA
+   as well as A — or one only? A parser that builds several fact
+   types from one memory (an index, a map): does every consumer of
+   those facts read each type that bears on its question, or does
+   one pass skip a type another pass relies on? A parser of a
+   memory line with several documented entry forms (name → dir,
+   name with no memory): does it handle each form the owning
+   rule's example shows, not only the linked one? A shortcut that
+   skips a lookup when one input matches (the same SSH user, the
+   same name): can the looked-up result still differ through
+   another input the shortcut does not compare, such as a Host or
+   Match block of its own? A filter that excludes an entity from
+   one special handling because it takes another (a Reached as
+   host skipping its aliases): do the two handlings cover disjoint
+   cases, or does the exclusion drop what only the first would
+   find?
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
@@ -173,6 +211,9 @@ The prompt names one of two jobs.
      label? A count that stands for "each item has one": does it
      count distinct items, or matches, so that one answer repeated
      passes for several items?
+   - A step that writes a line in another file's form (`verified
+     <date>`, `confirmed <date>`): does it carry over the condition
+     under which that file writes the form?
 3. **A step that reads data nothing produces.** Every field the
    text uses must be printed by a probe the same flow runs, for
    each syntax a rating is said to cover: the members of a named
@@ -188,19 +229,80 @@ The prompt names one of two jobs.
    pattern a step uses: is it set in the same call on every branch
    that reaches the step, or does the step count on another file's
    block having run first, and what does the tool do with it unset?
+   A procedure that branches by job, mode or tier (a focus, a
+   tier, a sweep): does every job the callers can hand it —
+   including one that carries findings, such as a fix range or an
+   escalation — land on a defined branch of every step, or does one
+   fall between them? A new instruction runs a script on its own
+   that another script so far only called: does the caller set up
+   anything first — `PATH`, an environment such as `MISE_ENV`, a
+   working directory — that the script's answer depends on, and
+   does the new call get the same? A loop reuses one scratch file
+   or variable for every item: is it emptied before each item, an
+   item that produces no output at all (an empty file) included,
+   or can the item before leak into it? A hand-off that says
+   another flow records the user's answer: does that flow run
+   again for this host in practice, or is the answer lost? A check
+   that fetches objects by ID from a remote (commits, artifacts):
+   does the documented flow keep them reachable until the check
+   has run for the last time — a squash, a force-push, a deleted
+   branch in between — and does the rule say what is due when the
+   remote no longer serves one?
 4. **A contradiction with another file, or a lost safeguard.**
    Another rule, skill, hook or doc says the opposite now, or the
    diff removes a check an earlier change put there on purpose. A
    blanket skip derived from a rule — read-only, unsupported: does
    that rule carry exceptions of its own, and does the skip keep
-   them without widening them to cases they never covered?
+   them without widening them to cases they never covered? A page
+   describes "every connection" or "each host" going through a
+   fixed pipeline of steps: does the local-mode/local-
+   administration case in the same product skip any of those
+   steps, per `AGENTS.md` or `rules/first-connection.md`? Check
+   every paragraph that repeats the "each host" framing, not only
+   the first instance. A line that sorts a new kind of thing into
+   an existing bucket (an override, a fact, a decision): does the
+   bucket's own definition, and `AGENTS.md`'s split between
+   development and operations, actually take it, or does the line
+   send it where the defining file says it never goes? A step
+   added to a flow that runs everywhere (the pipeline, every
+   connection) that asks the user: does every caller have someone
+   to ask — a scheduled or `-p` run, an agent — and does the step
+   say what it does where nobody answers? A new condition that
+   restates where a probe applies (bare metal only, containers
+   excluded): does it copy the probe's own applicability rule in
+   full, the exceptions (a VM with a passed-through disk) included?
+   A second caller that writes a completion marker: does it run
+   every step the marker's definition names, or does the
+   definition have to change? A value the procedure writes where
+   another component rewrites it at start (a hypervisor,
+   cloud-init, DHCP): does the procedure write the form that
+   component will keep, or one it will change back? A decision
+   record's blanket requirement derived from a rule (a marker, a
+   check): does it carry the rule's own carve-outs for the formats
+   or cases it does not apply to? A decision record describing who
+   performs a two-party workflow step (build vs. sign, read vs.
+   write): does it check the cited skill or reference file for
+   which party does which half, rather than assuming one party
+   does both?
 5. **A platform or privilege path left out.** Run the change on
    each: systemd, OpenRC, BusyBox, launchd, FreeBSD rc.d, Windows,
    WSL 2, the appliances; root, sudo, doas, unprivileged; old and
    current releases of each family the file covers; GNU and BSD
    tools; zsh and csh where a user's shell runs the line. A path
    or source written for one platform, such as Alpine's log file:
-   what does the check print where it is not written?
+   what does the check print where it is not written? An
+   instruction that makes a GitHub write action (reopen, edit, set
+   a link) a hard prerequisite: does every contributor who might
+   follow it — including one working from a fork with no write
+   access to the target repo — have the permissions that action
+   needs, or is there a fallback? A step, check or form decision
+   that names one file as the place a setting lives: does every
+   family the step runs on keep it there, or does the family file
+   name another store (`rc.conf`, `scutil`, UCI)? A step reused
+   across cases (a read-back, a verification) by pointing at
+   another step: does every case that points there have the shell,
+   files and tools the pointed-at step uses (Windows, WSL, an
+   appliance)?
 6. **A tool that does not work as written.** Syntax, argument
    order, output format, and above all what it prints and returns
    on pending, timeout, empty and error. An on/off field — 0/1 or
@@ -219,7 +321,11 @@ The prompt names one of two jobs.
    time: a remote, a ref (`origin/main`), a default zone, profile
    or network. Where an earlier step chose a user, path or value,
    does every later call and example use the chosen one, and does
-   an example that shows a default say so?
+   an example that shows a default say so? A vendored or copied
+   tool whose defaults name a path or setting: does the repository
+   use that default, and does every documented invocation (its own
+   docstring, `--help`) still work here without the flag the
+   caller passes?
 8. **An identity key that is not unique or not stable.** Try to
    make two objects share the key, and one object change it. A key
    that decides two things are one — a name, an address, a
@@ -228,7 +334,11 @@ The prompt names one of two jobs.
    needs before two are merged? A record, token or line that grants
    a pass — a skip, an approval, a review line: is it bound to the
    subject it grants, this head or this pull request, or does any
-   value of the right shape anywhere in the input count?
+   value of the right shape anywhere in the input count? The
+   evidence such a line relies on needs the same binding: is it
+   tied to the exact object its own fields name (the run on its old
+   SHA), or can it borrow matching evidence from another entry of
+   the same kind?
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
    validated, `--` before them, `grep -F` for a literal
@@ -244,6 +354,9 @@ The prompt names one of two jobs.
      itself — userinfo, a path segment or query, an option value
      that only looks like a path — and is a path tested on the host
      before it is printed?
+   - A read of a whole configuration or inventory dump (a guest's
+     config, a unit, a manager's listing): can it carry credentials
+     or user data, and does the step read only the keys it needs?
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
@@ -256,7 +369,19 @@ The prompt names one of two jobs.
     again, and who is told? If the session ends after any
     step, can a later one find the full text of each item it must
     still act on, in the repository, memory, the pull request or an
-    issue?
+    issue? A step that moves or renames a stored object other
+    entries point at (a directory, a file a line names): is every
+    existing pointer to the old location rewritten, or does one now
+    reach it only through a temporary stand-in that a later step
+    removes? An age rule that reads a date stored on a line: does
+    the run that re-checks the fact also move that date, or does
+    the line age while it is being kept current? A step that moves
+    a directory: do files inside it name their own path (a
+    record's master line, a title), and does the move rewrite
+    them? A cache judged fresh by comparing mtimes (`find
+    -newer`): does a deleted or renamed input make it stale, or
+    does `find` simply stop listing the file and the directory it
+    lived in go unchecked?
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
@@ -266,7 +391,11 @@ The prompt names one of two jobs.
 12. **Side effects in the wrong order.** A change before its
     check, a service started before its firewall rule or its
     config test, memory written before verification, state not
-    restored exactly.
+    restored exactly. A pre-flight check that a target is free:
+    does it test the exact string the later write uses, after the
+    same derivation (short form, suffix, prefix), or a different
+    spelling of it, so the collision surfaces only after the
+    irreversible step?
 13. **A guard tier that does not match the command.** Read what
     the command does to data: repair, destroy, shrink and
     deactivate are not the same as grow or inspect.
@@ -282,7 +411,61 @@ The prompt names one of two jobs.
     check of its review record, not a test that changes with the
     code it tests: does the change supply the gate itself, its
     script, workflow or config, so that it can weaken what judges
-    it?
+    it? A pointer that tells the reader to reuse a helper or follow
+    another file: does that target do everything the sentence
+    around it asks for, or does the pointer claim more than the
+    target keeps? A user-facing page says "each"/"every" guest,
+    host or step gets some outcome: does the implementing rule
+    carve out any case (can't be entered, wrong OS, blacklisted)
+    that the sentence doesn't name? A page claims one round-trip
+    (one SSH call, one probe) does a whole job: does every platform
+    the page also covers (Windows, a busybox host) really finish
+    that job in that one call, or does one of them need an extra
+    step first? A page promises a log/journal line for every actor
+    a loop touches (every guest, every host): does the implementing
+    rule's own example show a case where that write fails or is
+    skipped? A bullet lists several systems by name and then makes
+    one claim about what happens on "them": does every one of those
+    systems actually appear in the skill/workflow the claim
+    describes, or does the list include names carried over from a
+    neighbouring bullet? A page states one security/access property
+    ("read-only", "never", "always") as holding for a named group
+    of systems (appliances, accounts): does every member's own
+    rules file actually guarantee that property, or does one have a
+    documented fallback that breaks it? The same check applies when
+    the claim is about a mechanism — which client is used, which
+    TLS check runs — rather than an access level, and a sweep for
+    one sibling should look for others of the same shape. A page
+    claims a behaviour holds "across all N" items of a set defined
+    elsewhere (here, all appliance files): does a grep of that set
+    actually show N matches, or does at least one file never
+    mention it? A sentence says a missing tool or failed check
+    blocks one step (a commit, the pre-commit run): does that step
+    actually test for every item the sentence covers, or only for a
+    subset, while the rest block a later stage? A record's
+    Consequences or Confirmation names what a named check verifies
+    (a matcher, a test): does the check actually test that
+    mechanism for every item the claim covers, or does one item
+    pass through a different, unstated path (a deny list, a
+    fallback) the claim doesn't distinguish? A validation pattern
+    next to a sentence that states a requirement (a full name, a
+    domain, a range): does the pattern enforce that requirement, or
+    only the syntax around it? A new pipeline step that fires on a
+    memory state: can a skill that itself runs the pipeline reach
+    that state and do the same work again in its own steps? A
+    decision record's claim about every case of a workflow ("every
+    guest", "a password is never"): does it check the feature's own
+    reference file (a skill, a rule) for a named exception path
+    before asserting the absolute? A decision record's claim that
+    every pull request or every fix commit gets a review step: does
+    it check the governing rule for a tier or condition that skips
+    that step in some case? A decision record's claim that a result
+    is "never" posted somewhere (a comment, a log): does it check
+    the governing rule for an alternate path (GitHub vs. local)
+    that behaves differently? A decision record's claim that a file
+    is touched "only" by one process: does it check the governing
+    rule for an exception that lets another process touch it under
+    a stated condition (an entry not yet released)?
 16. **A repository convention** from `.claude/rules/`: 80-column
     wrap, current state only, example identifiers, fence markers.
 
