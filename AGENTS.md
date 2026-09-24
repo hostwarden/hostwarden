@@ -36,7 +36,7 @@ which before anything else, from the files, never from the remote:
   command there rather than guess its syntax.
 
 A fork is a development checkout like any other; its pull requests
-go to `jpawlowski/hostwarden`.
+go to `hostwarden/hostwarden`.
 
 ## How It Works
 

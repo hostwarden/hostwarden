@@ -10,7 +10,7 @@
 # checkout: it refuses to run in an operations install. It needs
 # git and nothing else — no checkout of the mirror, no hosting
 # service's API. Upstream defaults to
-# https://github.com/jpawlowski/hostwarden.git.
+# https://github.com/hostwarden/hostwarden.git.
 #
 # It never overwrites. When the mirror's main has commits
 # upstream's does not, or a tag of the mirror names another
@@ -26,7 +26,7 @@
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-UPSTREAM=https://github.com/jpawlowski/hostwarden.git
+UPSTREAM=https://github.com/hostwarden/hostwarden.git
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \

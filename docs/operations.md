@@ -144,7 +144,7 @@ worktree created, and no other.
 ## Where production comes from
 
 Production runs a **clone** — of
-`jpawlowski/hostwarden` itself, or of a mirror of your
+`hostwarden/hostwarden` itself, or of a mirror of your
 own.
 
 - **Straight from GitHub** is the default and needs
@@ -202,7 +202,7 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - run: git clone --depth 1 https://github.com/jpawlowski/hostwarden.git
+      - run: git clone --depth 1 https://github.com/hostwarden/hostwarden.git
       - run: >-
           hostwarden/bin/hostwarden-mirror
           https://x-access-token@github.com/<org>/hostwarden-mirror.git
@@ -226,7 +226,7 @@ hostwarden-mirror:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - git clone --depth 1 https://github.com/jpawlowski/hostwarden.git
+    - git clone --depth 1 https://github.com/hostwarden/hostwarden.git
     - hostwarden/bin/hostwarden-mirror
       "https://oauth2@gitlab.example.com/<group>/hostwarden-mirror.git"
 ```

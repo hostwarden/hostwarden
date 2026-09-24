@@ -5,7 +5,7 @@ installation.
 
 ## Add: A second tool administers these hosts
 
-[Hostwarden](https://github.com/jpawlowski/hostwarden)
+[Hostwarden](https://github.com/hostwarden/hostwarden)
 grew out of Heinzel and is in use on the same
 machines during a transition. It follows the same
 safety rules, logs to the same journal under the tag

@@ -68,7 +68,7 @@ is missing and the command to install it.
 
 1. **Clone the repo, set up the workspace, start Hostwarden**
    ```
-   git clone https://github.com/jpawlowski/hostwarden.git
+   git clone https://github.com/hostwarden/hostwarden.git
    cd hostwarden
    bin/hostwarden-init
    claude

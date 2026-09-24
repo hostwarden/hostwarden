@@ -19,11 +19,11 @@ in the project's own clone a second remote is Heinzel. Every
 command below that needs one of the project's branches uses
 `hostwarden/<branch>`, fetched just before:
 
-    git fetch -q https://github.com/jpawlowski/hostwarden.git \
+    git fetch -q https://github.com/hostwarden/hostwarden.git \
       +refs/heads/<branch>:refs/hostwarden/<branch>
 
 Every `gh` command below names the repository the same way, with
-`-R jpawlowski/hostwarden`.
+`-R hostwarden/hostwarden`.
 
 ## Checks
 
@@ -39,9 +39,9 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 - Beyond that, it runs neither `scripts/check.sh` nor a test script
   (`guard-taboos-test.sh`, `instructions-test.sh`, …) on the
   workstation. It pushes, waits with
-  `gh pr checks <number> -R jpawlowski/hostwarden --watch`, and on
+  `gh pr checks <number> -R hostwarden/hostwarden --watch`, and on
   a failure reads
-  `gh run view <run-id> -R jpawlowski/hostwarden --log-failed`.
+  `gh run view <run-id> -R hostwarden/hostwarden --log-failed`.
 - The one exception is a guard hook patch the maintainer applies
   with `git am` (`repo-release.md` → CI), which CI does not see
   until then. The matrix of the hook it changes runs exactly once,
@@ -67,7 +67,7 @@ whose blind spots differ.
   review is through (→ Lifting the draft).
 
 `<base>` below is the pull request's base branch as
-`gh pr view <n> -R jpawlowski/hostwarden --json baseRefName`
+`gh pr view <n> -R hostwarden/hostwarden --json baseRefName`
 names it; the review runs
 against `hostwarden/<base>` (→ The project's branches). A stale or
 foreign `main` would put other commits into the review.
@@ -300,7 +300,7 @@ to an existing one is the rule.
 A pull request is opened as a draft (`gh pr create --draft`) and
 stays one while agents carry it; one they carry that is out of
 draft goes back with
-`gh pr ready <n> -R jpawlowski/hostwarden --undo`, and whoever
+`gh pr ready <n> -R hostwarden/hostwarden --undo`, and whoever
 merges is told. Lifting the draft hands it to whoever merges: a
 person, who reviews it and decides whether it is merged; agents
 never merge. So it is the last step, taken once everything an
@@ -316,7 +316,7 @@ agent can do is done:
 - a P0 or P1 left for whoever merges, from round 4 or the own
   review's deferred list, has already been put to them;
 - CI is green on the current head, and
-  `gh pr view <n> -R jpawlowski/hostwarden --json mergeable` shows
+  `gh pr view <n> -R hostwarden/hostwarden --json mergeable` shows
   `MERGEABLE`;
 - a stacked pull request's base is merged, and it has been
   retargeted and rebased onto `hostwarden/main` (→ After a merge,
@@ -328,7 +328,7 @@ agent can do is done:
   where it had none (→ Rounds): fixed in a fix commit where that
   level fixes them, deferred otherwise.
 
-The lift is `gh pr ready <n> -R jpawlowski/hostwarden`.
+The lift is `gh pr ready <n> -R hostwarden/hostwarden`.
 
 Once the draft is lifted, the session tells whoever merges before
 any push, a commit or a rebase, or a head the agents have not
@@ -350,7 +350,7 @@ finished with gets merged.
   head and green CI. Only a new fix commit of its own needs the
   second review again.
 - The merge is
-  `gh pr merge <n> -R jpawlowski/hostwarden --squash --match-head-commit <sha>`.
+  `gh pr merge <n> -R hostwarden/hostwarden --squash --match-head-commit <sha>`.
   The squash message carries the why, not only the what: before
   1.0.0 the changelog is rewritten from the code, the pull requests
   and the commit messages.
@@ -381,8 +381,8 @@ finished with gets merged.
 ## After a merge
 
 Before deleting the merged branch, run
-`gh pr list -R jpawlowski/hostwarden --base <branch> --limit 1000`,
+`gh pr list -R hostwarden/hostwarden --base <branch> --limit 1000`,
 since the default stops at
 30: GitHub closes a pull request whose base branch disappears.
 Retarget each one with
-`gh pr edit <number> -R jpawlowski/hostwarden --base main` first.
+`gh pr edit <number> -R hostwarden/hostwarden --base main` first.

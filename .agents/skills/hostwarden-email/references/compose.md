@@ -113,7 +113,7 @@ the remote path converge here.
    ```
    -- 
    Sent by Hostwarden on behalf of <Operator name>
-   https://github.com/jpawlowski/hostwarden
+   https://github.com/hostwarden/hostwarden
    ```
 
    Keep it to these three lines. No timestamp, no hostname,
