@@ -61,6 +61,11 @@ crosses a boundary:
 - sharing your own findings, avoiding duplicate work,
   coordinating a measurement, warning about a side effect;
 - asking another session to **stop or leave something alone**;
+- acking `bin/hostwarden-impact ack <id> safe|busy` when another
+  session's `announce` names your host: it says this session is
+  ready, or not, for the step; it is information for `wait` to
+  read, not a yes on the user's behalf, and never held out as one
+  (`rules/coordination.md` → Announce, wait, go);
 - subagents that run with this session's rights and rules, such as
   `hostwarden-host-probe` and `hostwarden-host-task`: they are this
   session, working in parallel, and a host this session may not

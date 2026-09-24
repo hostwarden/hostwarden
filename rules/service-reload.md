@@ -30,6 +30,14 @@ it wins over this file.
 
 Prefer reload whenever the service supports it.
 
+Before a restart — never a reload, which drops nothing —
+`bin/hostwarden-impact announce <host> restart:<unit>` and wait,
+as `rules/coordination.md` → Announce, wait, go says, whichever
+answer below sends it ahead. `impact.sh` denies it mechanically
+where another live session is on the radius and this session has
+not; announcing first means the approval question below already
+carries that answer instead of a second round-trip.
+
 ## Default Behavior
 
 | Action                         | Default                              |

@@ -415,7 +415,10 @@ listens behind it.
 
 The change goes through `rules/ssh-safety-net.md`, and the
 loaded family file names the tool's check, apply and revert.
-Beyond that:
+That file's own steps announce the change first
+(`rules/coordination.md` → Announce, wait, go): a network change
+takes the whole radius, every guest and every host reached
+through this one included. Beyond that:
 
 - **Edit the owner's source, not its output:** the netplan YAML,
   not the generated `.network` file; the NetworkManager

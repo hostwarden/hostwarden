@@ -222,11 +222,20 @@ else
 fi
 # The radius matrix reads the impact script and what it sources.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops)\.sh$|^scripts/impact-'
+    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops|coord-lib)\.sh$|^scripts/impact-'
 then
   echo "== impact matrix: nothing it reads is pushed, skipped"
 else
   step "impact radius" sh scripts/impact-test.sh
+fi
+# The coordination matrix reads announce/wait/ack/done/status and
+# the presence and impact hooks.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops|coord-lib|json|presence|impact|session-mode)\.sh$|^scripts/coordination-'
+then
+  echo "== coordination matrix: nothing it reads is pushed, skipped"
+else
+  step "coordination" sh scripts/coordination-test.sh
 fi
 step "review record" sh scripts/review-record-test.sh
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \

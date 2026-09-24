@@ -65,7 +65,10 @@ fight, and the surviving rule set is whichever wrote last.
 
 Apply a firewall change through `rules/ssh-safety-net.md`:
 the revert is armed before it and cancelled only by a
-working fresh login.
+working fresh login, and that file's own steps announce
+the change first (`rules/coordination.md` → Announce, wait,
+go) — a firewall reload takes the whole radius, not only
+this host.
 
 Log the change (`rules/changelog.md`) and record the
 resulting exposure in the host's memory file

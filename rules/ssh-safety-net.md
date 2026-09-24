@@ -72,6 +72,15 @@ tests in the `- Access:` line (`rules/server-memory.md`).
 
 ## The steps
 
+Both kinds of change go through `bin/hostwarden-impact announce
+<host> firewall|network` and `wait`, as `rules/coordination.md` →
+Announce, wait, go says, before step 5 applies it — a firewall or
+network reload takes the whole radius, guests and jump-host
+traffic included. `impact.sh` denies the apply mechanically where
+another live session is on the radius and this session has not;
+announcing before step 1 means the window agreed there already
+accounts for it.
+
 1. **Agree on it.** The change is the user's decision
    (`AGENTS.md` → Critical Safety Rules), and so is the
    window: say that the change undoes itself after five

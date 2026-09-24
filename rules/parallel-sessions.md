@@ -132,7 +132,10 @@ Reading the register is every session's own job; nobody announces
 themselves beyond their entry. Talking to another session is for
 when coordination looks necessary — both about to touch the same
 service, one about to restart what the other depends on — not a
-courtesy owed every time.
+courtesy owed every time. This section is about the host you are
+both on; a session on another host that the step you are about to
+take would also reach is found and coordinated with mechanically,
+through `rules/coordination.md`, not by asking around here.
 
 When a live entry names your own `<user>@<workstation>`, the other
 session runs on this same machine. Where the harness can reach
