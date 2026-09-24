@@ -213,7 +213,10 @@ or the OS no longer matches memory, run On first
 connection from step 1.
 
 That is a **full re-probe**, and the user can ask for
-one on a known host (`hostwarden-onboard`). It
+one on a known host (`hostwarden-onboard`). A guest
+whose memory has `SSH: untested` gets one on its first
+own connection, in place of the short first call
+(`rules/first-connection.md` step 9). It
 rewrites the lines detection owns
 (`rules/server-memory.md` → Who writes which line:
 this file's, `rules/first-detection.md`'s, and those

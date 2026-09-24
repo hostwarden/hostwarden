@@ -46,7 +46,8 @@ df -Ph | grep -vE '^(tmpfs|devtmpfs|overlay|shm|none) '
 
 ZFS pools and btrfs filesystems have their own fill levels,
 health and settings: `references/zfs-btrfs.md`. The disks' own
-health on bare metal is `references/smart.md`, and whether TRIM,
+health on bare metal, and in a VM for the disks its host passes
+through, is `references/smart.md`, and whether TRIM,
 RAID checks and scrubs are scheduled
 `references/storage-maintenance.md`.
 

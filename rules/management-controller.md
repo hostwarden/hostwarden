@@ -20,11 +20,14 @@ metal only (`rules/first-detection.md` → Virtualization); on a
 virtual machine or a container the line is filled by The rescue
 path instead, since a guest has no controller of its own.
 
-The line is settled at first need, never in the onboarding
-pipeline: the probe needs root, and
+The line is settled at first need, never in the pipeline of
+`rules/first-connection.md`: the probe needs root, and
 `rules/privilege-escalation.md` escalates only for a privileged
 action that is actually wanted. Each moment that needs it is
-already privileged, and each names itself.
+already privileged, and each names itself. Onboarding
+(`hostwarden-onboard`) is one where it already holds root for the
+baseline measurement: the user asking for it counts as wanting
+this read.
 
 **Settle it before it is needed, not during.** A housekeeping run
 and a security audit both settle the line on every host they

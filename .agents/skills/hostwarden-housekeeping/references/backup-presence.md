@@ -18,7 +18,9 @@ Look for a `Backup:` line in
 
 - **Names a detectable mechanism** (e.g.
   `- Backup: restic via systemd timer`): skip
-  discovery, verify recent-run evidence only (below).
+  discovery, verify recent-run evidence only (below),
+  and where it is fresh, write the line's `verified`
+  date as today's.
 - **User acknowledgment** (e.g.
   `- Backup: provider snapshots (Hetzner),
   confirmed 2026-06-10`): emit one INFO line, do not
@@ -232,7 +234,9 @@ cron job, `syncoid`, `zrepl` with a remote target).
 
 After the user answers the CRITICAL question, append
 exactly one `Backup:` line to `memory.md` — update
-it on change, never duplicate:
+it on change, and a mechanism's `verified` date on
+each run that finds it fresh (Step 0), never
+duplicate:
 
 ```
 - Backup: provider snapshots (Hetzner), confirmed 2026-06-10

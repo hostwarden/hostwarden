@@ -1,8 +1,8 @@
 # Fleet Audit Output Format
 
 Render one Markdown table per probe category, then a "Drift
-detected" section, then a "Warnings" section. Keep the text
-scannable.
+detected" section, a "Warnings" section, "Decided" where it
+applies, and a "Memory" section. Keep the text scannable.
 
 ## Header
 
@@ -183,6 +183,27 @@ hosts it covered in this run.
 
 A decision whose `Revisit:` date has passed gets `— revisit due`
 at the end of its line.
+
+## Memory
+
+After Decided, from the memory files alone: one line for the
+hosts without an `Onboarded:` line, and one per host whose lines
+housekeeping refreshes are stale, naming those its memory has and
+the date they go by (`rules/server-memory.md` → Onboarded and
+stale lines). Each names the run that brings it up to date.
+
+```
+### Memory
+
+- Not onboarded: db1.example.com (registered through
+  pve1.example.com), mail1.example.com — onboard them
+  (`hostwarden-onboard`) or log in to the guest once
+- **web1**: stale — USB, Passthrough, disks (last housekeeping
+  2026-05-01) — run housekeeping
+```
+
+Where every host is onboarded and nothing is stale, the section
+is one line, `None.`
 
 ## Skipped hosts
 

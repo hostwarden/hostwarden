@@ -69,7 +69,15 @@ applies before any of this runs.
    `references/report-format.md`.
 6. **Update `memory.md`** immediately after, if the checks
    revealed changed facts (disk usage shifted significantly, a
-   new service appeared, a service was removed).
+   new service appeared, a service was removed). Where every
+   probe behind the lines `rules/server-memory.md` → Onboarded and
+   stale lines names ran that applies to this host — the USB
+   inventory not in a container, the passthrough inventory only on
+   a host with guests, the disks only on bare metal and in a VM
+   its host passes a disk or a disk controller to — write
+   `- Housekeeping: <date>`, or move its date. A run that skipped
+   one that applies, for want of root or because the user left its
+   section out, leaves the line as it is.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:
@@ -113,8 +121,9 @@ Read on demand, only when the relevant section applies:
   a bind mount whose share is not mounted.
 - `references/smart.md` — the `smartctl` probe, how to read
   SATA, SAS and NVMe output, its findings, and whether `smartd`
-  watches between runs. On bare metal, and where an appliance's
-  section sends you there.
+  watches between runs. On bare metal, in a VM for the disks its
+  host passes through, and where an appliance's section sends you
+  there.
 - `references/storage-maintenance.md` — whether TRIM, the md
   RAID check and ZFS and btrfs scrubs are scheduled, what each
   distribution ships, and the offer to schedule what is
