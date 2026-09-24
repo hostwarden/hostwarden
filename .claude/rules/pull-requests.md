@@ -127,19 +127,22 @@ tool that picks the model per session, such as OpenCode, may run it
 on another family than the author's, and the own review then brings
 a second family's view as well.
 
-Its tier follows from the files the branch changes,
-`git diff --name-only hostwarden/<base>...HEAD`, and from nothing
-else:
+Its tier follows from the files the branch changes, both names of
+a renamed one included, and from nothing else.
+`sh scripts/review-tier.sh hostwarden/<base>...HEAD` prints it, and
+the files that made it full. Its `LIGHT` is the list below, and
+`review-record-test.sh` fails when the two differ.
 
 - **Light** when every one of them is in `docs/`, `README.md`,
   `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `changelog.d/`
   or `.claude/rules/` other than this file, a new file there
   included. One reviewer with focus `consistency` reviews the
   branch, and each command the changed lines add or alter as focus
-  `commands` would; no pass checks a fix and no sweep runs: the
+  `commands` would; no pass checks its fixes and no sweep runs: the
   session names a finding's class and looks for its siblings
-  itself, with `rg --hidden -g '!.git'` for its terms, and the next
-  round of the second review checks each fix.
+  itself, with `rg --hidden -g '!.git'` for its terms. The second
+  review checks the fixes; → Rounds says what checks a fix
+  commit's.
 - **Full** otherwise, whatever the size: a single file outside that
   list — this one, the reviewer's, one in a directory the list does
   not name — makes the whole pull request full. Two reviewers,
@@ -255,8 +258,8 @@ Passes, here and on a fix commit, run like this:
   "deferred to a follow-up PR". On GitHub the answer goes in the
   finding's thread, which is then resolved; locally it is appended
   to the round's line, a clause per finding,
-  `<title> (<path:line>): class <n>, <answer>`, the clauses
-  separated by `; `.
+  `<title> (<path:line>): P<n>, class <n>, <answer>`, with the
+  priority the reviewer gave it, the clauses separated by `; `.
 - **Handles.** Write a reviewer's `@` handle only in the comment
   that asks it for a review. Anywhere else — a body, a commit or
   squash message, an answer, reviewer text quoted anywhere on
@@ -284,7 +287,16 @@ merges reviews those. Otherwise the body needs one of:
   (→ Capacity), that names the head's full SHA;
 - a rebase or squash line naming the head, its closing words
   included (→ Merge-ready, → Lifting the draft), whose old head has
-  one of these in turn.
+  one of these in turn;
+- a fix line naming the head (→ Rounds), whose old head has one of
+  these in turn, where a local run on the old head has a clause
+  answered "fixed in" the head, each such clause names a P2 or P3,
+  and the files between the two heads are light by
+  `scripts/review-tier.sh`. The check fetches the two commits by
+  their SHAs to read their file names, and runs nothing of them.
+  Once the squash has taken them off the branch, only the server
+  keeps them; where it no longer serves one, the check fails, and a
+  run on the head is due as for any fix.
 
 Each local run's line with findings must carry one clause per
 finding, told apart by title and place, whose answer is "fixed in
@@ -297,10 +309,10 @@ fenced or indented, a block quote or an HTML block or comment is an
 example, and so is a heading nested in a list item or a quote — it
 starts or ends nothing there. Inline code stays part of its
 paragraph — it is still text a reader sees, only styled. It proves
-that the record exists, not that the review was good. CI runs the workflow
-and the checker as the default branch has them, so a pull request
-is held to the gate `main` has; a change to either counts once it
-is merged. It holds the second review
+that the record exists, not that the review was good. CI runs the
+workflow, the checker and the tier list as the default branch has
+them, so a pull request is held to the gate `main` has; a change to
+any of them counts once it is merged. It holds the second review
 to Required (→ Review); set to "on request", the check comes out of
 the ruleset. A pull request a person opened without an agent gets
 its record from the session whoever merges hands it to, which runs
@@ -386,6 +398,25 @@ names its number.
 Deferred findings are listed in the pull request body under
 `## Deferred review findings`.
 
+A round's fix commit gets a round of its own only where the diff
+and the priorities call for one, never where the session judges
+that a run would find nothing: the author is the one biased toward
+finishing. The next run is due when the fix commit
+
+- touches a file outside the light list (→ The own review), as
+  `sh scripts/review-tier.sh <round's head> <fix>` prints it, or
+- fixes a P0 or P1.
+
+Otherwise no run follows. The passes of → A fix commit, step 3,
+check it in either tier, and it is recorded under `## Review` as
+`fix, <new sha>: from <old sha>, light fix checked by own review`,
+both SHAs in full, `<old sha>` the head the round reviewed. Such a
+fix is not a round and changes no count: the next run that finds
+something is the next round, at that round's level. The run stays
+due after a round on GitHub, whose priorities the record does not
+carry, and for any fix that answers no finding of a local round,
+such as the own review's after a stacked rebase.
+
 ### A fix commit
 
 A second-review finding names one case; the defect is usually a
@@ -400,11 +431,13 @@ back in the next round.
    swept, with the findings it answers, in passes as the own review
    runs them. Fix what it reports at the current round's level by
    amending the same commit.
-4. Push, then request the next round. Never request one after only
-   answering findings.
+4. Push, then request the next round where it is due (→ Rounds),
+   or record the fix line where it is not. Never request one after
+   only answering findings.
 
-In a light pull request, steps 1 and 3 do not run
-(→ The own review).
+In a light pull request, step 1 does not run (→ The own review),
+and step 3 runs as → Rounds says, continuing the own review's
+reviewer.
 
 Each time a continued reviewer or a sweep is given findings, it
 also gets the earlier ones, the own review's included, a line each:
@@ -443,8 +476,8 @@ agent can do is done:
 
 - the own review is through, and the second review, where it is
   required, has completed on the current head as → Merge-ready
-  counts it, a rebase included, or was skipped as under Capacity
-  with a line for this head;
+  counts it, a rebase or a light fix included, or was skipped as
+  under Capacity with a line for this head;
 - every finding is answered, in its thread or its round's line, no
   thread is unresolved, the deferred list is written, and the
   missed findings are in the reviewer's issue (→ Sharpening the
@@ -487,8 +520,9 @@ finished with gets merged.
 
 - Where the second review is required, it has completed on the
   current head, as its subsection says for GitHub or with a
-  `## Review` line naming that SHA, or it was skipped as under
-  Capacity with a line for that head.
+  `## Review` line naming that SHA, a fix line from such a head
+  included (→ Rounds), or it was skipped as under Capacity with a
+  line for that head.
 - No unresolved thread, every local finding answered in its
   round's line, CI green, not a draft, and GitHub reports the pull
   request CLEAN.
@@ -499,7 +533,7 @@ finished with gets merged.
   head and green CI. It records the rebase under `## Review` as
   `rebase, <new sha>: from <old sha>, range-diff checked`, both
   SHAs in full. Only a new fix commit of its own needs the second
-  review again.
+  review again, where → Rounds makes it due.
 - The merge is
   `gh pr merge <n> -R hostwarden/hostwarden --squash --match-head-commit <sha>`,
   which puts the pull request into the merge queue through

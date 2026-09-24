@@ -9,7 +9,10 @@
 # usage error or without its block reader. It proves the record
 # exists, not that the review was any good. The review-record
 # workflow runs it, the default branch's copy, on a pull request
-# that is not a draft.
+# that is not a draft, in a checkout of that branch: a fix line
+# (covered() below) is judged by the files its commit touches, and
+# the two commits it names are fetched from `origin` by their SHAs
+# for that, their names read and nothing of them run.
 
 [ $# -eq 1 ] && printf '%s\n' "$1" | grep -qxE '[0-9a-f]{40}' || {
   echo "usage: sh scripts/review-record.sh <full head sha> < <body>" >&2
@@ -109,12 +112,19 @@ SKIPS=$(printf '%s\n' "$SKIP" \
   | sed -nE 's/^([0-9a-f]{40}): .+, resets [^;]+; .+ decided[[:space:]]*$/\1/p')
 
 # A local run's line carries one answer per finding, a clause
-# `<title> (<path:line>): class <n>, <answer>` each, told apart by
-# title and place: the line is cut after each answer, and a clause
-# starts after the last `; `, `. ` or ` — ` before its place. A
-# GitHub run's answers are its threads, which this does not read.
-PLACE='\([^()]*:[0-9]+(-[0-9]+)?\): class [0-9]+(/[0-9]+)*, '
+# `<title> (<path:line>): P<n>, class <n>, <answer>` each, told
+# apart by title and place: the line is cut after each answer, and
+# a clause starts after the last `; `, `. ` or ` — ` before its
+# place. A GitHub run's answers are its threads, which this does not
+# read. The priority is needed only where a fix line relies on it,
+# so a clause without one still counts as answered. FIXES collects
+# `<run> P<n> <sha>` for each clause answered "fixed in <sha>",
+# `<run>` the head the run reviewed and `P` alone where the clause
+# names no priority.
+FORM='<title> (<path:line>): P<n>, class <n>, <answer>'
+PLACE='\([^()]*:[0-9]+(-[0-9]+)?\): (P[0-3], )?class [0-9]+(/[0-9]+)*, '
 ANSWER='(fixed in `?[0-9a-f]{7,40}|not a bug: |deferred to a follow-up PR)'
+FIXES=
 while IFS= read -r line; do
   run=$(printf '%s\n' "$line" | sed -nE "s/$SHAPE.*$/\\1 \\2 \\3/p")
   [ -n "$run" ] || continue
@@ -126,33 +136,89 @@ while IFS= read -r line; do
     || missing "the run line on $2 lacks what is left, ', <left>'"
   case $1 in [Gg][Ii][Tt][Hh][Uu][Bb]) continue ;; esac
   [ "$3" != no ] || continue
-  answered=$(printf '%s\n' "$line" | sed -E "s#$PLACE$ANSWER#&\\
-#g" | grep -E "$PLACE$ANSWER\$" \
-    | sed -E 's#\): class .*##; s#.*(; |\. | — )##' | sort -u | grep -c .)
+  clauses=$(printf '%s\n' "$line" | sed -E "s#$PLACE$ANSWER#&\\
+#g" | grep -E "$PLACE$ANSWER\$")
+  answered=$(printf '%s\n' "$clauses" \
+    | sed -E 's#\): (P[0-3], )?class .*##; s#.*(; |\. | — )##' | sort -u | grep -c .)
   [ "$answered" -ge "$3" ] \
-    || missing "the run on $2 has $3 findings, $answered answered"
+    || missing "the run on $2 has $3 findings, $answered answered as '$FORM'"
+  FIXES="$FIXES$(printf '%s\n' "$clauses" \
+    | sed -nE "s#.*\\): (P([0-3]), )?class .*, fixed in \`?([0-9a-f]{7,40})\$#$2 P\\2 \\3#p")
+"
 done <<EOF
 $REVIEW
 EOF
 
-# The head is covered when a run or a skip names it, or a rebase or
-# squash line leads to it from one that is, with its closing words.
+# lightfix <new> <old> -- whether the fix line from <old> to <new>
+# holds: <new> answers a finding of the local run on <old>, every
+# finding of that run it answers names its priority and is a P2 or
+# a P3, and it touches light-tier files only
+# (scripts/review-tier.sh), which the two commits' trees tell.
+lightfix() {
+  prios=
+  while read -r r p s; do
+    [ "$r" = "$2" ] && [ -n "$s" ] || continue
+    case $1 in "$s"*) prios="$prios$p
+" ;; esac
+  done <<EOF
+$FIXES
+EOF
+  if [ -z "$prios" ]; then
+    missing "no finding of a local run on $2 is answered 'fixed in'" \
+      "$1, which the fix line between them needs"
+    return 1
+  fi
+  if printf '%s\n' "$prios" | grep -qx P; then
+    missing "a finding answered 'fixed in' $1 names no priority," \
+      "'$FORM'"
+    return 1
+  fi
+  if printf '%s\n' "$prios" | grep -qxE 'P[01]'; then
+    missing "$1 fixes a P0 or P1: the next run is due"
+    return 1
+  fi
+  # Trees and names are all the tier reads, so no blob is fetched.
+  # After the squash neither commit is on a branch any more; GitHub
+  # still serves them by SHA, but no server has to, and where one
+  # does not the line fails closed: the run it skipped is due.
+  { git cat-file -e "$2^{commit}" && git cat-file -e "$1^{commit}"; } \
+    2>/dev/null || git fetch -q --no-tags --depth=1 --filter=blob:none \
+    origin "$2" "$1" 2>/dev/null
+  tier=$(sh "$(dirname "$0")/review-tier.sh" "$2" "$1" 2>/dev/null) || {
+    missing "the commits of the fix line on $1 cannot be read, so" \
+      "what it changes is unknown: a run on the head is due"
+    return 1
+  }
+  [ "$tier" = light ] && return 0
+  missing "$1 changes $(printf '%s\n' "$tier" | sed -n 2p)," \
+    "outside the light tier: the next run is due"
+  return 1
+}
+
+# The head is covered when a run or a skip names it, or a rebase,
+# squash or fix line leads to it from one that is, with its closing
+# words.
 covered() {
   c=$1 i=0
   while [ $i -lt 100 ]; do
     printf '%s\n%s\n' "$RUNS" "$SKIPS" | grep -qx "$c" && return 0
-    c=$(printf '%s\n' "$REVIEW" \
-      | sed -nE -e "s/^rebase, $c: from ([0-9a-f]{40}), range-diff checked[[:space:]]*$/\\1/p" \
-        -e "s/^squash, $c: from ([0-9a-f]{40}), tree unchanged[[:space:]]*$/\\1/p" \
+    step=$(printf '%s\n' "$REVIEW" \
+      | sed -nE -e "s/^(rebase), $c: from ([0-9a-f]{40}), range-diff checked[[:space:]]*$/\\1 \\2/p" \
+        -e "s/^(squash), $c: from ([0-9a-f]{40}), tree unchanged[[:space:]]*$/\\1 \\2/p" \
+        -e "s/^(fix), $c: from ([0-9a-f]{40}), light fix checked by own review[[:space:]]*$/\\1 \\2/p" \
       | head -1)
-    [ -n "$c" ] || return 1
-    i=$((i + 1))
+    o=${step#* }
+    case $step in
+      '') return 1 ;;
+      fix\ *) lightfix "$c" "$o" || return 1 ;;
+    esac
+    c=$o i=$((i + 1))
   done
   return 1
 }
 covered "$HEAD_SHA" \
   || missing "no run or skip line names the head $HEAD_SHA, and no" \
-    "rebase or squash line leads to it from one that does"
+    "rebase, squash or fix line leads to it from one that does"
 
 [ -z "$fail" ] || exit 1
 echo "review record: the head $HEAD_SHA is covered"

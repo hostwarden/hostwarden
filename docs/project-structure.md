@@ -57,8 +57,11 @@ scripts/
                          (run by scripts/check.sh)
   review-record.sh     — Whether a pull request body records
                          the second review of its head
-  review-record-test.sh — Its fixture matrix (run by
+  review-record-test.sh — Its fixture matrix and
+                         review-tier.sh's (run by
                          scripts/check.sh)
+  review-tier.sh       — Whether a change is light or full for
+                         the reviews, from the files it touches
   fleet-read-test.sh   — Fixture matrix for the fleet-read
                          wrapper (run by scripts/check.sh)
   fleet-run-test.sh    — Fixture matrix for
