@@ -47,9 +47,17 @@ Keep-a-Changelog style, newest first.
 **No pull request adds to `CHANGELOG.md` but the release's own**
 (→ At a release, below). Parallel pull requests that all append to
 one section conflict every time. Each pull request with a
-user-visible change adds one file instead, `changelog.d/<branch>.md`,
-named after its branch with `/` as `-`, which holds its entry under
-the Keep-a-Changelog section it belongs to:
+user-visible change adds one file instead,
+`changelog.d/<date>-<slug>.md`, `<date>` the day it is written as
+`YYYYMMDD` and `<slug>` a lowercase, hyphenated summary of the
+change, at most 50 characters — the same shape
+`docs/adr/YYYYMMDD-slug.md` uses (`docs/architecture-decisions.md`
+→ The record). The pull request's author writes the slug, since it
+is the only point with the entry's actual content in hand. On the
+rare day two fragments would land on the same slug, the second one
+picks a more specific slug; nothing mechanical enforces uniqueness.
+The file holds its entry under the Keep-a-Changelog section it
+belongs to:
 
     ### Fixed
 

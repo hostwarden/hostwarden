@@ -32,5 +32,6 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [A claim a review keeps breaking is dropped, not narrowed](20260924-claims-dropped-not-narrowed.md) | instructions, review | — |
 | [Convention files in `.claude/rules/` need no record behind them](20260924-cite-only-rules.md) | records, tooling | — |
 | [Changelog entries as per-PR fragments](20260924-changelog-fragments-not-direct-edits.md) | release, tooling | — |
+| [Changelog fragments are named by date and slug](20260924-changelog-fragment-naming.md) | changelog, release | — |
 | [A cadence change gets its own pull request](20260924-cadence-change-own-pr.md) | process, review | — |
 | [A script computes the blast radius, not the model](20260924-blast-radius-by-script.md) | coordination, multi-host | — |
