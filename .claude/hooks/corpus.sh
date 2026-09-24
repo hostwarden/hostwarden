@@ -72,6 +72,11 @@ corpus_files() {
 # in Markdown, only a run of the opener's character at least as
 # long, and nothing after it, closes the block: a four-backtick
 # fence that shows a three-backtick example stays open across it.
+# Unlike Markdown, it does not measure indentation, so a fence
+# line four or more columns in, past column 0 or its list item,
+# counts too, and it sees no fence inside a quote. The
+# repository's indented fences all sit in list items, where that
+# is right; someone else's Markdown needs more.
 # FM holds the open marker; reset it per file.
 # shellcheck disable=SC2034 # read by the scripts that source this
 FENCE_AWK='
@@ -84,8 +89,9 @@ function fenced(l,   m) {
   return 1
 }
 # commented(l) -- whether line l opens or sits inside an HTML
-# comment: a <!-- outside a fence, at most three spaces in (four
-# make it code), up to the line that holds -->. Call it before
+# comment: a <!-- outside a fence, at most three spaces from
+# column 0 (four make it code there; a list item is not measured,
+# a quote not seen), up to the line that holds -->. Call it before
 # fenced(). CM holds the state; reset it with FM.
 function commented(l) {
   if (CM == "" && FM == "" && l ~ /^ ? ? ?<!--/) CM = 1

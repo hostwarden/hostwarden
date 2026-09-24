@@ -85,7 +85,12 @@ The prompt names one of two jobs.
    withholds: can the same text reach the output in another form —
    a section id, a key, an error message that quotes it — and does
    the filter print only the fields it names rather than withhold
-   the ones it knows?
+   the ones it knows? A parser for Markdown someone else writes:
+   does it follow the CommonMark spec for every block the reader
+   sees as an example or not at all — fenced code, indented code,
+   an HTML comment — for the line that opens and the line that
+   closes each, and inside the list items and quotes that move
+   where a block starts? Check it against the spec, not memory.
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
@@ -132,6 +137,14 @@ The prompt names one of two jobs.
      does that case's trigger, an error text, occur in the state
      the branch leaves, or does the branch end with nothing to
      record?
+   - A check that parses a record written by hand — a line in a
+     body, an answer, a checklist: does it require every field the
+     rule spells out, its closing words included, or only the
+     prefix it needs to find the line? Is a required field after
+     its label checked for content that is not blank, or only the
+     label? A count that stands for "each item has one": does it
+     count distinct items, or matches, so that one answer repeated
+     passes for several items?
 3. **A step that reads data nothing produces.** Every field the
    text uses must be printed by a probe the same flow runs, for
    each syntax a rating is said to cover: the members of a named
@@ -184,7 +197,10 @@ The prompt names one of two jobs.
    that decides two things are one — a name, an address, a
    destination: is it unique on its own, or does another rule
    already say which extra field, a port or a verified key, it
-   needs before two are merged?
+   needs before two are merged? A record, token or line that grants
+   a pass — a skip, an approval, a review line: is it bound to the
+   subject it grants, this head or this pull request, or does any
+   value of the right shape anywhere in the input count?
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
    validated, `--` before them, `grep -F` for a literal
@@ -233,7 +249,12 @@ The prompt names one of two jobs.
     does or guarantees — "read-only", "every", "verified",
     "whole": look for the one step that falsifies it, and say
     whether it should be dropped as
-    `.claude/rules/instruction-authoring.md` → Claims says.
+    `.claude/rules/instruction-authoring.md` → Claims says. A gate
+    meant to judge a change from outside it — a required review, a
+    check of its review record, not a test that changes with the
+    code it tests: does the change supply the gate itself, its
+    script, workflow or config, so that it can weaken what judges
+    it?
 16. **A repository convention** from `.claude/rules/`: 80-column
     wrap, current state only, example identifiers, fence markers.
 
