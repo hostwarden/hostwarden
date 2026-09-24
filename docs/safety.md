@@ -162,6 +162,21 @@ under pressure.
   Likely-secret files are refused as email
   attachments by default.
 
+## Risks and responsibilities
+
+Hostwarden is for anyone willing to stay in the
+driver's seat and review every command — from
+newcomers learning Linux to veterans running fleets.
+Each proposed command comes with what it does and why.
+
+It follows the safety checklist every time: it always
+backs up before editing, always dry-runs when it can,
+always checks the OS before assuming commands. It can
+still make a mistake — LLMs can hallucinate, misread
+intent, or produce a command with unintended side
+effects. That is why every command waits for your
+review; it is not a substitute for one.
+
 ## How Hostwarden fights LLM hallucinations
 
 LLMs can "hallucinate" — confidently produce commands

@@ -11,15 +11,16 @@ by task.
 - [Supported AI tools](ai-tools.md) — Claude Code in
   the terminal and in the desktop app, OpenCode with
   Ollama, and what the others miss.
-- [Features](features.md) — what Hostwarden does,
-  with example prompts.
+- [Features](features.md) — what Hostwarden does, with
+  example prompts, and the systems it knows:
+  appliances, WSL, workstations, Windows Server.
 
 ## Running it
 
 - [Safety and guardrails](safety.md) — what it asks
   before doing, the hard taboos, how it keeps
-  hallucinated commands off your servers, and how to
-  read its logs.
+  hallucinated commands off your servers, how to read
+  its logs, and who it's for.
 - [Automation and scripting](automation.md) —
   one-shot commands, auto mode, scheduled
   housekeeping.
