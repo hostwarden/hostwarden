@@ -40,7 +40,8 @@ tool reads. This file adds only what exists here and nowhere else.
   - created `~/.cache/hostwarden` with mode 0700, where the
     shared SSH connections keep their sockets;
   - run `bin/hostwarden-doctor --quiet`, whose output, if any,
-    names the workstation tools that are missing;
+    names the workstation tools that are missing — in a
+    development checkout, the ones working on Hostwarden needs;
   - reported a linked worktree or a guard that is off, if either
     applies.
 

@@ -6,9 +6,9 @@ access gate: the blacklist and the read-only list are checked
 again as steps 1 and 2 of `rules/first-connection.md`, on every
 connection, whether or not this ran.
 
-It runs in an operations checkout only. A development checkout —
-`AGENTS.md` → Development or Operations — loads none of this and
-asks nothing.
+It runs in an operations checkout. A development checkout —
+`AGENTS.md` → Development or Operations — follows Workstation tools
+alone and asks nothing.
 
 ## What to load
 
@@ -46,6 +46,15 @@ Where SessionStart hooks run, `bin/hostwarden-doctor --quiet` has
 already run and said what is missing, or said nothing because
 nothing is. Where they do not, run it yourself, once, in the same
 message as the reads above.
+
+A development checkout needs other tools: the ones
+`scripts/check.sh` runs. Outside an operations checkout the hook's
+`--quiet` checks those by itself. Where hooks do not run, run
+`bin/hostwarden-doctor --dev --quiet` yourself, once, before any
+other work, and not the call above. A missing betterleaks or jq
+stops `sh scripts/check.sh --pre-commit`, which comes before every
+commit, so say so at once; the other tools only the full run needs,
+which CI does.
 
 Take its output as the limits of this session: a feature it lists
 as not available is not attempted — say so when the user asks for

@@ -6,7 +6,9 @@
 #   hostwarden-doctor           Full report
 #   hostwarden-doctor --quiet   Only what is missing; nothing at
 #                               all when nothing is (the
-#                               SessionStart hook)
+#                               SessionStart hook). Outside an
+#                               operations checkout, what --dev
+#                               checks
 #   hostwarden-doctor --dev     What working on Hostwarden itself
 #                               needs instead of what running it
 #                               does (scripts/check.sh uses it)
@@ -51,11 +53,33 @@ case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
 ROOT=$(cd "$ROOT" && pwd)
 # shellcheck source=../.claude/hooks/mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
+# The SessionStart hook runs in every checkout. One that is not for
+# operations reaches no server, so what it needs is what working on
+# Hostwarden needs. Only the hook: a full report run by hand in a
+# fresh clone, before bin/hostwarden-init, is for someone installing
+# Hostwarden to run it.
+if [ -n "$HOOK" ]; then
+  hostwarden_mode "$ROOT"
+  [ "$HOSTWARDEN_MODE" = operations ] || DEV=1
+fi
 MISE_TOOLS=''
 if [ -f "$ROOT/mise.dev.toml" ]; then
   while IFS= read -r l; do
     case $l in '"aqua:'*/*) t=${l#*/}; MISE_TOOLS="$MISE_TOOLS ${t%%\"*}" ;; esac
   done < "$ROOT/mise.dev.toml"
+fi
+# The tools mise.dev.toml pins are on PATH only with MISE_ENV=dev.
+# scripts/check.sh brings them in before it asks; a session start
+# that asks on its own has to see the same PATH, or it reports
+# installed tools as missing. mise bin-paths, not mise env: env
+# installs what is missing, and the doctor installs nothing.
+if [ -n "$DEV" ] && [ -n "$MISE_TOOLS" ] && has mise; then
+  bins=$(cd "$ROOT" && MISE_ENV=dev mise bin-paths 2>/dev/null) || bins=''
+  while IFS= read -r d; do
+    [ -z "$d" ] || PATH=$d:$PATH
+  done <<EOF
+$bins
+EOF
 fi
 OS=$(uname -s 2>/dev/null)
 
