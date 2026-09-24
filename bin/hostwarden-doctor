@@ -15,7 +15,8 @@
 # Checks the machine the AI tool runs on, never a managed host.
 # Prints install commands; never runs them.
 # Exit status: 1 when something required is missing, else 0.
-# --quiet always exits 0 and prints only what is missing.
+# --quiet prints only what is missing and, without --dev, always
+# exits 0.
 
 QUIET='' DEV=''
 for a in "$@"; do
@@ -34,6 +35,13 @@ for a in "$@"; do
     *) echo "hostwarden-doctor: unknown option $a" >&2; exit 2 ;;
   esac
 done
+
+# --quiet without --dev is the SessionStart hook, which reports
+# and exits 0: Claude Code passes a hook's output on only then.
+# --dev keeps the verdict for scripts/check.sh, which a missing
+# feature must not stop.
+HOOK=''
+[ -z "$QUIET" ] || [ -n "$DEV" ] || HOOK=1
 
 has() { command -v "$1" >/dev/null 2>&1; }
 
@@ -76,7 +84,7 @@ esac
 if [ -n "$UNSUPPORTED" ]; then
   echo "hostwarden: required, missing: $UNSUPPORTED" \
     "(docs/install.md → Windows)"
-  [ -n "$QUIET" ] && exit 0
+  [ -n "$HOOK" ] && exit 0
   exit 1
 fi
 
@@ -93,6 +101,7 @@ pkgname() {
     dig:dnf|dig:yum|dig:zypper) echo bind-utils ;;
     dig:pkg|dig:apk) echo bind-tools ;;
     python3:brew|python3:pacman) echo python ;;
+    gh:pacman|gh:apk) echo github-cli ;;
     # A command, not a package: awk is virtual under apt and
     # absent by that name elsewhere, mktemp is part of coreutils.
     awk:brew) echo awk ;;
@@ -289,6 +298,13 @@ if [ -n "$DEV" ]; then
   for t in python3 jq $MISE_TOOLS; do
     probe need "$t" "$t" has "$t"
   done
+
+  [ -n "$QUIET" ] || echo "Per feature"
+  # The pull request workflow (CONTRIBUTING.md → Setup) needs gh
+  # signed in too, which this does not probe: gh auth status asks
+  # GitHub, and the doctor stays offline. An "ok" here is only
+  # "installed".
+  probe feat "gh, for pull requests from an agent session" gh has gh
 else
   [ -n "$QUIET" ] || echo "Recommended"
   # Without it the guard reads the raw hook input and over-blocks
@@ -345,7 +361,4 @@ if [ -z "$QUIET$NEED$WANT$FEAT$WSLM" ]; then
   echo "Everything Hostwarden runs locally is here."
 fi
 
-# --quiet reports and exits 0: Claude Code passes a SessionStart
-# hook's output on only then, and a caller that needs a verdict
-# reads whether anything was printed.
-[ -n "$QUIET" ] || [ -z "$NEED" ]
+[ -n "$HOOK" ] || [ -z "$NEED" ]
