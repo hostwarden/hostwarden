@@ -218,9 +218,14 @@ Each local run's line with findings must carry one clause per
 finding, told apart by title and place, whose answer is "fixed in
 <sha>", "not a bug: <reason>" or "deferred to a follow-up PR"; the
 check does not know which round allows which. A GitHub run's
-answers are its threads, which it does not read. A heading in a
-fenced block is an example, not the record. It proves that the
-record exists, not that the review was good. CI runs the workflow
+answers are its threads, which it does not read. It reads the
+body's block structure as CommonMark does, and only a paragraph's
+text is the record, in a list item or not: a line in a code block,
+fenced or indented, a block quote or an HTML block or comment is an
+example, and so is a heading nested in a list item or a quote — it
+starts or ends nothing there. Inline code stays part of its
+paragraph — it is still text a reader sees, only styled. It proves
+that the record exists, not that the review was good. CI runs the workflow
 and the checker as the default branch has them, so a pull request
 is held to the gate `main` has; a change to either counts once it
 is merged. It holds the second review
