@@ -10,14 +10,18 @@
 #   hostwarden_coord_dest <command>
 #       prints one "<destination>\t<segment>" pair per line: the
 #       lowercased name an ssh, sftp, scp or rsync in <command> was
-#       given, any leading user@ stripped, and the ;/&/|-delimited
-#       segment it came from — so a caller can judge what that one
-#       call does without another call's text leaking in
-#       (rules/coordination.md → The hooks). A caller that wants
-#       only the destination cuts the first field. A via-host guest
-#       (`pct exec 105`), a script, and a destination held in a
-#       variable are not read: they print nothing, and count as no
-#       destination (rules/coordination.md → Presence map → Limits).
+#       given, any leading user@ stripped, and the
+#       ;/&/|-delimited segment it came from — one such character
+#       inside a matched single- or double-quote pair is the remote
+#       command's own text, not a separator, so `ssh host "true &&
+#       systemctl restart nginx"` is one segment, not two — so a
+#       caller can judge what that one call does without another
+#       call's text leaking in (rules/coordination.md → The hooks).
+#       A caller that wants only the destination cuts the first
+#       field. A via-host guest (`pct exec 105`), a script, and a
+#       destination held in a variable are not read: they print
+#       nothing, and count as no destination
+#       (rules/coordination.md → Presence map → Limits).
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -95,8 +99,33 @@ hostwarden_coord_dest() {
       s = $0
       gsub(/\$\{/, "$", s)
       gsub(/>&/, ">", s); gsub(/<&/, "<", s)
-      gsub(/[;&|(){}`]/, "\n", s)
-      n = split(s, seg, "\n")
+      # A ;/&/|/(/)/{/}/` inside a matched single- or double-quote
+      # pair is text the remote command carries, not a local
+      # separator: ssh host "true && systemctl restart nginx" is
+      # one segment, not two, with the restart left without the
+      # destination that named it. A backslash escapes the very
+      # next character everywhere but inside a single-quoted run
+      # (where nothing is special but the closing quote, the same
+      # as a real shell): without that, an escaped quote of the
+      # kind already open (ssh host "a \" b" ; ssh host2 reboot)
+      # would flip the open-quote state on the escaped one and read
+      # the rest of the command, the destination host2 names
+      # included, as still quoted.
+      n = 0; cur = ""; qc = ""; esc = 0; slen = length(s)
+      for (ci = 1; ci <= slen; ci++) {
+        c = substr(s, ci, 1)
+        if (esc) { cur = cur c; esc = 0; continue }
+        if (c == "\\" && qc != "\047") { cur = cur c; esc = 1; continue }
+        if (qc != "") {
+          cur = cur c
+          if (c == qc) qc = ""
+          continue
+        }
+        if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
+        if (index(";&|(){}`", c) > 0) { n++; seg[n] = cur; cur = ""; continue }
+        cur = cur c
+      }
+      n++; seg[n] = cur
       for (l = 1; l <= n; l++) {
         gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg[l])
         gsub(/^[ \t]+|[ \t]+$/, "", seg[l])

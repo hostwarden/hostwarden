@@ -443,6 +443,38 @@ if [ "$HAVE_JQ" = 1 ]; then
   lacks "$TMP/hookout" 'web1.example.com reboot' \
     "impact.sh: web1's own harmless segment is never named as a reboot"
 
+  # A ; or && the remote command's own quotes hold is not a local
+  # separator: splitting there would leave the actual disruptive
+  # verb in a piece with no destination of its own, so it would
+  # never be checked against any host's radius.
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com "true && reboot"' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a && inside the remote command's own quotes is not a separator"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com for the quoted && case"
+
+  hook impact.sh PreToolUse mine Bash \
+    "ssh -F memory/ssh_config root@pve1.example.com 'uptime; reboot'" \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a ; inside the remote command's own quotes is not a separator"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com for the quoted ; case"
+
+  # A backslash-escaped quote of the kind already open must not
+  # flip the scanner's open-quote state: that would read the rest
+  # of the command, a second ssh call's own destination included,
+  # as still quoted and drop it from the destinations found at all.
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@lone.example.com "safe \" text" ; ssh -F memory/ssh_config root@pve1.example.com reboot' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a second call survives an escaped quote earlier in the command"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com after the escaped-quote segment"
+
   # An announced kind only covers a later step of the same, or an
   # equally broad, kind (rules/coordination.md -> Blast radius):
   # restart:<unit> has a narrower radius than reboot, network or
