@@ -22,11 +22,11 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   journal entries as well as its own. A restore looks in Heinzel's backup
   directories too. `HEINZEL_NO_UPDATE` still works.
   `HEINZEL_GUARD_DISABLE` no longer switches the guard off.
-- **One instruction set for every AI tool.** The rules are in
-  `AGENTS.md`, which Claude Code, OpenCode, Codex and Cursor read
-  natively. `CLAUDE.md` only imports it and adds what exists in Claude
-  Code alone: the guard hooks, session-start hooks, pickers, slash
-  commands and subagents. `AGENTS.md` names the moment and the file
+- **One instruction set for every AI tool.** The rules are in `AGENTS.md`,
+  which Claude Code, OpenCode, Codex and Cursor read natively. `CLAUDE.md`
+  only imports it and adds what exists in Claude Code alone: the guard
+  hooks, session-start hooks, pickers, slash commands, subagents and
+  messaging between sessions. `AGENTS.md` names the moment and the file
   that covers it; the procedure lives in that file, so a session loads
   only what the moment needs.
 - **Skills live in `.agents/skills/`.** OpenCode and other tools that
@@ -39,15 +39,14 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   `hostwarden-os-install`. Language runtimes are `hostwarden-runtimes`.
   CI/CD deploy accounts are `hostwarden-deploy-user`, which now also
   works on macOS. Scheduled housekeeping is part of the housekeeping
-  skill. Each loads when you ask for that work and not before. Skill
-  descriptions also react to German requests.
+  skill. Each loads when you ask for that work and not before. Most
+  skill descriptions now also list German requests.
 - **OS files are layered.** The family file (`rules/os/<family>.md`) is
   the base. On top come an appliance file, a platform file for what
   the OS runs inside, and a role file for what the machine is for.
   Your overrides come last. Each layer replaces, removes or adds
-  sections of the one below it. Detection picks at most one family
-  per host; a distribution no family covers gets none rather than
-  the nearest.
+  sections of the one below it. Detection still picks at most one
+  family per host, and none for a distribution no family covers.
 - **Runs in the Claude desktop app.** The Code tab runs the same Claude
   Code. `docs/ai-tools.md` says how to open the checkout (with the
   worktree option off), where environment variables go and how to
@@ -80,10 +79,10 @@ protection there.
   the file they write: an SSH key, `authorized_keys`, a key store or
   sshd's configuration cannot be edited. A note that only mentions
   them stays editable. It applies to subagents too.
-- **The guard no longer fails open for want of bash.** Every hook starts
-  with `sh`: without bash, Heinzel's guard never started, and Claude Code
-  let every command through without saying so. A guard whose helper file
-  is missing blocks instead of passing.
+- **The guard no longer fails open for want of bash.** Every hook script
+  is started with `sh`: without bash, Heinzel's guard never started, and
+  Claude Code let every command through without saying so. A guard whose
+  helper file is missing blocks instead of passing.
 - **The guard can only be switched off before a session starts.**
   `HOSTWARDEN_GUARD_DISABLE` counts only for a session that started
   with it. A value that appears mid-session, for example through a
@@ -176,15 +175,15 @@ protection there.
   `ansible` and the other tools that reach a server fail there however
   they are started, while `git push` still works; other tools get the
   same rule as an instruction. A session-start hook names the mode.
-- **An operations checkout keeps Hostwarden's files read-only.** In Claude
-  Code the agent can change `memory/` and other ignored files, not the
-  rules or scripts, so a local edit cannot block the auto-update. A
-  request to change Hostwarden gets a pointer to a development checkout
-  and a pull request.
+- **An operations checkout keeps Hostwarden's files read-only.** In
+  Claude Code the edit tools can change `memory/` and other ignored
+  files, not the rules or scripts. A request to change Hostwarden gets
+  a pointer to a development checkout and a pull request.
 - **A development session hands a server question over.** When it
   needs a fact from a live server, it asks a session in the operations
-  checkout, which runs the access lists and the full pipeline and
-  answers back.
+  checkout — in Claude Code directly, elsewhere through a command you
+  run there — which runs the access lists and the full pipeline and
+  answers.
 - **`bin/hostwarden-lab` lets development try commands.** Disposable
   containers for Debian, Ubuntu, RHEL, Fedora, SUSE and Alpine answer
   "what does this command print here" without guessing. A lab VM (with
@@ -247,9 +246,8 @@ protection there.
   one already exists.
 - **A checkout can follow a release line.**
   `bin/hostwarden-update --follow 1` takes every 1.x.y release, and
-  `--follow 1.2` only 1.2.x fixes; `--pin` sets one exact version and
-  `--unpin` returns to `main`. The auto-update runs only in an
-  operations checkout.
+  `--follow 1.2` only 1.2.x fixes; `--pin` and `--unpin` work as
+  before. The auto-update runs only in an operations checkout.
 - **Your own mirror of Hostwarden stays current unattended.**
   `bin/hostwarden-mirror` fast-forwards a mirror's `main` and its tags
   from a CI or cron job. It fails rather than overwrite commits the
@@ -293,10 +291,12 @@ protection there.
 - **An SSH CA you already run is audited and used.** Hostwarden reads
   each host certificate's expiry and names, the user CA each server
   trusts, its principals and its revocation list, and the CA's issuing
-  rules where it can see them. Once you confirm a CA as yours, it
-  goes into the workspace's known_hosts, new guests trust it from
-  their first boot, and the baseline reports servers that do not. It
-  never builds a CA, signs a certificate or touches a signing key.
+  rules where it can see them. Once you confirm a CA as yours, a host
+  CA goes into the workspace's known_hosts, new guests trust your user
+  CA from their first boot (containers from the Proxmox VE baseline
+  template get the lines to add instead), and the baseline reports
+  servers that do not. It never builds a CA, signs a certificate or
+  touches a signing key.
 - **Detection is one SSH call.** OS, version, login shell,
   architecture, hardware, virtualization and the appliance and
   hypervisor markers come back from one probe that runs in sh, bash,
@@ -463,9 +463,9 @@ protection there.
   keep locally changed config files. Services that need a restart are
   listed and left to you, also on Ubuntu 24.04 and later, where
   needrestart would otherwise restart them at once.
-- **FreeBSD is covered in every workflow.** Housekeeping has a full
-  FreeBSD baseline, the security audit covers pf, ipfw, `master.passwd`
-  and blocklistd, and the fleet audit has FreeBSD probes.
+- **FreeBSD is covered in housekeeping and both audits.** Housekeeping has
+  a full FreeBSD baseline, the security audit covers pf, ipfw,
+  `master.passwd` and blocklistd, and the fleet audit has FreeBSD probes.
 - **macOS knows what it may read.** Hostwarden detects whether SSH
   sessions have Full Disk Access, and reports a read macOS refused as
   not checked rather than absent.
@@ -582,9 +582,9 @@ protection there.
   sorts the rest of the old `memory/` with one question. It can run
   host by host. The copies Heinzel kept of files it deployed are
   rebuilt as masters, and a file holding credentials stays behind. It
-  names every link in the old `memory/` and reads through one only
-  after you agree. It then onboards each
-  host read-only, unless you choose to only copy
+  names every link in the old `memory/`, reads through none below its
+  top level, and copies a top-level one only after you agree. It then
+  onboards each host read-only, unless you choose to only copy
   (`docs/operations.md` → Moving over from Heinzel).
 - **What Heinzel left on a host is found and offered.** Where Heinzel
   was in use, the first connection looks for its backups, scratch
@@ -610,14 +610,6 @@ protection there.
 - **The email skill loads in stages.** Each step reads its own part
   when it gets there, and each part has its own override.
 
-### Removed
-
-- **Native Windows.** Heinzel's Git Bash setup is gone; use WSL 2.
-- **Templates in `memory/`.** The examples moved to `templates/memory/`,
-  and the workspace starts from `templates/workspace/`.
-- **Heinzel's team mode.** Un-commenting lines in the repository's
-  `.gitignore` is replaced by the workspace remote.
-
 ### For contributors
 
 - **`sh scripts/check.sh` runs everything CI runs**, and CI runs
@@ -636,5 +628,5 @@ protection there.
   Alice-and-Bob convention, and the layout test enforces what a pattern
   can decide.
 - **Pull requests get two reviews:** the `hostwarden-reviewer`
-  subagent, then a second reviewer of another model family
-  (`.claude/rules/pull-requests.md`).
+  subagent in Claude Code (a fresh session elsewhere), then a second
+  reviewer of another model family (`.claude/rules/pull-requests.md`).
