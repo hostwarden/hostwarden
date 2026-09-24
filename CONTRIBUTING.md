@@ -150,7 +150,11 @@ with the [GitHub CLI](https://cli.github.com), `gh`, signed in
 (`gh auth login`) to an account with access to
 hostwarden/hostwarden, or to your fork and pull requests upstream
 ([pull-requests.md](.claude/rules/pull-requests.md)). Working by
-hand, the web UI does the same. The checks never call it.
+hand, the web UI does the same. The checks never call it. Where
+[GitHub's MCP server](https://github.com/github/github-mcp-server)
+is connected to an account with the same access, a session uses
+its tools for what they cover and `gh` for the rest
+([pull-requests.md](.claude/rules/pull-requests.md#the-projects-branches)).
 
 The CLI of the second reviewer — currently the
 [Codex CLI](https://github.com/openai/codex), signed in — is

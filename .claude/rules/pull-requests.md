@@ -25,6 +25,18 @@ command below that needs one of the project's branches uses
 Every `gh` command below names the repository the same way, with
 `-R hostwarden/hostwarden`.
 
+Where the session has
+[GitHub's MCP server](https://github.com/github/github-mcp-server)
+connected to an account with the access `gh` needs
+(`CONTRIBUTING.md` → Setup), it uses the server's tool for every
+step one covers, and the `gh` command below only for the rest, such
+as watching the checks or a call the server does not offer. A tool
+covers a step only with the whole answer the `gh` command gives: a
+list that the server returns in pages is read page by page to its
+end, and one `gh … --limit 1000` does not become one page of 100. A
+command given to a person to type, the merge above all, stays
+`gh`.
+
 ## The changelog fragment
 
 A pull request with a user-visible change carries its changelog
