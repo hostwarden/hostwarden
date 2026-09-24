@@ -32,7 +32,8 @@ mkdir -p "$HOME"
 R="$TMP/repo"
 mkdir -p "$R/bin" "$R/.claude/hooks"
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" "$R/.claude/hooks/"
+cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
+  "$REPO/.claude/hooks/coord-lib.sh" "$R/.claude/hooks/"
 git -C "$R" init --quiet
 M="$R/memory"
 mkdir -p "$M/servers" "$M/clusters/prod"

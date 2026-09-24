@@ -15,6 +15,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Storage repair and destroy commands are a taboo](20260924-storage-repair-taboo.md) | storage, guard | — |
 | [Trust an existing SSH CA, never build one](20260924-ssh-ca-audit-and-consistent-use.md) | ssh, security | — |
 | [Sites are proposed from co-presence, never from a VPN hop](20260924-sites-by-co-presence-not-vpn-hop.md) | network, memory | — |
+| [A receiver is informed once, never held](20260924-receivers-informed-not-paused.md) | coordination, multi-host | — |
 | [Range identity needs the gateway MAC or the user's word](20260924-range-identity-needs-gateway-mac.md) | network, memory | — |
 | [Development mode refuses server tools with a PATH shim](20260924-path-shim-over-parsing.md) | guard, development | — |
 | [Own review makes quality; a second family checks it](20260924-own-review-then-second-family-review.md) | review, tooling | — |

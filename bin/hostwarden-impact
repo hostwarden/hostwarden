@@ -21,6 +21,32 @@
 #       rules/multi-host.md → Order: one line per group,
 #       "group <host>...", and "unreadable <host>" for each host
 #       whose path cannot be read
+#   hostwarden-impact announce <host>... <kind> [<minutes>]
+#       Computes the radius, then the local sessions its presence
+#       map shows on a radius host, and prints the impact's id
+#       followed by one "<session> <host> <status>" line per
+#       affected session (run, writer or idle), or "no live
+#       session on the radius" where none is. <minutes> defaults
+#       to 10 for reboot, 5 for network, 2 for firewall and for a
+#       restart (rules/coordination.md → Announce, wait, go). Exit
+#       status: 0 announced (affected or not), 1 the radius could
+#       not be computed, 2 usage
+#   hostwarden-impact wait <id>
+#       Blocks up to two minutes until every session announce
+#       found is safe: no run on a radius host, and every writer
+#       there has acked safe. Prints "all safe" and exits 0 once
+#       it is, or the sessions still not safe and exits 1 when the
+#       two minutes run out
+#   hostwarden-impact ack <id> safe|busy <words>...
+#       Records this session's own answer to impact <id>, read by
+#       wait on the origin session
+#   hostwarden-impact done <id>
+#       Ends impact <id>. Idempotent: gone already is not an error
+#   hostwarden-impact status <host>
+#       Prints one line per active impact whose radius covers
+#       <host>: "<origin> <kind> by <session> until <HH:MM>;
+#       <host> <relation> <through>". Exit status: 0 an active
+#       impact covers it, 1 none does, 2 usage
 #   hostwarden-impact --help
 #       Show this help
 #
@@ -42,6 +68,17 @@
 # Its format is this script's own; what other scripts read is the
 # output above.
 #
+# announce, wait, ack, done and status read and write the presence
+# map .claude/hooks/presence.sh keeps beside the index, under
+# presence/, and their own state under impact/ — one directory per
+# announced impact, named <id>+<origin>+<kind>+<until>+<session>
+# (<origin> several hosts joined by a comma, <until> the epoch
+# second the window ends, <session> $HOSTWARDEN_SESSION or a
+# fallback of this process's own), holding radius/<host>+<relation>
+# +<through> for each host the radius named and, once a writer
+# answers, ack/<session>. Their format is this script's own too
+# (rules/coordination.md → Announce, wait, go).
+#
 # Exit status: 0 done, 1 it could not be computed, 2 usage.
 set -u
 
@@ -52,6 +89,8 @@ cd "$REPO_DIR" || exit 1
 . .claude/hooks/mode.sh
 # shellcheck source=../.claude/hooks/hops.sh
 . .claude/hooks/hops.sh
+# shellcheck source=../.claude/hooks/coord-lib.sh
+. .claude/hooks/coord-lib.sh
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
@@ -59,9 +98,213 @@ usage() {
 }
 die() { echo "hostwarden-impact: $*" >&2; exit 1; }
 
+# impact_setup — the operations-mode check and the cache directory
+# announce, wait, ack, done and status all need; sets M and
+# HOSTWARDEN_CACHE and creates the latter. radius keeps its own
+# copy below, since it also needs ssh and memory/ssh_config, which
+# the rest never touch.
+impact_setup() {
+  hostwarden_mode "$REPO_DIR"
+  [ "$HOSTWARDEN_MODE" = operations ] \
+    || die "reads the memory of an operations checkout, which this is not (AGENTS.md)"
+  M=memory
+  hostwarden_cache_dir "$REPO_DIR"
+  # shellcheck disable=SC2174
+  mkdir -p -m 700 "$HOSTWARDEN_CACHE" || die "cannot create $HOSTWARDEN_CACHE"
+}
+
+# impact_session — this session's id: $HOSTWARDEN_SESSION where
+# session-mode.sh set it (the same id presence.sh reads from its
+# own hook input), a fallback that correlates with nothing
+# otherwise. Sanitized (coord-lib.sh) to the characters an entry
+# name may hold.
+impact_session() {
+  hostwarden_coord_sanitize "${HOSTWARDEN_SESSION:-manual-$$}"
+}
+
+# impact_prune — removes every impact/ entry whose window ended
+# more than 30 minutes ago: the same staleness rules/parallel-
+# sessions.md gives a register entry, so nobody has to mark it
+# done for it to stop covering a host.
+impact_prune() {
+  ip_now=$(date +%s)
+  for ip_d in "$HOSTWARDEN_CACHE"/impact/*; do
+    [ -d "$ip_d" ] || continue
+    ip_u=$(printf '%s' "${ip_d##*/}" | cut -d+ -f4)
+    case $ip_u in *[!0-9]* | '') continue ;; esac
+    [ $((ip_now - ip_u)) -gt 1800 ] && rm -rf "$ip_d"
+  done
+}
+
+# impact_dir_for_id <id> — the impact/ directory whose name starts
+# with <id>+, on stdout; fails when there is none.
+impact_dir_for_id() {
+  for ip_d in "$HOSTWARDEN_CACHE/impact/$1+"*; do
+    [ -d "$ip_d" ] && { printf '%s\n' "$ip_d"; return 0; }
+  done
+  return 1
+}
+
+do_announce() {
+  [ $# -ge 2 ] || { usage >&2; exit 2; }
+  ip_prev='' ip_last=''
+  for ip_a in "$@"; do ip_prev=$ip_last ip_last=$ip_a; done
+  case $ip_last in
+    '' | *[!0-9]*) AKIND=$ip_last AMIN='' ip_hn=$(($# - 1)) ;;
+    *) AMIN=$ip_last AKIND=$ip_prev ip_hn=$(($# - 2)) ;;
+  esac
+  [ "$ip_hn" -ge 1 ] || { usage >&2; exit 2; }
+  case $AKIND in
+    reboot | network | firewall) ;;
+    restart:?*) case ${AKIND#restart:} in *[!A-Za-z0-9@._:-]*) usage >&2; exit 2 ;; esac ;;
+    *) usage >&2; exit 2 ;;
+  esac
+  AHOSTS='' ip_i=0
+  for ip_a in "$@"; do
+    ip_i=$((ip_i + 1))
+    [ "$ip_i" -le "$ip_hn" ] || break
+    case $ip_a in *[!A-Za-z0-9@._:%-]*) usage >&2; exit 2 ;; esac
+    AHOSTS="$AHOSTS $ip_a"
+  done
+  case $AKIND in
+    reboot) : "${AMIN:=10}" ;;
+    network) : "${AMIN:=5}" ;;
+    *) : "${AMIN:=2}" ;;
+  esac
+  case $AMIN in *[!0-9]* | '') usage >&2; exit 2 ;; esac
+
+  impact_setup
+  impact_prune
+  RADIUS=$(hostwarden_coord_radius "$REPO_DIR" "$AHOSTS" "$AKIND") \
+    || die "the radius could not be computed"
+  HOSTLIST=$(printf '%s\n' "$RADIUS" | awk '{print $1}')
+
+  ID=$(od -An -N4 -tx1 /dev/urandom | tr -d ' \n')
+  SESSION=$(impact_session)
+  NOW=$(date +%s)
+  UNTIL=$((NOW + AMIN * 60))
+  ORIGINJ=$(printf '%s\n' "$AHOSTS" | awk '{ $1=$1; print }' \
+    | tr ' ' ',')
+  DIR="$HOSTWARDEN_CACHE/impact/$ID+$ORIGINJ+$AKIND+$UNTIL+$SESSION"
+  mkdir -p "$DIR/radius" || die "cannot write $DIR"
+  chmod 700 "$DIR" 2>/dev/null
+  # shellcheck disable=SC2034 # ip_rest keeps a detail word off ip_thr
+  printf '%s\n' "$RADIUS" | while IFS=' ' read -r ip_h ip_rel ip_thr ip_rest; do
+    [ -n "$ip_h" ] || continue
+    : > "$DIR/radius/$ip_h+$ip_rel+${ip_thr:--}"
+  done
+
+  echo "$ID"
+  AFF=$(hostwarden_coord_affected "$HOSTWARDEN_CACHE" "$HOSTLIST" "$SESSION")
+  if [ -z "$AFF" ]; then
+    echo "no live session on the radius; proceeding"
+  else
+    printf '%s\n' "$AFF" | awk '
+      { pr = ($3 == "run") ? 3 : ($3 == "writer") ? 2 : 1
+        if (pr > best[$1] || !($1 in best)) { best[$1] = pr; bh[$1] = $2; bk[$1] = $3 } }
+      END { for (s in best) print s, bh[s], bk[s] }' | sort
+  fi
+}
+
+do_wait() {
+  [ $# -eq 1 ] || { usage >&2; exit 2; }
+  impact_setup
+  SESSION=$(impact_session)
+  DIR=$(impact_dir_for_id "$1") || die "no active impact $1"
+  HOSTS=$(for ip_r in "$DIR"/radius/*; do
+    [ -e "$ip_r" ] || continue
+    printf '%s\n' "${ip_r##*/}" | cut -d+ -f1
+  done)
+  POLL=${HOSTWARDEN_IMPACT_WAIT_POLL:-5}
+  MAXT=${HOSTWARDEN_IMPACT_WAIT_MAX:-120}
+  WORK=$(mktemp "${TMPDIR:-/tmp}/hostwarden-impact-wait.XXXXXX") \
+    || die "no temp file"
+  trap 'rm -f "$WORK"' EXIT INT TERM
+  ELAPSED=0
+  while :; do
+    : > "$WORK"
+    hostwarden_coord_affected "$HOSTWARDEN_CACHE" "$HOSTS" "$SESSION" \
+      | while IFS=' ' read -r ip_s ip_h ip_k; do
+      [ -n "$ip_s" ] || continue
+      if [ "$ip_k" = run ]; then
+        echo "$ip_s run on $ip_h" >> "$WORK"
+      elif [ "$ip_k" = writer ]; then
+        ACKF="$DIR/ack/$ip_s"
+        if [ -f "$ACKF" ] && [ "$(awk '{print $1}' "$ACKF")" = safe ]; then
+          :
+        elif [ -f "$ACKF" ]; then
+          echo "$ip_s busy on $ip_h" >> "$WORK"
+        else
+          echo "$ip_s no answer on $ip_h" >> "$WORK"
+        fi
+      fi
+    done
+    if [ ! -s "$WORK" ]; then
+      echo "all safe"
+      exit 0
+    fi
+    [ "$ELAPSED" -ge "$MAXT" ] && break
+    sleep "$POLL"
+    ELAPSED=$((ELAPSED + POLL))
+  done
+  echo "not all safe:"
+  sort -u "$WORK"
+  exit 1
+}
+
+do_ack() {
+  [ $# -ge 2 ] || { usage >&2; exit 2; }
+  case $2 in safe | busy) ;; *) usage >&2; exit 2 ;; esac
+  impact_setup
+  DIR=$(impact_dir_for_id "$1") || die "no active impact $1"
+  ST=$2
+  shift 2
+  SESSION=$(impact_session)
+  # shellcheck disable=SC2174 # $DIR exists already; only ack/ is new
+  mkdir -p -m 700 "$DIR/ack" 2>/dev/null
+  printf '%s %s\n' "$ST" "$*" > "$DIR/ack/$SESSION"
+}
+
+do_done() {
+  [ $# -eq 1 ] || { usage >&2; exit 2; }
+  impact_setup
+  if DIR=$(impact_dir_for_id "$1"); then rm -rf "$DIR"; fi
+  exit 0
+}
+
+do_status() {
+  [ $# -eq 1 ] || { usage >&2; exit 2; }
+  impact_setup
+  impact_prune
+  CH=$(hostwarden_coord_canon "$HOSTWARDEN_CACHE/radius.idx" "$1" "$REPO_DIR")
+  FOUND=1
+  for ip_d in "$HOSTWARDEN_CACHE"/impact/*; do
+    [ -d "$ip_d" ] || continue
+    ip_b=${ip_d##*/}
+    ip_origin=$(printf '%s' "$ip_b" | cut -d+ -f2)
+    ip_kind=$(printf '%s' "$ip_b" | cut -d+ -f3)
+    ip_until=$(printf '%s' "$ip_b" | cut -d+ -f4)
+    ip_sess=$(printf '%s' "$ip_b" | cut -d+ -f5)
+    for ip_r in "$ip_d/radius/$CH+"*; do
+      [ -e "$ip_r" ] || continue
+      ip_rb=${ip_r##*/}
+      ip_rel=$(printf '%s' "$ip_rb" | cut -d+ -f2)
+      ip_thr=$(printf '%s' "$ip_rb" | cut -d+ -f3)
+      echo "$ip_origin $ip_kind by $ip_sess until $(hostwarden_coord_hhmm "$ip_until"); $CH $ip_rel $ip_thr"
+      FOUND=0
+    done
+  done
+  exit $FOUND
+}
+
 MODE='' KIND='' TARGETS='' last=''
 case ${1:-} in
   radius) shift ;;
+  announce) shift; do_announce "$@"; exit $? ;;
+  wait) shift; do_wait "$@"; exit $? ;;
+  ack) shift; do_ack "$@"; exit $? ;;
+  done) shift; do_done "$@"; exit $? ;;
+  status) shift; do_status "$@"; exit $? ;;
   -h | --help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;
 esac
@@ -510,29 +753,24 @@ UNIT=
 case $KIND in restart:*) UNIT=${KIND#restart:}; UNIT=${UNIT%.service}; UNIT=${UNIT%.socket} ;; esac
 # The service word a unit provides (rules/coordination.md →
 # Dependencies), and whether it takes the whole radius: on the SSH
-# path, the firewall or the network.
+# path, the firewall or the network — hostwarden_coord_kind_whole
+# (coord-lib.sh), the one place this list lives, so impact.sh's
+# already-announced check reads the exact same list.
 WHOLE='' WORD=''
-case $KIND in
-  reboot | network | firewall) WHOLE=1 ;;
-  *)
-    case $UNIT in
-      ssh | sshd | dropbear | com.openssh.sshd | tailscaled | netbird \
-      | zerotier-one | nebula \
-      | wg-quick@* | wireguard | openvpn* | strongswan* | ipsec \
-      | nftables | firewalld | ufw | pve-firewall | netfilter-persistent \
-      | iptables | ip6tables | pf | ipfw | shorewall* | com.apple.alf* \
-      | networking | network | NetworkManager | systemd-networkd | wicked \
-      | netplan*) WHOLE=1 ;;
-      nfs-server | nfs-kernel-server | nfsd | nfs-mountd | rpcbind) WORD=nfs ;;
-      smbd | smb | samba | nmbd) WORD=smb ;;
-      unbound | named | bind9 | dnsmasq | systemd-resolved | pdns-recursor \
-      | kresd* | knot-resolver | pihole-FTL | AdGuardHome) WORD=resolver ;;
-      postgresql* | mysql* | mariadb* | mongod | redis* \
-      | valkey*) WORD=db ;;
-      slapd | 389-ds* | dirsrv*) WORD=ldap ;;
-      krb5kdc | kadmin | samba-ad-dc | ipa | keycloak | authentik*) WORD=auth ;;
-    esac ;;
-esac
+if hostwarden_coord_kind_whole "$KIND"; then
+  WHOLE=1
+else
+  case $UNIT in
+    nfs-server | nfs-kernel-server | nfsd | nfs-mountd | rpcbind) WORD=nfs ;;
+    smbd | smb | samba | nmbd) WORD=smb ;;
+    unbound | named | bind9 | dnsmasq | systemd-resolved | pdns-recursor \
+    | kresd* | knot-resolver | pihole-FTL | AdGuardHome) WORD=resolver ;;
+    postgresql* | mysql* | mariadb* | mongod | redis* \
+    | valkey*) WORD=db ;;
+    slapd | 389-ds* | dirsrv*) WORD=ldap ;;
+    krb5kdc | kadmin | samba-ad-dc | ipa | keycloak | authentik*) WORD=auth ;;
+  esac
+fi
 
 # Each line goes out with a sort key: the origins in the order
 # given, then the rest by host, then the ways in not readable.

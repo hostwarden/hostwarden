@@ -58,6 +58,17 @@ tool reads. This file adds only what exists here and nowhere else.
   in the operations checkout, the one command is
   `claude "<question>"`, run there — never a task chip, which starts
   in a new worktree.
+- **Coordination runs in operations checkouts.**
+  `.claude/hooks/presence.sh`, a PreToolUse and PostToolUse hook on
+  `Bash` and `Monitor`, keeps the local presence map
+  `rules/coordination.md` → Presence map describes.
+  `.claude/hooks/impact.sh`, a PreToolUse hook on `Bash`, denies a
+  disruptive command aimed at a host with another live session on
+  it until `bin/hostwarden-impact announce` has run, and refuses
+  once, informing rather than holding, a command aimed at a host
+  inside another session's active impact (`rules/coordination.md`
+  → The hooks). Neither reaches the taboo guard's disable
+  variable, and both run only where `mode.sh` reports operations.
 - **Markdown wraps itself.** `.claude/hooks/wrap-markdown.sh`, a
   PostToolUse hook, runs `bin/hostwarden-wrap` on each `.md` an
   edit tool writes, and after a shell command on each `.md` git

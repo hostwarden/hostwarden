@@ -332,7 +332,10 @@ if [ -n "$DEV" ]; then
 else
   [ -n "$QUIET" ] || echo "Recommended"
   # Without it the guard reads the raw hook input and over-blocks
-  # (.claude/hooks/guard-taboos.sh).
+  # (.claude/hooks/guard-taboos.sh); impact.sh instead fails open and
+  # lets a disruptive command through unchecked, silently, since it
+  # cannot read the command reliably enough to judge it
+  # (rules/coordination.md → The hooks).
   probe want jq jq has jq
   # The ones rules/dns-aliases.md tries; any one resolves.
   probe want "hostname resolver" python3 any getent dscacheutil python3 dig

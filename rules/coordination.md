@@ -119,3 +119,133 @@ configuration names the server too, but reading one reads the
 credentials beside it (`rules/secrets.md`); never take an entry
 from there. An entry stays until the user drops it or its host
 leaves memory.
+
+## Presence map
+
+`.claude/hooks/presence.sh`, a PreToolUse and PostToolUse hook on
+`Bash` and `Monitor`, runs in operations checkouts only. It reads
+the session id and the command every such call carries and, where
+the command reaches a host over `ssh`, `scp` or `rsync`, renews a
+name-only entry under `~/.cache/hostwarden/ws-<checkout ID>/
+presence/` (`mode.sh` → `hostwarden_cache_dir`) — nothing is ever
+written into one, the same as the register
+(`rules/parallel-sessions.md` → The register):
+
+- `<session>+<host>+<epoch>` — this session touched the host, the
+  time of the last touch;
+- `<session>+<host>+run` — a foreground `Bash` call on the host is
+  running: the Pre call makes it, the Post call removes it. Never
+  for `run_in_background: true`, and never for `Monitor`, which
+  only touches;
+- `<session>+<host>+writer` — set from the register's own snippet
+  (`rules/parallel-sessions.md` → Register, and renew) reaching the
+  host, cleared from the deregister snippet
+  (→ Deregister when the changes are done).
+
+An entry counts as **live** while its own age is under 30 minutes
+— the epoch in a touched entry's name, the directory's own age for
+a run or a writer one — the same window a register entry uses. A
+session missing from `claude agents --json` is not checked for:
+its entries simply age out.
+
+The map is read, never trusted: it comes from what a session did,
+not from what it declared, so a session that moves on to other
+hosts is seen there without anything to keep in mind. Subagents
+share their session's id, which is correct — they are the session
+doing the work.
+
+**Limits**, the same tolerance the command parsers everywhere in
+Hostwarden accept: a via-host guest (`pct exec 105`), a script, and
+a destination held in a variable are not read and count as no
+destination; a false match on the register or deregister snippet
+costs one wrong `writer` entry, corrected at the next register or
+deregister call on that host. Local-mode administration of this
+workstation itself is not tracked: only a remote destination is. A
+broken presence.sh never blocks a session — a hook that cannot
+record leaves the session as unseen as no hook at all.
+
+## Announce, wait, go
+
+Before a step `The hooks` below would otherwise deny, the
+originating session runs this:
+
+1. **`bin/hostwarden-impact announce <host>… <kind> [<minutes>]`**
+   computes the radius and then the sessions the presence map shows
+   on a radius host. It prints the impact's id, then one line per
+   affected session — `<session> <host> run`, `…writer` or
+   `…touched` (idle) — or says none is live. `<minutes>` defaults
+   to 10 for `reboot`, 5 for `network`, 2 for `firewall` and for a
+   `restart` (Julian, 2026-09-24); a step whose real duration is
+   known, such as a measured reboot, names it instead.
+2. **`bin/hostwarden-impact wait <id>`** blocks for at most two
+   minutes, polling, until every session announce found is safe: no
+   `run` entry on a radius host, and every `writer` entry there has
+   acked `safe`. Readers (an idle or `touched` session) need no
+   ack; they are informed, not held for. It then prints `all safe`
+   and exits 0, or the sessions still not safe — `busy` where a
+   writer acked that, `no answer` where none has — and exits 1.
+3. **All safe:** the step runs under the user's earlier yes.
+   Otherwise, put the result to the user as the approval question:
+   go, wait longer (`wait` again), or stop. Their answer is the
+   gate; an ack is not (`rules/borrowed-rights.md`).
+4. **`bin/hostwarden-impact ack <id> safe|busy <words>…`** — an
+   affected session's own answer to an impact it is named in,
+   written under the impact entry for `wait` to read.
+5. **Once the host answers again: `bin/hostwarden-impact done
+   <id>`.** An impact nobody marks done goes stale 30 minutes past
+   its window, the same as a register entry.
+
+When `announce` finds nothing live on the radius, which is the
+common case, `wait` has nothing to wait for and the step runs at
+once.
+
+**`bin/hostwarden-impact status <host>`** is read-only and makes no
+connection: it prints one line per active impact whose radius
+covers `<host>` — origin, kind, the session that announced it, the
+time its window ends, and this host's relation and the host it is
+reached through — or nothing, exit 1, where none does
+(`rules/ssh-unreachable.md`).
+
+**Format**, this script's own, read by nothing but itself: the
+impact entry is `impact/<id>+<origin>+<kind>+<until>+<session>`
+under the same cache directory as `presence/`, `<origin>` several
+hosts joined by a comma, `<until>` the epoch second the window
+ends. It holds `radius/<host>+<relation>+<through>` for each host
+the radius named, and, once a writer answers, `ack/<session>`.
+
+**Tools without hooks** — no `session-mode.sh`, so no
+`$HOSTWARDEN_SESSION` — run `announce`, `wait`, `ack` and `status`
+by hand the same way; each command then falls back to a session id
+of its own that correlates with nothing else on the map, so it
+sees only what the map already shows and is seen by no one.
+
+## The hooks
+
+`.claude/hooks/impact.sh`, a PreToolUse hook on `Bash`, runs in
+operations checkouts only, separate from `guard-taboos.sh`, which
+stays unchanged (`.claude/rules/repo-release.md` → Guard findings).
+
+- **Origin.** A command whose text names a reboot, a firewall
+  reload or restart, a network change, or the restart of a
+  `systemctl`/`service`/`rc-service` unit, aimed at a host over
+  `ssh` (the same parsing → Presence map limits), is checked
+  against that host's radius. Where the radius holds a live session
+  other than this one, and this session has no impact entry of its
+  own for that host from the last ten minutes, the command is
+  denied: the reason names the radius, the affected sessions and
+  the `announce` command to run first. With nothing live on the
+  radius, or a recent announce of this session's own, it passes
+  silently.
+- **Receiver.** The first command any session aims at a host inside
+  another session's active impact is refused once, with the
+  origin, the kind, the time the window ends and this host's place
+  in the radius: *"pve1 reboot by \<session\> until 14:05; web1
+  runs on it."* A marker under the impact entry remembers the
+  refusal, so the retry goes through. Nothing else is held back —
+  the receiver is informed, never paused.
+
+**What it cannot see:** a local-mode step, a restart whose unit the
+command does not name plainly, and everything → Presence map's
+limits already name. The prose in `AGENTS.md` is the backstop a
+mechanical check cannot be — announce before a step this hook would
+not catch either.

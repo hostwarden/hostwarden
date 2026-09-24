@@ -3,12 +3,20 @@
 # (mode.sh) that guard-mode.sh enforces, so the session starts
 # in it instead of finding out from a denied call. In development
 # it also puts the shim (shim.sh) in front of the tools that reach
-# a server.
+# a server. In operations it also gives every later Bash call this
+# session's own id, for presence.sh and bin/hostwarden-impact
+# (rules/coordination.md → Presence map).
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 # shellcheck source=mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=json.sh
+. "$ROOT/.claude/hooks/json.sh"
 cd "$ROOT" || exit 0
+
+# shellcheck disable=SC2034 # read by hook_field in json.sh
+INPUT=$(cat)
+SID=$(hook_session_id)
 
 CANON=hostwarden/hostwarden
 # q <string> — single-quoted for the shell that sources the env file.
@@ -43,6 +51,20 @@ operations)
     fi
     ;;
   esac
+  # HOSTWARDEN_SESSION carries this session's id into every Bash
+  # call, so `bin/hostwarden-impact announce`, `ack` and `done`
+  # write it into the entries they make, the same id presence.sh
+  # reads from each hook call. Written once: a second SessionStart
+  # (resume, compaction) finds the line already there. A tool that
+  # gives this hook no CLAUDE_ENV_FILE, or no session id, leaves
+  # HOSTWARDEN_SESSION unset; those commands then fall back to a
+  # session id of their own that correlates with nothing
+  # (rules/coordination.md → Announce, wait, go).
+  if [ -n "${CLAUDE_ENV_FILE:-}" ] && [ -n "$SID" ] \
+     && ! grep -qF 'export HOSTWARDEN_SESSION=' "$CLAUDE_ENV_FILE" 2>/dev/null
+  then
+    echo "export HOSTWARDEN_SESSION=$(q "$SID")" >> "$CLAUDE_ENV_FILE"
+  fi
   exit 0
   ;;
 worktree)
