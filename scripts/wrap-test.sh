@@ -423,10 +423,11 @@ out=$(sh "$WRAP" "$R/same.md")
 # property of the tree the hook finds its root from.
 checkout() {
   c="$TMP/$1"
-  mkdir -p "$c/.claude/hooks" "$c/bin" "$c/rules"
+  mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/rules"
   cp .claude/hooks/wrap-markdown.sh .claude/hooks/json.sh \
     .claude/hooks/mode.sh "$c/.claude/hooks/"
   cp bin/hostwarden-wrap "$c/bin/"
+  cp lib/markdown-blocks.awk "$c/lib/"
   printf '/memory/\n' > "$c/.gitignore"
   printf '%s\n' "$LONG" > "$c/rules/shipped.md"
   git -C "$c" init -q

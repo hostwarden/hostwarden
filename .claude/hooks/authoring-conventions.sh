@@ -1,7 +1,8 @@
 #!/bin/sh
 # authoring-conventions.sh — name the authoring rules and the
-# changelog policy when an instruction file or a bin/ script is
-# edited. Neither loads by path from a read of those files.
+# changelog policy when an instruction file, a bin/ script or the
+# lib/ it reads is edited. Neither loads by path from a read of
+# those files.
 #
 # Registered as a PostToolUse hook on Edit|Write. Emits
 # hookSpecificOutput.additionalContext, which that event honors.
@@ -40,7 +41,7 @@ case "$FILE" in
 esac
 
 case "$REL" in
-  rules/*.md|.agents/skills/*|bin/*) ;;
+  rules/*.md|.agents/skills/*|bin/*|lib/*) ;;
   *) exit 0 ;;
 esac
 
