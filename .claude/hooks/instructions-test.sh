@@ -378,10 +378,11 @@ fi
 # exist, and this check drowns in its own corpus.
 #
 # CHANGELOG.md and the fragments in changelog.d/ that become it
-# are out of scope. They are the one place that records a change
-# as a change -- the release rule in `.claude/rules/` says so --
-# which means they name paths that moved, by design.
-HISTORY='^(CHANGELOG\.md|changelog\.d/[^ ]*): '
+# are out of scope, and so are the decision records in docs/adr/.
+# They record what was true on a date -- the release rule in
+# `.claude/rules/` says so -- which means they name paths, skills
+# and terms that later moved or were retired, by design.
+HISTORY='^(CHANGELOG\.md|changelog\.d/[^ ]*|docs/adr/[^ ]*): '
 report "$(scan \
   | grep -vE "$HISTORY" \
   | tag '(^|[^a-z0-9/_.-])rules/[a-z0-9/_-]+\.md' \
@@ -595,7 +596,11 @@ report "$(scan \
 # Every page under docs/, subdirectories included, is listed in its
 # index. The README points there instead of keeping a list of its
 # own, so a page the index leaves out is a page no link reaches.
+# The records in docs/adr/ are listed in docs/adr/README.md, which
+# scripts/decisions.py generates and checks, and which is listed
+# here like any other page.
 UNLISTED=$(cd "$ROOT/docs" && find . -name '*.md' ! -path ./README.md \
+  ! -path './adr/[0-9]*' \
   | sed 's#^\./##' | sort | while read -r n; do
     grep -qF -e "]($n)" -e "]($n#" -e "]($n " README.md \
       || echo "docs/$n"

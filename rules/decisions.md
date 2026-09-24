@@ -29,6 +29,8 @@ Not a decision:
 - a constraint that follows from a change: a `Flags:` line
   (`rules/changelog.md` → Standing lines);
 - how a task is done on a host, step by step: an override;
+- how Hostwarden itself is built: its developers decide that, in
+  its repository;
 - what was done and when: `changelog.log`.
 
 ## Where it goes

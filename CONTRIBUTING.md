@@ -190,6 +190,11 @@ files it governs. Read the one that covers what you change:
 Claude Code loads them on its own; every other tool has to be
 pointed at them.
 
+Why Hostwarden is built the way it is lives in
+[docs/adr/](docs/adr/README.md);
+[architecture-decisions.md](docs/architecture-decisions.md) says
+when a pull request adds a record there.
+
 ## Commits and pull requests
 
 [Conventional Commits](https://www.conventionalcommits.org/)

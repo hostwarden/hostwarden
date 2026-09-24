@@ -33,9 +33,12 @@ CORPUS_ROOT="$(cd "$CLAUDE_DIR/.." && pwd)"
 # no prose, and `.claude/skills`, which is the symlink to
 # `.agents/skills` and would scan that tree a second time.
 #
+# docs/adr/README.md is generated from the records, which are
+# scanned themselves, and scripts/decisions.py checks it.
+#
 # Anchored at the start of a repo-relative path, so a directory
 # here takes its contents with it.
-CORPUS_EXEMPT_RE='^(assets/|\.claude/skills$|\.claude/settings\.json$|\.gitattributes$|\.gitignore$|LICENSE$|VERSION$)'
+CORPUS_EXEMPT_RE='^(assets/|\.claude/skills$|\.claude/settings\.json$|\.gitattributes$|\.gitignore$|LICENSE$|VERSION$|docs/adr/README\.md$)'
 
 corpus_files() {
   # A tree without git is a tree this cannot describe, and a

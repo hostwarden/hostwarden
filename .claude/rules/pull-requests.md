@@ -47,6 +47,14 @@ what a change to something not released yet does instead are in
 `repo-release.md` → CHANGELOG.md; the own review checks the
 fragment against it.
 
+## The decision record
+
+A pull request that settles a decision
+`docs/architecture-decisions.md` → When a pull request needs one
+names carries its record in `docs/adr/` from its first commit on;
+for a design issue, that is the pull request that builds it. The
+own review checks it (→ The own review, step 2).
+
 ## Checks
 
 CI is the only gate for the tests. A run of the guard matrix on the
@@ -164,8 +172,10 @@ added the file. This is the author's step; no check enforces it.
    report at the same place is one finding, and that both found it
    counts as confidence. The reviewer with focus `consistency` is
    also told to check the changelog entry against `repo-release.md`
-   → CHANGELOG.md: there when the change is user-visible, and only
-   then. The findings already name their class and siblings: fix
+   → CHANGELOG.md, there when the change is user-visible, and the
+   decision record against `docs/architecture-decisions.md` → When
+   a pull request needs one, there when that section asks for one;
+   each only then. The findings already name their class and siblings: fix
    them all, in the full tier in passes as below.
 3. Push. The pull request stays a draft; the second review
    follows where it is required.
