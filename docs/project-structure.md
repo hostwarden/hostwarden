@@ -58,7 +58,8 @@ scripts/
   decisions.py         — Writes and checks docs/adr/'s index
                          (run by scripts/check.sh)
   review-record.sh     — Whether a pull request body records
-                         the second review of its head
+                         the second review of its head, and
+                         the own review's tier
   review-record-test.sh — Its fixture matrix and
                          review-tier.sh's (run by
                          scripts/check.sh)

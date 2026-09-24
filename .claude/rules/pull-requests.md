@@ -173,7 +173,7 @@ of the passes on that round's fix commit, given its findings and
 the sweep's siblings — and what they report is fixed at the current
 level (→ Rounds), in passes as below. The own review's line gains
 `, full from round <n>`, or `, full from <sha>` with the head that
-added the file. This is the author's step; no check enforces it.
+added the file. Running the reviewers is the author's step.
 
 1. `/simplify`, for reuse and clarity.
 2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`,
@@ -198,8 +198,7 @@ Of the results, only the deferred list below and one line under
 
 `1 pass` in the light tier, at most three paths that decided the
 tier, and `1 finding` or `no findings` where that fits. The review
-record check does not read it (→ The review record): whoever
-merges compares the tier with the files.
+record check holds its tier to the files (→ The review record).
 
 Passes, here and on a fix commit, run like this:
 
@@ -305,6 +304,18 @@ merges reviews those. Otherwise the body needs one of:
   Once the squash has taken them off the branch, only the server
   keeps them; where it no longer serves one, the check fails, and a
   run on the head is due as for any fix.
+
+The body also needs the own review's line under `## Review`
+(→ The own review), the last one where there are several, unless it
+has no run line: skip lines alone, each a person's decision, are
+then the whole record, on a person's pull request or on an agent's
+skipped at capacity, and the check cannot tell the two apart. One
+that says `light` holds where the files between the head and its
+merge base with the base branch are light by `scripts/review-tier.sh`
+and no local run's line carries a P0 or P1; a light pull request
+that turned full says so on the line, `, full from …`. A GitHub
+round's priorities are its threads, which the check does not read,
+and a `full` line is taken as written.
 
 Each local run's line with findings must carry one clause per
 finding, told apart by title and place, whose answer is "fixed in
