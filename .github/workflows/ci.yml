@@ -44,9 +44,10 @@ jobs:
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          # Renovate cannot see a version pinned here; wait the
-          # same seven days it waits for everything else.
-          minimum_release_age: 7d
+          # Renovate keeps this pin current, as it does the one in
+          # .claude/hooks/dev-tools.sh, and holds each release back
+          # seven days.
+          version: v2026.9.10
 
       # Add checks to scripts/check.sh, not here. A draft gets what a
       # push of its commits onto the base gets: every check but the
