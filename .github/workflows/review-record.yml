@@ -9,8 +9,10 @@ name: Review record
 # held to. That is safe only because nothing here runs the pull
 # request's code: the checkout is the default branch's, the job
 # reads the body and the head SHA from the event, and the token can
-# read and nothing else. Keep it so. Its checks land on the pull
-# request's head.
+# read and nothing else. A fix line in the body makes the checker
+# fetch the two commits it names, without credentials, and read the
+# names of the files between them; nothing of them runs. Keep it so.
+# Its checks land on the pull request's head.
 on:
   pull_request_target:
     types:
@@ -39,14 +41,15 @@ jobs:
       && github.event.pull_request.user.type != 'Bot'
     runs-on: ubuntu-latest
     steps:
-      # No ref: the default branch's checker and the block reader it
-      # runs, never the pull request's.
+      # No ref: the default branch's checker, the block reader and
+      # the tier list it runs, never the pull request's.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
             scripts/review-record.sh
             lib/markdown-blocks.awk
+            scripts/review-tier.sh
           sparse-checkout-cone-mode: false
 
       - name: Read the record
