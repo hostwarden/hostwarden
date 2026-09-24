@@ -104,6 +104,9 @@ contrib/
     session-mode.sh    — SessionStart hook that announces the
                          mode, a linked worktree included, and
                          puts the shim on PATH in development
+    dev-tools.sh       — SessionStart hook that installs the
+                         checks' tools (mise.dev.toml) in a
+                         Claude Code cloud development session
     shim.sh, shim/     — Stand-ins for ssh, sudo and the other
                          tools that reach a server, in a
                          development session
