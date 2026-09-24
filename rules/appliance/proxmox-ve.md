@@ -239,7 +239,10 @@ Source for everything below unless noted: the admin guide,
 
 - List: `qm list` (VMs), `pct list` (containers). Task logs of the
   web UI are under `/var/log/pve/tasks/`.
-- Config: `qm config <vmid>`, `pct config <vmid>`.
+- Config: `qm config <vmid>`, `pct config <vmid>`. A VM's holds
+  `cipassword:` and `sshkeys:`, so read the lines a task needs
+  through `grep -E '^(<key>|<key>):'`, never the whole config
+  (`rules/secrets.md`).
 - Migrate: `qm migrate <vmid> <target> --online` (VM, live),
   `pct migrate <vmid> <target> --restart` (containers have no live
   migration; the restart is a reboot of that guest, so ask first).
@@ -320,6 +323,14 @@ Source for everything below unless noted: the admin guide,
 - **Guest tools:** only for a VM whose `agent:` line enables it,
   `qm guest cmd <vmid> get-host-name`, `get-osinfo` and
   `network-get-interfaces`.
+- **A container's hostname:** at every start Proxmox VE writes the
+  first label of its `hostname:` to the guest's `/etc/hostname`,
+  and its own section of the guest's `/etc/hosts`, over what the
+  guest holds, unless the guest has `/etc/.pve-ignore.hostname`
+  or `/etc/.pve-ignore.hosts` (`src/PVE/LXC/Setup/Base.pm` in
+  `pve-container`). A hostname changed inside the guest alone
+  goes back at its next start; `pct set <vmid> --hostname <name>`
+  changes it for good.
 - **Cloning:** `pct clone` keeps the source's SSH host keys, so
   every clone of one container shares them; `pct create` from an
   archive writes new ones and removes the machine ID
@@ -364,6 +375,16 @@ Source for everything below unless noted: the admin guide,
   rather than asking whether they have one.
 - SDN config lives in `/etc/pve/sdn`. Changes stay pending until
   applied in the SDN panel, then apply cluster-wide.
+- **Hostname:** the node's name is its directory under
+  `/etc/pve/nodes/`, so no `hostnamectl` alone renames it. A node
+  in a cluster keeps its name (Cluster Filesystem above): name
+  <https://pve.proxmox.com/wiki/Renaming_a_PVE_node>, which calls
+  renaming one "not recommended", and leave it to the user. A
+  standalone node is renamed as that page describes: read it
+  first, since it changes with the releases, and show its steps
+  before asking. It ends with a reboot of the node, which stops
+  every guest on it, so the question lists them from `guests.md`
+  (`AGENTS.md` → Critical Safety Rules).
 
 ## Storage
 

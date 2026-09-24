@@ -8,6 +8,14 @@ field in server memory files.
 server. Additional DNS names become filesystem
 symlinks to the canonical directory.
 
+A renamed host (`rules/host-rename.md`) makes its new
+name the canonical one, and its old name an alias
+without Detection: symlink and `- DNS alias:` line as
+in step 3, until the user says the old name is gone
+from DNS or a connection by it finds no address. Then
+remove it as `rules/host-rename.md` → When the Old
+Name Is Gone says.
+
 ## Detection (on every new hostname)
 
 When connecting to a hostname with no
@@ -126,8 +134,9 @@ no name to connect by: `ssh` calls, `Host` lines and
 host whose memory has no `- FQDN:` line or `unknown` in it.
 A first connection writes `memory.md` without the line; this
 call adds it. A full re-probe (`rules/os-detection.md` → On
-subsequent connections) reads it again, `none` included, and
-writes what it finds over the old value.
+subsequent connections) and the verification of a rename
+(`rules/host-rename.md` → Verify) read it again, `none`
+included, and write what they find over the old value.
 
 **The probe** is the first line of `hostname -f` on the host,
 after a marker of its own:

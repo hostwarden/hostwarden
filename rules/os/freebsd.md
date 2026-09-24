@@ -393,7 +393,15 @@ reached).
   defaultrouter="192.168.1.1"
   ```
 - DNS: `/etc/resolv.conf`
-- Hostname: `sysrc hostname="myhost.example.com"`
+- Hostname: `sysrc hostname="myhost.example.com"` sets it for
+  the next boot, and `hostname myhost.example.com` for the
+  running system; a change needs both. A jail's hostname is
+  its host's `host.hostname` parameter for it, which the jail
+  cannot change itself: set it where the jail is defined, its
+  `jail.conf` entry, Bastille's `jail.conf` for it or iocage's
+  `host_hostname` property, for its next start, and with
+  `jail -m name=<jail> host.hostname=<name>` on the running
+  jail.
 - Restart networking: `service netif restart &&
   service routing restart`
 

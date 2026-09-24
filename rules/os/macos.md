@@ -199,6 +199,18 @@ Rules for macOS (Apple Silicon and Intel).
   `sshd-session` as well.
 - Checksum of a file: `shasum -a 256 <file>`.
 
+## Networking
+
+- **Hostname:** three names, each read with
+  `scutil --get <name>`. `HostName` is the one `hostname`
+  prints; unset, the system derives it from `LocalHostName` or
+  from DHCP. `LocalHostName` is the Bonjour name, reached as
+  `<name>.local`, letters, digits and hyphens only.
+  `ComputerName` is the name the Sharing settings show. A
+  rename sets `HostName` to the new name and `LocalHostName` to
+  its first label, and `ComputerName` only where it held the old
+  name, one `sudo scutil --set <pref> <value>` each.
+
 ## SIP and Gatekeeper
 
 - **System Integrity Protection (SIP):**

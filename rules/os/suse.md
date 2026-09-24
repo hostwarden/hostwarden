@@ -79,6 +79,11 @@ Enterprise Server (SLES).
 - Auth log: the journal, `journalctl -u sshd`.
 - Checksum of a file: `sha256sum <file>`.
 
+## Networking
+
+- **Hostname:** `hostnamectl set-hostname <name>` writes the
+  static name to `/etc/hostname` and sets the running one.
+
 ## YaST
 
 - SUSE uses YaST for system configuration. Prefer command-

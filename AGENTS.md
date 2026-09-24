@@ -310,6 +310,7 @@ trigger — not a request from the user.
   for → `rules/best-practices.md` for the anti-pattern catalog
 - Renaming or moving files, or changing a retention scheme →
   `rules/file-naming-changes.md`
+- Renaming a host → `rules/host-rename.md`
 - Copying a directory tree between servers →
   `rules/directory-copy.md`
 - Growing, rebuilding or repairing storage — a file system, RAID,

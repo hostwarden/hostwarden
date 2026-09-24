@@ -135,7 +135,8 @@ ones come from each manager's own list. The light listing is
 
   ```bash
   for f in /etc/jail.conf /etc/jail.conf.d/*.conf; do
-    test -r "$f" && echo "@conf $f" && jail -f "$f" -e '|'
+    test -r "$f" && echo "@conf $f" &&
+      jail -f "$f" -e '|' | sed -E 's/[|]exec[.][^|]*//g'
   done
   ```
 
@@ -143,12 +144,13 @@ ones come from each manager's own list. The light listing is
   loop reads that one in its place: it is the file `service jail`
   starts from. `jail -e` prints every jail the file defines,
   running or not, one line each with its parameters, and changes
-  nothing. A jail printed twice, because `/etc/jail.conf` includes
-  the directory, is one jail. It starts with the host when
-  `jail_enable` is `YES` and `jail_list` names it. With
-  `jail_list` empty, the jails of the file `jail_conf` names and
-  the files it includes start; a file in `/etc/jail.conf.d/` that
-  it does not include does not.
+  nothing; the `sed` leaves out its `exec.*` commands, which can
+  carry credentials (`rules/secrets.md`). A jail printed twice,
+  because `/etc/jail.conf` includes the directory, is one jail.
+  It starts with the host when `jail_enable` is `YES` and
+  `jail_list` names it. With `jail_list` empty, the jails of the
+  file `jail_conf` names and the files it includes start; a file
+  in `/etc/jail.conf.d/` that it does not include does not.
 - **Bastille:** `bastille list all` shows every jail with `BOOT`,
   `STATE`, its addresses, hostname and path. A jail starts with
   the host when `BOOT` is `on` and `bastille_enable` is `YES`.

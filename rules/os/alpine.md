@@ -336,6 +336,13 @@ user.
   or `/var/log/auth.log` under syslog-ng.
 - Checksum of a file: `sha256sum <file>`, which busybox provides.
 
+## Networking
+
+- **Hostname:** `/etc/hostname` holds it for the next boot,
+  which `setup-hostname <name>` writes where `alpine-conf` is
+  installed, and `hostname -F /etc/hostname` sets the running
+  system from it; a change needs both.
+
 ## Logs
 
 Alpine logs through syslog, to `/var/log/messages`:

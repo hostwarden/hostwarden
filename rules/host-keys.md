@@ -23,7 +23,8 @@ No one has to log in by hand first.
   Getting a Key and DNS Aliases below name:
   `pct exec 105 on pve1.example.com`,
   `imported from <files> on <workstation>`,
-  `first use`, `console (user)`, `alias of web1.example.com`.
+  `first use`, `console (user)`, `alias of web1.example.com`,
+  `renamed from web1.example.com`.
 - **Written by a command, never typed.** A key copied out of
   the conversation by hand is one wrong character away from
   locking the host out, or from trusting the wrong one. Every
@@ -376,6 +377,13 @@ a Key.
 A key that does not verify under `HostKeyAlias` is a different
 machine behind the same address: stop and tell the user, as for
 a changed key.
+
+A renamed host (`rules/host-rename.md`) keeps its key, and its
+new name gets lines the same way: connect once by the new name
+with `-o HostKeyAlias=` the name the old one is looked up by, and
+copy the old name's plain lines under the new name, with
+`renamed from web1.example.com` as the source. The old name's
+lines stay while it is an alias, and go with it (Removing Names).
 
 ## Jump Hosts
 
