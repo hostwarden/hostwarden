@@ -37,6 +37,14 @@ end, and one `gh … --limit 1000` does not become one page of 100. A
 command given to a person to type, the merge above all, stays
 `gh`.
 
+## Scope
+
+A change that turns a one-time check into a recurring one ships as
+its own pull request, never bundled with the feature that needed
+it. Before opening it, grep the rule for every instruction that
+records, asks or dismisses something, and work out what each does
+on the second run; say so in the pull request body.
+
 ## The changelog fragment
 
 A pull request with a user-visible change carries its changelog
