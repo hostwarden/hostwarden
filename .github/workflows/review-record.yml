@@ -9,10 +9,12 @@ name: Review record
 # held to. That is safe only because nothing here runs the pull
 # request's code: the checkout is the default branch's, the job
 # reads the body and the head SHA from the event, and the token can
-# read and nothing else. A fix line in the body makes the checker
-# fetch the two commits it names, without credentials, and read the
-# names of the files between them; nothing of them runs. Keep it so.
-# Its checks land on the pull request's head.
+# read and nothing else: one call asks the API for the head's merge
+# base with the base branch. The checker
+# fetches the head and that merge base, and the two commits a fix
+# line in the body names, without credentials, and reads the names
+# of the files between them; nothing of them runs. Keep it so. Its
+# checks land on the pull request's head.
 on:
   pull_request_target:
     types:
@@ -52,8 +54,19 @@ jobs:
             scripts/review-tier.sh
           sparse-checkout-cone-mode: false
 
+      # The merge base is what the own review's tier is read against:
+      # the files the pull request changes, not what its base branch
+      # gained since. It is taken against the branch by name, since
+      # the event's base.sha need not be the branch's tip.
       - name: Read the record
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: printf '%s\n' "$BODY" | sh scripts/review-record.sh "$HEAD_SHA"
+        run: |
+          base=$(gh api "repos/$REPO/compare/$BASE_REF...$HEAD_SHA" \
+            --jq .merge_base_commit.sha)
+          printf '%s\n' "$BODY" \
+            | sh scripts/review-record.sh "$HEAD_SHA" "$base"

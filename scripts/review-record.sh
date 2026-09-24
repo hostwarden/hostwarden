@@ -1,24 +1,29 @@
 #!/bin/sh
 # review-record.sh — whether a pull request body records the second
-# review of its head, as .claude/rules/pull-requests.md → The review
-# record says.
+# review of its head, and the own review's tier, as
+# .claude/rules/pull-requests.md → The review record says.
 #
-#   sh scripts/review-record.sh <head sha> < <body>
+#   sh scripts/review-record.sh <head sha> [<merge base sha>] < <body>
 #
 # Exits 0 when the record is there, 1 with what is missing, 2 on a
 # usage error or without its block reader. It proves the record
 # exists, not that the review was any good. The review-record
 # workflow runs it, the default branch's copy, on a pull request
-# that is not a draft, in a checkout of that branch: a fix line
-# (covered() below) is judged by the files its commit touches, and
-# the two commits it names are fetched from `origin` by their SHAs
-# for that, their names read and nothing of them run.
+# that is not a draft, in a checkout of that branch, and gives it
+# the head's merge base with the base branch, without which the own
+# review's line is not read: that line (ownreview() below) and a fix
+# line (covered() below) are judged by
+# the files between two commits, which are fetched from `origin` by
+# their SHAs for that, their names read and nothing of them run.
 
-[ $# -eq 1 ] && printf '%s\n' "$1" | grep -qxE '[0-9a-f]{40}' || {
-  echo "usage: sh scripts/review-record.sh <full head sha> < <body>" >&2
+[ $# -ge 1 ] && [ $# -le 2 ] \
+  && ! printf '%s\n' "$@" | grep -qvxE '[0-9a-f]{40}' || {
+  echo "usage: sh scripts/review-record.sh <full head sha>" \
+    "[<full merge base sha>] < <body>" >&2
   exit 2
 }
 HEAD_SHA=$1
+BASE_SHA=${2:-}
 
 # A body edited in the browser arrives with CRLF line ends.
 BODY=$(tr -d '\r')
@@ -120,11 +125,13 @@ SKIPS=$(printf '%s\n' "$SKIP" \
 # so a clause without one still counts as answered. FIXES collects
 # `<run> P<n> <sha>` for each clause answered "fixed in <sha>",
 # `<run>` the head the run reviewed and `P` alone where the clause
-# names no priority.
+# names no priority. HIGH is the first run whose line carries a P0
+# or a P1, whatever its answer, which turns a light own review full.
 FORM='<title> (<path:line>): P<n>, class <n>, <answer>'
 PLACE='\([^()]*:[0-9]+(-[0-9]+)?\): (P[0-3], )?class [0-9]+(/[0-9]+)*, '
 ANSWER='(fixed in `?[0-9a-f]{7,40}|not a bug: |deferred to a follow-up PR)'
 FIXES=
+HIGH=
 while IFS= read -r line; do
   run=$(printf '%s\n' "$line" | sed -nE "s/$SHAPE.*$/\\1 \\2 \\3/p")
   [ -n "$run" ] || continue
@@ -142,6 +149,7 @@ while IFS= read -r line; do
     | sed -E 's#\): (P[0-3], )?class .*##; s#.*(; |\. | — )##' | sort -u | grep -c .)
   [ "$answered" -ge "$3" ] \
     || missing "the run on $2 has $3 findings, $answered answered as '$FORM'"
+  printf '%s\n' "$clauses" | grep -qE '\): P[01], class ' && HIGH=${HIGH:-$2}
   FIXES="$FIXES$(printf '%s\n' "$clauses" \
     | sed -nE "s#.*\\): (P([0-3]), )?class .*, fixed in \`?([0-9a-f]{7,40})\$#$2 P\\2 \\3#p")
 "
@@ -149,11 +157,22 @@ done <<EOF
 $REVIEW
 EOF
 
+# tier <old> <new> -- the tier of the files between two commits, as
+# scripts/review-tier.sh prints it; nothing where a commit cannot
+# be read. Trees and names are all the tier reads, so no blob is
+# fetched.
+tier() {
+  { git cat-file -e "$1^{commit}" && git cat-file -e "$2^{commit}"; } \
+    2>/dev/null || git fetch -q --no-tags --depth=1 --filter=blob:none \
+    origin "$1" "$2" 2>/dev/null
+  sh "$(dirname "$0")/review-tier.sh" "$1" "$2" 2>/dev/null
+}
+
 # lightfix <new> <old> -- whether the fix line from <old> to <new>
 # holds: <new> answers a finding of the local run on <old>, every
 # finding of that run it answers names its priority and is a P2 or
-# a P3, and it touches light-tier files only
-# (scripts/review-tier.sh), which the two commits' trees tell.
+# a P3, and it touches light-tier files only, which the two
+# commits' trees tell.
 lightfix() {
   prios=
   while read -r r p s; do
@@ -177,20 +196,16 @@ EOF
     missing "$1 fixes a P0 or P1: the next run is due"
     return 1
   fi
-  # Trees and names are all the tier reads, so no blob is fetched.
   # After the squash neither commit is on a branch any more; GitHub
   # still serves them by SHA, but no server has to, and where one
   # does not the line fails closed: the run it skipped is due.
-  { git cat-file -e "$2^{commit}" && git cat-file -e "$1^{commit}"; } \
-    2>/dev/null || git fetch -q --no-tags --depth=1 --filter=blob:none \
-    origin "$2" "$1" 2>/dev/null
-  tier=$(sh "$(dirname "$0")/review-tier.sh" "$2" "$1" 2>/dev/null) || {
+  t=$(tier "$2" "$1") || {
     missing "the commits of the fix line on $1 cannot be read, so" \
       "what it changes is unknown: a run on the head is due"
     return 1
   }
-  [ "$tier" = light ] && return 0
-  missing "$1 changes $(printf '%s\n' "$tier" | sed -n 2p)," \
+  [ "$t" = light ] && return 0
+  missing "$1 changes $(printf '%s\n' "$t" | sed -n 2p)," \
     "outside the light tier: the next run is due"
   return 1
 }
@@ -219,6 +234,43 @@ covered() {
 covered "$HEAD_SHA" \
   || missing "no run or skip line names the head $HEAD_SHA, and no" \
     "rebase, squash or fix line leads to it from one that does"
+
+# ownreview -- the own review's line, `Own review: <tier> (<paths>),
+# …` under ## Review, given the head's merge base: the last one
+# counts. A record without a run line may leave it out: skip lines,
+# each a person's decision, are then all of it, whether the pull
+# request is a person's or an agent's skipped at capacity. `full`
+# holds as written. `light` holds where the files between the merge
+# base and the head are light and no local run found a P0 or P1, or
+# where the line says the tier turned, `, full from round <n>` or
+# `, full from <sha>`. A GitHub run's priorities are its threads,
+# which this does not read.
+OWN='Own review: <tier> (<paths>), …'
+ownreview() {
+  own=$(printf '%s\n' "$REVIEW" \
+    | grep -E '^Own review: (light|full) \(' | tail -1)
+  if [ -z "$own" ]; then
+    [ -z "$RUNS" ] || missing "no own review line under ## Review, '$OWN'"
+    return
+  fi
+  printf '%s\n' "$own" \
+    | grep -qE '^Own review: full |, full from (round [0-9]+|`?[0-9a-f]{7,40})' \
+    && return
+  if [ -n "$HIGH" ]; then
+    missing "the own review says light, and the run on $HIGH found a" \
+      "P0 or P1: it turns full, '…, full from round <n>'"
+    return
+  fi
+  t=$(tier "$BASE_SHA" "$HEAD_SHA") || {
+    missing "the head $HEAD_SHA or its merge base $BASE_SHA cannot be" \
+      "read, so the own review's tier cannot be held to the files"
+    return
+  }
+  [ "$t" = light ] || missing "the own review says light, and the pull" \
+    "request changes $(printf '%s\n' "$t" | sed -n 2p), outside the" \
+    "light tier: it is full, or turned full, '…, full from <sha>'"
+}
+[ -z "$BASE_SHA" ] || ownreview
 
 [ -z "$fail" ] || exit 1
 echo "review record: the head $HEAD_SHA is covered"
