@@ -25,6 +25,16 @@ command below that needs one of the project's branches uses
 Every `gh` command below names the repository the same way, with
 `-R hostwarden/hostwarden`.
 
+## The changelog fragment
+
+A pull request with a user-visible change carries its changelog
+entry from its first commit on, so that both reviews read it: one
+file, `changelog.d/<branch>.md`, never an addition to
+`CHANGELOG.md`. What counts as user-visible, the file's form, and
+what a change to something not released yet does instead are in
+`repo-release.md` → CHANGELOG.md; the own review checks the
+fragment against it.
+
 ## Checks
 
 CI is the only gate for the tests. A run of the guard matrix on the
@@ -93,9 +103,11 @@ author's, and the own review then brings a second family's view as
 well.
 
 1. `/simplify`, for reuse and clarity.
-2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`. Its
-   findings already name their class and siblings: fix them all,
-   then give it the branch again, in passes as below.
+2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`,
+   told to check the changelog entry against `repo-release.md` →
+   CHANGELOG.md: there when the change is user-visible, and only
+   then. Its findings already name their class and siblings: fix
+   them all, then give it the branch again, in passes as below.
 3. Push. The pull request stays a draft; the second review
    follows where it is required.
 
@@ -367,9 +379,8 @@ agent can do is done:
   both. A failure puts the pull request back into draft, and
   whoever merges is told;
 - the branch is one commit on its base, whose message is the
-  squash text: the why, not only the what, since before 1.0.0 the
-  changelog is rewritten from the code, the pull requests and the
-  commit messages, and the trailers (`Ported-from:`,
+  squash text: the why, not only the what, which the changelog
+  entry leaves out, and the trailers (`Ported-from:`,
   `Co-Authored-By:`) at its end. The squash is
   `git reset --soft $(git merge-base hostwarden/<base> HEAD)` and
   one commit; its tree is the reviewed head's, which

@@ -244,10 +244,14 @@ protection there.
   shipped is reported, not ignored. `bin/hostwarden-migrate` moves
   Heinzel-era overrides to their new paths and keeps both files where
   one already exists.
-- **A checkout can follow a release line.**
-  `bin/hostwarden-update --follow 1` takes every 1.x.y release, and
-  `--follow 1.2` only 1.2.x fixes; `--pin` and `--unpin` work as
-  before. The auto-update runs only in an operations checkout.
+- **An operations checkout follows the newest release line.** Its
+  first update after a release settles on that release's major line,
+  and it moves to each new release on it. `bin/hostwarden-update
+  --follow 1.2` takes only 1.2.x fixes, and `--pin` holds one
+  version. Once a release outside the line is out, every update says
+  so. `--unpin` follows `main` instead, and after each pull names the
+  changes that no release carries yet. The auto-update runs only in
+  an operations checkout.
 - **Your own mirror of Hostwarden stays current unattended.**
   `bin/hostwarden-mirror` fast-forwards a mirror's `main` and its tags
   from a CI or cron job. It fails rather than overwrite commits the

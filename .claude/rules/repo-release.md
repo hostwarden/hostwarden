@@ -2,6 +2,7 @@
 paths:
   - "VERSION"
   - "CHANGELOG.md"
+  - "changelog.d/**"
   - ".github/**"
   - ".claude/hooks/**"
   - "scripts/**"
@@ -24,40 +25,92 @@ release is cut.
 makes `.github/workflows/tag-release.yml` create and push a tag, so
 a bump is the release, not a step towards it.
 
-Tags are never created by hand. Commit the bump, push, and let the
-workflow tag it.
+Tags are never created by hand. Commit the bump, with the
+changelog folded (→ CHANGELOG.md), push, and let the workflow tag
+it.
 
 `VERSION` holds a semver string and nothing else. Release notes live
 in `CHANGELOG.md`. The session-start hook compares the version
 before and after an update and tells the user what changed; users
 can follow a release line, pin to a tag or opt out
 (`bin/hostwarden-update --help`). A release line is found by its
-`vX.Y.Z` tags alone: there are no moving tags such as `v1`.
+`vX.Y.Z` tags alone: there are no moving tags such as `v1`. An
+operations checkout on `main` that never chose follows `main` until
+a release of 1.0.0 or later exists; its next update then records
+the major line of the newest release and moves to it. `--unpin`
+records `main` for whoever tests it.
 
 ## CHANGELOG.md
 
-Keep-a-Changelog style, newest first, under `## Unreleased` until a
-release is cut.
+Keep-a-Changelog style, newest first.
+
+**No pull request adds to `CHANGELOG.md` but the release's own**
+(→ At a release, below). Parallel pull requests that all append to
+one section conflict every time. Each pull request with a
+user-visible change adds one file instead, `changelog.d/<branch>.md`,
+named after its branch with `/` as `-`, which holds its entry under
+the Keep-a-Changelog section it belongs to:
+
+    ### Fixed
+
+    - **Unraid counts a disk in SLEEP mode as asleep.** Housekeeping
+      reported it as unknown, because only STANDBY was recognised.
+
+The section is one of Added, Changed, Deprecated, Removed, Fixed and
+Security; a pull request that makes two changes of different kinds
+gives each its section in the same file. An entry's further lines
+indent by two spaces, and it is prose, without a code block.
+`scripts/changelog-release.sh --check`, a step of
+`scripts/check.sh`, holds every fragment to this form.
 
 **One entry per change, written for someone who uses Hostwarden**
 — what it does for them now, not what the diff touched. A bold lead
-clause, then the detail in a sentence or two.
+clause, then the detail in a sentence or two. The lead clause alone
+is what `bin/hostwarden-update` shows someone following `main` when
+the entry is new, changed or no longer listed, so it has to stand
+on its own.
 
-**`## Unreleased` describes the state that will ship, not the way
-it was reached.** Nothing under it has reached a user, so a thing
-introduced and then withdrawn before the release is not two
-entries — it is none. Delete the entry that introduced it rather
-than adding one that takes it back. Once a release is cut its
-section is history and is never edited again; only `## Unreleased`
-can still be rewritten this way, and that is the whole reason it
-can.
+**A change is user-visible** when someone running an operations
+checkout would notice it: what a session does, asks or reports, a
+skill, a rule under `rules/`, a `bin/` script, the documentation a
+user reads. A pull request that changes only how Hostwarden is
+developed — `.claude/rules/`, `.claude/agents/hostwarden-reviewer.md`,
+`.github/`, `scripts/`, the test matrices, `CONTRIBUTING.md`,
+`docs/project-structure.md` — needs no fragment, and neither does a
+change of wording that changes nothing a user does or sees.
 
-This is the only file in the repository where a change may be
-described *as a change*. Instruction files describe the current
-state and nothing else: no "previously", no "this used to live
-in", no migration notes. A reader of `rules/backups.md` needs to
-know what to do, not what it said last month. That rule governs
-every instruction file, not just the ones near this one.
+**What is unreleased describes the state that will ship, not the
+way it was reached.** Nothing in `changelog.d/`, or under a
+`## Unreleased` still in `CHANGELOG.md`, has reached a user, so a
+thing introduced and then withdrawn before the release is not two
+entries — it is none. A pull request that withdraws or changes
+something not released yet edits or deletes the entry that
+introduced it, in its fragment or under that `## Unreleased`,
+rather than adding one that takes it back. Once a release is cut
+its section is history and is never edited again.
+
+**At a release,** the pull request that bumps `VERSION` runs
+`sh scripts/changelog-release.sh`. It turns a `## Unreleased` left
+in `CHANGELOG.md` into the new version's section, or starts one
+above the newest release, adds every fragment's entries grouped by
+section, and deletes the fragments. Whoever cuts the release then
+smooths the section — one entry for what several pull requests did
+to one thing, the most interesting first — and commits `VERSION`,
+`CHANGELOG.md` and the deleted fragments as one commit. What merges
+while the release waits arrives with its next rebase, and
+`--check` fails on each fragment older than the bump until the
+fold has run again: it adds those entries to the end of the
+section it wrote, where they are merged in by hand, and the commit
+is amended. A fragment committed after the bump, a pull request
+queued behind the release, ships after it and stays.
+
+`CHANGELOG.md` and its fragments are the only files in the
+repository where a change may be described *as a change*.
+Instruction files describe the current state and nothing else: no
+"previously", no "this used to live in", no migration notes. A
+reader of `rules/backups.md` needs to know what to do, not what it
+said last month. That rule governs every instruction file, not
+just the ones near this one.
 
 ## Porting from Heinzel
 

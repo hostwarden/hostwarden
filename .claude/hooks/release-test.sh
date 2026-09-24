@@ -163,7 +163,11 @@ case "$out" in
 *"1.2.2 -> 1.2.3"*"release 1.2.3"*) ok ;;
 *) bad "the hook did not report the update: $out" ;;
 esac
-[ -z "$(hook)" ] && ok || bad "the hook spoke with nothing to do"
+# With nothing to do it says only that a newer release is out.
+case "$(hook)" in
+"hostwarden: v2.1.0 is out"*) ok ;;
+*) bad "the hook said more than the newer major with nothing to do" ;;
+esac
 update >/dev/null && at v1.2.3 && ok || bad "plain update left the line"
 # The line is recorded once the checkout is on it, even when the
 # migration after it fails.
@@ -199,12 +203,12 @@ echo local > "$P/VERSION"
 update --unpin >/dev/null && bad "--unpin succeeded over a local change"
 follows 2 && ok || bad "a failed --unpin dropped the line"
 git -C "$P" checkout --quiet -- VERSION
-update --unpin >/dev/null && follows '' \
+update --unpin >/dev/null && follows main \
   && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] \
   && [ "$(git -C "$P" rev-parse HEAD)" = "$(git -C "$M" rev-parse main)" ] \
-  && ok || bad "--unpin did not clear the line and return to main"
+  && ok || bad "--unpin did not record main and return to it"
 
-# No line and no pin: main, as before.
+# Main by choice: the hook pulls it.
 release 2.2.0
 mirror >/dev/null
 out=$(hook)
@@ -215,6 +219,51 @@ case "$out" in
 *) bad "the hook did not report the pull: $out" ;;
 esac
 [ -z "$(hook)" ] && ok || bad "the hook spoke on main with nothing to do"
+# A changelog fragment that arrives on main is named by its lead
+# clause, wrapped or not.
+mkdir -p "$U/changelog.d"
+printf '### Fixed\n\n- **A lead clause that\n  wraps.** Detail.\n' \
+  > "$U/changelog.d/fix-x.md"
+git -C "$U" add -A
+git -C "$U" commit --quiet -m "fix x"
+mirror >/dev/null
+out=$(hook)
+case "$out" in
+*"not released yet"*"Fixed: A lead clause that wraps."*) ok ;;
+*) bad "the hook did not name the new fragment: $out" ;;
+esac
+# An edited entry is named as changed, a renamed file not at all, a
+# deleted one as no longer listed; `## Unreleased` counts as well.
+printf '### Fixed\n\n- **A lead clause that\n  wraps.** More detail.\n' \
+  > "$U/changelog.d/fix-x.md"
+printf '# Changelog\n\n## Unreleased\n\n### Safety\n\n- **Kept.** k.\n' \
+  > "$U/CHANGELOG.md"
+git -C "$U" add -A
+git -C "$U" commit --quiet -m "edit x"
+mirror >/dev/null
+out=$(hook)
+case "$out" in
+*"Fixed: A lead clause that wraps. (changed)"*) ok ;;
+*) bad "the hook did not name the changed fragment: $out" ;;
+esac
+case "$out" in
+*"Safety: Kept."*) ok ;;
+*) bad "the hook did not name the entry under ## Unreleased: $out" ;;
+esac
+git -C "$U" mv changelog.d/fix-x.md changelog.d/fix-y.md
+git -C "$U" commit --quiet -m "rename x"
+mirror >/dev/null
+case "$(hook)" in
+*"not released yet"*) bad "a renamed fragment was news" ;;
+*) ok ;;
+esac
+git -C "$U" rm --quiet changelog.d/fix-y.md
+git -C "$U" commit --quiet -m "withdraw x"
+mirror >/dev/null
+case "$(hook)" in
+*"no longer listed: A lead clause that wraps."*) ok ;;
+*) bad "the hook did not name the withdrawn entry" ;;
+esac
 # A diverged main fails loudly and stays as it was.
 echo local > "$P/local.txt"
 git -C "$P" add local.txt
@@ -225,6 +274,54 @@ case "$(hook)" in
 *"auto-update failed"*) ok ;;
 *) bad "a diverged main was not reported" ;;
 esac
+
+# --- the default line -----------------------------------------
+# A checkout on main that never chose follows main until a release
+# exists, then the newest release's major, from then on.
+M0="$TMP/mirror0.git"
+git init --quiet --bare --initial-branch=main "$M0"
+git -C "$U" push --quiet "$M0" main
+git -C "$M0" tag v0.9.0 main
+# The helpers above act on $P: from here on, a second checkout.
+P="$TMP/prod0"
+git clone --quiet "$M0" "$P"
+mkdir -p "$P/memory"
+touch "$P/memory/.hostwarden-workspace"
+[ -z "$(hook)" ] && follows '' \
+  && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] && ok \
+  || bad "a checkout with only a 0.x release left main"
+git -C "$U" push --quiet "$M0" v1.2.0 v2.1.0
+case "$(update --check)" in
+*"next update follows release line 2"*) follows '' && ok \
+  || bad "--check chose a line" ;;
+*) bad "--check did not name the line the next update takes" ;;
+esac
+out=$(hook)
+at v2.1.0 && follows 2 && ok || bad "the first release set no line: $out"
+case "$out" in
+*"follows release line 2"*) ok ;;
+*) bad "the new line was not reported: $out" ;;
+esac
+# The line is recorded: a new major does not move it.
+git -C "$U" push --quiet "$M0" v2.2.0
+git -C "$U" tag -a -m "Release v3.0.0" v3.0.0 main
+git -C "$U" push --quiet "$M0" v3.0.0
+out=$(hook)
+at v2.2.0 && follows 2 && ok || bad "the default line did not hold at 2"
+# ...and says, although nothing moved, that the line gets no fixes.
+case "$out" in
+*"v3.0.0 is out"*"--follow 3"*) ok ;;
+*) bad "the hook did not name the newer major: $out" ;;
+esac
+case "$(update --check)" in
+*"Up to date"*"v3.0.0 is out"*) ok ;;
+*) bad "--check did not name the newer major" ;;
+esac
+# Main, once chosen, stays.
+update --unpin >/dev/null
+hook >/dev/null
+follows main && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] \
+  && ok || bad "a checkout that chose main left it"
 
 echo "release: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

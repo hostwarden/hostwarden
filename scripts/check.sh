@@ -199,6 +199,14 @@ else
   step "release matrix" sh .claude/hooks/release-test.sh
 fi
 step "instruction layout" sh .claude/hooks/instructions-test.sh
+step "changelog fragments" sh scripts/changelog-release.sh --check
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
+    | grep -q '^scripts/changelog-release'
+then
+  echo "== changelog matrix: nothing it reads is pushed, skipped"
+else
+  step "changelog matrix" sh scripts/changelog-release-test.sh
+fi
 # The fleet matrices read the wrapper, the runner and what it calls.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
     '^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)$|^\.claude/hooks/mode\.sh$|^scripts/fleet-'

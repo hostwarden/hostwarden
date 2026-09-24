@@ -85,6 +85,11 @@ is missing and the command to install it.
    Without it, the checkout is for developing
    Hostwarden and reaches no server (see
    [Operations and development](docs/operations.md#operations-and-development)).
+   Once a release exists, the operations checkout
+   follows its major line and moves to each new
+   release on it; `bin/hostwarden-update --unpin`
+   follows `main` instead (see
+   [Updates and versioning](docs/operations.md#updates-and-versioning)).
 2. **Describe what you need in plain English**
    ```
    ❯ Install postgresql on server1.example.com
