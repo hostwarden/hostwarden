@@ -575,7 +575,7 @@ The migration renames skill overrides in
   they wrote onto servers — a `scripts/` directory
   under a host, a tool at the top of `memory/`,
   wherever they ended up — are always rebuilt into
-  [masters](features.md#masters-of-deployed-files):
+  [masters](features.md#files-hostwarden-deploys):
   each file at its host path under the host's
   `files/`, one deployed to several hosts under
   `memory/fleet/`, workstation scripts in

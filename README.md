@@ -8,27 +8,21 @@ works with
 terminal-based AI tool that can read project files
 and run shell commands — and with the Code tab of the
 Claude desktop app, which runs the same Claude Code
-([what differs there](docs/ai-tools.md#claude-code-desktop)). It manages Linux, FreeBSD,
-and macOS targets — remote servers over SSH and the
-local machine alike — reports on Windows Server over
-SSH, and runs on Linux, macOS and FreeBSD
-workstations, and on Windows inside WSL 2.
+([what differs there](docs/ai-tools.md#claude-code-desktop)).
+It manages Linux, FreeBSD and macOS targets — remote
+servers over SSH and the local machine alike —
+reports on Windows Server over SSH, and runs on
+Linux, macOS and FreeBSD workstations, and on Windows
+inside WSL 2.
 
-Describe what you need in plain English, and Hostwarden
-figures out the right commands for your OS, proposes
-each one with an explanation, and waits for your
-approval before running anything. It backs up configs,
-tests commands before real execution, remembers every
-server it has worked on, and gives you a detailed
-report when it's finished.
-
-Using it feels like pair-programming with a colleague
-who always checks the docs first and never skips a
-step because he's in a hurry. The bigger the network,
-the more it pays off — Hostwarden remembers every server's
-OS, services, and quirks so you don't have to. Not
-sure yet? Ask Hostwarden to plan first before making
-changes — no changes until you say go.
+Describe what you need in plain English. Hostwarden
+works out the commands for the OS it detected,
+explains each one, and waits for your approval before
+running it. It backs up configs, dry-runs where a tool
+can, and remembers every server it has worked on. Not
+sure yet? Ask it to
+[plan](docs/features.md#plan-mode) first: nothing
+changes until you say go.
 
 Hostwarden continues
 [Heinzel](https://github.com/wintermeyer/heinzel) by
@@ -113,64 +107,84 @@ is missing and the command to install it.
 
 ## What It Does
 
-- **Detects the OS** on first contact and remembers
-  every server — OS, services, quirks — across
-  sessions. DNS aliases of one host share its
-  memory.
-- **Picks up interrupted work** from a per-server
-  to-do list.
-- **Housekeeping and security audits** per server,
-  and a **fleet audit** that shows where your
-  servers disagree.
-- **One task on several servers** — a question, a
-  check or a change — with identical answers
-  printed once and changes tried on one host
-  first.
-- **Email reports**, sent from your workstation or
-  from the server.
-- **Plan first**: explore, draft a plan, change
-  nothing until you say go.
-- **Local administration** of your own Linux or
-  macOS machine, without SSH.
+Every remote connection runs the same pipeline before
+the first command: the blacklist and read-only lists,
+the host key, OS detection, the server's memory and
+what happened on it since the last session. Local mode
+skips the remote-only steps. Example prompts for
+everything below: [docs/features.md](docs/features.md).
 
-Example prompts and details:
-[docs/features.md](docs/features.md).
+- **Asks, backs up, and can undo a lockout.**
+  Destructive commands, firewall and network changes,
+  reboots and service restarts need your approval; a
+  firewall or network change reverts itself if it locks
+  remote access out. The absolute taboos — partition
+  tables, disk erases, storage repair, sshd's
+  configuration and keys, power-off — are hard-blocked
+  in Claude Code, and are instructions elsewhere.
+  [docs/safety.md](docs/safety.md)
+- **Remembers, and shares with your team.** Each
+  server's OS, services, quirks and open work live in
+  `memory/`, a git repository of its own. Every change
+  leaves a line in the server's system log
+  (`journalctl -t hostwarden`) and in your local
+  changelog. A team shares the workspace through a
+  private remote — host memory, host keys, decisions,
+  the masters of deployed files — and sessions that
+  change the same host see each other.
+  [Team setup](docs/operations.md#team-setup-and-several-machines)
+- **Holds every server to a written baseline.** A
+  default-deny firewall, security updates, time sync,
+  key-only remote access, storage maintenance, a backup
+  and more. Onboarding reports what a host lacks,
+  read-only; bringing it up to the baseline goes one
+  asked step at a time.
+  [Server baseline](docs/features.md#server-baseline)
+- **Works on many hosts at once.** One question,
+  check or change on several servers prints identical
+  answers once, so the outlier stands out. A change is
+  asked once, runs on a canary first and stops at the
+  first surprise. The fleet audit compares policies
+  across your servers and shows where they drift.
+  [Several servers](docs/features.md#several-servers)
+- **Knows your hypervisors and their guests.** On
+  Proxmox VE, XCP-ng, libvirt, Incus, LXD, LXC,
+  vm-bhyve, Hyper-V, VirtualBox and FreeBSD jails it
+  lists every guest and gives each one it can enter
+  memory of its own. On Proxmox VE, libvirt, Incus,
+  LXD and classic LXC, new VMs and containers start
+  from an official image with the baseline at first
+  boot.
+  [Guests and hypervisors](docs/features.md#guests-and-hypervisors)
+- **Respects appliances.** Fifteen of them —
+  Proxmox VE, TrueNAS, OPNsense, Synology DSM, UniFi
+  OS, Home Assistant OS, OpenWrt and more — get rules
+  of their own for the updater, the firewall and the
+  settings their web UI owns.
+  [Appliances](docs/features.md#appliances)
+- **Checks host keys without a manual login,** and
+  uses an SSH CA you already run wherever it sets up
+  trust. [SSH access](docs/features.md#ssh-access)
+- **Works alongside Ansible, Puppet or Chef.**
+  Hostwarden needs none of them and never pushes for
+  one; where a tool manages a host, a change goes into
+  that tool's code instead.
+  [Configuration management](docs/features.md#configuration-management)
+- **Runs the nightly check unattended.** An operations
+  host reads your servers through a bundle of
+  read-only checks you signed, and mails the report.
+  Its key can run that bundle and write one journal
+  line, nothing else.
+  [An operations host](docs/operations.md#an-operations-host)
 
 ## Supported AI Tools
 
-Hostwarden targets Claude Code, in the terminal or in
-the desktop app's Code tab. Its instructions are plain
-Markdown in `AGENTS.md`, `rules/` and
-`.agents/skills/`, which OpenCode, Codex and Cursor
-read as well; OpenCode also runs it on local models
-through Ollama. The guard hooks are Claude Code only.
-What differs per tool:
-[docs/ai-tools.md](docs/ai-tools.md). One-shot
-commands, auto mode and scheduled runs:
+Hostwarden targets Claude Code; OpenCode, Codex and
+Cursor read the same `AGENTS.md` instructions, and
+OpenCode also runs it on local models through Ollama.
+What differs per tool: [docs/ai-tools.md](docs/ai-tools.md).
+One-shot commands, auto mode and scheduled runs:
 [docs/automation.md](docs/automation.md).
-
-## Safety & Guardrails
-
-- **Asks before acting** — destructive commands,
-  firewall changes, reboots and service restarts
-  need your explicit approval.
-- **Hard guardrails (Claude Code)** — a hook blocks
-  the absolute taboos listed in `AGENTS.md` in every
-  permission mode.
-- **Backs up and tests** — config files are copied
-  before an edit, and dry-run modes run before the
-  real thing.
-- **Logs everything** — every change lands in the
-  server's journal (`journalctl -t hostwarden`).
-- **Blacklist and read-only lists** keep it off hosts
-  it must not touch or change.
-- **Server output is data** — instructions found in
-  files, logs or command output are flagged, never
-  followed. Secrets are never printed.
-
-The full list, how it keeps hallucinated commands
-off your servers, and how to read its logs:
-[docs/safety.md](docs/safety.md).
 
 ## Supported Distributions
 
@@ -184,39 +198,13 @@ off your servers, and how to read its logs:
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
 | Windows | Windows Server, mostly read-only  | `rules/os/windows.md` |
 
-Appliances run their own updater, configuration and
-firewall on top of that OS, so they get a file of their own
-that changes the base file where it would be wrong:
-
-| Appliance         | Base    | Appliance file                      |
-| ----------------- | ------- | ----------------------------------- |
-| Proxmox VE        | Debian  | `rules/appliance/proxmox-ve.md`     |
-| OpenMediaVault    | Debian  | `rules/appliance/openmediavault.md` |
-| OPNsense          | FreeBSD | `rules/appliance/opnsense.md`       |
-| pfSense           | FreeBSD | `rules/appliance/pfsense.md`        |
-| TrueNAS           | Debian  | `rules/appliance/truenas.md`        |
-| TrueNAS CORE      | FreeBSD | `rules/appliance/truenas-core.md`   |
-| XCP-ng            | RHEL    | `rules/appliance/xcp-ng.md`         |
-| Home Assistant OS | —       | `rules/appliance/haos.md`           |
-| Synology DSM      | —       | `rules/appliance/synology-dsm.md`   |
-| UGREEN UGOS Pro   | —       | `rules/appliance/ugos.md`           |
-| UniFi OS          | —       | `rules/appliance/unifi-os.md`       |
-| Unraid            | —       | `rules/appliance/unraid.md`         |
-| OpenWrt           | —       | `rules/appliance/openwrt.md`        |
-| ZimaOS            | —       | `rules/appliance/zimaos.md`         |
-| QNAP QTS, hero    | —       | `rules/appliance/qnap.md`           |
-
-Two more layers sit on top. A platform is what the OS runs
-inside when something outside owns part of the machine:
-[WSL](rules/platform/wsl.md), where Windows owns the kernel and
-the firewall. A role says what the machine is expected to have:
-a [workstation](rules/role/workstation.md) — a Mac, a WSL
-instance, the machine Hostwarden runs on — is held to different
-expectations than a server. Hostwarden infers the role and tells
-you; say so when it is wrong.
-
-Other distributions work too — Hostwarden will apply
-general best practices and let you know which OS it
+Fifteen appliances get a file of their own on top of
+that family, a platform file covers WSL, and a Mac, a
+WSL instance or the machine Hostwarden runs on is held
+to a workstation's expectations rather than a
+server's: [Systems it knows](docs/features.md#systems-it-knows).
+Other distributions work too — Hostwarden applies
+general best practices and tells you which OS it
 detected.
 
 ## Risks & Responsibilities
@@ -226,34 +214,12 @@ detected.
 > — as root, with sudo, or in unprivileged mode.
 > Always review every command before approving it.
 
-Hostwarden is for anyone willing to stay in the
-driver's seat and review every command — from
-newcomers learning Linux to veterans running fleets.
-In fact, Hostwarden can be an especially good teacher:
-each proposed command comes with an explanation of
-*what* it does and *why*, so you learn the real
-sysadmin reasoning instead of copy-pasting Stack
-Overflow answers.
-
-We built Hostwarden to be a help for everybody. By
-design, it follows the safety checklist every single
-time: it always backs up before editing, always
-dry-runs when it can, always checks the OS before
-assuming commands. A disciplined AI makes far fewer
-mistakes than a tired human at 2 AM during an
-outage. But we can't guarantee it won't ever make
-one — LLMs can hallucinate, misread intent, or
-produce a command with unintended side effects.
-
-The question isn't whether Hostwarden is risk-free —
-it isn't. The question is whether a disciplined AI
-that follows every safety rule every time, with a
-human reviewing every command, produces fewer
-disasters than a human working alone under
-real-world conditions.
-
-Stay in the driver's seat. Review every command. Do
-not blindly approve.
+Hostwarden follows its safety checklist every time,
+but an LLM can still hallucinate, misread intent or
+produce a command with side effects nobody intended.
+Who it is for, and why a disciplined AI with a human
+reviewing it is still worth it:
+[Risks and responsibilities](docs/safety.md#risks-and-responsibilities).
 
 ## Documentation
 
