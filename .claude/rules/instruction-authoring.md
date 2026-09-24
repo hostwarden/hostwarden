@@ -33,7 +33,8 @@ them is touched. Where hooks do not run, read it yourself before
 changing the product.
 
 The mechanical half is checked rather than remembered, by
-`instructions-test.sh` in CI (`pull-requests.md` → Checks).
+`instructions-test.sh`, before each commit and in CI
+(`pull-requests.md` → Checks).
 
 ## Where a new instruction belongs
 

@@ -38,17 +38,21 @@ scripts/
   check.sh             — Everything CI checks, runnable locally
   codex-quota.sh       — What is left of the Codex usage limit,
                          read without spending any
+  review-record.sh     — Whether a pull request body records
+                         the second review of its head
+  review-record-test.sh — Its fixture matrix (run by
+                         scripts/check.sh)
   fleet-read-test.sh   — Fixture matrix for the fleet-read
                          wrapper (run by scripts/check.sh)
   fleet-run-test.sh    — Fixture matrix for
                          bin/hostwarden-fleet-run (run by
                          scripts/check.sh)
-.githooks/             — Opt-in: secret scan on commit, check.sh
-                         on push
+.githooks/             — Opt-in: the cheap checks on commit,
+                         check.sh on push
 mise.dev.toml          — Pinned versions of the tools check.sh
                          needs
-.github/               — CI and release workflows, and the
-                         ruleset for main
+.github/               — CI, review-record and release
+                         workflows, and the ruleset for main
 contrib/
   heinzel-coexistence/ — Overrides that teach a Heinzel
                          checkout about Hostwarden

@@ -1,14 +1,30 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
+  # Not `edited`: a new body changes nothing this checks, and a run
+  # for one would cancel the run on the head. The body is
+  # review-record.yml's.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # The merge queue checks each group's merge commit, and `check` is
+  # required there too: a queue whose check never reports waits.
+  merge_group:
+  # By hand, on any branch. A push to main is not checked again:
+  # the queue checked that very commit before it landed. One that
+  # bypassed the queue is run by hand:
+  # .claude/rules/pull-requests.md → Checks.
+  workflow_dispatch:
 
 # Read the tree, nothing else. The checkout does not keep the token
 # either: no step here pushes.
 permissions:
   contents: read
+
+# A new push to a pull request cancels the run on the head it
+# replaces. The queue and a run by hand get a group of their own.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -21,6 +37,10 @@ jobs:
           persist-credentials: false
           # The secret scan reads the whole history.
           fetch-depth: 0
+          # A draft is checked on its own head, against its base;
+          # everything else on its merge with the base, or on the
+          # queue's group.
+          ref: ${{ github.event.pull_request.draft && format('refs/pull/{0}/head', github.event.pull_request.number) || '' }}
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
@@ -28,6 +48,17 @@ jobs:
           # same seven days it waits for everything else.
           minimum_release_age: 7d
 
-      # Add checks to scripts/check.sh, not here.
+      # Add checks to scripts/check.sh, not here. A draft gets what a
+      # push of its commits onto the base gets: every check but the
+      # matrices whose files it leaves alone.
       - name: Check
-        run: sh scripts/check.sh
+        env:
+          DRAFT: ${{ github.event.pull_request.draft }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$DRAFT" = true ]; then
+            echo "HEAD $(git rev-parse HEAD) refs/heads/draft $BASE" \
+              | sh scripts/check.sh --pre-push
+          else
+            sh scripts/check.sh
+          fi

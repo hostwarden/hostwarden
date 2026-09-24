@@ -3,6 +3,8 @@
 #
 #   sh scripts/check.sh               every check, as CI runs it
 #   sh scripts/check.sh --pre-commit  the staged changes' secret scan
+#                                     and instruction layout, in
+#                                     seconds
 #   sh scripts/check.sh --pre-push    what the pushed commits need,
 #                                     refs on stdin as git gives them
 #   sh scripts/check.sh --help        this usage; runs nothing
@@ -43,21 +45,48 @@ if command -v mise >/dev/null 2>&1; then
   eval "$(MISE_ENV=dev mise env -s bash 2>/dev/null)"
 fi
 
+# in_checkout <commit> <tree-ish> <command…> -- runs the command in
+# a throwaway checkout of the tree at the commit, and removes it.
+# git sets GIT_DIR and friends for a hook, and they would point the
+# command back at this checkout, so it runs without them.
+in_checkout() {
+  (commit=$1 tree=$2
+   shift 2
+   unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+   dir=$(mktemp -d) || exit 2
+   trap 'git worktree remove --force "$dir" 2>/dev/null; rm -rf "$dir"' EXIT
+   git worktree add --quiet --detach --no-checkout "$dir" "$commit" \
+     && git -C "$dir" read-tree --reset -u "$tree" || exit 2
+   cd "$dir" && "$@")
+}
+
 case "${1:-}" in
   --pre-commit)
-    # Only betterleaks: a commit must not wait on tools it does not
-    # run.
-    command -v betterleaks >/dev/null 2>&1 || {
-      echo "check: betterleaks is missing — sh bin/hostwarden-doctor" \
-        "--dev says how to install it" >&2
-      exit 2
-    }
-    exec betterleaks git --pre-commit --staged --redact --verbose \
-      --no-banner . ;;
+    # Only betterleaks and the layout test, which needs jq: a commit
+    # must not wait on tools it does not run.
+    for t in betterleaks jq; do
+      command -v "$t" >/dev/null 2>&1 || {
+        echo "check: $t is missing — sh bin/hostwarden-doctor" \
+          "--dev says how to install it" >&2
+        exit 2
+      }
+    done
+    rc=0
+    betterleaks git --pre-commit --staged --redact --verbose \
+      --no-banner . || rc=1
+    # The layout test on exactly what is staged: a checkout of the
+    # index, without the working tree's other changes and new files.
+    # git write-tree reads the index a commit hook is given.
+    echo "== instruction layout of what is staged"
+    staged=$(git write-tree) || exit 2
+    in_checkout HEAD "$staged" sh .claude/hooks/instructions-test.sh \
+      || rc=1
+    exit $rc ;;
 esac
 
 # --pre-push skips the one slow step, the guard matrix, when the
-# pushed commits touch nothing it reads. CI runs everything.
+# pushed commits touch nothing it reads. CI runs everything, except
+# on a draft, which it checks as a push of its commits.
 PUSHED='' ALL='' TIPS='' OTHER=''
 if [ "${1:-}" = "--pre-push" ]; then
   # One line per ref: <local ref> <sha> <remote ref> <sha>.
@@ -80,9 +109,8 @@ EOF
   # The checks below read the working tree. That is what is pushed
   # only when every tip is HEAD and nothing is changed or new;
   # otherwise each tip is checked out on its own and checked there,
-  # by its own copy of this file, with its own ref line. git sets
-  # GIT_DIR and friends for a hook, and they would point the copy
-  # back at this checkout. An annotated tag's line carries the tag
+  # by its own copy of this file, with its own ref line. An
+  # annotated tag's line carries the tag
   # object, never equal to the HEAD of the checkout made from it, so
   # tips compare as commits, or that checkout would hand off again
   # without end.
@@ -94,14 +122,10 @@ EOF
   if [ -n "$OTHER" ] || [ -n "$(git status --porcelain)" ]; then
     rc=0
     for tip in $(printf '%s\n' $TIPS | sort -u); do
-      tree=$(mktemp -d)
-      git worktree add --quiet --detach "$tree" "$tip" \
-        || { rmdir "$tree"; exit 2; }
       echo "== checking $tip in a checkout of its own"
       printf '%s\n' "$REFS" | awk -v t="$tip" '$2 == t' \
-        | (unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
-           cd "$tree" && sh scripts/check.sh --pre-push) || rc=1
-      git worktree remove --force "$tree"
+        | in_checkout "$tip" "$tip" sh scripts/check.sh --pre-push \
+        || rc=1
     done
     exit $rc
   fi
@@ -184,6 +208,7 @@ else
   step "fleet-read wrapper" sh scripts/fleet-read-test.sh
   step "fleet run" sh scripts/fleet-run-test.sh
 fi
+step "review record" sh scripts/review-record-test.sh
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point

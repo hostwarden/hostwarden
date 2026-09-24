@@ -284,8 +284,9 @@ probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"
-  # What scripts/check.sh runs: python3, and what mise.dev.toml pins.
-  for t in python3 $MISE_TOOLS; do
+  # What scripts/check.sh runs: python3, jq for
+  # instructions-test.sh, and what mise.dev.toml pins.
+  for t in python3 jq $MISE_TOOLS; do
     probe need "$t" "$t" has "$t"
   done
 else

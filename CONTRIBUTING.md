@@ -15,7 +15,7 @@ things live.
 
 Clone with symbolic links working, on Windows inside WSL 2
 (docs/install.md → Windows). The checks need
-ShellCheck, actionlint, betterleaks and `python3`. `mise.dev.toml`
+ShellCheck, actionlint, betterleaks, `jq` and `python3`. `mise.dev.toml`
 pins the versions CI uses; mise asks you to trust it once:
 
 ```bash
@@ -24,7 +24,7 @@ MISE_ENV=dev mise install
 ```
 
 Any recent version from your package manager works too. Once per
-clone, let git run the checks — a secret scan on every commit,
+clone, let git run the checks — the cheap ones on every commit,
 and before every push what the pushed commits need:
 
 ```bash
@@ -49,7 +49,7 @@ pull request locally instead of asking for one on GitHub
 sh scripts/check.sh
 ```
 
-That is what CI runs. An agent session runs only its secret scan,
+That is what CI runs. An agent session runs only
 `sh scripts/check.sh --pre-commit`, and not the hooks above: it
 pushes and reads CI
 ([pull-requests.md](.claude/rules/pull-requests.md#checks)).
@@ -75,7 +75,11 @@ pointed at them.
 
 [Conventional Commits](https://www.conventionalcommits.org/)
 for commit messages and pull request titles. Pull requests are
-squash-merged, so the title is what lands on `main`. Update a
+squash-merged by the merge queue: one of a single commit lands as
+that commit, one of several under its title with their messages.
+Out of draft, a pull request needs a review record in its body
+([pull-requests.md](.claude/rules/pull-requests.md#the-review-record));
+for a contribution, the maintainer's session writes it. Update a
 branch by rebasing it on `main`, never by merging `main` into it.
 
 An agent opens its pull request as a draft and keeps it one

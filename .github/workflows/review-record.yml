@@ -1,0 +1,53 @@
+name: Review record
+
+# Apart from ci.yml, so a new body reruns this and nothing else: a
+# body edit that skipped or cancelled `check` there would leave the
+# head without its result.
+#
+# pull_request_target runs this file and the checker as the default
+# branch has them, so a pull request cannot change the gate it is
+# held to. That is safe only because nothing here runs the pull
+# request's code: the checkout is the default branch's, the job
+# reads the body and the head SHA from the event, and the token can
+# read and nothing else. Keep it so. Its checks land on the pull
+# request's head.
+on:
+  pull_request_target:
+    types:
+      [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
+  # Required in the queue as well, where the pull request has
+  # already passed it.
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-record-${{ github.event_name == 'pull_request_target' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+
+jobs:
+  # A draft is not done yet, a bot's pull request is reviewed by
+  # whoever merges, and the queue has no body to read: the job is
+  # skipped, which a required check counts as passed.
+  # .claude/rules/pull-requests.md → The review record.
+  review-record:
+    name: review record
+    if: >-
+      github.event_name == 'pull_request_target'
+      && !github.event.pull_request.draft
+      && github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      # No ref: the default branch's checker, never the pull request's.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/review-record.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Read the record
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: printf '%s\n' "$BODY" | sh scripts/review-record.sh "$HEAD_SHA"
