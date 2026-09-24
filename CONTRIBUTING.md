@@ -37,6 +37,13 @@ macOS); `bin/hostwarden-lab` runs disposable containers with it.
 What only a full VM can answer goes to a test clone
 ([docs/operations.md](docs/operations.md#operations-and-development)).
 
+An agent session opens, watches and hands over its pull request
+with the [GitHub CLI](https://cli.github.com), `gh`, signed in
+(`gh auth login`) to an account with access to
+hostwarden/hostwarden, or to your fork and pull requests upstream
+([pull-requests.md](.claude/rules/pull-requests.md)). Working by
+hand, the web UI does the same. The checks never call it.
+
 The CLI of the second reviewer — currently the
 [Codex CLI](https://github.com/openai/codex), signed in — is
 optional: with it, an agent session runs the second review of its

@@ -630,3 +630,7 @@ protection there.
 - **Pull requests get two reviews:** the `hostwarden-reviewer`
   subagent in Claude Code (a fresh session elsewhere), then a second
   reviewer of another model family (`.claude/rules/pull-requests.md`).
+- **`gh`, signed in, is a development dependency.** An agent session
+  opens, watches and hands over its pull request with it; working by
+  hand, the web UI does the same. `bin/hostwarden-doctor --dev` says
+  whether it is installed. It plays no part in operating a server.

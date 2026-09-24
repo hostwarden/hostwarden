@@ -133,10 +133,13 @@ fi
 
 # Which tools there are, and how to install the rest, is the
 # doctor's to say. It runs after the hand-over above, which leaves
-# it to each tip's own run.
-# A doctor that fails to run at all must not read as nothing missing.
-missing=$(sh bin/hostwarden-doctor --dev --quiet) || exit 2
-[ -z "$missing" ] || { printf '%s\n' "$missing" >&2; exit 2; }
+# it to each tip's own run. Its exit status is the verdict, so a
+# doctor that fails to run stops the checks too; what it names that
+# is only recommended, or a feature they never use, does not.
+missing=$(sh bin/hostwarden-doctor --dev --quiet)
+rc=$?
+[ -z "$missing" ] || printf '%s\n' "$missing" >&2
+[ "$rc" -eq 0 ] || exit 2
 
 # pushed_files -- every file the pushed commits touch; -m shows a
 # merge's own changes too, conflict resolutions included.
