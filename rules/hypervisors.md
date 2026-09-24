@@ -447,9 +447,10 @@ one line (*"Registering 7 guests of pve1.example.com through
    anything.
 4. Write `memory.md` as `rules/server-memory.md` says, with
    `Runs on:`, `Guest identity:` and
-   `- SSH: untested (registered through pve1.example.com)`. The
-   SSH user and the DNS check follow on its first SSH connection,
-   which removes the line.
+   `- SSH: untested (registered through pve1.example.com)`. Its
+   first own connection adds the SSH user and the DNS check, and
+   finishes its onboarding (`rules/first-connection.md` step 9),
+   which puts `Onboarded:` in place of the line.
    Never `Mode: via`: that line says the guest has no SSH of
    its own, and it would route every later session through the
    host.
@@ -478,7 +479,7 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
     logger); 15 new memory directories, 2 existing ones given Runs on:,
     guests.md, host keys of 16 guests in memory/known_hosts, the
     local changelog
-  next, only with you: the first SSH connection to each guest
+  next: the first own login to each guest finishes its onboarding
   findings:
     db1.example.com: no automatic security updates
     app1.example.com: Ansible manages /etc/nginx

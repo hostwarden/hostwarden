@@ -97,7 +97,15 @@ Than One Server before step 1.
    it finds something, in step 7's call where possible
    (`rules/activity-check.md` → What rides in this
    call). See `rules/heinzel-legacy.md`.
-9. **Then** execute the user's request.
+9. **Finishing onboarding.** A guest whose memory has
+   `SSH: untested` finishes onboarding on its first
+   connection through its own way in
+   (`rules/server-memory.md` → Onboarded and stale
+   lines), before the request, whatever it is:
+   `hostwarden-onboard` → The first own login. Not
+   inside a run of that skill, whose own steps 4 to 6
+   do this work.
+10. **Then** execute the user's request.
 
 ## Local mode
 
@@ -107,8 +115,8 @@ either: `rules/ssh-config.md` → A Port the User
 Names), skip steps 1–4 — blacklist, read-only
 list, SSH user, DNS check and host key are
 remote-only. Still
-run OS detection, server memory, activity check, and
-the Heinzel legacy check — on the workstation the
+run OS detection, server memory, activity check, the
+Heinzel legacy check and finishing onboarding — on the workstation the
 latter looks at scheduled runs instead of backup
 directories (`rules/heinzel-takeover.md`).
 

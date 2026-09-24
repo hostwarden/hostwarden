@@ -122,10 +122,11 @@ Memory files never hold credential values — see
 ## Who writes which line
 
 Each line has one owner, which gives its wording and says when
-it changes; every other rule and skill only reads it. A line
-joins when its moment comes, never before, and most hosts never
-get most of them. An owner ending in `.md` is a file under
-`rules/`; the others are skills. An OS file whose Version
+it changes; every other rule and skill only reads it, except that
+`hostwarden-onboard` runs the owner's probe and writes the line as
+the owner gives it. A line joins when its moment comes, never
+before, and most hosts never get most of them. An owner ending in
+`.md` is a file under `rules/`; the others are skills. An OS file whose Version
 Detection names further fields to record owns those. The
 `guests.md` and `cluster.md` of a hypervisor keep lines of their
 own, `Inventoried:` among them (`rules/hypervisors.md`), and
@@ -196,9 +197,11 @@ so does a host's `network.md` (`rules/network.md`).
 | `API pin:`               | `tls-pinning.md`            | pin confirmed    |
 | `Flags:`, `Rollback:`    | `changelog.md`              | entry logged     |
 | `Plan:`                  | this file                   | plan started     |
-| `USB:`, `Passthrough:`   | `hostwarden-housekeeping`   | housekeeping     |
-| `Backup:`                | `hostwarden-housekeeping`   | user's answer    |
-| `Container registries:`  | `hostwarden-security`       | security audit   |
+| `USB:`, `Passthrough:`   | `hostwarden-housekeeping`   | onboarding       |
+| `Backup:`                | `hostwarden-housekeeping`   | onboarding       |
+| `Container registries:`  | `hostwarden-security`       | user's answer    |
+| `Onboarded:`             | `hostwarden-onboard`        | onboarded        |
+| `Housekeeping:`          | `hostwarden-housekeeping`   | housekeeping     |
 | `Deploy user:`           | `hostwarden-deploy-user`    | account set up   |
 | `Deploy target:`         | `hostwarden-deploy-user`    | account set up   |
 | `Deploy sudo:`           | `hostwarden-deploy-user`    | account set up   |
@@ -223,6 +226,31 @@ lines). An `Access:` line reads:
 - Access: via Tailscale (web1.tail1234.ts.net); direct
   203.0.113.10 timeout (2026-09-19)
 ```
+
+### Onboarded and stale lines
+
+`- Onboarded: 2026-09-24` says `hostwarden-onboard` steps 3 to 5
+ran through the host's own way in: SSH, local mode, or through its
+host for a `Mode: via` guest. A full re-probe through onboarding
+moves the date. A guest only registered through its hypervisor has
+`SSH: untested` instead, until its first own login
+(`rules/first-connection.md` step 9).
+
+Housekeeping refreshes `USB:`, `Passthrough:`, `Storage:` with
+`storage.md`, and `Backup:`. Such a line is stale once it is older
+than 90 days: its age is the later of `Onboarded:` and
+`Housekeeping:`, which housekeeping writes as its step 6 says, or
+the line's own date where it carries one, such as
+`Backup: restic to backup1.example.com, verified 2026-06-10`,
+whose date housekeeping moves on each check that finds the backup
+ran. A `Backup:` line that records the user's answer
+(`confirmed <date>`) is never stale: it is asked again after 180
+days, as
+`.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
+says. The fleet audit refreshes no line. An answer or a report
+that rests on a stale line says so, with its age and the run that
+refreshes it: `USB: recorded 140 days ago — housekeeping
+refreshes it`.
 
 ## Session to-do list
 

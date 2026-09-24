@@ -198,7 +198,10 @@ guest has no such mechanism, the files are the user's to place
    of the host keys its sshd loads go to the user to sign; where
    it trusts a user CA with a revocation list, the user hears that
    the guest must now be among the hosts their revocations reach
-   (`rules/ssh-ca.md` → Using the CA Everywhere).
+   (`rules/ssh-ca.md` → Using the CA Everywhere). The probes of
+   `hostwarden-onboard` step 5 run in the same calls, their
+   questions are asked with this step's, and the guest gets
+   `Onboarded:` as that skill's step 6 writes it.
 6. **Log** on both, as `rules/changelog.md` says: the host's
    journal line names the guest created, the guest's names the
    baseline version.

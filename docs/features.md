@@ -88,7 +88,10 @@ web1.example.com", "nimm web1 in Hostwarden auf", or
 Hostwarden probes the host in full, writes its memory,
 records its network where it can read it, on a
 hypervisor lists and registers the guests, reads the
-SSH CA setup, and reports what the host lacks against
+SSH CA setup, records its USB devices, passed-through
+devices, disks, accounts, backup, container registries
+and, where it has root, the management controller, and
+reports what the host lacks against
 the server baseline, or a workstation's expectations
 where its role replaces the baseline. It changes
 nothing on the server
@@ -99,6 +102,16 @@ gaps to take on first; a read-only host gets a report
 of the changes instead. Several hosts at once go
 hypervisors first. A host it already knows is probed
 in full again, and its memory is brought up to date.
+
+A guest that its hypervisor registered finishes its
+onboarding on its first own login, read-only, before
+whatever you asked for. The report ends with what
+keeps the record current: housekeeping for health and
+settings, the fleet audit for drift between hosts.
+Neither runs by itself, so it offers to schedule
+housekeeping. What housekeeping records counts as
+stale after 90 days, and the fleet audit lists stale
+hosts and those never onboarded.
 
 ### DNS aliases and short names
 
@@ -685,7 +698,8 @@ mesh VPNs and their SSH servers, accounts and sudo
 rules and, on Ubuntu, Pro/ESM coverage on each host in
 `memory/servers/`, then renders a side-by-side table
 that highlights where servers disagree, with sections
-for drift, warnings and what you decided. Alpine,
+for drift, warnings, what you decided, and the hosts
+whose memory is stale or never onboarded. Alpine,
 FreeBSD and macOS have probes of their own; a setting
 a family does not have reads `n/a`, not drift. An
 appliance is compared only with its own kind. Windows

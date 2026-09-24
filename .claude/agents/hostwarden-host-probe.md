@@ -79,8 +79,10 @@ Bash calls as it does anywhere else.
   writes: `Last connected`, the OS version when detection
   finds it has changed (`rules/os-detection.md` — a stale OS line
   is what makes a later session reach for the wrong package
-  manager and the wrong `rules/os/` file), and what
-  `rules/network.md` → When writes on connecting. What the *probes*
+  manager and the wrong `rules/os/` file), what
+  `rules/network.md` → When writes on connecting, and what a
+  guest's first own login writes as it finishes onboarding
+  (`rules/first-connection.md` step 9). What the *probes*
   found goes in the row and nowhere else: an audit compares
   hosts, it does not own what any one of them records.
 - **No second host.** You were given one. Another agent has the rest.
@@ -140,7 +142,9 @@ around them:
   (`rules/heinzel-takeover.md`);
 - pending items in the host's `todo.md`
   (`rules/server-memory.md`);
-- a memory file that disagrees with what the host answered.
+- a memory file that disagrees with what the host answered;
+- a question or baseline gaps from a guest's first own login, each
+  naming `hostwarden-onboard` → The first own login.
 
 These are why the contract is not "the row and nothing else": the
 pipeline is mandatory here, it finds things a user is owed, and a

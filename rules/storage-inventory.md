@@ -48,9 +48,12 @@ nothing there. The host's inventory covers them.
 - **First connection:** the ZFS and btrfs inventory rides in the
   activity-check call (`rules/activity-check.md` → What rides in
   this call) wherever `@storage` found either.
+- **Onboarding** (`hostwarden-onboard`): the disks, without SMART;
+  on a known host the full re-probe takes the ZFS and btrfs
+  inventory again, in the activity-check call.
 - **Housekeeping:** every run, and the first inventory of a host
   whose memory has no `Storage:` line. The disks are read there
-  and only there, with SMART
+  with SMART
   (`.agents/skills/hostwarden-housekeeping/references/smart.md`
   → The Disk List).
 

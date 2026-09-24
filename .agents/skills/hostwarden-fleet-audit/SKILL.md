@@ -202,6 +202,10 @@ Layers).
    (`references/output-format.md` → Decided). A drift entry never
    suggests what a decision rules out.
 
+   Last, the Memory section, from the memory files alone, for
+   every host of step 1, skipped ones included
+   (`references/output-format.md` → Memory).
+
    Do not change anything.
 
 6. **Log to the system journal** on each audited host:
@@ -220,8 +224,10 @@ Layers).
    reached, because each was in fact connected to
    (`rules/server-memory.md`), a changed OS version
    where detection found one (`rules/os-detection.md`),
-   and what `rules/network.md` → When writes on
-   connecting.
+   what `rules/network.md` → When writes on
+   connecting, and what a guest's first own login
+   writes as it finishes onboarding
+   (`rules/first-connection.md` step 9).
    What the probes found goes nowhere near a memory file:
    the audit compares hosts, it does not own what any one
    of them records. A memory file that
@@ -230,6 +236,11 @@ Layers).
    probe agent returned under `notices:`, which is where
    activity findings, Heinzel artifacts and pending
    `todo.md` items come back from the pipeline it ran.
+   A question from a guest's first own login is the
+   exception: put it to the user after the report, where
+   one is at the keyboard, and record the answer as
+   `hostwarden-onboard` step 6 says; an unattended run
+   lists it as unsettled instead.
 
 ## References
 
