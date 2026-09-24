@@ -1,8 +1,10 @@
 # Contributing
 
-For anything beyond a small fix, open an issue first, so the
-approach is settled before the work is done. Security problems go
-privately, as [SECURITY.md](SECURITY.md) describes.
+For anything beyond a small fix, open an issue first, with the bug
+report or feature request form, so the approach is settled before
+the work is done. Security problems go privately, as
+[SECURITY.md](SECURITY.md) describes; questions go to
+[Discussions](https://github.com/hostwarden/hostwarden/discussions).
 
 ## Before opening an issue
 
