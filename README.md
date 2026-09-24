@@ -28,7 +28,11 @@ Hostwarden continues
 [Heinzel](https://github.com/wintermeyer/heinzel) by
 Stefan Wintermeyer as an independent project. It keeps
 Heinzel's history and still takes over Heinzel's
-improvements where they fit. Coming from Heinzel? See
+improvements where they fit. It lives in the GitHub
+organization `hostwarden`, because GitHub offers the
+merge queue to a public repository only when an
+organization owns it.
+Coming from Heinzel? See
 [Moving over from Heinzel](docs/operations.md#moving-over-from-heinzel).
 
 ## Screencast: Debug and fix some webserver problems
