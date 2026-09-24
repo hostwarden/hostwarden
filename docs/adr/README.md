@@ -9,12 +9,17 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
 | [Windows Server as the only target, WSL as the workstation](20260924-windows-server-only.md) | platforms, windows | — |
+| [Trust an existing SSH CA, never build one](20260924-ssh-ca-audit-and-consistent-use.md) | ssh, security | — |
 | [Development mode refuses server tools with a PATH shim](20260924-path-shim-over-parsing.md) | guard, development | — |
 | [An organization owns the repository, not a person](20260924-org-owned-for-merge-queue.md) | governance, ci | — |
 | [An unreadable jump path counts as a blacklisted hop](20260924-opaque-jump-path-is-listed.md) | access-control, ssh | — |
+| [One shared `known_hosts`, never per-machine TOFU](20260924-one-shared-known-hosts-file.md) | ssh, security | — |
 | [No migrations or compatibility paths before 1.0.0](20260924-no-compat-before-1-0.md) | release | — |
 | [The workspace marker decides the session mode](20260924-marker-decides-session-mode.md) | guard, development | — |
 | [Log to the system journal, not a custom file](20260924-logger-over-log-file.md) | changelog, logging | — |
+| [Guests get keys at first boot, never passwords](20260924-guests-get-keys-never-passwords.md) | guests, security | — |
 | [The taboo guard is a backstop, not a sandbox](20260924-guard-is-a-backstop-not-a-sandbox.md) | guard | — |
 | [PreToolUse hook enforces taboos, not permissions.deny](20260924-guard-hook-over-permissions-deny.md) | guard, taboos | — |
+| [Fleet read runs a signed bundle, not a shell](20260924-fleet-read-via-signed-bundle.md) | operations, access-control | — |
+| [A deployed file's master lives in the workspace](20260924-deployed-file-masters-in-workspace.md) | deployed-files, server-memory | — |
 | [Convention files in `.claude/rules/` need no record behind them](20260924-cite-only-rules.md) | records, tooling | — |
