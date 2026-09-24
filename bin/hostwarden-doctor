@@ -344,8 +344,16 @@ fi
 if [ -n "$NEED" ]; then
   fix=''
   [ -z "$NEED_T" ] || fix=$(hint "$NEED_T")
-  [ -z "$MISE_T" ] \
-    || fix="${fix:+$fix; }mise trust mise.dev.toml && MISE_ENV=dev mise install"
+  if [ -n "$MISE_T" ]; then
+    # mise itself from a package manager that carries it without a
+    # repository added first; CONTRIBUTING.md → Setup for the rest.
+    m=''
+    has mise || case $PM in
+      brew|pacman|apk|pkg) m="$(hint mise) && " ;;
+      *) m="install mise (CONTRIBUTING.md → Setup), then " ;;
+    esac
+    fix="${fix:+$fix; }${m}mise trust mise.dev.toml && MISE_ENV=dev mise install"
+  fi
   echo "hostwarden: required, missing: ${NEED#, } — $fix"
 fi
 if [ -n "$WANT" ]; then

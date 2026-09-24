@@ -86,9 +86,30 @@ One git worktree per branch keeps parallel sessions apart;
 things live.
 
 Clone with symbolic links working, on Windows inside WSL 2
-(docs/install.md → Windows). The checks need
-ShellCheck, actionlint, betterleaks, `jq` and `python3`. `mise.dev.toml`
-pins the versions CI uses; mise asks you to trust it once:
+(docs/install.md → Windows). The checks need ShellCheck,
+actionlint, betterleaks, `jq` and `python3`. `mise.dev.toml` pins
+the versions CI uses, and [mise](https://mise.jdx.dev) installs
+them. Install mise with the package manager the workstation
+already has, so it updates with everything else:
+
+- **macOS**, and Linux with Homebrew: `brew install mise`.
+- **Arch Linux:** `sudo pacman -S mise`. **Alpine:**
+  `sudo apk add mise`, from the community repository.
+- **FreeBSD:** `sudo pkg install mise`.
+- **Debian, Ubuntu, Fedora, RHEL and openSUSE** do not carry mise
+  themselves. Enable the repository mise publishes for them —
+  through extrepo on Debian and Ubuntu, COPR on Fedora — as
+  [mise's installation page](https://mise.jdx.dev/installing-mise.html)
+  shows for each distribution and release, then install the
+  `mise` package from it.
+
+Where the package manager has no mise, or you would rather not
+add a repository, use mise's own installer,
+`curl -fsSL https://mise.run | sh`. It puts `mise` in
+`~/.local/bin`, which has to be on `PATH` for the checks to find
+it, and that copy updates only through `mise self-update`.
+
+mise asks you to trust `mise.dev.toml` once:
 
 ```bash
 mise trust mise.dev.toml
