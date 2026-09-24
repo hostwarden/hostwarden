@@ -124,7 +124,11 @@ Memory files never hold credential values — see
 Each line has one owner, which gives its wording and says when
 it changes; every other rule and skill only reads it, except that
 `hostwarden-onboard` runs the owner's probe and writes the line as
-the owner gives it. A line joins when its moment comes, never
+the owner gives it, and a line's own section may name one further
+mover for a narrow case — the activity check moving the timestamp
+and duration in `Auto restarts:` is one
+(`rules/maintenance-windows.md` → Automatic restarts), never its
+other half. A line joins when its moment comes, never
 before, and most hosts never get most of them. An owner ending in
 `.md` is a file under `rules/`; the others are skills. An OS file whose Version
 Detection names further fields to record owns those. The
@@ -200,6 +204,9 @@ so does a host's `network.md` (`rules/network.md`).
 | `API pin:`               | `tls-pinning.md`            | pin confirmed    |
 | `Flags:`, `Rollback:`    | `changelog.md`              | entry logged     |
 | `Plan:`                  | this file                   | plan started     |
+| `Downtime notice:`       | `maintenance-windows.md`    | user's answer    |
+| `Downtime:`              | `maintenance-windows.md`    | window planned   |
+| `Auto restarts:`         | `hostwarden-housekeeping`   | onboarding       |
 | `USB:`, `Passthrough:`   | `hostwarden-housekeeping`   | onboarding       |
 | `Backup:`                | `hostwarden-housekeeping`   | onboarding       |
 | `Container registries:`  | `hostwarden-security`       | user's answer    |
@@ -240,8 +247,9 @@ moves the date. A guest only registered through its hypervisor has
 (`rules/first-connection.md` step 9).
 
 Housekeeping refreshes `USB:`, `Passthrough:`, `Storage:` with
-`storage.md`, the entries of `Depends on:` it detects, and
-`Backup:`. Such a line is stale once it is older
+`storage.md`, the entries of `Depends on:` it detects, `Backup:`
+and, on Linux, `Auto restarts:`. Such a line is stale once it is
+older
 than 90 days: its age is the later of `Onboarded:` and
 `Housekeeping:`, which housekeeping writes as its step 6 says, or
 the line's own date where it carries one, such as
@@ -292,11 +300,19 @@ Each host it names gets a line in `memory.md`:
 `- Plan: syslog-collector (memory/plans/syslog-collector.md)`.
 Read the plan when the work on a host touches what it
 plans, and never start its next phase unasked. Update
-`Status:` and `Updated:` whenever a phase moves. Once
-the plan is done, its facts go into the hosts'
+`Status:` and `Updated:` whenever a phase moves.
+
+A planned maintenance window is a plan of this kind, with a
+`Window:`, `Kind:`, `Affected:`, `Notify by:` and `Notice:` line of
+its own above the steps, and a `Downtime:` line on each affected
+host beside `Plan:` (`rules/maintenance-windows.md` → The window
+plan).
+
+Once the plan is done, its facts go into the hosts'
 `memory.md`, a decision of the user's that still
 binds becomes a decision (`rules/decisions.md` →
-Writing one), and the plan and its `Plan:` lines are
+Writing one), and the plan and its `Plan:` lines —
+and a window's `Downtime:` lines with them — are
 deleted.
 
 ## Deployed files

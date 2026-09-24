@@ -10,7 +10,10 @@ The file has two parts for SSH users:
   entries.
 
 Beside them, under `# Preferences`, it holds the
-language and the operator handle (both below), and
+language, the operator handle (both below) and an
+optional `Notice email:` line, the address a
+maintenance-window IT notice defaults to
+(`rules/maintenance-windows.md` → Telling IT), and
 under `# SSH Ports` an optional
 `Alternative SSH ports: 52222, 2222` line: the ports
 the user runs sshd on instead of 22, in the order

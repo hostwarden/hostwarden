@@ -759,6 +759,17 @@ Highlight as drift / warning:
   worth a heads-up.
 - Different needrestart restart modes: one host restarts
   services after every apt run, another only lists them.
+- A different reboot policy across hosts of the same family —
+  `Automatic-Reboot` on some and not others, or a different
+  `reboot =` on RHEL/Fedora — read from `memory.md`'s
+  `Auto restarts:` line, never re-probed here: this section reads
+  and compares what housekeeping already recorded
+  (`rules/maintenance-windows.md` → Automatic restarts), and writes
+  nothing back to it.
+- A host whose `Auto restarts:` line is missing or stale
+  (`rules/server-memory.md` → Onboarded and stale lines): name it
+  for housekeeping to refresh, the way a stale `USB:` or `Backup:`
+  line is named.
 
 **Alpine** has no `/var/run/reboot-required`, and busybox
 `uptime` takes no options. A kernel upgrade removes the running

@@ -33,6 +33,7 @@ condition, and what to do with the result.
 | Who manages the network | first; conditional | `rules/network.md` |
 | The FQDN | first; conditional | `rules/dns-aliases.md` |
 | Logins through VPN agents' SSH servers | every | `rules/mesh-vpn.md` |
+| A boot newer than recorded | conditional | `rules/maintenance-windows.md` |
 
 Where each condition is:
 
@@ -76,6 +77,15 @@ Where each condition is:
 - **Windows Version Detection:** without its hardware part, unless
   memory lacks a `Virtualization:` or an `Arch:` line
   (`rules/os-detection.md` → On subsequent connections).
+- **A boot newer than recorded:** on a Linux host whose memory has
+  an `Auto restarts:` line — `hostwarden-housekeeping`'s, moved here
+  only for its timestamp and duration
+  (`rules/server-memory.md` → Who writes which line) — compare the
+  current boot start against the line's full `last reboot <date>
+  <time>`, not the date alone, which a second same-day reboot would
+  read as no change. A later one reads that reboot's duration with
+  `journalctl --list-boots -n 2` and moves the timestamp and
+  duration (`rules/maintenance-windows.md` → Automatic restarts).
 
 On a host without a register, the read-back runs again before each
 change, with the `starting` marker in the same call
@@ -491,3 +501,11 @@ SSH server as one line after them.
 - Keep it concise — summarize, don't dump raw logs.
 - If there are more than 10 entries, summarize the
   oldest and show the most recent 5 in detail.
+
+## Downtime
+
+A host whose memory has a `Downtime:` line
+(`rules/maintenance-windows.md` → The window plan) gets it named in
+one line, in the same report as the activity summary: *"Downtime:
+2026-10-05 22:00–23:30 (plan pve1-kernel)."* Several lines each get
+their own. Say nothing where the host has none.

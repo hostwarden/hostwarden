@@ -53,6 +53,12 @@ per-host preference that's asked once and remembered.
    4. Otherwise, ask once via the picker, then persist to
       `memory.md` as in (3).
    - Never guess or invent a recipient.
+   - **A maintenance-window IT notice**
+     (`rules/maintenance-windows.md` → Telling IT) does not use
+     this order: its recipient is `Notice email:` under
+     `# Preferences` in `memory/user.md` — the user's own address
+     by default — asked once and written there when missing, never
+     the per-server `Alert email:`.
 
 4. **Consent gate 0 — sender side (local vs remote).** Check
    `memory.md` for `Email source: local | remote`:

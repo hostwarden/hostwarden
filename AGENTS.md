@@ -354,6 +354,7 @@ trigger — not a request from the user.
   port forwarding → `rules/ssh-config.md`
 - Asking what a reboot, restart or network change would hit →
   `rules/coordination.md`
+- Planning a downtime → `rules/maintenance-windows.md`
 
 **Before you report**
 

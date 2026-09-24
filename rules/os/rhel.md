@@ -42,6 +42,15 @@ finding. See `rules/version-check.md`.
 - On RHEL 7/CentOS 7: `yum-cron` instead
 - If not installed or not enabled, flag it to the
   user.
+- **Reboot:** `reboot =` under `[commands]` in
+  `automatic.conf` — `never` (the default), `when-changed`
+  or `when-needed`; absent keeps `never`. The timer,
+  `dnf-automatic-install.timer` or `dnf-automatic.timer`,
+  runs once daily with up to an hour of randomized delay
+  (`rules/maintenance-windows.md` → Automatic restarts).
+
+Sources: https://dnf.readthedocs.io/en/latest/automatic.html,
+https://github.com/rpm-software-management/dnf/pull/1879
 
 ## Service Manager
 

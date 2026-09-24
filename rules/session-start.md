@@ -27,7 +27,11 @@ Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`, and
 `memory/custom-rules/all.md` (if present), `memory/operators.md`
 where the workspace has a remote, and glance at
-`memory/servers/` and `memory/custom-rules/` to see what's there.
+`memory/servers/`, `memory/custom-rules/` and `memory/plans/` to
+see what's there. A file under `memory/plans/` with a `Window:`
+line is a maintenance window (`rules/maintenance-windows.md` →
+The window plan); read its `Window:` and `Notify by:` lines for
+What to say below.
 
 **How:** read each file on its own, with whatever your harness
 offers for reading a file, and list directories with a plain `ls`
@@ -72,6 +76,12 @@ in one line — *"Overrides: all, backups, os/debian."* — or say
 nothing when there are none. An override path that names nothing
 shipped is not an override in force: `rules/overrides.md` says
 what to do with it, and it is not "carry on".
+
+Name, one line each, every window plan whose `Window:` starts
+within 24 hours, and every plan whose `Notify by:` date has passed
+with no `Notice:` line yet — *"Window: pve1 kernel update, tonight
+22:00–23:30."*, *"Notice overdue: pve1 kernel update, notify by
+2026-09-28, none sent."* Say nothing when there are none.
 
 ## The operator handle
 
