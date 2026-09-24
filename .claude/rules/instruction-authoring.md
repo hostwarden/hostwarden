@@ -112,7 +112,8 @@ retired words.
 
 Instruction files describe how things are, never how they came
 to be. `.claude/rules/repo-release.md` states the rule and owns
-its one exception, `CHANGELOG.md`.
+its one exception, `CHANGELOG.md` and the fragments in
+`changelog.d/` that become it.
 
 ## Claims
 

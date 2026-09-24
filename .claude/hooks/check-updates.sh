@@ -62,9 +62,15 @@ fi
 # bin/hostwarden-update does the update — pull or tag, migration,
 # changelog. This hook only keeps quiet when nothing moved.
 BEFORE=$(git rev-parse HEAD)
+LINE_BEFORE=$(hostwarden_follow)
 if ! OUTPUT=$(sh bin/hostwarden-update 2>&1); then
   echo "hostwarden auto-update failed:"
   printf '%s\n' "$OUTPUT" | sed 's/^/  /'
-elif [ "$(git rev-parse HEAD)" != "$BEFORE" ]; then
+elif [ "$(git rev-parse HEAD)" != "$BEFORE" ] ||
+  [ "$(hostwarden_follow)" != "$LINE_BEFORE" ]; then
   printf '%s\n' "$OUTPUT"
+else
+  # A newer release than the line this checkout follows is news
+  # although nothing moved.
+  printf '%s\n' "$OUTPUT" | sed -n '/^hostwarden: v.* is out/,$p'
 fi

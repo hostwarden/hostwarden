@@ -377,11 +377,13 @@ fi
 # every one of them reads as a pointer at a rule that does not
 # exist, and this check drowns in its own corpus.
 #
-# CHANGELOG.md is out of scope. It is the one file that records a
-# change as a change -- the release rule in `.claude/rules/` says
-# so -- which means it names paths that moved, by design.
+# CHANGELOG.md and the fragments in changelog.d/ that become it
+# are out of scope. They are the one place that records a change
+# as a change -- the release rule in `.claude/rules/` says so --
+# which means they name paths that moved, by design.
+HISTORY='^(CHANGELOG\.md|changelog\.d/[^ ]*): '
 report "$(scan \
-  | grep -v '^CHANGELOG\.md: ' \
+  | grep -vE "$HISTORY" \
   | tag '(^|[^a-z0-9/_.-])rules/[a-z0-9/_-]+\.md' \
   | sed -E 's#^([^ ]+:) [^a-z0-9/_.-]?rules/#\1 rules/#' \
   | while IFS=' ' read -r f r; do
@@ -394,7 +396,7 @@ report "$(scan \
 # so does hostwarden-workspace, the repository name
 # docs/operations.md recommends for the workspace remote.
 report "$(scan \
-  | grep -v '^CHANGELOG\.md: ' \
+  | grep -vE "$HISTORY" \
   | tag '`hostwarden-[a-z-]+`' \
   | tr -d '`' \
   | grep -v ' hostwarden-workspace$' \
@@ -485,7 +487,7 @@ function load(p,   l, h) {
 SEP=$(printf '\037')
 PTR_RE="(^|[^A-Za-z0-9_./<>-])(its |[A-Za-z]+'s )?\`?([A-Za-z0-9_./-]*[A-Za-z0-9_-]\\.md|README)\`?[[:blank:]]*(→|§| - ).*"
 POINTERS=$(scan \
-  | grep -v '^CHANGELOG\.md: ' \
+  | grep -vE "$HISTORY" \
   | awk -v sep="$SEP" '
     { f = $1; t = substr($0, length($1) + 2) }
     NR > 1 && (index(pt, ".md") || index(pt, "README")) {
@@ -715,11 +717,13 @@ report "$(scan \
 # .claude/rules/instruction-authoring.md → For people and for the
 # agent: what a user writes under memory/custom-rules/ is an
 # override. A second word for it reads, to people and agent alike,
-# as a second mechanism. CHANGELOG.md keeps what was released
-# under the old words, contrib/ speaks Heinzel's language, and the
-# two files that state the rule have to name what they retire.
+# as a second mechanism. CHANGELOG.md and its fragments record a
+# rename under the old words, contrib/ speaks Heinzel's language,
+# and the two files that state the rule have to name what they
+# retire.
 report "$(scan \
-  | grep -vE '^(CHANGELOG\.md|contrib/[^ ]*|\.claude/rules/instruction-authoring\.md|\.claude/hooks/instructions-test\.sh): ' \
+  | grep -vE "$HISTORY" \
+  | grep -vE '^(contrib/[^ ]*|\.claude/rules/instruction-authoring\.md|\.claude/hooks/instructions-test\.sh): ' \
   | tag_i 'customi[sz]ations?|custom rules?')" "the one term, override"
 
 # --- every .md wraps at 80 -------------------------------------

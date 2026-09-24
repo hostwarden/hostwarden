@@ -2,9 +2,9 @@
 # hostwarden-update — update, pin, or check Hostwarden version.
 #
 # Usage:
-#   hostwarden-update               Update: pull main, or move to
-#                                   the newest release on the line
-#                                   this checkout follows
+#   hostwarden-update               Update: move to the newest
+#                                   release on the line this
+#                                   checkout follows, or pull main
 #   hostwarden-update --check       Show current version and
 #                                   check for updates
 #   hostwarden-update --follow L    Follow release line L: 1 for
@@ -12,8 +12,12 @@
 #                                   only; the auto-update moves on
 #   hostwarden-update --pin VER     Pin to a version tag
 #                                   (e.g. --pin v0.1.0)
-#   hostwarden-update --unpin       Return to main and pull
+#   hostwarden-update --unpin       Follow main: return to it,
+#                                   pull, and stay there
 #   hostwarden-update --help        Show this help
+#
+# A checkout on main that never chose follows main until a
+# release exists, then the major line of the newest release.
 set -e
 
 # Find the repo root (this script lives in bin/).
@@ -68,6 +72,61 @@ show_changelog_section() {
   fi
 }
 
+# notes <rev> — every entry no release has yet at <rev>: the
+# fragments in changelog.d/ and a `## Unreleased` section of
+# CHANGELOG.md (.claude/rules/repo-release.md → CHANGELOG.md). One
+# line each: section, lead clause, the whole entry, tab-separated.
+notes() {
+  {
+    git show "$1:CHANGELOG.md" 2>/dev/null |
+      awk '/^## / { on = ($0 == "## Unreleased"); next } on'
+    for f in $(git ls-tree --name-only "$1" changelog.d/ 2>/dev/null); do
+      case $f in
+      changelog.d/*.md) echo; git show "$1:$f" ;;
+      esac
+    done
+  } | awk '
+    function flush(   i) {
+      if (buf != "" && (i = index(buf, "**")))
+        print sec "\t" substr(buf, 1, i - 1) "\t" buf
+      buf = ""
+    }
+    !NF { flush(); next }
+    /^#+ / { flush(); sec = $0; sub(/^#+ /, "", sec); next }
+    /^- \*\*/ { flush(); buf = substr($0, 5); next }
+    buf != "" { t = $0; sub(/^[ \t]+/, "", t); buf = buf " " t }
+    END { flush() }
+  '
+}
+
+# news <old HEAD> — how the entries no release has yet changed
+# since <old HEAD>: each new or changed one by its lead clause, and
+# each one no longer listed — withdrawn, reworded under another
+# lead, or only on the branch left behind. A release folds them all
+# away, and its own notes say what it brought, so across a release
+# nothing is called that.
+news() {
+  NEWS_TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-news.XXXXXX")
+  notes "$1" > "$NEWS_TMP/old"
+  notes HEAD > "$NEWS_TMP/new"
+  GONE=
+  [ "$(git show "$1:VERSION" 2>/dev/null)" != "$(current_version)" ] \
+    || GONE=1
+  awk -F '\t' -v gone="$GONE" '
+    FILENAME == ARGV[1] { old[$2] = $3; next }
+    { seen[$2] = 1
+      if (!($2 in old)) out = out "  " $1 ": " $2 "\n"
+      else if (old[$2] != $3) out = out "  " $1 ": " $2 " (changed)\n"
+    }
+    END {
+      if (gone) for (l in old) if (!(l in seen))
+        out = out "  no longer listed: " l "\n"
+      if (out != "") printf "\nOn main, not released yet:\n%s", out
+    }
+  ' "$NEWS_TMP/old" "$NEWS_TMP/new"
+  rm -rf "$NEWS_TMP"
+}
+
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
     "$SCRIPT_DIR/${0##*/}"
@@ -85,6 +144,8 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 # shellcheck source=../.claude/hooks/follow.sh
 . .claude/hooks/follow.sh
+# shellcheck source=../.claude/hooks/mode.sh
+. .claude/hooks/mode.sh
 if ! hostwarden_clone_top; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2
@@ -110,15 +171,46 @@ follow_target() {
 
 at_tag() { [ "$(git rev-parse HEAD)" = "$(git rev-parse "$1^{commit}")" ]; }
 
+# settle_line — the release line an operations checkout that never
+# chose settles on, or nothing. A development checkout stays where
+# its developer put it.
+settle_line() {
+  hostwarden_mode "$REPO_DIR"
+  [ "$HOSTWARDEN_MODE" != operations ] || hostwarden_follow_default
+}
+
+# line_notice <line> — says so when the newest release is on
+# another line: only the newest release gets fixes (SECURITY.md),
+# and a line never moves past itself. The line it names is of the
+# same kind: a major for a major, a major.minor for a major.minor.
+line_notice() {
+  NEWEST=$(hostwarden_follow_tag '[0-9]*')
+  [ -n "$NEWEST" ] && [ "$NEWEST" != "$(hostwarden_follow_tag "$1")" ] \
+    || return 0
+  NEXT=${NEWEST#v}
+  case $1 in
+  *.*) NEXT=${NEXT%.*} ;;
+  *) NEXT=${NEXT%%.*} ;;
+  esac
+  echo "hostwarden: $NEWEST is out, and line $1 gets no more fixes."
+  echo "  Read what it changes, 'git show $NEWEST:CHANGELOG.md', then"
+  echo "  'hostwarden-update --follow $NEXT'."
+}
+
 # follow_update <line> [set] — check out the newest release on the
 # line; with set, record the line as soon as the checkout is on it,
 # before anything after that can fail and leave the tag looking
 # like a pin.
+# OLD_VERSION and OLD_HEAD, where the caller set them, are what the
+# report starts from.
 follow_update() {
   follow_target "$1"
-  OLD_VERSION=$(current_version)
-  OLD_HEAD=$(git rev-parse HEAD)
-  if ! at_tag "$TAG" && ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
+  OLD_VERSION=${OLD_VERSION:-$(current_version)}
+  OLD_HEAD=${OLD_HEAD:-$(git rev-parse HEAD)}
+  # On a branch the checkout detaches even when the branch is at the
+  # tag already, or the line would look like a checkout of main.
+  if { ! at_tag "$TAG" || git symbolic-ref -q HEAD >/dev/null; } &&
+    ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
     echo "hostwarden update failed: $OUTPUT"
     echo "Likely cause: local changes (run 'git status')."
     exit 1
@@ -126,6 +218,7 @@ follow_update() {
   [ -z "${2:-}" ] || hostwarden_follow_set "$1"
   run_migration
   report "$OLD_VERSION" "$OLD_HEAD"
+  line_notice "$1"
 }
 
 case "${1:-}" in
@@ -139,6 +232,7 @@ case "${1:-}" in
       else
         echo "$TAG is available."
       fi
+      line_notice "$FOLLOW"
       exit 0
     fi
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
@@ -155,7 +249,15 @@ case "${1:-}" in
       echo "On branch '$BRANCH' (not main)"
       exit 0
     fi
-    git fetch --quiet origin main
+    # Without a refspec the fetch brings the tags on main along.
+    git fetch --quiet origin
+    LINE=$(settle_line)
+    if [ -n "$LINE" ]; then
+      echo "The next update follows release line $LINE, at"
+      echo "$(hostwarden_follow_tag "$LINE"). 'hostwarden-update --unpin'"
+      echo "follows main instead."
+      exit 0
+    fi
     LOCAL=$(git rev-parse HEAD)
     REMOTE=$(git rev-parse origin/main)
     if [ "$LOCAL" = "$REMOTE" ]; then
@@ -177,8 +279,8 @@ case "${1:-}" in
     fi
     follow_update "$LINE" set
     echo "hostwarden follows $LINE: the auto-update moves to each"
-    echo "new v$LINE.x release. 'hostwarden-update --unpin' returns"
-    echo "to main."
+    echo "new v$LINE.x release. 'hostwarden-update --unpin' follows"
+    echo "main instead."
     ;;
 
   --pin)
@@ -198,21 +300,26 @@ case "${1:-}" in
     hostwarden_follow_clear
     echo "hostwarden pinned to $VER ($(current_version))"
     echo "Auto-update is disabled while pinned."
-    echo "Run 'hostwarden-update --unpin' to return to main."
+    echo "'hostwarden-update --follow' follows a release line"
+    echo "again, 'hostwarden-update --unpin' follows main."
     ;;
 
   --unpin)
+    OLD_HEAD=$(git rev-parse HEAD)
     git checkout main
     # Only once off the tag: a failed checkout keeps the line, or
-    # the next session would take the tag for a pin.
-    hostwarden_follow_clear
+    # the next session would take the tag for a pin. Recorded, not
+    # cleared: a checkout on main that never chose moves to the
+    # newest release line.
+    hostwarden_follow_set main
     git pull --ff-only --quiet
     # Same as the default path: a pinned checkout can be many
     # releases behind, so this is exactly where an override
     # left at an obsolete path needs moving. Without it the
     # update succeeds and the override is silently dead.
     run_migration
-    echo "hostwarden unpinned — now on main ($(current_version))"
+    echo "hostwarden follows main ($(current_version))"
+    news "$OLD_HEAD"
     ;;
 
 
@@ -221,7 +328,8 @@ case "${1:-}" in
       follow_update "$FOLLOW"
       exit 0
     fi
-    # Default: pull latest.
+    # No line: pull main, then settle on a release line where this
+    # checkout never chose and a release exists by now.
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
     if [ -z "$BRANCH" ]; then
       echo "Error: not on a branch. Use --unpin first."
@@ -245,8 +353,17 @@ case "${1:-}" in
       echo "diverged main, or no network. Fix and re-run."
       exit 1
     fi
+    # The pull brings the tags on main along.
+    LINE=$(settle_line)
+    if [ -n "$LINE" ]; then
+      follow_update "$LINE" set
+      echo "hostwarden follows release line $LINE from now on."
+      echo "'hostwarden-update --unpin' follows main instead."
+      exit 0
+    fi
     run_migration
     report "$OLD_VERSION" "$OLD_HEAD"
+    news "$OLD_HEAD"
     ;;
 
   *)

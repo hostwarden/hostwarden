@@ -5,6 +5,8 @@ README.md              — What Hostwarden is and how to start
 LICENSE                — The licence
 VERSION                — Current version number (semver)
 CHANGELOG.md           — Release history
+changelog.d/           — One entry per unreleased change,
+                         folded into CHANGELOG.md at a release
 CONTRIBUTING.md        — Setup, checks, and where changes go
 SECURITY.md            — How to report a vulnerability
 docs/                  — Documentation beyond the README;
@@ -35,6 +37,11 @@ bin/
                          on during development, and lab VMs
                          for a test clone
 scripts/
+  changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
+                         at a release; checks its form in CI
+  changelog-release-test.sh — Fixture matrix for
+                         changelog-release.sh (run by
+                         scripts/check.sh)
   check.sh             — Everything CI checks, runnable locally
   codex-quota.sh       — What is left of the Codex usage limit,
                          read without spending any
