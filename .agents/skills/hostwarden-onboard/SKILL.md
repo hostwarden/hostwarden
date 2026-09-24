@@ -113,13 +113,20 @@ checkout) and stop.
      → Probe, read as the security audit's
      `.agents/skills/hostwarden-security/references/containers.md`
      → Registries says. Which registries to trust joins step 6.
+   - `memory/topology.md` and `Dynamic routing:` — where step 3
+     wrote a full network profile, `rules/network-topology.md` →
+     Folding a profile.
 
 6. **Close the host.** Any other question whose answers only get
    recorded — stopped guests, the questions step 5 hands on, the
-   ones its references ask once (a UPS and what it powers, a serial
-   adapter's far end, a reserved device no guest claims), anything
-   else the pipeline's rules offer to record — is asked once the
-   measurement has run, in the order its rules give, so the answers
+   host's `Site:` (`rules/network-topology.md` → The question,
+   whose answer rewrites the site field of the ranges step 5
+   already folded, in the same edit, as → Pruning and staleness
+   requires), the ones its references ask once (a UPS and what it
+   powers, a serial adapter's far end, a reserved device no guest
+   claims), anything else the pipeline's rules offer to record — is
+   asked once the measurement has run, in the order its rules give,
+   so the answers
    are in its memory before the next host starts. Once steps 3 to 5
    have run through the host's own way in, the host gets
    `- Onboarded: <date>` in place of any `SSH: untested`; on a known

@@ -11,8 +11,11 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [`wsl.exe -u root` is treated like passwordless sudo](20260924-wsl-root-is-passwordless-sudo.md) | platforms, windows, privilege-escalation | — |
 | [Windows Server as the only target, WSL as the workstation](20260924-windows-server-only.md) | platforms, windows | — |
 | [Default update channel follows the current major line](20260924-update-channel-follows-major-line.md) | release | — |
+| [Network topology comes from host data, never an external IPAM](20260924-topology-from-hosts-not-ipam.md) | network, memory | — |
 | [Storage repair and destroy commands are a taboo](20260924-storage-repair-taboo.md) | storage, guard | — |
 | [Trust an existing SSH CA, never build one](20260924-ssh-ca-audit-and-consistent-use.md) | ssh, security | — |
+| [Sites are proposed from co-presence, never from a VPN hop](20260924-sites-by-co-presence-not-vpn-hop.md) | network, memory | — |
+| [Range identity needs the gateway MAC or the user's word](20260924-range-identity-needs-gateway-mac.md) | network, memory | — |
 | [Development mode refuses server tools with a PATH shim](20260924-path-shim-over-parsing.md) | guard, development | — |
 | [Own review makes quality; a second family checks it](20260924-own-review-then-second-family-review.md) | review, tooling | — |
 | [An organization owns the repository, not a person](20260924-org-owned-for-merge-queue.md) | governance, ci | — |

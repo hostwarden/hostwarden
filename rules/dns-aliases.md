@@ -75,7 +75,21 @@ symlink):
    read-only check already resolved the name this
    way, reuse that result; otherwise resolve it
    here. If nothing resolves, the IP comparisons
-   cannot run: tell the user so. Where the name ssh
+   cannot run: tell the user so. For a name without
+   a dot, first resolve `<name>.<suffix>` the same
+   way for each distinct suffix `memory/topology.md`
+   records under `## Ranges`, and offer those that
+   resolve, at most two, beside "type the name in
+   full" — the three-option picker `rules/ssh-user.md`
+   → Interview format caps every fallback at, with
+   `AskUserQuestion` where the tool has it; none
+   recorded, or none resolving, skips the offer and
+   goes straight to telling the user. A picked
+   candidate becomes the name from here on, as if the
+   user had typed it themselves: the pipeline of
+   `rules/first-connection.md` restarts at its
+   blacklist check for it, before this step runs again
+   and resolves it. Where the name ssh
    connects to ends in `.local`, follow
    `rules/mdns.md` before step 2.
 
