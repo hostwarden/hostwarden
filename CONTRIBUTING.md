@@ -4,6 +4,20 @@ For anything beyond a small fix, open an issue first, so the
 approach is settled before the work is done. Security problems go
 privately, as [SECURITY.md](SECURITY.md) describes.
 
+## Before opening an issue
+
+Read the issues first,
+`gh issue list -R hostwarden/hostwarden --state all --limit 1000`,
+since the default is open issues only and stops at 30. One that
+already covers the new issue, in whole or in part, gets a comment
+instead of a second issue proposing the same thing from another
+angle: on the issue it was closed as a duplicate of, not on the
+closed one, which stays closed; otherwise reopened first when it
+was closed as not planned rather than shipped and reopening is
+within reach, or commented on as it stands where it is someone
+else's issue and it is not. One that is related without covering
+it is recorded as below.
+
 ## Issue dependencies
 
 When an issue only makes sense to implement after another one
@@ -44,6 +58,23 @@ starting work on the later issue. It is not a substitute for:
   whichever branch rebases second
   ([pull-requests.md](.claude/rules/pull-requests.md) → Updating a
   branch), never turned into an issue dependency.
+
+A relation that is real but not a dependency — the same file, or
+a mechanism the new issue's design extends without needing the
+other merged first — gets a plain one-line cross-reference in the
+new issue's body instead:
+
+    Related: #<n> — both add fields to the same memory file.
+
+A cross-reference records relatedness, never order. Which of
+several open, independent issues gets tackled first is a call made
+fresh each time by whoever plans a wave of work, from the state of
+things at that moment — what is mid-revision, what is most urgent
+— not a property of an issue's content, and a written "do this
+before that" goes stale the moment either issue changes. An
+issue's author records what it relates to; whoever dispatches the
+work decides the order, every time, from scratch. Never write a
+recommended order into an issue.
 
 ## Setup
 
