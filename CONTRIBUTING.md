@@ -24,21 +24,16 @@ When an issue only makes sense to implement after another one
 lands — it shares a file the other issue's pull request will
 change in an incompatible way, or it needs a memory line or a
 mechanism the other issue introduces — set GitHub's native
-`blocked by` link on it through the REST API, not a mention buried
-in the body:
+`blocked by` link on it, not a mention buried in the body. The
+flag needs `gh` 2.94 or later; update an older one first:
 
-    gh api repos/hostwarden/hostwarden/issues/<blocking-n> --jq .id
-    gh api -X POST \
-      repos/hostwarden/hostwarden/issues/<later-n>/dependencies/blocked_by \
-      -F issue_id=<the first command's output>
+    gh issue edit <later-n> -R hostwarden/hostwarden \
+      --add-blocked-by <blocking-n>
 
-The `issue_id` the second call needs is the blocking issue's REST
-database id, not its number and not the GraphQL id
-`gh issue view --json id` returns — the first command is how to
-get it. Whoever opens the later issue checks open issues for a
-real dependency and sets it themselves, at the time of opening;
-the maintainer does not retrofit one onto an issue that is
-already open.
+Whoever opens the later issue checks open issues for a real
+dependency and sets it themselves, at the time of opening; the
+maintainer does not retrofit one onto an issue that is already
+open.
 
 A dependency is issue-level ordering an agent should notice before
 starting work on the later issue. It is not a substitute for:
@@ -61,20 +56,40 @@ starting work on the later issue. It is not a substitute for:
 
 A relation that is real but not a dependency — the same file, or
 a mechanism the new issue's design extends without needing the
-other merged first — gets a plain one-line cross-reference in the
-new issue's body instead:
+other merged first — gets GitHub's native `relates to` link
+instead. It shows on both issues; set it once, from the new one.
+`gh issue` has no flag for this link, and GitHub has not
+documented its REST call yet, the relationship being in public
+preview. The call takes the other issue's REST database id, not
+its number and not the GraphQL id `gh issue view --json id`
+returns; the first command gets it:
+
+    gh api repos/hostwarden/hostwarden/issues/<related-n> --jq .id
+    gh api -X POST \
+      repos/hostwarden/hostwarden/issues/<new-n>/relates_to \
+      -F issue_id=<the first command's output>
+
+The link says that two issues relate, not how. Where the new
+issue's body does not already say what overlaps, one line in it
+does:
 
     Related: #<n> — both add fields to the same memory file.
 
-A cross-reference records relatedness, never order. Which of
-several open, independent issues gets tackled first is a call made
-fresh each time by whoever plans a wave of work, from the state of
-things at that moment — what is mid-revision, what is most urgent
-— not a property of an issue's content, and a written "do this
-before that" goes stale the moment either issue changes. An
-issue's author records what it relates to; whoever dispatches the
-work decides the order, every time, from scratch. Never write a
-recommended order into an issue.
+An author whose call to set either link is refused — a fork
+contributor's account may lack the access — writes the relation
+into the new issue's body instead: the `Related:` line above, or
+for a dependency one line of the same form,
+`Blocked by: #<n> — <what the new issue needs from it>`.
+
+A `relates to` link or a `Related:` line records relatedness,
+never order. Which of several open, independent issues gets
+tackled first is a call made fresh each time by whoever plans a
+wave of work, from the state of things at that moment — what is
+mid-revision, what is most urgent — not a property of an issue's
+content, and a written "do this before that" goes stale the moment
+either issue changes. An issue's author records what it relates
+to; whoever dispatches the work decides the order, every time,
+from scratch. Never write a recommended order into an issue.
 
 ## Setup
 
