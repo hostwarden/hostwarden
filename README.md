@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hostwarden/brand/main/svg/hostwarden-lockup-invers.svg">
+  <img alt="Hostwarden" src="https://raw.githubusercontent.com/hostwarden/brand/main/svg/hostwarden-lockup.svg" width="360">
+</picture>
+
 # Hostwarden — System Administration with Safety Guardrails
 
 Hostwarden is a set of rules that turns an AI coding
