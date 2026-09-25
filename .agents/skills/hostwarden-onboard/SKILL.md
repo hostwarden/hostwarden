@@ -178,6 +178,11 @@ checkout) and stop.
      field in `memory/topology.md` names no host, once per gateway
      address in the run. It is an offer, never an assumption: an
      address does not say what answers there.
+   - A host onboarded under an adopted naming scheme whose name
+     does not check out against it gets `not on naming scheme
+     (would be <proposed name>)` at the end of its line
+     (`rules/naming-scheme.md` → Checking a name, → Onboarding a
+     host whose name does not match).
    - The last line always stands.
 
    Then, where a host has gaps, ask which to take on first: one option
@@ -193,6 +198,21 @@ checkout) and stop.
    Where no
    host has gaps, the question offers the schedule and "not now"
    alone.
+
+8. **Naming**, with a person at the keyboard, once step 7's report
+   and question are answered:
+   - **The workspace has neither `memory/naming.md` nor the decision
+     at `memory/decisions/naming.md`** (first run): ask
+     `rules/naming-scheme.md` → The question in the first
+     onboarding.
+   - **Otherwise:** where `rules/naming-scheme.md` → Detection's
+     "When it runs" is met by the hosts now in memory, run
+     Detection.
+   - **Neither applies:** nothing to do.
+
+   Never on a run with nobody at the keyboard
+   (`rules/naming-scheme.md` → The question in the first onboarding,
+   → Detection): it is left for the next interactive run.
 
 `hostwarden-heinzel-takeover` runs this skill for the hosts it
 takes over from Heinzel; where it adds to a step, its step 9 says

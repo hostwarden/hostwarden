@@ -22,7 +22,10 @@ Then split the output on `###<key>###` markers to fill the
 comparison table. The accounts probe (section 9) is the one
 exception: it runs in a second call of its own. The DNS probe
 (section 10) runs only on the hosts that section names, under a
-`###dns###` marker.
+`###dns###` marker. The Naming row
+(`references/output-format.md` → Naming) is neither: it carries no
+key here and joins no bundle, since it is computed from memory
+alone, with no command on the host (`rules/naming-scheme.md`).
 
 The commands below are the family defaults. Where the loaded
 OS file covers a category — its Automatic Security Updates,

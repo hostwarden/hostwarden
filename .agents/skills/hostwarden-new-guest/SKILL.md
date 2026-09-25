@@ -62,11 +62,25 @@ exists):
 - **Distribution and release:** the current stable release,
   looked up live (`rules/version-check.md`); never an image the
   distribution no longer supports.
-- **Name:** the guest's FQDN. No directory of that name under
-  `memory/servers/`, no guest of that name in the host's
-  `guests.md`, and neither the name nor a static address on the
-  blacklist or the read-only list (the lookup of
-  `rules/access-control.md`).
+- **Name:** the guest's FQDN. Where a `rules/naming-scheme.md` block
+  applies to the guest, propose the next name it gives: the site
+  token is the code recorded for the hypervisor's `Site:` in
+  `rules/network-topology.md` → Sites, never the site name itself —
+  asked, alongside the site, where the host has neither yet — the
+  role asked, the index the next one free across `memory/servers/`
+  and every `guests.md`, and the domain from the block. The user
+  confirms it or types another. A
+  typed name checked against the block and found not to match it
+  (`rules/naming-scheme.md` → Checking a name) is asked about once
+  — "does not follow the naming scheme — keep it and mark it
+  exempt?" — a yes adds an `Exempt:` line with the reason and who
+  and when to `memory/naming.md` and creation goes on with the
+  typed name; a no returns to naming the guest, offering the
+  proposed name again or another typed name. Once a name is
+  settled: no directory of that name under `memory/servers/`, no
+  guest of that name in the host's `guests.md`, and neither the
+  name nor a static address on the blacklist or the read-only list
+  (the lookup of `rules/access-control.md`).
 - **ID** (Proxmox VE): the next free one.
 - **Address:** DHCP, or a static address with prefix, gateway and
   DNS resolvers. The resolvers default to the host's own, from its

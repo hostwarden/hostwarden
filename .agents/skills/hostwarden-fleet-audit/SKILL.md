@@ -181,6 +181,11 @@ Layers).
    are columns, settings are rows. Cells that differ across
    columns get visual emphasis.
 
+   Also render the Naming row (`references/output-format.md` →
+   Naming) for every host of step 1, skipped ones included: it is
+   computed here, from `memory/naming.md` and each host's memory
+   alone, and needs no probe and no connection.
+
    Only a probe whose status is `ok` or `partial` returns a
    row, and only such a host gets a column. A `skipped:`
    result joins the skipped lists from steps 2 and 3. A
@@ -263,8 +268,8 @@ Read on demand:
   category (UA, sshd, firewall, MTA, network, time,
   auto-reboot, mesh VPNs, accounts and sudo, DNS resolver
   sets).
-- `references/output-format.md` — table layout and the
-  "Drift detected" section format.
+- `references/output-format.md` — table layout, the Naming row
+  and the "Drift detected" section format.
 
 ## Scope and limits
 

@@ -544,8 +544,11 @@ findings).
 ## Internal domain and DNSSEC
 
 **The domain.** A new internal domain is the one the fleet's naming
-scheme records where memory has one; otherwise the user names it.
-What to tell them about DNSSEC with each kind:
+scheme records where memory has one (`rules/naming-scheme.md` → The
+store, its `Domain:` line); otherwise the user names it, guided by
+`rules/naming-scheme.md` → The best-practice proposal, which lists
+the same three kinds below in the same order of preference. What to
+tell them about DNSSEC with each kind:
 
 - **A subdomain of a domain the user owns** (`int.example.com`) is
   the only kind that can be signed with a public chain of trust.
