@@ -181,6 +181,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Database:`, `MTA:`      | `service-class-check.md`    | service found    |
 | `Time sync:`             | `service-class-check.md`    | service found    |
 | `DNS resolver:`          | `service-class-check.md`    | service found    |
+| `DNS server:`            | `dns.md`                    | name spaces read |
 | `Firewall manager:`      | `service-class-check.md`    | service found    |
 | `Upstream firewall:`     | `baseline.md`               | user's answer    |
 | `Container runtime:`     | `service-class-check.md`    | runtime found    |
@@ -364,7 +365,9 @@ the SSH CAs the hosts trust, under `## SSH CAs`
 (`rules/ssh-ca.md` → Memory). The networks the
 hosts share — sites, IP ranges, gateways and the
 routes between them — go in `memory/topology.md`
-instead (`rules/network-topology.md` → The store).
+instead (`rules/network-topology.md` → The store),
+and the fleet's DNS name spaces in `memory/dns.md`
+(`rules/dns.md` → The inventory).
 
 ## Personal versus shared
 
@@ -390,7 +393,7 @@ its masters and `decisions.md`, `memory/clusters/*/`,
 (`rules/host-keys.md`), `memory/ssh_hosts`
 (`rules/ssh-config.md`), `memory/operators.md` (the
 handles in use, `rules/session-start.md`),
-`memory/network.md`, `memory/topology.md`,
+`memory/network.md`, `memory/topology.md`, `memory/dns.md`,
 `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 

@@ -7,8 +7,9 @@ description: Compare key policies across all servers in
   Probes unattended-upgrades, sshd effective config and SSH CA
   trust, firewall posture, MTA, network stack and resolver, time
   sync, auto-reboot behaviour, mesh VPNs and their SSH servers,
-  accounts and sudo rules, and Ubuntu Pro/ESM coverage and
-  needrestart mode. Use when
+  accounts and sudo rules, Ubuntu Pro/ESM coverage and
+  needrestart mode, and the records of DNS resolvers that should
+  answer alike. Use when
   the user asks to "fleet audit", "vergleiche alle server",
   "policy drift check", "are my servers configured the same?",
   or after a fix on one host to find which others carry the
@@ -98,6 +99,16 @@ Layers).
    so a Proxmox VE node heads its guests' group without
    being compared with them.
 
+   **Find the DNS resolver sets** in `memory/dns.md`, where it
+   exists: the resolver sets of `rules/dns.md` → The inventory
+   with two members or more. Each member in scope runs the DNS
+   resolver sets category for that line's name space, and the
+   set gets a table of its own in step 4. Its members are
+   compared with each other whatever their role, platform or
+   appliance: the set, not the host, decides what is comparable.
+   A member whose appliance file reads no records gets
+   `n/a (appliance)` in its cell.
+
 2. **Resolve SSH users.** Read `memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
@@ -124,7 +135,9 @@ Layers).
 
    - the hostname and the SSH user, and for a via-host
      guest its `Mode: via` and `Runs on:` lines;
-   - which probe categories to run, and the journal line
+   - which probe categories to run — DNS resolver sets only on
+     a set's members, with its name spaces (step 1) — and the
+     journal line
      from step 6 with its prefix filled in
      (`rules/changelog.md` → Entry format). Not the probe
      commands: the agent reads `references/probes.md`
@@ -248,7 +261,8 @@ Read on demand:
 
 - `references/probes.md` — the exact commands to run per
   category (UA, sshd, firewall, MTA, network, time,
-  auto-reboot, mesh VPNs, accounts and sudo).
+  auto-reboot, mesh VPNs, accounts and sudo, DNS resolver
+  sets).
 - `references/output-format.md` — table layout and the
   "Drift detected" section format.
 

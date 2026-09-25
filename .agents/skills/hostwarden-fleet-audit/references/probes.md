@@ -20,7 +20,9 @@ echo "###meshvpn###"; <mesh VPN probe>
 
 Then split the output on `###<key>###` markers to fill the
 comparison table. The accounts probe (section 9) is the one
-exception: it runs in a second call of its own.
+exception: it runs in a second call of its own. The DNS probe
+(section 10) runs only on the hosts that section names, under a
+`###dns###` marker.
 
 The commands below are the family defaults. Where the loaded
 OS file covers a category — its Automatic Security Updates,
@@ -939,3 +941,36 @@ Warnings, one host at a time: every rating of
 at WARN or CRITICAL, from all three of its sections. A host that
 admits every directory user, or whose directory daemon is not
 active, is a warning even where every other host does the same.
+
+## 10. DNS resolver sets
+
+Runs only on the members of a resolver set (`rules/dns.md` → The
+inventory), for the name spaces the task names.
+
+The probe is `rules/dns.md` → Reading a DNS server → Records, the
+resolver-record part for the product the host runs, restricted to
+those name spaces. Normalise each record to one line,
+`<name> <type> <value>`, names in lower case without the trailing
+dot, and sort the lines.
+
+Row keys, per name space:
+
+- `dns <name space>`: the record count, and with 200 records or
+  fewer the lines themselves; with more, the count and the first 12
+  hex digits of the sorted lines' SHA-256 (`sha256sum`, `sha256 -q`
+  on FreeBSD).
+
+A member with an `Appliance:` line runs the read its appliance
+file's `## Housekeeping and Audits` section gives for its records,
+and returns `n/a (appliance)` where it gives none.
+
+Highlight as drift, as `rules/dns.md` → Checks rates it (WARN):
+
+- A name one member answers and another does not, or answers with
+  another type or value. The drift entry names each such name and
+  what each member answers.
+- Over 200 records, a different count or checksum. The entry names
+  the members and says that only the records themselves show which
+  names differ.
+
+No warnings on one host alone.

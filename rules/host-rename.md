@@ -229,7 +229,8 @@ and keep the old name.
 **Outside, the user's:** list them, since only the user can
 change them:
 
-- the A, AAAA and PTR records;
+- the A, AAAA and PTR records, and the CNAMEs that target the
+  old name (`rules/dns.md` → The record convention);
 - the DHCP reservation;
 - the guest's name on its hypervisor, where Guests on a Hypervisor
   below leaves it;
@@ -241,15 +242,17 @@ change them:
 Agree it with the user in the question:
 
 1. The user adds the new DNS name, so that both names resolve to
-   the host. Hostwarden checks it as The New Name does. Where no
+   the host: the record set `rules/dns.md` → The proposal gives for
+   it. Hostwarden checks it as The New Name does. Where no
    DNS carries the host's names and `memory/ssh_hosts` reaches it
    by address, this step is the new name on its `Host` line
    instead, which Memory writes.
 2. Hostwarden renames the host and changes the references the user
    agreed to, then memory.
 3. Last, the user removes the old DNS name, moves the PTR record
-   and changes the DHCP reservation. Then Hostwarden removes the
-   old name (When the Old Name Is Gone).
+   and changes the DHCP reservation, from the second record set
+   `rules/dns.md` → The proposal gives for a rename. Then
+   Hostwarden removes the old name (When the Old Name Is Gone).
 
 ## The Question
 

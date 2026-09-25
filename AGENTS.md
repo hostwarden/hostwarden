@@ -349,6 +349,8 @@ trigger — not a request from the user.
 - The user asks about a host's network or VPN, a failure points
   there, or a network change is next, a firewall or container
   engine beside bridged guests included → `rules/network.md`
+- A DNS record a host or service needs, a check of a DNS record or
+  zone, or a DNS server to set up → `rules/dns.md`
 - Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
 - A host that needs another port, address or jump host, or a
   port forwarding → `rules/ssh-config.md`

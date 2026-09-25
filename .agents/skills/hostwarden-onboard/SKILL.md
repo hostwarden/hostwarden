@@ -120,6 +120,9 @@ checkout) and stop.
      Folding a profile. On an appliance whose file has a
      `## Network configuration read`, that read, folded as
      `rules/network-topology.md` → Folding a configuration read.
+   - `memory/dns.md` and `DNS server:` — `rules/dns.md` → Reading a
+     DNS server: its detection on every host, and on one that runs a
+     DNS server the read of its name spaces.
 
 6. **Close the host.** Any other question whose answers only get
    recorded — stopped guests, the questions step 5 hands on, the
