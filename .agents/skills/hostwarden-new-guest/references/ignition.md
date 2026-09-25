@@ -344,7 +344,7 @@ call:
 sleep 120
 ```
 
-Then log in, as `SKILL.md` → After creation step 2 says. A slow
+Then go on at `SKILL.md` → After creation step 2. A slow
 guest may still be booting, so keep going within the same first-boot
 window the other paths wait, about ten minutes in all:
 

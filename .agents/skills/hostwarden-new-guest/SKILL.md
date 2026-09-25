@@ -177,28 +177,70 @@ guest has no such mechanism, the files are the user's to place
    created. A call that ends before the signal — out of time, or
    cut by the reboot `package_reboot_if_required` may cause — is
    run once more, then reported.
-2. **The first login,** never by the FQDN, whose DNS record may
-   still be unwritten, at step 5 below or the user's, but by the
-   guest's actual address: the one The request settled for a static
-   guest, the one step 1 just read for a DHCP guest the manager can
-   enter, or, for a DHCP guest under libvirt, `virsh domifaddr
-   <domain> --source agent`, once the same wait confirms the guest
-   agent answers. Record the guest's host key in
+2. **Bridge the name.** The guest's actual address — the one The
+   request settled for a static guest, the one step 1 just read
+   for a DHCP guest the manager can enter, or, for a DHCP guest
+   under libvirt, `virsh domifaddr <domain> --source agent`, once
+   the same wait confirms the guest agent answers — has no DNS
+   record for the settled FQDN yet to resolve by (step 6 below
+   writes one where the name space allows it). The request's own
+   checks only clear the name against Hostwarden's own memory, not
+   DNS itself: resolve it directly first, the same system-resolver
+   tools step 6 below uses. An address the guest itself already has
+   is normal — DHCP with dynamic DNS registration can beat this
+   step to it. Any other address means the name belongs to another
+   machine: stop and tell the user, the way `rules/host-rename.md`
+   → Where it points does, rather than let this block silently
+   redirect every session that shares `memory/ssh_hosts` to the new
+   guest instead. Add a
+   `Host <settled name>` block to `memory/ssh_hosts` with
+   `HostName <that address>` and `HostKeyAlias <settled name>`
+   (`rules/ssh-config.md` → Adding a Block, steps 1-3), so every
+   connection from here on reaches the guest, and looks its key up,
+   by the settled name rather than the address
+   (`rules/host-keys.md` → Before the First Connection) —
+   `rules/ssh-config.md` → Adding a Block step 5 already expects a
+   block for "a host with no memory yet," committed together with
+   the memory directory `rules/first-connection.md` step 6 creates
+   below. `memory/ssh_hosts` is shared in a shared workspace
+   (`rules/ssh-config.md` → The Files), so this overrides the name
+   for every session that shares it, not only this one, same as any
+   other block written there for a host with no DNS of its own
+   (`rules/host-rename.md` → The Order step 1). It is a bridge, not
+   meant to last: step 6 further below
+   removes it once DNS takes over, restoring IP Verification's
+   drift check (`rules/dns-aliases.md`) for it. Until then — DNS
+   not live yet, not resolving where the workstation checks, or
+   the user's own step to begin with — it works exactly like a
+   permanent override, that check included, for as long as nobody
+   revisits it.
+3. **The first login,** by the settled name through that block,
+   never by the bare address. Record the guest's host key in
    `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
    source 1), with a read of its own into the cache file, never
    copied from the output above, then log in as usual. Where the
-   manager cannot read the key (libvirt), the first login records
-   it, as source 3 there says for a guest this run created, and
-   waits for cloud-init over SSH.
+   manager cannot read the key — libvirt, or a host that keeps
+   guests to its UI (below) — the first login records it instead,
+   the way source 3 there says for a guest this run created with
+   no session inside it to read the key through. Only where the
+   guest has no cloud-init at all — Ignition (Fedora CoreOS,
+   Flatcar), or a UI-guest install with no second ISO at all — does
+   it skip the wait for it below: the guest already answering SSH
+   is the only signal there is. Every other path, an answer-file
+   install included, hands its baseline to cloud-init for the first
+   boot after install rather than carrying it itself
+   (`references/answer-files.md` → What the answer file does), so
+   it waits for cloud-init over SSH the same way:
    `cloud-init status --wait --long` exits 0 when done, 2 when it
    finished with errors it recovered from — a finding to report
    line by line — and 1 when it failed: report that, leave the
    guest as it is, and ask.
-3. **The pipeline on the guest** (`rules/first-connection.md`). The
+4. **The pipeline on the guest** (`rules/first-connection.md`),
+   which creates `memory/servers/<settled name>/` directly. The
    SSH user is the one the user-data created: write its
    per-server entry in `memory/user.md` instead of asking
    (`rules/ssh-user.md`).
-4. **Register it.** Run the host's inventory for the new guest
+5. **Register it.** Run the host's inventory for the new guest
    (`rules/hypervisors.md` → Inventory): its entry goes into
    `guests.md` with `→ <directory>`, and its keys into the guest's
    `Guest identity:`, with `Runs on:` as Linking Guest and Host
@@ -210,13 +252,29 @@ guest has no such mechanism, the files are the user's to place
    (`rules/decisions.md`): `## Password login`, with the user's
    reason, settling `baseline → SSH Login` for password login, and
    for SSH with it too where they asked for that.
-5. **The DNS record set**, where a name space it belongs to has a
+6. **The DNS record set**, where a name space it belongs to has a
    `memory/dns.md` line reading `Hostwarden: write`: written as
    `rules/dns.md` → Writing says, the set the question already
    showed. In any other name space this is the user's step instead,
    and the report says so, as it does when no name space covers the
-   name at all.
-6. **Verify the baseline** on the guest as `hostwarden-baseline`
+   name at all — the user may already have added it, before or
+   during this run. Either way, check whether the settled name
+   already resolves to the guest's address: the workstation's own
+   system resolver, asked directly — `getent ahostsv4`,
+   `dscacheutil -q host -a name`, or `getaddrinfo`, the lookup
+   `rules/dns-aliases.md` → Detection step 1 makes once it already
+   has a name to resolve, never `ssh -G`, which step 2's
+   still-present block would answer with its own override rather
+   than a real lookup. Where it does — Writing → Verify confirming
+   it too, where Hostwarden wrote the record — remove step 2's
+   `Host` block from `memory/ssh_hosts` and rerun
+   `bin/hostwarden-ssh-config`, so a later address change is caught
+   again (`rules/dns-aliases.md` → IP Verification) instead of
+   silently masked. Otherwise leave an item in the guest's
+   `todo.md` (`rules/server-memory.md` → Session to-do list) to
+   repeat that same direct resolver check later and remove the
+   block once it passes.
+7. **Verify the baseline** on the guest as `hostwarden-baseline`
    step 2 measures it: the check each section of
    `rules/baseline.md` names, in as few bundled calls as they
    allow. The backup is looked up from the host instead: on
@@ -234,7 +292,7 @@ guest has no such mechanism, the files are the user's to place
    `hostwarden-onboard` step 5 run in the same calls, their
    questions are asked with this step's, and the guest gets
    `Onboarded:` as that skill's step 6 writes it.
-7. **Log** on both, as `rules/changelog.md` says: the host's
+8. **Log** on both, as `rules/changelog.md` says: the host's
    journal line names the guest created, the guest's names the
    baseline version.
 
@@ -265,7 +323,10 @@ and the guest still comes up on the baseline. Only a UI that can
 attach no second ISO at all leaves the installer's own questions
 and a password the user types: say so, and go on only if the user
 wants that. Once the guest answers on SSH, go on at After creation
-step 3.
+step 2 with its address — static as planned, or DHCP as the user
+reports it, since this run has no session inside the guest to read
+it from itself — so it still ends up reached and known by its
+settled name rather than that address.
 
 ## References
 

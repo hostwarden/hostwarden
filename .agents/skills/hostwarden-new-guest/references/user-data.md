@@ -337,7 +337,7 @@ drop-in instead, and only if the user wants it too. A container
 from the Proxmox VE baseline template cannot have it: its drop-in
 is the template's, and a running sshd is never changed. There the
 password is for the console, or the guest becomes a VM. SKILL.md
-→ After creation step 4 records either choice.
+→ After creation step 5 records either choice.
 
 ## Checking it
 
