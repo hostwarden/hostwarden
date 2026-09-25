@@ -104,7 +104,11 @@ for _d in "$IMPD"/*; do [ -d "$_d" ] && { ACTIVE=1; break; }; done
 # hc_words) is invisible here as a contiguous substring otherwise —
 # dropping every quote character before the match, on this copy
 # only, reads it the same way without needing to parse anything.
-MAYBEIN=$(printf '%s' "$INPUT" | tr -d "'\"")
+# $INPUT is still the raw JSON: a " the command carries is itself
+# \"-escaped there, so the \ has to go with it, never only the "
+# alone, or a stray backslash keeps the pieces apart just the same;
+# a ' needs no such care, JSON never escapes one.
+MAYBEIN=$(printf '%s' "$INPUT" | sed 's/\\"//g' | tr -d "'")
 MAYBE=
 case "$MAYBEIN" in
 *'reboot'* | *'shutdown '*'-r'* | *'kexec'* \
