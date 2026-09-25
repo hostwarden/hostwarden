@@ -520,7 +520,28 @@ or edge the profile no longer shows loses this host as a source
 
 After an appliance's configuration read (its file's
 `## Network configuration read`), in one edit of
-`memory/topology.md`, with `<appliance> config` as the source:
+`memory/topology.md`, with `<appliance> config` as the source.
+
+**A read that did not run is not an appliance with no networks.**
+Where OPNsense or pfSense printed `config=unknown(needs-root)`
+(`rules/appliance/opnsense.md` → Network configuration read), or
+UniFi's SSH read's `db` line carries an `exit` other than `0`
+(`rules/appliance/unifi-os.md` → Over SSH), skip the fold for the
+whole appliance this round: leave its existing ranges, edges and
+uplink entry exactly as they stand, rather than pruning them for
+lines the read never printed. Where UniFi's API read's
+`rest/networkconf` or `rest/routing` call for one site comes back
+under `missing` or with a `code` that is not `2xx`
+(`rules/appliance-api.md` → Reading), skip the fold for that site
+alone; the appliance's other sites fold as usual.
+
+`"db": "none"` is not a failure of the SSH read: it is the trigger
+for the fallback UniFi's Over SSH goes on to describe, which folds
+as usual for the console's own site alone. Skip the fold for every
+other site the console manages, which the fallback does not reach,
+the same as a failed API call above, rather than pruning their
+existing ranges, edges and uplink entries for a read that never
+covered them.
 
 1. **Ranges.** Each interface or network that the read shows
    enabled, is not a WAN and has an address gives one range, at the
