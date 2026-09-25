@@ -106,6 +106,12 @@ hook() {
 HAVE_JQ=0
 command -v jq >/dev/null 2>&1 && HAVE_JQ=1
 
+# A time well past HOSTWARDEN_COORD_RUN_STALE_MIN (coord-lib.sh, 360
+# minutes), used to backdate a presence run marker past it in more
+# than one test below.
+PAST=$(date -d '-400 minutes' +%Y%m%d%H%M 2>/dev/null \
+  || date -v-400M +%Y%m%d%H%M 2>/dev/null)
+
 # ================================================================
 echo "== announce, wait, ack, done, status"
 
@@ -210,6 +216,19 @@ else
   echo "  (jq missing — wait/ack/status against a live impact skipped)"
 fi
 
+# A run entry orphaned by a crashed or denied Bash call (its Post
+# never fires) is not read as live once its marker is older than
+# presence.sh's own sweep window for a run entry, six hours: a
+# reader never waits for the next sweep to see that.
+mkdir -p "$PRES/otherstale+web1.example.com+run"
+: >"$PRES/otherstale+web1.example.com+run/1"
+touch -t "$PAST" "$PRES/otherstale+web1.example.com+run/1" 2>/dev/null
+run announce pve1.example.com reboot >"$TMP/out"
+lacks "$TMP/out" "otherstale web1.example.com run" \
+  "announce: a run marker past presence.sh's sweep window is not live"
+run 'done' "$(head -n1 "$TMP/out")" >/dev/null 2>&1
+rm -rf "$PRES/otherstale+web1.example.com+run"
+
 # --- status and maintenance windows ------------------------------
 # rules/maintenance-windows.md → What other sessions do with it:
 # status also reports a Downtime: window that covers the current
@@ -305,6 +324,23 @@ hook presence.sh PostToolUse sessc Bash \
   'ssh -F memory/ssh_config root@web1.example.com uptime' >/dev/null
 [ ! -e "$PRES/sessc+web1.example.com+run" ] \
   && ok || bad "presence: the run entry is gone once both calls end"
+
+# Post removes the oldest marker, not an arbitrary one: a call that
+# has held its marker open the longest is always the one trimmed
+# first, so it can never strand only a stale marker behind while
+# removing a fresher call's own — which would read as not live
+# under hostwarden_coord_affected's age check (coord-lib.sh) while
+# the fresher call is still genuinely running.
+mkdir -p "$PRES/sessd+web1.example.com+run"
+: >"$PRES/sessd+web1.example.com+run/old"
+touch -t "$PAST" "$PRES/sessd+web1.example.com+run/old" 2>/dev/null
+: >"$PRES/sessd+web1.example.com+run/new"
+hook presence.sh PostToolUse sessd Bash \
+  'ssh -F memory/ssh_config root@web1.example.com uptime' >/dev/null
+[ ! -e "$PRES/sessd+web1.example.com+run/old" ] \
+  && [ -e "$PRES/sessd+web1.example.com+run/new" ] \
+  && ok || bad "presence: Post removes the oldest marker, keeping the newest"
+rm -rf "$PRES/sessd+web1.example.com+run" 2>/dev/null
 
 hook presence.sh PostToolUse sess3 Bash \
   'D=/tmp/hostwarden; ssh -F memory/ssh_config root@web1.example.com "mkdir -p \$D"' \
@@ -442,6 +478,50 @@ if [ "$HAVE_JQ" = 1 ]; then
     "impact.sh: names pve1, not web1, as the reboot target"
   lacks "$TMP/hookout" 'web1.example.com reboot' \
     "impact.sh: web1's own harmless segment is never named as a reboot"
+
+  # A ; or && the remote command's own quotes hold is not a local
+  # separator: splitting there would leave the actual disruptive
+  # verb in a piece with no destination of its own, so it would
+  # never be checked against any host's radius.
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com "true && reboot"' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a && inside the remote command's own quotes is not a separator"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com for the quoted && case"
+
+  hook impact.sh PreToolUse mine Bash \
+    "ssh -F memory/ssh_config root@pve1.example.com 'uptime; reboot'" \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a ; inside the remote command's own quotes is not a separator"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com for the quoted ; case"
+
+  # A backslash-escaped quote of the kind already open must not
+  # flip the scanner's open-quote state: that would read the rest
+  # of the command, a second ssh call's own destination included,
+  # as still quoted and drop it from the destinations found at all.
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@lone.example.com "safe \" text" ; ssh -F memory/ssh_config root@pve1.example.com reboot' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a second call survives an escaped quote earlier in the command"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: names pve1.example.com after the escaped-quote segment"
+
+  # A run entry orphaned by a crashed or denied Bash call (its Post
+  # never fires) is not read as live once its marker is older than
+  # presence.sh's own sweep window for a run entry, six hours: a
+  # reader never waits for the next sweep to see that. other3's
+  # marker still exists on disk; it just no longer holds off pve1's
+  # reboot.
+  touch -t "$PAST" "$PRES/other3+web1.example.com+run/1" 2>/dev/null
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com reboot' >/dev/null
+  lacks "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a run marker past the sweep window no longer denies"
 
   # An announced kind only covers a later step of the same, or an
   # equally broad, kind (rules/coordination.md -> Blast radius):
