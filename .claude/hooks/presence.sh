@@ -22,12 +22,18 @@
 # renaming the previous one; "writer" is
 # presence/<session>+<host>+writer. "run" is
 # presence/<session>+<host>+run/, a directory a reader judges live
-# by whether it holds any file at all: Pre adds one, named for this
-# call alone ($$, this hook's own process id, unique among whatever
-# else is concurrently in flight); Post removes any one file in it,
-# not necessarily its own — two concurrent calls, identical command
-# text included, each hold their own file, and either Post ending
-# first still leaves the directory non-empty for the other.
+# by whether it holds a file younger than
+# HOSTWARDEN_COORD_RUN_STALE_MIN (coord-lib.sh): Pre adds one, named
+# for this call alone ($$, this hook's own process id, unique among
+# whatever else is concurrently in flight); Post removes the oldest
+# file in it, not necessarily its own — this Post's own $$ is not
+# the Pre that made its marker, a different process, so which one
+# was its own is not knowable here either, and removing the oldest
+# is the rule that never strands a fresh marker's absence behind a
+# stale one while trimming an old one. Two concurrent calls,
+# identical command text included, each hold their own file, and
+# either Post ending first still leaves the directory non-empty for
+# the other.
 #
 # Never denies: it only records. A failure to record is silent, so
 # a broken hook never blocks a session's work — the worst outcome
@@ -91,15 +97,17 @@ mkdir -p -m 700 "$PRES" 2>/dev/null || exit 0
 # A touched or writer entry nobody renewed in an hour is past every
 # staleness window a reader checks (30 minutes); a sweep on the Pre
 # call alone keeps a long session's directory from only ever
-# growing. A run entry is swept on its own six-hour window instead
-# (hostwarden_coord_affected's own cap): the sixty-minute one would
-# delete it mid-command, and a run whose Post call never fires
-# (Bash crashed, or Claude Code itself did) must still go stale
-# eventually — its own markers with it, at whatever count.
+# growing. A run entry is swept on HOSTWARDEN_COORD_RUN_STALE_MIN
+# instead (coord-lib.sh, the same window hostwarden_coord_affected's
+# own read-time check uses): the sixty-minute one would delete it
+# mid-command, and a run whose Post call never fires (Bash crashed,
+# or Claude Code itself did) must still go stale eventually — its
+# own markers with it, at whatever count.
 if [ "$EVENT" = PreToolUse ]; then
   find "$PRES" -mindepth 1 -maxdepth 1 ! -name '*+run' -mmin +60 \
     -exec rm -rf {} + 2>/dev/null
-  find "$PRES" -mindepth 1 -maxdepth 1 -name '*+run' -mmin +360 \
+  find "$PRES" -mindepth 1 -maxdepth 1 -name '*+run' \
+    -mmin "+$HOSTWARDEN_COORD_RUN_STALE_MIN" \
     -exec rm -rf {} + 2>/dev/null
 fi
 
@@ -116,10 +124,25 @@ while IFS="$TAB" read -r d _; do
       : > "$RUNDIR/$$" 2>/dev/null
       ;;
     PostToolUse)
+      # Removes the oldest marker, not an arbitrary one: this
+      # Post's own Pre ran under a different process id than this
+      # one, so which marker was its own is not knowable here
+      # either — but always pruning from the oldest end means a
+      # call that has held its marker open the longest is always
+      # the one a Post trims first. Any other rule (glob order, most
+      # recent) risks leaving only an old marker behind while a
+      # genuinely still-running call's own fresh one is removed
+      # instead: hostwarden_coord_affected's read-time cap on a run
+      # marker's age (coord-lib.sh) would then read the host as not
+      # live while that call is still in flight.
+      _oldest=
       for _m in "$RUNDIR"/*; do
         [ -e "$_m" ] || continue
-        rm -f "$_m" 2>/dev/null && break
+        if [ -z "$_oldest" ] || [ "$_m" -ot "$_oldest" ]; then
+          _oldest=$_m
+        fi
       done
+      [ -n "$_oldest" ] && rm -f "$_oldest" 2>/dev/null
       rmdir "$RUNDIR" 2>/dev/null
       ;;
     esac

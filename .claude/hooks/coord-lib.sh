@@ -10,14 +10,18 @@
 #   hostwarden_coord_dest <command>
 #       prints one "<destination>\t<segment>" pair per line: the
 #       lowercased name an ssh, sftp, scp or rsync in <command> was
-#       given, any leading user@ stripped, and the ;/&/|-delimited
-#       segment it came from — so a caller can judge what that one
-#       call does without another call's text leaking in
-#       (rules/coordination.md → The hooks). A caller that wants
-#       only the destination cuts the first field. A via-host guest
-#       (`pct exec 105`), a script, and a destination held in a
-#       variable are not read: they print nothing, and count as no
-#       destination (rules/coordination.md → Presence map → Limits).
+#       given, any leading user@ stripped, and the
+#       ;/&/|-delimited segment it came from — one such character
+#       inside a matched single- or double-quote pair is the remote
+#       command's own text, not a separator, so `ssh host "true &&
+#       systemctl restart nginx"` is one segment, not two — so a
+#       caller can judge what that one call does without another
+#       call's text leaking in (rules/coordination.md → The hooks).
+#       A caller that wants only the destination cuts the first
+#       field. A via-host guest (`pct exec 105`), a script, and a
+#       destination held in a variable are not read: they print
+#       nothing, and count as no destination
+#       (rules/coordination.md → Presence map → Limits).
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -55,14 +59,18 @@
 #       presence.sh entry under <cache>/presence/ for another
 #       session (any but <self>) on a host in <hosts>
 #       (space- or newline-separated): a run entry counts while it
-#       holds at least one file — presence.sh's own per-call marker,
-#       so several concurrent calls, identical command text
-#       included, each keep it non-empty until every one has ended,
-#       and only presence.sh's own sweep (a crashed Bash call's Post
-#       never fires) bounds how long an entry no command still holds
-#       open can count — a writer counts while its own age is under
-#       30 minutes, the same as a live register entry, and a touched
-#       one while the epoch in its name is
+#       holds at least one file younger than
+#       HOSTWARDEN_COORD_RUN_STALE_MIN — presence.sh's own sweep
+#       window for a run entry — presence.sh's own per-call marker,
+#       so several concurrent calls, identical
+#       command text included, each keep it live until every one has
+#       ended or aged past that window, which is how a crashed or
+#       denied Bash call's marker (its Post never fires) stops
+#       counting as live here, at read time, rather than only once
+#       presence.sh's own sweep next runs and removes it — a writer
+#       counts while its own age is under 30 minutes, the same as a
+#       live register entry, and a touched one while the epoch in
+#       its name is under that same 30 minutes
 #       (rules/coordination.md → Presence map).
 #   hostwarden_coord_is_reboot <command>
 #       true when <command> actually invokes a reboot: the word
@@ -80,6 +88,16 @@
 #       uptime; ssh h2 reboot` names h2's segment reboot and h1's
 #       segment nothing.
 
+# How stale, in minutes, a presence "run" marker (presence.sh's own
+# per-call file under a <session>+<host>+run/ entry) has to be
+# before it stops counting as live: presence.sh's own periodic sweep
+# (its own -mmin +$HOSTWARDEN_COORD_RUN_STALE_MIN) and
+# hostwarden_coord_affected's read-time check below (its own -mmin
+# -$HOSTWARDEN_COORD_RUN_STALE_MIN) both read it, so a marker that
+# age or older is gone from either side alike, one place to change
+# it if it is ever retuned.
+HOSTWARDEN_COORD_RUN_STALE_MIN=360
+
 hostwarden_coord_dest() {
   printf '%s' "$1" | awk '
     function base(w) { sub(/^.*\//, "", w); return w }
@@ -95,8 +113,33 @@ hostwarden_coord_dest() {
       s = $0
       gsub(/\$\{/, "$", s)
       gsub(/>&/, ">", s); gsub(/<&/, "<", s)
-      gsub(/[;&|(){}`]/, "\n", s)
-      n = split(s, seg, "\n")
+      # A ;/&/|/(/)/{/}/` inside a matched single- or double-quote
+      # pair is text the remote command carries, not a local
+      # separator: ssh host "true && systemctl restart nginx" is
+      # one segment, not two, with the restart left without the
+      # destination that named it. A backslash escapes the very
+      # next character everywhere but inside a single-quoted run
+      # (where nothing is special but the closing quote, the same
+      # as a real shell): without that, an escaped quote of the
+      # kind already open (ssh host "a \" b" ; ssh host2 reboot)
+      # would flip the open-quote state on the escaped one and read
+      # the rest of the command, the destination host2 names
+      # included, as still quoted.
+      n = 0; cur = ""; qc = ""; esc = 0; slen = length(s)
+      for (ci = 1; ci <= slen; ci++) {
+        c = substr(s, ci, 1)
+        if (esc) { cur = cur c; esc = 0; continue }
+        if (c == "\\" && qc != "\047") { cur = cur c; esc = 1; continue }
+        if (qc != "") {
+          cur = cur c
+          if (c == qc) qc = ""
+          continue
+        }
+        if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
+        if (index(";&|(){}`", c) > 0) { n++; seg[n] = cur; cur = ""; continue }
+        cur = cur c
+      }
+      n++; seg[n] = cur
       for (l = 1; l <= n; l++) {
         gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg[l])
         gsub(/^[ \t]+|[ \t]+$/, "", seg[l])
@@ -230,24 +273,26 @@ hostwarden_coord_affected() {
       esac
       [ "$hca_s" = "$hca_self" ] && continue
       # A run entry counts while it holds at least one of
-      # presence.sh's own per-call markers — its own age is never
-      # asked, since a single long-running command (a large
-      # transfer, an upgrade) holds it open for however long that
-      # takes, and a crashed Bash call's orphaned entry is bounded
-      # by presence.sh's own sweep instead, not a read-time check
-      # here. A writer's own age is only as fresh as its last
-      # register renewal (rules/parallel-sessions.md → Register, and
-      # renew), so the same window a live register entry uses
-      # applies to it.
+      # presence.sh's own per-call markers younger than
+      # HOSTWARDEN_COORD_RUN_STALE_MIN, presence.sh's own sweep
+      # window for a run entry: nothing renews a marker while its
+      # command runs (presence.sh writes it once, at Pre), so a
+      # single command that is genuinely still running past that
+      # window is, from here, indistinguishable from one whose Post
+      # never fired at all — the same ceiling presence.sh's own sweep
+      # already puts on a lone marker's directory, just read here
+      # deterministically instead of waiting for that sweep to next
+      # run and physically remove it. A writer's own age is only as
+      # fresh as its last register renewal
+      # (rules/parallel-sessions.md → Register, and renew), so the
+      # same window a live register entry uses applies to it.
       if [ "$hca_k" = writer ]; then
         [ -n "$(find "$hca_e" -maxdepth 0 -mmin -30 2>/dev/null)" ] \
           || continue
       elif [ "$hca_k" = run ]; then
-        hca_live=
-        for hca_m in "$hca_e"/*; do
-          [ -e "$hca_m" ] && { hca_live=1; break; }
-        done
-        [ -n "$hca_live" ] || continue
+        [ -n "$(find "$hca_e" -mindepth 1 -maxdepth 1 \
+          -mmin "-$HOSTWARDEN_COORD_RUN_STALE_MIN" \
+          -print -quit 2>/dev/null)" ] || continue
       fi
       printf '%s %s %s\n' "$hca_s" "$hca_h" "$hca_k"
     done
