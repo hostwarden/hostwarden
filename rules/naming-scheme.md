@@ -381,9 +381,14 @@ user does not own.
 
 ## New hosts follow it immediately
 
-`hostwarden-new-guest` → The request proposes the next name where a
-scheme applies to the guest, and reports a name that does not match
-it, before the guest is created.
+`hostwarden-new-guest` → The request defines the mechanism: propose
+the next name a scheme gives the target, confirm it or take a typed
+name instead, and report a name that does not match before the
+target is created or written to. `hostwarden-os-install` → Naming a
+target with no memory yet is its second consumer, for a machine
+with no `memory/servers/` entry yet. Neither invents a
+name-proposal step of its own; a third consumer reaches for this
+section too, rather than a new one.
 
 ## Existing hosts: gradually, never forced
 

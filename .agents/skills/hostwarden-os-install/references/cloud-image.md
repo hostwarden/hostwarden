@@ -172,8 +172,14 @@ After deploying a cloud image, verify:
 7. [ ] Network is configured (static IP or DHCP)
 8. [ ] Root access works (password or SSH key)
 9. [ ] Hostname is set (`hostnamectl set-hostname`)
+       to the name SKILL.md → Naming a target with no
+       memory yet settled, where the target had none
 10. [ ] Package manager works (`apt-get update` or
        equivalent)
+11. [ ] Where Naming held a `Site:` for this target,
+       this host's first connection writes it into
+       its new `memory/servers/` entry (SKILL.md →
+       After)
 
 ## Image Conversion
 
