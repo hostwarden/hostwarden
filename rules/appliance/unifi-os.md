@@ -253,6 +253,27 @@ included
   it restarts devices and power-cycles PoE ports. For anything else
   the key also writes the classic API; say that it is undocumented
   before using it.
+- **A local DNS record** (`rules/dns.md` → Where a name comes from
+  calls it a resolver record) writes at
+  `/proxy/network/integration/v1/sites/<site-id>/dns/policies` where
+  the console runs Network 10.1 or later and has it — Early Access as
+  of this writing, so check for it before relying on it (`AGENTS.md`
+  → Verify Before Running) — full CRUD, A, AAAA, CNAME, MX, TXT and
+  SRV. `<site-id>` here is the `id` the Integration API's own `sites`
+  endpoint returns (Reading), never the classic API's site `name` this
+  file uses elsewhere: read the sites list first and match on its
+  `internalReference`, the short name that actually corresponds to
+  the classic API's `name` — the `sites` answer's own `name` is an
+  editable display label and need not match it, on a renamed or
+  non-default site above all. On an earlier release, or where the
+  Integration API lacks the endpoint, the key writes
+  `/proxy/network/v2/api/site/<site>/static-dns` instead, keyed by
+  the classic `name`, the page the web UI's own DNS record screen
+  uses, undocumented like the classic API; a change there is
+  delete-and-recreate, never an update in place. Either way the
+  fields are the record's own — a key or `_id`, the record type, the
+  name, the value, and an optional TTL — and their exact names need
+  verifying against the release before the call.
 - Name every site and device a change provisions. Provisioning to
   adopted devices takes a while; a device still provisioning when
   the object is read back is not a failure.

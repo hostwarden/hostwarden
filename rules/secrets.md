@@ -399,6 +399,15 @@ that the user writes, never in the conversation:
   The user then writes the value into it with an
   editor. Hostwarden names the file and its format and
   never sees what goes in.
+- **A provider's DNS zone has no host.** Its directory
+  is `~/hostwarden-keys/dns/<zone>/` instead, `<zone>`
+  the name space's own name in `memory/dns.md`
+  (`rules/dns.md` → The inventory); everything else
+  here — the empty file created first, the mode check,
+  the stdin channel — applies unchanged. Its backup
+  export is kept the same way, under
+  `api-backups/` beside it (`rules/backups.md` → State
+  behind an API).
 - Before the first call in a session, check the file
   without reading it — `stat -f '%Lp %u' <file>` on
   macOS, `stat -c '%a %u' <file>` on Linux: mode `600`

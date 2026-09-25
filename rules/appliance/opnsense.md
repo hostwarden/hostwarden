@@ -423,6 +423,67 @@ Where a line prints `not read` on a firewall whose web UI shows
 the setting, the element is elsewhere on this release: report it
 as not read, never guess another name.
 
+## API
+
+Read stays over SSH (Network configuration read above), which needs
+no API account at all. Write, only where the user asks for it, is
+Unbound's host overrides, Services > Unbound DNS > Overrides
+(`rules/dns.md` → Writing through an API).
+
+- **Write account:** a user under System > Access > Users with the
+  privilege "Services: Unbound" — never "All pages" for this.
+  "Services: Unbound DNS: Edit Host and Domain Override" alone covers
+  the host-override and alias endpoints but not
+  `unbound/service/reconfigure`, which needs "Services: Unbound"; a
+  write scoped to the narrower privilege would succeed while
+  Unbound kept answering the old set. "Services: Unbound" is the
+  narrowest OPNsense privilege that reaches both, since it grants
+  API privileges per page rather than per endpoint
+  (`rules/appliance-api.md` → Access levels). The user adds it, and
+  under the same user's API keys tab downloads a key and secret once;
+  Hostwarden names the file and never sees what goes into it
+  (`rules/secrets.md` → API Credentials on the Workstation).
+  File `unbound-write`, fed to curl as `-K` so the pair never reaches
+  the command line:
+  ```
+  user = "<key>:<secret>"
+  ```
+  Record in server memory (`rules/appliance-api.md` → Access levels):
+  ```
+  API write (Unbound overrides): <user> (Services: Unbound), ~/hostwarden-keys/<host>/unbound-write
+  ```
+- **The endpoints**
+  (`docs.opnsense.org/development/api/core/unbound.html`), verified
+  against this release before the call (`AGENTS.md` → Verify Before
+  Running): `POST /api/unbound/settings/addHostOverride` to add one,
+  `.../setHostOverride/<uuid>` and `.../delHostOverride/<uuid>` to
+  change or remove it, and `GET /api/unbound/settings/searchHostOverride`
+  to read one back, matched by its `hostname` and `domain`. Keep the
+  `uuid` `add`/`setHostOverride` return: a later change to the same
+  override needs it, and a rename would otherwise match nothing on
+  the next search. Fields: `hostname`, `domain`, `rr` (the record
+  type — the record convention never proposes one through this page
+  but A and AAAA), `server` (the address), and `description`.
+- **A CNAME through this page is an alias on the A or AAAA override
+  it names, never an override of its own, and never a field of the
+  host override itself.** OPNsense holds it as a separate object:
+  `POST /api/unbound/settings/addHostAlias` with the target
+  override's `uuid` in the `host` field and the alias's own
+  `hostname` and `domain`, `.../setHostAlias/<uuid>` and
+  `.../delHostAlias/<uuid>` to change or remove it, and
+  `.../searchHostAlias` to read one back — the same `Action`-less
+  naming as the host-override endpoints above. Deleting a host
+  override cascades to its aliases on OPNsense's own side, so back
+  them up too before that delete: `searchHostAlias` matched by the
+  target's `uuid`, since the generic backup
+  (`rules/appliance-api.md` → Writing) covers the object read back —
+  the host override — and not the aliases it takes with it.
+- **Applying:** `POST /api/unbound/service/reconfigure`, the same
+  call whether the write was a host override or an alias. Without it
+  Unbound keeps answering the old set until the next reload from
+  elsewhere. Read the object back afterwards, with `searchHostOverride`
+  or `searchHostAlias` (`rules/appliance-api.md` → Writing).
+
 ## Replace: Accounts
 
 - Users, groups, passwords and SSH keys are managed under
