@@ -449,7 +449,7 @@ checkout() {
 }
 checkout dev
 checkout ops
-mkdir -p "$TMP/ops/memory/servers"
+mkdir -p "$TMP/ops/memory/machines"
 git -C "$TMP/ops/memory" init -q
 : > "$TMP/ops/memory/.hostwarden-workspace"
 ln -s ../rules "$TMP/ops/memory/linked"
@@ -479,7 +479,7 @@ hook() {
 hook "$DEV" "$DEV/rules/shipped.md" wrapped "development rewraps a shipped file"
 hook "$DEV" "$DEV/notes.txt" left "a file that is no .md"
 hook "$DEV" "$TMP/outside.md" left "a file outside the checkout"
-hook "$OPS" "$OPS/memory/servers/web1.example.com.md" wrapped \
+hook "$OPS" "$OPS/memory/machines/web1.example.com.md" wrapped \
   "operations rewraps a file under memory/"
 hook "$OPS" "$OPS/rules/shipped.md" left "operations leaves a shipped file"
 hook "$OPS" "$OPS/memory/link.md" left \
@@ -511,11 +511,11 @@ case $out in
   *'rewrapped docs/shell.md at 80'*'Still over 80'*'head.md:1 (85)'*) ok ;;
   *) bad "hook after a command in development: $out" ;;
 esac
-printf '%s\n' "$LONG" > "$OPS/memory/servers/db1.example.com.md"
+printf '%s\n' "$LONG" > "$OPS/memory/machines/db1.example.com.md"
 printf '%s\n' "$LONG" >> "$OPS/rules/shipped.md"
 out=$(bash_hook "$OPS")
 case $out in
-  *'rewrapped memory/servers/db1.example.com.md at 80'*) ok ;;
+  *'rewrapped memory/machines/db1.example.com.md at 80'*) ok ;;
   *) bad "hook after a command in operations: $out" ;;
 esac
 [ "$(wc -l < "$OPS/rules/shipped.md")" -eq 2 ] && ok \
@@ -526,13 +526,13 @@ esac
 cp bin/hostwarden-sync "$OPS/bin/"
 git -C "$OPS/memory" config user.name alice
 git -C "$OPS/memory" config user.email alice@example.com
-printf '%s\n' "$LONG" > "$OPS/memory/servers/web2.example.com.md"
+printf '%s\n' "$LONG" > "$OPS/memory/machines/web2.example.com.md"
 (cd "$OPS" && sh bin/hostwarden-sync commit "Test" \
-  memory/servers/web2.example.com.md) || bad "hostwarden-sync commit failed"
-got=$(git -C "$OPS/memory" show HEAD:servers/web2.example.com.md 2>/dev/null)
+  memory/machines/web2.example.com.md) || bad "hostwarden-sync commit failed"
+got=$(git -C "$OPS/memory" show HEAD:machines/web2.example.com.md 2>/dev/null)
 [ "$got" = "$(printf '%s\n%s' "${LONG% words}" words)" ] && ok \
   || bad "hostwarden-sync commit took Markdown unwrapped: $got"
-[ -z "$(git -C "$OPS/memory" status --porcelain -- servers/web2.example.com.md)" ] \
+[ -z "$(git -C "$OPS/memory" status --porcelain -- machines/web2.example.com.md)" ] \
   && ok || bad "hostwarden-sync commit left a change behind"
 
 echo "wrap tests: $PASS passed, $FAIL failed"

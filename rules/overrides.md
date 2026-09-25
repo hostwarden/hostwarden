@@ -5,7 +5,7 @@ remove part of what Hostwarden ships, and it wins over the
 shipped text. Files under `rules/` and `.agents/skills/` are
 replaced on every update, so they are never edited to change
 behaviour. Overrides go under `memory/custom-rules/` and into
-`memory/servers/<hostname>/rules.md` instead.
+`memory/machines/<hostname>/rules.md` instead.
 
 ## Precedence
 
@@ -24,7 +24,7 @@ Later wins:
    wrote.
 3. **Every file** — `memory/custom-rules/all.md`, loaded
    once at session start and applying to everything.
-4. **This host** — `memory/servers/<hostname>/rules.md`.
+4. **This host** — `memory/machines/<hostname>/rules.md`.
 
 `all.md` sits above the mirrored files on purpose: it is
 where a user states something that must hold everywhere,
@@ -70,7 +70,7 @@ shipped tree:
 `ls rules/ rules/*/ .agents/skills/`
 and the `references/` directory of any skill.
 
-Per host, one file — `memory/servers/<hostname>/rules.md` —
+Per host, one file — `memory/machines/<hostname>/rules.md` —
 with an `H1` per subject, written the way the table above
 writes it, and the usual prefixed headings under each:
 

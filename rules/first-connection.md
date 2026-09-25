@@ -44,9 +44,9 @@ Than One Server before step 1.
    read-only check for the target, before any SSH
    call. A port that differs is step 4's.
 4. **DNS check.** New hostname (no
-   `memory/servers/<hostname>/` yet): run alias
+   `memory/machines/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP
-   still matches the `- IP:` field in server memory.
+   still matches the `- IP:` field in machine memory.
    See `rules/dns-aliases.md` for both. Then, before
    the session's first SSH call to the host, look its
    key up in `memory/known_hosts`, and get it first
@@ -54,9 +54,9 @@ Than One Server before step 1.
    host whose first call fails without an answer from
    sshd: `rules/ssh-config.md` → Finding the Port.
 5. **OS detection.** See `rules/os-detection.md`.
-6. **Server memory file.** Create on first
+6. **Machine memory file.** Create on first
    connection, read on every subsequent connection.
-   See `rules/server-memory.md`. With it, read the
+   See `rules/machine-memory.md`. With it, read the
    user's decisions that apply to the host: its
    `decisions.md`, its cluster's, and each file under
    `memory/decisions/` whose `Applies to:` line
@@ -100,7 +100,7 @@ Than One Server before step 1.
 9. **Finishing onboarding.** A guest whose memory has
    `SSH: untested` finishes onboarding on its first
    connection through its own way in
-   (`rules/server-memory.md` → Onboarded and stale
+   (`rules/machine-memory.md` → Onboarded and stale
    lines), before the request, whatever it is:
    `hostwarden-onboard` → The first own login. Not
    inside a run of that skill, whose own steps 4 to 6
@@ -114,11 +114,16 @@ hostname, and never with a port written after
 either: `rules/ssh-config.md` → A Port the User
 Names), skip steps 1–4 — blacklist, read-only
 list, SSH user, DNS check and host key are
-remote-only. Still
-run OS detection, server memory, activity check, the
-Heinzel legacy check and finishing onboarding — on the workstation the
-latter looks at scheduled runs instead of backup
-directories (`rules/heinzel-takeover.md`).
+remote-only. Before OS detection, resolve the machine's own name for its memory
+directory (`rules/machine-memory.md`), never the word that triggered local mode.
+Only once the directory is settled do OS detection, machine memory, activity
+check, the Heinzel legacy check and finishing onboarding run — on the
+workstation the latter looks at scheduled runs instead of backup directories
+(`rules/heinzel-takeover.md`).
+
+Nothing in local mode opens an SSH connection to the machine itself, not even
+to see whether it runs its own sshd: that stays a local-only read, like every
+other local-mode step here.
 
 ## Via-host mode
 

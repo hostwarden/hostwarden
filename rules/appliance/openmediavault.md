@@ -28,7 +28,7 @@ under `deb/openmediavault/` there).
 - Release names come from `/usr/share/openmediavault/productinfo.xml`
   (`<versionname>`): OMV 8 "Synchrony" is based on Debian 13, OMV 7
   "Sandworm" on Debian 12.
-- Record in server memory: `Appliance: OpenMediaVault <version>`.
+- Record in machine memory: `Appliance: OpenMediaVault <version>`.
 - Take end-of-life dates from the release table
   (<https://docs.openmediavault.org/en/latest/releases.html>), never
   from memory. A host on a release past its end of life is a finding.
@@ -188,7 +188,7 @@ under `deb/openmediavault/` there).
   **Ask before installing omv-extras or any of its plugins**, and
   say that it is a third-party repository with root on the NAS.
 - On a host that already has it, its source is part of every
-  upgrade. Record it in server memory.
+  upgrade. Record it in machine memory.
 
 ## Replace: Automatic Security Updates
 

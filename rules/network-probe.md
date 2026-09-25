@@ -1066,7 +1066,7 @@ Hosts behind an internal mirror or a strict egress
 filter override the target (`rules/overrides.md`): a
 `## Replace: Egress test target` section in
 `memory/custom-rules/network-probe.md` (fleet-wide) or in
-`memory/servers/<hostname>/rules.md`. On Linux, set
+`memory/machines/<hostname>/rules.md`. On Linux, set
 `T` to that URL before the probe.
 
 Reading the result:

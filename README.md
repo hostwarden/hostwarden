@@ -102,7 +102,7 @@ is missing and the command to install it.
    it may ask for details it can't detect on its own
    — most commonly which SSH user to log in as. Your
    answers are stored in `memory/user.md` and the
-   per-server memory file, so Hostwarden won't ask again
+   per-machine memory file, so Hostwarden won't ask again
    on future sessions. You can also pre-fill
    `memory/user.md` by copying
    `templates/memory/user.md.example` and editing
@@ -118,7 +118,7 @@ is missing and the command to install it.
 
 Every remote connection runs the same pipeline before
 the first command: the blacklist and read-only lists,
-the host key, OS detection, the server's memory and
+the host key, OS detection, the machine's memory and
 what happened on it since the last session. Local mode
 skips the remote-only steps. Example prompts for
 everything below: [the Features page](https://hostwarden.github.io/docs/getting-started/features).

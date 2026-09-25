@@ -32,7 +32,7 @@ appliance file says so by name.
 - **Never prove that read access cannot write by trying a write.**
   The role the user set on the appliance is the proof, and the user
   reads it back there.
-- Record in server memory, paths and roles only:
+- Record in machine memory, paths and roles only:
   ```
   API read: <account> (<role>), ~/hostwarden-keys/<host>/<file>
   API write: <account> (<role>), ~/hostwarden-keys/<host>/<file>

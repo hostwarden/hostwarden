@@ -41,7 +41,7 @@ system rather than trust it.
   with `cat /etc.defaults/VERSION`.
 - Synology names a release `<productversion>-<buildnumber>`, and a
   later fix to it `Update <n>`, which is `smallfixnumber`
-  (`7.2.2-72806 Update 5`, release notes). Record in server memory:
+  (`7.2.2-72806 Update 5`, release notes). Record in machine memory:
   `Appliance: Synology DSM <productversion>-<buildnumber>`, followed
   by ` Update <smallfixnumber>` when that is not 0, and
   `Model: <model>` from `upnpmodelname` in
@@ -87,7 +87,7 @@ system rather than trust it.
   and the user's change, made at their own root shell; Hostwarden
   does not write `sudoers` here. Third-party reports say a DSM
   update can reset `/etc/sudoers.d/`, so after a DSM update run
-  the sudo probe again instead of trusting server memory.
+  the sudo probe again instead of trusting machine memory.
 - The `PATH` of a non-root login is not documented. Call Synology's
   tools by their full path: `/usr/syno/bin/synopkg`,
   `/usr/syno/bin/synogetkeyvalue` and `/usr/syno/sbin/synoupgrade`,
@@ -321,7 +321,7 @@ release notes <https://www.synology.com/en-global/releaseNote/Virtualization>).
   to `administrators`, where it could change anything DSM does
   while Hostwarden still calls only `list`, or to leave VMM
   uninventoried.
-- File `dsm-ro.pass`, one line: the password. Server memory:
+- File `dsm-ro.pass`, one line: the password. Machine memory:
   ```
   API read: api-read (<group>), ~/hostwarden-keys/<nas>/dsm-ro.pass
   API write: none
@@ -502,7 +502,7 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
   (`rules/changelog.md`): after the first journal line on a host,
   run the read-back below. When it ran and the line is not in it,
   log to the local changelog only, and record `Journal: not
-  written` in server memory; a read-back that failed decides
+  written` in machine memory; a read-back that failed decides
   nothing. The file is not documented as readable by
   administrators; read it with root where the session has it.
 - **The syslog stream** is `/var/log/messages` and its rotations,
@@ -569,7 +569,7 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
     extended life, or a model past its end of life (Version
     Detection);
   - a pending DSM update, and an update setting that only notifies;
-  - load above the CPU count in server memory, memory and swap
+  - load above the CPU count in machine memory, memory and swap
     past the Memory and Swap limits of
     `.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`;
   - an md array degraded (`_` in its `[UU…]` map), resyncing or
@@ -615,5 +615,5 @@ ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cg
 - Fleet audit: compare DSM hosts only with each other, on the
   version, the model, the SSH port (`grep -i '^Port'
   /etc/ssh/sshd_config`, or `sshd -T` as root), Telnet, the
-  firewall, and the update setting from server memory. A missing
+  firewall, and the update setting from machine memory. A missing
   `unattended-upgrades` or host-firewall package is not drift.

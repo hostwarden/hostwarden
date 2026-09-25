@@ -78,7 +78,7 @@ A new guest is the exception, whose first boot may set them
 ## Changes Across Hosts
 
 Connecting hosts to a directory or creating team accounts on them
-is a plan (`rules/server-memory.md` → Plans that outlive a
+is a plan (`rules/machine-memory.md` → Plans that outlive a
 session), whose `Status:` names the hosts still pending. Per host,
 one call with its question and its backup, then an access test
 with the fresh-login options (`rules/ssh-connections.md` →
@@ -87,7 +87,7 @@ could not be reached is not done.
 
 ## Memory
 
-One line in `memory/servers/<hostname>/memory.md`:
+One line in `memory/machines/<hostname>/memory.md`:
 
 ```markdown
 - Accounts: directory (SSSD, AD example.com, access

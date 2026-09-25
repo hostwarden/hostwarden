@@ -68,7 +68,7 @@ test (`rules/ssh-connections.md` → Fresh-login options): to the
 `- IP:` from memory or an address the user gives, never one read
 from the host, which may sit behind NAT; to a VPN address only
 when the workstation is in that VPN. Record the path and the
-tests in the `- Access:` line (`rules/server-memory.md`).
+tests in the `- Access:` line (`rules/machine-memory.md`).
 
 ## The steps
 

@@ -8,7 +8,7 @@ sessions.
 
 ## When to run
 
-After reading the server memory file and before
+After reading the machine memory file and before
 starting any requested work.
 
 ## What rides in this call
@@ -80,7 +80,7 @@ Where each condition is:
 - **A boot newer than recorded:** on a Linux host whose memory has
   an `Auto restarts:` line — `hostwarden-housekeeping`'s, moved here
   only for its timestamp and duration
-  (`rules/server-memory.md` → Who writes which line) — compare the
+  (`rules/machine-memory.md` → Who writes which line) — compare the
   current boot start against the line's full `last reboot <date>
   <time>`, not the date alone, which a second same-day reboot would
   read as no change. A later one reads that reboot's duration with
@@ -137,7 +137,7 @@ else
 fi
 ```
 
-Where server memory has a `Sudo:` line and it does not
+Where machine memory has a `Sudo:` line and it does not
 cover `journalctl` (`rules/privilege-escalation.md` →
 Mixed Mode), run the `else` branch alone.
 After `no sudo`, watch for the "not seeing messages

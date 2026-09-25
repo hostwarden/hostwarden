@@ -27,7 +27,7 @@ current. Report inline if it is not.
 Before installing or upgrading any software, search
 for the current stable version. After install,
 verify the installed version matches what was
-expected and update server memory.
+expected and update machine memory.
 
 ### Not Every Session
 
@@ -112,7 +112,7 @@ Node.js Current).
 
 Do not repeat the same nudge within **14 days**
 unless the available version has changed. Track
-the last check date in server memory (see below).
+the last check date in machine memory (see below).
 
 ### Inline Nudge Format
 
@@ -199,7 +199,7 @@ only where the host is enrolled in it. The OS file says
 how to tell (for Ubuntu, `rules/os/debian.md` → Ubuntu Pro
 and ESM).
 
-## Server Memory
+## Machine Memory
 
 After a version check, update the server's
 `memory.md` with a tracking line:

@@ -2,4 +2,4 @@
 # machines both added entries, git keeps both instead of
 # stopping at a conflict. memory.md and todo.md merge as usual:
 # a conflict there is a real disagreement about a host.
-/servers/*/changelog.log merge=union
+/machines/*/changelog.log merge=union

@@ -248,8 +248,8 @@ find it:
 
 ## What to record
 
-One line in `memory/servers/<hostname>/memory.md`
-(`rules/server-memory.md`), naming the controller and whether
+One line in `memory/machines/<hostname>/memory.md`
+(`rules/machine-memory.md`), naming the controller and whether
 this host can reach it:
 
 ```
@@ -365,7 +365,7 @@ above. Where the host has no line at all, settle it first:
   read the node off anything else. `Virtualization:` gives the
   kind of hypervisor, never which machine it is: `kvm` is not a
   host. `Reached as:` is the SSH destination of the guest itself
-  (`rules/server-memory.md`), so taking it for the node names the
+  (`rules/machine-memory.md`), so taking it for the node names the
   guest as its own rescue console, which is no route at all once
   SSH is gone.
 - **Nothing settled it** — a bare-metal host where detection

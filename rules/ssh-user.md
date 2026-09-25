@@ -1,12 +1,12 @@
 # SSH User
 
 All SSH usernames are stored in `memory/user.md` —
-never in server memory files. Read this file at the
+never in machine memory files. Read this file at the
 start of every session.
 
 The file has two parts for SSH users:
 - **Default** — the fallback username.
-- **Per-server overrides** — `- hostname: username`
+- **Per-machine overrides** — `- hostname: username`
   entries.
 
 Beside them, under `# Preferences`, it holds the
@@ -44,7 +44,7 @@ user has already named a specific server
 the user doesn't get two near-identical pickers
 in a row. Make it explicit in the question text
 that the answer becomes both the default and the
-per-server entry. Question:
+per-machine entry. Question:
 *"Which SSH username should Hostwarden use for
 `<hostname>`? (This will also become your Hostwarden
 default — you can override per server later.)"*
@@ -75,7 +75,7 @@ in a single file write.
 When Host-specific options below change the
 options for `<hostname>`, its answer must not become
 the default: ask Case B's default question first,
-then the per-server question with those options, and
+then the per-machine question with those options, and
 write both in a single file write.
 
 ### Case B — fresh install, no server specified yet
@@ -86,12 +86,12 @@ Ask only for the default:
 *"Which SSH username should Hostwarden use by
 default?"* with the same three options. Write
 only `Default:` to `memory/user.md`; do not
-invent a per-server entry.
+invent a per-machine entry.
 
 ### Case C — default exists, first connection to a new server
 
 `memory/user.md` has a `Default:` line but no
-entry for `<hostname>`. Ask the per-server question:
+entry for `<hostname>`. Ask the per-machine question:
 *"Which SSH username should Hostwarden use for
 `<hostname>`?"* with:
 
@@ -102,7 +102,7 @@ entry for `<hostname>`. Ask the per-server question:
 If the memory default is already `root`, collapse
 options 1 and 2 into a single `root` entry and
 keep `Other…` as option 2. Save the choice as a
-per-server override in `memory/user.md`.
+per-machine override in `memory/user.md`.
 
 **On subsequent connections:** look up the server in
 `memory/user.md`. Do not ask again.
@@ -118,7 +118,7 @@ update `memory/user.md`.
 
 ### Host-specific options
 
-These apply to every per-server question, in Case A
+These apply to every per-machine question, in Case A
 and Case C alike.
 
 When the user has said the host runs Windows, there
@@ -133,8 +133,8 @@ with a `\` or `@` in it goes in as
 `-l '<user>' <host>`, or the shell eats the `\` and
 ssh reads the endpoint of another user.
 
-The per-server question comes before OS detection
-loads an appliance file. When server memory has an
+The per-machine question comes before OS detection
+loads an appliance file. When machine memory has an
 `Appliance:` line, or the user named the appliance,
 read that file's section on access in
 `rules/appliance/` before asking; where it names the
@@ -148,7 +148,7 @@ When the recorded user does not fit the host's `Accounts:` line
 where admins use personal accounts and sudo, a personal account
 where the host admits admins only through a role account — say so
 once and ask whether to switch. Never switch on your own; the new
-name goes through the per-server question above, and its answer
+name goes through the per-machine question above, and its answer
 replaces the `- <hostname>:` entry. A user who keeps the recorded
 name gets the offer to record that as a decision
 (`rules/decisions.md` → Writing one). Once one is recorded, the
@@ -168,7 +168,7 @@ Default to English if missing.
 **What to translate:** all conversational output.
 
 **What stays in English:** shell commands, file
-paths, package names, technical terms, server memory
+paths, package names, technical terms, machine memory
 files, log entries, config files, rule files.
 
 **When the user writes in a specific language:**
@@ -186,7 +186,7 @@ Hostwarden records who did something: the journal
 prefix, a decision's `Decided:`, a `Planned:` line.
 
 - **Shared workspace** — the workspace has a remote
-  (`rules/server-memory.md` → Personal versus
+  (`rules/machine-memory.md` → Personal versus
   shared): the line is required, one handle per
   person and per operations host, reserved in the
   shared `memory/operators.md`, with the same

@@ -20,7 +20,7 @@ conversation and returns a short answer.
    "all servers", the hosts the fleet audit lists
    (`.agents/skills/hostwarden-fleet-audit/SKILL.md` → Workflow,
    step 1), without its grouping.
-2. **One machine, one entry.** Names whose `memory/servers/`
+2. **One machine, one entry.** Names whose `memory/machines/`
    entries lead to the same directory — an alias symlinked to a
    host in the list, or two aliases of one host that is not — are
    one target, under the name the user gave first. Only the symlink
@@ -41,7 +41,7 @@ conversation and returns a short answer.
    checks again, jump hosts included.
 4. **First connections here.** A host gets its first connection in
    this session, one host at a time, before any agent starts, when
-   it has no `memory/servers/<host>/` yet or no SSH user in
+   it has no `memory/machines/<host>/` yet or no SSH user in
    `memory/user.md`. A host whose key, or the key of a jump host on
    its way, is missing from `memory/known_hosts` gets the key here,
    as `rules/host-keys.md` → Before the First Connection and
@@ -176,7 +176,7 @@ unreachable: web4.example.com — connection timed out
   finding, print it once under their names.
 - A change ends with one line per host it reached.
 
-An agent writes only under its own `memory/servers/<host>/`. What a
+An agent writes only under its own `memory/machines/<host>/`. What a
 rule would have it write to a shared file — a row in
 `memory/network.md`, a master under `memory/clusters/` — comes back
 under `shared:`, and this session writes it, one host after another.
@@ -224,7 +224,7 @@ and the guard and the taboos hold on every one of them.
    host others depend on — and let the user pick another, drop
    hosts, or stop. The yes covers those hosts, that change and this
    run. A host added later is a new question.
-3. **Write the rollout down** as a plan (`rules/server-memory.md` →
+3. **Write the rollout down** as a plan (`rules/machine-memory.md` →
    Plans that outlive a session): the steps, their expected
    results, and each host as `not started`, `started`, `done` or
    `stopped`. A host is `started` before its agent is dispatched,
@@ -274,4 +274,4 @@ and the guard and the taboos hold on every one of them.
    before running it.
 6. Once every step matched, write the journal line and deregister
    in one call, then the host's `changelog.log` and memory
-   (`rules/server-memory.md`).
+   (`rules/machine-memory.md`).

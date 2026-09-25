@@ -50,7 +50,7 @@ for Windows.
   Hostwarden uses them in two load-bearing places:
   `.claude/skills` links to `.agents/skills/`, and
   DNS aliases become symlinks under
-  `memory/servers/`. macOS, Linux, FreeBSD and WSL
+  `memory/machines/`. macOS, Linux, FreeBSD and WSL
   handle them out of the box; a clone without them is
   repaired as described under
   [Symbolic links](#symbolic-links).
@@ -146,7 +146,7 @@ An archive download (ZIP) cannot be repaired this way,
 because it is no git clone: clone the repository instead.
 
 A DNS alias that became a directory rather than a link
-(`ls -l memory/servers/` shows which) has its own copy
-of the server memory. It has diverged from the canonical
+(`ls -l memory/machines/` shows which) has its own copy
+of the machine memory. It has diverged from the canonical
 host's and has to be merged back by hand before the
 directory is replaced with a link.

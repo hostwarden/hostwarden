@@ -772,7 +772,7 @@ Highlight as drift / warning:
   (`rules/maintenance-windows.md` → Automatic restarts), and writes
   nothing back to it.
 - A host whose `Auto restarts:` line is missing or stale
-  (`rules/server-memory.md` → Onboarded and stale lines): name it
+  (`rules/machine-memory.md` → Onboarded and stale lines): name it
   for housekeeping to refresh, the way a stale `USB:` or `Backup:`
   line is named.
 

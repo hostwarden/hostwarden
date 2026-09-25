@@ -136,7 +136,7 @@ The audit below reads the account the same way.
 When the request is to check an existing deploy user rather
 than create one, change nothing. Read the four things this
 skill sets up and report each as it is. The directory is the
-`Deploy target` in the host's `memory.md` (Server Memory below);
+`Deploy target` in the host's `memory.md` (Machine Memory below);
 without one, ask which application the account deploys:
 
 ```bash
@@ -187,7 +187,7 @@ No special firewall changes needed. Deployment
 uses the existing SSH port (22). Do not open
 additional ports for the deploy user.
 
-## Server Memory
+## Machine Memory
 
 After creating the deploy user, update the
 server's `memory.md` with:

@@ -111,7 +111,7 @@ A signing key that is replaced, or may have leaked:
 1. The operator makes the new key and gives its public half; add
    it as a line to the master's `allowed_signers`.
 2. Deploy the signers file to every host that carries it
-   (`grep -l fleet/fleet-read memory/servers/*/deployed.md`).
+   (`grep -l fleet/fleet-read memory/machines/*/deployed.md`).
 3. The operator signs every bundle again with the new key.
 4. Remove the old line from the master and deploy once more.
 
@@ -128,7 +128,7 @@ on the host prints `0`, remove the wrapper and `/etc/fleet-read/`
 A wrapper removed first leaves a key line that still logs in and
 fails; harmless, but it is the operator's to clean up.
 
-## Server memory
+## Machine memory
 
 One line in the host's `memory.md`, owned by this skill:
 

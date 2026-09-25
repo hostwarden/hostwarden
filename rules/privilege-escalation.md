@@ -73,7 +73,7 @@ user with no sudoers entry and for one whose rules
 need no password for some commands only, and it
 succeeds for a rule that lets `true` alone run.
 
-On subsequent connections, check server memory for
+On subsequent connections, check machine memory for
 the sudo flag.
 
 ## Mixed Mode
@@ -160,7 +160,7 @@ behind the socket starts a container that mounts any
 host path on request
 (<https://docs.docker.com/engine/security/#docker-daemon-attack-surface>).
 A user in it needs no sudo for Docker. Record
-`- Root-equivalent group: docker` in server memory,
+`- Root-equivalent group: docker` in machine memory,
 and use it only for the Docker work
 `rules/containers.md` describes. It is one check's
 access, not the session's: without sudo and without
@@ -289,7 +289,7 @@ first, or for a `ProxyCommand` hop tell the user
 
 Only probe when a privileged action is actually
 needed. On later connections, read `Root SSH:` from
-server memory instead of probing again: a refused
+machine memory instead of probing again: a refused
 root login can count toward a fail2ban ban
 (`rules/ssh-connections.md` → Avoid failed logins).
 

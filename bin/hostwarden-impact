@@ -165,7 +165,7 @@ TAB=$(printf '\t')
 # never reaching radius's own setup further down.
 fields() {
   set --
-  for f in "$M"/servers/*/memory.md; do
+  for f in "$M"/machines/*/memory.md; do
     [ -f "$f" ] && [ ! -L "${f%/memory.md}" ] && set -- "$@" "$f"
   done
   [ $# -gt 0 ] || return 0
@@ -434,7 +434,7 @@ EOF
   # for its jump group either.
   hosts=''
   for th in $(printf '%s\n' "$2" | awk '{ print $1 }'); do
-    if [ -f "$M/servers/$th/memory.md" ]; then hosts="$hosts $th"
+    if [ -f "$M/machines/$th/memory.md" ]; then hosts="$hosts $th"
     else echo "no entry: $th (no memory here)" >>"$TW/out/nomem"
     fi
   done
@@ -970,7 +970,7 @@ build() {
   fields >"$WORK/fields"
   # A copy that exists even where user.md does not, for one awk.
   cat "$M/user.md" >"$WORK/user.md" 2>/dev/null
-  for d in "$M"/servers/*; do
+  for d in "$M"/machines/*; do
     n=${d##*/}
     if [ -L "$d" ]; then
       t=$(readlink "$d"); t=${t%/}
@@ -1040,7 +1040,7 @@ build() {
     # or "→ probably <directory>", in case a guest lacks its Runs on:,
     # each without memory of its own, and the inventory date.
     set --
-    for g in "$M"/servers/*/guests.md "$M"/clusters/*/guests.md; do
+    for g in "$M"/machines/*/guests.md "$M"/clusters/*/guests.md; do
       [ -f "$g" ] && set -- "$@" "$g"
     done
     [ $# -eq 0 ] || awk '
@@ -1122,7 +1122,7 @@ build() {
           esac
         done
     [ ! -f "$M/user.md" ] || echo "$M/user.md"
-    for f in "$M"/servers/*/memory.md "$M"/servers/*/guests.md \
+    for f in "$M"/machines/*/memory.md "$M"/machines/*/guests.md \
         "$M"/clusters/*/cluster.md "$M"/clusters/*/guests.md; do
       [ -f "$f" ] && [ ! -L "${f%/*}" ] && echo "$f"
     done
@@ -1140,10 +1140,10 @@ stale() {
     [ -e "$f" ] || return 0
   done <"$SRC"
   [ -n "$({
-    find "$M/servers" "$M/clusters" -type d -newer "$IDX"
-    find "$M/servers" "$M/clusters" \( -name memory.md -o -name guests.md \
+    find "$M/machines" "$M/clusters" -type d -newer "$IDX"
+    find "$M/machines" "$M/clusters" \( -name memory.md -o -name guests.md \
       -o -name cluster.md \) -newer "$IDX"
-    find "$M/servers" "$M/clusters" "$M/user.md" "$SSHCFG" \
+    find "$M/machines" "$M/clusters" "$M/user.md" "$SSHCFG" \
       "$SCRIPT_DIR/hostwarden-impact" .claude/hooks/hops.sh -prune -newer "$IDX"
     # The configuration ssh_config includes, and what that includes in
     # turn, wherever under ~/.ssh it lives; keys and known hosts are

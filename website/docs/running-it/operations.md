@@ -369,7 +369,7 @@ that keeps updating.
    `blacklist.md`, `readonly.md`, `opencode.json` and
    `ssh_config`.
    Add your own machine's hostname directory there
-   (e.g. `/servers/my-laptop/`). Alone on several
+   (e.g. `/machines/my-laptop/`). Alone on several
    machines, you may want your SSH usernames on all
    of them: delete the `/user.md` line — unless one
    of them is an operations host, which needs a
@@ -384,7 +384,7 @@ that keeps updating.
    shared `operators.md`, and one someone else has
    already taken is turned down. Use the same handle
    on each of your own machines. It lands
-   in the servers' journals, which keep it as long
+   in the machines' journals, which keep it as long
    as their logs are retained and wherever they are
    shipped, so choose what you are comfortable
    with there: initials or a code serve as well as
@@ -453,7 +453,7 @@ server, has Claude judge each output without any tools,
 checks the hard thresholds itself, logs one line per
 server, commits those changelog lines and pushes, and
 mails the report. Its exit status is 2 when a
-CRITICAL is not explained by the server's memory.
+CRITICAL is not explained by the machine's memory.
 
 Anything else you run on that machine — a mailbox
 triage, a bot — is yours, not Hostwarden's, and never
@@ -540,8 +540,8 @@ the backup.
   are inactive or an operations host's
 - `service-policy.md` — per-service opt-out /
   opt-in for auto-reload and auto-restart
-- `servers/<hostname>/` — per-server memory,
-  changelog, todo, per-server rule overrides and
+- `machines/<hostname>/` — per-machine memory,
+  changelog, todo, per-machine rule overrides and
   decisions
 - `clusters/<name>/` — a hypervisor cluster or pool:
   its members, HA state, guest inventory and
@@ -556,7 +556,7 @@ the backup.
 - `decisions/` — your decisions about a group of
   hosts, or all of them
 - `opencode.json` — your OpenCode config
-- `network.md`, `housekeeping.md` — cross-server
+- `network.md`, `housekeeping.md` — cross-machine
   facts and custom checks
 
 ### Back up
@@ -619,7 +619,7 @@ The migration renames skill overrides in
   `/hostwarden-heinzel-takeover ~/heinzel` in Claude Code. The
   copy itself is a script — `bin/hostwarden-heinzel-takeover
   <path>` moves access lists, overrides, the host keys in
-  `memory/known_hosts` and every server's memory
+  `memory/known_hosts` and every machine's memory
   across and renames what is found by name. Heinzel's
   memory of a host arrives as `heinzel-memory.md`,
   unchanged, until the host's onboarding splits it up;
@@ -669,7 +669,7 @@ The migration renames skill overrides in
 - Keeping Heinzel around during the switch?
   `contrib/heinzel-coexistence/` holds three custom
   rules for your Heinzel checkout so it reads both
-  journal tags, treats its server memory as a lead
+  journal tags, treats its machine memory as a lead
   rather than a fact, and leaves Hostwarden's files
   alone. Hostwarden warns in the other direction when
   a Heinzel journal entry is minutes old, and leaves

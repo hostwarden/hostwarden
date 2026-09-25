@@ -178,7 +178,7 @@ After deploying a cloud image, verify:
        equivalent)
 11. [ ] Where Naming held a `Site:` for this target,
        this host's first connection writes it into
-       its new `memory/servers/` entry (SKILL.md →
+       its new `memory/machines/` entry (SKILL.md →
        After)
 
 ## Image Conversion
@@ -244,7 +244,7 @@ e2fsprogs` on FreeBSD.
 
 ## Memory Convention
 
-When recording cloud image origin in server memory:
+When recording cloud image origin in machine memory:
 ```
 - Origin: cloud image (Debian 13 genericcloud)
 ```

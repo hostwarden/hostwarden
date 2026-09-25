@@ -13,7 +13,7 @@ one, since every field has a value for "not known" that host data
 alone can produce.
 
 The store is `memory/topology.md`, a file of its own beside
-`memory/network.md` (`rules/server-memory.md` → Cross-server
+`memory/network.md` (`rules/machine-memory.md` → Cross-machine
 facts), so that a session looking up one shared fact does not load
 the fleet's topology with it: current facts only, one line per
 item, each with its sources and a date, created on first need.
@@ -232,7 +232,7 @@ recorded as such and never reconciled.
 ## Sites
 
 A site is a place. `- Site: home (user)` is a plain memory line in
-`memory.md`, owned by this file (`rules/server-memory.md` → Who
+`memory.md`, owned by this file (`rules/machine-memory.md` → Who
 writes which line), in the same category as `Runs on:`. It is not
 a decision (`rules/decisions.md`): it settles no finding and rules
 out no proposal.
@@ -671,7 +671,7 @@ The appliance's old contributions are replaced as a host's are.
   rewritten with the rest of `## Topology findings`.
 - **Staleness.** A report or an answer that rests on a line whose
   newest source is over 90 days old says so as
-  `rules/server-memory.md` → Onboarded and stale lines says, and
+  `rules/machine-memory.md` → Onboarded and stale lines says, and
   one that has to be right refreshes that source's profile first.
   Dynamic edges are never current at any age (Dynamic routing
   above).

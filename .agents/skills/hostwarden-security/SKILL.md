@@ -28,7 +28,7 @@ applies before any of this runs.
 
 1. **Load overrides**, key `hostwarden-security`, per
    `rules/overrides.md`. Read
-   `memory/servers/<hostname>/memory.md` for context: services,
+   `memory/machines/<hostname>/memory.md` for context: services,
    legitimate external bindings, VPN role. A binding this host is
    known to need is not a finding. An override of
    `rules/baseline.md` → Firewall or SSH Login changes what the

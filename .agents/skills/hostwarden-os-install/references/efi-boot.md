@@ -277,7 +277,7 @@ before shutting down QEMU.
 
 ## Memory Convention
 
-When recording boot configuration in server memory:
+When recording boot configuration in machine memory:
 ```
 - Boot: EFI (systemd-boot)
 - Boot: EFI (FreeBSD loader)

@@ -98,7 +98,7 @@ A boundary that names no route has none. Nothing here makes one.
 
 1. **Do everything that is possible without the missing right.**
    That is usually more than it first looks: read-only inspection,
-   userspace, server memory, what the user can tell you.
+   userspace, machine memory, what the user can tell you.
 2. **Tell the operator** what is missing and why (which list,
    mode, guard or key), and exactly what you would do if you had
    it, in the sysadmin report of `rules/privilege-escalation.md`

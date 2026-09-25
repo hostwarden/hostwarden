@@ -27,7 +27,7 @@ which before anything else, from the files, never from the remote:
   development checkout and a pull request, not an edit.
 - **Development** — there is no marker, or `.git` is a file: a
   linked worktree, which never carries `memory/` and so has no
-  access lists and no server memory. The session works on
+  access lists and no machine memory. The session works on
   Hostwarden itself. No server is reached — no `ssh`, `scp`, rsync
   to a remote, no `sudo`, and no local mode either. Neither Session
   Start nor the pipeline below applies, except
@@ -100,7 +100,7 @@ before a firewall counts you out: `rules/ssh-connections.md`.
 **Follow `rules/first-connection.md`.** It is the ordered pipeline
 that runs on every remote connection and every local-mode session.
 It names each step's file: access control, DNS aliases, SSH user,
-host key, OS detection, server memory, activity check, Heinzel
+host key, OS detection, machine memory, activity check, Heinzel
 legacy.
 
 **There is no "quick question" exception.** `df -h`, `uptime`,
@@ -376,10 +376,10 @@ trigger — not a request from the user.
 
 **After you change something**
 
-- `rules/server-memory.md` — the host's memory file, its `todo.md`
+- `rules/machine-memory.md` — the host's memory file, its `todo.md`
   for a session of two steps or more, and which memory files are
   personal versus shared in a shared workspace
-- `memory/network.md` — cross-server facts, current ones only,
+- `memory/network.md` — cross-machine facts, current ones only,
   created on first need
 
 **Standing expectations**
@@ -405,7 +405,7 @@ history, use `git log`.
 A user's overrides win over anything shipped, including over a
 skill. Whenever you read an instruction file, check
 `memory/custom-rules/` and the host's
-`memory/servers/<hostname>/rules.md` for a block that adds to,
+`memory/machines/<hostname>/rules.md` for a block that adds to,
 replaces, or removes part of it — before acting on what you read.
 Where those blocks live, what wins, and what is never overridable:
 `rules/overrides.md`.

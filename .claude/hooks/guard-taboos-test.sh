@@ -1780,7 +1780,7 @@ check pass 'ls -ln /etc/ssh/sshd_config'
 #
 # The exact command that exposed this: Hostwarden's own changelog
 # write, blocked over the word inside the prose.
-check pass 'cat >> /Users/s/hostwarden/memory/servers/h/changelog.log <<EOF
+check pass 'cat >> /Users/s/hostwarden/memory/machines/h/changelog.log <<EOF
   Verify: clean shutdown checkpoint + database ready.
 EOF'
 check pass 'cat >> notes.md <<EOF

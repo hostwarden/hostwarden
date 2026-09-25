@@ -1,6 +1,6 @@
 #!/bin/sh
 # hostwarden-map — draw the infrastructure as Mermaid maps, computed
-# from memory alone (rules/network-topology.md, rules/server-memory.md,
+# from memory alone (rules/network-topology.md, rules/machine-memory.md,
 # rules/hypervisors.md), never drawn or edited by hand.
 #
 # Usage:
@@ -18,11 +18,11 @@
 #   memory/maps/README.md            the index, one line per map
 #
 # Local and read-only: it reads memory/topology.md,
-# memory/servers/*/memory.md, memory/servers/*/guests.md and
+# memory/machines/*/memory.md, memory/machines/*/guests.md and
 # memory/clusters/*/{cluster,guests}.md, and writes only under
 # memory/maps/. It never reads memory/user.md, memory/blacklist.md,
 # memory/readonly.md or memory/ssh_config — those are personal,
-# never shared, and the maps are (rules/server-memory.md → Personal
+# never shared, and the maps are (rules/machine-memory.md → Personal
 # versus shared). A `Role: workstation` host, and localhost and
 # 127.0.0.1 by name, are personal the same way and never draw either
 # (rules/network-topology.md → Excluded from the store).
@@ -37,7 +37,7 @@
 # every list this script builds is sorted before it is rendered.
 # Across two different days the same memory can still change what it
 # draws — a host's freshness crossing the 90-day staleness line
-# (rules/server-memory.md → Onboarded and stale lines) — since a map
+# (rules/machine-memory.md → Onboarded and stale lines) — since a map
 # that never showed staleness would not be telling the truth either.
 #
 # `bin/hostwarden-sync commit` runs this before staging. On its own
@@ -194,7 +194,7 @@ epoch_of() {
 TODAY_EPOCH=$(epoch_of "$TODAY") || TODAY_EPOCH=0
 
 # is_stale <date> -- exit 0 when <date> is older than 90 days before
-# TODAY (rules/server-memory.md → Onboarded and stale lines), 1 for
+# TODAY (rules/machine-memory.md → Onboarded and stale lines), 1 for
 # "not known" or a date this cannot parse: a gap is not staleness.
 # Its own name, never d: called with a caller'"'"'s own $d live (the
 # classification loop below), and sh has no true local -- a
@@ -213,7 +213,7 @@ is_stale() {
 HOSTFIELDS="$WORK/hostfields"
 : >"$HOSTFIELDS"
 set --
-for f in "$M"/servers/*/memory.md; do
+for f in "$M"/machines/*/memory.md; do
   [ -f "$f" ] && [ ! -L "${f%/memory.md}" ] && set -- "$@" "$f"
 done
 if [ $# -gt 0 ]; then
@@ -366,7 +366,7 @@ fi
 GUESTS="$WORK/guests.tsv"
 : >"$GUESTS"
 set --
-for g in "$M"/servers/*/guests.md "$M"/clusters/*/guests.md; do
+for g in "$M"/machines/*/guests.md "$M"/clusters/*/guests.md; do
   [ -f "$g" ] && set -- "$@" "$g"
 done
 if [ $# -gt 0 ]; then
@@ -464,7 +464,7 @@ fi
 # <kind> is router, hypervisor, storage or host (a plain server or a
 # VM, told apart only by <runson>, which is empty for anything that
 # is not itself a guest). <date> is the later of Onboarded: and
-# Housekeeping:, the freshness rules/server-memory.md → Onboarded and
+# Housekeeping:, the freshness rules/machine-memory.md → Onboarded and
 # stale lines gives a host'"'"'s own record. <hasfinding> is set when
 # a memory/topology.md Topology findings entry names this host as a
 # whole word -- the only link this script draws between free prose
@@ -473,7 +473,7 @@ HOSTS="$WORK/hosts.tsv"
 : >"$HOSTS"
 HVSET="$WORK/hvset"
 : >"$HVSET"
-for g in "$M"/servers/*/guests.md; do
+for g in "$M"/machines/*/guests.md; do
   [ -f "$g" ] || continue
   h=${g%/guests.md}; h=${h##*/}
   echo "$h" >>"$HVSET"
@@ -493,20 +493,24 @@ if [ -s "$HOSTFIELDS" ]; then
     $2 == "Cluster" { c = $3; sub(/[ \t,].*/, "", c); cluster[$1] = c }
     $2 == "Appliance" { appl[$1] = $3 }
     $2 == "Role" { role[$1] = $3 }
+    $2 == "Mode" { mode[$1] = $3 }
     $2 == "IP" { v = $3; sub(/[ \t,;()].*/, "", v); ip[$1] = v }
     $2 == "Onboarded" { v = $3; sub(/[ \t].*/, "", v); onb[$1] = v }
     $2 == "Housekeeping" { v = $3; sub(/[ \t].*/, "", v); hk[$1] = v }
     $2 == "Runs on" { v = $3; sub(/[ \t].*/, "", v); ro[$1] = v }
     END {
       for (h in host) {
-        a = appl[h]; r = role[h]; kind = "host"
-        # A workstation, or the two names its own .gitignore always
-        # excludes (a hand-named one is the user'"'"'s to keep out of
-        # the workspace and unrecognisable from content alone), is
-        # personal and never shared (rules/server-memory.md →
-        # Personal versus shared; rules/network-topology.md →
-        # Excluded from the store) -- so it never reaches a map.
-        if (r ~ /^workstation/ || h == "localhost" || h == "127.0.0.1") continue
+        a = appl[h]; r = role[h]; m = mode[h]; kind = "host"
+        # The local machine itself -- Mode: local, whatever its
+        # Role: is (a Mac mini a team builds on is a server, still
+        # the local workstation) -- or the two names its own
+        # .gitignore falls back to for a workspace from before that
+        # field was resolved, is personal and never shared
+        # (rules/machine-memory.md → Personal versus shared;
+        # rules/network-topology.md → Excluded from the store) --
+        # so it never reaches a map.
+        if (tolower(m) ~ /^local/ || r ~ /^workstation/ \
+            || h == "localhost" || h == "127.0.0.1") continue
         # UniFi OS runs on gateways, on NAS consoles and on Cloud
         # Keys alike (rules/appliance/unifi-os.md); the model name
         # after the comma is the only thing that tells them apart,
@@ -580,7 +584,7 @@ shape_of() {
 # host_node <indent> <host> <kind> <appliance> <stale 0|1> <prefix> --
 # one host'"'"'s shape, class and click line: shared by the WAN level
 # and a site'"'"'s ranges, which differ only in how many "../" reach
-# back to servers/ (<prefix>, "../servers" or "../../servers").
+# back to machines/ (<prefix>, "../machines" or "../../machines").
 host_node() {
   hn_ind=$1 hn_h=$2 hn_k=$3 hn_a=$4 hn_st=$5 hn_prefix=$6 hn_fnd=${7:-0}
   hn_nid="h_$(id_sh "$hn_h")"
@@ -623,7 +627,7 @@ guest_table() {
   while IFS="$US" read -r owner gid gname gkind gstate gip gdir graw; do
     [ -n "$owner" ] || continue
     if [ -n "$gdir" ]; then
-      printf '| %s | %s | %s | %s | %s | [memory](../../servers/%s/memory.md) |\n' \
+      printf '| %s | %s | %s | %s | %s | [memory](../../machines/%s/memory.md) |\n' \
         "$gid" "$gname" "$gkind" "$gstate" "${gip:-not known}" "$gdir"
     else
       printf '| %s | %s | %s | %s | %s | none |\n' \
@@ -808,7 +812,7 @@ render_wan() {
       awk -F '\t' -v s="$s" '$2 == s && $8 == "" { print }' "$HOSTS" \
         | LC_ALL=C sort -t '	' -k1,1 | tr '\t' "$US" \
         | while IFS="$US" read -r h hs c k a ip d ro hf st; do
-          host_node "    " "$h" "$k" "$a" "$st" "../servers" "$hf"
+          host_node "    " "$h" "$k" "$a" "$st" "../machines" "$hf"
         done
       echo "  end"
     done
@@ -823,7 +827,7 @@ render_wan() {
     ' "$HOSTS" \
       | LC_ALL=C sort -t '	' -k1,1 | tr '\t' "$US" \
       | while IFS="$US" read -r h hs c k a ip d ro hf st; do
-        host_node "    " "$h" "$k" "$a" "$st" "../servers" "$hf"
+        host_node "    " "$h" "$k" "$a" "$st" "../machines" "$hf"
       done >"$WORK/wan-unknown-hosts.mmd"
     if [ -s "$WORK/wan-unknown-hosts.mmd" ]; then
       # Never "site_" + anything: every real site's own subgraph ID
@@ -1000,7 +1004,7 @@ render_site() {
           [ -n "$ip" ] || continue
           in_cidr "$ip" "$prefix" || continue
           echo "$h" >>"$WORK/site-hosts-placed"
-          host_node "    " "$h" "$k" "$a" "$st" "../../servers" "$hf"
+          host_node "    " "$h" "$k" "$a" "$st" "../../machines" "$hf"
         done <"$WORK/site-hosts.tsv.us"
       fi
       echo "  end"
@@ -1016,7 +1020,7 @@ render_site() {
         row=$(awk -F '\t' -v h="$h" '$1 == h { print; exit }' "$WORK/site-hosts.tsv")
         k=$(printf '%s' "$row" | cut -f4); a=$(printf '%s' "$row" | cut -f5)
         hf=$(printf '%s' "$row" | cut -f9); st=$(printf '%s' "$row" | cut -f10)
-        host_node "    " "$h" "$k" "$a" "$st" "../../servers" "$hf"
+        host_node "    " "$h" "$k" "$a" "$st" "../../machines" "$hf"
       done
       echo "  end"
     fi
@@ -1070,7 +1074,7 @@ render_site() {
     # shellcheck disable=SC2034 # hs is the row's own site; not needed once filtered to it
     while IFS="$US" read -r h hs c k a ip d ro hf st; do
       [ -n "$h" ] || continue
-      printf '| %s | %s | %s | [memory](../../servers/%s/memory.md) |\n' \
+      printf '| %s | %s | %s | [memory](../../machines/%s/memory.md) |\n' \
         "$h" "${a:-$k}" "${ip:-not known}" "$h"
       sdate=$(date_max "$sdate" "$d")
     done <"$WORK/site-hosts.tsv.us"
@@ -1110,7 +1114,7 @@ guest_node() {
   gn_cls=host
   case $gn_kind in "not known") gn_cls=unknown ;; esac
   printf '%sclass %s %s\n' "$gn_ind" "$gn_nid" "$gn_cls"
-  [ -n "$gn_dir" ] && printf '%sclick %s "../../servers/%s/memory.md"\n' "$gn_ind" "$gn_nid" "$gn_dir"
+  [ -n "$gn_dir" ] && printf '%sclick %s "../../machines/%s/memory.md"\n' "$gn_ind" "$gn_nid" "$gn_dir"
 }
 
 # --- step 7: one file per cluster ------------------------------------
@@ -1184,7 +1188,7 @@ render_cluster() {
     while IFS="$US" read -r c2 member mdir; do
       [ -n "$member" ] || continue
       if [ -n "$mdir" ]; then
-        printf '| %s | [memory](../../servers/%s/memory.md) |\n' "$member" "$mdir"
+        printf '| %s | [memory](../../machines/%s/memory.md) |\n' "$member" "$mdir"
         md=$(awk -F '\t' -v h="$mdir" '$1 == h { print $7; exit }' "$HOSTS")
         cdate=$(date_max "$cdate" "$md")
       else
@@ -1233,7 +1237,7 @@ render_host() {
 
   hslug=$(slug_sh "$hv")
   write_map_file "$MAPS/hosts/$hslug.md" \
-    "memory/servers/$hv/memory.md and its guests.md" \
+    "memory/machines/$hv/memory.md and its guests.md" \
     "Hypervisor: $hv" "[Index](../README.md) · [WAN](../wan.md)" \
     "$hflow" "$htable"
   HOST_DATE=$(awk -F '\t' -v h="$hv" '$1 == h { print $7; exit }' "$HOSTS")

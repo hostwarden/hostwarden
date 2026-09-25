@@ -43,7 +43,8 @@ move_override() {
 #
 # One line per topic that moved. A topic that only
 # changes directory keeps its file name.
-MAP='mise hostwarden-runtimes.md
+MAP='server-memory machine-memory.md
+mise hostwarden-runtimes.md
 deployment hostwarden-deploy-user.md
 scheduled-housekeeping hostwarden-housekeeping/scheduled.md
 os-replacement hostwarden-os-install/os-replacement.md
@@ -56,6 +57,65 @@ rhel os/rhel.md
 suse os/suse.md
 freebsd os/freebsd.md
 macos os/macos.md'
+
+# This machine's own current name, `localhost` and `127.0.0.1`'s
+# stand-in below and in memory/.gitignore (rules/machine-memory.md).
+hn=$(hostname -s 2>/dev/null || hostname)
+
+# memory/servers/ became memory/machines/ (rules/machine-memory.md).
+# The connection pipeline only ever looks for a host under
+# machines/ (rules/first-connection.md), so a host left behind
+# under the old name looks brand new: the next connection would
+# skip its decisions, overrides and other memory rather than read
+# them. One entry at a time, so a directory already at the new
+# name — already migrated, or a genuinely new host that landed
+# there first — wins and the old one waits for a merge by hand,
+# the same rule move_override uses above. `localhost` and
+# `127.0.0.1` were this machine's own old local-mode name; moved
+# under its real one instead, so a later local connection finds
+# its history rather than starting a second directory for the
+# same machine. Left at the ambient glob setting: this script
+# never disables it, and turning it off after would silently
+# break the heinzel-*.md loop below.
+if [ -d memory/servers ]; then
+  mkdir -p memory/machines
+  for e in memory/servers/* memory/servers/.[!.]*; do
+    { [ -e "$e" ] || [ -L "$e" ]; } || continue
+    o=${e##*/}
+    case $o in
+      localhost | 127.0.0.1) n=$hn ;;
+      *) n=$o ;;
+    esac
+    if [ -e "memory/machines/$n" ] || [ -L "memory/machines/$n" ]; then
+      echo "hostwarden: kept memory/servers/$o — memory/machines/$n exists, merge by hand"
+      continue
+    fi
+    mv "$e" "memory/machines/$n"
+    MOVED="$MOVED\n  memory/servers/$o → memory/machines/$n"
+  done
+  rmdir memory/servers 2>/dev/null || true
+fi
+
+# memory/.gitignore's own /servers/... lines -- the two the
+# template shipped, and any hostname a user added by hand under
+# the old name (rules/machine-memory.md → Personal versus shared)
+# -- still name a path nothing writes under any more once the
+# directories above have moved, so the local machine they meant
+# to keep personal would reach a shared remote unprotected until
+# its next local-mode connection adds the new pattern (which by
+# then may be too late for a commit already made in between). The
+# two literal names move to the real one, the same as the
+# directory itself did above.
+GI=memory/.gitignore
+if [ -f "$GI" ] && grep -q '^/servers/' "$GI"; then
+  sed -i.bak \
+    -e 's#^/servers/#/machines/#' \
+    -e "s#^/machines/localhost/\$#/machines/$hn/#" \
+    -e "s#^/machines/127\\.0\\.0\\.1/\$#/machines/$hn/#" \
+    "$GI"
+  rm -f "$GI.bak"
+  MOVED="$MOVED\n  memory/.gitignore: /servers/... patterns → /machines/..."
+fi
 
 if [ -d memory/custom-rules ]; then
   # memory/custom-rules/heinzel-<skill>.md →
@@ -80,6 +140,24 @@ if [ -d memory/custom-rules ]; then
   done <<EOF
 $MAP
 EOF
+fi
+
+# A shared workspace's own memory/.gitattributes was copied from
+# the template before the servers -> machines rename and still
+# names the old directory, so two machines' changelog additions
+# stop merging as a union and start conflicting
+# (rules/machine-memory.md). hostwarden-init never touches a
+# workspace's existing .gitattributes (only writes one where none
+# exists yet), so nothing else brings this one line forward.
+GA=memory/.gitattributes
+if [ -f "$GA" ] \
+    && grep -qxF '/servers/*/changelog.log merge=union' "$GA" \
+    && ! grep -qxF '/machines/*/changelog.log merge=union' "$GA"; then
+  sed -i.bak \
+    's#^/servers/\*/changelog\.log merge=union$#/machines/*/changelog.log merge=union#' \
+    "$GA"
+  rm -f "$GA.bak"
+  MOVED="$MOVED\n  memory/.gitattributes: servers -> machines changelog merge rule"
 fi
 
 if [ -n "$MOVED" ]; then

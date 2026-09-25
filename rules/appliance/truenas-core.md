@@ -15,7 +15,7 @@ Configuration Model).
 ## Add: Version Detection
 
 - `midclt call system.version` prints e.g. `TrueNAS-13.3-U1.2`.
-- Record in server memory: `Appliance: TrueNAS CORE <version>
+- Record in machine memory: `Appliance: TrueNAS CORE <version>
   (end of life)`.
 
 ## Replace: Package Manager

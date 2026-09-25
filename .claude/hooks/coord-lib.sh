@@ -45,7 +45,7 @@
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
-#       memory/servers/<name> DNS-alias symlink names
+#       memory/machines/<name> DNS-alias symlink names
 #       (rules/dns-aliases.md); failing that, <name> itself,
 #       lowercased. Read-only, and the symlink read touches no
 #       network: it never builds or rebuilds the index and never
@@ -808,8 +808,8 @@ hostwarden_coord_canon() {
     [ -n "$hcc_h" ] && { printf '%s\n' "$hcc_h"; return; }
   fi
   hcc_lc=$(printf '%s' "$hcc_n" | tr '[:upper:]' '[:lower:]')
-  if [ -n "$hcc_root" ] && [ -L "$hcc_root/memory/servers/$hcc_lc" ]; then
-    hcc_l=$(readlink "$hcc_root/memory/servers/$hcc_lc")
+  if [ -n "$hcc_root" ] && [ -L "$hcc_root/memory/machines/$hcc_lc" ]; then
+    hcc_l=$(readlink "$hcc_root/memory/machines/$hcc_lc")
     hcc_l=${hcc_l%/} hcc_l=${hcc_l##*/}
     if [ -n "$hcc_l" ]; then
       printf '%s\n' "$hcc_l" | tr '[:upper:]' '[:lower:]'

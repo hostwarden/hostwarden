@@ -1,7 +1,7 @@
 #!/bin/sh
 # hostwarden-sync — keep the workspace in step with its
 # remote, so a second machine or a teammate sees the same
-# server memory.
+# machine memory.
 #
 # Usage:
 #   hostwarden-sync pull         Bring in the remote's changes,
@@ -97,7 +97,7 @@ upstream() {
 # A rebase, merge, cherry-pick, revert or conflict the user is in
 # the middle of is theirs to finish. Pulling, committing or pushing
 # across it would at best fail, at worst abort their half-resolved
-# work, commit its conflict markers as server memory, or conclude a
+# work, commit its conflict markers as machine memory, or conclude a
 # resolved cherry-pick under the journal headline.
 GITDIR=$(W rev-parse --git-dir 2>/dev/null) || exit 0
 case "$GITDIR" in /*) ;; *) GITDIR="memory/$GITDIR" ;; esac
@@ -134,14 +134,14 @@ pull)
     echo "  date with its remote, and was left as it was:"
     printf '%s\n' "$OUT" | sed 's/^/    /'
     echo "  Resolve it with git -C memory pull before relying on"
-    echo "  server memory another machine may have changed."
+    echo "  machine memory another machine may have changed."
   fi
   ;;
 commit)
   MSG="${2:?Usage: hostwarden-sync commit MESSAGE [PATH...]}"
   shift 2
   # No path means the whole workspace. Named paths are relative
-  # to it: memory/servers/x and servers/x name the same file.
+  # to it: memory/machines/x and machines/x name the same file.
   [ "$#" -gt 0 ] || set -- .
   for p do shift; set -- "$@" "${p#memory/}"; done
   # The maps redraw before anything else is staged, so a map is

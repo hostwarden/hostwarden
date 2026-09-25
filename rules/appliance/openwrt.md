@@ -60,7 +60,7 @@ of the current release branch,
   ```
   cat /etc/openwrt_release; ubus call system board; which apk opkg owut
   ```
-- Record in server memory:
+- Record in machine memory:
   `Appliance: OpenWrt <version> (<target>, <model>)`.
 - Releases, their support status and end-of-life dates:
   <https://openwrt.org/releases/start>, never from memory. A

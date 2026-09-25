@@ -72,7 +72,7 @@ each session in its own git worktree under
 `.claude/worktrees/`. Everything that is yours lives
 in `memory/`, which git ignores — so a worktree has
 no blacklist, no read-only list, no SSH users and no
-server memory, and what the session learns is
+machine memory, and what the session learns is
 deleted with the worktree. Hostwarden therefore
 refuses to reach any machine from a worktree, and a
 session-start hook says so at once. Open the

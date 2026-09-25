@@ -194,8 +194,8 @@ wrote, by name — the files of each host it changed or recorded,
 
 ```
 bin/hostwarden-sync commit "<headline>" \
-  memory/servers/web1.example.com/memory.md \
-  memory/servers/web1.example.com/changelog.log
+  memory/machines/web1.example.com/memory.md \
+  memory/machines/web1.example.com/changelog.log
 ```
 
 Before that, in one call, read `git -C memory diff HEAD -- <paths>`
@@ -214,7 +214,7 @@ both in the message, or to leave it for that session.
 `bin/hostwarden-sync pull` names uncommitted changes it could not
 move past at session start. They belong to another session at
 work, or to one that was deleted or crashed before it committed.
-A file under `memory/servers/<hostname>/` was left behind when
+A file under `memory/machines/<hostname>/` was left behind when
 both hold:
 
 - the host's register, as the activity check lists it, has no live

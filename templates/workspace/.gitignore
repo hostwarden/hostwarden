@@ -1,15 +1,16 @@
 # Personal, never shared — not even when this workspace
-# has a team remote (rules/server-memory.md). Every pattern
+# has a team remote (rules/machine-memory.md). Every pattern
 # starts at the workspace root: unanchored, user.md would
 # match at any depth, and on macOS in any case.
 /user.md
 /opencode.json
 /blacklist.md
 /readonly.md
-# The memory of this machine itself. Add the directory of
-# your own hostname here as well.
-/servers/localhost/
-/servers/127.0.0.1/
+# The memory of this machine itself. Its first local-mode
+# connection adds its own directory here (rules/machine-memory.md);
+# these two only cover a workspace from before that.
+/machines/localhost/
+/machines/127.0.0.1/
 
 .DS_Store
 *.lock

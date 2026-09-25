@@ -22,7 +22,7 @@ user drops it or the host leaves memory.
 ## The window plan
 
 `memory/plans/<slug>.md`
-(`rules/server-memory.md` → Plans that outlive a session), with
+(`rules/machine-memory.md` → Plans that outlive a session), with
 these lines above the steps:
 
     # pve1 kernel update
@@ -73,7 +73,7 @@ hosts, step 2), and write the plan. Nothing runs yet — planning
 only writes memory.
 
 **Memory lines.** The origin hosts get the plan's `Plan:` line
-(`rules/server-memory.md` → Plans that outlive a session). Each
+(`rules/machine-memory.md` → Plans that outlive a session). Each
 affected host gets
 `- Downtime: 2026-10-05 22:00–23:30 (plan pve1-kernel)`, one per
 window that reaches it. Both kinds of line are deleted together
@@ -143,7 +143,7 @@ whose channels and wording are the admin's own call.
   within the ceiling `AGENTS.md` → Talking to Humans gives an email
   body. Its recipient defaults to `Notice email:` under
   `# Preferences` in `memory/user.md` — the user's own address, so
-  they can forward it — never a per-server `Alert email:`, and never
+  they can forward it — never a per-machine `Alert email:`, and never
   an end user's address (`rules/secrets.md` and personal data both
   argue against writing one down). Missing, it is asked once and
   written there, the way `rules/ssh-user.md` → Operator records a
@@ -198,13 +198,13 @@ records it as one line:
   reads `unknown`.
 - **Who writes it:** `hostwarden-housekeeping` owns the line's
   wording and the probes behind it
-  (`rules/server-memory.md` → Who writes which line), the way it
+  (`rules/machine-memory.md` → Who writes which line), the way it
   owns `Backup:` although onboarding writes that one first too.
   `hostwarden-onboard` writes `Auto restarts:` first, at the first
   connection; `hostwarden-housekeeping` refreshes it at every run
   after that, from the probes above plus the boot history, the way
   it refreshes `USB:`, `Passthrough:` and `Backup:`
-  (`rules/server-memory.md` → Onboarded and stale lines). The fleet
+  (`rules/machine-memory.md` → Onboarded and stale lines). The fleet
   audit's own auto-reboot probe
   (`.agents/skills/hostwarden-fleet-audit/references/probes.md` →
   Auto-reboot behaviour) reads and compares the same settings across

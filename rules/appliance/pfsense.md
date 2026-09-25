@@ -25,7 +25,7 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   `YY.MM` (e.g. `26.07`). The two differ in upgrade path and
   features, above all Boot Environments (Plus only).
 - FreeBSD base: `uname -mrs`.
-- Record in server memory: `Appliance: pfSense CE <version>` or
+- Record in machine memory: `Appliance: pfSense CE <version>` or
   `Appliance: pfSense Plus <version>`.
 
 ## Access and Shell
@@ -257,7 +257,7 @@ reason to ask them to add either.
   created under System > REST API > Keys. File `restapi-write`, sent
   as `X-API-Key: <key>` — never `Authorization: Bearer`, which the
   package reserves for a JWT from its separate username/password
-  exchange — and never on the command line. Record in server memory
+  exchange — and never on the command line. Record in machine memory
   (`rules/appliance-api.md` → Access levels):
   ```
   API write (DNS host overrides): <user> (<role>), ~/hostwarden-keys/<host>/restapi-write

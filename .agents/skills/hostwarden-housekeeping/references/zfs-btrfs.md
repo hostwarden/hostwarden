@@ -5,7 +5,7 @@ in memory names either (`rules/storage-inventory.md` →
 Detection). The
 inventory from that file runs in one call with the health reads
 below; health is read fresh, and settings are compared with
-`memory/servers/<hostname>/storage.md` and rated.
+`memory/machines/<hostname>/storage.md` and rated.
 
 An appliance's `## Housekeeping and Audits` section owns each
 health check it runs itself, and that check is skipped below:

@@ -11,7 +11,7 @@ through fleet read, never with a shell.
 ## What it holds
 
 **Its own personal files.** `memory/user.md`, `memory/blacklist.md`
-and `memory/readonly.md` never sync (`rules/server-memory.md` →
+and `memory/readonly.md` never sync (`rules/machine-memory.md` →
 Personal versus shared), so the operations host has its own. Its
 `user.md` carries:
 

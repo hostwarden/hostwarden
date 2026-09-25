@@ -14,7 +14,7 @@ else in the report.
 ## Step 0 — Check Memory First
 
 Look for a `Backup:` line in
-`memory/servers/<hostname>/memory.md`:
+`memory/machines/<hostname>/memory.md`:
 
 - **Names a detectable mechanism** (e.g.
   `- Backup: restic via systemd timer`): skip

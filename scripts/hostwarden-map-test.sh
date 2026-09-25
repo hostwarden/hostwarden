@@ -40,18 +40,18 @@ cp "$REPO/.claude/hooks/mode.sh" "$R/.claude/hooks/"
 cp "$REPO/VERSION" "$R/VERSION"
 git -C "$R" init --quiet
 M="$R/memory"
-mkdir -p "$M/servers" "$M/clusters/prod"
+mkdir -p "$M/machines" "$M/clusters/prod"
 : >"$M/.hostwarden-workspace"
 
 # server <name> <lines> — a memory.md with the lines given, plus a
 # fresh Onboarded:/Housekeeping: pair unless the lines already carry
 # their own.
 server() {
-  mkdir -p "$M/servers/$1"
+  mkdir -p "$M/machines/$1"
   {
     echo "# $1"
     printf '%s\n' "$2"
-  } >"$M/servers/$1/memory.md"
+  } >"$M/machines/$1/memory.md"
 }
 
 cat >"$M/topology.md" <<EOF
@@ -116,7 +116,7 @@ server pve1.example.com "- IP: 192.0.2.5
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
 
-cat >"$M/servers/pve1.example.com/guests.md" <<EOF
+cat >"$M/machines/pve1.example.com/guests.md" <<EOF
 # Guests on pve1.example.com
 
 - Inventoried: $FRESH
@@ -144,7 +144,7 @@ server pve3.example.com "- IP: 198.51.100.20
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
 
-cat >"$M/servers/pve3.example.com/guests.md" <<EOF
+cat >"$M/machines/pve3.example.com/guests.md" <<EOF
 # Guests on pve3.example.com
 
 - Inventoried: $FRESH
@@ -174,7 +174,7 @@ server udm1.example.com "- IP: 192.0.2.41
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
 
-# Personal, never shared -- rules/server-memory.md → Personal versus
+# Personal, never shared -- rules/machine-memory.md → Personal versus
 # shared, rules/network-topology.md → Excluded from the store.
 server localhost "- IP: 127.0.0.1
 - Role: workstation (inferred: macOS)
@@ -183,6 +183,15 @@ server localhost "- IP: 127.0.0.1
 server laptop.example.com "- IP: 192.0.2.99
 - Site: home (user)
 - Role: workstation (inferred: macOS)
+- Onboarded: $FRESH
+- Housekeeping: $FRESH"
+# Its own name resolved (rules/machine-memory.md), and a Role: the
+# user set to server, the way a Mac mini a team builds on would be
+# (rules/first-detection.md → Roles) -- Mode: local is what has to
+# keep it off the map, since Role: no longer will.
+server buildbox.example.com "- IP: 192.0.2.98
+- Mode: local
+- Role: server (user)
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
 
@@ -344,6 +353,8 @@ lacks "$WAN" 'localhost' \
   "the localhost directory .gitignore always excludes never reaches a map"
 lacks "$WAN" 'laptop' \
   "a Role: workstation host is personal and never reaches a map, whatever it is named"
+lacks "$WAN" 'buildbox' \
+  "a Mode: local host is personal and never reaches a map, even with Role: server"
 haspart "$WAN" 'h_ck1_example_com("ck1.example.com<br/>UniFi OS 5.1.2, Cloud Key ")' \
   "a Cloud Key is neither guessed as a router nor as a plain host's storage: it falls to the host default"
 has "$WAN" '    class h_ck1_example_com host' \
@@ -407,7 +418,7 @@ n=$(grep -c 'g_301_onpve10(' "$PROD")
 # --- Hypervisor: a container guest, and its own click link ---------
 PVE3="$MAPS/hosts/pve3.example.com.md"
 haspart "$PVE3" 'g_201_app1[["201 app1<br/>running"]]' "app1, a container, draws as a subroutine shape"
-haspart "$PVE3" 'click g_201_app1 "../../servers/app1.example.com/memory.md"' \
+haspart "$PVE3" 'click g_201_app1 "../../machines/app1.example.com/memory.md"' \
   "app1's own memory is one click away, resolved through guests.md's → link"
 haspart "$PVE3" 'g_web_web[["web web<br/>running"]]' \
   "a jail is named, not numbered: its one token is both id and name, not the whole rest of the line"
@@ -480,7 +491,7 @@ awk -v light=1 '
 ' "$MAPS/wan.md" && ok || bad "the palette failed its own contrast rule"
 
 # --- a hypervisor removed from memory loses its stale map ----------
-rm -rf "$M/servers/pve3.example.com" "$M/servers/app1.example.com"
+rm -rf "$M/machines/pve3.example.com" "$M/machines/app1.example.com"
 ( cd "$R" && sh bin/hostwarden-map ) || bad "third run exited non-zero"
 absent "$MAPS/hosts/pve3.example.com.md" \
   "pve3 is gone from memory; its old map is not left behind as though it were still current"
@@ -510,7 +521,7 @@ cp "$REPO/.claude/hooks/mode.sh" "$R2/.claude/hooks/"
 cp "$REPO/VERSION" "$R2/VERSION"
 git -C "$R2" init --quiet
 M2="$R2/memory"
-mkdir -p "$M2/servers/a1.example.com" "$M2/servers/b1.example.com"
+mkdir -p "$M2/machines/a1.example.com" "$M2/machines/b1.example.com"
 : >"$M2/.hostwarden-workspace"
 cat >"$M2/topology.md" <<EOF
 ## Sites
@@ -524,14 +535,14 @@ EOF
 - Site: alpha (user)
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
-} >"$M2/servers/a1.example.com/memory.md"
+} >"$M2/machines/a1.example.com/memory.md"
 {
   echo "# b1.example.com"
   printf '%s\n' "- IP: 10.2.0.1
 - Site: beta (user)
 - Onboarded: $FRESH
 - Housekeeping: $FRESH"
-} >"$M2/servers/b1.example.com/memory.md"
+} >"$M2/machines/b1.example.com/memory.md"
 ( cd "$R2" && sh bin/hostwarden-map ) >"$TMP/repo2.out" 2>"$TMP/repo2.err"
 rc2=$?
 [ "$rc2" -eq 0 ] && ok || bad "a workspace with sites but zero WAN Topology entries must not fail the run"

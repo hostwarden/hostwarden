@@ -77,7 +77,7 @@ is QNAP's own.
   `Model: <model>` from what the user reads under Control Panel >
   System > System Status, or from the login page; the release notes
   and the Download Center are per model (see Updates).
-- Record in server memory: `Appliance: QTS <version>` or
+- Record in machine memory: `Appliance: QTS <version>` or
   `Appliance: QuTS hero <version>`, with the version joined as
   above. The step-1 `df -h /` shows the RAM root, not the NAS's
   storage: record the disk capacity from the volume `df` loop and

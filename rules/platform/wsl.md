@@ -36,7 +36,7 @@ The role is inferred as `workstation` (`rules/first-detection.md`
 
 The instance takes the Windows hostname unless `/etc/wsl.conf`
 sets another, and every distribution on that Windows machine
-shares it. `rules/server-memory.md` names the memory directory
+shares it. `rules/machine-memory.md` names the memory directory
 for this case.
 
 ## Windows programs
@@ -47,7 +47,7 @@ directory. Every `/mnt/` path in this file means that
 directory.
 
 This file calls `wsl.exe`, `powershell.exe` and `netsh.exe`
-through interop, and `rules/server-memory.md` calls
+through interop, and `rules/machine-memory.md` calls
 `hostname.exe`. `command -v <name>` finds each while the
 Windows `PATH` is appended to the Linux one. Where
 `appendWindowsPath=false` under `[interop]` keeps it out, call
@@ -65,7 +65,7 @@ interop from inside the instance, gives root without a
 password. Hostwarden may use it the way it uses passwordless
 sudo (`rules/privilege-escalation.md` → Stand-ins for sudo).
 Always with `-d` and the distribution from memory, the name
-`rules/server-memory.md` records for the memory directory:
+`rules/machine-memory.md` records for the memory directory:
 without it, `wsl.exe` starts the default distribution, which
 need not be this one.
 

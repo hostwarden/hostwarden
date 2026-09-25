@@ -34,7 +34,7 @@ Hostwarden connects through one of two SSH apps:
   one with `sudo`. `docker` works only when the user has turned
   protection mode off.
 
-Record which one in server memory
+Record which one in machine memory
 (`Appliance: Home Assistant OS <version>, via <app name>`).
 
 The HAOS host has its own SSH on port 22222, dropbear as root. It is

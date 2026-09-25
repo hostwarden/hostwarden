@@ -59,7 +59,7 @@ policy refused the login, unless the line is stale
 one).
 
 A refused login ends before OS detection, which
-loads the appliance file. When server memory has an
+loads the appliance file. When machine memory has an
 `Appliance:` line, read that file's section on access
 in `rules/appliance/` and name the causes it lists as
 ones for the user to check, never as what happened.
@@ -82,7 +82,7 @@ block alive.
 3. Never try another port in its place
    (`rules/ssh-config.md` → Finding the Port).
 
-An `Access:` line in server memory that names a second
+An `Access:` line in machine memory that names a second
 path which worked (`rules/ssh-safety-net.md` → Which way
 in): try that path once too, then stop.
 

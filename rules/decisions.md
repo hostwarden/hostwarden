@@ -39,7 +39,7 @@ One file per scope, one `##` entry per decision:
 
 | Scope | File |
 | --- | --- |
-| One host | `memory/servers/<hostname>/decisions.md` |
+| One host | `memory/machines/<hostname>/decisions.md` |
 | A cluster or pool | `memory/clusters/<name>/decisions.md` |
 | A group, or every host | `memory/decisions/<name>.md` |
 
@@ -54,9 +54,9 @@ line, `Applies to:`, with exactly one of:
   has that field with a value that begins with the one given,
   ignoring case: `Appliance: Proxmox VE`, `Appliance: UniFi OS`,
   `Role: workstation`, `OS: Debian`. Any field
-  `rules/server-memory.md` → Who writes which line lists.
+  `rules/machine-memory.md` → Who writes which line lists.
 - `Applies to: hosts <name>, <name>, …` — the hosts named, by
-  their directory under `memory/servers/`: a site, or any set no
+  their directory under `memory/machines/`: a site, or any set no
   field describes.
 
 The `Applies to:` line is one line however long, the one line in
@@ -97,7 +97,7 @@ Applies to: Appliance: Proxmox VE
 
 - **The heading** names the decision and is its identifier, with
   the file's path below `memory/` after it:
-  `No local firewall (servers/pve1.example.com/decisions.md)`.
+  `No local firewall (machines/pve1.example.com/decisions.md)`.
 - **`Decided:`** who and when. Who is `<operator>`
   (`rules/ssh-user.md` → Operator). A decision carried over from
   Heinzel names the operator who carries it over and keeps the
@@ -132,7 +132,7 @@ The file lives beside the decision file it belongs to, in a
 directory of the same name without `.md`, and is named after the
 heading:
 
-- `servers/<hostname>/decisions/<slug>.md` for a host's,
+- `machines/<hostname>/decisions/<slug>.md` for a host's,
 - `clusters/<name>/decisions/<slug>.md` for a cluster's,
 - `decisions/<name>/<slug>.md` for a group's.
 
@@ -267,6 +267,6 @@ Only on the user's word, never because a date passed.
 ## Shared workspace
 
 Decision files are shared, like the rest of a host's memory
-(`rules/server-memory.md` → Personal versus shared). A decision
+(`rules/machine-memory.md` → Personal versus shared). A decision
 another person made binds this session as the user's own does;
 `Decided:` names whose it was.

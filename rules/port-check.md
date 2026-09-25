@@ -143,11 +143,11 @@ processes owned by other users.
 Proceed with the deployment. No action needed
 beyond logging.
 
-## Server Memory
+## Machine Memory
 
 After a service is successfully started and
 listening, update
-`memory/servers/<hostname>/memory.md` with:
+`memory/machines/<hostname>/memory.md` with:
 
 ```markdown
 - <App name>: port <N> (<tcp/udp>, <bind address>)

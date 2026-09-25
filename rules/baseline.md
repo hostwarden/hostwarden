@@ -13,7 +13,7 @@ read wherever a server is judged or built:
 
 The user's additions and changes are an override
 (`rules/overrides.md`): `memory/custom-rules/baseline.md`, and a
-`# baseline` block in `memory/servers/<hostname>/rules.md` for one
+`# baseline` block in `memory/machines/<hostname>/rules.md` for one
 host. Read both before acting on this file. An override of *what*
 is expected goes there; one of *how* a check runs goes to that
 check's own file. A section a host is meant to go without is a

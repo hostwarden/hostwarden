@@ -45,7 +45,7 @@ the passthrough inventory of the housekeeping skill
 manager, an ID or a name is unique only within its manager: each
 entry then starts with its manager (`incus: prod/web`), and
 `Runs on:`, the link and a second directory of one hostname
-(`rules/server-memory.md`) carry it too. Per-guest commands go
+(`rules/machine-memory.md`) carry it too. Per-guest commands go
 into one
 bundled call (`rules/ssh-connections.md`). On an appliance, its
 file's **Inventory** entry gives every command, and nothing below
@@ -209,7 +209,7 @@ inventory, and used right after it only for Registering Guests.
 
 ## guests.md
 
-The inventory lives in `memory/servers/<host>/guests.md`, one
+The inventory lives in `memory/machines/<host>/guests.md`, one
 entry per guest, whether or not the guest has a memory directory
 of its own (Registering Guests below).
 
@@ -313,7 +313,7 @@ The cluster's `deployed.md` then holds the one entry for that path,
 and every member's entry for it is removed, whichever master it
 named; a member's master that differs from the one moved goes to
 that member's `notes/`, named in the changelog entry of the move
-(`rules/server-memory.md` → Notes and evidence).
+(`rules/machine-memory.md` → Notes and evidence).
 
 **Once per cluster.** Inventory → When applies to the cluster,
 not the member: the first connection is the first to any member,
@@ -443,11 +443,11 @@ one line (*"Registering 7 guests of pve1.example.com through
    missing keys and a `- FQDN:` it lacks. Where its keys
    differ, this is a second server of that name, and its
    directory is named as
-   `rules/server-memory.md` says for two guests of one hostname
+   `rules/machine-memory.md` says for two guests of one hostname
    (`web-pve1-105`). Where the existing directory has neither
    keys nor a matching `IP:`, ask the user before writing
    anything.
-4. Write `memory.md` as `rules/server-memory.md` says, with
+4. Write `memory.md` as `rules/machine-memory.md` says, with
    `Runs on:`, `Guest identity:` and
    `- SSH: untested (registered through pve1.example.com)`. Its
    first own connection adds the SSH user and the DNS check, and
@@ -572,7 +572,7 @@ keeps a guest's host and ID: via-host mode reads both from it
 guest gone from its host rewrites this line alone.
 
 Look for them with one `grep -i` over
-`memory/servers/*/guests.md` and `memory/clusters/*/guests.md`. A
+`memory/machines/*/guests.md` and `memory/clusters/*/guests.md`. A
 match links both, a jail's as its bullet above says: `Runs on:`
 here, `→ <this directory>` in that entry. A match in a cluster's
 file names the cluster and the member, which stays true through a
@@ -600,7 +600,7 @@ Where that host is a cluster member, either one is written in the
 cluster form.
 
 **On the host,** for the guests without a `→`, one `grep` over
-the `Guest identity:` lines of `memory/servers/*/memory.md`. A
+the `Guest identity:` lines of `memory/machines/*/memory.md`. A
 match links both. Without one, a guest whose agent-reported name
 or IP address matches a memory directory's hostname or `IP:` line
 is only a hint: `→ probably <directory>`, confirmed or dropped

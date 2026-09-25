@@ -59,7 +59,7 @@ servers, one internal and one public. Both are recorded view by view.
 ## The inventory
 
 `memory/dns.md`, created on first need, shared in a shared
-workspace (`rules/server-memory.md` → Personal versus shared). Current facts
+workspace (`rules/machine-memory.md` → Personal versus shared). Current facts
 only, one line per name space, in the shape of `memory/network.md`'s
 entries, and a findings section:
 
@@ -153,7 +153,7 @@ the same edit.
 
 **Staleness.** An answer or a proposal that rests on a line whose
 newest `from:` date is over 90 days old says so, with its age and the
-run that refreshes it, in the form `rules/server-memory.md` →
+run that refreshes it, in the form `rules/machine-memory.md` →
 Onboarded and stale lines gives; one that has to be right reads the
 server again first.
 

@@ -231,7 +231,7 @@ protection there.
   decided instead of proposing it again.
 - **Every file Hostwarden deploys has a master in the workspace.** A
   script, unit, cron file or config drop-in it writes onto a server is
-  kept at the same path under `memory/servers/<host>/files/`, or under
+  kept at the same path under `memory/machines/<host>/files/`, or under
   `memory/fleet/` when several hosts share it, with its hash in
   `deployed.md`. Housekeeping reports a file edited on the host,
   removed there, or changed in the workspace without being deployed,
@@ -379,7 +379,7 @@ protection there.
   not reported twice. Nothing is updated, pruned or restarted.
 - **Disks and pools are known and watched.** On bare metal, each disk
   is recorded once with model, serial and firmware in
-  `memory/servers/<host>/storage.md`. Housekeeping reads SMART on every
+  `memory/machines/<host>/storage.md`. Housekeeping reads SMART on every
   bare-metal Linux and FreeBSD host and says when a disk appears,
   disappears or its error counts grow. A missing `smartctl` is reported
   as "not checked", not as healthy. ZFS pools and btrfs have their
@@ -547,7 +547,7 @@ protection there.
 - **A hypervisor's guests are inventoried and registered.** On Proxmox
   VE, XCP-ng, libvirt, Incus, LXD, LXC, bhyve, Hyper-V, VirtualBox and
   FreeBSD jails, Hostwarden lists every guest in
-  `memory/servers/<host>/guests.md`, stopped ones and templates
+  `memory/machines/<host>/guests.md`, stopped ones and templates
   included. It asks once why stopped guests are off. Each running guest
   the hypervisor can enter gets memory of its own, read-only, and a
   report says what was read, written and left out. Guests on TrueNAS,
@@ -585,7 +585,7 @@ protection there.
 - **A Heinzel installation can be taken over.**
   `/hostwarden-heinzel-takeover <path>`, or "take my Heinzel in ~/heinzel
   over", copies the access lists, overrides, host keys and every
-  server's memory into the workspace, merges `user.md` line by line and
+  machine's memory into the workspace, merges `user.md` line by line and
   sorts the rest of the old `memory/` with one question. It can run
   host by host. The copies Heinzel kept of files it deployed are
   rebuilt as masters, and a file holding credentials stays behind. It

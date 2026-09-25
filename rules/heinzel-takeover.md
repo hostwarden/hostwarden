@@ -71,7 +71,7 @@ Use the retention window that is actually configured
 for this host, not the default. If the user wants the
 old ones kept, take over the rest and leave those, or
 raise the window in
-`memory/servers/<hostname>/rules.md`.
+`memory/machines/<hostname>/rules.md`.
 
 ## Not while Heinzel is still in use
 
@@ -198,7 +198,7 @@ they are what is true now.
 ## Record
 
 Confirmed artifacts become facts of this host in
-`memory/servers/<hostname>/memory.md`, with the path
+`memory/machines/<hostname>/memory.md`, with the path
 as it is:
 
 ```markdown
@@ -254,12 +254,12 @@ logger -t hostwarden "[<operator> as <unix-user>] Renamed heinzel artifacts: \
 A host taken over from Heinzel
 (`hostwarden-heinzel-takeover`) arrives with
 Heinzel's `memory.md` as
-`memory/servers/<hostname>/heinzel-memory.md` and no
+`memory/machines/<hostname>/heinzel-memory.md` and no
 `memory.md`. Its first connection — the takeover's
 onboarding, or whichever session reaches it first —
 is a first connection in every step of
 `rules/first-connection.md`, and writes `memory.md`
-in the form of `rules/server-memory.md`. A guest
+in the form of `rules/machine-memory.md`. A guest
 registered through its host (`rules/hypervisors.md`
 → Registering Guests) is written the same way, its
 network profile read inside it through the host in
@@ -279,7 +279,7 @@ Write `memory.md` from these sources, and only
 these:
 
 1. **What this connection probed** — every field
-   `rules/server-memory.md` lists, and on a
+   `rules/machine-memory.md` lists, and on a
    hypervisor what `rules/hypervisors.md` adds, and
    `FQDN:` from the activity check's call. A
    value Heinzel remembered is never written in
@@ -349,7 +349,7 @@ History is not carried: incidents, what was done
 when, versions that were current then, how a problem
 was solved. `changelog.log` has it, and the
 workspace's history has the prose. The ~30 lines of
-`rules/server-memory.md` hold: what does not fit and
+`rules/machine-memory.md` hold: what does not fit and
 is not standing is history.
 
 Two kinds of fact have another place:
@@ -364,8 +364,8 @@ Two kinds of fact have another place:
   gateway, a VPN subnet, the backup target on
   another host, which UPS powers the machine, a
   controller's address. They go to
-  `memory/network.md` (`rules/server-memory.md` →
-  Cross-server facts) once this connection or the
+  `memory/network.md` (`rules/machine-memory.md` →
+  Cross-machine facts) once this connection or the
   user confirms them; an unconfirmed one is named in
   the report and not recorded.
 
@@ -490,7 +490,7 @@ entry:
   (`rules/heinzel-legacy.md` → Detect).
 
 This connection's changelog entry names each note
-these write, which keeps it (`rules/server-memory.md`
+these write, which keeps it (`rules/machine-memory.md`
 → Notes and evidence).
 
 A file Heinzel wrote carries no marker; it gets one,

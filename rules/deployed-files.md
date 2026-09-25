@@ -34,13 +34,13 @@ do not:
 
 ## Where the master lives
 
-**`memory/servers/<host>/files/`** mirrors the host's paths, so a
+**`memory/machines/<host>/files/`** mirrors the host's paths, so a
 master's place follows from where it goes:
 `/usr/local/bin/backup-usb-watch` has its master at
 `files/usr/local/bin/backup-usb-watch`. It holds exactly the bytes
 the host should have.
 
-**`memory/servers/<host>/src/<name>/`** holds what is not such a
+**`memory/machines/<host>/src/<name>/`** holds what is not such a
 copy: a generator and its inputs, an upstream file and the patches
 against it, a payload sent to an API. A `README.md` there says what
 it produces, the command that renders it into `files/`, or where it
@@ -54,7 +54,7 @@ it is deployed. A host that needs a variant has it under its own
 `files/` at the same path, which wins, and the `README.md` names
 that host and why. Which hosts carry the artifact is in their
 `deployed.md`, never in a list beside it:
-`grep -l fleet/<name> memory/servers/*/deployed.md`.
+`grep -l fleet/<name> memory/machines/*/deployed.md`.
 
 **`memory/clusters/<name>/files/`** does the same for the members
 of a cluster. A file in the cluster's shared file system —
@@ -69,13 +69,13 @@ deployed file:
 # Deployed files on web1.example.com
 
 - /usr/local/bin/backup-usb-watch
-  servers/web1.example.com, 755 root:root, 2026-09-14
+  machines/web1.example.com, 755 root:root, 2026-09-14
   sha256 98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4
 - /etc/needrestart/conf.d/50-no-guest-restart.conf
   fleet/needrestart, 644 root:root, 2026-09-14
   sha256 2d7f3c0b8e4d5a61f9c1b0e7a3d6c85f4e2b1a09d8c7f6e5a4b3c2d1e0f9a8b7
 - /etc/app/app.conf
-  servers/web1.example.com, 600 root:root, 2026-09-20,
+  machines/web1.example.com, 600 root:root, 2026-09-20,
   secret-inline
   sha256 5e1f0a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7
 ```
@@ -95,7 +95,7 @@ before its host has shown what it carries:
 
 ```markdown
 - /usr/local/bin/heinzel-backup.sh
-  servers/web1.example.com, taken over 2026-09-20
+  machines/web1.example.com, taken over 2026-09-20
   sha256 unverified
 ```
 
@@ -139,12 +139,12 @@ format needs first (a shebang, `<?xml …?>`, `<?php`):
 
 ```
 # Master copy: Hostwarden workspace,
-# servers/web1.example.com/files/usr/local/bin/backup-usb-watch.
+# machines/web1.example.com/files/usr/local/bin/backup-usb-watch.
 # Edits here are kept and reported, not overwritten.
 ```
 
 The path is relative to the workspace and names the master itself:
-`servers/<host>/files/…`, `fleet/<name>/files/…` or
+`machines/<host>/files/…`, `fleet/<name>/files/…` or
 `clusters/<name>/files/…`.
 
 The wording is deliberate. It tells a colleague on the host where

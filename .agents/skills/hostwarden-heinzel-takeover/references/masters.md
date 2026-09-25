@@ -14,7 +14,7 @@ Heinzel's copies).
 ## What to look at
 
 - In each host directory of step 6's set, every entry that
-  `rules/server-memory.md` does not name for a host directory. A
+  `rules/machine-memory.md` does not name for a host directory. A
   kept host's are read in the old checkout, like its leads.
 - The `not copied:` entries of step 4 that hold such files, copied
   out of the old checkout by this pass.
@@ -45,7 +45,7 @@ comments and the file itself.
     that take those hosts over later (Recording, below), while
     membership stays in each host's `deployed.md`.
   - Otherwise, a file in a cluster's shared file system included:
-    the host directory it came in, `servers/<host>/files/`.
+    the host directory it came in, `machines/<host>/files/`.
     `rules/hypervisors.md` → Clusters and Pools moves a cluster's
     file once the onboarding finds the cluster.
 
@@ -72,12 +72,12 @@ comments and the file itself.
   rewritten.
 - **An open plan that spans sessions** — a document with phases
   or decisions, not the one-line note step 4 sorts:
-  `memory/plans/<slug>.md` (`rules/server-memory.md` → Plans that
+  `memory/plans/<slug>.md` (`rules/machine-memory.md` → Plans that
   outlive a session). A host not onboarded yet carries its
   `- Plan:` line under `## Facts` in its inventory
   (`references/inventory.md`).
 - **Evidence** — an export, a snapshot, probe output kept on
-  purpose: the host's `notes/` (`rules/server-memory.md` → Notes
+  purpose: the host's `notes/` (`rules/machine-memory.md` → Notes
   and evidence), dated by the changelog entry that made it, else
   by the old file's modification date.
 - **History, credentials and anything else** — an incident
@@ -104,7 +104,7 @@ copy that does not become the master goes to the host's `notes/`
 as a superseded copy (`rules/heinzel-takeover.md` → Heinzel's
 copies), never dropped.
 
-A note that nothing points to is deleted (`rules/server-memory.md`
+A note that nothing points to is deleted (`rules/machine-memory.md`
 → Notes and evidence), so each note this pass writes gets a line
 where the host's first connection finds it: under `## Facts` in
 its inventory, or in its `memory.md` where it has one —
@@ -139,5 +139,5 @@ workspace:
 web1.example.com — 4 masters placed, 1 tool, 2 notes; unverified
   until its first connection
 left in the old checkout: 1 file with credentials
-  (servers/web1.example.com/configs/app.env), 3 of history
+  (machines/web1.example.com/configs/app.env), 3 of history
 ```

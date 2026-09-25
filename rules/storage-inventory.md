@@ -7,7 +7,7 @@ was told is safe really is (`sync`), how much RAM the pool needs
 still read it (feature flags). None of that shows in `df`, and
 neither does which disk is which when one of them fails. So a
 host records its disks and those settings once, in
-`memory/servers/<hostname>/storage.md`, and housekeeping compares
+`memory/machines/<hostname>/storage.md`, and housekeeping compares
 the host against that record
 (`.agents/skills/hostwarden-housekeeping/references/zfs-btrfs.md`,
 `references/smart.md` and `references/storage-maintenance.md`

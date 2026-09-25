@@ -57,7 +57,7 @@ not have: assume nothing beyond it.
    (`rules/changelog.md`). In `read` and `skill`, what the task
    found goes in the answer and nowhere else unless the skill
    itself writes it to memory. Write only under
-   `memory/servers/<host>/`: what a rule would write to a shared
+   `memory/machines/<host>/`: what a rule would write to a shared
    file — `memory/network.md`, `memory/known_hosts`, a master under
    `memory/clusters/` — comes back under `shared:` instead. Commit
    nothing.

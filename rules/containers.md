@@ -7,7 +7,7 @@ hold the checks and their findings; this file holds how to reach
 the containers.
 
 **The appliance file comes first.** Where the host's appliance file
-(`Appliance:` in server memory) names the engine's binary, says that
+(`Appliance:` in machine memory) names the engine's binary, says that
 a web UI owns the containers, or says that a check does not apply,
 it wins over this file. Such a UI owns every container it created:
 Unraid's Docker tab, TrueNAS Apps, Home Assistant's Supervisor, and
@@ -36,7 +36,7 @@ Out of scope here:
 ## Detect the Runtime
 
 In one call (`rules/ssh-connections.md` → Bundle commands). Where
-server memory's `Container runtime:` line already names the engine,
+machine memory's `Container runtime:` line already names the engine,
 only the `ps` and `ls` lines run, to keep its owners current:
 
 ```bash
@@ -97,7 +97,7 @@ nerdctl namespace ls
 nerdctl --namespace <ns> ps -a
 ```
 
-Record the runtime in server memory as `rules/service-class-check.md`
+Record the runtime in machine memory as `rules/service-class-check.md`
 shows, with the rootless owners, and keep that list current.
 
 ## List and Inspect
@@ -146,7 +146,7 @@ the change is lost at the next recreate.
 
 - **A web UI** (see the appliance file above, or CasaOS): the UI's
   own records and files. Hand the change to the user as UI steps.
-- **Configuration management:** where server memory's
+- **Configuration management:** where machine memory's
   `Config management:` line covers the containers, the tool's code
   defines them, whatever file it renders on the host
   (`rules/config-management-changes.md` → What it changes).

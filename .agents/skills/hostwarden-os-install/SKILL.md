@@ -64,7 +64,7 @@ device unbootable. That is every host whose appliance file says
 (`rules/first-detection.md` → Appliances), and a machine that boots
 from on-board flash without EFI or BIOS. For a host that is not
 `Hardware: vendor`, read the device first, in one call, and record
-it in server memory as `Device: <vendor> <model>, EFI|no EFI`:
+it in machine memory as `Device: <vendor> <model>, EFI|no EFI`:
 
 ```
 cat /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/product_name
@@ -129,7 +129,7 @@ the user to type at a console, not for Hostwarden to run.
 
 ## Naming a target with no memory yet
 
-Only where the target has no `memory/servers/<hostname>/` directory
+Only where the target has no `memory/machines/<hostname>/` directory
 yet — bare-metal hardware, or an already-provisioned VM that has
 not booted. Never a reinstall of a host already in memory: its name
 and `Site:` stand as they are, untouched by the wipe
@@ -139,7 +139,7 @@ Settle this before this session's first connection to the target at
 all, never merely before the disk write. The pipeline of
 `rules/first-connection.md` runs before any command over SSH, a
 read-only one included (`AGENTS.md` → Before Any Remote Command),
-and creates `memory/servers/<hostname>/` on that first command
+and creates `memory/machines/<hostname>/` on that first command
 (step 6): reaching a rescue or minimal environment to inspect the
 target, or to prepare a hot-migration
 (`references/os-replacement-ssh-only.md`), takes away its "no
@@ -180,7 +180,7 @@ gives and confirm it or take a typed name instead, exactly as
 describes for `hostwarden-new-guest`. Whichever name is settled,
 proposed or typed, passes the same checks `hostwarden-new-guest` →
 The request applies before creating anything: no directory of that
-name already under `memory/servers/`, no guest of that name in a
+name already under `memory/machines/`, no guest of that name in a
 host's `guests.md`, and neither the name nor a static address on
 the blacklist or the read-only list (`rules/access-control.md`).
 Where no block applies, the user's own hostname stands, checked the
@@ -233,7 +233,7 @@ The pipeline in `rules/first-connection.md` runs before the first
 remote command here, like everywhere else. Beyond that:
 
 - `memory/custom-rules/hostwarden-os-install.md` and
-  `memory/servers/<hostname>/rules.md` — the override chain for
+  `memory/machines/<hostname>/rules.md` — the override chain for
   this skill, read before the work starts (later wins).
 - `rules/backups.md` — the backup that gate step 3 verifies.
 - `rules/secrets.md` — host keys and credentials recovered from
@@ -246,7 +246,7 @@ remote command here, like everywhere else. Beyond that:
   trusts, such as the installer or rescue system that built the
   new root filesystem; where there is none, Getting a Key,
   source 3 covers a host this run reinstalled.
-- `rules/server-memory.md` — the host's memory file describes a
+- `rules/machine-memory.md` — the host's memory file describes a
   machine that is about to stop existing. Capture the inventory
   before the wipe, and rewrite memory after.
 - `rules/changelog.md` — a replacement is the single largest entry
@@ -262,7 +262,7 @@ not yet a machine that survives a reboot.
 Where Naming a target with no memory yet held a `Site:`, this
 session's first connection to the target — rescue environment or
 new OS, whichever comes first — writes the held answer in as it
-creates the `memory/servers/` entry (`rules/first-connection.md`
+creates the `memory/machines/` entry (`rules/first-connection.md`
 step 6). A first connection from a later session has no record of
 it; see Naming a target with no memory yet for what that means. For
 a host that already had one, `references/os-replacement.md` →

@@ -97,7 +97,7 @@ anything is installed. Check with `apk policy <package>` which
 repository each version comes from.
 
 A package from testing receives no security support. Record it in
-server memory:
+machine memory:
 
 ```markdown
 - apk-tagged: <package>@testing (reason: <why stable was

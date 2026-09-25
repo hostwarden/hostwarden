@@ -175,7 +175,7 @@ Severities as in `references/report-format.md`:
 
 The first time a UPS turns up on a host, ask the user once which
 other machines it powers, and record the answer in
-`memory/network.md` (`rules/server-memory.md` → Cross-server
+`memory/network.md` (`rules/machine-memory.md` → Cross-machine
 facts). A scheduled run has nobody to ask
 (`references/scheduled.md`): it records the UPS with
 `topology unknown` in the `USB:` line, reports that as INFO, and

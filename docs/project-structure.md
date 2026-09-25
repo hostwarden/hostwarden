@@ -170,7 +170,7 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-email/     — Send ad-hoc text or files by email
                          from a server (SKILL.md)
-    hostwarden-fleet-audit/   — Cross-server policy drift audit
+    hostwarden-fleet-audit/   — Cross-machine policy drift audit
                          (SKILL.md + references/)
     hostwarden-multi-host/ — One question, check or change
                          on several servers (SKILL.md)
@@ -286,7 +286,7 @@ rules/                 — Upstream rule files (git-tracked)
                          forwardings per session
   ssh-safety-net.md    — Timed revert armed before a
                          firewall or network change
-  server-memory.md     — Server memory file format
+  machine-memory.md     — Machine memory file format
   storage-inventory.md — Disks, ZFS and btrfs settings
                          recorded once per host
   changelog.md         — Session logging procedure
@@ -329,7 +329,7 @@ rules/                 — Upstream rule files (git-tracked)
                          drift
   best-practices.md    — Common anti-patterns to review
                          before risky actions
-  directory-copy.md    — Cross-server directory copy checks
+  directory-copy.md    — Cross-machine directory copy checks
   port-check.md        — Port conflict detection before
                          starting services
   service-class-check.md — One web server / database /
@@ -373,7 +373,7 @@ templates/fleet-read/  — fleet-read, the forced command an
                          operations host's key runs on each
                          host
 templates/memory/      — Templates to copy into memory/
-  MEMORY.md            — Index for server memory
+  MEMORY.md            — Index for machine memory
   user.md.example      — SSH username template (copy to
                          memory/user.md)
   service-policy.md.example — Service reload/restart
@@ -391,7 +391,7 @@ memory/                — The workspace: all your user
   service-policy.md    — Your per-service opt-out /
                          opt-in for reload/restart
   housekeeping.md      — User-added custom checks
-  network.md           — Cross-server network facts
+  network.md           — Cross-machine network facts
   known_hosts          — The SSH host keys of your servers
   ssh_hosts            — How a server is reached when its
                          name alone does not say it
@@ -404,11 +404,11 @@ memory/                — The workspace: all your user
                          hosts or all of them, and beside
                          each file a directory of the same
                          name with their longer reasoning
-  servers/<hostname>/
+  machines/<hostname>/
     memory.md          — Server state snapshot
     changelog.log      — Local change history
     todo.md            — Session task list
-    rules.md           — Per-server rule overrides
+    rules.md           — Per-machine rule overrides
     decisions.md       — Your decisions about this host
     decisions/         — Their longer reasoning
     guests.md          — A hypervisor's guest inventory

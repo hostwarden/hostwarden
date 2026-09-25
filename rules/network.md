@@ -139,9 +139,9 @@ the moment to build or refresh the full profile, not to guess.
 
 ## Where it goes
 
-`memory/servers/<hostname>/network.md`, next to `memory.md`. It
+`memory/machines/<hostname>/network.md`, next to `memory.md`. It
 is the host's own profile; `memory/network.md` holds the facts
-several hosts share (`rules/server-memory.md`). `memory.md` keeps
+several hosts share (`rules/machine-memory.md`). `memory.md` keeps
 its `- IP:` line, which `rules/dns-aliases.md` depends on, and
 gains one summary line, which names a mesh VPN too:
 

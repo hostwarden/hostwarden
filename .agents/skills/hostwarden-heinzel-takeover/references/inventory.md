@@ -1,6 +1,6 @@
 # Building the Per-Host Inventory
 
-What to collect from `memory/servers/<host>/heinzel-memory.md` —
+What to collect from `memory/machines/<host>/heinzel-memory.md` —
 Heinzel's `memory.md` as copied — and `changelog.log`, and how to
 write it down.
 
@@ -30,7 +30,7 @@ the host connection resolves it.
 
 ## File format
 
-`memory/servers/<host>/heinzel-inventory.md`, one lead per line,
+`memory/machines/<host>/heinzel-inventory.md`, one lead per line,
 grouped by kind. Keep the changelog's own words — they carry the
 reason, which no path does:
 
