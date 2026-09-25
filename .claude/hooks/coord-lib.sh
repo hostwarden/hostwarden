@@ -274,7 +274,13 @@ function hc_dropredir(s) {
 # what a caller needs to read whole. Walks seg the same quote-aware
 # way hc_segments does, running hc_dropredir on each unquoted span
 # only; a quoted span is copied through untouched, quote characters
-# and all, for hc_words to read afterwards.
+# and all, for hc_words to read afterwards. Its own quote/escape
+# reading is a second copy of hc_segments own state machine, not a
+# shared call — awk gives a function no way to walk a string and
+# hand two different destinations back to its caller one character
+# at a time — so a change to what hc_segments treats as a quote or
+# an escape belongs here too, kept in sync by hand the same way
+# hc_skip_prefix already names for SSHVAL and hops.sh.
 function hc_clean(seg,
     out, i, c, qc, esc, slen, unq) {
   out = ""; unq = ""; qc = ""; esc = 0; slen = length(seg)
