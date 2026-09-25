@@ -331,8 +331,12 @@ every admin guest can share one key (Admin keys above), so it only
 proves the address accepts the key, not that it is this guest.
 Check a reported address first, the same way a static one is
 checked before creation (The request above): no `IP:` line in
-memory and no entry in any `guests.md` already names it. The
-guest's own MAC is usually known too — libvirt picks one at
+memory and no entry in any `guests.md` already names it, and it is
+on neither the blacklist nor the read-only list
+(`rules/access-control.md`) — a match refuses the connection
+outright, the way `rules/access-control.md` → Server Blacklist does
+for any other target, never asking for an override. The guest's own
+MAC is usually known too — libvirt picks one at
 creation (`references/libvirt.md` → Creating it), Proxmox VE's own
 `grep '^net0:' /etc/pve/qemu-server/<vmid>.conf` names whatever it
 auto-picked, and a UI's own host has the same read its appliance
