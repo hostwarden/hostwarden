@@ -37,16 +37,17 @@
 #     through: the receiver is informed, never paused.
 #
 # Fast path: without jq, or without a disruptive pattern anywhere in
-# the command and no active impact at all, this exits within
-# milliseconds — a plain case match on the raw JSON, before anything
-# is parsed. That match is only a "maybe": the firewall and network
-# patterns require a write or reload verb, never a bare tool name,
-# so a read-only audit command (`ufw status verbose`, `firewall-cmd
-# --list-all`, `nft list ruleset`, `pfctl -s…`) never reaches it in
-# the first place, and the `reboot` match names a mention, not yet
-# an invocation — `last reboot` (rules/busybox.md) matches it too —
-# so once the command is clean text (after jq), each segment is
-# judged again, precisely, by hostwarden_coord_kind.
+# the command (read with every quote character dropped first) and
+# no active impact at all, this exits within milliseconds — a plain
+# case match on the raw JSON, before anything is parsed. That match
+# is only a "maybe": the firewall and network patterns require a
+# write or reload verb, never a bare tool name, so a read-only audit
+# command (`ufw status verbose`, `firewall-cmd --list-all`, `nft
+# list ruleset`, `pfctl -s…`) never reaches it in the first place,
+# and the `reboot` match names a mention, not yet an invocation —
+# `last reboot` (rules/busybox.md) matches it too — so once the
+# command is clean text (after jq), each segment is judged again,
+# precisely, by hostwarden_coord_kind.
 #
 # What it deliberately does not do: read a local-mode command (one
 # with no ssh, scp or rsync in it) as aimed at any host, infer a
@@ -96,9 +97,16 @@ for _d in "$IMPD"/*; do [ -d "$_d" ] && { ACTIVE=1; break; }; done
 # command string too, on the same tolerance guard-mode.sh accepts
 # for its own prefilter. It only decides whether to fork jq at all;
 # the precise, per-segment answer comes from hostwarden_coord_kind
-# once the command is clean text.
+# once the command is clean text. Read with every quote character
+# dropped first, never the original: a keyword hostwarden_coord_kind
+# itself only sees whole once HOSTWARDEN_COORD_AWK has rejoined
+# several adjacent quoted spans into one word (coord-lib.sh's own
+# hc_words) is invisible here as a contiguous substring otherwise —
+# dropping every quote character before the match, on this copy
+# only, reads it the same way without needing to parse anything.
+MAYBEIN=$(printf '%s' "$INPUT" | tr -d "'\"")
 MAYBE=
-case "$INPUT" in
+case "$MAYBEIN" in
 *'reboot'* | *'shutdown '*'-r'* | *'kexec'* \
   | *'nft -f '* | *'nft flush ruleset'* | *'nft delete table'* \
   | *'firewall-cmd'*'-reload'* \
@@ -110,7 +118,7 @@ case "$INPUT" in
   | *'ifreload'* | *'netplan apply'* | *'ifdown '* | *'ifup '* \
   | *'ip link set'*'down'* | *'/etc/init.d/networking'*'restart'* \
   | *'service networking'*'restart'* \
-  | *'systemctl restart'* | *'systemctl reload-or-restart'* \
+  | *'systemctl'*'restart'* \
   | *'service '*'restart'* | *'rc-service'*'restart'* \
   | *'launchctl kickstart'* | *'launchctl stop'* \
   | *'launchctl start'*) MAYBE=1 ;;

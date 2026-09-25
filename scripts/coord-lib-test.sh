@@ -61,6 +61,38 @@ dest() {
   fi
 }
 
+# destkind <desc> <command> <expected> — exactly how impact.sh reads
+# a command: hostwarden_coord_dest first, then hostwarden_coord_kind
+# on each destination's own segment field, never hostwarden_coord_kind
+# called directly on the original text the way the kind() helper
+# above does. A segment with an embedded newline (a heredoc body)
+# only proves itself here: a shell `read` loop reads one record per
+# real newline, so a fix that works when hostwarden_coord_kind is
+# handed the raw command directly can still be invisible to
+# impact.sh's own read loop.
+destkind() {
+  desc=$1; cmd=$2; exp=$3
+  tab=$(printf '\t')
+  got=""
+  dests=$(hostwarden_coord_dest "$cmd")
+  if [ -n "$dests" ]; then
+    while IFS="$tab" read -r d seg; do
+      [ -n "$d" ] || continue
+      k=$(hostwarden_coord_kind "$seg")
+      [ -n "$k" ] || continue
+      got="${got:+$got
+}$k"
+    done <<DKEOF
+$dests
+DKEOF
+  fi
+  if [ "$got" = "$exp" ]; then ok; else
+    bad "destkind: $desc"
+    echo "--- expected"; printf '%s\n' "$exp"
+    echo "--- got"; printf '%s\n' "$got"
+  fi
+}
+
 # =====================================================================
 # hostwarden_coord_dest — regression coverage for the proven
 # splitter/destination reader, now built on the shared tokenizer.
@@ -385,6 +417,32 @@ reboot "found in verification: sudo -nu (boolean+value cluster)" \
 kind "one segment, no destination, names nothing" 'uptime' ""
 kind "a plain, harmless remote command names nothing" \
   'ssh host uptime' ""
+
+# Found by the Codex second review: hostwarden_coord_dest's own
+# segment field is what impact.sh actually hands to
+# hostwarden_coord_kind, through a shell `read` loop — a heredoc
+# body proved itself against hostwarden_coord_kind called directly
+# on the raw command, but was never reachable through that loop,
+# since a real newline inside a "<dest>\t<segment>" record reads as
+# more than one record.
+destkind "found by Codex: sh -s heredoc, restart in the body, through dest" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS'
+systemctl restart nginx
+EOS
+EOF
+)" 'restart:nginx'
+destkind "found by Codex: sh -s heredoc, reboot in the body, through dest" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS'
+uptime
+reboot
+EOS
+EOF
+)" 'reboot'
+destkind "unaffected: a plain single-line command through dest" \
+  'ssh host "systemctl restart nginx"' 'restart:nginx'
+destkind "unaffected: a plain reboot through dest" 'ssh host reboot' 'reboot'
 
 echo "coord-lib: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

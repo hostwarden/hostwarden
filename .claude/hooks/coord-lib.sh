@@ -33,7 +33,13 @@
 #       own, deeper reading of the remote text either. It does not
 #       itself recurse into a wrapper's own remote or -c text for a
 #       destination nested there; only hostwarden_coord_is_reboot and
-#       hostwarden_coord_kind do that.
+#       hostwarden_coord_kind do that — but a heredoc's own body
+#       stays part of the segment field verbatim (its opening `<<`
+#       is never one of the redirections hc_clean drops), any
+#       embedded newline turned into a `;` first, since a caller
+#       reads one record per real newline and hostwarden_coord_kind
+#       reads a `;` the same way it would that newline once it gets
+#       there.
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -151,12 +157,24 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 # together:
 #
 #   hc_segments(s, RAW) is hostwarden_coord_dest's own proven
-#     splitter, unchanged: s cut on an unquoted ;/&/|/(/)/{/}/`,
-#     with a backslash escaping the very next character everywhere
-#     but inside a single-quoted run. RAW[1..n] keeps each
-#     segment's own source text, quotes and all; hc_clean() (also
-#     unchanged: a redirection and its target dropped, the ends
-#     trimmed) is what a caller reads or hands to hc_words().
+#     splitter: s cut on an unquoted ;/&/|/(/)/{/}/`, with a
+#     backslash escaping the very next character everywhere but
+#     inside a single-quoted run, and an unquoted newline cut the
+#     same way only when the caller sets HC_NL_SEP first — never
+#     hostwarden_coord_dest's own top-level call, whose segment has
+#     to stay whole, embedded newline and all, for a heredoc body to
+#     still be there once hostwarden_coord_kind reads it in turn;
+#     always hc_expand's own calls, where a multi-line remote
+#     command — a heredoc's own body among them — is read the same
+#     one-command-per-line way `;` already is. An & right next to a
+#     < or > (2>&1, >&2, bash's own &>file) duplicates or redirects
+#     a file descriptor and is never a separator there, only a bare
+#     & (a real background operator) is. RAW[1..n] keeps each
+#     segment's own source text, quotes and all; hc_clean() (a
+#     redirection and its target dropped, quote-aware — never inside
+#     a quoted span, and never a << that might open a heredoc,
+#     hc_dropredir — the ends trimmed) is what a caller reads or
+#     hands to hc_words().
 #
 #   hc_words(s, W) is the real word reader hc_segments never was: a
 #     single-quoted run is literal to its close; a double-quoted
@@ -243,26 +261,40 @@ function hc_segments(s, RAW,
       cur = cur c
       continue
     }
-    # An unquoted newline ends a command the same way ; does (a
-    # heredoc body, hc_heredocs own extracted text, is a script,
-    # one command per line, not one long one); one right after a
-    # backslash was already folded into the escaped character
-    # above and never reaches here.
-    if (index(";&|(){}`\n", c) > 0) { RAW[n] = cur; n++; cur = ""; continue }
+    if (index(";&|(){}`", c) > 0 || (c == "\n" && HC_NL_SEP)) {
+      RAW[n] = cur; n++; cur = ""; continue
+    }
     cur = cur c
   }
   RAW[n] = cur
   return n
 }
 
-function hc_dropredir(s) {
+function hc_dropredir(s,
+    out, rest, matched) {
   # An optional & on either side of the </> run itself: >&2, 2>&1,
   # and bash own &>file/&>>file, on top of the plain 2>file every
   # redirection already reads as one dropped construct with hc_
   # segments own & exception keeping the whole thing one word to
-  # find here in the first place.
-  gsub(/[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/, " ", s)
-  return s
+  # find here in the first place. A match starting << is never one
+  # of them: hc_heredocs, further down the same pipeline (called
+  # before hc_segments in hc_expand, and hostwarden_coord_dest own
+  # segment text is what hc_expand later reads too, through
+  # impact.sh), is the only place that gets to decide whether it
+  # opens a real heredoc — dropping it here first would hand that
+  # function nothing to find, whether its own delimiter word
+  # follows in this same unquoted span or, the documented quoted-
+  # delimiter form, is about to open a quote of its own the caller
+  # has not appended here yet.
+  out = ""
+  while (length(s) > 0) {
+    if (!match(s, /[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/)) { out = out s; s = ""; break }
+    out = out substr(s, 1, RSTART - 1)
+    matched = substr(s, RSTART, RLENGTH)
+    out = out (matched ~ /^<</ ? matched : " ")
+    s = substr(s, RSTART + RLENGTH)
+  }
+  return out
 }
 
 # hc_clean(seg) drops a redirection and its target the same way it
@@ -643,6 +675,15 @@ hostwarden_coord_dest() {
       n = hc_segments($0, RAW)
       for (si = 1; si <= n; si++) {
         t = hc_clean(RAW[si])
+        # A heredoc body, or any other embedded newline hc_clean
+        # left alone, is turned into a ; before this is printed: a
+        # caller reads one "<dest>\t<segment>" record per line, so
+        # a real newline inside the segment field itself would read
+        # as more than one record. hostwarden_coord_kind already
+        # reads a ; the same way it would this newline once it gets
+        # there, so nothing about what it sees changes, only how it
+        # survives the trip.
+        gsub(/\n/, ";", t)
         nw = hc_words(t, v)
         if (nw < 1) continue
         i0 = hc_skip_prefix(v, 1, nw)
@@ -811,6 +852,7 @@ hostwarden_coord_is_reboot() {
       SUCLASS = "uUgpCRrtThD"
       SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
+      HC_NL_SEP = 1
     }
     {
       CLC = 0
@@ -833,6 +875,7 @@ hostwarden_coord_kind() {
       SUCLASS = "uUgpCRrtThD"
       SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
+      HC_NL_SEP = 1
     }
     {
       CLC = 0
