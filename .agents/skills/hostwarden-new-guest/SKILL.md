@@ -215,8 +215,11 @@ guest has no such mechanism, the files are the user's to place
    follows. Then move the directory to the settled name — a plain
    `mv`, since step 3's directory is new and not yet committed to
    the workspace, unlike `rules/host-rename.md` → Memory's own
-   `git -C memory mv` for an already-tracked host — give the
-   settled name `memory/known_hosts`'s lines
+   `git -C memory mv` for an already-tracked host — and, in it,
+   replace `memory.md`'s own title line, the `# <connecting
+   address>` step 3's pipeline wrote (`rules/server-memory.md`),
+   with `# <settled name>` (`rules/host-rename.md` → Memory). Give
+   the settled name `memory/known_hosts`'s lines
    (`rules/host-keys.md` → DNS Aliases) and the SSH user
    `memory/user.md` already has for the connecting address, then,
    unlike a rename, keep nothing under the connecting address at
