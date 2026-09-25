@@ -160,15 +160,45 @@ The prompt names one of two jobs.
    piece: does it track whether it is inside a matched quote pair
    first, so a separator inside a quoted remote command
    (`ssh host "a && b"`) is not read as splitting the local command
-   too?
+   too? A rule that tells the user which records a protocol step
+   needs (a delegation, a certificate chain, a mail setup): does its
+   list hold every record the protocol requires in the configuration
+   the rule's own example shows, such as glue for a nameserver named
+   inside the delegated zone? A shell loop that reads a user-edited
+   access list: does it word-split or pathname-expand an entry that
+   the list's own format gives another meaning, a `*` kept as a
+   wildcard rather than a glob? Every name memory knows a host by (a
+   DNS alias among them): is each one matched against an access
+   list, on every branch of the check, hops included, or only the
+   primary name? A rule names several alternative models for one
+   field (several domain models, several key types) and gives the
+   more structured models their own explicit check: does it also
+   spell out a check for the model presented as the plain default
+   ("one for every host", a single fixed value), or does the
+   simplest-looking model get treated as needing no verification at
+   all? A procedure derives one summary fact by comparing several
+   hosts' own fields, and a documented, normal outcome is that none
+   of them contributes anything to compare: does the procedure
+   define what happens on that empty-evidence state, or does it only
+   ever describe the states where at least one host had something? A
+   new rule selects one stored entry among several by matching a
+   value against it: does every field it matches on actually store
+   that value, or does one family's field hold only a property of
+   it, such as a prefix length, so the match has nothing to compare?
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
    managers or loggers can be active at once; "the first one found
-   wins" is a defect there. Where two fields answer the same
-   question, the one their source says decides must win. The value
-   that decides is the one the output shows. A fallback for an
-   optional field claims only what it can show. Then ask:
+   wins" is a defect there. A single-capture extraction (a greedy
+   regex, a `sed -n … | head -n1`) run across a segment that can
+   genuinely hold more than one instance of the pattern it looks
+   for: does it report every instance, or only the one a regex's
+   own greediness or match order happens to pick — not necessarily
+   the one that matters most, such as the widest radius or the one
+   a rule elsewhere says takes precedence? Where two fields answer
+   the same question, the one their source says decides must win.
+   The value that decides is the one the output shows. A fallback
+   for an optional field claims only what it can show. Then ask:
    - Installed is not running, and on disk is not loaded. Does the
      rule take a file or an app bundle as running or reachable, or
      a value read from disk or a config dump as what the running
@@ -196,9 +226,13 @@ The prompt names one of two jobs.
      tool document it as the protocol, or only as where the answer
      arrived, and can the query be forced to the one source
      instead?
-   - A keyword matched on a whole config line: does it mean the
-     same in every field it can occur in — a URL, a key file, a
-     component — or only in the one field the rule is about?
+   - A keyword matched on a whole config line, or a filter that
+     decides a line's kind (a record type, a key) by a word it
+     contains: does it mean the same in every field it can occur
+     in — a URL, a key file, a component — or only in the one field
+     the rule is about, and is the word matched in that field alone
+     or anywhere on the line, where a free-text value can contain it
+     too?
    - A test written for one use — a memory label, a mail header —
      that another rule now cites: do its exclusions hold for that
      rule's question, or does it turn a healthy state into a
@@ -218,6 +252,59 @@ The prompt names one of two jobs.
    - A step that writes a line in another file's form (`verified
      <date>`, `confirmed <date>`): does it carry over the condition
      under which that file writes the form?
+   - One host's observation written into a record keyed by a larger
+     scope (a site, a range): does the evidence speak for every
+     member of that scope, or only for the host that was observed?
+   - A configuration dump folded as current state: is every object
+     type's enabled/disabled flag honoured, and is a missing flag
+     read as unknown rather than as enabled?
+   - A test that proves something is there (a NAT upstream): does it
+     get recorded as also proving whose it is, when two different
+     causes give the same observation?
+   - A check that fails when "no item matches": does it first
+     establish that there are items to match, when an empty set is a
+     valid state of its own?
+   - A record that says a step was announced or planned: does the
+     rule reading it back require evidence the step ran, before
+     naming the announcement as the step's cause?
+   - A rule documents that a regex matches only one substring of a
+     compound value (a hostname label inside a full FQDN): does a
+     consumer that re-implements the same check apply it to that
+     documented substring, or to the whole compound string, so a
+     compliant part fails only because the regex now also has to
+     swallow text it was never written to match?
+   - A report flags "drift" by comparing hosts against each other,
+     where a row's real question is each host against a fixed,
+     recorded standard instead: does the across-host comparison miss
+     the case where every host shares one value that is wrong
+     against the standard, since uniform disagreement with it looks
+     identical to uniform agreement to a mechanism that only ever
+     compares hosts to one another?
+   - A rule applies a stored range's property to one address: does
+     the stored fact prove the address lies in that range, or is
+     membership assumed because only one range is recorded?
+   - A compound value encodes more than one fact (a hostname's site
+     portion names a place, not merely a spelling): does a regex
+     match on its literal characters confirm the deeper fact it
+     stands for, or only that the string happens to match, leaving
+     the check blind when the two facts diverge — a host moved
+     sites, a retired code reused for a new one?
+   - A rule counts a configuration option as a restriction: does it
+     judge what the option leaves open rather than that the option
+     is merely present — an exclusion list that excludes only
+     loopback, or an allowlist naming a wildcard or a public
+     interface, restricts nothing?
+   - A rule reads one option as deciding: does the product's own
+     documentation name other options that void or override it —
+     dnsmasq ignores `local-service` once `interface`,
+     `except-interface`, `listen-address` or `auth-server` is set —
+     and are the lines a wrapper such as Pi-hole adds in every mode
+     judged together with the one its own mode writes?
+   - Prose explains why a field is unavailable by pointing the
+     reader at a different, related field of the same object (a WAN
+     interface's own address, offered in place of a gateway's
+     upstream, next-hop address): are the two normally the same
+     value, or does the substitute only look like an answer?
 3. **A step that reads data nothing produces.** Every field the
    text uses must be printed by a probe the same flow runs, for
    each syntax a rating is said to cover: the members of a named
@@ -251,7 +338,16 @@ The prompt names one of two jobs.
    does the documented flow keep them reachable until the check
    has run for the last time — a squash, a force-push, a deleted
    branch in between — and does the rule say what is due when the
-   remote no longer serves one?
+   remote no longer serves one? One section defines a matching
+   condition purely by lookup (a selector reaching a host), and a
+   later section tells the user that recording an exception resolves
+   that condition: does the condition's own definition actually
+   incorporate the exception, or does it stay lookup-only so the
+   same state recomputes identically the next time it is read? An
+   interview asks a yes/no question and the prose spells out only
+   what "yes" does: does "no" get an equally explicit, different
+   effect, or does its absence from the prose leave it to fall
+   through silently to the same outcome as yes?
 4. **A contradiction with another file, or a lost safeguard.**
    Another rule, skill, hook or doc says the opposite now, or the
    diff removes a check an earlier change put there on purpose. A
@@ -275,7 +371,9 @@ The prompt names one of two jobs.
    restates where a probe applies (bare metal only, containers
    excluded): does it copy the probe's own applicability rule in
    full, the exceptions (a VM with a passed-through disk) included?
-   A second caller that writes a completion marker: does it run
+   A second caller that writes a completion marker — including one
+   a fallback hands only half of a bundled write-and-check to (a
+   count, a threshold, split off from the write) — does it run
    every step the marker's definition names, or does the
    definition have to change? A value the procedure writes where
    another component rewrites it at start (a hypervisor,
@@ -296,7 +394,32 @@ The prompt names one of two jobs.
    step chooses among several units of the same purpose by which
    one's config file exists rather than which one systemd actually
    reports enabled or active: does it check activation state before
-   trusting a file's presence?
+   trusting a file's presence? A blacklist or read-only list checked
+   once before a first connection or write: does a second action on
+   the same host later in the same run — a cleanup call, a closing
+   log line, removing a now-listed entry — repeat that check against
+   the list as it now reads, or rely on the earlier check alone? A
+   new mechanical check names the data source it needs: does its
+   author check whether another rule already forbids the caller that
+   would run this check from reading that exact store, or is the
+   check written first with the caller's own stated restrictions
+   never cross-referenced? A rule declares a fact "never known"
+   because one store cannot hold it: does that contradict the same
+   file's own principle that a value may be asked as well as
+   observed, turning a limit of one source into a limit of the fact?
+   One file's pointer sends the reader to file B "instead of" file
+   A: does file B's own body still invoke mechanisms only file A
+   defines by name, meaning B was written assuming A stays in
+   force, adding to it, not replacing it? A step names two remedies
+   for the same defect: does the cited rule's own cap already make
+   one of them structurally unreachable in every case, rather than
+   merely wrong for the case at hand? One rule defines a fact as
+   read through an indirection for one purpose (a guest's site read
+   through a reference field, never its own): does a second rule
+   that matches a selector against that same fact resolve the
+   indirection first, or does it silently treat "no field of its
+   own" as "outside every scope", missing every record that only
+   ever carried the fact one hop away?
 5. **A platform or privilege path left out.** Run the change on
    each: systemd, OpenRC, BusyBox, launchd, FreeBSD rc.d, Windows,
    WSL 2, the appliances; root, sudo, doas, unprivileged; old and
@@ -326,7 +449,21 @@ The prompt names one of two jobs.
    value count as off everywhere the field is read? A step that
    requires an input or a placeholder exactly once: does every
    optional branch the rule allows — no revocation list, no
-   principals file — still satisfy it?
+   principals file — still satisfy it? A value filter a probe runs
+   over each field: does it accept every shape the product's own
+   model stores that field in (a list, a nested object), or does a
+   legitimate structured value come out as "not read"? Two steps
+   share one guard condition because the second only makes sense
+   after the first succeeds: does a retry of the whole job, with the
+   first step now a no-op because its precondition is already met,
+   still run the second step, or does the shared guard skip it along
+   with the first, silently dropping work the retry was supposed to
+   redo? An API that deliberately returns the same status for two
+   different states (GitHub's 404 for both "does not exist" and
+   "exists, no access"): does a check that authenticates with the
+   credential under test tell those states apart, or does it need an
+   unauthenticated read of the same fact to make the distinction
+   meaningful?
 7. **A literal where a recorded value belongs, or ambient
    configuration taking over.** Ports, storage, pools, paths,
    UID ranges, architectures; the user's `ssh_config`, `PATH`,
@@ -354,7 +491,11 @@ The prompt names one of two jobs.
    the same kind? A value read back to detect "newer than recorded"
    (a boot, a version, a run): is its stored granularity fine
    enough to tell two real occurrences apart, or can two different
-   events compare equal?
+   events compare equal? Where a check compares two records that
+   carry both a short identifier and the value it abbreviates (a
+   key tag beside a digest, a short fingerprint beside the full
+   hash): does it compare the value, or only the identifier, which
+   two different records can share?
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
    validated, `--` before them, `grep -F` for a literal
@@ -373,12 +514,27 @@ The prompt names one of two jobs.
    - A read of a whole configuration or inventory dump (a guest's
      config, a unit, a manager's listing): can it carry credentials
      or user data, and does the step read only the keys it needs?
+   - An allowlist of fields kept for an appliance or config read:
+     does every field on it hold only machine-set values, or does
+     one of them (a `desc`, a `name`, a label) hold text a person
+     typed, which a key-name filter downstream can never redact?
+   - A read that selects lines by a key whose value holds typed
+     data (a `local-data` record, a zone dump, a free-form "extra
+     lines" setting): does it also filter by the type the checks
+     need, so that a free-text value of another type (a TXT token)
+     never prints?
+   - A charset or length check on a value: is it being treated as a
+     secret filter, when a short alphanumeric credential would pass
+     it — and is the field one a person types at all?
 10. **Stored state never revisited.** What happens to memory,
     inventories and workspaces an earlier version wrote, to a
     value marked settled when new evidence or privilege arrives,
-    and to a run that stopped half way? A value an event makes
-    stale — a re-probe, a rename: does the rule that owns it say to
-    write the new value, and does every path that triggers the
+    and to a run that stopped half way? A long-running reader of
+    stored state (a watch, a daemon loop): does it run the expiry
+    that short-lived commands run as a side effect, or does it keep
+    reporting entries only they would have removed? A value an event
+    makes stale — a re-probe, a rename: does the rule that owns it
+    say to write the new value, and does every path that triggers the
     event, the automatic one included, reach that write? A
     condition checked once before a hand-off: when what it was
     checked against changes before the hand-off, what makes it true
@@ -401,13 +557,24 @@ The prompt names one of two jobs.
     clears (a lock, a presence entry, a claim): does the code
     reading it back age it out on its own, or does it depend on a
     separate sweep running again, which nothing guarantees will
-    happen soon?
+    happen soon? A step that reads multi-writer state by picking
+    among candidate records by age or identity: does the code
+    elsewhere that removes records from that same state pick by the
+    same rule, or can it discard the record a concurrent read now
+    depends on as "live"?
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
     read as complete, a missing row taken as proof of absence
     (`rules/verify-before-reporting.md` → Prove absence, and its
-    step 5).
+    step 5). A "known" flag set before the read it vouches for has
+    succeeded: does a failed or undecodable answer turn into a
+    confident negative ("none") instead of "not read"? A `while
+    read` loop over a user-edited file: does it keep a last line
+    with no trailing newline (`|| [ -n "$var" ]`), or does that
+    entry go unread? A remote command's status a trailer hides
+    (`…; true`): does a failed action inside it still get reported
+    to the caller, or does the wrapped status let it pass as done?
 12. **Side effects in the wrong order.** A change before its
     check, a service started before its firewall rule or its
     config test, memory written before verification, state not
@@ -415,7 +582,9 @@ The prompt names one of two jobs.
     does it test the exact string the later write uses, after the
     same derivation (short form, suffix, prefix), or a different
     spelling of it, so the collision surfaces only after the
-    irreversible step?
+    irreversible step? An actor elected by listing current holders
+    and then writing its own mark: can two callers both pass the
+    list before either writes, and how soon does the loser find out?
 13. **A guard tier that does not match the command.** Read what
     the command does to data: repair, destroy, shrink and
     deactivate are not the same as grow or inspect.
@@ -499,7 +668,13 @@ The prompt names one of two jobs.
     prose assumes reading them in? A step claims to reject or leave
     out a bad value (an unparsed date, an invalid zone) rather than
     guess at it: does the actual command it hands that value to
-    fail loudly, or silently fall back to a default?
+    fail loudly, or silently fall back to a default? A rule
+    elsewhere hands a "read-only" flow a resolution step for an
+    unrelated concern that requires editing the very store the
+    flow's guarantee was written to protect: does whoever adds that
+    step check the target flow's own guarantee first, or does the
+    guarantee only ever get enforced by whoever wrote the original
+    skill, never by a later rule that plugs a new consumer into it?
 16. **A repository convention** from `.claude/rules/`: 80-column
     wrap, current state only, example identifiers, fence markers.
 
