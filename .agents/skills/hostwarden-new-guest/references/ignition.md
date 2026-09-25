@@ -348,18 +348,9 @@ The address to log in on is the one The request settled, for a
 static guest. A DHCP guest has none to read: Guest Agent above
 found neither image ships one, so there is no exec channel and no
 `virsh domifaddr --source agent` for `SKILL.md` → After creation
-step 2 to ask either. Ask the user for it instead, the way Hosts
-that keep guests to their UI does for its own no-agent case — but
-check it first, the same way a static address is before creation
-(`SKILL.md` → The request): no `IP:` line in memory and no entry
-in any `guests.md` already names it. A match means the user
-misread or mistyped it and it belongs to another machine, not this
-one — the shared admin key (`SKILL.md` → The request → Admin keys)
-can make a login against it succeed just as well, so a login
-succeeding is never by itself proof of which machine answered.
-Stop and ask the user to recheck the address rather than trust a
-match. A clean one is then confirmed the way any other address is,
-by the login below succeeding against it.
+step 2 to ask either. Ask the user for it and check it the way
+`SKILL.md` → Hosts that keep guests to their UI does for its own
+no-agent case; the login below is what confirms a clean one.
 
 Then go on at `SKILL.md` → After creation step 2 with that address.
 A slow guest may still be booting, so keep going within the same
