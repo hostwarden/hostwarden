@@ -21,6 +21,9 @@ by task.
   before doing, the hard taboos, how it keeps
   hallucinated commands off your servers, how to read
   its logs, and who it's for.
+- [What Hostwarden recommends](recommendations.md) —
+  what it proposes by default, why, and how to decide
+  against any of it.
 - [Automation and scripting](automation.md) —
   one-shot commands, auto mode, scheduled
   housekeeping.

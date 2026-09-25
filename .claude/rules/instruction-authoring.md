@@ -109,6 +109,11 @@ behaviour changes both in the same commit. The page says what to
 do and where; how the agent resolves the unclear cases stays in
 the rule, and the rule never sends the agent to the page.
 
+`docs/recommendations.md` is the same kind of page for what a rule
+or skill recommends rather than requires: one line per
+recommendation. A pull request that adds, changes or removes a
+recommendation changes its line there in the same commit.
+
 One term per thing. What a user writes under `memory/custom-rules/`
 is an **override**, never a customization or a custom rule; the
 directory keeps its name. `instructions-test.sh` fails on the
