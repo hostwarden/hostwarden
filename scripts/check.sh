@@ -250,7 +250,7 @@ website_build() (
 )
 
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] \
-  && ! pushed_files | grep -q '^website/'
+  && ! pushed_files | grep -qE '^website/|^mise\.dev\.toml$'
 then
   echo "== website build: nothing it reads is pushed, skipped"
 else
