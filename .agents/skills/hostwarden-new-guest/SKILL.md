@@ -332,18 +332,30 @@ proves the address accepts the key, not that it is this guest.
 Check a reported address first, the same way a static one is
 checked before creation (The request above): no `IP:` line in
 memory and no entry in any `guests.md` already names it. The
-guest's own MAC is always known too — libvirt picks one at creation
-(`references/libvirt.md` → Creating it), Proxmox VE's own
+guest's own MAC is usually known too — libvirt picks one at
+creation (`references/libvirt.md` → Creating it), Proxmox VE's own
 `grep '^net0:' /etc/pve/qemu-server/<vmid>.conf` names whatever it
 auto-picked, and a UI's own host has the same read its appliance
-file already uses for Inventory — never the user's own reading of
-the page the address came from, which only catches a typo between
-the two fields, not a wrong page throughout. Check it too: `ping -c
-2 -W 1 <address>` then `ip neigh show <address>` for the `lladdr`,
-and any MAC but the guest's own counts the same as a memory match.
-A match — in memory, or a MAC that is not this guest's own — means
-the address belongs to another machine: stop and ask the user to
-recheck it rather than trust it. Once it is clear, go on at After
+file already uses for Inventory, where that file records one for
+this guest — a TrueNAS `virt.instance` can come back `mac unknown`
+(`rules/appliance/truenas.md` → Virtual Machines and Containers) —
+never the user's own reading of the page the address came from,
+which only catches a typo between the two fields, not a wrong page
+throughout. Where it is known, check it too: `ping -c 2 -W 1
+<address>` then `ip neigh show <address>` for the `lladdr`.
+`REACHABLE`, `STALE`, `DELAY`, `PROBE`, `PERMANENT` or `NOARP` is a
+known MAC there, the same split rules/network-probe.md's own
+`gw4`/`gw6` neighbor read already makes; `FAILED`,
+`INCOMPLETE`, no `lladdr` or an empty entry is not — that confirms
+nothing either way, on a routed subnet or any host whose ARP or ND
+cache never populates for that address, and is never read as a
+match with nothing to mismatch against. A known MAC that is not the
+guest's own counts the same as a memory match: stop and ask the
+user to recheck the address rather than trust it. Nothing to check
+it against — no MAC known, or nothing back from `ip neigh` — leaves
+only the memory check above, so say so once it matters: the address
+is unverified beyond it, not confirmed. Once it is clear, go on at
+After
 creation step 2 with it, so the guest still ends up reached and
 known by its settled name rather than that address.
 
