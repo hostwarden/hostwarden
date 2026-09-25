@@ -476,8 +476,13 @@ Before the session lifts the draft, it adds each missed finding to
 the one open issue titled "Sharpen hostwarden-reviewer": a checklist
 line with the pull request's number and its own review's tier, the
 finding's title, its class from the answer, and the question that
-class lacked. It opens that issue when none is open. At three
-unchecked lines, it proposes to the person a pull request that
+class lacked. It opens that issue when none is open. A session
+without write access to that issue's body writes the same checklist
+line into the pull request body instead, under a heading of its
+own, `## Sharpening the reviewer`; the session whoever merges hands
+it to moves each line into the sharpening issue afterward, and
+checks the count there too. At three unchecked lines, it proposes
+to the person a pull request that
 sharpens the reviewer and closes the issue, as a task chip where the
 tool has them. A new class is the exception; a question added to an
 existing one is the rule.
@@ -499,8 +504,9 @@ agent can do is done:
   under Capacity with a line for this head;
 - every finding is answered, in its thread or its round's line, no
   thread is unresolved, the deferred list is written, and the
-  missed findings are in the reviewer's issue (→ Sharpening the
-  reviewer);
+  missed findings are in the reviewer's issue, or, where the
+  session lacked write access to it, under `## Sharpening the
+  reviewer` in the pull request body (→ Sharpening the reviewer);
 - a P0 or P1 left for whoever merges, from round 4 or the own
   review's deferred list, has already been put to them;
 - CI is green on the current head, and
