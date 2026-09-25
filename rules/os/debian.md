@@ -358,8 +358,18 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/stand
   `${distro_id}ESM:…-infra-security`). They only
   deliver anything once Ubuntu Pro is attached (see
   **Ubuntu Pro and ESM**).
+- **Reboot:** `Unattended-Upgrade::Automatic-Reboot`
+  (`true`/`false`, default `false`) and
+  `Automatic-Reboot-Time` (`"now"` or `"HH:MM"`), both
+  in `50unattended-upgrades`. The timer that runs the
+  upgrade, `apt-daily-upgrade.timer`, defaults to
+  `OnCalendar=*-*-* 06:00` with a
+  `RandomizedDelaySec=60m` spread
+  (`rules/maintenance-windows.md` → Automatic restarts).
 
 Sources: https://ubuntu.com/server/docs/how-to/software/automatic-updates/,
+https://github.com/mvo5/unattended-upgrades/blob/master/data/50unattended-upgrades.Ubuntu,
+https://github.com/Debian/apt/blob/main/debian/apt-daily-upgrade.timer,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-minimal?h=resolute
 
 ## Service Manager

@@ -13,11 +13,26 @@ path says where the host's console is recorded.
 ## A known cause first
 
 Before anything below: `bin/hostwarden-impact status <host>` is
-local and makes no connection. An active impact covering the host
-is the answer — say which, by whom, and until when — with no
-retry loop, no via-host, no escalation. One fresh retry after its
-window ends, or after its `done` (`rules/coordination.md` →
-Announce, wait, go). Nothing active: read on as this file stands.
+local and makes no connection.
+
+- **An active impact covering the host** is the answer — say which,
+  by whom, and until when — with no retry loop, no via-host, no
+  escalation. One fresh retry after its window ends, or after its
+  `done` (`rules/coordination.md` → Announce, wait, go).
+- **A planned window covering the current time**
+  (`rules/maintenance-windows.md` → What other sessions do with it)
+  is context, not proof: a plan runs only when a session is asked
+  to run it, never on its own because the time arrived
+  (`rules/maintenance-windows.md` → Running it later), so its
+  existence alone does not mean work is under way. Say the window
+  and its plan, then read on as this file stands — the checks below
+  still run, and if they turn up a real host-side cause, that is
+  the answer, the window only the likely explanation for its
+  timing. One fresh retry once the window's own end time passes, if
+  nothing below explains it first.
+
+Nothing active and no window covers the current time: read on as
+this file stands.
 
 ## Login rejected
 

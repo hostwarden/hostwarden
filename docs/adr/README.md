@@ -24,6 +24,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [One shared `known_hosts`, never per-machine TOFU](20260924-one-shared-known-hosts-file.md) | ssh, security | — |
 | [No migrations or compatibility paths before 1.0.0](20260924-no-compat-before-1-0.md) | release | — |
 | [The workspace marker decides the session mode](20260924-marker-decides-session-mode.md) | guard, development | — |
+| [A maintenance window is a plan, never a scheduled action](20260924-maintenance-windows-stay-in-memory.md) | coordination, multi-host | — |
 | [Log to the system journal, not a custom file](20260924-logger-over-log-file.md) | changelog, logging | — |
 | [Sessions register on the host, not a claim file](20260924-host-register-not-claim-file.md) | parallel-sessions, sync | — |
 | [A hard cap on second-review rounds](20260924-hard-cap-on-second-review-rounds.md) | review | — |

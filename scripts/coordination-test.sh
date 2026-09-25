@@ -210,6 +210,48 @@ else
   echo "  (jq missing — wait/ack/status against a live impact skipped)"
 fi
 
+# --- status and maintenance windows ------------------------------
+# rules/maintenance-windows.md → What other sessions do with it:
+# status also reports a Downtime: window that covers the current
+# time. No jq needed — window_status reads memory alone. The
+# window spans the whole calendar day (00:00-23:59) rather than an
+# hour around "now", so the test never flakes by crossing midnight
+# — a Downtime: line's single date cannot express that, the same
+# limit the plan format itself has.
+drop_downtime() { sed -i.bak '/^- Downtime:/d' "$M/servers/pve1.example.com/memory.md"; }
+
+TODAY=$(date +%Y-%m-%d)
+YESTERDAY=$(date -v-1d +%Y-%m-%d 2>/dev/null || date -d yesterday +%Y-%m-%d)
+WTZ=$(readlink /etc/localtime 2>/dev/null | sed 's#.*/zoneinfo/##')
+: "${WTZ:=UTC}"
+mkdir -p "$M/plans"
+
+printf -- '- Downtime: %s 00:00-23:59 (plan now-window)\n' "$TODAY" \
+  >>"$M/servers/pve1.example.com/memory.md"
+printf -- '# now window\n- Window: %s 00:00-23:59 %s\n' "$TODAY" "$WTZ" \
+  >"$M/plans/now-window.md"
+run status pve1.example.com >"$TMP/out"
+[ $? = 0 ] && ok || bad "status: a Downtime window covering now is active"
+hasi "$TMP/out" "is inside its planned window" "status: names the window"
+hasi "$TMP/out" "plan now-window" "status: names the plan"
+drop_downtime
+rm "$M/plans/now-window.md"
+
+printf -- '- Downtime: %s 00:00-23:59 (plan gone-window)\n' "$TODAY" \
+  >>"$M/servers/pve1.example.com/memory.md"
+run status pve1.example.com >"$TMP/out"
+[ $? = 1 ] && ok || bad "status: a window whose plan file is missing is left out"
+drop_downtime
+
+printf -- '- Downtime: %s 00:00-23:59 (plan past-window)\n' "$YESTERDAY" \
+  >>"$M/servers/pve1.example.com/memory.md"
+printf -- '# past window\n- Window: %s 00:00-23:59 %s\n' "$YESTERDAY" "$WTZ" \
+  >"$M/plans/past-window.md"
+run status pve1.example.com >"$TMP/out"
+[ $? = 1 ] && ok || bad "status: a window that has already passed is not active"
+drop_downtime
+rm -f "$M/plans/past-window.md" "$M/servers/pve1.example.com/memory.md.bak"
+
 # --- only in an operations checkout -----------------------------
 rm "$M/.hostwarden-workspace"
 run announce pve1.example.com reboot >/dev/null 2>&1

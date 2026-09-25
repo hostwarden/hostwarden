@@ -79,7 +79,9 @@ applies before any of this runs.
    one that applies, for want of root or because the user left its
    section out, leaves the line as it is.
    The probe of `rules/coordination.md` → Dependencies runs in the
-   first batch and renews the `Depends on:` line.
+   first batch and renews the `Depends on:` line; on Linux, so does
+   the probe of `rules/maintenance-windows.md` → Automatic restarts,
+   for `Auto restarts:`.
 7. **Log the summary** to the system journal and mirror to the
    local changelog per `rules/changelog.md`, which names the
    writer; on a host with `logger`:

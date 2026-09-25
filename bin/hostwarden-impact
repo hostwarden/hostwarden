@@ -45,8 +45,14 @@
 #   hostwarden-impact status <host>
 #       Prints one line per active impact whose radius covers
 #       <host>: "<origin> <kind> by <session> until <HH:MM>;
-#       <host> <relation> <through>". Exit status: 0 an active
-#       impact covers it, 1 none does, 2 usage
+#       <host> <relation> <through>", then, where a planned
+#       Downtime: window on <host> covers the current time
+#       (rules/maintenance-windows.md), one line: "<host> is inside
+#       its planned window <date> <start>-<end> (plan <slug>)". A
+#       window whose plan file is missing, or whose Window: line
+#       names no zone `date`/`date -j` can parse, is left out rather
+#       than guessed at. Exit status: 0 either kind of line printed,
+#       1 neither, 2 usage
 #   hostwarden-impact --help
 #       Show this help
 #
@@ -111,6 +117,32 @@ impact_setup() {
   hostwarden_cache_dir "$REPO_DIR"
   # shellcheck disable=SC2174
   mkdir -p -m 700 "$HOSTWARDEN_CACHE" || die "cannot create $HOSTWARDEN_CACHE"
+}
+
+TAB=$(printf '\t')
+
+# fields — every "- Key: value" line of every host's memory.md, its
+# continuation lines joined, as <host><TAB><key><TAB><value>. A
+# symlinked directory is a DNS alias and is read once, as its host.
+# Defined here, ahead of the dispatcher below, since status (via
+# window_status) needs it and exits from inside that dispatcher,
+# never reaching radius's own setup further down.
+fields() {
+  set --
+  for f in "$M"/servers/*/memory.md; do
+    [ -f "$f" ] && [ ! -L "${f%/memory.md}" ] && set -- "$@" "$f"
+  done
+  [ $# -gt 0 ] || return 0
+  awk '
+    function flush() { if (key != "") print h "\t" key "\t" val; key = "" }
+    FNR == 1 { flush(); h = FILENAME; sub(/\/memory\.md$/, "", h); sub(/.*\//, "", h) }
+    /^- [A-Za-z][A-Za-z0-9 _-]*:/ {
+      flush(); key = substr($0, 3); sub(/:.*/, "", key)
+      val = $0; sub(/^- [^:]*:[ \t]*/, "", val); next
+    }
+    /^[ \t]+[^ \t]/ && key != "" { v = $0; sub(/^[ \t]+/, "", v); val = val " " v; next }
+    { flush() }
+    END { flush() }' "$@"
 }
 
 # impact_session — this session's id: $HOSTWARDEN_SESSION where
@@ -294,7 +326,84 @@ do_status() {
       FOUND=0
     done
   done
+  window_status "$CH" && FOUND=0
   exit $FOUND
+}
+
+# window_status <host> -- prints one line and returns 0 where a
+# Downtime: window on <host> (rules/maintenance-windows.md) covers
+# the current time, so losing SSH during it reads as a known cause
+# (rules/maintenance-windows.md -> What other sessions do with it;
+# rules/ssh-unreachable.md checks this before anything else). The
+# Downtime: line itself names no zone, so the plan it points at
+# (memory/plans/<slug>.md, its own Window: line) supplies one; a
+# window whose plan is gone, or whose zone this reads cannot parse,
+# is left out rather than guessed at -- the same tolerance
+# rules/coordination.md -> The hooks already accepts elsewhere.
+window_status() {
+  ws_host=$1
+  ws_now=$(date +%s)
+  # A for loop, not a pipe into while: the last stage of a pipe runs
+  # in a subshell, and a false `if` with no `else` exits 0 by itself
+  # (POSIX), so a not-found result could not be told from a found
+  # one through the subshell's own exit status. IFS holding only a
+  # newline splits on lines alone; a line's own spaces stay intact.
+  ws_dl=$(fields | awk -F "$TAB" -v h="$ws_host" \
+    '$1 == h && $2 == "Downtime" { print $3 }')
+  [ -n "$ws_dl" ] || return 1
+  ws_ifs=$IFS
+  IFS='
+'
+  for ws_line in $ws_dl; do
+    IFS=$ws_ifs
+    ws_date=$(printf '%s\n' "$ws_line" | awk '{ print $1 }')
+    ws_start=$(printf '%s\n' "$ws_line" | grep -oE '^[^ ]+ [0-9]{2}:[0-9]{2}' \
+      | awk '{ print $2 }')
+    ws_end=$(printf '%s\n' "$ws_line" \
+      | grep -oE '[0-9]{2}:[0-9]{2}( |\()' | tail -1 | awk '{ print $1 }')
+    ws_slug=$(printf '%s\n' "$ws_line" | sed -n 's/.*(plan \([^)]*\)).*/\1/p')
+    if [ -n "$ws_date" ] && [ -n "$ws_start" ] && [ -n "$ws_end" ] \
+      && [ -n "$ws_slug" ]; then
+      ws_plan="$M/plans/$ws_slug.md"
+      if [ -f "$ws_plan" ]; then
+        # The Window: line whose date and both times this Downtime:
+        # entry's own name -- a rolling-cluster plan has one per
+        # window, each free to name its own zone. index() is a
+        # substring search, so this needs no regex for the dash
+        # between the two times, whichever form it takes. The zone
+        # is that line's last field, whatever it is: an IANA name
+        # carries one slash (Europe/Berlin) or two
+        # (America/Argentina/Buenos_Aires), and matching a fixed
+        # slash count would silently truncate the second kind.
+        ws_tz=$(awk -v d="$ws_date" -v s="$ws_start" -v e="$ws_end" '
+          /^- Window:/ && index($0, d) && index($0, s) && index($0, e) {
+            print $NF; exit
+          }' "$ws_plan")
+        # A zone date cannot resolve is not the same as no zone at
+        # all: TZ set to garbage still lets `date` succeed, silently
+        # falling back to a default rather than failing -- verified
+        # live (`TZ=Not/AZone date -j -f … +%s` exits 0 on macOS).
+        # The zoneinfo database is the one place that tells a real
+        # zone from a typo.
+        [ -n "$ws_tz" ] && [ -f "/usr/share/zoneinfo/$ws_tz" ] || continue
+        if ws_from=$(TZ="$ws_tz" date -d "$ws_date $ws_start" +%s 2>/dev/null \
+            || TZ="$ws_tz" date -j -f '%Y-%m-%d %H:%M' "$ws_date $ws_start" \
+              +%s 2>/dev/null) \
+          && ws_to=$(TZ="$ws_tz" date -d "$ws_date $ws_end" +%s 2>/dev/null \
+            || TZ="$ws_tz" date -j -f '%Y-%m-%d %H:%M' "$ws_date $ws_end" \
+              +%s 2>/dev/null) \
+          && [ "$ws_now" -ge "$ws_from" ] && [ "$ws_now" -le "$ws_to" ]; then
+          echo "$ws_host is inside its planned window" \
+            "$ws_date $ws_start-$ws_end (plan $ws_slug)"
+          return 0
+        fi
+      fi
+    fi
+    IFS='
+'
+  done
+  IFS=$ws_ifs
+  return 1
 }
 
 MODE='' KIND='' TARGETS='' last=''
@@ -352,30 +461,8 @@ IDX=$HOSTWARDEN_CACHE/radius.idx
 SRC=$HOSTWARDEN_CACHE/radius-sources
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-impact.XXXXXX") || die "no temp directory"
 trap 'rm -rf "$WORK"' EXIT INT TERM
-TAB=$(printf '\t')
 
 # --- memory -----------------------------------------------------
-
-# fields — every "- Key: value" line of every host's memory.md, its
-# continuation lines joined, as <host><TAB><key><TAB><value>. A
-# symlinked directory is a DNS alias and is read once, as its host.
-fields() {
-  set --
-  for f in "$M"/servers/*/memory.md; do
-    [ -f "$f" ] && [ ! -L "${f%/memory.md}" ] && set -- "$@" "$f"
-  done
-  [ $# -gt 0 ] || return 0
-  awk '
-    function flush() { if (key != "") print h "\t" key "\t" val; key = "" }
-    FNR == 1 { flush(); h = FILENAME; sub(/\/memory\.md$/, "", h); sub(/.*\//, "", h) }
-    /^- [A-Za-z][A-Za-z0-9 _-]*:/ {
-      flush(); key = substr($0, 3); sub(/:.*/, "", key)
-      val = $0; sub(/^- [^:]*:[ \t]*/, "", val); next
-    }
-    /^[ \t]+[^ \t]/ && key != "" { v = $0; sub(/^[ \t]+/, "", v); val = val " " v; next }
-    { flush() }
-    END { flush() }' "$@"
-}
 
 # user_for <key> — the SSH user memory/user.md gives <key>: its own
 # entry, else the default (rules/ssh-user.md).

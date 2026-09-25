@@ -327,6 +327,109 @@ configured.
 
 - **WARN** if auto-update mechanism is not active
 
+## Automatic Restarts
+
+Not a finding on its own: this fills the `Auto restarts:` line in
+`memory.md` (`rules/maintenance-windows.md` → Automatic restarts),
+which the reboot-planning report and the session-start windows
+check both read. Report nothing here beyond writing the line.
+
+**Debian/Ubuntu**, beside the `Automatic-Reboot` and
+`-Time` values the Automatic Security Updates probe above already
+read:
+
+```bash
+systemctl show apt-daily-upgrade.timer \
+  --property=OnCalendar --property=RandomizedDelaySec
+```
+
+**RHEL/CentOS/Fedora:**
+
+```bash
+grep -E '^\s*reboot\s*=' /etc/dnf/automatic.conf 2>/dev/null
+t=dnf-automatic-install.timer
+systemctl cat "$t" >/dev/null 2>&1 || t=dnf-automatic.timer
+systemctl show "$t" \
+  --property=OnCalendar --property=RandomizedDelaySec 2>/dev/null
+```
+
+`systemctl show` prints an empty `OnCalendar=`/`RandomizedDelaySec=`
+and exits 0 for a timer that does not exist, so the existence check
+is `systemctl cat`, which fails for a missing unit — never
+`systemctl show … || …` on its own. `reboot =` is `never` (the
+default), `when-changed` or `when-needed`; absent reads as `never`.
+
+**SUSE:**
+
+```bash
+rebootmgrctl status --full 2>/dev/null
+```
+
+`--full` is what actually prints the configured window (`status`
+alone gives only the current state and the next scheduled reboot);
+where the command is absent or the daemon reports itself disabled,
+this half of the line reads `off`.
+
+**Every family but Alpine**, the needrestart or apt/dnf-hook mode,
+and the boot history, run once per host:
+
+```bash
+if command -v needrestart >/dev/null 2>&1; then
+  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+    /etc/needrestart/needrestart.conf \
+    /etc/needrestart/conf.d/*.conf | tail -n 1)
+  echo "${M:-needrestart=default}"
+else
+  echo "needrestart=absent"
+fi
+if command -v journalctl >/dev/null 2>&1; then
+  journalctl --list-boots -n 4 2>/dev/null
+fi
+if command -v last >/dev/null 2>&1; then
+  last -x 2>/dev/null
+fi
+```
+
+The `$nrconf{restart}` line is the same one the fleet audit already
+reads (`.agents/skills/hostwarden-fleet-audit/references/probes.md`
+→ Auto-reboot behaviour); Critical Services below runs
+`needrestart -b -p` instead, which reports what wants a restart
+right now, never the configured mode, so it is no substitute here.
+`-n` limiting `--list-boots` to the most recent entries needs
+systemd 254 or newer; an older systemd lists every boot instead,
+which only costs a longer read, not a wrong one. Both boot-history
+commands run where they exist, since `--list-boots` on the common
+non-persistent journal (`Storage=auto` and no `/var/log/journal`)
+answers with only the current boot even though it exits 0, and
+`last`'s wtmp history usually reaches further back: read whichever
+of the two answers holds more than one boot. `-x` is what puts a
+`shutdown` line beside each `reboot` line in `last`'s own output;
+filtering the command to `reboot` alone would drop every
+`shutdown` line and with it any way to read a gap at all. Read the
+gap between a `shutdown` entry and the `reboot` entry right after
+it for as many of the last three reboots as the fuller history
+holds; with none yet, this half of the line reads `unknown`.
+
+**Alpine:**
+
+```bash
+echo "needrestart=n/a (Alpine)"
+last 2>/dev/null | head -8
+```
+
+There is no needrestart package on Alpine and no apt or dnf hook
+either, so this half of the line reads `n/a (Alpine)`. Busybox's
+`last` ignores a name argument — `reboot` would not filter
+anything, so this reads the plain listing instead, in the form its
+`-W` option or a wide terminal keeps unabbreviated. Where its
+timestamps show no reboot the host has not yet had one to measure,
+and this half of the line reads `unknown`.
+
+Write the line in the form
+`rules/maintenance-windows.md` → Automatic restarts gives it. Where
+a setting cannot be read, its half of the line reads `off` or
+`unknown` rather than a guess.
+
 ## Firewall Status
 
 Check that the firewall is still active.

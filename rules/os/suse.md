@@ -39,6 +39,12 @@ Enterprise Server (SLES).
 - On SLES, YaST Online Update is the supported
   mechanism for configuring automatic updates.
 - If no auto-update is configured, flag it to the user.
+- **Reboot:** SUSE has no reboot option inside the patch
+  timer itself; `rebootmgr` is the separate service that
+  reboots within a configured maintenance window when one
+  is set up (`rebootmgrctl status`). Not active means no
+  automatic reboot at all, whatever the patch schedule
+  (`rules/maintenance-windows.md` → Automatic restarts).
 
 ## Service Manager
 
