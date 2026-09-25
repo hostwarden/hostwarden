@@ -142,10 +142,17 @@ written into one, the same as the register
   host, cleared from the deregister snippet
   (→ Deregister when the changes are done).
 
-An entry counts as **live** while its own age is under 30 minutes
-— the epoch in a touched entry's name, the directory's own age for
-a run or a writer one — the same window a register entry uses. A
-session missing from `claude agents --json` is not checked for:
+A touched or writer entry counts as **live** while its own age is
+under 30 minutes — the epoch in a touched entry's name, the
+directory's own age for a writer one — the same window a register
+entry uses. A run entry counts as live while it holds at least one
+of presence.sh's own per-call markers younger than presence.sh's own
+sweep window for a run entry, six hours: several concurrent calls
+each keep it live until every one has ended or aged past that
+window, which is how a crashed or denied Bash call's marker (its
+Post never fires) stops counting as live at read time, rather than
+only once presence.sh's own periodic sweep next runs and removes it.
+A session missing from `claude agents --json` is not checked for:
 its entries simply age out.
 
 The map is read, never trusted: it comes from what a session did,

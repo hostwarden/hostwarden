@@ -106,6 +106,12 @@ hook() {
 HAVE_JQ=0
 command -v jq >/dev/null 2>&1 && HAVE_JQ=1
 
+# A time well past HOSTWARDEN_COORD_RUN_STALE_MIN (coord-lib.sh, 360
+# minutes), used to backdate a presence run marker past it in more
+# than one test below.
+PAST=$(date -d '-400 minutes' +%Y%m%d%H%M 2>/dev/null \
+  || date -v-400M +%Y%m%d%H%M 2>/dev/null)
+
 # ================================================================
 echo "== announce, wait, ack, done, status"
 
@@ -209,6 +215,19 @@ if [ "$HAVE_JQ" = 1 ]; then
 else
   echo "  (jq missing — wait/ack/status against a live impact skipped)"
 fi
+
+# A run entry orphaned by a crashed or denied Bash call (its Post
+# never fires) is not read as live once its marker is older than
+# presence.sh's own sweep window for a run entry, six hours: a
+# reader never waits for the next sweep to see that.
+mkdir -p "$PRES/otherstale+web1.example.com+run"
+: >"$PRES/otherstale+web1.example.com+run/1"
+touch -t "$PAST" "$PRES/otherstale+web1.example.com+run/1" 2>/dev/null
+run announce pve1.example.com reboot >"$TMP/out"
+lacks "$TMP/out" "otherstale web1.example.com run" \
+  "announce: a run marker past presence.sh's sweep window is not live"
+run 'done' "$(head -n1 "$TMP/out")" >/dev/null 2>&1
+rm -rf "$PRES/otherstale+web1.example.com+run"
 
 # --- status and maintenance windows ------------------------------
 # rules/maintenance-windows.md → What other sessions do with it:
@@ -474,6 +493,18 @@ if [ "$HAVE_JQ" = 1 ]; then
     "impact.sh: a second call survives an escaped quote earlier in the command"
   hasi "$TMP/hookout" 'pve1.example.com reboot' \
     "impact.sh: names pve1.example.com after the escaped-quote segment"
+
+  # A run entry orphaned by a crashed or denied Bash call (its Post
+  # never fires) is not read as live once its marker is older than
+  # presence.sh's own sweep window for a run entry, six hours: a
+  # reader never waits for the next sweep to see that. other3's
+  # marker still exists on disk; it just no longer holds off pve1's
+  # reboot.
+  touch -t "$PAST" "$PRES/other3+web1.example.com+run/1" 2>/dev/null
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com reboot' >/dev/null
+  lacks "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a run marker past the sweep window no longer denies"
 
   # An announced kind only covers a later step of the same, or an
   # equally broad, kind (rules/coordination.md -> Blast radius):

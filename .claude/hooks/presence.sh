@@ -91,15 +91,17 @@ mkdir -p -m 700 "$PRES" 2>/dev/null || exit 0
 # A touched or writer entry nobody renewed in an hour is past every
 # staleness window a reader checks (30 minutes); a sweep on the Pre
 # call alone keeps a long session's directory from only ever
-# growing. A run entry is swept on its own six-hour window instead
-# (hostwarden_coord_affected's own cap): the sixty-minute one would
-# delete it mid-command, and a run whose Post call never fires
-# (Bash crashed, or Claude Code itself did) must still go stale
-# eventually — its own markers with it, at whatever count.
+# growing. A run entry is swept on HOSTWARDEN_COORD_RUN_STALE_MIN
+# instead (coord-lib.sh, the same window hostwarden_coord_affected's
+# own read-time check uses): the sixty-minute one would delete it
+# mid-command, and a run whose Post call never fires (Bash crashed,
+# or Claude Code itself did) must still go stale eventually — its
+# own markers with it, at whatever count.
 if [ "$EVENT" = PreToolUse ]; then
   find "$PRES" -mindepth 1 -maxdepth 1 ! -name '*+run' -mmin +60 \
     -exec rm -rf {} + 2>/dev/null
-  find "$PRES" -mindepth 1 -maxdepth 1 -name '*+run' -mmin +360 \
+  find "$PRES" -mindepth 1 -maxdepth 1 -name '*+run' \
+    -mmin "+$HOSTWARDEN_COORD_RUN_STALE_MIN" \
     -exec rm -rf {} + 2>/dev/null
 fi
 
