@@ -219,8 +219,10 @@ guest has no such mechanism, the files are the user's to place
    `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
    source 1), with a read of its own into the cache file, never
    copied from the output above, then log in as usual. Where the
-   manager cannot read the key — libvirt, or a host that keeps
-   guests to its UI (below) — the first login records it instead,
+   manager cannot read the key — libvirt, a Proxmox VE Ignition
+   guest (`references/proxmox.md` → A VM that reads Ignition, no
+   guest agent to read it through), or a host that keeps guests to
+   its UI (below) — the first login records it instead,
    the way source 3 there says for a guest this run created with
    no session inside it to read the key through. Only where the
    guest has no cloud-init at all — Ignition (Fedora CoreOS,
@@ -329,12 +331,20 @@ every admin guest can share one key (Admin keys above), so it only
 proves the address accepts the key, not that it is this guest.
 Check a reported address first, the same way a static one is
 checked before creation (The request above): no `IP:` line in
-memory and no entry in any `guests.md` already names it. A match
-means the address belongs to another, already-known machine — stop
-and ask the user to recheck it rather than trust the match. Once it
-is clear, go on at After creation step 2 with it, so the guest
-still ends up reached and known by its settled name rather than
-that address.
+memory and no entry in any `guests.md` already names it. Where the
+guest's own MAC is known — libvirt always picks one at creation
+(`references/libvirt.md` → Creating it), and Proxmox VE's own
+`grep '^net0:' /etc/pve/qemu-server/<vmid>.conf` names whatever it
+auto-picked — check that too: `ping -c 2 -W 1 <address>` then
+`ip neigh show <address>` for the `lladdr`, and any MAC but the
+guest's own counts the same as a memory match. A UI's own guest has
+no such source: ask the user to read its MAC off the same UI they
+got the address from, and check that instead. Either way, a match —
+in memory, or a MAC that is not this guest's own — means the
+address belongs to another machine: stop and ask the user to
+recheck it rather than trust it. Once it is clear, go on at After
+creation step 2 with it, so the guest still ends up reached and
+known by its settled name rather than that address.
 
 ## References
 
