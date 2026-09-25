@@ -196,7 +196,19 @@ read-only queries, each under `timeout 5` in the same call, and
 never for a guest on the blacklist (`rules/access-control.md`).
 libvirt's is `virsh -c qemu:///system guestinfo <dom>`; the
 appliance files and `rules/os/windows.md` name theirs.
-Containers need none: their manager lists the addresses.
+Containers need none: their manager lists the addresses. Each
+interface can answer with more than one address in the same
+protocol — a loopback (`127.0.0.1`, `::1`) or link-local one
+(`169.254.0.0/16`, `fe80::/10`) alongside its real one — so read
+only the `ipv4` rows and drop those two ranges first, the same
+restriction `ip -4 addr show scope global` already applies for
+the exec-channel path
+(`.agents/skills/hostwarden-new-guest/SKILL.md` → After creation
+step 1). Where exactly one `ipv4` row is left, take it for
+`guests.md`'s own line and anywhere else a single address stands
+for the guest. Where more than one is left — a guest with a
+second bridge or interface of its own — stop and ask which one is
+the guest's own, rather than guess.
 
 A running VM without an agent is recorded as `no agent`. Where
 the appliance file says `Guest tools: none`, the manager has no

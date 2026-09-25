@@ -203,7 +203,18 @@ guest has no such mechanism, the files are the user's to place
    request settled for a static guest, the one step 1 just read
    for a DHCP guest the manager can enter, or, for a DHCP guest
    under libvirt, `virsh domifaddr <domain> --source agent`, once
-   the same wait confirms the guest agent answers — has no DNS
+   the same wait confirms the guest agent answers — is looked up
+   against the blacklist and the read-only list before anything
+   else touches it: the same lookup as for any other target
+   (`rules/access-control.md` → Shared Lookup Logic). A match on
+   the blacklist refuses the guest outright
+   (`rules/access-control.md` → Server Blacklist): the bridge is
+   never written and the guest is never logged into. A match on
+   the read-only list means the address belongs to another host,
+   not that inspection is now restricted, the same reasoning Hosts
+   that keep guests to their UI further below gives for its own two
+   sources — stop and tell the user rather than bridge to it.
+   Cleared of both, it still has no DNS
    record for the settled FQDN yet to resolve by (step 6 below
    writes one where the name space allows it). Resolve the settled
    name directly again, as far as the same lookup can tell — the

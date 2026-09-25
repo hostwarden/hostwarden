@@ -11,4 +11,7 @@
   bridges it to the guest's address in `memory/ssh_hosts` in
   between, so the guest is reached, keyed and registered by its
   settled name from the start. It closes that bridge only once the
-  settled name resolves to the guest's address and nothing else.
+  settled name resolves to the guest's address and nothing else. The
+  guest's address is checked against the blacklist and the
+  read-only list first, the same lookup as for any other target,
+  before the bridge or the first login ever touches it.
