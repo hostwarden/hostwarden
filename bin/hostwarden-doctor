@@ -134,6 +134,8 @@ pkgname() {
     ssh:apt-get|ssh-keygen:apt-get) echo openssh-client ;;
     ssh:dnf|ssh:yum|ssh-keygen:dnf|ssh-keygen:yum) echo openssh-clients ;;
     ssh:*|ssh-keygen:*) echo openssh ;;
+    shellcheck:dnf|shellcheck:yum|shellcheck:zypper) echo ShellCheck ;;
+    shellcheck:pkg) echo hs-ShellCheck ;;
     *) echo "$1" ;;
   esac
 }
@@ -356,6 +358,9 @@ memory/ssh_config (OpenSSH 8.5+)" ssh ssh_khc
   probe feat "SSH keys for a deploy user" ssh-keygen has ssh-keygen
   # rules/ssh-unreachable.md
   probe feat "reachability checks when SSH fails" curl has curl
+  # rules/deployed-files.md
+  probe feat "shellcheck, to lint a deployed shell script before \
+writing it" shellcheck has shellcheck
 fi
 
 # Running inside WSL: what docs/install.md → Windows asks for.

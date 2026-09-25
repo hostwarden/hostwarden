@@ -200,7 +200,10 @@ A deploy is a change like any other: asked for, registered
 
 1. **Write the master first**, under `files/` at the path it will
    have on the host. A file rendered from `src/` is rendered
-   there, and the output is the master.
+   there, and the output is the master. A shell script master is
+   linted with `shellcheck` first, where `bin/hostwarden-doctor`
+   reports it installed; a finding is fixed before the file is
+   written.
 2. **Check what the host has at that path.** With a `deployed.md`
    line for it, run the Drift probe below for that path. Any
    finding but "as deployed" or "master changed, not deployed"
@@ -337,7 +340,9 @@ rollout, a key distribution, a wrapper around an appliance's API.
 It is never deployed. It opens with a comment saying what it does,
 which hosts it reaches and how it is run, and it reads its secrets
 from `~/hostwarden-keys/` (`rules/secrets.md` → API Credentials on
-the Workstation) and holds none.
+the Workstation) and holds none. It is linted with `shellcheck`
+first, where `bin/hostwarden-doctor` reports it installed; a
+finding is fixed before it is run.
 
 Running one against a host is running its commands there. Read it
 first, run it only against hosts that passed the pipeline
