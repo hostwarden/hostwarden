@@ -332,11 +332,14 @@ proves the address accepts the key, not that it is this guest.
 Check a reported address first, the same way a static one is
 checked before creation (The request above): no `IP:` line in
 memory and no entry in any `guests.md` already names it, and it is
-on neither the blacklist nor the read-only list
-(`rules/access-control.md`) — a match refuses the connection
-outright, the way `rules/access-control.md` → Server Blacklist does
-for any other target, never asking for an override. The guest's own
-MAC is usually known too — libvirt picks one at
+not on the blacklist (`rules/access-control.md` → Server
+Blacklist) — a match refuses the connection outright, never asking
+for an override, the same as any other target. A match on the
+read-only list is not that: `rules/access-control.md`'s read-only
+mode is for a target the user named on purpose, not this — it
+means the address belongs to another machine instead, the same as
+a memory match below. The guest's own MAC is usually known too —
+libvirt picks one at
 creation (`references/libvirt.md` → Creating it), Proxmox VE's own
 `grep '^net0:' /etc/pve/qemu-server/<vmid>.conf` names whatever it
 auto-picked, and a UI's own host has the same read its appliance
@@ -354,8 +357,9 @@ known MAC there, the same split rules/network-probe.md's own
 nothing either way, on a routed subnet or any host whose ARP or ND
 cache never populates for that address, and is never read as a
 match with nothing to mismatch against. A known MAC that is not the
-guest's own counts the same as a memory match: stop and ask the
-user to recheck the address rather than trust it. Nothing to check
+guest's own counts the same as a memory or read-only-list match:
+stop and ask the user to recheck the address rather than trust it.
+Nothing to check
 it against — no MAC known, or nothing back from `ip neigh` — leaves
 only the memory check above, so say so once it matters: the address
 is unverified beyond it, not confirmed. Once it is clear, go on at
