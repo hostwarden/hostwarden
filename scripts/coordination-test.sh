@@ -460,6 +460,19 @@ if [ "$HAVE_JQ" = 1 ]; then
   lacks "$TMP/hookout" '"permissionDecision":"deny"' \
     "impact.sh: nft list ruleset is never denied"
 
+  # The raw-text "maybe" prefilter is read with every quote
+  # character dropped, JSON's own \" escape included, not only the
+  # command as coord-lib.sh finally reads it: a firewall keyword
+  # split across adjacent quotes has to still fire the fast path,
+  # not only the precise check a live "maybe" match unlocks.
+  MQ_CMD=$(cat <<'MQEOF'
+ssh -F memory/ssh_config root@pve1.example.com "u"'fw'" enable"
+MQEOF
+)
+  hook impact.sh PreToolUse mine Bash "$MQ_CMD" >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a firewall keyword split across adjacent quotes is denied"
+
   # -P takes a value too (the same table hops.sh reads); a parser
   # missing it would read "tag" as the destination instead of pve1.
   hook impact.sh PreToolUse mine Bash \

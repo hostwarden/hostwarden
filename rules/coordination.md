@@ -163,8 +163,11 @@ doing the work.
 
 **Limits**, the same tolerance the command parsers everywhere in
 Hostwarden accept: a via-host guest (`pct exec 105`), a script, and
-a destination held in a variable are not read and count as no
-destination; a false match on the register or deregister snippet
+a destination held in a variable are not read for a destination and
+count as no destination — a heredoc's own body is read for what it
+does (coord-lib.sh's `hostwarden_coord_kind`), just never for a
+destination nested inside it; a false match on the register or
+deregister snippet
 costs one wrong `writer` entry, corrected at the next register or
 deregister call on that host. Local-mode administration of this
 workstation itself is not tracked: only a remote destination is. A
