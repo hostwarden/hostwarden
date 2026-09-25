@@ -22,10 +22,18 @@
 #       destination held in a variable are not read: they print
 #       nothing, and count as no destination
 #       (rules/coordination.md → Presence map → Limits). Built on
-#       HOSTWARDEN_COORD_AWK's shared tokenizer (→ below); a
-#       segment's destination-carrying word is read the same way
-#       hostwarden_coord_is_reboot and hostwarden_coord_kind read
-#       every word of a command, not by a parser of its own.
+#       HOSTWARDEN_COORD_AWK's shared tokenizer (→ below): a
+#       segment's words are read by the same hc_segments/hc_clean/
+#       hc_words hostwarden_coord_is_reboot and hostwarden_coord_kind
+#       use, and a leading exec/busybox/sudo/doas is skipped the same
+#       way (hc_skip_prefix) so `sudo ssh host reboot` is read the
+#       same as `ssh host reboot` — impact.sh's whole check gates on
+#       this function finding a destination at all, so a form it
+#       cannot see past, unlike the other two, never reaches their
+#       own, deeper reading of the remote text either. It does not
+#       itself recurse into a wrapper's own remote or -c text for a
+#       destination nested there; only hostwarden_coord_is_reboot and
+#       hostwarden_coord_kind do that.
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -82,15 +90,17 @@
 #       `systemctl reboot` or `systemctl kexec`, `qm reboot` or
 #       `pct reboot`, or `kexec` with `-e`/`--exec` — never a mere
 #       mention such as `last reboot` (rules/busybox.md). Reads
-#       past a leading `exec`, `busybox`, `sudo` or `doas`, an
+#       past a leading `exec`, `busybox`, `sudo` or `doas` (a GNU
+#       long option of either, `sudo --user root …` included), an
 #       `ssh`/`sftp` call's own destination (its remote command's
 #       words rejoined with a single space, the way `ssh` itself
 #       hands them to the far shell — `man ssh`), and a
-#       `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, `env … -c` or bare
-#       `env VAR=val …` wrapper's own script, at each level in
-#       turn, so `ssh host "sudo bash -c 'apt upgrade -y &&
-#       reboot'"` and `ssh host sh -c "systemctl restart nginx &&
-#       reboot"` are read the same as `ssh host reboot` — built on
+#       `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, `env … -c`,
+#       `env … -S`/`--split-string` or bare `env VAR=val …`
+#       wrapper's own script, at each level in turn, so `ssh host
+#       "sudo bash -c 'apt upgrade -y && reboot'"` and `ssh host sh
+#       -c "systemctl restart nginx && reboot"` are read the same
+#       as `ssh host reboot` — built on
 #       HOSTWARDEN_COORD_AWK (→ below), the tokenizer
 #       hostwarden_coord_dest and hostwarden_coord_kind share.
 #   hostwarden_coord_kind <segment>
@@ -157,33 +167,53 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 #     only ends on real unquoted whitespace, never on a quote
 #     closing.
 #
-# hc_classify(W, i, nw, depth) is what neither pass alone was: it
-# reads past a leading `exec`, `busybox`, `sudo` or `doas` (its
-# value-taking options skipped the same way SUVAL always has),
-# then, for the word left:
+# hc_skip_prefix(W, i, nw) reads past a leading `exec`, `busybox`,
+# `sudo` or `doas` — a short value-taking option (SUVAL, as always)
+# or a GNU long one of the same seven (SULONGVAL: --user, --group,
+# --host, --chroot, --close-from, --command-timeout, --prompt,
+# `man sudo`) skipped with its own separate value word, not only
+# the `--name=value` form a bare "starts with -" skip already
+# handles. hostwarden_coord_dest calls it too, since impact.sh's
+# whole check gates on it finding a destination at all: `sudo ssh
+# host reboot` is read the same as `ssh host reboot` there, not
+# only by hc_classify.
+#
+# hc_classify(W, i, nw, depth) is what neither pass alone was: past
+# hc_skip_prefix, for the word left:
 #   - `ssh`/`sftp`: past its own destination-consuming options
 #     (SSHVAL, hops.sh's own set, one place now), the remaining
 #     words rejoined with a single space — the exact way `ssh`
 #     itself hands several trailing arguments to the far shell
 #     (`man ssh`) — and read again, one level deeper;
-#   - `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, or `env`'s own
-#     `VAR=val…` assignments and flags skipped to a `-c` or a bare
-#     command: the `-c` word (already the one dequoted word
-#     hc_words made of it, whatever quoting carried it) read again,
-#     one level deeper; a bare command after `env` is read in
-#     place, no deeper;
+#   - `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, `env`'s own
+#     `-S`/`--split-string` (`env --help`: re-tokenizes its own
+#     value the same way `-c` does), or `env`'s `VAR=val…`
+#     assignments, `-C`/`--chdir` and `-u`/`--unset` (each skipped
+#     with its own value word) to a `-c`/`-S` or a bare command: the
+#     wrapped word (already the one dequoted word hc_words made of
+#     it, whatever quoting carried it, or the text after
+#     `--split-string=`) read again, one level deeper; a bare
+#     command after `env` is read in place, no deeper;
 #   - anything else: the words left are one clause, recorded for
 #     hostwarden_coord_is_reboot's trig() and
 #     hostwarden_coord_kind's own reading to judge.
 # hc_expand(s, depth) is the loop: hc_segments then hc_clean then
 # hc_words then hc_classify, on s, at depth; hc_classify calls it
-# again on an ssh's rejoined remainder or a wrapper's own -c word,
-# one depth deeper, up to MAXDEPTH — past it, the words in hand are
-# recorded as they are rather than expanded further, so a
-# pathologically deep chain is read shallow, never silently
-# dropped. CLC/CLW/CLN are where record_clause() puts what
-# hc_classify found; a caller resets CLC to 0, calls hc_expand once,
-# then reads CLC clauses' worth of CLW[cl,1..CLN[cl]].
+# again on an ssh's rejoined remainder or a wrapper's own wrapped
+# word, one depth deeper, up to MAXDEPTH — a generous eight, since
+# a leading sudo/doas/exec/busybox chain of any length costs no
+# depth of its own (hc_skip_prefix runs in a loop, not by
+# recursing). Past MAXDEPTH the words still in hand, past one more
+# hc_skip_prefix, are recorded as a clause rather than expanded
+# further: a pathologically deep wrap chain is read shallow, its
+# own outer wrapper words judged rather than nothing at all, but a
+# disruptive command nested past the cap is not found — the same
+# open limit a real, mechanical cap always leaves, and the reason
+# `rules/coordination.md` → The hooks calls the prose in AGENTS.md
+# the backstop a mechanical check cannot be. CLC/CLW/CLN are where
+# record_clause() puts what hc_classify found; a caller resets CLC
+# to 0, calls hc_expand once, then reads CLC clauses' worth of
+# CLW[cl,1..CLN[cl]].
 HOSTWARDEN_COORD_AWK='
 function base(w) { sub(/^.*\//, "", w); return w }
 
@@ -264,9 +294,25 @@ function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2) {
   }
 }
 
-function hc_classify(W, i, nw, depth,
-    c, j, k, remote, envphase, foundc, changed) {
-  if (depth > MAXDEPTH) { record_clause(W, i, nw); return }
+function hc_sudoval(w) {
+  # A short value-taking option (SUVAL) or a GNU long option of the
+  # same seven (SULONGVAL, man sudo): --user, --group, --host,
+  # --chroot, --close-from, --command-timeout, --prompt, each
+  # tested live to take a separate word the same way `-u user`
+  # does, not only the `--name=value` form a plain "starts with -"
+  # skip already carries for free.
+  return w ~ SUVAL || w ~ SULONGVAL
+}
+
+# hc_skip_prefix(W, i, nw) — i, advanced past a leading `exec` or
+# `busybox` (hops.sh own `cmd()` skips `exec` the same way) and a
+# leading `sudo`/`doas` with its own options, value-taking ones
+# (hc_sudoval) skipped with their value: `sudo --user root reboot`
+# is read the same as `sudo -u root reboot`. Shared by
+# hostwarden_coord_dest, which needs to see past this same prefix to
+# find the ssh/sftp/scp/rsync call it wraps, and hc_classify, which
+# reads on from there.
+function hc_skip_prefix(W, i, nw,   c, changed) {
   changed = 1
   while (changed && i <= nw) {
     changed = 0
@@ -275,14 +321,22 @@ function hc_classify(W, i, nw, depth,
     if (c == "sudo" || c == "doas") {
       i++
       while (i <= nw && W[i] ~ /^-/) {
-        if (W[i] ~ SUVAL) i++
+        if (W[i] ~ /^--[A-Za-z-]+=/) { i++; continue }
+        if (hc_sudoval(W[i])) { i += 2; continue }
         i++
       }
       changed = 1
       continue
     }
   }
+  return i
+}
+
+function hc_classify(W, i, nw, depth,
+    c, j, k, remote, envphase, foundc, script) {
+  i = hc_skip_prefix(W, i, nw)
   if (i > nw) return
+  if (depth > MAXDEPTH) { record_clause(W, i, nw); return }
   c = base(W[i])
   if (c == "ssh" || c == "sftp") {
     j = i + 1
@@ -303,17 +357,29 @@ function hc_classify(W, i, nw, depth,
     k = i + 1
     envphase = (c == "env")
     foundc = 0
+    script = ""
     while (k <= nw) {
       if (envphase && W[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { k++; continue }
-      if (W[k] == "-c") { foundc = 1; break }
+      if (W[k] == "-c" && k + 1 <= nw) { foundc = 1; script = W[k + 1]; break }
+      # env own -S/--split-string re-tokenizes its value into a
+      # wrapped command the same way -c does (`env --help`); -C and
+      # -u (--chdir, --unset) take a value that is not a command
+      # and is only skipped.
+      if (envphase && (W[k] == "-S" || W[k] == "--split-string") && k + 1 <= nw) {
+        foundc = 1; script = W[k + 1]; break
+      }
+      if (envphase && W[k] ~ /^--split-string=/) {
+        foundc = 1; script = substr(W[k], 16); break
+      }
+      if (envphase && (W[k] == "-C" || W[k] == "--chdir" \
+          || W[k] == "-u" || W[k] == "--unset")) { k += 2; continue }
+      if (envphase && W[k] ~ /^(--chdir=|--unset=)/) { k++; continue }
       if (W[k] ~ /^-./) { k++; continue }
       break
     }
     if (foundc) {
-      if (k + 1 <= nw) {
-        if (depth + 1 > MAXDEPTH) record_clause(W, k + 1, nw)
-        else hc_expand(W[k + 1], depth + 1)
-      }
+      if (depth + 1 > MAXDEPTH) record_clause(W, k, nw)
+      else hc_expand(script, depth + 1)
       return
     }
     if (envphase && k <= nw) { hc_classify(W, k, nw, depth); return }
@@ -366,19 +432,40 @@ function net_match(s) {
   return 0
 }
 
-function restart_unit(w, nw,   c0, k, u) {
+# restart_unit(w, nw, out) — the units w[1..nw] restarts, filling
+# out[1..n] and returning n. `systemctl restart nginx postgresql`
+# (systemctl(1): RESTART takes one or more units) fills out with
+# both, never only the first; a global option before the verb
+# (`systemctl --user restart nginx`, `-q`, `--no-ask-password`, …)
+# is skipped the same way, rather than making the whole match miss.
+function restart_unit(w, nw, out,   c0, i, j, n, u) {
   c0 = base(w[1])
-  if (c0 == "systemctl" && nw >= 3 && (w[2] == "restart" || w[2] == "reload-or-restart")) return w[3]
-  if (c0 == "service" && nw >= 3 && w[3] == "restart") return w[2]
-  if (c0 == "rc-service" && nw >= 3 && w[3] == "restart") return w[2]
-  if (c0 == "launchctl" && nw >= 2 && w[2] == "kickstart") {
-    for (k = 3; k <= nw; k++) {
-      if (w[k] ~ /^(gui\/[0-9]+|system)\//) { u = w[k]; sub(/^.*\//, "", u); return u }
+  n = 0
+  if (c0 == "systemctl") {
+    i = 2
+    while (i <= nw && w[i] ~ /^-/) i++
+    if (i <= nw && (w[i] == "restart" || w[i] == "reload-or-restart")) {
+      for (j = i + 1; j <= nw; j++) {
+        if (w[j] ~ /^-/) continue
+        n++; out[n] = w[j]
+      }
     }
-    return ""
+    return n
   }
-  if (c0 == "launchctl" && nw >= 3 && (w[2] == "stop" || w[2] == "start")) return w[3]
-  return ""
+  if (c0 == "service" && nw >= 3 && w[3] == "restart") { out[1] = w[2]; return 1 }
+  if (c0 == "rc-service" && nw >= 3 && w[3] == "restart") { out[1] = w[2]; return 1 }
+  if (c0 == "launchctl" && nw >= 2 && w[2] == "kickstart") {
+    for (i = 3; i <= nw; i++) {
+      if (w[i] ~ /^(gui\/[0-9]+|system)\//) {
+        u = w[i]; sub(/^.*\//, "", u); out[1] = u; return 1
+      }
+    }
+    return 0
+  }
+  if (c0 == "launchctl" && nw >= 3 && (w[2] == "stop" || w[2] == "start")) {
+    out[1] = w[3]; return 1
+  }
+  return 0
 }
 '
 
@@ -391,6 +478,8 @@ hostwarden_coord_dest() {
       # .claude/hooks/hops.sh reads an ssh command line for, kept in
       # sync with it by hand: BbcDEeFIiJLlmOoPpQRSWw.
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
+      SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
     }
     {
       n = hc_segments($0, RAW)
@@ -398,9 +487,11 @@ hostwarden_coord_dest() {
         t = hc_clean(RAW[si])
         nw = hc_words(t, v)
         if (nw < 1) continue
-        c = base(v[1])
+        i0 = hc_skip_prefix(v, 1, nw)
+        if (i0 > nw) continue
+        c = base(v[i0])
         if (c == "ssh" || c == "sftp") {
-          i = 2
+          i = i0 + 1
           while (i <= nw) {
             w = v[i]
             if (w == "--") { i++; break }
@@ -422,7 +513,7 @@ hostwarden_coord_dest() {
           continue
         }
         if (c == "scp" || c == "rsync") {
-          for (i = 2; i <= nw; i++) {
+          for (i = i0 + 1; i <= nw; i++) {
             w = v[i]
             if (w ~ /^-/) continue
             d = ""
@@ -560,6 +651,7 @@ hostwarden_coord_is_reboot() {
       # non-root login runs anything, so `sudo reboot` and `sudo
       # systemctl reboot` are the ordinary case, not an edge one.
       SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
     }
     {
@@ -581,6 +673,7 @@ hostwarden_coord_kind() {
       RS = "\001"
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
       SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
     }
     {
@@ -607,11 +700,14 @@ hostwarden_coord_kind() {
       for (cl = 1; cl <= CLC; cl++) {
         n = CLN[cl]
         for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
-        u = restart_unit(w, n)
-        if (u == "") continue
-        if (index(seen, SUBSEP u SUBSEP) > 0) continue
-        seen = seen u SUBSEP
-        print "restart:" u
+        rn = restart_unit(w, n, ru)
+        for (r = 1; r <= rn; r++) {
+          u = ru[r]
+          if (u == "") continue
+          if (index(seen, SUBSEP u SUBSEP) > 0) continue
+          seen = seen u SUBSEP
+          print "restart:" u
+        }
       }
     }'
 }

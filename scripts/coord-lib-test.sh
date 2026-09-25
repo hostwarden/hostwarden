@@ -168,6 +168,37 @@ reboot "hunted: ssh with no remote command at all" 'ssh host' no
 reboot "hunted: reboot only inside an unrelated argument" \
   'ssh host "touch /tmp/reboot-pending"' no
 
+# Found by the own review's commands-focus pass: sudo's GNU long
+# options (man sudo) take a separate-word value the same way the
+# short ones do, not only the --name=value form a bare "starts
+# with -" skip already covers.
+reboot "found in review: sudo --user (separate value) reboot" \
+  'ssh host "sudo --user root systemctl reboot"' yes
+reboot "found in review: sudo --user=root (attached value) reboot" \
+  'ssh host "sudo --user=root systemctl reboot"' yes
+reboot "found in review: sudo --host, --chroot, --command-timeout" \
+  'ssh host "sudo --host ldaphost --chroot /root --command-timeout 5 reboot"' \
+  yes
+
+# Found by the own review: env's real value-taking flags (env
+# --help) — -S/--split-string re-tokenizes its value the same way
+# -c does; -C/--chdir and -u/--unset take a value that is not a
+# command and must only be skipped, not mistaken for the base word.
+reboot "found in review: env -S re-tokenizes its value" \
+  "$(cat <<'EOF'
+ssh host "env -S 'sh -c reboot'"
+EOF
+)" yes
+reboot "found in review: env --split-string=... (attached)" \
+  "$(cat <<'EOF'
+ssh host "env --split-string='sh -c reboot'"
+EOF
+)" yes
+reboot "found in review: env -C value is skipped, not the base word" \
+  'ssh host "env -C /tmp reboot"' yes
+reboot "found in review: env -u NAME value is skipped" \
+  'ssh host "env -u FOO reboot"' yes
+
 # =====================================================================
 # hostwarden_coord_kind — firewall, network, reboot precedence, and
 # shape 5's restart:<unit> extraction (#313).
@@ -216,6 +247,28 @@ kind "restart: same unit named twice is reported once" \
   'restart:nginx'
 kind "restart: a unit behind a bash -c wrapper" \
   'ssh host "bash -c '"'"'systemctl restart nginx'"'"'"' 'restart:nginx'
+
+# Found by the own review: a global systemctl option before the
+# verb (systemctl(1)) must not blind the match, and systemctl
+# restart takes one or more units in a single invocation — both
+# must be reported, not only the first a positional w[3] read kept.
+kind "found in review: a global option before the verb" \
+  'ssh host "systemctl --user restart myapp"' 'restart:myapp'
+kind "found in review: a short global option before the verb" \
+  'ssh host "systemctl -q restart nginx"' 'restart:nginx'
+kind "found in review: two units in one systemctl invocation" \
+  'ssh host "systemctl restart nginx postgresql"' \
+  "$(printf 'restart:nginx\nrestart:postgresql')"
+
+# Found by the own review: hostwarden_coord_dest must see past a
+# local sudo the same way hc_classify does, since impact.sh's whole
+# check gates on it finding a destination at all.
+dest "found in review: dest sees past a local sudo" \
+  'sudo ssh root@pve1.example.com reboot' \
+  "$(printf 'pve1.example.com\tsudo ssh root@pve1.example.com reboot')"
+dest "found in review: dest sees past sudo --user (long option)" \
+  'sudo --user root ssh root@pve1.example.com reboot' \
+  "$(printf 'pve1.example.com\tsudo --user root ssh root@pve1.example.com reboot')"
 
 kind "one segment, no destination, names nothing" 'uptime' ""
 kind "a plain, harmless remote command names nothing" \
