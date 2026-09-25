@@ -17,6 +17,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [DNS records are proposed; written only where allowed](20260925-dns-propose-write-only-where-allowed.md) | dns, memory | — |
 | [The coordinator starts itself; the user opts out](20260925-coordinator-starts-itself.md) | coordination, sessions | — |
 | [A shared tokenizer replaces coord-lib.sh's hand-patches](20260925-coord-lib-shared-tokenizer.md) | coordination, security | — |
+| [Ask before writing a self-resolved SSH address](20260925-ask-before-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [Router configuration is read over SSH through an allow-list](20260925-appliances-read-over-ssh-allow-list.md) | network, appliances, secrets | — |
 | [`wsl.exe -u root` is treated like passwordless sudo](20260924-wsl-root-is-passwordless-sudo.md) | platforms, windows, privilege-escalation | — |
 | [Windows Server as the only target, WSL as the workstation](20260924-windows-server-only.md) | platforms, windows | — |

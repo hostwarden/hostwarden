@@ -139,8 +139,13 @@ Detection step 1.
   (`<host>-2.local`) and `<host>.local` is another machine than
   the one in memory. Where the system resolver gives the machine
   the user names, record its source as below; otherwise that
-  machine gets a `HostName` in `memory/ssh_hosts`
-  (`rules/ssh-config.md` → Adding a Block).
+  machine gets a `HostName` in `memory/ssh_hosts` as
+  `rules/ssh-config.md` → Adding a Block says, gated by A
+  Self-Resolved Address there: the address came from mDNS, never
+  the user. A decline there leaves the name resolving to the other
+  machine, never to nothing: run `ssh -G` again before the first
+  connection, and stop if it still does not show the address the
+  user meant, rather than let the session reach the wrong host.
 - **A source is unread,** or WSL leaves the `dns` lines open, or
   the system resolver's address is in no source's answer and
   `/etc/hosts` does not give it: tell the user what could not be
