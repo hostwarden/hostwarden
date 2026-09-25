@@ -87,10 +87,11 @@ exists):
   DNS resolvers. The resolvers default to the host's own, from its
   `/etc/resolv.conf`; Proxmox VE takes those by itself when none
   are given (`--nameserver` in `qm.1` and `pct.1`), every other
-  path writes them into the network config. The name's DNS
-  records are the user's to add: the plan carries them as the
-  record set `rules/dns.md` → The proposal gives, and says so
-  when the name does not resolve to the address yet.
+  path writes them into the network config. The name's DNS records
+  follow the record set `rules/dns.md` → The proposal gives, shown
+  in the plan below: After creation writes it where the name
+  space's line allows `write`, and otherwise it is the user's to
+  add, said when the name does not resolve to the address yet.
 - **Resources:** vCPUs, memory, disk size, storage, bridge.
   Defaults: 2 vCPUs, 2 GiB, 20 GiB for a VM and 8 GiB for a
   container, the storage and bridge the host's other guests use.
@@ -169,12 +170,20 @@ guest has no such mechanism, the files are the user's to place
    port, which fail2ban and sshd's `PerSourcePenalties` count.
    Where the manager can enter the guest — `pct exec`,
    `qm guest exec`, `incus exec` — the same call waits for
-   `cloud-init status --wait --long` and reads the public host key;
-   read-only, and only on the guest this run created. A call that
-   ends before the signal — out of time, or cut by the reboot
-   `package_reboot_if_required` may cause — is run once more, then
-   reported.
-2. **The first login.** Record the guest's host key in
+   `cloud-init status --wait --long`, reads the public host key,
+   and, where the address is DHCP, the guest's own
+   (`ip -4 addr show scope global`, run inside it through the same
+   exec channel); read-only, and only on the guest this run
+   created. A call that ends before the signal — out of time, or
+   cut by the reboot `package_reboot_if_required` may cause — is
+   run once more, then reported.
+2. **The first login,** never by the FQDN, whose DNS record may
+   still be unwritten, at step 5 below or the user's, but by the
+   guest's actual address: the one The request settled for a static
+   guest, the one step 1 just read for a DHCP guest the manager can
+   enter, or, for a DHCP guest under libvirt, `virsh domifaddr
+   <domain> --source agent`, once the same wait confirms the guest
+   agent answers. Record the guest's host key in
    `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
    source 1), with a read of its own into the cache file, never
    copied from the output above, then log in as usual. Where the
@@ -201,7 +210,13 @@ guest has no such mechanism, the files are the user's to place
    (`rules/decisions.md`): `## Password login`, with the user's
    reason, settling `baseline → SSH Login` for password login, and
    for SSH with it too where they asked for that.
-5. **Verify the baseline** on the guest as `hostwarden-baseline`
+5. **The DNS record set**, where a name space it belongs to has a
+   `memory/dns.md` line reading `Hostwarden: write`: written as
+   `rules/dns.md` → Writing says, the set the question already
+   showed. In any other name space this is the user's step instead,
+   and the report says so, as it does when no name space covers the
+   name at all.
+6. **Verify the baseline** on the guest as `hostwarden-baseline`
    step 2 measures it: the check each section of
    `rules/baseline.md` names, in as few bundled calls as they
    allow. The backup is looked up from the host instead: on
@@ -219,7 +234,7 @@ guest has no such mechanism, the files are the user's to place
    `hostwarden-onboard` step 5 run in the same calls, their
    questions are asked with this step's, and the guest gets
    `Onboarded:` as that skill's step 6 writes it.
-6. **Log** on both, as `rules/changelog.md` says: the host's
+7. **Log** on both, as `rules/changelog.md` says: the host's
    journal line names the guest created, the guest's names the
    baseline version.
 

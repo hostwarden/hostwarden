@@ -57,10 +57,10 @@ Before anything else, on the workstation:
   for the new name as for any target (`rules/access-control.md`).
   A listed new name stops the rename.
 - **Where it points.** Resolve it as `rules/dns-aliases.md` →
-  Detection step 1 does. Nothing yet is normal: the user adds it
-  in The Order, step 1. An address the host has is normal too.
-  Any other address means the name belongs to another machine:
-  stop and tell the user.
+  Detection step 1 does. Nothing yet is normal: it is added in The
+  Order, step 1, by Hostwarden or the user as Outside decides. An
+  address the host has is normal too. Any other address means the
+  name belongs to another machine: stop and tell the user.
 
 ## Where Hostwarden Hands Over
 
@@ -232,11 +232,14 @@ rewrites: other hosts' `Runs on:` lines, the `→` links in every
 `notes/` of a host and every changelog are evidence of the past
 and keep the old name.
 
-**Outside, the user's:** list them, since only the user can
-change them:
+**Outside.** List these too, but the DNS records among them are not
+always the user's: the A, AAAA and PTR records, and the CNAMEs that
+target the old name (`rules/dns.md` → The record convention), are
+written by Hostwarden, as `rules/dns.md` → Writing says, wherever
+the name space's `memory/dns.md` line reads `Hostwarden: write`, and
+are the user's own to change everywhere else. Only the user ever
+changes the rest:
 
-- the A, AAAA and PTR records, and the CNAMEs that target the
-  old name (`rules/dns.md` → The record convention);
 - the DHCP reservation;
 - the guest's name on its hypervisor, where Guests on a Hypervisor
   below leaves it;
@@ -247,28 +250,33 @@ change them:
 
 Agree it with the user in the question:
 
-1. The user adds the new DNS name, so that both names resolve to
-   the host: the record set `rules/dns.md` → The proposal gives for
-   it. Hostwarden checks it as The New Name does. Where no
-   DNS carries the host's names and `memory/ssh_hosts` reaches it
-   by address, this step is the new name on its `Host` line
-   instead, which Memory writes.
+1. The new DNS name is added, so that both names resolve to the
+   host: the record set `rules/dns.md` → The proposal gives for it,
+   written or handed to the user as Outside decides. Hostwarden
+   checks the result as The New Name does either way. Where no DNS
+   carries the host's names and `memory/ssh_hosts` reaches it by
+   address, this step is the new name on its `Host` line instead,
+   which Memory writes.
 2. Hostwarden renames the host and changes the references the user
    agreed to, then memory.
-3. Last, the user removes the old DNS name, moves the PTR record
-   and changes the DHCP reservation, from the second record set
-   `rules/dns.md` → The proposal gives for a rename. Then
-   Hostwarden removes the old name (When the Old Name Is Gone).
+3. Last, the old DNS name is removed and the PTR record moved, from
+   the second record set `rules/dns.md` → The proposal gives for a
+   rename, again as Outside decides, and the user changes the DHCP
+   reservation, which stays theirs in every case. Then Hostwarden
+   removes the old name (When the Old Name Is Gone).
 
 ## The Question
 
 One question (`rules/service-reload.md` → Prompt Shape When
 Asking), after the inventory: the old and the new name; the order;
-what Hostwarden changes on the host and on its hypervisor, with
-each command; the references it would change, one per line; what
-stays and why, sshd and the certificates among it; the user's
-steps outside. The options: rename as listed, rename but leave
-references the user names, or stop.
+either record set Hostwarden would write, named as a name space
+with `Hostwarden: write`, so the user agrees to it here rather than
+at a second prompt; what Hostwarden changes on the host and on its
+hypervisor, with each command; the references it would change, one
+per line; what stays and why, sshd and the certificates among it;
+the user's steps outside, the DNS record sets it does not write and
+the DHCP reservation among them. The options: rename as listed,
+rename but leave references the user names, or stop.
 
 ## Apply
 
