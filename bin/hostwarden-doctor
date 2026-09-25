@@ -66,6 +66,16 @@ MISE_TOOLS=''
 if [ -f "$ROOT/mise.dev.toml" ]; then
   while IFS= read -r l; do
     case $l in '"aqua:'*/*) t=${l#*/}; MISE_TOOLS="$MISE_TOOLS ${t%%\"*}" ;; esac
+    # A plain [tools] key, node the one there is today: the command
+    # name is what is before its `=`. Matched with or without the
+    # spacing mise.dev.toml's own style uses, no external tool
+    # (this runs under the ssh shim's bare PATH too). A quoted key
+    # or an inline table would not match either form; neither is in
+    # mise.dev.toml.
+    case $l in
+      [a-z]*' = "'*) t=${l%% *}; MISE_TOOLS="$MISE_TOOLS $t" ;;
+      [a-z]*'="'*) t=${l%%=*}; MISE_TOOLS="$MISE_TOOLS $t" ;;
+    esac
   done < "$ROOT/mise.dev.toml"
 fi
 # The tools mise.dev.toml pins are on PATH only with MISE_ENV=dev.
@@ -125,6 +135,9 @@ pkgname() {
     dig:dnf|dig:yum|dig:zypper) echo bind-utils ;;
     dig:pkg|dig:apk) echo bind-tools ;;
     python3:brew|python3:pacman) echo python ;;
+    node:apt-get|node:dnf|node:yum|node:zypper|node:pacman|node:apk) echo nodejs ;;
+    # No separate formula: brew install node brings npm with it.
+    npm:brew) echo node ;;
     gh:pacman|gh:apk) echo github-cli ;;
     # A command, not a package: awk is virtual under apt and
     # absent by that name elsewhere, mktemp is part of coreutils.
@@ -320,8 +333,10 @@ probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"
   # What scripts/check.sh runs: python3, jq for
-  # instructions-test.sh, and what mise.dev.toml pins.
-  for t in python3 jq $MISE_TOOLS; do
+  # instructions-test.sh, npm for the website build (node itself
+  # comes from mise.dev.toml, already in $MISE_TOOLS), and whatever
+  # else mise.dev.toml pins.
+  for t in python3 jq npm $MISE_TOOLS; do
     probe need "$t" "$t" has "$t"
   done
 

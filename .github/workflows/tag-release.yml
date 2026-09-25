@@ -40,3 +40,19 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v${{ steps.v.outputs.version }}" -m "Release v${{ steps.v.outputs.version }}"
           git push origin "v${{ steps.v.outputs.version }}"
+
+      # Cuts a new Docusaurus doc version for the major line, if
+      # this release started one — website/ has no versioned_docs/
+      # of its own to update (docusaurus.config.js → docs, and
+      # .claude/rules/repo-release.md → VERSION). Runs whether or
+      # not this attempt is the one that pushed the tag: a
+      # dispatch's own failure (dispatch-docs exits 1 on anything
+      # but a 404) has to be retryable by re-running the failed
+      # job, which finds the tag already there and would otherwise
+      # skip this step too, losing the release event for good.
+      - name: Dispatch release-cut
+        uses: ./.github/actions/dispatch-docs
+        with:
+          token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          event-type: release-cut
+          version: ${{ steps.v.outputs.version }}

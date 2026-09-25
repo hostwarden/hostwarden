@@ -1,0 +1,66 @@
+/**
+ * Hostwarden brand tokens (hostwarden/brand README, fetched at
+ * setup time): Petrol #0C4A55, Deep #072E36, Frost #ECF2F1, Stone
+ * #A9BDBF, Signal #F9A800 — accent only, never text or a link
+ * color (1.7:1 on Frost). The tint/shade steps below are computed
+ * blends toward black/white (light mode) or toward Deep/Frost
+ * (dark mode), the way Infima's own default scale is built; they
+ * are not brand-kit values and want a real contrast check before
+ * this theme is more than a placeholder. The dark-mode base is an
+ * extrapolation within the brand's teal hue — the brand kit itself
+ * doesn't define a dark-mode accent, only Frost-on-Deep for text.
+ */
+
+/* Relative paths, resolved by webpack, so they stay correct under
+   the site's baseUrl (/docs/) instead of hardcoding it here. */
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  src: url('../fonts/BarlowSemiCondensed-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  src: url('../fonts/BarlowSemiCondensed-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ifm-color-primary: #0c4a55;
+  --ifm-color-primary-dark: #0a3f48;
+  --ifm-color-primary-darker: #093840;
+  --ifm-color-primary-darkest: #072c33;
+  --ifm-color-primary-light: #30656f;
+  --ifm-color-primary-lighter: #497780;
+  --ifm-color-primary-lightest: #6d9299;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(12, 74, 85, 0.1);
+
+  --ifm-heading-font-family: 'Barlow Semi Condensed', sans-serif;
+  --ifm-heading-font-weight: 700;
+  --ifm-navbar-font-family: 'Barlow Semi Condensed', sans-serif;
+}
+
+/* Frost on Deep, the brand's dark-ground pair (12.8:1 contrast). */
+[data-theme='dark'] {
+  --ifm-background-color: #072e36;
+  --ifm-color-primary: #6fa3ac;
+  --ifm-color-primary-dark: #5a8c94;
+  --ifm-color-primary-darker: #4b7a83;
+  --ifm-color-primary-darkest: #3b6971;
+  --ifm-color-primary-light: #88b3ba;
+  --ifm-color-primary-lighter: #9bbfc4;
+  --ifm-color-primary-lightest: #aecbcf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Signal never carries text (1.7:1 on Frost) — accents only, such
+   as a "New" badge, always with Petrol or Deep text on top. */
+.badge--signal {
+  background-color: #f9a800;
+  color: var(--ifm-color-primary-darkest);
+}

@@ -7,7 +7,7 @@
     "group:all",
     ":semanticCommitTypeAll(ci)"
   ],
-  "enabledManagers": ["github-actions", "mise", "custom.regex"],
+  "enabledManagers": ["github-actions", "mise", "npm", "custom.regex"],
   "customManagers": [
     {
       "customType": "regex",

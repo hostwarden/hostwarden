@@ -13,6 +13,10 @@ docs/                  — Documentation beyond the README;
                          docs/README.md indexes it
   adr/                 — Architecture decision records, one per
                          file; README.md is their generated index
+website/               — Docusaurus source, published at
+                         hostwarden.github.io/docs by a separate
+                         repo (docs/adr/, 2026-09-25: docs stay in
+                         this repo)
 AGENTS.md              — The instruction set, read by every
                          AGENTS-aware tool
 CLAUDE.md              — Imports AGENTS.md, plus the handful of
