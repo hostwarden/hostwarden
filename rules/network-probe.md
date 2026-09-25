@@ -885,8 +885,16 @@ bf='NF >= 4 && $1 != "Destination" && $4 != "lo0" && $3 !~ /I/ \
 - **Left out:** `lo0`; interface-scoped copies (flag `I`), which
   macOS lists for many interfaces, often ahead of the real
   default; the link-local, multicast and broadcast scope routes
-  every interface carries; and connected routes and host entries.
-  On a router nearly every entry is one of these.
+  every interface carries; and host entries. On FreeBSD a
+  connected route is left out too: `S` (`RTF_STATIC`) means
+  "manually added", and a kernel-created connected route isn't,
+  so it never matches the kept `S` + `link#` branch. On a router
+  nearly every entry is one of these.
+- **macOS only:** its connected routes carry `S` with a `link#`
+  gateway too, the same pattern a tunnel's peer route uses, so
+  this filter cannot tell the two apart by flags alone there, and
+  a connected network can still print as a `route-<family>` line.
+  Telling them apart needs `ifconfig`: see "Probe — macOS" below.
 
 ## Probe — FreeBSD
 
@@ -1017,7 +1025,10 @@ Automatic, Manual or Off for IPv6.
   user's processes. A connected route carries `S` here, as
   in `192.168.1 link#12 UCS en0`: a `link#` route whose prefix
   `ifconfig` gives an address in, on that device, is connected and
-  no edge. `arp -n` reads the same. macOS `ndp` has no
+  no edge. A trailing mark some entries carry in the `Expire`
+  column is not that signal — it tracks ARP or ND cache state, not
+  whether the route is connected — so never use it as a shortcut
+  for this check. `arp -n` reads the same. macOS `ndp` has no
   `ndp -n <address>` query, unlike FreeBSD's: `ndp -an` lists
   every neighbour, matched here to the gateway's address with its
   `%<zone>` suffix stripped and to the default's device. A
