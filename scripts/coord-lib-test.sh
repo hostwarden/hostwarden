@@ -444,5 +444,46 @@ destkind "unaffected: a plain single-line command through dest" \
   'ssh host "systemctl restart nginx"' 'restart:nginx'
 destkind "unaffected: a plain reboot through dest" 'ssh host reboot' 'reboot'
 
+# Found by Codex round 3: a heredoc body's own operator (&&, a real
+# ;, a real background &) must never split hostwarden_coord_dest's
+# own top-level segment apart before hostwarden_coord_kind gets a
+# chance to read it, the way an operator inside a quoted argument
+# already never does.
+destkind "found by Codex round 3: && inside a heredoc body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<EOS
+sleep 1 && systemctl restart nginx
+EOS
+EOF
+)" 'restart:nginx'
+destkind "found by Codex round 3: && inside a heredoc body, reboot" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<EOS
+sleep 1 && reboot
+EOS
+EOF
+)" 'reboot'
+destkind "found by Codex round 3: an explicit ; inside a heredoc body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<EOS
+uptime; systemctl restart nginx
+EOS
+EOF
+)" 'restart:nginx'
+destkind "found by Codex round 3: a real & inside a heredoc body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<EOS
+sleep 5 & systemctl restart nginx
+EOS
+EOF
+)" 'restart:nginx'
+dest "found by Codex round 3: two destinations, one heredoc-wrapped" \
+  "$(cat <<'EOF'
+ssh host1 uptime; ssh host2 'sh -s' <<EOS
+systemctl restart nginx
+EOS
+EOF
+)" "$(printf 'host1\tssh host1 uptime\nhost2\tssh host2 '"'"'sh -s'"'"' <<EOS;systemctl restart nginx;EOS')"
+
 echo "coord-lib: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -32,14 +32,16 @@
 #       cannot see past, unlike the other two, never reaches their
 #       own, deeper reading of the remote text either. It does not
 #       itself recurse into a wrapper's own remote or -c text for a
-#       destination nested there; only hostwarden_coord_is_reboot and
-#       hostwarden_coord_kind do that — but a heredoc's own body
-#       stays part of the segment field verbatim (its opening `<<`
-#       is never one of the redirections hc_clean drops), any
-#       embedded newline turned into a `;` first, since a caller
-#       reads one record per real newline and hostwarden_coord_kind
-#       reads a `;` the same way it would that newline once it gets
-#       there.
+#       destination nested there — but a heredoc's own body stays
+#       part of the segment field whole, an operator its own body
+#       carries (`ssh host 'sh -s' <<EOS` with a body line `sleep 1
+#       && systemctl restart nginx`) never splitting this function
+#       own segment apart before hostwarden_coord_kind reads it in
+#       turn (hc_segments' own hc_heredoc_span), its opening `<<`
+#       never one of the redirections hc_clean drops, any embedded
+#       newline turned into a `;` first, since a caller reads one
+#       record per real newline and hostwarden_coord_kind reads a
+#       `;` the same way it would that newline once it gets there.
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -166,10 +168,15 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 #     still be there once hostwarden_coord_kind reads it in turn;
 #     always hc_expand's own calls, where a multi-line remote
 #     command — a heredoc's own body among them — is read the same
-#     one-command-per-line way `;` already is. An & right next to a
-#     < or > (2>&1, >&2, bash's own &>file) duplicates or redirects
-#     a file descriptor and is never a separator there, only a bare
-#     & (a real background operator) is. RAW[1..n] keeps each
+#     one-command-per-line way `;` already is. An unquoted << that
+#     really opens a heredoc (hc_heredoc_span, matched the same
+#     loose way hc_heredocs matches one) is never split on either,
+#     whatever operator its own body carries, at every call — this
+#     is what keeps a heredoc's body part of hostwarden_coord_dest's
+#     own segment in the first place. An & right next to a < or >
+#     (2>&1, >&2, bash's own &>file) duplicates or redirects a file
+#     descriptor and is never a separator there, only a bare & (a
+#     real background operator) is. RAW[1..n] keeps each
 #     segment's own source text, quotes and all; hc_clean() (a
 #     redirection and its target dropped, quote-aware — never inside
 #     a quoted span, and never a << that might open a heredoc,
@@ -239,8 +246,40 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 HOSTWARDEN_COORD_AWK='
 function base(w) { sub(/^.*\//, "", w); return w }
 
+# hc_heredoc_span(s, i) — s[i] is a < that opens <<[-]DELIM: the
+# number of characters, from i, a real heredoc there spans through
+# its own closing line, inclusive; 0 when no line below matches
+# DELIM on its own, so it never was one. DELIM matched the same
+# loose way hc_heredocs matches one.
+function hc_heredoc_span(s, i,
+    rest, mm, dd, ddash, nlpos, bodystart, brest, blen, p, nl2, lineend, line2, tline2) {
+  rest = substr(s, i)
+  if (!match(rest, "^<<-?[ \t]*[\047\"]?[A-Za-z_][A-Za-z0-9_]*")) return 0
+  mm = substr(rest, RSTART, RLENGTH)
+  dd = mm
+  sub(/^<<-?[ \t]*/, "", dd)
+  gsub("^[\047\"]|[\047\"]$", "", dd)
+  ddash = (mm ~ /^<<-/)
+  nlpos = index(rest, "\n")
+  if (nlpos == 0) return 0
+  bodystart = nlpos + 1
+  brest = substr(rest, bodystart)
+  blen = length(brest); p = 1
+  while (p <= blen) {
+    nl2 = index(substr(brest, p), "\n")
+    if (nl2 > 0) { lineend = p + nl2 - 1; line2 = substr(brest, p, nl2 - 1) }
+    else { lineend = blen; line2 = substr(brest, p) }
+    tline2 = line2
+    if (ddash) sub(/^\t+/, "", tline2)
+    if (tline2 == dd) return bodystart - 1 + lineend
+    if (nl2 == 0) break
+    p = p + nl2
+  }
+  return 0
+}
+
 function hc_segments(s, RAW,
-    i, c, qc, esc, cur, n, slen) {
+    i, c, qc, esc, cur, n, slen, span) {
   n = 1; cur = ""; qc = ""; esc = 0; slen = length(s)
   for (i = 1; i <= slen; i++) {
     c = substr(s, i, 1)
@@ -252,6 +291,19 @@ function hc_segments(s, RAW,
       continue
     }
     if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
+    # An unquoted heredoc opener, real or (the safe, over-matching
+    # direction) merely shaped like one: the whole span through its
+    # own closing line is never split on an operator its own body
+    # carries — it is not this segment own text to read that way,
+    # only a caller that later recurses into it (hc_expand, its own
+    # HC_NL_SEP set) reads its lines as commands of their own. Never
+    # found means it was never a real one, and this < is read as
+    # any other character; the next one gets its own, independent
+    # look.
+    if (c == "<" && substr(s, i, 2) == "<<" && substr(s, i, 3) != "<<<") {
+      span = hc_heredoc_span(s, i)
+      if (span > 0) { cur = cur substr(s, i, span); i += span - 1; continue }
+    }
     # An & right next to a < or > (2>&1, >&2, &>file) duplicates or
     # redirects a file descriptor; it is never a separator there,
     # only the & that stands alone (a background job, a real
