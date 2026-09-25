@@ -104,9 +104,10 @@ negative one; only `views:` is left out, where the server has none.
 - **resolved by:** the resolvers clients use for this name space, and
   how each answers it: from local data, by forwarding it to a
   server, or by recursion. From the reads of those resolvers (a
-  forward zone, a stub zone, a local record), and from an appliance
-  file's configuration read where it names the DNS servers its DHCP
-  hands out.
+  forward zone, a stub zone, a local record), and from a router
+  appliance's `## Network configuration read` where it prints the
+  DNS servers its DHCP hands out (Reading a DNS server). Where none
+  does, the user is asked, as for a name space nobody has described.
 - **managed:** where the user changes the name space — a web UI, an
   API, code (Terraform or OpenTofu, octoDNS, DNSControl, Ansible), or
   a host Hostwarden manages. Observed where a host shows it — a
@@ -193,13 +194,15 @@ things. A
 product that listens on loopback alone serves only its host: it gets
 no line and no `DNS server:` line.
 
-A router appliance (an `Appliance:` line) is read through its
-appliance file's configuration read, for its host overrides and DHCP
-names, where that file has one. Where it has none, and for any other
-product — pdns-recursor, Knot Resolver, Windows DNS — the name spaces
-come from the user, the host gets no `DNS server:` line, and the
-checks of its records report `not checkable` rather than guess a
-command.
+A router appliance (an `Appliance:` line) is read through the
+`## Network configuration read` of its appliance file where that
+read prints its host overrides, its DHCP names or the DNS servers its
+DHCP hands out. Those of `rules/appliance/opnsense.md`, `pfsense.md`
+and `unifi-os.md` print none of them. Where no read prints them, and
+for any other product — pdns-recursor, Knot Resolver, Windows DNS —
+the name spaces come from the user, the host gets no `DNS server:`
+line, and the checks of its records report `not checkable` rather
+than guess a command.
 
 **BIND.** The zones with class, view and type (`primary`,
 `secondary`, `forward`, `stub`, `static-stub`, `mirror`); the
@@ -376,8 +379,9 @@ conversation.
   `pdnsutil list-zone <zone>`. **NSD:** the zone file
   `nsd-checkconf` named, through `named-checkzone -D -o -` where it
   is installed.
-- **A router appliance:** what its appliance file's configuration
-  read gives; without one, the checks report `not checkable`.
+- **A router appliance:** the host overrides its
+  `## Network configuration read` prints; otherwise the checks
+  report `not checkable`.
 - **DHCP names:** dnsmasq's lease file
   (`/var/lib/misc/dnsmasq.leases` on Debian) and Pi-hole's
   (`/etc/pihole/dhcp.leases`), address and name only:
@@ -420,12 +424,19 @@ The exceptions, where it is A and AAAA:
   carries, the proposal is an A or AAAA record, and it says that the
   address is then kept twice.
 
-**A dynamic address.** Where the user says, or memory records, that
-the address of a site's uplink is dynamic, its record is kept by a
-DDNS client on the router or the host, not written once. Service
-names stay CNAMEs to that name, so nothing else changes when the
-address does. The proposal says so, rather than proposing an A record
-that goes stale.
+**A dynamic address.** Whether a site's uplink address is dynamic
+comes from the `IPv4 lifetime:` of the site's uplink sub-entry in
+`memory/topology.md` (`rules/network-topology.md` → Uplinks), and
+where the site has several, of the one that carries the address. A
+dynamic address's record is kept by a DDNS client on the router or
+the host, not written once. Service names stay CNAMEs to that name,
+so nothing else changes when the address does. The proposal says so,
+rather than proposing an A record that goes stale. Where the
+lifetime is not known, or the entries do not show which uplink
+carries the address, the proposal says that too: a record written
+once holds only while the address does. For an AAAA record it is
+never known: an entry records a delegated prefix by its length
+alone, never whether an address lies in it.
 
 **Views.** Every proposed record names its view. A private address —
 RFC 1918, a ULA (`fc00::/7`), `100.64.0.0/10` — goes into internal
