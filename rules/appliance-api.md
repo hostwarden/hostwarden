@@ -21,7 +21,11 @@ appliance file says so by name.
   the appliance offers for it, and its own credential file on the
   workstation (`rules/secrets.md` → API Credentials on the
   Workstation). Hostwarden names the file and its format; the user
-  creates and fills it.
+  creates and fills it. Where the appliance splits a write from a
+  separate apply, reconfigure or commit call, the role names both:
+  scoped to the write alone, the write can succeed while the call
+  that makes it take effect is denied, and the appliance keeps
+  answering the old state with nothing to say so.
 - The first read confirms each access. A login that fails, or a
   credential that answers `401` or `403`, is reported as such and not
   retried in a loop.
@@ -34,7 +38,12 @@ appliance file says so by name.
   API write: <account> (<role>), ~/hostwarden-keys/<host>/<file>
   API path: ssh
   ```
-  `API write: none` where the user wants read access only.
+  `API write: none` where the user wants read access only. Where the
+  read never uses this API at all — an appliance file that reads over
+  SSH instead — there is no `API read:` line, only `API write:`; a
+  parenthetical after `write` names what the account covers where it
+  reaches one function rather than everything the appliance offers,
+  e.g. `API write (DNS host overrides): <account> (<role>), <file>`.
 
 ## Reaching the API
 

@@ -233,6 +233,52 @@ Read its lines as that section says, with these differences:
   Enabled services listing, and `dhcp.running` reads as on
   OPNsense.
 
+## API
+
+pfSense CE and Plus ship no REST API of their own. The write path
+for host overrides is a community package, `pfSense-pkg-RESTAPI`
+(<https://pfrest.org/>, formerly `pfsense-api` by jaredhendrickson13),
+neither Netgate's nor officially supported. Hostwarden never installs
+it (`AGENTS.md` → Critical Safety Rules: stable, official repos
+only). Where the user has installed and configured it for the DNS
+Resolver's host overrides, Hostwarden writes through it
+(`rules/dns.md` → Writing through an API); otherwise the record set
+from `rules/dns.md` → The proposal goes to the user as the menu steps
+below, and neither the missing package nor the missing account is a
+reason to ask them to add either.
+
+- **Write account, only where the user asked for it:** a user scoped,
+  in the package's own access controls, to the DNS Resolver
+  host-override endpoints and the DNS Resolver apply endpoint below —
+  the narrowest role that still lets the write take effect
+  (`rules/appliance-api.md` → Access levels): scoping out the apply
+  endpoint would let the host-override write succeed while the
+  resolver keeps answering the old set — with an API key
+  created under System > REST API > Keys. File `restapi-write`, sent
+  as `X-API-Key: <key>` — never `Authorization: Bearer`, which the
+  package reserves for a JWT from its separate username/password
+  exchange — and never on the command line. Record in server memory
+  (`rules/appliance-api.md` → Access levels):
+  ```
+  API write (DNS host overrides): <user> (<role>), ~/hostwarden-keys/<host>/restapi-write
+  ```
+- **The endpoints** (<https://pfrest.org/api-docs/>, versioned per
+  package release — verify field names against the installed one
+  before the call, `AGENTS.md` → Verify Before Running):
+  `POST /api/v2/services/dns_resolver/host_override` to add one,
+  `PATCH` and `DELETE` on the same path with its `id` to change or
+  remove it, and `GET` to read one back afterwards to confirm. Keep
+  the `id` the creation `POST` returns: a later change to the same
+  override needs it, and a search by `host` and `domain` would
+  otherwise cost a call of its own. Fields: `host`, `domain`, `ip` (a
+  JSON array, one address or several), `descr`, and `aliases` for
+  further names on the same override.
+- **Applying:** a write does not by itself reload the resolver;
+  `POST /api/v2/services/dns_resolver/apply` does, and without it
+  pfSense keeps answering the old set.
+- **Menu steps, where no write account exists:** Services > DNS
+  Resolver > Host Overrides > Add, the same fields as above.
+
 ## Replace: Accounts
 
 - Users, groups, passwords and SSH keys are managed in the User

@@ -657,8 +657,9 @@ version can move a flag from the one below.
     old `answer` before adding the new one, never `add` alone, which
     would leave both.
 
-  A router appliance's host overrides are not written this way; it
-  has none yet. A resolver set is written one member after another,
+  A router appliance's host overrides are written through its own
+  API instead (Through an API), never this way. A resolver set is
+  written one member after another,
   never in parallel (`rules/multi-host.md` → Order), since nothing
   else keeps two members' copies alike. Where
   a member fails partway, the write stops there: the report names
@@ -686,6 +687,78 @@ version can move a flag from the one below.
 - **Windows DNS**, AD-integrated included: report-only, like every
   Windows write (`rules/os/windows.md`). The record set goes to the
   user; Hostwarden never attempts it.
+
+### Through an API
+
+A provider's zone (source 1), or the host overrides or local DNS
+records a router appliance keeps behind its own API (source 2,
+OPNsense, pfSense, UniFi OS). Neither reaches a server over SSH;
+both reuse the requests, the markers and the secret filter of
+`rules/appliance-api.md` rather than repeat them.
+
+- **A provider's zone:**
+  - **The credential file is `~/hostwarden-keys/dns/<zone>/<file>`**
+    (`rules/secrets.md` → API Credentials on the Workstation),
+    `<zone>` the name space's own name in `memory/dns.md`: a zone has
+    no host to key the directory by. Everything else that section
+    says — the empty file created first, the mode check, the stdin
+    channel — applies unchanged.
+  - **A token scoped to the one zone, where the provider offers it.**
+    Cloudflare does: a token with Zone → DNS → Edit and Zone → Zone →
+    Read, bound to that zone alone, one token per zone. Where the
+    provider has no such scope — Hetzner's tokens reach a whole
+    project, INWX's an account unless the user has set up a
+    domain-scoped sub-account — the user is told plainly what the
+    token reaches before it is used, and decides. Noted beside the
+    name space's own `Hostwarden: write` line in `memory/dns.md`
+    (The inventory), so it is asked once, not on every write: a zone
+    has no host of its own for `rules/decisions.md` to file this
+    under. Never a token wider than the provider's narrowest
+    offering for the task, and never one Hostwarden asks the user to
+    widen.
+  - **Back up first**, the zone's own export
+    (`rules/backups.md` → State behind an API).
+  - **The request** goes from the workstation, in the shape
+    `rules/appliance-api.md` → Reaching the API gives an appliance's
+    own API call — one login, one batch, its own markers — but never
+    pinned: `rules/tls-pinning.md` is for an appliance's self-signed
+    certificate, and a provider's is publicly trusted, so ordinary
+    TLS validation runs, no `-k`. The write's body comes from a
+    file, never inline (`rules/appliance-api.md` → Writing), and the
+    object is read back afterwards and compared with what the
+    proposal said. Look the provider's current endpoint and body up
+    before the call (`AGENTS.md` → Verify Before Running): a
+    provider's API moves between its own versions the same as an
+    appliance's.
+  - **Never a CNAME at an MX, NS or SRV record's target, and never
+    at the zone apex** — The record convention's own exceptions,
+    which an A or AAAA record at those names never needs — except
+    through the mechanism The record convention names for that
+    provider. A body carrying anything the record set did not ask
+    for — a page rule, a Worker route, a setting beside the record —
+    is never sent, whatever the endpoint would also accept.
+- **A router appliance's host overrides:**
+  - **Through the appliance's own write access**
+    (`rules/appliance-api.md` → Access levels): an account with the
+    narrowest role the appliance offers for this alone, and only
+    where the user has set one up. Where none exists, the record set
+    from The proposal goes to the user as menu steps instead — never
+    a reason to ask the user to create write access just for this.
+  - **The method is each appliance's own**, since none of the three
+    shares one: `rules/appliance/opnsense.md` → API,
+    `rules/appliance/pfsense.md` → API,
+    `rules/appliance/unifi-os.md` → Network API → Writing.
+  - **Views still apply**: a host override or local record for a
+    private address is fine in the internal views these appliances
+    serve, and refused, as The record convention → Views says, for
+    one the appliance would answer externally.
+  - **Wherever the write path covers more than one record type at a
+    name** — UniFi's does, CNAME, MX and SRV among them, unlike
+    OPNsense's and pfSense's A/AAAA-only host overrides — the same
+    two rules above apply: never a CNAME at an MX, NS or SRV target
+    or the zone apex, and back up every record already at the name
+    before a write that changes what is there, not only the type
+    being written.
 
 ### Verify
 
@@ -769,7 +842,9 @@ findings).
   holds for a delegated subdomain, checked against the ranges The
   record convention → Views names. Glue the user confirmed for an
   internal delegation (Internal domain and DNSSEC) is settled by that
-  answer, recorded as a decision (`rules/decisions.md`).
+  answer, noted beside the name space's own line in `memory/dns.md`
+  (The inventory) rather than asked again: the delegated subdomain
+  has no host of its own for `rules/decisions.md` to file it under.
 
 **INFO**
 

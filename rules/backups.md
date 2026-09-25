@@ -71,6 +71,18 @@ under the repo and is never printed; the local
 changelog names the file. Restoring is a write of that
 object, after asking.
 
+A provider's DNS zone (`rules/dns.md` → Writing through
+an API) follows the same shape, keyed by the zone
+instead of a host, kept the same way: the backup is the
+zone's own export where the provider's API has one —
+Cloudflare's returns a BIND zone file — and otherwise
+every record at the name the write touches, whatever its
+type: a write that changes a name's type, an A record
+replaced by a CNAME among them, would otherwise back up
+the new type and lose the old. Read back as JSON first,
+landing as
+`~/hostwarden-keys/dns/<zone>/api-backups/<zone>.<YYYYmmdd-HHMMSS>.<ext>`.
+
 ## Moving a backup into `$BACKUP_DIR`
 
 Retention goes by mtime, and `mv` keeps it. A file
