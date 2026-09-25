@@ -1,3 +1,7 @@
+---
+sidebar_position: 2
+---
+
 # Supported AI tools
 
 Hostwarden targets Claude Code. Its instruction set is
@@ -113,7 +117,7 @@ Ask, Accept edits, Plan, Auto or Bypass in the
 session's mode selector; which ones you see depends
 on your plan. `--permission-mode auto`, `claude -p`
 and cron (see
-[Command line interface](automation.md#command-line-interface))
+[Command line interface](../running-it/automation.md#command-line-interface))
 need the `claude` CLI, which the app does not put on
 your `PATH`. For recurring runs the app has its own
 scheduled tasks — they run only while the app is open
@@ -121,7 +125,7 @@ and the machine is awake, and need the worktree
 option off like any other session. Answer the
 prompt's one-time questions in a normal session
 first, as described under
-[Scheduled housekeeping](automation.md#scheduled-housekeeping).
+[Scheduled housekeeping](../running-it/automation.md#scheduled-housekeeping).
 
 SSH works as in the terminal. If your key sits in an
 agent that your shell profile points to

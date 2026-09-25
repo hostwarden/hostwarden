@@ -110,8 +110,9 @@ PowerShell section describes.
 domain controller and `3` a server: carry on. `1` is
 a Windows client, which is no managed target: say so,
 name the alternative — Hostwarden runs on a Windows
-client in WSL 2 (`docs/install.md` → Windows) — and
-stop. Record nothing.
+client in WSL 2
+(`https://hostwarden.github.io/docs/getting-started/install#windows`)
+— and stop. Record nothing.
 
 Windows has no appliance or platform markers: steps 3
 and 4 of `rules/first-detection.md` → On first

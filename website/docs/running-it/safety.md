@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Safety and guardrails
 
 Hostwarden's safety rules are not optional — they're
@@ -56,7 +60,7 @@ under pressure.
   replacement), launch the session with
   `HOSTWARDEN_GUARD_DISABLE=1` — in the desktop app,
   through `.claude/settings.local.json`
-  ([Claude Code Desktop](ai-tools.md#claude-code-desktop)).
+  ([Claude Code Desktop](../getting-started/ai-tools.md#claude-code-desktop)).
   OpenCode does not read
   Claude Code hooks — there the prose rules remain
   the safety layer.

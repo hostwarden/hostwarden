@@ -112,8 +112,9 @@ four have to hold:
    no shell to export it from: the operator adds it to the `env`
    of `.claude/settings.local.json` by hand and starts a new
    session, which then opens with a note that the guard is off
-   (docs/ai-tools.md → Claude Code Desktop). Set mid-session it has no
-   effect, and writing it there yourself is blocked.
+   (website/docs/getting-started/ai-tools.md → Claude Code Desktop).
+   Set mid-session it has no effect, and writing it there yourself
+   is blocked.
 
 Being blocked by the guard before step 4 is the expected outcome.
 Never rephrase a command to get past it.

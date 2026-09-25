@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Running Hostwarden in production
 
 How a checkout becomes the one that administers your
@@ -282,7 +286,7 @@ An update writes it only once, when a checkout that
 never chose settles on its line. The auto-update checks
 out the highest `vX.Y.Z` tag on the line;
 pre-releases do not count. Only the newest release
-gets fixes ([SECURITY.md](../SECURITY.md)): once a
+gets fixes ([SECURITY.md](https://github.com/hostwarden/hostwarden/blob/main/SECURITY.md)): once a
 release outside the line is out, every update and
 `--check` say so, and name the line to follow next
 and where to read what it changes.
@@ -319,7 +323,7 @@ export HOSTWARDEN_NO_UPDATE=1
 
 In the desktop app, set it in the `env` of
 `.claude/settings.local.json` instead — see
-[Claude Code Desktop](ai-tools.md#claude-code-desktop).
+[Claude Code Desktop](../getting-started/ai-tools.md#claude-code-desktop).
 
 ## A shared workspace
 
@@ -333,7 +337,7 @@ checks it. Hostwarden itself stays an unmodified clone
 that keeps updating.
 
 1. Set the workspace up as the
-   [README](../README.md#steps) describes, then
+   [README](https://github.com/hostwarden/hostwarden#steps) describes, then
    publish it once:
    ```
    bin/hostwarden-sync commit "Start the shared workspace"
@@ -538,9 +542,9 @@ the backup.
   its members, HA state, guest inventory and
   decisions
 - `known_hosts` — the SSH host keys of your servers
-  ([Features → Host keys](features.md#host-keys))
+  ([Features → Host keys](../getting-started/features.md#host-keys))
 - `ssh_hosts` — other ports, addresses and jump hosts
-  ([Features → Reaching a host](features.md#reaching-a-host))
+  ([Features → Reaching a host](../getting-started/features.md#reaching-a-host))
 - `ssh_config` — written from `ssh_hosts` for this
   machine at every session start; never edit it
 - `custom-rules/` — your global rule overrides
@@ -632,7 +636,7 @@ The migration renames skill overrides in
   they wrote onto servers — a `scripts/` directory
   under a host, a tool at the top of `memory/`,
   wherever they ended up — are always rebuilt into
-  [masters](features.md#files-hostwarden-deploys):
+  [masters](../getting-started/features.md#files-hostwarden-deploys):
   each file at its host path under the host's
   `files/`, one deployed to several hosts under
   `memory/fleet/`, workstation scripts in
@@ -688,7 +692,7 @@ The migration renames skill overrides in
   new name.
 - SSH sockets live in `~/.cache/hostwarden`.
 - Host keys come from `memory/known_hosts`
-  ([Features → Host keys](features.md#host-keys)).
+  ([Features → Host keys](../getting-started/features.md#host-keys)).
   `bin/hostwarden-heinzel-takeover` copies the host keys your
   Heinzel checkout kept there. Without them, each host's key is
   imported from the known_hosts files your own ssh

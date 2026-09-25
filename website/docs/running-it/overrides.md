@@ -1,3 +1,7 @@
+---
+sidebar_position: 4
+---
+
 # Overrides
 
 An override is a file you write to change what Hostwarden

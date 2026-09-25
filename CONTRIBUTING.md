@@ -112,13 +112,13 @@ moving it is a decision for whoever planned that epic:
 
 Work in a development checkout: a clone of Hostwarden, or of your
 fork, without `bin/hostwarden-init`
-([docs/operations.md](docs/operations.md#operations-and-development)).
+([the Operations and development section](https://hostwarden.github.io/docs/running-it/operations#operations-and-development)).
 One git worktree per branch keeps parallel sessions apart;
 [docs/project-structure.md](docs/project-structure.md) says where
 things live.
 
 Clone with symbolic links working, on Windows inside WSL 2
-(docs/install.md → Windows). The checks need ShellCheck,
+(https://hostwarden.github.io/docs/getting-started/install#windows). The checks need ShellCheck,
 actionlint, betterleaks, `jq` and `python3`. `mise.dev.toml` pins
 the versions CI uses, and [mise](https://mise.jdx.dev) installs
 them. Install mise with the package manager the workstation
@@ -160,7 +160,7 @@ To try a command on a Linux family instead of guessing its
 syntax, install docker or podman (OrbStack provides docker on
 macOS); `bin/hostwarden-lab` runs disposable containers with it.
 What only a full VM can answer goes to a test clone
-([docs/operations.md](docs/operations.md#operations-and-development)).
+([the Operations and development section](https://hostwarden.github.io/docs/running-it/operations#operations-and-development)).
 
 An agent session opens, watches and hands over its pull request
 with the [GitHub CLI](https://cli.github.com), `gh`, signed in

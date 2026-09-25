@@ -301,7 +301,8 @@ if [ -z "$LIST" ]; then
   rm -rf "$probe"
   if [ -z "$linked" ]; then
     echo "error: this filesystem cannot hold symbolic links, and DNS" >&2
-    echo "  aliases need them — see docs/install.md → Symbolic links" >&2
+    echo "  aliases need them — see" >&2
+    echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links" >&2
     exit 1
   fi
 fi
