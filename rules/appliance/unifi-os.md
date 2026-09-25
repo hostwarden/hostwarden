@@ -340,7 +340,18 @@ into `jq` on the workstation: first its key paths alone,
 `jq -r '[paths(scalars) | map(tostring) | join(".")] | .[]'`, with
 no value; then a projection of the paths among them that carry the
 fields above. Which file holds the configuration, and its paths,
-are taken from that listing, never from memory.
+are taken from that listing, never from memory. **This step's own
+result is this path's own `db`: `none`.** Whatever finds and streams
+the file — a `cat`, an `ssh`, one command or several — runs under
+`set -o pipefail` together with this `jq`, so a failure anywhere in
+the pipeline is not swallowed by a later stage's success: `jq`
+alone exits `0` on empty input, and `cat` exits non-zero once any
+of several files it was given could not be opened while still
+streaming the ones it could, either of which a `jq`-only check
+misses. The pipeline's own exit status is the test, not `jq`'s
+alone, and a `0` exit with an empty listing is still `none`. Only a
+non-empty listing from a pipeline that exited `0` under `pipefail`
+counts as a read that ran.
 
 ### Over the API
 

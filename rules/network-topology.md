@@ -541,7 +541,11 @@ as usual for the console's own site alone. Skip the fold for every
 other site the console manages, which the fallback does not reach,
 the same as a failed API call above, rather than pruning their
 existing ranges, edges and uplink entries for a read that never
-covered them.
+covered them. Where the fallback's own first step counts as `none`
+under its own `pipefail` test (`rules/appliance/unifi-os.md` → Over
+SSH), skip the fold for the console's own site too: the fallback
+triggered but did not finish, which is a read that did not run, not
+a console with no networks.
 
 1. **Ranges.** Each interface or network that the read shows
    enabled, is not a WAN and has an address gives one range, at the
