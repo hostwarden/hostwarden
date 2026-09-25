@@ -396,7 +396,8 @@ its masters and `decisions.md`, `memory/clusters/*/`,
 handles in use, `rules/session-start.md`),
 `memory/network.md`, `memory/topology.md`, `memory/dns.md`,
 `memory/housekeeping.md`,
-`memory/service-policy.md` and `memory/custom-rules/`.
+`memory/service-policy.md`, `memory/naming.md`
+(`rules/naming-scheme.md`) and `memory/custom-rules/`.
 
 When another machine's session shows up in the activity
 check (`rules/activity-check.md`), their memory

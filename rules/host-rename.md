@@ -24,9 +24,15 @@ directory takes the form the old one had: the full name where it
 was named by one, the first label where it was named by a short
 name, with the suffix a second guest of the same name carries,
 and for a WSL instance `<new windows hostname>-wsl-<distribution>`
-(`rules/server-memory.md`). Where the user has a naming convention
-for the fleet, say in the question where the new name departs
-from it; the user's word decides.
+(`rules/server-memory.md`). Where a `rules/naming-scheme.md` block
+applies to the host, check the new name against it
+(`rules/naming-scheme.md` → Checking a name) and say in the
+question where it departs; a yes to a name that fails it adds an
+`Exempt:` line with the reason and who and when to
+`memory/naming.md` and the rename goes on with that name; a no asks
+for another new name instead of going on with one the user just
+declined to keep off-scheme. Where no block applies, the user's
+word decides.
 
 Before anything else, on the workstation:
 

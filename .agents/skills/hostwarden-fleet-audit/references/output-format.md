@@ -121,6 +121,50 @@ count. The names that differ go to the drift entry, not into cells:
    `rules/dns.md` → The proposal lists it.
 ```
 
+## Naming
+
+One row, computed from memory alone — `memory/naming.md`, each
+host's directory name and `- FQDN:` — with no probe on the host
+(`rules/naming-scheme.md`). Render it as its own single-row table
+after the probed categories, with a column for **every** host of
+step 1, skipped and unreachable ones included: unlike every other
+table here, this row needs no connection, so none of the reasons
+that drop a host from the probed tables (skipped, unreachable,
+`blocked:`) drop it from this one.
+
+```
+### Naming
+
+| Setting  | host1     | host2                  | ↳ db1     | nas1    |
+|----------|-----------|------------------------|-----------|---------|
+| ! Naming | on scheme | off scheme → fsn-web02 | on scheme | exempt  |
+```
+
+Four values, never abbreviated:
+
+- `on scheme` — the name checks out against the block that applies
+  to it, label and domain both (`rules/naming-scheme.md` → Checking
+  a name).
+- `off scheme → <name>` — a block applies and the name does not
+  check out; `<name>` is the name that block would give it now, or
+  `off scheme, name not proposed` where its role token cannot be
+  derived (`rules/naming-scheme.md` → Existing hosts: gradually,
+  never forced).
+- `exempt` — the host is on that block's `Exempt:` line.
+- `no scheme` — no block's `Applies to:` selector reaches the host.
+
+A host two blocks would govern is resolved into one of these four
+before its cell is filled in, never left as a fifth value
+(`rules/naming-scheme.md` → Which block applies to a host).
+
+Mark the row with `!` and list it in "Drift detected" whenever it
+is not the same value on every host, `no scheme` and `exempt`
+included: a fleet split between a scheme and no scheme is drift
+like any other. A range whose observed DNS suffix
+(`rules/network-topology.md` → Ranges) differs from the applicable
+block's domain gets a line of its own in "Drift detected" for that
+range's hosts, distinct from the per-host row above.
+
 ## Drift detected
 
 After all tables, a numbered list. Each entry: which hosts
