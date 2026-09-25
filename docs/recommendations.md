@@ -31,6 +31,9 @@ A decision, for one host or a group, settles any of these
   [Server baseline](features.md#server-baseline)
 - **A backup job** — the one thing that survives a mistake.
   [Server baseline](features.md#server-baseline)
+- **Mail through a relay where the site's IPv4 address is dynamic, or
+  goes through CGNAT or DS-Lite** — receivers commonly reject mail sent
+  directly from such an address. [A host's network](features.md#a-hosts-network)
 
 ## Guests
 

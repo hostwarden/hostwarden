@@ -6,7 +6,7 @@
   suffix and gateway, and the routes between ranges, read-only and
   from the hosts alone; an appliance adds what its configuration
   says once its file reads one. Onboarding asks which site a host
-  is at, the network probe reads the routing table, the gateway's
-  MAC, the host's VLAN tags and any routing daemon, and a routing
+  is at, the network probe reads the routing table, each default
+  gateway's MAC, the host's VLAN tags and any routing daemon, and a routing
   daemon is recorded as `Dynamic routing:`. A short name that
   resolves nowhere is offered under the suffixes the ranges record.

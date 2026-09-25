@@ -205,6 +205,34 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
 - `ifconfig`, `netstat -rn` and `pfSsh.php playback gatewaystatus`
   are fine for reading.
 
+## Network configuration read
+
+What the firewall knows about the networks behind it — interfaces,
+VLANs, static routes, DHCP scopes and its WAN interfaces — read
+from `/conf/config.xml` over the SSH login Hostwarden already has,
+and folded into `memory/topology.md`
+(`rules/network-topology.md` → Folding a configuration read), with
+no API account
+(`docs/adr/20260925-appliances-read-over-ssh-allow-list.md`).
+
+The read is the bundle of `rules/appliance/opnsense.md` → Network
+configuration read, unchanged: the program loads `config.inc`, as
+the Enabled services listing above does, and prints the same
+allow-listed keys and nothing else from `config.xml`.
+
+Read its lines as that section says, with these differences:
+
+- `<name>` is pfSense's internal name (`wan`, `lan`, `opt1`), and
+  the same methods and the same test for a WAN apply.
+- **DHCP:** `dhcp.backend` is `isc` or `kea`, the setting under
+  System > Advanced > Networking, or `not read` where it was never
+  saved. Both backends take their scopes from the DHCP Server
+  page, the `dhcpd` section, printed as `dhcpd.*` whichever runs;
+  `dnsmasq.*` and `kea.*` are OPNsense's and print nothing here.
+  The `service.*` lines come from `get_services()`, as in the
+  Enabled services listing, and `dhcp.running` reads as on
+  OPNsense.
+
 ## Replace: Accounts
 
 - Users, groups, passwords and SSH keys are managed in the User
@@ -296,6 +324,8 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   reload.
 - Report settings pfSense generates as web UI changes, not file
   edits.
+- Onboarding and every housekeeping run, a scheduled one included,
+  run the Network configuration read and fold it.
 
 **Housekeeping** runs the FreeBSD baseline with these changes:
 

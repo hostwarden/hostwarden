@@ -398,6 +398,13 @@ listens behind it.
 - `/etc/resolv.conf` marked immutable.
 - Only one upstream nameserver.
 - No PTR on a public address of a host without an MTA.
+- A host whose MTA (the `MTA:` line in `memory.md`) delivers
+  directly, with
+  no relay host in its configuration, while its site's uplink
+  (`rules/network-topology.md` →
+  Uplinks) has a dynamic IPv4 address, or IPv4 through CGNAT or
+  DS-Lite: receivers commonly reject mail from such addresses, and
+  a relay is the usual answer (`rules/baseline.md` → Mail Relay).
 - `hostname -f` does not return an FQDN, or it does not resolve.
 - The whole rule set is in iptables-legacy and `nft` shows no
   tables. Record it under Netfilter: a check that reads only

@@ -262,6 +262,132 @@ included
 - Device restarts and PoE power cycles interrupt clients: ask each
   time, name the device and what hangs off it.
 
+## Network configuration read
+
+What UniFi Network knows about the networks it runs — per network
+its VLAN, subnet, DHCP and domain name, its WAN addressing, and the
+static routes — folded into `memory/topology.md`
+(`rules/network-topology.md` → Folding a configuration read). Over
+SSH as root by default, since that login is there already; over the
+Network API where memory has an `API read:` line and SSH is off,
+or the user prefers it. No credential is set up for it
+(`docs/adr/20260925-appliances-read-over-ssh-allow-list.md`).
+
+**The configuration fields, on either path, and nothing else:** a
+network's `purpose`, `enabled`, `site_id`, `vlan` and `vlan_enabled`,
+`ip_subnet`, `dhcpd_enabled`, `dhcpd_start`, `dhcpd_stop`,
+`domain_name`, and on a WAN `wan_type`, `wan_ip`, `wan_type_v6`
+and `wan_dhcpv6_pd_size`; a static route's `enabled`,
+`static-route_type`, `static-route_network`, `static-route_nexthop`
+and `static-route_interface`; each site's `name`, its short
+identifier, never its description. Left
+out: every `x_` field, the PPPoE, VPN and RADIUS secrets, and every
+label a person typed, a network's and a route's `name` among
+them.
+
+### Over SSH
+
+UniFi Network keeps each site's configuration in its local
+database, MongoDB on port 27117, database `ace`. Where the console
+has a client for it, one read-only query projects the fields above
+for every site, one JSON document per line:
+
+```bash
+c=$(command -v mongosh || command -v mongo) \
+  || { echo '{"db": "none"}'; exit 0; }
+"$c" --quiet --port 27117 ace --eval '
+  var n = {_id: 0, purpose: 1, enabled: 1, site_id: 1,
+    vlan: 1, vlan_enabled: 1, ip_subnet: 1, dhcpd_enabled: 1,
+    dhcpd_start: 1, dhcpd_stop: 1, domain_name: 1, wan_type: 1,
+    wan_ip: 1, wan_type_v6: 1, wan_dhcpv6_pd_size: 1};
+  var r = {_id: 0, site_id: 1, enabled: 1, "static-route_type": 1,
+    "static-route_network": 1, "static-route_nexthop": 1,
+    "static-route_interface": 1};
+  db.site.find({}, {name: 1}).forEach(function (d) {
+    print(JSON.stringify({site: {id: d._id.str || d._id.toHexString(),
+      name: d.name}})) });
+  db.networkconf.find({}, n).forEach(function (d) {
+    print(JSON.stringify({network: d})) });
+  db.routing.find({}, r).forEach(function (d) {
+    print(JSON.stringify({route: d})) });'
+echo "{\"db\": \"${c##*/}\", \"exit\": $?}"
+ip -br link | grep -E '^(br|eth|ppp)'
+ip -br addr | grep -E '^(br|eth|ppp)'
+```
+
+The console has no `jq`, so the answer goes to the workstation and
+through a filter there before any of it reaches the conversation,
+as `rules/appliance-api.md` → Reading does for an API answer: each
+JSON line projected to the fields above, each value held to what
+its field can be — an address, a number, a boolean, one of the
+keywords below, a domain name for `domain_name` — and withheld
+otherwise, as the OPNsense program's `v()` does
+(`rules/appliance/opnsense.md` → Network configuration read); then
+the key filter in `rules/secrets.md` → API Credentials on the
+Workstation with `^x_` added. A line that is not JSON is counted,
+never forwarded, apart
+from the `ip` lines, which carry device names, MACs and addresses
+alone. Nothing is written to disk on either side. `{"db": "none"}`
+means the console has no client; a `db` line whose `exit` is not
+`0` is a read that did not run.
+
+**Where the console has no client,** the fallback is the gateway's
+applied configuration under `/data/udapi-config/`. It covers the
+console's own gateway only: every other site the console manages is
+named as not read. Its layout differs between releases, and it
+holds secrets too, so it is read in two steps, both piped straight
+into `jq` on the workstation: first its key paths alone,
+`jq -r '[paths(scalars) | map(tostring) | join(".")] | .[]'`, with
+no value; then a projection of the paths among them that carry the
+fields above. Which file holds the configuration, and its paths,
+are taken from that listing, never from memory.
+
+### Over the API
+
+With the read admin, as Network API → Reading says: per site,
+`rest/networkconf` and `rest/routing`, projected to the fields above
+and their values held as Over SSH says,
+every site from `/proxy/network/api/self/sites` in turn, in the
+same call as housekeeping's API reads where it runs with them. It has no
+`ip` lines, so a dynamic WAN's live address and the bridges' MACs
+are `not known` on this path. The
+Integration API's `networks` and `wans` are used only where
+`API key reads: allowed`, their paths from the versioned reference
+at <https://developer.ui.com/network>.
+
+### Reading it
+
+- **`enabled`:** only a network whose `enabled` is true is
+  folded. One whose document lacks the field is named as not read,
+  never taken as enabled.
+- **`purpose`:** `wan` is a WAN; `corporate`, `guest` and
+  `vlan-only` are networks, a `vlan-only` one with no address on
+  the gateway; the VPN purposes are tunnels, left to
+  `rules/mesh-vpn.md` and never a range.
+- **`ip_subnet`** is the gateway's address with the prefix length,
+  `192.0.2.1/24`: the range and its gateway. `vlan` counts where
+  `vlan_enabled` is true; otherwise the network is `untagged`.
+- **DHCP:** `dhcpd_enabled` with `dhcpd_start` and `dhcpd_stop`,
+  and `domain_name` as the DHCP option.
+- **A WAN's addressing:** `wan_type` `dhcp`, `pppoe`, `static`
+  (with `wan_ip`) or `disabled`; `wan_type_v6` and
+  `wan_dhcpv6_pd_size`, the size of the prefix it asks for. A
+  dynamic WAN's live address, and each bridge's MAC for
+  `rules/network-topology.md` → Range identity, come from the `ip`
+  lines, which describe the console's own gateway alone.
+- **Static routes:** `static-route_type` `nexthop-route` goes via
+  `static-route_nexthop`, `interface-route` out
+  `static-route_interface`, `blackhole` nowhere; one with
+  `enabled` false is left out.
+- **Every site, not just the first:** the networks and routes
+  carry their `site_id`, matched to the `site` lines. Each UniFi
+  site's ranges are folded apart (`rules/network-topology.md` →
+  Folding a configuration read).
+- A field missing from a document is `not read`, never a default.
+  Which database client exists, and the field names, differ
+  between releases: an answer that lacks them is reported as not
+  read, never guessed around.
+
 ## Updates
 
 - **Only through UniFi OS.** There is no `unattended-upgrades`.
@@ -483,6 +609,10 @@ with these changes:
   `stat/device`: a subsystem whose `status` is not `ok`, an adopted
   device that is offline, and a device with `upgradable` true are
   findings; name the device.
+- The Network configuration read, folded, on onboarding and every
+  housekeeping run, a scheduled one included. Over the API a
+  scheduled run needs the credential file on the machine that runs
+  it; without it the read counts as not run.
 
 **A security audit** runs the security skill with these changes:
 
