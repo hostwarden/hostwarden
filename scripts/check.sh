@@ -228,6 +228,16 @@ then
 else
   step "impact radius" sh scripts/impact-test.sh
 fi
+# The map matrix reads hostwarden-map and the mode hook alone;
+# hostwarden-sync only calls it, so a change there does not need
+# this to run.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^bin/hostwarden-map$|^\.claude/hooks/mode\.sh$|^scripts/hostwarden-map-'
+then
+  echo "== map matrix: nothing it reads is pushed, skipped"
+else
+  step "infrastructure maps" sh scripts/hostwarden-map-test.sh
+fi
 # The coordination matrix reads announce/wait/ack/done/status and
 # the presence and impact hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \

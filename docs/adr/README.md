@@ -10,6 +10,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | :--- | :--- | :--- |
 | [A team is two active people, not a workspace remote](20260925-team-is-two-active-people.md) | coordination, workspace | — |
 | [A service name is a CNAME to its host's FQDN](20260925-service-name-is-a-cname.md) | dns | — |
+| [No composed classDefs; subgraph class waits for its edges](20260925-mermaid-class-order.md) | — | — |
 | [Internal DNSSEC uses a delegated subdomain, never a shared key](20260925-internal-dnssec-delegated-subdomain.md) | dns, security | — |
 | [Docs stay in this repo, only publishing lives elsewhere](20260925-docs-stay-in-repo-thin-publish.md) | docs, release | — |
 | [DNS records are proposed; written only where allowed](20260925-dns-propose-write-only-where-allowed.md) | dns, memory | — |
