@@ -270,6 +270,77 @@ dest "found in review: dest sees past sudo --user (long option)" \
   'sudo --user root ssh root@pve1.example.com reboot' \
   "$(printf 'pve1.example.com\tsudo --user root ssh root@pve1.example.com reboot')"
 
+# Found in the fix pass's own verification round: sudo's short
+# value-taking options were still misread when the value was
+# attached without a space (sudo -uroot), the exact same
+# bare-flag/attached-value ambiguity SSHVAL has, but this one has
+# no hops.sh copy to keep in sync with, so it is fixed rather than
+# deferred.
+reboot "found in verification: sudo -uroot (attached, no space)" \
+  'ssh host "sudo -uroot reboot"' yes
+reboot "found in verification: sudo -Dlogdir does not overreach" \
+  'ssh host "sudo -Dlogdir echo hi"' no
+
+# Found in the fix pass's own verification round: an & right next
+# to a < or > duplicates or redirects a file descriptor and is
+# never a separator; only a bare & (a real background operator) is.
+reboot "found in verification: leading 2>&1 does not hide reboot" \
+  'ssh host "2>&1 reboot"' yes
+reboot "found in verification: trailing 2>&1 does not hide reboot" \
+  'ssh host "reboot 2>&1"' yes
+kind "found in verification: 2>&1 does not hide a restart" \
+  'ssh host "2>&1 systemctl restart nginx"' 'restart:nginx'
+dest "found in verification: a real background job still splits" \
+  'ssh host1 uptime & ssh host2 reboot' \
+  "$(printf 'host1\tssh host1 uptime\nhost2\tssh host2 reboot')"
+
+# Found in the fix pass's own verification round: the rules/ssh-
+# connections.md own `sh -s` heredoc-bundling idiom sent the whole
+# script over stdin, invisible to a classifier that only reads the
+# command's own words — until the heredoc body itself is read as
+# more command text, one depth deeper.
+reboot "found in verification: sh -s heredoc, reboot in the body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS'
+uptime
+reboot
+EOS
+EOF
+)" yes
+kind "found in verification: sh -s heredoc, restart in the body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS'
+systemctl restart nginx
+EOS
+EOF
+)" 'restart:nginx'
+kind "found in verification: sh -s heredoc, a harmless body" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS'
+uptime
+EOS
+EOF
+)" ""
+kind "found in verification: unquoted heredoc delimiter" \
+  "$(cat <<'EOF'
+ssh host sh -s <<EOS2
+systemctl restart nginx
+EOS2
+EOF
+)" 'restart:nginx'
+kind "found in verification: <<- dashed form, tab-indented terminator" \
+  "$(printf 'ssh host '\''sh -s'\'' <<-EOS\n\tsystemctl restart nginx\n\tEOS\n')" \
+  'restart:nginx'
+kind "found in verification: a here-string is not a heredoc" \
+  'cat <<<"hello restart world"' ""
+reboot "found in verification: heredoc combined with a trailing redirect" \
+  "$(cat <<'EOF'
+ssh host 'sh -s' <<'EOS' 2>&1
+reboot
+EOS
+EOF
+)" yes
+
 kind "one segment, no destination, names nothing" 'uptime' ""
 kind "a plain, harmless remote command names nothing" \
   'ssh host uptime' ""

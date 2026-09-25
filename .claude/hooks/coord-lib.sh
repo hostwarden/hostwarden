@@ -97,12 +97,15 @@
 #       hands them to the far shell — `man ssh`), and a
 #       `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, `env … -c`,
 #       `env … -S`/`--split-string` or bare `env VAR=val …`
-#       wrapper's own script, at each level in turn, so `ssh host
-#       "sudo bash -c 'apt upgrade -y && reboot'"` and `ssh host sh
-#       -c "systemctl restart nginx && reboot"` are read the same
-#       as `ssh host reboot` — built on
-#       HOSTWARDEN_COORD_AWK (→ below), the tokenizer
-#       hostwarden_coord_dest and hostwarden_coord_kind share.
+#       wrapper's own script, and a heredoc's own body (`ssh …
+#       host 'sh -s' <<'EOS'` — rules/ssh-connections.md's own
+#       bundling idiom), one line judged as one command each, at
+#       each level in turn, so `ssh host "sudo bash -c 'apt
+#       upgrade -y && reboot'"` and `ssh host sh -c "systemctl
+#       restart nginx && reboot"` are read the same as `ssh host
+#       reboot` — built on HOSTWARDEN_COORD_AWK (→ below), the
+#       tokenizer hostwarden_coord_dest and hostwarden_coord_kind
+#       share.
 #   hostwarden_coord_kind <segment>
 #       prints one line per disruptive kind <segment> — one
 #       ;/&/|-delimited piece of a command, as
@@ -168,12 +171,13 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 #     closing.
 #
 # hc_skip_prefix(W, i, nw) reads past a leading `exec`, `busybox`,
-# `sudo` or `doas` — a short value-taking option (SUVAL, as always)
-# or a GNU long one of the same seven (SULONGVAL: --user, --group,
-# --host, --chroot, --close-from, --command-timeout, --prompt,
-# `man sudo`) skipped with its own separate value word, not only
-# the `--name=value` form a bare "starts with -" skip already
-# handles. hostwarden_coord_dest calls it too, since impact.sh's
+# `sudo` or `doas` — a short value-taking option (SUCLASS's own
+# letter, attached or its own separate word, hc_sudoadv) or a GNU
+# long one of the same seven (SULONGVAL: --user, --group, --host,
+# --chroot, --close-from, --command-timeout, --prompt, `man sudo`)
+# skipped with its own separate value word, not only the
+# `--name=value` form a bare "starts with -" skip already handles.
+# hostwarden_coord_dest calls it too, since impact.sh's
 # whole check gates on it finding a destination at all: `sudo ssh
 # host reboot` is read the same as `ssh host reboot` there, not
 # only by hc_classify.
@@ -230,7 +234,21 @@ function hc_segments(s, RAW,
       continue
     }
     if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
-    if (index(";&|(){}`", c) > 0) { RAW[n] = cur; n++; cur = ""; continue }
+    # An & right next to a < or > (2>&1, >&2, &>file) duplicates or
+    # redirects a file descriptor; it is never a separator there,
+    # only the & that stands alone (a background job, a real
+    # operator) is.
+    if (c == "&" && ((length(cur) > 0 && substr(cur, length(cur), 1) ~ /[<>]/) \
+        || substr(s, i + 1, 1) == ">")) {
+      cur = cur c
+      continue
+    }
+    # An unquoted newline ends a command the same way ; does (a
+    # heredoc body, hc_heredocs own extracted text, is a script,
+    # one command per line, not one long one); one right after a
+    # backslash was already folded into the escaped character
+    # above and never reaches here.
+    if (index(";&|(){}`\n", c) > 0) { RAW[n] = cur; n++; cur = ""; continue }
     cur = cur c
   }
   RAW[n] = cur
@@ -238,7 +256,12 @@ function hc_segments(s, RAW,
 }
 
 function hc_clean(seg) {
-  gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg)
+  # An optional & on either side of the </> run itself: >&2, 2>&1,
+  # and bash own &>file/&>>file, on top of the plain 2>file every
+  # redirection already reads as one dropped construct with hc_
+  # segments own & exception above keeping the whole thing one
+  # word to find here in the first place.
+  gsub(/[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/, " ", seg)
   gsub(/^[ \t]+|[ \t]+$/, "", seg)
   return seg
 }
@@ -283,8 +306,67 @@ function joinw(w, i, n,    s, k) {
   return s
 }
 
-function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2) {
-  nseg2 = hc_segments(s, RAW2)
+# hc_heredocs(s, depth) — s with every <<[-]DELIM…body…DELIM span
+# (the rules/ssh-connections.md own `sh -s` bundling idiom — `ssh …
+# host` then a quoted `sh -s`, then a quoted `<<EOS` heredoc marker
+# — a whole multi-line here document as one Bash tool call) read
+# out and each body handed to
+# hc_expand in its own right, one depth deeper, so `systemctl
+# restart nginx` inside it is read the same as it would be on an
+# ordinary command line. Returns s with each such span collapsed to
+# one space, for hc_segments to read what is left the usual way.
+# DELIM is matched loosely — an identifier-shaped word, quoted or
+# not, is enough, the exact quoting a real shell would need for it
+# is not read — over-matching (the safe direction) at worst treats
+# an ordinary "<<" mid-line as the start of one, and either finds a
+# real terminator line further down (harmless: its body still gets
+# read) or none (nothing past it is judged, same as an
+# unrecognised construct always leaves unread). A <<< here-string
+# is never mistaken for one: it never has an identifier-shaped word
+# starting right at its own two <, only one line further in.
+function hc_heredocs(s, depth,
+    LN, nlines, i, line, pos, m, dashed, delim, pre, post, body, tline, j, found, out, qc) {
+  # A single or double quote around DELIM, matched via a dynamic
+  # (string-built) regex throughout this function rather than a
+  # /.../ literal, since a literal quote character in the awk
+  # source here would close the single-quoted shell string
+  # HOSTWARDEN_COORD_AWK itself is written as.
+  qc = "[\047\"]"
+  nlines = split(s, LN, "\n")
+  out = ""
+  for (i = 1; i <= nlines; i++) {
+    line = LN[i]
+    pos = index(line, "<<")
+    if (pos > 0 && substr(line, pos, 3) != "<<<" \
+        && match(substr(line, pos), "^<<-?[ \t]*" qc "?[A-Za-z_][A-Za-z0-9_]*")) {
+      m = substr(line, pos, RLENGTH)
+      dashed = (m ~ /^<<-/)
+      delim = m
+      sub(/^<<-?[ \t]*/, "", delim)
+      gsub("^" qc "|" qc "$", "", delim)
+      pre = substr(line, 1, pos - 1)
+      post = substr(line, pos + RLENGTH)
+      gsub("^" qc "|" qc "$", "", post)
+      body = ""; found = 0
+      for (j = i + 1; j <= nlines; j++) {
+        tline = LN[j]
+        if (dashed) sub(/^\t+/, "", tline)
+        if (tline == delim) { found = 1; i = j; break }
+        body = body LN[j] "\n"
+      }
+      if (found) hc_expand(body, depth + 1)
+      else i = nlines
+      out = out pre " " post "\n"
+      continue
+    }
+    out = out line "\n"
+  }
+  return out
+}
+
+function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2, s2) {
+  s2 = (index(s, "<<") > 0) ? hc_heredocs(s, depth) : s
+  nseg2 = hc_segments(s2, RAW2)
   for (si2 = 1; si2 <= nseg2; si2++) {
     cleaned2 = hc_clean(RAW2[si2])
     if (cleaned2 == "") continue
@@ -294,25 +376,33 @@ function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2) {
   }
 }
 
-function hc_sudoval(w) {
-  # A short value-taking option (SUVAL) or a GNU long option of the
-  # same seven (SULONGVAL, man sudo): --user, --group, --host,
-  # --chroot, --close-from, --command-timeout, --prompt, each
-  # tested live to take a separate word the same way `-u user`
-  # does, not only the `--name=value` form a plain "starts with -"
-  # skip already carries for free.
-  return w ~ SUVAL || w ~ SULONGVAL
+function hc_sudoadv(w,   c2) {
+  # sudo own SUCLASS letter (man sudo: u,g,p,C,R,r,t,T,h,D take a
+  # value) counts only as the word own second character, right
+  # after the -: sudo -u root and sudo -uroot both give it one, a
+  # longer word that only happens to END in one of the same letters
+  # (sudo -Dlogdir) never does — unlike a plain "ends in the class"
+  # match (SSHVAL own kind, → hostwarden_coord_dest, left as it is:
+  # shared with hops.sh identical pattern, a fix here alone would
+  # only add a second, differently-behaving copy). Returns 2
+  # when the value is a separate word (the option letter is the
+  # whole word), 1 when it is already attached, 0 when this option
+  # takes no value at all.
+  c2 = substr(w, 2, 1)
+  if (index(SUCLASS, c2) == 0) return 0
+  return (length(w) == 2) ? 2 : 1
 }
 
 # hc_skip_prefix(W, i, nw) — i, advanced past a leading `exec` or
 # `busybox` (hops.sh own `cmd()` skips `exec` the same way) and a
 # leading `sudo`/`doas` with its own options, value-taking ones
-# (hc_sudoval) skipped with their value: `sudo --user root reboot`
-# is read the same as `sudo -u root reboot`. Shared by
-# hostwarden_coord_dest, which needs to see past this same prefix to
-# find the ssh/sftp/scp/rsync call it wraps, and hc_classify, which
-# reads on from there.
-function hc_skip_prefix(W, i, nw,   c, changed) {
+# (hc_sudoadv) skipped with their value, attached or separate:
+# `sudo --user root reboot`, `sudo -u root reboot` and
+# `sudo -uroot reboot` are all read the same as `sudo reboot`.
+# Shared by hostwarden_coord_dest, which needs to see past this same
+# prefix to find the ssh/sftp/scp/rsync call it wraps, and
+# hc_classify, which reads on from there.
+function hc_skip_prefix(W, i, nw,   c, changed, adv) {
   changed = 1
   while (changed && i <= nw) {
     changed = 0
@@ -322,7 +412,9 @@ function hc_skip_prefix(W, i, nw,   c, changed) {
       i++
       while (i <= nw && W[i] ~ /^-/) {
         if (W[i] ~ /^--[A-Za-z-]+=/) { i++; continue }
-        if (hc_sudoval(W[i])) { i += 2; continue }
+        if (W[i] ~ SULONGVAL) { i += 2; continue }
+        adv = hc_sudoadv(W[i])
+        if (adv > 0) { i += adv; continue }
         i++
       }
       changed = 1
@@ -478,7 +570,7 @@ hostwarden_coord_dest() {
       # .claude/hooks/hops.sh reads an ssh command line for, kept in
       # sync with it by hand: BbcDEeFIiJLlmOoPpQRSWw.
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
-      SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SUCLASS = "uUgpCRrtThD"
       SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
     }
     {
@@ -650,7 +742,7 @@ hostwarden_coord_is_reboot() {
       # AGENTS.md → Remote mode makes sudo the default way a
       # non-root login runs anything, so `sudo reboot` and `sudo
       # systemctl reboot` are the ordinary case, not an edge one.
-      SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SUCLASS = "uUgpCRrtThD"
       SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
     }
@@ -672,7 +764,7 @@ hostwarden_coord_kind() {
     BEGIN {
       RS = "\001"
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
-      SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      SUCLASS = "uUgpCRrtThD"
       SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
       MAXDEPTH = 8
     }
