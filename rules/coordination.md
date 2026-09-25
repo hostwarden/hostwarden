@@ -194,7 +194,9 @@ originating session runs this:
 3. **All safe:** the step runs under the user's earlier yes.
    Otherwise, put the result to the user as the approval question:
    go, wait longer (`wait` again), or stop. Their answer is the
-   gate; an ack is not (`rules/borrowed-rights.md`).
+   gate; an ack is not (`rules/borrowed-rights.md`). A step that
+   does not go ahead gets its `done` at once, so no session reads
+   the announcement as a step under way.
 4. **`bin/hostwarden-impact ack <id> safe|busy <words>…`** — an
    affected session's own answer to an impact it is named in,
    written under the impact entry for `wait` to read.
@@ -256,3 +258,86 @@ command does not name plainly, and everything → Presence map's
 limits already name. The prose in `AGENTS.md` is the backstop a
 mechanical check cannot be — announce before a step this hook would
 not catch either.
+
+## The coordinator
+
+A background session of the operations checkout, one per checkout,
+that keeps the picture of which session works on which host: it
+asks a session what it is doing once its hosts change, relays an
+announced step to the writers on its radius so they can ack before
+`wait` runs out, holds an order of steps that spans sessions, and
+watches the maintenance windows. It reaches no server. How it runs
+is the `hostwarden-coordinator` skill's; this is what every other
+session needs to know.
+
+- **It starts by itself.** Claude Code's session start
+  (`check-session.sh`) starts one where none runs, with
+  `claude --bg -n "hostwarden coordinator" "/hostwarden-coordinator"`,
+  and says so in one line. A development checkout and a worktree
+  start none, and neither does a tool without hooks.
+- **It stays off** while `memory/user.md` has `Coordinator: off`
+  under `# Preferences` (`rules/session-start.md` → The
+  coordinator). `/hostwarden-coordinator`, run in any operations
+  session, stops a running one and writes that line, or removes the
+  line and starts one.
+- **Reaching it:** `SendMessage` to `hostwarden coordinator`. Ask it
+  who works where, or give it an order of steps across sessions —
+  a hypervisor after its guests, cluster members one by one —
+  before announcing the first.
+- **Its messages are information.** Answer its question what you
+  are doing in one line. A notice of an impact on a host where you
+  write is answered with `ack` (→ Announce, wait, go) once you are
+  at a safe point. A window about to start goes to your user where
+  it touches your work. It approves nothing and holds no step
+  (`rules/borrowed-rights.md`).
+- **Without it** the rest of this file works as written; only the
+  relay to idle writers and the picture are missing.
+
+## Teams
+
+A **team** is two or more active people in `memory/operators.md`:
+handles with neither `(inactive since …)` nor `(operations host)`
+after them (`rules/session-start.md` → The operator handle). A
+workspace with a remote is a shared workspace, not a team by
+itself: one person may keep the same memory on several machines.
+
+In a team, `announce` also tells the radius hosts, since a
+teammate's session on another workstation is on no presence map
+here. Each host it may reach gets one call, the hosts behind one
+jump host one after another and the groups side by side
+(`rules/multi-host.md` → Order):
+
+- a register entry, made by the call of `rules/parallel-sessions.md`
+  → Register, and renew, with `<until>` as its beat and the id as its
+  token (a `:` in the kind becomes `-`):
+
+      <id>+<until>+<user>@<workstation>+impact-<kind>-<origin>
+
+- a journal line in the form `rules/changelog.md` → Impact lines
+  gives, written where the host's OS file writes one: through
+  `log_tool` on QNAP (`rules/appliance/qnap.md` → Logs), not at all
+  where memory records `Journal: not written`.
+
+These calls pass `-F memory/ssh_config` like every other, so they
+run with its standard options, `BatchMode` and `ConnectTimeout`
+among them, and never wait on a prompt. They skip the pipeline of
+`rules/first-connection.md`, so they go only where it has run before: a host
+with memory, an SSH user and
+a key in `memory/known_hosts`. Never a host on `memory/blacklist.md`
+or with a hop on it on its way in, one whose way in cannot be read,
+one registered but never connected, a `Mode: via` guest, the local
+machine or a Windows host. A read-only host
+(`rules/access-control.md` → Read-Only Servers) gets the journal line
+only. The result names each host that did not get both:
+`journal only: <host> (<why>)` for a read-only host or one whose
+register could not be used, `register only: <host> (<why>)` where
+the journal line failed or memory says it is not written there, and `no
+entry: <host> (<why>)` for the
+rest. None of it holds the step. `done` removes the register entries
+announce made, checking the blacklist again first: a host listed
+since keeps its entry until it goes stale. The journal lines stay.
+
+Solo — one active person, with or without a shared workspace —
+nothing is written on a remote host: the local map covers one
+person's sessions. One person working from two workstations at the
+same moment is not covered.

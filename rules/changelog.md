@@ -89,6 +89,21 @@ inside: it is what marks the entry as a session's
 and not a script's (`rules/activity-check.md` →
 Sessions and watchers).
 
+### Impact lines
+
+In a team, `bin/hostwarden-impact announce` writes one line on each
+host a disruptive step reaches (`rules/coordination.md` → Teams),
+in a fixed form other sessions read back
+(`rules/activity-check.md` → Impact lines):
+
+    [<operator> as <unix-user>] impact <id>: <kind> of <origin> until <HH:MM>
+
+`<kind>` and `<origin>` are the ones announce was given, several
+origins joined by commas; `<HH:MM>` is when the window ends, by the
+host's clock. It is the one journal line that is no headline of a
+change on that host, and it carries no `— because`. Nothing writes
+it by hand.
+
 ### What stays out of the journal
 
 Backup file paths, commit hashes, CI run IDs,

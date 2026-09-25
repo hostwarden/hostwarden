@@ -29,8 +29,8 @@
 # A jump host reads the same file: ssh hands -F on to the
 # ProxyJump hop, where options given with -o never reach.
 #
-# Why memory/ssh_hosts is checked at all: in team mode, whoever can
-# push to the workspace writes it, and ssh_config can run commands
+# Why memory/ssh_hosts is checked at all: in a shared workspace,
+# whoever can push to it writes it, and ssh_config can run commands
 # (ProxyCommand, LocalCommand, Match exec, KnownHostsCommand) and
 # pull in other files (Include). Only Host, HostName, Port,
 # ProxyJump and HostKeyAlias pass, each with a value that cannot

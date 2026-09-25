@@ -43,7 +43,11 @@ tool reads. This file adds only what exists here and nowhere else.
     names the workstation tools that are missing — in a
     development checkout, the ones working on Hostwarden needs;
   - reported a linked worktree or a guard that is off, if either
-    applies.
+    applies;
+  - in an operations checkout, started the coordinator in the
+    background where none runs and `memory/user.md` has no
+    `Coordinator: off`, and said so in one line
+    (`rules/coordination.md` → The coordinator).
 
   Where hooks do not run, `rules/session-start.md` says what to do
   instead.
@@ -54,7 +58,8 @@ tool reads. This file adds only what exists here and nowhere else.
   register names your own `user@workstation`
   (`rules/parallel-sessions.md`), or a development session hands a
   question over (`rules/server-check-handoff.md`), `ListAgents`
-  lists the sessions here and `SendMessage` reaches them. With none
+  lists the sessions here and `SendMessage` reaches them; the
+  coordinator is `hostwarden coordinator`. With none
   in the operations checkout, the one command is
   `claude "<question>"`, run there — never a task chip, which starts
   in a new worktree.

@@ -34,6 +34,7 @@ mkdir -p "$R/bin" "$R/.claude/hooks" "$H"
 cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" \
   "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
 cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
+  "$REPO/.claude/hooks/resolve.sh" \
   "$R/.claude/hooks/"
 printf 'Report format marker\n' >"$H/report-format.md"
 printf 'Baseline marker: CRITICAL if any filesystem > 95%%\n' \
@@ -58,7 +59,7 @@ Workspace push: always
 EOF
 : >"$TMP/fleet-key"
 printf -- '- %s\n' bad1.example.com jumped2.example.com-hop.example.com \
-  2001:db8::66 >"$M/blacklist.md"
+  2001:db8::66 alias2-old >"$M/blacklist.md"
 
 ssh-keygen -q -t ed25519 -N '' -C signer -f "$TMP/signer"
 printf 'fleet-read namespaces="fleet-read" %s\n' "$(cat "$TMP/signer.pub")" \
@@ -112,11 +113,14 @@ printf '%s\n' '# Decisions — dec1' 'Applies to: hosts dec1.example.com' '' \
 sed -i.bak '2s/.*/Applies to: hosts dec1.example.com, dec2.example.com/' \
   "$M/decisions/dec1.md" && rm -f "$M/decisions/dec1.md.bak"
 ln -s web1.example.com "$M/servers/alias1.example.com"
+# Blacklisted by a DNS alias that resolves nowhere.
+server alias2.example.com 'key line present' ''
+ln -s alias2.example.com "$M/servers/alias2-old"
 server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
 server bad1.example.com 'key line present' ''
-printf -- '- alice\n- ops1\n' >"$M/operators.md"
+printf -- '- alice\n- ops1 (operations host)\n' >"$M/operators.md"
 git -C "$M" add -A && git -C "$M" commit --quiet -m init
 git init --bare --quiet "$TMP/remote.git"
 git -C "$M" remote add origin "$TMP/remote.git"
@@ -269,6 +273,8 @@ lacks "$TMP/out" "fake" "a floors line outside the last section counted"
 has "$TMP/out" "db1.example.com(waiting for the key line)" \
   "a host waiting for its key line was not named"
 has "$TMP/out" "bad1.example.com(blacklisted)" "a blacklisted host was not named"
+has "$TMP/out" "alias2.example.com(blacklisted)" \
+  "a host blacklisted by its DNS alias was not refused"
 has "$TMP/out" "jumped1.example.com(blacklisted)" \
   "a host behind a blacklisted jump host was not refused"
 has "$TMP/out" "jumped2.example.com(blacklisted)" \
@@ -415,6 +421,18 @@ rc=$?
 [ "$rc" = 1 ] && grep -q "not in the remote's memory/operators.md" "$TMP/err" \
   && ok || bad "an unpushed handle ran (rc $rc)"
 cp "$TMP/user.md" "$M/user.md"
+git -C "$M" checkout --quiet -- operators.md
+
+# --- a handle marked inactive -------------------------------------
+cp "$M/operators.md" "$TMP/operators.md"
+printf -- '- alice\n- ops1 (inactive since 2026-09-01)\n' >"$M/operators.md"
+git -C "$M" commit --quiet -am inactive && git -C "$M" push --quiet
+run --dry-run
+rc=$?
+[ "$rc" = 1 ] && grep -q "marked inactive" "$TMP/err" \
+  && ok || bad "an inactive handle ran (rc $rc)"
+cp "$TMP/operators.md" "$M/operators.md"
+git -C "$M" commit --quiet -am active && git -C "$M" push --quiet
 
 # --- only in operations -------------------------------------------
 rm "$M/.hostwarden-workspace"

@@ -30,8 +30,9 @@ mkdir -p "$R/bin" "$R/.claude/hooks"
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
 cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
   "$REPO/.claude/hooks/coord-lib.sh" "$REPO/.claude/hooks/json.sh" \
+  "$REPO/.claude/hooks/resolve.sh" \
   "$REPO/.claude/hooks/presence.sh" "$REPO/.claude/hooks/impact.sh" \
-  "$R/.claude/hooks/"
+  "$REPO/.claude/hooks/check-session.sh" "$R/.claude/hooks/"
 git -C "$R" init --quiet
 M="$R/memory"
 mkdir -p "$M/servers"
@@ -65,7 +66,11 @@ G="$TMP/sshg"
 mkdir -p "$G" "$TMP/bin"
 cat >"$TMP/bin/ssh" <<EOF
 #!/bin/sh
-u='' p='' g=''
+# -G answers from \$G; any other call is one of announce's or done's
+# calls to a radius host in a team: logged with its input, and
+# answered the way the host's call-<dest> file says (UNREACHABLE,
+# NOREG), else as a host that took both.
+u='' p='' g='' d='' rest=''
 while [ \$# -gt 0 ]; do
   case \$1 in
     -G) g=1 ;;
@@ -73,11 +78,21 @@ while [ \$# -gt 0 ]; do
     -l) u=\$2; shift ;;
     -p) p=\$2; shift ;;
     -*) ;;
-    *) d=\$1 ;;
+    *) if [ -z "\$d" ]; then d=\$1; else rest="\$rest \$1"; fi ;;
   esac
   shift
 done
-[ -n "\$g" ] || exit 255
+if [ -z "\$g" ]; then
+  c="$G/call-\$d"
+  [ -f "\$c" ] && grep -qx UNREACHABLE "\$c" && exit 255
+  in=\$(cat)
+  printf '== %s@%s%s\n%s\n' "\$u" "\$d" "\$rest" "\$in" >>"$TMP/sshcalls"
+  case \$in in *'mkdir "\$N"'*)
+    [ -f "\$c" ] && grep -qx NOREG "\$c" || echo registered ;;
+  esac
+  case \$in in *logger*|*log_tool*) echo logged ;; esac
+  exit 0
+fi
 f="$G/\$u@\$d"; [ -f "\$f" ] || f="$G/\$d"
 [ -f "\$f" ] && grep -qx FAIL "\$f" && exit 255
 echo "user \${u:-alice}"
@@ -591,6 +606,241 @@ if [ "$HAVE_JQ" = 1 ]; then
 else
   echo "  (jq missing — impact.sh skipped)"
 fi
+
+# ================================================================
+echo "== teams: impact entries on the radius hosts"
+
+# Both hosts have their key in memory/known_hosts, so both may be
+# reached (rules/coordination.md → Teams).
+ssh-keygen -q -t ed25519 -N '' -f "$TMP/hostkey" >/dev/null 2>&1
+KEY=$(cut -d' ' -f1,2 "$TMP/hostkey.pub")
+printf 'pve1.example.com %s\nweb1.example.com %s\n' "$KEY" "$KEY" \
+  >"$M/known_hosts"
+rm -rf "$PRES"
+: >"$TMP/sshcalls"
+
+# Solo: one active person, one inactive — nothing goes to a host.
+printf -- '- alice\n- bob (inactive since 2026-09-01)\n- ops1 (operations host)\n' \
+  >"$M/operators.md"
+run announce pve1.example.com reboot >"$TMP/out"
+TID=$(head -n1 "$TMP/out")
+lacks "$TMP/out" "team:" "announce: an inactive handle makes no team"
+[ -s "$TMP/sshcalls" ] && bad "announce: solo wrote to a host" || ok
+run 'done' "$TID"
+
+# A team: two active people.
+printf -- '- alice\n- bob\n' >"$M/operators.md"
+printf 'Operator: alice\n' >>"$M/user.md"
+run announce pve1.example.com reboot >"$TMP/out"
+TID=$(head -n1 "$TMP/out")
+hasi "$TMP/out" "team: register entry and journal line on 2 of 2 hosts" \
+  "announce: a team tells both radius hosts"
+hasi "$TMP/sshcalls" "== alice@pve1.example.com" "announce: calls the origin"
+hasi "$TMP/sshcalls" "== alice@web1.example.com" "announce: calls the guest"
+hasi "$TMP/sshcalls" "N=\"$TID+" "announce: the register entry carries the id"
+hasi "$TMP/sshcalls" "+impact-reboot-pve1.example.com\"" \
+  "announce: the register entry names the step"
+hasi "$TMP/sshcalls" "[alice as \$(id -un)] impact $TID: reboot of pve1.example.com until" \
+  "announce: the journal line's form"
+TDIR=$(find "$CACHE/impact" -maxdepth 1 -name "$TID+*" | head -n1)
+[ -e "$TDIR/remote/web1.example.com" ] && ok \
+  || bad "announce: records the hosts that got an entry"
+: >"$TMP/sshcalls"
+run 'done' "$TID"
+hasi "$TMP/sshcalls" "rmdir /tmp/hostwarden/$TID+*" \
+  "done: removes the register entries it made"
+
+# A host blacklisted after the announce gets no cleanup call.
+run announce pve1.example.com reboot >"$TMP/out"
+TID=$(head -n1 "$TMP/out")
+printf -- '- web1.example.com\n' >"$M/blacklist.md"
+: >"$TMP/sshcalls"
+run 'done' "$TID" >"$TMP/out"
+hasi "$TMP/out" "entry left: web1.example.com (blacklisted now" \
+  "done: a host blacklisted since is left alone"
+lacks "$TMP/sshcalls" "== alice@web1.example.com" \
+  "done: no cleanup call to a blacklisted host"
+rm -f "$M/blacklist.md"
+
+# A read-only guest gets the journal line alone, an unreachable
+# origin is named, and neither holds the step.
+printf -- '- web1.example.com\n' >"$M/readonly.md"
+echo UNREACHABLE >"$G/call-pve1.example.com"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+rc=$?
+TID=$(head -n1 "$TMP/out")
+[ "$rc" = 0 ] && ok || bad "announce: a host not reached does not fail it"
+hasi "$TMP/out" "journal only: web1.example.com (read-only)" \
+  "announce: a read-only host gets the journal line only"
+hasi "$TMP/out" "no entry: pve1.example.com (not reached)" \
+  "announce: a host not reached is named"
+lacks "$TMP/sshcalls" 'mkdir "$N"' \
+  "announce: no register entry on a read-only host"
+run 'done' "$TID"
+rm -f "$M/readonly.md" "$G/call-pve1.example.com"
+
+# The journal line goes where the host's OS file writes one: QNAP's
+# log_tool, none where memory records that logger does not land.
+printf -- '- Appliance: QTS 5.2.1\n' >>"$M/servers/web1.example.com/memory.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/sshcalls" "/sbin/log_tool -t0" "announce: QNAP's journal line goes through log_tool"
+run 'done' "$(head -n1 "$TMP/out")"
+sed -i.bak '/^- Appliance: QTS/d' "$M/servers/web1.example.com/memory.md"
+printf -- '- Journal: not written\n' >>"$M/servers/web1.example.com/memory.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "register only: web1.example.com (memory says its journal is not written)" \
+  "announce: no journal line where memory says it does not land"
+run 'done' "$(head -n1 "$TMP/out")"
+printf -- '- web1.example.com\n' >"$M/readonly.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "no entry: web1.example.com (read-only, and memory says its journal is not written)" \
+  "announce: a read-only host with nothing to write is named as such"
+lacks "$TMP/sshcalls" "== alice@web1.example.com" \
+  "announce: a host with nothing to write gets no call"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/readonly.md"
+sed -i.bak '/^- Journal: not written/d' "$M/servers/web1.example.com/memory.md"
+rm -f "$M/servers/web1.example.com/memory.md.bak"
+
+# The read-only list's * makes every host read-only, and a host
+# blacklisted by a DNS alias that resolves nowhere is not called.
+printf -- '- *\n' >"$M/readonly.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "journal only: pve1.example.com (read-only)" \
+  "announce: readonly.md's * covers every host"
+lacks "$TMP/sshcalls" 'mkdir "$N"' "announce: no register entry under readonly.md's *"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/readonly.md"
+ln -s web1.example.com "$M/servers/web1-old"
+printf -- '- web1-old\n' >"$M/blacklist.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "no entry: web1.example.com (blacklisted" \
+  "announce: a host blacklisted by its DNS alias is left out"
+lacks "$TMP/sshcalls" "== alice@web1.example.com" \
+  "announce: a host blacklisted by its DNS alias is not called"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/blacklist.md" "$M/servers/web1-old"
+printf -- '- web1.example.com' >"$M/blacklist.md"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "no entry: web1.example.com (blacklisted" \
+  "announce: a blacklist's last line without a newline still counts"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/blacklist.md"
+
+# A host without a key in memory/known_hosts is never called.
+printf 'pve1.example.com %s\n' "$KEY" >"$M/known_hosts"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "no entry: web1.example.com (no key in memory/known_hosts)" \
+  "announce: a host without a known key is left out"
+lacks "$TMP/sshcalls" "== alice@web1.example.com" \
+  "announce: a host without a known key is not called"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/operators.md" "$M/known_hosts"
+
+# ================================================================
+echo "== the coordinator"
+
+# A stand-in for the claude CLI: agents --json prints
+# $TMP/agents.json, --bg records what it was asked to start.
+echo '[]' >"$TMP/agents.json"
+cat >"$TMP/bin/claude" <<EOF
+#!/bin/sh
+case "\$1" in
+  agents) cat "$TMP/agents.json" ;;
+  --bg) echo "\$*" >>"$TMP/claude-bg" ;;
+esac
+exit 0
+EOF
+chmod +x "$TMP/bin/claude"
+
+# start <source> — runs check-session.sh as a SessionStart hook.
+start() {
+  printf '{"hook_event_name":"SessionStart","session_id":"s0","source":"%s"}' "$1" \
+    | sh "$R/.claude/hooks/check-session.sh" >"$TMP/hookout" 2>&1
+}
+started() {
+  i=0
+  while [ "$i" -lt 5 ] && [ ! -s "$TMP/claude-bg" ]; do sleep 1; i=$((i + 1)); done
+  [ -s "$TMP/claude-bg" ]
+}
+LOCK="$CACHE/coordinator-start"
+
+rm -f "$TMP/claude-bg"
+start startup
+hasi "$TMP/hookout" "coordinator started" "check-session: starts one where none runs"
+started && hasi "$TMP/claude-bg" "/hostwarden-coordinator" \
+  "check-session: starts the skill in the background" \
+  || bad "check-session: nothing was started"
+
+rm -f "$TMP/claude-bg"
+start startup
+lacks "$TMP/hookout" "coordinator started" "check-session: a held start lock starts none"
+
+# The watch marks the coordinator and prints the picture first; a
+# second one exits. A long command's run entry is no event.
+echo '[{"sessionId":"coord1","kind":"background"}]' >"$TMP/agents.json"
+mkdir -p "$PRES/sessw+web1.example.com+$(date +%s)" "$PRES/sessw+web1.example.com+run"
+: >"$PRES/sessw+web1.example.com+run/1"
+HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
+[ $? = 0 ] && ok || bad "watch: the first coordinator marks itself"
+has "$TMP/out" "+ presence sessw web1.example.com touched" "watch: prints a touched entry"
+lacks "$TMP/out" " run" "watch: a run entry is no event"
+[ -d "$LOCK" ] && bad "watch: its mark releases the start lock" || ok
+rm -rf "$PRES/sessw+web1.example.com+"*
+
+# An impact 30 minutes past its window leaves the watch's picture.
+OLDIMP="$CACHE/impact/oldid+pve1.example.com+reboot+$(($(date +%s) - 3000))+origin9"
+mkdir -p "$OLDIMP/radius"
+HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
+lacks "$TMP/out" "oldid+" "watch: an expired impact is pruned, not reported"
+[ -d "$OLDIMP" ] && bad "watch: prunes an expired impact" || ok
+HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord2 run watch >"$TMP/out"
+[ $? = 1 ] && ok || bad "watch: a second coordinator exits"
+hasi "$TMP/out" "another coordinator runs: coord1" "watch: names the first"
+run coordinator >"$TMP/out"
+has "$TMP/out" "coord1" "coordinator: names the live one"
+# Two marks at once: the smaller session id stays.
+echo '[{"sessionId":"coord0"},{"sessionId":"coord1"}]' >"$TMP/agents.json"
+mkdir "$CACHE/coordinator+coord0+$(date +%s)"
+HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
+[ $? = 1 ] && ok || bad "watch: the larger of two session ids exits"
+hasi "$TMP/out" "another coordinator runs: coord0" "watch: names the one that stays"
+rm -rf "$CACHE"/coordinator+coord0+*
+echo '[{"sessionId":"coord1","kind":"background"}]' >"$TMP/agents.json"
+
+rm -f "$TMP/claude-bg"
+start startup
+lacks "$TMP/hookout" "coordinator started" "check-session: a live coordinator starts none"
+
+# Its session gone, the entry is stale and a new one starts.
+echo '[]' >"$TMP/agents.json"
+run coordinator >/dev/null
+[ $? = 1 ] && ok || bad "coordinator: a session not listed is not live"
+rm -f "$TMP/claude-bg"
+start resume
+started && ok || bad "check-session: a stale coordinator is replaced"
+rmdir "$LOCK" 2>/dev/null
+
+# Coordinator: off, a compaction and a development checkout start none.
+printf '# Preferences\nCoordinator: off\n' >>"$M/user.md"
+rm -f "$TMP/claude-bg"
+start startup
+lacks "$TMP/hookout" "coordinator started" "check-session: Coordinator: off starts none"
+sed -i.bak '/^Coordinator: off$/d' "$M/user.md" && rm -f "$M/user.md.bak"
+start compact
+lacks "$TMP/hookout" "coordinator started" "check-session: a compaction starts none"
+rm "$M/.hostwarden-workspace"
+start startup
+lacks "$TMP/hookout" "coordinator started" "check-session: a development checkout starts none"
+: >"$M/.hostwarden-workspace"
+rm -f "$TMP/bin/claude"
 
 echo "coordination: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

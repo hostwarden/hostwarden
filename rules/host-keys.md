@@ -14,9 +14,9 @@ No one has to log in by hand first.
   (`man sshd` → SSH_KNOWN_HOSTS FILE FORMAT).
   `@cert-authority` and `@revoked` lines work as that page
   describes. A missing file counts as empty.
-- **Shared in team mode** (`rules/server-memory.md` → Personal
-  versus shared). A key recorded once serves every machine and
-  every teammate, and the workspace's history says who added
+- **Shared in a shared workspace** (`rules/server-memory.md` →
+  Personal versus shared). A key recorded once serves every machine
+  and every person that shares it, and the workspace's history says who added
   which key and when.
 - **Every entry starts with a comment line:**
   `# <date> <names>: <source>`. The sources are the ones

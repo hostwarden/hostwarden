@@ -118,6 +118,9 @@ contrib/
     hops.sh            — The jump hosts in front of a host,
                          read from ssh -G, defined once for
                          bin/
+    resolve.sh         — A name's IPv4 addresses for the
+                         access-list checks, defined once for
+                         bin/
     json.sh            — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks
@@ -141,7 +144,8 @@ contrib/
     check-skills.sh    — SessionStart hook that reports a
                          .claude/skills link that is not one
     check-session.sh   — SessionStart hook that records and
-                         reports a guard that is off
+                         reports a guard that is off, and
+                         starts the coordinator in operations
     authoring-conventions.sh — PostToolUse hook that names the
                          authoring rules when an instruction
                          file or a bin/ script is edited
@@ -166,6 +170,9 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-multi-host/ — One question, check or change
                          on several servers (SKILL.md)
+    hostwarden-coordinator/ — The background session that keeps
+                         track of which session works where
+                         (SKILL.md)
     hostwarden-os-install/    — Install, replace or dual-boot an
                          OS, with the disk, EFI and cloud-image
                          work that comes with it

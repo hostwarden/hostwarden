@@ -17,7 +17,7 @@ stands for `<checkout>` in the commands below.
   with the standard options, then the user's `~/.ssh/config` and
   `/etc/ssh/ssh_config`.
 - **`memory/ssh_hosts`:** host blocks in ssh_config syntax,
-  limited to five keywords. Shared in team mode
+  limited to five keywords. Shared in a shared workspace
   (`rules/server-memory.md` → Personal versus shared).
 - **`~/.ssh/config`:** the user's own. It still applies to every
   call, for what the two above leave open. Hostwarden never
@@ -49,10 +49,9 @@ Host db1 db1.example.com
 Nothing else passes `bin/hostwarden-ssh-config`: no `User`, no
 `IdentityFile`, no forwarding, no `Match`, `Include`,
 `ProxyCommand` or any other keyword, and no value with a quote, a
-`%` token, a `$` or a leading `-`. In team mode, anyone who can
-push to the workspace writes this file, and ssh_config can run
-commands on every teammate's workstation; the five keywords
-cannot.
+`%` token, a `$` or a leading `-`. In a shared workspace, anyone who
+can push to it writes this file, and ssh_config can run commands
+on every workstation that shares it; the five keywords cannot.
 
 - **The SSH user stays in `memory/user.md`** (`rules/ssh-user.md`):
   it is personal, and the call names it as `user@host`, which wins
@@ -73,9 +72,9 @@ link with a plain file. Never reach the same effect through
 When the user says a host answers on another port, only through a
 jump host, or at an address its name does not resolve to. A block
 the user's own `~/.ssh/config` already has works through the
-include: in team mode, offer once to copy its `HostName`, `Port`
-and `ProxyJump` into `memory/ssh_hosts`, so teammates reach the
-host too. Never copy it unasked.
+include: in a shared workspace, offer once to copy its
+`HostName`, `Port` and `ProxyJump` into `memory/ssh_hosts`, so every
+machine that shares it reaches the host too. Never copy it unasked.
 
 1. Add the block to `memory/ssh_hosts`. A specific `Host` goes
    above a pattern that also matches it.
@@ -334,7 +333,7 @@ the two reaches it (`rules/access-control.md` → Server Blacklist).
 ## Port Forwardings
 
 Never in `memory/ssh_hosts` or any other file. A forwarding in a
-shared file would open a port on every teammate's machine at every
+shared file would open a port on every machine that shares it at every
 connection, held by a master that outlives the need. A session
 that needs one adds it to its shared connection, which an earlier
 call has opened, and takes it away with the same arguments when

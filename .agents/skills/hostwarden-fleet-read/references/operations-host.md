@@ -19,6 +19,7 @@ Personal versus shared), so the operations host has its own. Its
 Operator: ops1
 Report email: ops@example.com
 Workspace push: always
+Coordinator: off
 ```
 
 - `Operator:` — the machine's own handle, its short name, never a
@@ -26,8 +27,9 @@ Workspace push: always
   command carries it, so the journal on every host reads
   `[ops1 as root] read-only: housekeeping: …`, told apart from the
   operator's own `[alice as root]`. It is reserved in
-  `memory/operators.md` like a teammate's, and the fleet run starts
-  only once the remote's copy of that list holds it.
+  `memory/operators.md` as `- ops1 (operations host)`, so it counts
+  toward no team (`rules/coordination.md` → Teams), and the fleet
+  run starts only once the remote's copy of that list holds it.
 - `Report email:` — where the nightly report goes, through the
   machine's own mail transport. Without it the report goes to the
   timer's log.
@@ -35,6 +37,9 @@ Workspace push: always
   with this line: nobody is there to answer the push question of
   `rules/changelog.md` → The Workspace. Sessions on the machine
   still ask.
+- `Coordinator: off` — nobody works there in parallel sessions, so
+  its session start starts no coordinator (`rules/coordination.md`
+  → The coordinator).
 - `Fleet key:` — the private key's path, when it is not
   `~/.ssh/id_fleet_read`.
 
@@ -166,10 +171,14 @@ operator's:
 3. The personal files above, with an `Operator:` handle of the
    machine's own that the remote's `memory/operators.md` does not
    hold yet. One it holds belongs to a person or another machine,
-   the operator's own included, and is never taken.
+   the operator's own included, and is never taken. This session
+   reserves it for the machine, as
+   `- <handle> (operations host)`, committed alone and pushed as
+   `rules/session-start.md` → The operator handle reserves a
+   person's.
 4. The operator makes the fleet key and logs `claude` in. The first
-   `claude` session there reserves the handle
-   (`rules/session-start.md` → The operator handle).
+   `claude` session there finds the handle reserved as the
+   machine's own.
 5. Fleet read for each host, from the workstation
    (`references/install.md`), with this machine's `Operator:` as
    the name in every key line.

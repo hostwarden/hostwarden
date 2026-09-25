@@ -15,10 +15,13 @@ path says where the host's console is recorded.
 Before anything below: `bin/hostwarden-impact status <host>` is
 local and makes no connection.
 
-- **An active impact covering the host** is the answer — say which,
-  by whom, and until when — with no retry loop, no via-host, no
-  escalation. One fresh retry after its window ends, or after its
-  `done` (`rules/coordination.md` → Announce, wait, go).
+- **An active impact covering the host** is the likely answer —
+  say which, by whom, and until when — with no retry loop, no
+  via-host, no escalation. It records an announced step, not one
+  seen to run: call it the cause only once the host shows it, when
+  it answers again (`rules/activity-check.md` → Impact lines). One
+  fresh retry after its window ends, or after its `done`
+  (`rules/coordination.md` → Announce, wait, go).
 - **A planned window covering the current time**
   (`rules/maintenance-windows.md` → What other sessions do with it)
   is context, not proof: a plan runs only when a session is asked

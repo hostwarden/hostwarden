@@ -393,7 +393,26 @@ like any other here. A live entry means a session is
 changing the host right now. Mention it even when this
 session only reads, so the user knows what an audit
 may catch mid-change; registering is still only for
-writers.
+writers. A live entry whose task starts with `impact-`
+is a teammate's announced step instead
+(`rules/parallel-sessions.md` → Register, and renew).
+
+## Impact lines
+
+A `session:` line whose text after the prefix starts with
+`impact <id>:` (`rules/changelog.md` → Impact lines) says a teammate
+announced a step — a reboot, a firewall or network change or a
+restart of the origin, which reaches this host — not that it ran: a
+step can still be cancelled after its announce. It survives the
+reboot that cleared the register. Where what this connection finds
+— a boot newer than recorded, a gap in the journal, services
+restarted, SSH lost a little earlier — falls inside its window, name
+it in one line as the likely cause, and as the cause only once the
+host shows the step itself: the origin's own boot or the unit's
+restart at that time, or the teammate's journal line for the step
+(`rules/verify-before-reporting.md`). *"Boot at 14:02, inside the
+reboot of pve1.example.com bob announced until 14:05; pve1 booted
+at 14:01."*
 
 ## Ansible runs
 

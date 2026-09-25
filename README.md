@@ -141,7 +141,7 @@ everything below: [docs/features.md](docs/features.md).
   private remote — host memory, host keys, decisions,
   the masters of deployed files — and sessions that
   change the same host see each other.
-  [Team setup](docs/operations.md#team-setup-and-several-machines)
+  [A shared workspace](docs/operations.md#a-shared-workspace)
 - **Holds every server to a written baseline.** A
   default-deny firewall, security updates, time sync,
   key-only remote access, storage maintenance, a backup

@@ -373,8 +373,9 @@ and the fleet's DNS name spaces in `memory/dns.md`
 
 `memory/` is the workspace, a git repository of its
 own, never part of Hostwarden's. Solo use is the
-default: it has no remote. A team gives it a private
-one, and then the split matters.
+default: it has no remote. A **shared workspace** has
+a private one — a team's, or one person's on several
+machines — and then the split matters.
 
 **Always personal, never shared:** `memory/user.md`
 (SSH usernames, language, operator handle),
@@ -385,7 +386,7 @@ anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname
 directory has to be added there by hand.
 
-**Shared in team mode:** everything else —
+**Shared in a shared workspace:** everything else —
 `memory/servers/*/` with each host's `rules.md`,
 its masters and `decisions.md`, `memory/clusters/*/`,
 `memory/decisions/`, `memory/fleet/`, `memory/tools/`,
@@ -397,7 +398,7 @@ handles in use, `rules/session-start.md`),
 `memory/housekeeping.md`,
 `memory/service-policy.md` and `memory/custom-rules/`.
 
-When a teammate's session shows up in the activity
+When another machine's session shows up in the activity
 check (`rules/activity-check.md`), their memory
 edits may not be pulled into the workspace yet. Trust
 the host over the file.
