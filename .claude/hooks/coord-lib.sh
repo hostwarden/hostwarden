@@ -21,7 +21,11 @@
 #       field. A via-host guest (`pct exec 105`), a script, and a
 #       destination held in a variable are not read: they print
 #       nothing, and count as no destination
-#       (rules/coordination.md → Presence map → Limits).
+#       (rules/coordination.md → Presence map → Limits). Built on
+#       HOSTWARDEN_COORD_AWK's shared tokenizer (→ below); a
+#       segment's destination-carrying word is read the same way
+#       hostwarden_coord_is_reboot and hostwarden_coord_kind read
+#       every word of a command, not by a parser of its own.
 #   hostwarden_coord_canon <idx> <name> [<root>]
 #       prints the host <idx> (bin/hostwarden-impact's radius.idx)
 #       knows <name> by; failing that, with <root> given, the host a
@@ -77,16 +81,40 @@
 #       `reboot` as a command, `shutdown` with a `-r` option,
 #       `systemctl reboot` or `systemctl kexec`, `qm reboot` or
 #       `pct reboot`, or `kexec` with `-e`/`--exec` — never a mere
-#       mention such as `last reboot` (rules/busybox.md).
+#       mention such as `last reboot` (rules/busybox.md). Reads
+#       past a leading `exec`, `busybox`, `sudo` or `doas`, an
+#       `ssh`/`sftp` call's own destination (its remote command's
+#       words rejoined with a single space, the way `ssh` itself
+#       hands them to the far shell — `man ssh`), and a
+#       `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, `env … -c` or bare
+#       `env VAR=val …` wrapper's own script, at each level in
+#       turn, so `ssh host "sudo bash -c 'apt upgrade -y &&
+#       reboot'"` and `ssh host sh -c "systemctl restart nginx &&
+#       reboot"` are read the same as `ssh host reboot` — built on
+#       HOSTWARDEN_COORD_AWK (→ below), the tokenizer
+#       hostwarden_coord_dest and hostwarden_coord_kind share.
 #   hostwarden_coord_kind <segment>
-#       prints the disruptive kind <segment> — one ;/&/|-delimited
-#       piece of a command, as hostwarden_coord_dest's second field
-#       gives it — names: `reboot` (hostwarden_coord_is_reboot),
-#       `firewall`, `network` or `restart:<unit>`, or nothing where
-#       it names none (rules/coordination.md → The hooks → Origin).
-#       Judged per segment, never on the whole command, so `ssh h1
-#       uptime; ssh h2 reboot` names h2's segment reboot and h1's
-#       segment nothing.
+#       prints one line per disruptive kind <segment> — one
+#       ;/&/|-delimited piece of a command, as
+#       hostwarden_coord_dest's second field gives it — names:
+#       `firewall`, `network`, `reboot`
+#       (hostwarden_coord_is_reboot's own reading, past the same
+#       wrappers), or one `restart:<unit>` line per distinct unit a
+#       `systemctl`/`service`/`rc-service`/`launchctl` restart in
+#       it names — a segment that restarts two units prints both,
+#       never only the one a single capture would keep — or nothing
+#       where it names none (rules/coordination.md → The hooks →
+#       Origin). `firewall` and `network` are read twice: once
+#       against <segment>'s own raw text, as before, and once
+#       against every wrapper-unwrapped word list's words rejoined
+#       with a single space, so a keyword the raw text only carries
+#       in pieces — several adjacent quoted spans, or behind a
+#       `bash -c`/`ssh` wrapper HOSTWARDEN_COORD_AWK's tokenizer
+#       reads as one word or one rejoined command — is still read
+#       whole; either reading alone is enough, so this only ever
+#       adds a match, never takes one away. Judged per segment,
+#       never on the whole command, so `ssh h1 uptime; ssh h2
+#       reboot` names h2's segment reboot and h1's segment nothing.
 
 # How stale, in minutes, a presence "run" marker (presence.sh's own
 # per-call file under a <session>+<host>+run/ entry) has to be
@@ -98,9 +126,264 @@
 # it if it is ever retuned.
 HOSTWARDEN_COORD_RUN_STALE_MIN=360
 
+# HOSTWARDEN_COORD_AWK — one tokenizer, shared, textually, by every
+# awk program below that needs to read a command's words: awk has
+# no way to link a function library across separate `awk '...'`
+# invocations, so each of hostwarden_coord_dest,
+# hostwarden_coord_is_reboot and hostwarden_coord_kind's own awk
+# program is this text with its own BEGIN/main block appended,
+# rather than three parsers hand-kept in sync (the fate `awk
+# hops.sh`'s own SSHVAL comment already names, and the one issue
+# #313 collects five bypass shapes against). Two passes, always
+# together:
+#
+#   hc_segments(s, RAW) is hostwarden_coord_dest's own proven
+#     splitter, unchanged: s cut on an unquoted ;/&/|/(/)/{/}/`,
+#     with a backslash escaping the very next character everywhere
+#     but inside a single-quoted run. RAW[1..n] keeps each
+#     segment's own source text, quotes and all; hc_clean() (also
+#     unchanged: a redirection and its target dropped, the ends
+#     trimmed) is what a caller reads or hands to hc_words().
+#
+#   hc_words(s, W) is the real word reader hc_segments never was: a
+#     single-quoted run is literal to its close; a double-quoted
+#     run is literal except a backslash escapes the very next
+#     character; a single quote inside a double-quoted run is an
+#     ordinary character, never a quote of its own — the very thing
+#     `sudo bash -c '…'` sent through an outer double-quoted ssh
+#     argument needs; and two quoted spans with nothing between
+#     them concatenate into the one word the shell would make of
+#     them ('it'"'"'s' is "it's", never two words), because a word
+#     only ends on real unquoted whitespace, never on a quote
+#     closing.
+#
+# hc_classify(W, i, nw, depth) is what neither pass alone was: it
+# reads past a leading `exec`, `busybox`, `sudo` or `doas` (its
+# value-taking options skipped the same way SUVAL always has),
+# then, for the word left:
+#   - `ssh`/`sftp`: past its own destination-consuming options
+#     (SSHVAL, hops.sh's own set, one place now), the remaining
+#     words rejoined with a single space — the exact way `ssh`
+#     itself hands several trailing arguments to the far shell
+#     (`man ssh`) — and read again, one level deeper;
+#   - `sh`/`bash`/`dash`/`ksh`/`zsh`/`ash -c`, or `env`'s own
+#     `VAR=val…` assignments and flags skipped to a `-c` or a bare
+#     command: the `-c` word (already the one dequoted word
+#     hc_words made of it, whatever quoting carried it) read again,
+#     one level deeper; a bare command after `env` is read in
+#     place, no deeper;
+#   - anything else: the words left are one clause, recorded for
+#     hostwarden_coord_is_reboot's trig() and
+#     hostwarden_coord_kind's own reading to judge.
+# hc_expand(s, depth) is the loop: hc_segments then hc_clean then
+# hc_words then hc_classify, on s, at depth; hc_classify calls it
+# again on an ssh's rejoined remainder or a wrapper's own -c word,
+# one depth deeper, up to MAXDEPTH — past it, the words in hand are
+# recorded as they are rather than expanded further, so a
+# pathologically deep chain is read shallow, never silently
+# dropped. CLC/CLW/CLN are where record_clause() puts what
+# hc_classify found; a caller resets CLC to 0, calls hc_expand once,
+# then reads CLC clauses' worth of CLW[cl,1..CLN[cl]].
+HOSTWARDEN_COORD_AWK='
+function base(w) { sub(/^.*\//, "", w); return w }
+
+function hc_segments(s, RAW,
+    i, c, qc, esc, cur, n, slen) {
+  n = 1; cur = ""; qc = ""; esc = 0; slen = length(s)
+  for (i = 1; i <= slen; i++) {
+    c = substr(s, i, 1)
+    if (esc) { cur = cur c; esc = 0; continue }
+    if (c == "\\" && qc != "\047") { cur = cur c; esc = 1; continue }
+    if (qc != "") {
+      cur = cur c
+      if (c == qc) qc = ""
+      continue
+    }
+    if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
+    if (index(";&|(){}`", c) > 0) { RAW[n] = cur; n++; cur = ""; continue }
+    cur = cur c
+  }
+  RAW[n] = cur
+  return n
+}
+
+function hc_clean(seg) {
+  gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg)
+  gsub(/^[ \t]+|[ \t]+$/, "", seg)
+  return seg
+}
+
+function hc_words(s, W,
+    i, c, qc, cur, inw, n, slen) {
+  n = 0; cur = ""; inw = 0; qc = ""; slen = length(s)
+  for (i = 1; i <= slen; i++) {
+    c = substr(s, i, 1)
+    if (qc == "\047") {
+      if (c == "\047") qc = ""
+      else cur = cur c
+      continue
+    }
+    if (qc == "\"") {
+      if (c == "\"") qc = ""
+      else if (c == "\\" && i < slen) { i++; cur = cur substr(s, i, 1) }
+      else cur = cur c
+      continue
+    }
+    if (c == "\\" && i < slen) { i++; cur = cur substr(s, i, 1); inw = 1; continue }
+    if (c == "\047" || c == "\"") { qc = c; inw = 1; continue }
+    if (c == " " || c == "\t") {
+      if (inw) { n++; W[n] = cur; cur = ""; inw = 0 }
+      continue
+    }
+    cur = cur c; inw = 1
+  }
+  if (inw) { n++; W[n] = cur }
+  return n
+}
+
+function record_clause(W, i, nw,   k) {
+  CLC++
+  CLN[CLC] = nw - i + 1
+  for (k = i; k <= nw; k++) CLW[CLC, k - i + 1] = W[k]
+}
+
+function joinw(w, i, n,    s, k) {
+  s = w[i]
+  for (k = i + 1; k <= n; k++) s = s " " w[k]
+  return s
+}
+
+function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2) {
+  nseg2 = hc_segments(s, RAW2)
+  for (si2 = 1; si2 <= nseg2; si2++) {
+    cleaned2 = hc_clean(RAW2[si2])
+    if (cleaned2 == "") continue
+    nw2 = hc_words(cleaned2, W2)
+    if (nw2 < 1) continue
+    hc_classify(W2, 1, nw2, depth)
+  }
+}
+
+function hc_classify(W, i, nw, depth,
+    c, j, k, remote, envphase, foundc, changed) {
+  if (depth > MAXDEPTH) { record_clause(W, i, nw); return }
+  changed = 1
+  while (changed && i <= nw) {
+    changed = 0
+    c = base(W[i])
+    if (c == "exec" || c == "busybox") { i++; changed = 1; continue }
+    if (c == "sudo" || c == "doas") {
+      i++
+      while (i <= nw && W[i] ~ /^-/) {
+        if (W[i] ~ SUVAL) i++
+        i++
+      }
+      changed = 1
+      continue
+    }
+  }
+  if (i > nw) return
+  c = base(W[i])
+  if (c == "ssh" || c == "sftp") {
+    j = i + 1
+    while (j <= nw) {
+      if (W[j] == "--") { j++; break }
+      if (W[j] ~ /^-/) { if (W[j] ~ SSHVAL) j += 2; else j++; continue }
+      break
+    }
+    if (j > nw) return
+    j++
+    if (j > nw) return
+    if (depth + 1 > MAXDEPTH) { record_clause(W, j, nw); return }
+    remote = joinw(W, j, nw)
+    hc_expand(remote, depth + 1)
+    return
+  }
+  if (c == "sh" || c == "bash" || c == "dash" || c == "ksh" || c == "zsh" || c == "ash" || c == "env") {
+    k = i + 1
+    envphase = (c == "env")
+    foundc = 0
+    while (k <= nw) {
+      if (envphase && W[k] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { k++; continue }
+      if (W[k] == "-c") { foundc = 1; break }
+      if (W[k] ~ /^-./) { k++; continue }
+      break
+    }
+    if (foundc) {
+      if (k + 1 <= nw) {
+        if (depth + 1 > MAXDEPTH) record_clause(W, k + 1, nw)
+        else hc_expand(W[k + 1], depth + 1)
+      }
+      return
+    }
+    if (envphase && k <= nw) { hc_classify(W, k, nw, depth); return }
+  }
+  record_clause(W, i, nw)
+}
+
+function trig(c, w, nw,   i) {
+  if (c == "reboot") return 1
+  if (c == "shutdown") {
+    for (i = 2; i <= nw; i++) if (w[i] ~ /^-[A-Za-z]*r/) return 1
+    return 0
+  }
+  if (c == "systemctl") return nw >= 2 && (w[2] == "reboot" || w[2] == "kexec")
+  if (c == "qm" || c == "pct") return nw >= 2 && w[2] == "reboot"
+  if (c == "kexec") {
+    for (i = 2; i <= nw; i++) if (w[i] == "-e" || w[i] == "--exec") return 1
+    return 0
+  }
+  return 0
+}
+
+function fw_match(s) {
+  if (s ~ /nft -f /) return 1
+  if (s ~ /nft flush ruleset/) return 1
+  if (s ~ /nft delete table/) return 1
+  if (s ~ /firewall-cmd.*-reload/) return 1
+  if (s ~ /ufw enable/) return 1
+  if (s ~ /ufw disable/) return 1
+  if (s ~ /ufw reload/) return 1
+  if (s ~ /pve-firewall.*restart/) return 1
+  if (s ~ /pve-firewall compile/) return 1
+  if (s ~ /netfilter-persistent/) return 1
+  if (s ~ /iptables-restore/) return 1
+  if (s ~ /ip6tables-restore/) return 1
+  if (s ~ /pfctl -f /) return 1
+  if (s ~ /pfctl -e/) return 1
+  if (s ~ /pfctl -d/) return 1
+  return 0
+}
+
+function net_match(s) {
+  if (s ~ /ifreload/) return 1
+  if (s ~ /netplan apply/) return 1
+  if (s ~ /ifdown /) return 1
+  if (s ~ /ifup /) return 1
+  if (s ~ /ip link set.*down/) return 1
+  if (s ~ /\/etc\/init\.d\/networking.*restart/) return 1
+  if (s ~ /service networking.*restart/) return 1
+  return 0
+}
+
+function restart_unit(w, nw,   c0, k, u) {
+  c0 = base(w[1])
+  if (c0 == "systemctl" && nw >= 3 && (w[2] == "restart" || w[2] == "reload-or-restart")) return w[3]
+  if (c0 == "service" && nw >= 3 && w[3] == "restart") return w[2]
+  if (c0 == "rc-service" && nw >= 3 && w[3] == "restart") return w[2]
+  if (c0 == "launchctl" && nw >= 2 && w[2] == "kickstart") {
+    for (k = 3; k <= nw; k++) {
+      if (w[k] ~ /^(gui\/[0-9]+|system)\//) { u = w[k]; sub(/^.*\//, "", u); return u }
+    }
+    return ""
+  }
+  if (c0 == "launchctl" && nw >= 3 && (w[2] == "stop" || w[2] == "start")) return w[3]
+  return ""
+}
+'
+
 hostwarden_coord_dest() {
-  printf '%s' "$1" | awk '
-    function base(w) { sub(/^.*\//, "", w); return w }
+  printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK"'
     BEGIN {
       RS = "\001"
       # ssh/sftp short options that take a value of their own,
@@ -110,43 +393,11 @@ hostwarden_coord_dest() {
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
     }
     {
-      s = $0
-      gsub(/\$\{/, "$", s)
-      gsub(/>&/, ">", s); gsub(/<&/, "<", s)
-      # A ;/&/|/(/)/{/}/` inside a matched single- or double-quote
-      # pair is text the remote command carries, not a local
-      # separator: ssh host "true && systemctl restart nginx" is
-      # one segment, not two, with the restart left without the
-      # destination that named it. A backslash escapes the very
-      # next character everywhere but inside a single-quoted run
-      # (where nothing is special but the closing quote, the same
-      # as a real shell): without that, an escaped quote of the
-      # kind already open (ssh host "a \" b" ; ssh host2 reboot)
-      # would flip the open-quote state on the escaped one and read
-      # the rest of the command, the destination host2 names
-      # included, as still quoted.
-      n = 0; cur = ""; qc = ""; esc = 0; slen = length(s)
-      for (ci = 1; ci <= slen; ci++) {
-        c = substr(s, ci, 1)
-        if (esc) { cur = cur c; esc = 0; continue }
-        if (c == "\\" && qc != "\047") { cur = cur c; esc = 1; continue }
-        if (qc != "") {
-          cur = cur c
-          if (c == qc) qc = ""
-          continue
-        }
-        if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
-        if (index(";&|(){}`", c) > 0) { n++; seg[n] = cur; cur = ""; continue }
-        cur = cur c
-      }
-      n++; seg[n] = cur
-      for (l = 1; l <= n; l++) {
-        gsub(/[0-9]*[<>]+[ \t]*[^ \t<>]*/, " ", seg[l])
-        gsub(/^[ \t]+|[ \t]+$/, "", seg[l])
-        t = seg[l]
-        nw = split(seg[l], v, /[ \t]+/)
+      n = hc_segments($0, RAW)
+      for (si = 1; si <= n; si++) {
+        t = hc_clean(RAW[si])
+        nw = hc_words(t, v)
         if (nw < 1) continue
-        for (k = 1; k <= nw; k++) gsub(/^["\047]+|["\047]+$/, "", v[k])
         c = base(v[1])
         if (c == "ssh" || c == "sftp") {
           i = 2
@@ -300,126 +551,69 @@ hostwarden_coord_affected() {
 }
 
 hostwarden_coord_is_reboot() {
-  printf '%s' "$1" | awk '
-    function base(w) { sub(/^.*\//, "", w); return w }
-    # trig(c, w, nw) — whether the command whose first word base is
-    # c, and whose words are w[1..nw], invokes a reboot.
-    function trig(c, w, nw,   i) {
-      if (c == "reboot") return 1
-      if (c == "shutdown") {
-        for (i = 2; i <= nw; i++) if (w[i] ~ /^-[A-Za-z]*r/) return 1
-        return 0
-      }
-      if (c == "systemctl") return nw >= 2 && (w[2] == "reboot" || w[2] == "kexec")
-      if (c == "qm" || c == "pct") return nw >= 2 && w[2] == "reboot"
-      if (c == "kexec") {
-        for (i = 2; i <= nw; i++)
-          if (w[i] == "-e" || w[i] == "--exec") return 1
-        return 0
-      }
-      return 0
-    }
-    # judge(w, nw) — whether the command in w[1..nw] invokes a
-    # reboot, past a leading sudo or doas: AGENTS.md -> Remote mode
-    # makes sudo the default way a non-root login runs anything, so
-    # `sudo reboot` and `sudo systemctl reboot` are the ordinary
-    # case, not an edge one. SUVAL are the short options of either
-    # that take a value of their own.
-    function judge(w, nw,    i, c) {
-      i = 1
-      c = base(w[1])
-      if (c == "sudo" || c == "doas") {
-        for (i = 2; i <= nw; i++) {
-          if (w[i] !~ /^-/) break
-          if (w[i] ~ SUVAL) i++
-        }
-      }
-      if (i > nw) return 0
-      for (j = i; j <= nw; j++) cw[j - i + 1] = w[j]
-      return trig(base(cw[1]), cw, nw - i + 1)
-    }
+  printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK"'
     BEGIN {
-      RS = "\001"; rc = 1
+      RS = "\001"
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
+      # sudo/doas short options that take a value of their own:
+      # AGENTS.md → Remote mode makes sudo the default way a
+      # non-root login runs anything, so `sudo reboot` and `sudo
+      # systemctl reboot` are the ordinary case, not an edge one.
       SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      MAXDEPTH = 8
     }
     {
-      s = $0
-      gsub(/\$\{/, "$", s)
-      gsub(/[;&|(){}`]/, "\n", s)
-      n = split(s, seg, "\n")
-      for (l = 1; l <= n; l++) {
-        t = seg[l]
-        gsub(/^[ \t]+|[ \t]+$/, "", t)
-        nw = split(t, v, /[ \t]+/)
-        if (nw < 1) continue
-        for (k = 1; k <= nw; k++) gsub(/^["\047]+|["\047]+$/, "", v[k])
-        if (judge(v, nw)) { rc = 0; exit }
-        c = base(v[1])
-        # An ssh or sftp call: the same option-skip
-        # hostwarden_coord_dest uses to find the destination, then
-        # one more word — the remote command starts there, and is
-        # judged the same way in turn: `ssh host reboot`, `ssh host
-        # "sudo reboot"`, quoted or not.
-        if (c == "ssh" || c == "sftp") {
-          i = 2
-          while (i <= nw) {
-            w = v[i]
-            if (w == "--") { i++; break }
-            if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
-            break
-          }
-          i++
-          if (i <= nw) {
-            rnw = 0
-            for (j = i; j <= nw; j++) rw[++rnw] = v[j]
-            if (judge(rw, rnw)) { rc = 0; exit }
-          }
-        }
+      CLC = 0
+      hc_expand($0, 0)
+      rc = 1
+      for (cl = 1; cl <= CLC; cl++) {
+        n = CLN[cl]
+        for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
+        if (trig(base(w[1]), w, n)) { rc = 0; break }
       }
-    }
-    END { exit rc }'
+      exit rc
+    }'
 }
 
 hostwarden_coord_kind() {
-  hck_s=$1
-  case "$hck_s" in
-  *'nft -f '* | *'nft flush ruleset'* | *'nft delete table'* \
-    | *'firewall-cmd'*'-reload'* \
-    | *'ufw enable'* | *'ufw disable'* | *'ufw reload'* \
-    | *'pve-firewall'*'restart'* | *'pve-firewall compile'* \
-    | *'netfilter-persistent'* \
-    | *'iptables-restore'* | *'ip6tables-restore'* \
-    | *'pfctl -f '* | *'pfctl -e'* | *'pfctl -d'*)
-    printf 'firewall\n'
-    return ;;
-  esac
-  case "$hck_s" in
-  *'ifreload'* | *'netplan apply'* | *'ifdown '* | *'ifup '* \
-    | *'ip link set'*'down'* | *'/etc/init.d/networking'*'restart'* \
-    | *'service networking'*'restart'*)
-    printf 'network\n'
-    return ;;
-  esac
-  if hostwarden_coord_is_reboot "$hck_s"; then
-    printf 'reboot\n'
-    return
-  fi
-  case "$hck_s" in
-  *'systemctl restart'* | *'systemctl reload-or-restart'* \
-    | *'service '*'restart'* | *'rc-service'*'restart'* \
-    | *'launchctl kickstart'* | *'launchctl stop'* \
-    | *'launchctl start'*)
-    hck_u=$(printf '%s' "$hck_s" | sed -n \
-      -e 's/.*systemctl \(restart\|reload-or-restart\) \([A-Za-z0-9@._-]*\).*/\2/p' \
-      -e 's/.*service \([A-Za-z0-9@._-]*\) restart.*/\1/p' \
-      -e 's/.*rc-service \([A-Za-z0-9@._-]*\) restart.*/\1/p' \
-      -e 's#.*launchctl kickstart.*[ /]\(gui/[0-9]*\|system\)/\([A-Za-z0-9._-]*\).*#\2#p' \
-      -e 's/.*launchctl \(stop\|start\) \([A-Za-z0-9._-]*\).*/\2/p' \
-      | head -n1)
-    [ -n "$hck_u" ] && printf 'restart:%s\n' "$hck_u"
-    return ;;
-  esac
+  printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK"'
+    BEGIN {
+      RS = "\001"
+      SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
+      SUVAL = "^-[A-Za-z]*[uUgpCRrtThD]$"
+      MAXDEPTH = 8
+    }
+    {
+      CLC = 0
+      hc_expand($0, 0)
+      if (fw_match($0)) { print "firewall"; exit }
+      for (cl = 1; cl <= CLC; cl++) {
+        n = CLN[cl]
+        for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
+        if (fw_match(joinw(w, 1, n))) { print "firewall"; exit }
+      }
+      if (net_match($0)) { print "network"; exit }
+      for (cl = 1; cl <= CLC; cl++) {
+        n = CLN[cl]
+        for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
+        if (net_match(joinw(w, 1, n))) { print "network"; exit }
+      }
+      for (cl = 1; cl <= CLC; cl++) {
+        n = CLN[cl]
+        for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
+        if (trig(base(w[1]), w, n)) { print "reboot"; exit }
+      }
+      seen = SUBSEP
+      for (cl = 1; cl <= CLC; cl++) {
+        n = CLN[cl]
+        for (k = 1; k <= n; k++) w[k] = CLW[cl, k]
+        u = restart_unit(w, n)
+        if (u == "") continue
+        if (index(seen, SUBSEP u SUBSEP) > 0) continue
+        seen = seen u SUBSEP
+        print "restart:" u
+      }
+    }'
 }
 
 # hostwarden_coord_kind_whole <kind> — true when <kind>

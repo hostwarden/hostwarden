@@ -220,6 +220,15 @@ else
   step "fleet-read wrapper" sh scripts/fleet-read-test.sh
   step "fleet run" sh scripts/fleet-run-test.sh
 fi
+# The tokenizer matrix reads coord-lib.sh alone, directly — no
+# fixture checkout, no hooks.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    '^\.claude/hooks/coord-lib\.sh$|^scripts/coord-lib-test\.sh$'
+then
+  echo "== coord-lib matrix: nothing it reads is pushed, skipped"
+else
+  step "coord-lib tokenizer" sh scripts/coord-lib-test.sh
+fi
 # The radius matrix reads the impact script and what it sources.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
     '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops|coord-lib)\.sh$|^scripts/impact-'

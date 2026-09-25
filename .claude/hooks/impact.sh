@@ -7,10 +7,12 @@
 # Two checks, in this order:
 #
 #   Origin. Each ;/&/|-delimited segment of the command is judged on
-#     its own (hostwarden_coord_kind, coord-lib.sh): a segment whose
-#     text names a reboot, a firewall reload or restart, a network
-#     change, or a restart of a systemd/service/launchctl unit, and
-#     whose destination (hostwarden_coord_dest, the same reader an
+#     its own (hostwarden_coord_kind, coord-lib.sh): a segment can
+#     name more than one disruptive kind — a compound command that
+#     restarts two units names both — and each one whose text names
+#     a reboot, a firewall reload or restart, a network change, or
+#     a restart of a systemd/service/launchctl unit, and whose
+#     destination (hostwarden_coord_dest, the same reader an
 #     agent's own presence gets parsed with, so the same limits
 #     apply: a via-host guest, a script or a destination in a
 #     variable is not read, and the command runs unchecked) names a
@@ -176,48 +178,60 @@ fi
 
 while IFS="$TAB" read -r d seg; do
   [ -n "$d" ] || continue
-  KIND=$(hostwarden_coord_kind "$seg")
-  [ -n "$KIND" ] || continue
+  KINDS=$(hostwarden_coord_kind "$seg")
+  [ -n "$KINDS" ] || continue
   TH=$(hostwarden_coord_canon "$IDX" "$d" "$ROOT")
 
-  RADIUS=$(hostwarden_coord_radius "$ROOT" "$TH" "$KIND" 2>/dev/null) \
-    || continue
-  HOSTLIST=$(printf '%s\n' "$RADIUS" | awk '{print $1}')
-  [ -n "$HOSTLIST" ] || continue
+  # One segment can name more than one disruptive kind — a compound
+  # command that restarts two units each names its own
+  # restart:<unit> (coord-lib.sh's own hostwarden_coord_kind), and
+  # each is checked and, if it reaches another session, denied in
+  # turn.
+  while IFS= read -r KIND; do
+    [ -n "$KIND" ] || continue
+    RADIUS=$(hostwarden_coord_radius "$ROOT" "$TH" "$KIND" 2>/dev/null) \
+      || continue
+    HOSTLIST=$(printf '%s\n' "$RADIUS" | awk '{print $1}')
+    [ -n "$HOSTLIST" ] || continue
 
-  # A live session other than this one, on any host the radius
-  # named (coord-lib.sh — the same parser bin/hostwarden-impact's
-  # announce and wait read the presence map with).
-  AFF=$(hostwarden_coord_affected "$HOSTWARDEN_CACHE" "$HOSTLIST" "$SELF")
-  [ -n "$AFF" ] || continue
-  OTHER=$(printf '%s\n' "$AFF" | awk '{ printf " %s on %s;", $1, $2 }')
+    # A live session other than this one, on any host the radius
+    # named (coord-lib.sh — the same parser bin/hostwarden-impact's
+    # announce and wait read the presence map with).
+    AFF=$(hostwarden_coord_affected "$HOSTWARDEN_CACHE" "$HOSTLIST" "$SELF")
+    [ -n "$AFF" ] || continue
+    OTHER=$(printf '%s\n' "$AFF" | awk '{ printf " %s on %s;", $1, $2 }')
 
-  # This session's own impact for this host, whose announced window
-  # has not ended yet, covers it — not a fixed ten minutes since it
-  # was made, which a longer announced window would outlive. An
-  # earlier announcement of a narrower kind (`restart:nginx`) does
-  # not cover a bigger one later (`reboot`): only an announcement
-  # of the same kind, or of a kind that already takes the whole
-  # radius (hostwarden_coord_kind_whole, a superset of any single
-  # service's own dependents), counts.
-  COVERED=
-  for e in "$IMPD"/*; do
-    [ -d "$e" ] || continue
-    b=${e##*/}
-    [ "$(printf '%s' "$b" | cut -d+ -f5)" = "$SELF" ] || continue
-    set -- "$e/radius/$TH"+*
-    [ -e "$1" ] || continue
-    AKIND=$(printf '%s' "$b" | cut -d+ -f3)
-    [ "$AKIND" = "$KIND" ] || hostwarden_coord_kind_whole "$AKIND" || continue
-    until=$(printf '%s' "$b" | cut -d+ -f4)
-    case $until in *[!0-9]* | '') continue ;; esac
-    [ "$until" -gt "$NOW" ] && { COVERED=1; break; }
-  done
-  [ -n "$COVERED" ] && continue
+    # This session's own impact for this host, whose announced
+    # window has not ended yet, covers it — not a fixed ten minutes
+    # since it was made, which a longer announced window would
+    # outlive. An earlier announcement of a narrower kind
+    # (`restart:nginx`) does not cover a bigger one later
+    # (`reboot`): only an announcement of the same kind, or of a
+    # kind that already takes the whole radius
+    # (hostwarden_coord_kind_whole, a superset of any single
+    # service's own dependents), counts.
+    COVERED=
+    for e in "$IMPD"/*; do
+      [ -d "$e" ] || continue
+      b=${e##*/}
+      [ "$(printf '%s' "$b" | cut -d+ -f5)" = "$SELF" ] || continue
+      set -- "$e/radius/$TH"+*
+      [ -e "$1" ] || continue
+      AKIND=$(printf '%s' "$b" | cut -d+ -f3)
+      [ "$AKIND" = "$KIND" ] || hostwarden_coord_kind_whole "$AKIND" \
+        || continue
+      until=$(printf '%s' "$b" | cut -d+ -f4)
+      case $until in *[!0-9]* | '') continue ;; esac
+      [ "$until" -gt "$NOW" ] && { COVERED=1; break; }
+    done
+    [ -n "$COVERED" ] && continue
 
-  deny "$TH $KIND reaches other live sessions:$OTHER Run \
+    deny "$TH $KIND reaches other live sessions:$OTHER Run \
 \`bin/hostwarden-impact announce $TH $KIND\` first, and wait or ack \
 as rules/coordination.md → Announce, wait, go says."
+  done <<KEOF
+$KINDS
+KEOF
 done <<EOF
 $DESTS
 EOF
