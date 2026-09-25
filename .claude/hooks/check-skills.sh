@@ -5,8 +5,8 @@
 # AGENTS-style tools read directly. Claude Code searches only
 # .claude/, so .claude/skills is a symlink to that tree. A
 # checkout that supports symlinks is a prerequisite, stated in
-# docs/install.md; this does not paper over a checkout that is not
-# one, it only refuses to be silent about it.
+# website/docs/getting-started/install.md; this does not paper over
+# a checkout that is not one, it only refuses to be silent about it.
 #
 # Where symlink support is missing — a clone with
 # core.symlinks=false, an archive export, a zip download — git writes
@@ -17,7 +17,8 @@
 #
 # Hence a SessionStart hook with no matcher. The fix it points
 # at is the user's to make: turn on symlink support and restore
-# the link (docs/install.md → Symbolic links).
+# the link (website/docs/getting-started/install.md → Symbolic
+# links).
 set -e
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -49,7 +50,8 @@ fi
 echo "hostwarden: .claude/skills does not lead to .agents/skills/,"
 echo "  so Claude Code sees no skill at all — no housekeeping, no"
 echo "  security audit, and no warning but this one."
-echo "  docs/install.md → Symbolic links says how to repair the link"
-echo "  in a clone; an archive download has to be replaced by a clone."
+echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links"
+echo "  says how to repair the link in a clone; an archive download"
+echo "  has to be replaced by a clone."
 
 exit 0

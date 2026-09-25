@@ -29,10 +29,10 @@
 #     "guard-off" without the hyphen when reading about it).
 #
 # The operator sets the variable by hand, which reaches no hook, and
-# starts a new session (docs/ai-tools.md → Claude Code Desktop). The
-# next session's start-up notice says the guard is off, whichever way
-# it got there — that notice, not this hook, is what the operator
-# reads.
+# starts a new session (website/docs/getting-started/ai-tools.md →
+# Claude Code Desktop). The next session's start-up notice says the
+# guard is off, whichever way it got there — that notice, not this
+# hook, is what the operator reads.
 #
 # Deliberately NOT honouring HOSTWARDEN_GUARD_DISABLE: a guard that
 # is off for one session must not let the model make it off for the
@@ -67,7 +67,8 @@ deny() {
 the operator, who sets the variable by hand before a session starts \
 (AGENTS.md - Critical Safety Rules). Blocked in all permission modes. \
 Explain this to the user; do not look for another way to write it. \
-docs/ai-tools.md - Claude Code Desktop describes what the operator does."
+https://hostwarden.github.io/docs/getting-started/ai-tools#claude-code-desktop \
+describes what the operator does."
 }
 
 SETTINGS_RE='settings(\.local)?\.json|managed-settings\.json'

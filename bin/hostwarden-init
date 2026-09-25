@@ -114,8 +114,9 @@ if [ -n "$CLONE" ]; then
   # resolution stops working without a word.
   if [ "$(git -C memory config --bool core.symlinks)" = false ]; then
     echo "hostwarden: git made no symlinks in memory/, so DNS aliases"
-    echo "  arrive as text files. See docs/install.md → Symbolic links, then"
-    echo "  clone again."
+    echo "  arrive as text files. See"
+    echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links,"
+    echo "  then clone again."
   fi
   echo "hostwarden: keep this remote private — the workspace holds"
   echo "  hostnames, addresses and the layout of your network."

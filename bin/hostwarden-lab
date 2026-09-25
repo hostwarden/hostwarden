@@ -247,9 +247,10 @@ vm_up() {
   done
   # The clone that will reach the VM: an operations install, not the
   # one this worktree came from, with production on its blacklist
-  # (docs/operations.md → Operations and development).
+  # (https://hostwarden.github.io/docs/running-it/operations#operations-and-development).
   [ -n "$OPS" ] || die "vm up needs --ops <test clone>: an operations \
-clone kept for test servers (docs/operations.md → Operations and development)."
+clone kept for test servers \
+(https://hostwarden.github.io/docs/running-it/operations#operations-and-development)."
   OPS=$(cd "$OPS" 2>/dev/null && pwd -P) || die "no such directory: $OPS"
   (hostwarden_mode "$OPS"; [ "$HOSTWARDEN_MODE" = operations ]) \
     || die "$OPS is no operations clone: run bin/hostwarden-init there first."

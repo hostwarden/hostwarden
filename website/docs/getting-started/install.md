@@ -1,7 +1,11 @@
+---
+sidebar_position: 1
+---
+
 # Installing Hostwarden
 
 The short path is in the
-[README](../README.md#how-to-install). This page has
+[README](https://github.com/hostwarden/hostwarden#how-to-install). This page has
 the details behind each prerequisite and the setup
 for Windows.
 
@@ -94,7 +98,7 @@ up.
    clone is there.
 3. Clone into the distribution's own filesystem —
    under `~`, not under `/mnt/c` — as the
-   [README](../README.md#steps) describes.
+   [README](https://github.com/hostwarden/hostwarden#steps) describes.
 4. Give the distribution an SSH key it can use. The
    `ssh` inside WSL does not see Windows' ssh-agent or
    a password manager's agent on Windows. Either keep

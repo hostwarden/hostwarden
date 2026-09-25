@@ -1,12 +1,16 @@
+---
+sidebar_position: 3
+---
+
 # Features
 
 What Hostwarden does, with example prompts. A feature
 that exists only in Claude Code says so; in other
 tools the same rules reach the agent as instructions.
 The safety rules behind all of it are in
-[Safety and guardrails](safety.md); teams, updates and
+[Safety and guardrails](../running-it/safety.md); teams, updates and
 the operations host in
-[Running Hostwarden in production](operations.md).
+[Running Hostwarden in production](../running-it/operations.md).
 
 - [Getting to know a host](#getting-to-know-a-host)
   - [Auto OS-detection](#auto-os-detection)
@@ -350,7 +354,7 @@ forwarding is asked first.
 ## Systems it knows
 
 The OS families are listed in the
-[README](../README.md#supported-distributions). On top
+[README](https://github.com/hostwarden/hostwarden#supported-distributions). On top
 of a family, three more layers can apply to a host:
 an appliance, a platform and a role. Hostwarden
 detects each, records it in the host's memory, and
@@ -414,7 +418,7 @@ that a read-only account cannot write.
 
 A platform is what the OS runs inside when something
 outside owns part of the machine. Under
-[WSL](../rules/platform/wsl.md), Windows owns the
+[WSL](https://github.com/hostwarden/hostwarden/blob/main/rules/platform/wsl.md), Windows owns the
 kernel, the firewall, name resolution and the
 instance's lifetime, so Hostwarden reads them and
 leaves them alone. It records WSL 1 or 2, the
@@ -425,7 +429,7 @@ judges the firewall from the Windows side.
 A role says what the machine is expected to have. A
 Mac, a WSL instance and the machine Hostwarden runs on
 are inferred to be
-[workstations](../rules/role/workstation.md) and held
+[workstations](https://github.com/hostwarden/hostwarden/blob/main/rules/role/workstation.md) and held
 to workstation expectations instead of the server
 baseline: automatic reboots off, a firewall judged by
 what listens, your home directory and your own tools
@@ -493,7 +497,7 @@ make.
 
 Your own additions go into
 `memory/custom-rules/baseline.md`, as an override
-([Overrides](overrides.md)), with sections for admin
+([Overrides](../running-it/overrides.md)), with sections for admin
 keys, the timezone, a mail relay and monitoring:
 
 ```markdown
@@ -556,7 +560,7 @@ host and are not reported twice. Nothing is updated,
 pruned or restarted. Your own checks go into
 `memory/housekeeping.md`. A scheduled run can mail you
 the report
-([Scheduled housekeeping](automation.md#scheduled-housekeeping)).
+([Scheduled housekeeping](../running-it/automation.md#scheduled-housekeeping)).
 
 ### Security audit
 
@@ -638,7 +642,7 @@ When storage fails, Hostwarden reads, asks about your
 backup, and hands the repair command to you: repairing
 or destroying a file system, array, volume group or
 pool is one of its taboos
-([Safety and guardrails](safety.md)).
+([Safety and guardrails](../running-it/safety.md)).
 
 ### Decisions
 
@@ -651,7 +655,7 @@ again, and flag a host that contradicts it. Only your
 explicit word makes a decision, never a pattern
 Hostwarden infers; only you retire one, and a
 `Revisit:` date brings it up once
-([Decisions](overrides.md#decisions)).
+([Decisions](../running-it/overrides.md#decisions)).
 
 ## Several servers
 
@@ -813,7 +817,7 @@ key can do:
 
 On the operations host, `bin/hostwarden-fleet-run`
 uses it every night and has Claude judge each result
-([An operations host](operations.md#an-operations-host)).
+([An operations host](../running-it/operations.md#an-operations-host)).
 A signed bundle stops running on its `valid-until`
 date, at most a year ahead, with a warning 30 days
 before; Hostwarden tells you when its checks have
@@ -896,7 +900,7 @@ devices, is named first. Stopping or deleting a guest
 needs your explicit request and shows its disks and
 newest backup first; the guard behind it is the same
 as for a system container or VM
-([Safety and guardrails](safety.md)). Housekeeping
+([Safety and guardrails](../running-it/safety.md)). Housekeeping
 lists what a host passes through to its guests and
 flags a bind mount whose source fell back to the root
 filesystem.
@@ -1149,14 +1153,14 @@ it.
 The workspace, `memory/`, is a git repository of its
 own that a team, or one admin on several machines,
 shares through a private remote:
-[A shared workspace](operations.md#a-shared-workspace).
+[A shared workspace](../running-it/operations.md#a-shared-workspace).
 
 ### Parallel sessions
 
 Sessions that change the same host — two windows, or
 teammates on different workstations — see each other
 and, in Claude Code, can message each other directly:
-[Parallel sessions](operations.md#parallel-sessions).
+[Parallel sessions](../running-it/operations.md#parallel-sessions).
 
 ### Steps that reach other hosts
 
@@ -1166,8 +1170,8 @@ the hosts it reaches — its guests, the hosts behind
 it, the hosts using its services — before it runs,
 and a background coordinator keeps track of which
 session works where:
-[Steps that reach other hosts](operations.md#steps-that-reach-other-hosts),
-[The coordinator](operations.md#the-coordinator).
+[Steps that reach other hosts](../running-it/operations.md#steps-that-reach-other-hosts),
+[The coordinator](../running-it/operations.md#the-coordinator).
 
 ### Plan mode
 
@@ -1196,4 +1200,4 @@ tool, ask Hostwarden to plan before acting.
 `hostwarden-heinzel-takeover` copies an existing
 Heinzel installation into this workspace and onboards
 each host read-only. It can run host by host:
-[Moving over from Heinzel](operations.md#moving-over-from-heinzel).
+[Moving over from Heinzel](../running-it/operations.md#moving-over-from-heinzel).

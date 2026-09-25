@@ -290,9 +290,10 @@ fi
 #
 # What is not checked: a relative pointer in a file outside
 # `.agents/skills/`. In `rules/overrides.md` and
-# docs/overrides.md that shape appears in a table *describing*
-# the mirror scheme, and no pattern separates an example of a path
-# from a use of one. Those two files document; they do not route.
+# website/docs/running-it/overrides.md that shape appears in a
+# table *describing* the mirror scheme, and no pattern separates
+# an example of a path from a use of one. Those two files
+# document; they do not route.
 REF_RE='`(\.agents/skills/[a-z0-9-]+/)?references/[a-z0-9._/-]+\.md`'
 BAD_REFS=$(
   scan | tag "$REF_RE" \
@@ -395,7 +396,8 @@ report "$(scan \
 # one by name rather than by path, which a rename breaks without
 # a trace. A script in bin/ is neither and counts as existing, and
 # so does hostwarden-workspace, the repository name
-# docs/operations.md recommends for the workspace remote.
+# website/docs/running-it/operations.md recommends for the
+# workspace remote.
 report "$(scan \
   | grep -vE "$HISTORY" \
   | tag '`hostwarden-[a-z-]+`' \
@@ -439,12 +441,12 @@ MISNAMED=$(
 )
 report "$MISNAMED" "the name it is dispatched by"
 
-# load(path) -- awk, for the two checks below: reads the ATX
-# headings of a Markdown file once into H[path, 1..NH[path]] and
-# returns whether the file could be read. Each target is named by
-# dozens of pointers; reading it once per pointer tripled the
-# runtime of this file. A heading inside an HTML comment renders as
-# nothing, so a section parked in one has no anchor either.
+# load(path) -- awk, for the checks below: reads the ATX headings
+# of a Markdown file once into H[path, 1..NH[path]] and returns
+# whether the file could be read. Each target is named by dozens
+# of pointers; reading it once per pointer tripled the runtime of
+# this file. A heading inside an HTML comment renders as nothing,
+# so a section parked in one has no anchor either.
 LOAD_AWK="$FENCE_AWK"'
 function load(p,   l, h) {
   if (p in NH) return NH[p] >= 0
@@ -460,6 +462,38 @@ function load(p,   l, h) {
   } while ((getline l < p) > 0)
   close(p)
   return 1
+}
+# ensure_slugs(p) -- awk: fills SLUG[p, <slug>] with every anchor
+# GitHub, or Docusaurus, derives from a loaded page'"'"'s headings --
+# the shared half of the two anchor checks below, which differ
+# only in how they resolve a link to the page p. load(p) must have
+# already run. Memoised the same way load() is, and for the same
+# reason: a page linked from several places is sluggged once.
+function ensure_slugs(p,   i, s, t, c, b) {
+  if (p in SLUGGED) return
+  SLUGGED[p] = 1
+  for (i = 1; i <= NH[p]; i++) {
+    s = H[p, i]
+    while (match(s, /\[[^]]*\]\([^)]*\)/)) {
+      t = substr(s, RSTART + 1, RLENGTH - 1); sub(/\]\(.*$/, "", t)
+      s = substr(s, 1, RSTART - 1) t substr(s, RSTART + RLENGTH)
+    }
+    # An autolink shows its address; any other tag is HTML.
+    while (match(s, /<([A-Za-z][A-Za-z0-9+.-]*:[^ <>]*|[^ <>@]+@[^ <>]+)>/))
+      s = substr(s, 1, RSTART - 1) substr(s, RSTART + 1, RLENGTH - 2) \
+        substr(s, RSTART + RLENGTH)
+    gsub(/<[^>]*>/, "", s)
+    s = tolower(s)
+    for (c = 128; c <= 158; c++)
+      if (c != 151)
+        gsub("\303" sprintf("%c", c), "\303" sprintf("%c", c + 32), s)
+    gsub(/\342\200[\223\224]/, "", s)
+    gsub(/[^a-z0-9 _\200-\377-]/, "", s)
+    gsub(/ /, "-", s)
+    b = s
+    while ((p, s) in SLUG) s = b "-" (++SEEN[p, b])
+    SLUG[p, s] = 1
+  }
 }'
 
 # Headings named in prose: `AGENTS.md` → SSH Options,
@@ -565,33 +599,49 @@ report "$(scan \
       f = $1; dir = f; sub(/[^\/]*$/, "", dir)
       p = root ($2 == "" ? f : dir $2)
       if (!load(p)) { print f ": " $2 " (no such file)"; next }
-      if (!(p in SLUGGED)) {
-        SLUGGED[p] = 1
-        for (i = 1; i <= NH[p]; i++) {
-          s = H[p, i]
-          while (match(s, /\[[^]]*\]\([^)]*\)/)) {
-            t = substr(s, RSTART + 1, RLENGTH - 1); sub(/\]\(.*$/, "", t)
-            s = substr(s, 1, RSTART - 1) t substr(s, RSTART + RLENGTH)
-          }
-          # An autolink shows its address; any other tag is HTML.
-          while (match(s, /<([A-Za-z][A-Za-z0-9+.-]*:[^ <>]*|[^ <>@]+@[^ <>]+)>/))
-            s = substr(s, 1, RSTART - 1) substr(s, RSTART + 1, RLENGTH - 2) \
-              substr(s, RSTART + RLENGTH)
-          gsub(/<[^>]*>/, "", s)
-          s = tolower(s)
-          for (c = 128; c <= 158; c++)
-            if (c != 151)
-              gsub("\303" sprintf("%c", c), "\303" sprintf("%c", c + 32), s)
-          gsub(/\342\200[\223\224]/, "", s)
-          gsub(/[^a-z0-9 _\200-\377-]/, "", s)
-          gsub(/ /, "-", s)
-          b = s
-          while ((p, s) in SLUG) s = b "-" (++SEEN[p, b])
-          SLUG[p, s] = 1
-        }
-      }
+      ensure_slugs(p)
       if (!((p, $3) in SLUG)) print f ": " $2 "#" $3 }')" \
   "an anchor GitHub renders"
+
+# The same, for a link that names the page by an absolute
+# https://hostwarden.github.io/docs/... URL instead of a relative
+# path -- the shape README.md and CONTRIBUTING.md use to reach
+# website/docs/, which stays out of a relative reach from either
+# file's own top-level directory. The corpus-wide gsub at the top
+# of this file strips a URL's scheme and host from $SCAN before any
+# check reads it, which is right for the identifier checks below
+# but throws away exactly the text the check above matches on, so
+# an anchor written this way never reaches it. This one reads the
+# corpus fresh -- unstripped -- for that one reason, and resolves
+# the path GitHub Pages serves against the website/docs/ file that
+# actually holds it, slugging it the same way.
+#
+# CHANGELOG.md and docs/adr/*.md are historical and excluded the
+# same way the pointer check above excludes them ($HISTORY):
+# a record from before a page moved names where it lived then.
+UNSTRIPPED=$(corpus_files | tr '\n' '\0' \
+  | xargs -0 awk -v root="$CORPUS_ROOT/" '
+  { n = FILENAME
+    if (index(n, root) == 1) n = substr(n, length(root) + 1)
+    print n ": " $0 }')
+GH_URL_RE='https://hostwarden\.github\.io/docs/[a-z0-9/_-]+#[a-z0-9_-]+'
+report "$(printf '%s\n' "$UNSTRIPPED" \
+  | grep -vE "$HISTORY" \
+  | awk "$FENCE_AWK"'
+    { f = $0; sub(/: .*/, "", f)
+      if (f != last) { FM = CM = ""; last = f }
+      t = $0; sub(/^[^ ]+: /, "", t)
+      if (!commented(t) && !fenced(t)) print }' \
+  | tag "$GH_URL_RE" \
+  | sed -E 's@^([^ ]+): https://hostwarden\.github\.io/docs/([a-z0-9/_-]+)#([a-z0-9_-]+)$@\1|\2|\3@' \
+  | LC_ALL=C awk -F'|' -v root="$ROOT/" "$LOAD_AWK"'
+    {
+      f = $1; path = $2; anchor = $3
+      p = root "website/docs/" path ".md"
+      if (!load(p)) { print f ": " path "#" anchor " (no such file)"; next }
+      ensure_slugs(p)
+      if (!((p, anchor) in SLUG)) print f ": " path "#" anchor }')" \
+  "an anchor the docs site renders"
 
 # Every page under docs/, subdirectories included, is listed in its
 # index. The README points there instead of keeping a list of its

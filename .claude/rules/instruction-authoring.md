@@ -99,8 +99,10 @@ rule, expectation or check it changes, by name.
 
 ## For people and for the agent
 
-`docs/` and the README are written for the person running
-Hostwarden; `rules/` and the skills for the agent. Wherever a page
+`website/docs/` and the README are written for the person running
+Hostwarden; `rules/` and the skills for the agent. `docs/` itself
+now holds only the contributor-facing half — `docs/README.md`
+points a reader at `website/docs/` for the rest. Wherever a page
 for people describes what a rule or skill makes the user write,
 see or decide — overrides, parallel sessions, the Heinzel
 takeover, scheduled runs, the guardrails — both use the same terms
@@ -109,10 +111,11 @@ behaviour changes both in the same commit. The page says what to
 do and where; how the agent resolves the unclear cases stays in
 the rule, and the rule never sends the agent to the page.
 
-`docs/recommendations.md` is the same kind of page for what a rule
-or skill recommends rather than requires: one line per
-recommendation. A pull request that adds, changes or removes a
-recommendation changes its line there in the same commit.
+`website/docs/running-it/recommendations.md` is the same kind of
+page for what a rule or skill recommends rather than requires: one
+line per recommendation. A pull request that adds, changes or
+removes a recommendation changes its line there in the same
+commit.
 
 One term per thing. What a user writes under `memory/custom-rules/`
 is an **override**, never a customization or a custom rule; the

@@ -1,3 +1,7 @@
+---
+sidebar_position: 3
+---
+
 # Automation and scripting
 
 Running Hostwarden without sitting at the prompt: one-shot

@@ -53,6 +53,9 @@ case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
 ROOT=$(cd "$ROOT" && pwd)
 # shellcheck source=../.claude/hooks/mode.sh
 . "$ROOT/.claude/hooks/mode.sh"
+# website/docs/getting-started/install.md, published — every row
+# below that points a user there names it once.
+INSTALL_DOCS=https://hostwarden.github.io/docs/getting-started/install
 # The SessionStart hook runs in every checkout. One that is not for
 # operations reaches no server, so what it needs is what working on
 # Hostwarden needs. Only the hook: a full report run by hand in a
@@ -96,8 +99,9 @@ OS=$(uname -s 2>/dev/null)
 # The guards and connection sharing need a POSIX workstation, so
 # nothing below is worth probing here. WSL 1 reports Linux as well;
 # only its kernel release, which ends in -Microsoft there and names
-# microsoft-standard under WSL 2, tells it apart. docs/install.md
-# supports WSL 2 alone, and gets the WSL checks below.
+# microsoft-standard under WSL 2, tells it apart.
+# website/docs/getting-started/install.md supports WSL 2 alone, and
+# gets the WSL checks below.
 UNSUPPORTED='' WSL=''
 case "$OS" in
   MINGW*|MSYS*|CYGWIN*)
@@ -117,7 +121,7 @@ case "$OS" in
 esac
 if [ -n "$UNSUPPORTED" ]; then
   echo "hostwarden: required, missing: $UNSUPPORTED" \
-    "(docs/install.md → Windows)"
+    "($INSTALL_DOCS#windows)"
   [ -n "$HOOK" ] && exit 0
   exit 1
 fi
@@ -158,7 +162,10 @@ hint() {
   pkgs=
   # shellcheck disable=SC2086 # one word per tool is the point
   for t in $1; do pkgs="$pkgs $(pkgname "$t")"; done
-  [ -n "$pkgs" ] || { echo "see docs/install.md"; return; }
+  [ -n "$pkgs" ] || {
+    echo "see $INSTALL_DOCS"
+    return
+  }
   case "$PM" in
     brew) echo "brew install$pkgs" ;;
     apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$pkgs" ;;
@@ -235,8 +242,9 @@ ssh_khc() {
 }
 
 # .claude/skills and every DNS alias are links, and git writes a
-# text file where it cannot link (docs/install.md → Symbolic
-# links). Probed in the clone: a temporary directory can sit on a
+# text file where it cannot link
+# (website/docs/getting-started/install.md → Symbolic links).
+# Probed in the clone: a temporary directory can sit on a
 # filesystem that links when this one does not.
 links_work() {
   d=$(mktemp -d "$ROOT/.link-probe.XXXXXX") || return 1
@@ -328,7 +336,7 @@ done
 # (.claude/hooks/shim.sh), which refuses even -G.
 [ -n "$DEV" ] || ! real_ssh \
   || probe need "ssh connection sharing and Include (OpenSSH 7.3+)" ssh ssh_shares
-probe need "symbolic links (docs/install.md → Symbolic links)" "" links_work
+probe need "symbolic links ($INSTALL_DOCS#symbolic-links)" "" links_work
 
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"
@@ -378,7 +386,8 @@ memory/ssh_config (OpenSSH 8.5+)" ssh ssh_khc
 writing it" shellcheck has shellcheck
 fi
 
-# Running inside WSL: what docs/install.md → Windows asks for.
+# Running inside WSL: what
+# website/docs/getting-started/install.md → Windows asks for.
 if [ -n "$WSL" ]; then
   [ -n "$QUIET" ] || echo "WSL"
   probe wsl "clone in the distribution's own filesystem" "the clone \
@@ -410,7 +419,7 @@ if [ -n "$FEAT" ]; then
   echo "hostwarden: not available on this workstation:$FEAT"
 fi
 if [ -n "$WSLM" ]; then
-  echo "hostwarden: WSL setup, recommended (docs/install.md → Windows):$WSLM"
+  echo "hostwarden: WSL setup, recommended ($INSTALL_DOCS#windows):$WSLM"
 fi
 if [ -z "$QUIET$NEED$WANT$FEAT$WSLM" ]; then
   echo "Everything Hostwarden runs locally is here."
