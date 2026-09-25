@@ -7,11 +7,12 @@
 #   hostwarden-sync pull         Bring in the remote's changes,
 #                                then write memory/ssh_config
 #   hostwarden-sync commit MSG [PATH...]
-#                                Commit PATHs (relative to the
-#                                workspace or under memory/), or
-#                                every change when none is named,
-#                                its Markdown rewrapped at 80
-#                                (hostwarden-wrap --changed)
+#                                Redraw the infrastructure maps
+#                                (hostwarden-map), then commit PATHs
+#                                (relative to the workspace or under
+#                                memory/), or every change when none
+#                                is named, its Markdown rewrapped at
+#                                80 (hostwarden-wrap --changed)
 #   hostwarden-sync push         Send local commits to the remote
 #   hostwarden-sync --help       Show this help
 #
@@ -143,6 +144,20 @@ commit)
   # to it: memory/servers/x and servers/x name the same file.
   [ "$#" -gt 0 ] || set -- .
   for p do shift; set -- "$@" "${p#memory/}"; done
+  # The maps redraw before anything else is staged, so a map is
+  # committed together with the memory it came from
+  # (bin/hostwarden-map). A path list narrower than the whole
+  # workspace still picks up what changed: maps/ is added to it
+  # unless it, or the whole workspace, is there already.
+  if sh "$SCRIPT_DIR/hostwarden-map"; then
+    case " $* " in
+      *' . '* | *' maps '*) ;;
+      *) set -- "$@" maps ;;
+    esac
+  else
+    echo "hostwarden: bin/hostwarden-map failed; memory/maps/ was" >&2
+    echo "  not regenerated" >&2
+  fi
   # Markdown goes in wrapped at 80, whichever tool wrote it. What
   # the wrap cannot mend is committed as it is: a journal entry
   # matters more than its line lengths.
