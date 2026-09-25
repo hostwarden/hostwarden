@@ -255,15 +255,55 @@ function hc_segments(s, RAW,
   return n
 }
 
-function hc_clean(seg) {
+function hc_dropredir(s) {
   # An optional & on either side of the </> run itself: >&2, 2>&1,
   # and bash own &>file/&>>file, on top of the plain 2>file every
   # redirection already reads as one dropped construct with hc_
-  # segments own & exception above keeping the whole thing one
-  # word to find here in the first place.
-  gsub(/[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/, " ", seg)
-  gsub(/^[ \t]+|[ \t]+$/, "", seg)
-  return seg
+  # segments own & exception keeping the whole thing one word to
+  # find here in the first place.
+  gsub(/[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/, " ", s)
+  return s
+}
+
+# hc_clean(seg) drops a redirection and its target the same way it
+# always has, but never inside a quoted span: a real heredoc body
+# or an ordinary quoted argument can itself hold a < or > (a
+# comparison, an arithmetic shift, redirection text meant for the
+# far shell, not this local read) with no redirection meaning here
+# at all, and hc_dropredir applied to it blindly would eat part of
+# what a caller needs to read whole. Walks seg the same quote-aware
+# way hc_segments does, running hc_dropredir on each unquoted span
+# only; a quoted span is copied through untouched, quote characters
+# and all, for hc_words to read afterwards.
+function hc_clean(seg,
+    out, i, c, qc, esc, slen, unq) {
+  out = ""; unq = ""; qc = ""; esc = 0; slen = length(seg)
+  for (i = 1; i <= slen; i++) {
+    c = substr(seg, i, 1)
+    if (esc) {
+      if (qc == "") unq = unq c; else out = out c
+      esc = 0; continue
+    }
+    if (c == "\\" && qc != "\047") {
+      if (qc == "") unq = unq c; else out = out c
+      esc = 1; continue
+    }
+    if (qc != "") {
+      out = out c
+      if (c == qc) qc = ""
+      continue
+    }
+    if (c == "\"" || c == "\047") {
+      out = out hc_dropredir(unq) c
+      unq = ""
+      qc = c
+      continue
+    }
+    unq = unq c
+  }
+  out = out hc_dropredir(unq)
+  gsub(/^[ \t]+|[ \t]+$/, "", out)
+  return out
 }
 
 function hc_words(s, W,
@@ -318,12 +358,16 @@ function joinw(w, i, n,    s, k) {
 # DELIM is matched loosely — an identifier-shaped word, quoted or
 # not, is enough, the exact quoting a real shell would need for it
 # is not read — over-matching (the safe direction) at worst treats
-# an ordinary "<<" mid-line as the start of one, and either finds a
-# real terminator line further down (harmless: its body still gets
-# read) or none (nothing past it is judged, same as an
-# unrecognised construct always leaves unread). A <<< here-string
-# is never mistaken for one: it never has an identifier-shaped word
-# starting right at its own two <, only one line further in.
+# an ordinary "<<" mid-line (an arithmetic shift, a banner) as the
+# start of one: it either finds a real terminator line further down
+# (harmless: its body still gets read too) or none at all, and only
+# then is this read back as never having been a heredoc to begin
+# with — every line kept exactly as it was, not one of them lost,
+# since losing everything past a false match would be a far worse
+# fail-open than reading one construct wrong ever is. A <<< here-
+# string is never mistaken for one: it never has an identifier-
+# shaped word starting right at its own two <, only one line
+# further in.
 function hc_heredocs(s, depth,
     LN, nlines, i, line, pos, m, dashed, delim, pre, post, body, tline, j, found, out, qc) {
   # A single or double quote around DELIM, matched via a dynamic
@@ -351,13 +395,23 @@ function hc_heredocs(s, depth,
       for (j = i + 1; j <= nlines; j++) {
         tline = LN[j]
         if (dashed) sub(/^\t+/, "", tline)
-        if (tline == delim) { found = 1; i = j; break }
+        if (tline == delim) { found = 1; break }
         body = body LN[j] "\n"
       }
-      if (found) hc_expand(body, depth + 1)
-      else i = nlines
-      out = out pre " " post "\n"
-      continue
+      # No line below matches DELIM on its own: this was never a
+      # real heredoc (an ordinary << in the text, arithmetic or
+      # otherwise, with nothing to close it) — never assume it
+      # swallowed the rest of the command, which is what actually
+      # happened once and is a worse loss than misreading a single
+      # word ever is. Every line, this one included, is left
+      # exactly as it is, and the scan carries on from the next one
+      # as if this line had never matched at all.
+      if (found) {
+        hc_expand(body, depth + 1)
+        i = j
+        out = out pre " " post "\n"
+        continue
+      }
     }
     out = out line "\n"
   }
@@ -376,21 +430,27 @@ function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2, s2) {
   }
 }
 
-function hc_sudoadv(w,   c2) {
-  # sudo own SUCLASS letter (man sudo: u,g,p,C,R,r,t,T,h,D take a
-  # value) counts only as the word own second character, right
-  # after the -: sudo -u root and sudo -uroot both give it one, a
-  # longer word that only happens to END in one of the same letters
-  # (sudo -Dlogdir) never does — unlike a plain "ends in the class"
-  # match (SSHVAL own kind, → hostwarden_coord_dest, left as it is:
-  # shared with hops.sh identical pattern, a fix here alone would
-  # only add a second, differently-behaving copy). Returns 2
-  # when the value is a separate word (the option letter is the
-  # whole word), 1 when it is already attached, 0 when this option
-  # takes no value at all.
-  c2 = substr(w, 2, 1)
-  if (index(SUCLASS, c2) == 0) return 0
-  return (length(w) == 2) ? 2 : 1
+function hc_sudoadv(w,   n, k, ch) {
+  # sudo lets a boolean short option cluster in front of a
+  # value-taking one, man sudo own synopsis brackets them
+  # together (sudo -nu root reboot really runs as root, -n and -u
+  # clustered): the first SUCLASS letter (u,g,p,C,R,r,t,T,h,D) at
+  # any position in w, not only the second, is the one that takes a
+  # value — real getopt clustering never puts a second option after
+  # one that already claimed the rest of the word as its own value.
+  # Everything past that letter in the same word is its value (1,
+  # attached); at the word own end, the value is the next word (2).
+  # A word with no such letter anywhere takes no value at all (0) —
+  # unlike a plain "ends in the class" match (SSHVAL own kind, →
+  # hostwarden_coord_dest, left as it is: shared with hops.sh
+  # identical pattern, a fix here alone would only add a second,
+  # differently-behaving copy).
+  n = length(w)
+  for (k = 2; k <= n; k++) {
+    ch = substr(w, k, 1)
+    if (index(SUCLASS, ch) > 0) return (k == n) ? 2 : 1
+  }
+  return 0
 }
 
 # hc_skip_prefix(W, i, nw) — i, advanced past a leading `exec` or

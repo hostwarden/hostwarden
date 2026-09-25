@@ -341,6 +341,47 @@ EOS
 EOF
 )" yes
 
+# Found by both reviewers' second verification pass: an unmatched
+# << (arithmetic, a banner, anything with no real terminator line
+# below it) must never be read as an open heredoc that swallows
+# every line after it — the worst possible direction, losing a
+# real command entirely rather than misreading one word.
+kind "found in verification: arithmetic << does not swallow the rest" \
+  "$(cat <<'EOF'
+ssh host 'echo $((n << TOTAL))
+systemctl restart nginx'
+EOF
+)" 'restart:nginx'
+reboot "found in verification: an unterminated << banner does not hide reboot" \
+  "$(cat <<'EOF'
+ssh host 'echo <<BATCH
+reboot'
+EOF
+)" yes
+
+# Found in the same pass: hc_clean's own redirect-stripping regex
+# was quote-blind, corrupting a < or > that a quoted argument (a
+# heredoc body sent as one quoted ssh word, an arithmetic
+# expression, redirection text meant only for the remote shell)
+# carries as its own literal content, before hc_words ever saw it.
+reboot "found in verification: a quoted << is never stripped as a local redirect" \
+  "$(cat <<'EOF'
+ssh host "echo << not a real redirect; reboot"
+EOF
+)" yes
+kind "found in verification: a quoted > is never stripped either" \
+  "$(cat <<'EOF'
+ssh host "echo 1 > 2; systemctl restart nginx"
+EOF
+)" 'restart:nginx'
+
+# Found in the same pass: a boolean short option clustered in front
+# of a value-taking one (man sudo's own synopsis brackets them
+# together) is real, valid sudo, and a fix that only checked the
+# word's own second character regressed it.
+reboot "found in verification: sudo -nu (boolean+value cluster)" \
+  'ssh host "sudo -nu root reboot"' yes
+
 kind "one segment, no destination, names nothing" 'uptime' ""
 kind "a plain, harmless remote command names nothing" \
   'ssh host uptime' ""
