@@ -38,9 +38,20 @@ runs:
         # yet", so a 404 here is trustworthy as the no-op case; any
         # other outcome (200, or a real error) means it exists, and
         # a dispatch failure past this point is a real one.
-        if ! curl -fsS -o /dev/null \
-            https://api.github.com/repos/hostwarden/hostwarden.github.io
+        #
+        # -f alone can't tell that 404 apart from a transient
+        # failure (timeout, DNS, rate-limit, a GitHub outage): both
+        # just make curl exit non-zero. Capture the status code
+        # instead, so a transport failure — no status at all — is
+        # its own case and fails loudly rather than skipping.
+        if ! status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --connect-timeout 10 --max-time 30 \
+            https://api.github.com/repos/hostwarden/hostwarden.github.io)
         then
+          echo "::error::could not reach the GitHub API to check hostwarden/hostwarden.github.io, not treating this as the repo being absent"
+          exit 1
+        fi
+        if [ "$status" = "404" ]; then
           echo "::notice::hostwarden/hostwarden.github.io does not exist yet, skipping $EVENT_TYPE dispatch"
           exit 0
         fi
