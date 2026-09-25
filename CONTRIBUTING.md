@@ -43,12 +43,8 @@ starting work on the later issue. It is not a substitute for:
 - **a checklist inside one issue**, for work that is genuinely one
   piece split into steps rather than several independently
   closeable pieces of work — the reason this project already
-  prefers a checklist over opening many small issues for one
-  change;
-- **a sub-issue**, rejected here for the same reason: it still
-  reads as one piece of work broken apart, where a dependency
-  links two pieces of work that stand on their own and close on
-  their own;
+  prefers a checklist over opening many small issues, or
+  sub-issues, for one change;
 - **a rebase-order decision between two pull requests**, when the
   issues themselves are independent but their pull requests happen
   to touch the same file — settled like any other conflict, by
@@ -92,6 +88,25 @@ content, and a written "do this before that" goes stale the moment
 either issue changes. An issue's author records what it relates
 to; whoever dispatches the work decides the order, every time,
 from scratch. Never write a recommended order into an issue.
+
+The third link is the parent, and it has one use here: an epic, an
+issue that names a goal and ships no change of its own. Its title
+starts with `[EPIC] `, so that it stands out in any list of issues.
+The issues that work towards it are its native sub-issues, each
+closing on its own, with their dependencies set as above. The
+epic's body does not list them; GitHub shows them with their
+progress. Whoever opens an issue that serves an open epic adds it
+at the time of opening.
+
+An issue joins at most one epic, and adding it to a second one
+moves it there without a warning. So check each issue for a parent
+first; one that prints a number already belongs to an epic, and
+moving it is a decision for whoever planned that epic:
+
+    gh issue view <n> -R hostwarden/hostwarden --json parent \
+      --jq '.parent.number'
+    gh issue edit <epic-n> -R hostwarden/hostwarden \
+      --add-sub-issue <n>,<n>
 
 ## Setup
 
