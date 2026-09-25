@@ -104,4 +104,4 @@ timeout 570 sh -c 'until virsh -c qemu:///system domifaddr web1 \
   virsh -c qemu:///system domifaddr web1 --source agent
 ```
 
-The rest happens over SSH (SKILL.md → After creation, step 2).
+Then go on at `SKILL.md` → After creation step 2.
