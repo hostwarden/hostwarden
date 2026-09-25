@@ -344,9 +344,17 @@ call:
 sleep 120
 ```
 
-Then go on at `SKILL.md` → After creation step 2. A slow
-guest may still be booting, so keep going within the same first-boot
-window the other paths wait, about ten minutes in all:
+The address to log in on is the one The request settled, for a
+static guest. A DHCP guest has none to read: Guest Agent above
+found neither image ships one, so there is no exec channel and no
+`virsh domifaddr --source agent` for `SKILL.md` → After creation
+step 2 to ask either. Ask the user for it instead, the way Hosts
+that keep guests to their UI does for its own no-agent case; the
+login below is what confirms it, same as any other address.
+
+Then go on at `SKILL.md` → After creation step 2 with that address.
+A slow guest may still be booting, so keep going within the same
+first-boot window the other paths wait, about ten minutes in all:
 
 - a refused or timed-out connection reached no sshd and counts for
   nothing — try again a minute later;
