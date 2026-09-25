@@ -980,8 +980,10 @@ awk -v kind="$KIND" -v T="$HOSTS" -v fields="$WORK/fields" -v idx="$IDX" '
     body[r] = body[r] line "\n"; cnt[r]++; total++
   }
   END {
+    s = total == 1 ? "" : "s"
+    who = no == 1 ? "it" : "them"
     printf "What %s of %s would reach: %d host%s besides %s\n", kind, origins, \
-      total, total == 1 ? "" : "s", no == 1 ? "it" : "them"
+      total, s, who
     for (i = 1; i <= nr; i++) if (cnt[rels[i]]) printf "%s:\n%s", title[rels[i]], body[rels[i]]
     for (i = 1; i <= ninv; i++) if (owner[i] in nm)
       printf "Guests of %s with no memory of their own: %s\n", name(owner[i]), nm[owner[i]]
