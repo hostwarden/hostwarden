@@ -12,6 +12,10 @@ description: How a pull request to Hostwarden goes from open to
 When auto mode blocks a step below — answering a thread,
 `rebase --continue`, a push — report it; never work around it.
 
+This file is the pipeline one pull request goes through. A session
+that has several open on `hostwarden/hostwarden` at once follows
+`pr-coordinator.md` for its own conduct between them.
+
 ## The project's branches
 
 Remote names say nothing here: in a fork `origin` is the fork, and
@@ -550,7 +554,14 @@ finished with gets merged.
   line for that head.
 - No unresolved thread, every local finding answered in its
   round's line, CI green, not a draft, and GitHub reports the pull
-  request CLEAN.
+  request CLEAN, read fresh rather than reused from earlier in the
+  session. `mergeStateStatus` is computed asynchronously on GitHub's
+  side and can still lag the base branch by a few seconds on a fresh
+  read, most easily right after another pull request lands on it; a
+  fresh read narrows that window but does not close it, and this
+  residual risk is accepted here. A session coordinating several
+  pull requests at once does not accept it, and verifies further
+  (`pr-coordinator.md` → Verifying readiness).
 - After any rebase, conflicts included, no new second review is
   requested or awaited if it had completed on the pre-rebase head
   with nothing open, or was skipped there. The session checks its own conflict

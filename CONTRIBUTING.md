@@ -202,7 +202,9 @@ files it governs. Read the one that covers what you change:
 - [repo-release.md](.claude/rules/repo-release.md) for releases,
   CI and the checks;
 - [pull-requests.md](.claude/rules/pull-requests.md) for taking a
-  pull request from open to merged, checks included.
+  pull request from open to merged, checks included;
+- [pr-coordinator.md](.claude/rules/pr-coordinator.md) for a session
+  that has several pull requests open at once.
 
 Claude Code loads them on its own; every other tool has to be
 pointed at them.
