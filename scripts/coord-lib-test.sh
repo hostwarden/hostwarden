@@ -120,7 +120,7 @@ reboot "shape1: env -c wrapper" \
 reboot "shape1: env VAR=val -c wrapper" \
   'ssh host "env FOO=bar -c \"true && reboot\""' yes
 reboot "shape1: doubly-nested bash -c" \
-  "$(printf 'ssh host "bash -c '\''sh -c \\\"true && reboot\\\"'\''"')" \
+  "$(printf 'ssh host "bash -c '\''sh -c \\"true && reboot\\"'\''"')" \
   yes
 
 # Shape 2 (#313): adjacent quote-type switching with nothing

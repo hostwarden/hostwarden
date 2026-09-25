@@ -1,6 +1,6 @@
 ---
 id: 20260925-coord-lib-shared-tokenizer
-status: proposed
+status: accepted
 supersedes:
 superseded-by:
 waiting-on:
