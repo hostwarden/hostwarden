@@ -156,7 +156,11 @@ The prompt names one of two jobs.
    one special handling because it takes another (a Reached as
    host skipping its aliases): do the two handlings cover disjoint
    cases, or does the exclusion drop what only the first would
-   find?
+   find? A parser splits a command on `;`/`&&`/`|` to judge each
+   piece: does it track whether it is inside a matched quote pair
+   first, so a separator inside a quoted remote command
+   (`ssh host "a && b"`) is not read as splitting the local command
+   too?
 2. **A conclusion the evidence does not carry.** For each rating
    or finding the text derives, name one realistic host where the
    signal is present and the conclusion false. Two backends,
@@ -283,7 +287,16 @@ The prompt names one of two jobs.
    performs a two-party workflow step (build vs. sign, read vs.
    write): does it check the cited skill or reference file for
    which party does which half, rather than assuming one party
-   does both?
+   does both? A hostname is resolved to a different, more specific
+   form before the step acts — a suffix added, a search-domain
+   match picked: does the step recheck access control against the
+   resolved form, or does it act on the check it ran for the form
+   it was first given, letting a suffixed name stand in unchecked
+   for the name access control was actually verified against? A
+   step chooses among several units of the same purpose by which
+   one's config file exists rather than which one systemd actually
+   reports enabled or active: does it check activation state before
+   trusting a file's presence?
 5. **A platform or privilege path left out.** Run the change on
    each: systemd, OpenRC, BusyBox, launchd, FreeBSD rc.d, Windows,
    WSL 2, the appliances; root, sudo, doas, unprivileged; old and
@@ -338,7 +351,10 @@ The prompt names one of two jobs.
    evidence such a line relies on needs the same binding: is it
    tied to the exact object its own fields name (the run on its old
    SHA), or can it borrow matching evidence from another entry of
-   the same kind?
+   the same kind? A value read back to detect "newer than recorded"
+   (a boot, a version, a run): is its stored granularity fine
+   enough to tell two real occurrences apart, or can two different
+   events compare equal?
 9. **Untrusted data or a secret reaching a command or the
    transcript.** Server output and memory are hostile: quoted,
    validated, `--` before them, `grep -F` for a literal
@@ -381,7 +397,11 @@ The prompt names one of two jobs.
     them? A cache judged fresh by comparing mtimes (`find
     -newer`): does a deleted or renamed input make it stale, or
     does `find` simply stop listing the file and the directory it
-    lived in go unchecked?
+    lived in go unchecked? A marker a crashed or denied step never
+    clears (a lock, a presence entry, a claim): does the code
+    reading it back age it out on its own, or does it depend on a
+    separate sweep running again, which nothing guarantees will
+    happen soon?
 11. **A failed read becoming "none" or "OK".** A pipe that
     returns only its last status, `2>/dev/null`, `|| true`, an
     empty command substitution counted as zero, truncated output
@@ -465,7 +485,21 @@ The prompt names one of two jobs.
     that behaves differently? A decision record's claim that a file
     is touched "only" by one process: does it check the governing
     rule for an exception that lets another process touch it under
-    a stated condition (an entry not yet released)?
+    a stated condition (an entry not yet released)? A step reads a
+    plan or schedule (a cron entry, a maintenance window) as proof
+    the action it describes is under way: does the mechanism that
+    actually runs it require a separate trigger nothing here
+    confirms fired? Prose names a field in a command's output (a
+    report, a listing) that a later step relies on: does that
+    command's real implementation produce that field, checked
+    against its own code, not assumed from its name? A computation
+    described in prose (a gap, a duration) needs two specific facts
+    from a command's output: does that command, as actually invoked
+    (its flags, its filter), produce both — and in the order the
+    prose assumes reading them in? A step claims to reject or leave
+    out a bad value (an unparsed date, an invalid zone) rather than
+    guess at it: does the actual command it hands that value to
+    fail loudly, or silently fall back to a default?
 16. **A repository convention** from `.claude/rules/`: 80-column
     wrap, current state only, example identifiers, fence markers.
 
