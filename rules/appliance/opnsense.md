@@ -286,32 +286,39 @@ foreach (items($c['staticroutes']['route'] ?? null) as $k => $r) {
 // service list: a server switched off keeps its settings.
 $run = []; $known = false; $pf = false;
 if (is_executable('/usr/local/sbin/pluginctl')) {
-  $known = true;
   $l = json_decode((string)shell_exec('pluginctl -S'), true);
-  foreach ((array)$l as $k => $s) {
-    $s = is_array($s) ? $s : [];
-    $n = (string)($s['name'] ?? $k);
-    $i = (string)($s['id'] ?? '');
-    // Kea's four services share one name; `id` tells DHCPv4 apart.
-    if (preg_match('/^dhcpd$/i', $n)) $b = 'isc';
-    elseif (preg_match('/dnsmasq/i', $n)) $b = 'dnsmasq';
-    elseif (preg_match('/kea/i', $n)) $b = $i === 'v4' ? 'kea' : '';
-    else continue;
-    $t = $s['status'] ?? null;
-    $on = is_string($t) ? stripos($t, 'is running') !== false : !empty($t);
-    p('service.' . v($n, ID) . ($i === '' ? '' : '.' . v($i, ID)),
-      $on ? 'running' : 'stopped');
-    if ($on && $b !== '') $run[$b] = true;
+  // A failed call or non-JSON answer must not read as "no DHCP
+  // service running": only a decoded, non-empty list says so.
+  if (is_array($l) && $l) {
+    $known = true;
+    foreach ($l as $k => $s) {
+      $s = is_array($s) ? $s : [];
+      $n = (string)($s['name'] ?? $k);
+      $i = (string)($s['id'] ?? '');
+      // Kea's four services share one name; `id` tells DHCPv4 apart.
+      if (preg_match('/^dhcpd$/i', $n)) $b = 'isc';
+      elseif (preg_match('/dnsmasq/i', $n)) $b = 'dnsmasq';
+      elseif (preg_match('/kea/i', $n)) $b = $i === 'v4' ? 'kea' : '';
+      else continue;
+      $t = $s['status'] ?? null;
+      $on = is_string($t) ? stripos($t, 'is running') !== false : !empty($t);
+      p('service.' . v($n, ID) . ($i === '' ? '' : '.' . v($i, ID)),
+        $on ? 'running' : 'stopped');
+      if ($on && $b !== '') $run[$b] = true;
+    }
   }
 } elseif ((@include_once 'service-utils.inc') !== false) {
-  $known = $pf = true;
-  foreach (get_services() as $s) {
-    $n = (string)($s['name'] ?? '');
-    if (!preg_match('/dhcp|kea/i', $n) || preg_match('/6|relay/i', $n))
-      continue;
-    $on = (bool)get_service_status($s);
-    p('service.' . v($n), $on ? 'running' : 'stopped');
-    if ($on) $run[$c['dhcpbackend'] ?? 'isc'] = true;
+  $l = get_services();
+  if (is_array($l) && $l) {
+    $known = $pf = true;
+    foreach ($l as $s) {
+      $n = (string)($s['name'] ?? '');
+      if (!preg_match('/dhcp|kea/i', $n) || preg_match('/6|relay/i', $n))
+        continue;
+      $on = (bool)get_service_status($s);
+      p('service.' . v($n), $on ? 'running' : 'stopped');
+      if ($on) $run[$c['dhcpbackend'] ?? 'isc'] = true;
+    }
   }
 }
 p('dhcp.backend', $c['dhcpbackend'] ?? null);
@@ -500,6 +507,8 @@ as not read, never guess another name.
   the vendor enables ntpd.
 - Failed Services: `pluginctl -S` (Replace: Service Manager)
   replaces the `service -e` loop; a service not running is WARN.
+  A call that fails or prints nothing is not a clean result: report
+  Failed Services as not read, never as nothing to flag.
 - Certificate expiry: also the web UI's
   `/usr/local/etc/lighttpd_webgui/cert.pem`.
 - Backups: a copy off the box needs a backup plugin
@@ -510,7 +519,9 @@ as not read, never guess another name.
 - SSH: judged as usual while sshd runs — an audit that came in
   over SSH shows it does; locally or on the console, check the
   `openssh` entry of `pluginctl -S` first, and with SSH off report
-  only that. Report findings as the options in Replace: sshd.
+  only that. A call that fails or prints no `openssh` entry is not
+  read, never taken as SSH off. Report findings as the options in
+  Replace: sshd.
 - Firewall: the appliance case in the security skill's
   `references/firewall.md`; the WAN rules are under Firewall >
   Rules > WAN. From the same `pfctl -s rules` output, no
@@ -530,4 +541,5 @@ as not read, never guess another name.
 **Fleet audit:** the unattended-upgrades rows are replaced by the
 "Automatic firmware update" cron job and the pending updates; the
 WAN rules are the firewall rows to compare. The time daemon comes
-from `pluginctl -S`; the MTA rows are `n/a (OPNsense)`.
+from `pluginctl -S`: a failed or empty call is not read, never no
+time daemon; the MTA rows are `n/a (OPNsense)`.

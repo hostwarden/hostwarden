@@ -336,7 +336,8 @@ Read its lines as that section says, with these differences:
   the vendor enables ntpd.
 - Failed Services: the Enabled services listing (Replace: Service
   Manager) replaces the `service -e` loop; a stopped service is
-  WARN.
+  WARN. A call that fails or prints nothing is not a clean result:
+  report Failed Services as not read, never as nothing to flag.
 - Certificate expiry: also the web UI's `/var/etc/cert.crt`.
 - Backups: AutoConfigBackup keeps copies off the box once enabled:
   ```
@@ -351,8 +352,9 @@ Read its lines as that section says, with these differences:
 - SSH: judged as usual while sshd runs — an audit that came in
   over SSH shows it does; locally or on the console, ask
   `pfSsh.php playback svc status sshd` first, and with SSH off
-  report only that. The default "Password or Public Key" is the
-  WARN, reported as the option in Replace: sshd.
+  report only that. A call that fails or prints nothing is not
+  read, never taken as SSH off. The default "Password or Public
+  Key" is the WARN, reported as the option in Replace: sshd.
 - Firewall: the appliance case in the security skill's
   `references/firewall.md`; the WAN rules are under Firewall >
   Rules > WAN.
@@ -370,5 +372,5 @@ Read its lines as that section says, with these differences:
 **Fleet audit:** compare CE only with CE. The unattended-upgrades
 rows are replaced by `pfSense-upgrade -d -c`'s result; the WAN
 rules are the firewall rows to compare. The time daemon comes from
-`pfSsh.php playback svc status ntpd`; the MTA rows are
-`n/a (pfSense)`.
+`pfSsh.php playback svc status ntpd`: a failed or empty call is not
+read, never no time daemon; the MTA rows are `n/a (pfSense)`.
