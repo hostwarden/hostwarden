@@ -49,6 +49,14 @@ jobs:
           # seven days.
           version: v2026.9.10
 
+      # website_build (scripts/check.sh) runs `npm ci` on every full
+      # run; this only saves the download, install still runs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: npm-
+
       # The awks bin/hostwarden-wrap has to work with, which
       # scripts/wrap-test.sh runs it under.
       - name: Install awks

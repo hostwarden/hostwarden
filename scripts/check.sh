@@ -245,6 +245,17 @@ then
 else
   step "markdown wrap matrix" sh scripts/wrap-test.sh
 fi
+website_build() (
+  cd website && npm ci && npm run build
+)
+
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] \
+  && ! pushed_files | grep -q '^website/'
+then
+  echo "== website build: nothing it reads is pushed, skipped"
+else
+  step "website build" website_build
+fi
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 # shellcheck disable=SC2046 # one argument per file is the point

@@ -10,3 +10,4 @@
 "aqua:koalaman/shellcheck" = "0.11.0"
 "aqua:rhysd/actionlint" = "1.7.12"
 "aqua:betterleaks/betterleaks" = "1.8.1"
+node = "24.21.0"

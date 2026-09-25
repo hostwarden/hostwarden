@@ -10,6 +10,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | :--- | :--- | :--- |
 | [A service name is a CNAME to its host's FQDN](20260925-service-name-is-a-cname.md) | dns | — |
 | [Internal DNSSEC uses a delegated subdomain, never a shared key](20260925-internal-dnssec-delegated-subdomain.md) | dns, security | — |
+| [Docs stay in this repo, only publishing lives elsewhere](20260925-docs-stay-in-repo-thin-publish.md) | docs, release | — |
 | [DNS records are proposed; written only where allowed](20260925-dns-propose-write-only-where-allowed.md) | dns, memory | — |
 | [Router configuration is read over SSH through an allow-list](20260925-appliances-read-over-ssh-allow-list.md) | network, appliances, secrets | — |
 | [`wsl.exe -u root` is treated like passwordless sudo](20260924-wsl-root-is-passwordless-sudo.md) | platforms, windows, privilege-escalation | — |

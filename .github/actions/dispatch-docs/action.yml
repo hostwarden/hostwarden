@@ -1,0 +1,54 @@
+name: Dispatch to the docs publish repo
+description: >
+  Fires a repository_dispatch at hostwarden/hostwarden.github.io, the
+  one place both docs-publish-dispatch.yml and tag-release.yml need
+  to agree on. A no-op, not a failure, until DOCS_DISPATCH_TOKEN and
+  that repo exist.
+
+inputs:
+  token:
+    description: A token with dispatch access to hostwarden.github.io
+    required: true
+  event-type:
+    description: docs-updated or release-cut
+    required: true
+  version:
+    description: The released VERSION, for release-cut only
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - shell: sh
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        EVENT_TYPE: ${{ inputs.event-type }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        if [ -z "$GH_TOKEN" ]; then
+          echo "::notice::DOCS_DISPATCH_TOKEN is not set yet, skipping $EVENT_TYPE dispatch"
+          exit 0
+        fi
+        # Checked without GH_TOKEN: hostwarden/hostwarden.github.io
+        # is meant to be public once it exists, and GitHub returns
+        # the same 404 for "does not exist" and "exists, but this
+        # token can't see it" — indistinguishable through GH_TOKEN
+        # itself. An unauthenticated read only ever says "not there
+        # yet", so a 404 here is trustworthy as the no-op case; any
+        # other outcome (200, or a real error) means it exists, and
+        # a dispatch failure past this point is a real one.
+        if ! curl -fsS -o /dev/null \
+            https://api.github.com/repos/hostwarden/hostwarden.github.io
+        then
+          echo "::notice::hostwarden/hostwarden.github.io does not exist yet, skipping $EVENT_TYPE dispatch"
+          exit 0
+        fi
+        if [ -n "$VERSION" ]; then
+          gh api repos/hostwarden/hostwarden.github.io/dispatches \
+            -f event_type="$EVENT_TYPE" \
+            -f "client_payload[version]=$VERSION"
+        else
+          gh api repos/hostwarden/hostwarden.github.io/dispatches \
+            -f event_type="$EVENT_TYPE"
+        fi
