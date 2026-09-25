@@ -29,8 +29,11 @@ export HOME="$TMP/home"
 mkdir -p "$HOME"
 
 # --- the checkout -----------------------------------------------
-R="$TMP/repo"
-mkdir -p "$R/bin" "$R/.claude/hooks"
+mkdir -p "$TMP/repo/bin" "$TMP/repo/.claude/hooks"
+# Normalized like hostwarden-impact's own REPO_DIR (cd .. && pwd),
+# so the cksum below matches its checkout-ID computation even when
+# TMPDIR ends in a slash, as macOS's always does.
+R=$(cd "$TMP/repo" && pwd)
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
 cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
   "$REPO/.claude/hooks/coord-lib.sh" "$REPO/.claude/hooks/resolve.sh" \
