@@ -115,22 +115,43 @@ Then read who the resolver answers, from its own configuration.
 
 ```bash
 pihole-FTL --config -q dns.listeningMode
+pihole-FTL --config -q dns.interface
+ip route show default
 pihole-FTL --config -q webserver.port
 pihole-FTL --config -q webserver.acl
 pihole-FTL --config -q misc.etc_dnsmasq_d
-pihole-FTL --config -q misc.dnsmasq_lines
+k='local-service|listen-address|interface|except-interface|auth-server'
+sed -nE "/^ *dnsmasq_lines = \[\$/,/^ *\]/s/^ *\"(($k)(=[^\"]*)?)\",?\$/\1/p" \
+  /etc/pihole/pihole.toml
 grep -cE '^ *pwhash = "[^"]' /etc/pihole/pihole.toml
 ```
 
-`dns.listeningMode` `LOCAL`, the default, answers only clients on
-a subnet the host has an interface on. `SINGLE`, `BIND` and `ALL`
-answer any origin that reaches the interface. `NONE` leaves it to
-the dnsmasq lines in `misc.dnsmasq_lines` and, only while
-`misc.etc_dnsmasq_d` is `true`, the files in `/etc/dnsmasq.d`:
-read those for `local-service`, `listen-address` or `interface`
-before judging it, and count it as answering any origin only when
-none of them restricts it. The web
-interface listens on `webserver.port`, by default
+`misc.dnsmasq_lines` can hold a `txt-record=` with a token, so only
+the lines that decide who is answered come out of it, as
+`rules/dns.md` → Reading a DNS server → Pi-hole reads them.
+
+`dns.listeningMode` writes one dnsmasq line of its own: `LOCAL`,
+the default, `local-service`; `ALL` `except-interface=nonexisting`;
+`SINGLE` and `BIND` `interface=` with `dns.interface`, or where
+that is empty the default route's interface (`dev` on the `default`
+line of `ip route show default`); `NONE` none. The dnsmasq lines in
+`misc.dnsmasq_lines` and, only while `misc.etc_dnsmasq_d` is `true`, the files
+in `/etc/dnsmasq.d` join it in every mode:
+read those for `local-service`, `listen-address`, `interface`,
+`except-interface` or `auth-server`, and judge them together with
+the mode's line (FTL's `src/config/dnsmasq_config.c`).
+`local-service` answers only the host's own subnets, and only
+where none of the other four is set: dnsmasq ignores it otherwise
+(dnsmasq(8)). `interface` and `listen-address` limit it to the
+interfaces and addresses they name, and `except-interface` to
+every interface it does not name: it answers any origin on each
+public address (`ip -br addr` above) that is left, so
+`except-interface=lo` restricts nothing, and neither does
+`listen-address=0.0.0.0` or `::`, which name every address. With
+none of them, it answers any origin on every address. `auth-server`
+opens the interface it names as well, but only for its own zones,
+authoritatively: no open resolver there. The web interface listens
+on `webserver.port`, by default
 `80o,443os,[::]:80o,[::]:443os` — every address; `webserver.acl`
 empty allows every client. The `grep` counts, and never prints,
 the password hash line: `0` means the web interface and API take
@@ -168,11 +189,11 @@ a container the published ports from
 `references/firewall-nftables-docker.md`, which Docker routes
 past ufw and firewalld.
 
-- **CRITICAL** if port 53 answers any origin (Pi-hole not
-  `LOCAL` and, for `NONE`, not restricted as above; AdGuard Home
-  without an `allowed_clients` that restricts; any other
-  resolver without an access list) on a public address that the
-  firewall does not restrict — open resolver
+- **CRITICAL** if port 53 answers any origin (Pi-hole whose
+  mode and dnsmasq lines, judged as above, leave a public address
+  answering; AdGuard Home without an `allowed_clients` that
+  restricts; any other resolver without an access list) on a public
+  address that the firewall does not restrict — open resolver
 - **CRITICAL** if an AdGuard Home setup wizard is reachable
   beyond loopback
 - **CRITICAL** if the web interface has no password or login and

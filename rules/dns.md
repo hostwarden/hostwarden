@@ -241,16 +241,22 @@ f=$(grep -rhE '^[[:space:]]*include(-toplevel)?:' "$d" |
   sed -E 's/^[^:]*:[[:space:]]*"?([^"]*)"?[[:space:]]*$/\1/')
 t='[[:space:]]+(([0-9]+|IN)[[:space:]]+)*(A|AAAA|CNAME)[[:space:]]'
 q="[\"'][^[:space:]\"']+"
+p="[\"'][0-9A-Fa-f.:]+([[:space:]]+[0-9]+)?[[:space:]]+[A-Za-z0-9._-]+[\"']"
 grep -rE "^[[:space:]]*($k):" "$d" $f |
-  sed -E -e "/local-data:[[:space:]]*$q$t/b" \
-    -e "s/(local-data:[[:space:]]*$q).*/\1 (value withheld)/"
+  sed -E -e 's/[[:space:]]+#.*//' -e "/local-data:[[:space:]]*$q$t/b" \
+    -e "/local-data-ptr:[[:space:]]*$p[[:space:]]*\$/b" \
+    -e "s/(local-data(-ptr)?:[[:space:]]*$q).*/\1 (value withheld)/"
 ```
 
 `$f` stays unquoted so that a glob in an `include` line expands. An
 `include` line in those files names a further file, which is listed
-for the user rather than read. A `local-data` record of any type but
-A, AAAA and CNAME prints its name alone: a TXT record can carry a
-token (`rules/secrets.md` → Commands That Leak).
+for the user rather than read. A comment after a value is cut; the
+`#` of a TLS name in `forward-addr` (`@853#dns.example.com`) has no
+space before it and stays. A `local-data` record of any type but A,
+AAAA and CNAME prints its name alone: a TXT record can carry a token
+(`rules/secrets.md` → Commands That Leak). A `local-data-ptr` line
+prints whole only as an address, an optional TTL and a name, and
+otherwise its address alone.
 
 **dnsmasq.** It also serves `/etc/hosts` unless `no-hosts` is set,
 and the files `addn-hosts` names:
@@ -275,12 +281,16 @@ for k in dns.hosts dns.cnameRecords dns.revServers dns.upstreams \
 done
 k='address|host-record|cname|server|local|domain|auth-zone'
 echo "@misc.dnsmasq_lines"
-pihole-FTL --config misc.dnsmasq_lines | grep -oE "($k)=[^\"',]*"
+sed -nE "/^ *dnsmasq_lines = \[\$/,/^ *\]/s/^ *\"(($k)(=[^\"]*)?)\",?\$/\1/p" \
+  /etc/pihole/pihole.toml
 ```
 
 `misc.dnsmasq_lines` holds any dnsmasq line the user added, a
-`txt-record=` among them, so only the keys dnsmasq's read takes come
-out of it.
+`txt-record=` among them, so only whole lines with a key dnsmasq's
+read takes come out of it. They come from `pihole.toml`, one quoted
+line per row: `pihole-FTL --config` joins the array with `, ` and
+strips the quotes, so a `, ` inside a `txt-record=` value would look
+like the next line. A line with an escaped quote does not print.
 
 **AdGuard Home.** Rewrites, and upstreams that forward one domain
 (`[/int.example.com/]10.0.0.2`), with `C` set as its housekeeping
@@ -358,8 +368,12 @@ read below is piped through the type filter on the host, and nothing
 else of it is printed (`rules/secrets.md` → Commands That Leak):
 
 ```bash
-grep -E '[[:space:]](A|AAAA|CNAME)[[:space:]]'
+awk '$4 ~ /^(A|AAAA|CNAME)$/'
 ```
+
+Every form below puts the type in field 4 (Knot: zone, name, TTL,
+type; the others: name, TTL, class, type). A match anywhere in the
+line would also hit a TXT value such as `"token A x"`.
 
 The records stay on the host: a check filters them there, in the
 same call, and prints only what it reports, with a count of the
@@ -378,7 +392,8 @@ conversation.
 - **Knot:** `knotc zone-read <zone>`. **PowerDNS:**
   `pdnsutil list-zone <zone>`. **NSD:** the zone file
   `nsd-checkconf` named, through `named-checkzone -D -o -` where it
-  is installed.
+  is installed. The file as written puts the type in no fixed field,
+  so without that tool NSD's records are `not checkable`.
 - **A router appliance:** the host overrides its
   `## Network configuration read` prints; otherwise the checks
   report `not checkable`.
@@ -489,27 +504,44 @@ findings).
 
 **CRITICAL**
 
-- No DS at the parent matches a key of the zone. Every validating
-  resolver then fails the whole zone. A key tag only names a key, so
-  the comparison is the whole DS: from the workstation, the parent's
-  DS set, and the DS records derived from the zone's DNSKEY set at
-  one of its own servers, in every digest type the parent uses:
+- The parent has a DS set, and no DS in it matches a key of the
+  zone. Every validating resolver then fails the whole zone. A key
+  tag only names a key, so the comparison is the whole DS: from the
+  workstation, the parent's answer with its status, and the DS
+  records derived from the zone's DNSKEY set at one of its own
+  servers, in every digest type the parent uses:
 
   ```bash
-  dig +short +nosplit DS int.example.com
+  dig +nosplit +noall +comments +answer DS int.example.com |
+    awk '/status:/ { sub(/,/, "", $6); print $6 }
+      $4 == "DS" { print $5, $6, $7, $8 }'
   dig +noall +answer DNSKEY int.example.com @ns1.int.example.com |
     dnssec-dsfromkey -a SHA-1 -a SHA-256 -a SHA-384 \
       -f - int.example.com 2>/dev/null | cut -d' ' -f4-
   ```
 
-  Each line is key tag, algorithm, digest type and digest; compare the
-  digests without regard to case. CRITICAL when no parent line equals
-  a derived one. A parent line that matches nothing, beside one that
-  does, is left over from a key rollover: INFO. Without
-  `dnssec-dsfromkey` on the workstation (it comes with BIND's tools),
-  `delv int.example.com SOA` through a validating resolver that
-  reaches the zone decides instead: `fully validated`, or the broken
-  chain. With neither, the check reports `not checkable`.
+  The first line is the status. `NOERROR` with no DS line after it
+  is an insecure delegation, which is valid: resolvers take the
+  zone's answers unvalidated. The check then reports `unsigned` and
+  compares nothing (a zone with keys all the same: INFO). Any other
+  status — `NXDOMAIN` for a zone the public tree
+  does not delegate, `SERVFAIL` — is reported as it stands, and the
+  check as `not checkable`. No status line at all means the query
+  got no answer (`no servers could be reached`): `not checkable`,
+  never an empty DS set. Otherwise each line is key tag,
+  algorithm, digest type and digest; compare the digests without
+  regard to case. CRITICAL when no parent line equals a derived one.
+  No derived line at all is CRITICAL only where
+  `dig +short SOA int.example.com @ns1.int.example.com` prints the
+  SOA record, so the zone is served without keys; where it prints
+  `;;` lines instead, the server did not answer: `not checkable`.
+  A parent line that matches nothing, beside one that does, is left
+  over from a key rollover: INFO. Without `dnssec-dsfromkey` on the
+  workstation (it comes with BIND's tools), `delv int.example.com
+  SOA` through a validating resolver that reaches the zone decides
+  instead: `fully validated`, `unsigned answer` for the insecure
+  delegation, or the broken chain. With neither, the check reports
+  `not checkable`.
 
 **WARN**
 
@@ -538,6 +570,9 @@ findings).
   proxies is not checkable: a client sees A and AAAA there, and
   behind Cloudflare's proxy not even the host's address. It is
   reported as `not checkable`, never as a hint.
+- A zone that has keys (a derived line above) while its parent has
+  no DS: it is signed, but only a resolver holding a trust anchor
+  for it validates it (Internal domain and DNSSEC).
 
 **Where they run:**
 
