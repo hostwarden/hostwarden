@@ -1,10 +1,11 @@
 # DNS
 
 Where the fleet's names come from, how Hostwarden proposes the
-records a host or a service needs, and what it checks, read-only,
-across the servers that answer them. Hostwarden writes no DNS record
-itself: every record set it proposes goes to the user, whatever the
-name space's line in `memory/dns.md` allows.
+records a host or a service needs, what it checks, read-only, across
+the servers that answer them, and, only where the user has said so,
+how it writes them. A record set it proposes goes to the user unless
+the name space's line in `memory/dns.md` reads `Hostwarden: write`
+(Writing).
 
 A host's own A, AAAA and PTR records against its addresses stay with
 `rules/network-probe.md` → Public DNS view, and `- IP:` with
@@ -216,7 +217,7 @@ named-checkconf -l
 named-checkconf -p | sed -n -e '/^acl /,/^}/p' -e '/^view "/p' \
   -e '/match-clients {/,/}/p' -e '/^[[:space:]]*zone "/p' \
   -e '/forwarders {/,/}/p' -e '/dnssec-policy/p' \
-  -e '/inline-signing/p' -e '/key-directory/p'
+  -e '/inline-signing/p' -e '/key-directory/p' -e '/update-policy/p'
 named-checkconf -l | while read -r z c v t; do
   case $t in primary|secondary) ;; *) continue ;; esac
   echo "@zone $z $v"
@@ -480,13 +481,12 @@ named, since nothing copies them from one to the next.
 
 - **Where no line describes the name space,** it is asked about first
   (The inventory).
-- **Hostwarden writes none of it,** in any name space: the user adds
-  the records, and says when. Then the name is resolved through the
-  resolvers the `resolved by:` field names, not only at the
-  authoritative server. A name that was asked for before it existed
-  stays a negative answer in a resolver's cache until the SOA's
-  negative TTL runs out (RFC 2308): the report says so, rather than
-  that the name does not resolve.
+- **A name space whose line reads `Hostwarden: write`** is written
+  as Writing below says, once the user agrees to this exact set.
+  Every other name space is handed to the user instead: they add the
+  records, and say when. Either way, the name is then resolved
+  through the resolvers the `resolved by:` field names, not only at
+  the authoritative server, as Writing → Verify says.
 - **Only the records the set-up needs,** never one Hostwarden thinks
   up beside them.
 - **A rename** (`rules/host-rename.md` → The Order) gets two sets:
@@ -495,6 +495,217 @@ named, since nothing copies them from one to the next.
   retargeted. Those CNAMEs are the ones the Records below show on the
   DNS servers memory names; the set says that others, at a provider
   or on a server Hostwarden does not read, are the user's to find.
+
+## Writing
+
+Only in a name space whose `memory/dns.md` line reads
+`Hostwarden: write`, and only after asking each time with the exact
+record set The proposal gives, every server it touches named. Any
+other name space is handed to the user, as The proposal already
+says; `write` is never assumed from write access alone (The
+inventory → Hostwarden).
+
+Before the change, back it up (`rules/backups.md`): the zone file
+for a static zone, on the host in `$BACKUP_DIR` as usual. A dynamic
+or inline-signed BIND zone, PowerDNS, or any product that keeps
+records in a database rather than a file backs up an export of the
+records there instead — the file alone is stale the moment there is
+a journal or a backend beside it — the same read Reading a DNS
+server → Records already takes for the product
+(`named-checkzone -D -j -o -`, which merges the journal;
+`pdnsutil list-zone`).
+
+**A zone managed as code is never written directly.** The
+inventory's `managed:` field says so. Hostwarden proposes the change
+in that code's terms where the user shows the file — a Terraform or
+OpenTofu resource, an octoDNS source, a DNSControl zone, an Ansible
+variable — and otherwise hands over the record set, exactly as for a
+name space with no `write`. A direct write would drift from the
+code, and the next `apply` would undo it.
+
+**Never by Hostwarden, even where `write` is set:** a change of the
+DS at the registrar, moving or copying a DNSSEC private key, and a
+key rollover (Internal domain and DNSSEC → Never by Hostwarden).
+
+### Over SSH
+
+On a DNS server Hostwarden manages (The inventory → source, 1 or 2),
+in the reach Reading a DNS server already uses. The method follows
+how the server holds the zone; check each command against `--help`
+or the man page first (`AGENTS.md` → Verify Before Running), since a
+version can move a flag from the one below.
+
+- **A static zone file** (BIND, a `primary` zone with `files:` set
+  and `dynamic: no` in `rndc zonestatus`). Where the same
+  `rndc zonestatus` also reads `secure: yes`, with neither `dynamic`
+  nor `inline signing` at `yes`, the zone is signed offline: a plain
+  edit adds a record with no signature inside a signed zone, which a
+  validating resolver rejects along with the rest of it (Checks →
+  CRITICAL). Hostwarden hands this name space's set to the user
+  instead, exactly as one with no `write` line; the bullet below
+  covers a zone that signs itself. An unsigned static zone is
+  written directly: raise the SOA serial, and add, change or remove
+  lines in the view's own file — its `files:` line, from
+  `rndc zonestatus <zone> <class> <view>`, `_default` where the
+  server has none (Reading a DNS server → BIND) — check it, then
+  reload that zone and view alone:
+
+  ```bash
+  named-checkzone example.net /etc/bind/zones/internal/example.net.zone
+  rndc reload example.net IN internal
+  ```
+
+  `rndc reload <zone> [class [view]]` fails, "found in multiple
+  views", when a zone with views is named alone; the class — `IN`
+  unless the zone says otherwise — and the record's own view (The
+  proposal) make it specific. A failed check leaves the old file in
+  place from the backup, and nothing is reloaded.
+- **A dynamic or inline-signed BIND zone** (`dynamic: yes`, or
+  `inline signing: yes` in `rndc zonestatus`) is never edited as a
+  file: its journal (`<zone>.jnl`) would then disagree with it at
+  the next reload. `nsupdate -l` binds to localhost and signs with
+  the session key `update-policy local;` makes named write — check
+  for exactly that policy in the zone's `update-policy` line of
+  Reading a DNS server → BIND's own filtered read before running
+  it, never a fresh `named-checkconf -p` of the whole file, which
+  can also print a TSIG `secret` (`rules/secrets.md`). A zone made
+  dynamic by another policy (TSIG
+  keys, a plain `allow-update`) needs credentials Hostwarden does
+  not hold, not this session key: the set goes to the user instead,
+  exactly as a signed offline static zone does. On a server with
+  views, `-l` also binds its source to localhost, so named picks
+  whichever view's `match-clients` matches it first, in the file's
+  view order — not necessarily the record's own view (The
+  proposal). Where more than one view could match localhost, or the
+  one that does is not the record's, the set goes to the user
+  instead too. Where the policy is `local` and the view is not in
+  doubt, run it on the primary itself:
+
+  ```bash
+  nsupdate -l <<'EOF'
+  zone int.example.com
+  update add web2.int.example.com. 3600 A 10.20.0.10
+  update add wiki.int.example.com. 3600 CNAME web2.int.example.com.
+  send
+  EOF
+  ```
+
+  A rename's second set (The proposal) removes the old name's
+  records with `update delete <name> [type]` lines the same way.
+  Retargeting an existing PTR or CNAME to a new value takes a
+  `delete` for the old value and an `add` for the new one in the
+  same transaction, never `add` alone, which would leave both.
+- **PowerDNS:** `pdnsutil`, on the host, or its API where the host's
+  configuration shows one is enabled:
+
+  ```bash
+  pdnsutil add-record int.example.com web2 A 3600 10.20.0.10
+  pdnsutil add-record int.example.com wiki CNAME 3600 web2.int.example.com.
+  pdnsutil increase-serial int.example.com
+  pdns_control notify int.example.com
+  ```
+
+  `pdnsutil` writes straight to the backend and does not notify
+  secondaries by itself; `pdns_control notify <zone>` does.
+  `pdnsutil delete-rrset <zone> <name> <type>` removes a record,
+  notified the same way. Retargeting an existing PTR or CNAME uses
+  `pdnsutil replace-rrset <zone> <name> <type> [ttl] <content>`
+  instead of `add-record`, which replaces the value outright rather
+  than adding a second one beside it.
+- **Knot:** a transaction, one zone at a time, aborted rather than
+  committed on any failure of the product's own check:
+
+  ```bash
+  knotc zone-begin int.example.com
+  knotc zone-set int.example.com web2 3600 A 10.20.0.10
+  knotc zone-set int.example.com wiki 3600 CNAME web2.int.example.com.
+  knotc zone-commit int.example.com
+  ```
+
+  `zone-unset <zone> <owner> [type [rdata]]` removes a record before
+  the commit; `zone-abort <zone>` drops the transaction instead.
+  Retargeting an existing PTR or CNAME unsets the old value before
+  setting the new one, in the same transaction, never `zone-set`
+  alone.
+- **Resolver records** (source 2, on a host reached over SSH), each
+  product's own way to make the change take effect — a reload that
+  only clears a cache, never the products' configuration itself, is
+  not enough for two of them:
+  - **Unbound:** edit `local-data`/`local-data-ptr` in its files,
+    `unbound-checkconf`, then `unbound-control reload`, which
+    rereads them and clears the cache, as `rules/service-reload.md`
+    already has it.
+  - **dnsmasq:** edit `address=`/`host-record=`/`cname=` in its
+    files. Its `SIGHUP` — `rules/service-reload.md`'s reload —
+    reloads only `/etc/hosts` and the files `--addn-hosts` and
+    `--dhcp-hostsfile` name, never the configuration file itself
+    (dnsmasq(8)): this is always a restart instead, asked as
+    `rules/service-reload.md` says for one, not a reload that would
+    leave the new line unapplied with no error anywhere.
+  - **Pi-hole:** `pihole-FTL --config dns.hosts` and
+    `dns.cnameRecords` each replace the whole array, never append —
+    the current one is read first (Reading a DNS server → Pi-hole),
+    the one line added, changed or removed, and the array set back
+    whole. Then `systemctl restart pihole-FTL`, the same as
+    dnsmasq, never a reload.
+  - **AdGuard Home:** its own control API on the host —
+    `POST /control/rewrite/add` and `/control/rewrite/delete`, each
+    with `domain` and `answer` — never a hand edit of
+    `AdGuardHome.yaml`. The running process periodically rewrites
+    that file from its own state, and can silently drop an edit made
+    to it while it runs. Retargeting an existing rewrite deletes the
+    old `answer` before adding the new one, never `add` alone, which
+    would leave both.
+
+  A router appliance's host overrides are not written this way; it
+  has none yet. A resolver set is written one member after another,
+  never in parallel (`rules/multi-host.md` → Order), since nothing
+  else keeps two members' copies alike. Where
+  a member fails partway, the write stops there: the report names
+  which members now carry the change and which still hold the old
+  records, and offers the rollback from the backup on each changed
+  member, rather than going on to members that would then differ for
+  a different reason.
+- **Secondaries.** After any of the methods above, where the name
+  space has one or more (The inventory → source, the provider's
+  secondary among them where it has one), each one's SOA serial is
+  read afterward and compared with the primary's — for a hidden
+  primary this is the only way a client's actual answer is checked
+  at all, since nothing ever reaches the primary directly, and it
+  matters just as much for a visible one, since PowerDNS and BIND
+  alike can leave a secondary stale with no error anywhere in the
+  chain (PowerDNS above):
+
+  ```bash
+  dig +short SOA int.example.com @ns2.int.example.com
+  ```
+
+  The report names any secondary whose serial still trails, so the
+  user knows a client reaching it sees the old answer until the next
+  transfer.
+- **Windows DNS**, AD-integrated included: report-only, like every
+  Windows write (`rules/os/windows.md`). The record set goes to the
+  user; Hostwarden never attempts it.
+
+### Verify
+
+Through the resolvers clients use for this name space — the
+`resolved by:` field's list (The inventory) — never only at the
+authoritative server, every resolver's lookups in one call to it:
+`dig +short <type> <name> @<resolver>` for each record added or
+changed, its new value compared with the proposal; the same for each
+record a rename's second set removes, expecting no answer. A name
+asked for before this write existed is held at a resolver as a
+negative answer until the SOA's negative TTL runs out (RFC 2308); a
+record just removed is cached instead, under its own TTL, until that
+runs out. Either way, where a lookup shows it, the report says so
+and gives the wait, rather than that the name does not resolve or
+the removal failed. Where the resolver is
+one Hostwarden reaches and offers a targeted flush —
+`rndc flushname <name> [view]` on BIND, `unbound-control flush
+<name>` on Unbound — it is offered after asking, never run unasked;
+other products, and a resolver Hostwarden does not reach, just wait
+out the TTL.
 
 ## Checks
 

@@ -10,5 +10,4 @@
   requires them, a private address in internal views only. Checks
   report a DS that matches no key, resolvers of one set that answer
   differently (fleet audit), a local record that shadows a forwarded
-  zone, and a private address in an external view. Hostwarden writes
-  no DNS record itself.
+  zone, and a private address in an external view.
