@@ -24,7 +24,9 @@ item, each with its sources and a date, created on first need.
   is folded into the store, as Folding a profile below says.
 - **An appliance's configuration read,** where its appliance file
   has one, folds the appliance's ranges, VLANs, DHCP scopes and
-  static routes the same way, at the moments that file names.
+  static routes the same way, and its WAN interfaces into the
+  site's uplinks, at the moments that file names (Folding a
+  configuration read below).
 - **Never the fleet audit.** It writes no memory
   (`hostwarden-fleet-audit`), and it does not read the store.
 
@@ -35,7 +37,14 @@ Four sections, each in the shape of `## Management controllers`:
 ```markdown
 ## Sites
 - home — the house and the garage rack (user, 2026-09-24)
+  - uplink fw1 wan: dual-stack · IPv4 100.64.12.7 on the WAN,
+    provider CGNAT (user) · IPv4 dynamic (changed 2026-09-20) ·
+    IPv6 /56 delegated, dynamic (user) — from fw1 config;
+    2026-09-24
 - colo-fra — rented rack, Frankfurt (user, 2026-09-24)
+  - uplink: dual-stack · IPv4 public on web1, web2, no NAT ·
+    IPv4 static (user) · IPv6 prefix not known — from web1, web2;
+    2026-08-30
 
 ## Ranges
 - 192.0.2.0/24 — site home · VLAN 10 · static only (DHCP off) ·
@@ -67,8 +76,9 @@ Four sections, each in the shape of `## Management controllers`:
   IPv4 forwarding is off (profile of 2026-09-10).
 ```
 
-**`## Sites`** holds site names and the user's own words about
-each, and nothing else. The hosts at a site are found through
+**`## Sites`** holds site names, the user's own words about each,
+and each site's uplinks as sub-entries (Uplinks below), and
+nothing else. The hosts at a site are found through
 their `Site:` lines, and its ranges through their site field; a
 host list here would be a second copy that drifts.
 
@@ -104,8 +114,16 @@ negative one.
   link-layer address a later fold needs for Range identity (a); or
   `MAC not known`. From the appliance, or from the hosts' default
   routes whose next hop is inside the prefix, with the MAC from
-  Reading B's neighbour read. With several gateways, each with its
-  host count and MAC. Otherwise `no gateway seen`. A gateway that
+  Reading B's neighbour read. An IPv6 default route's usual next
+  hop is link-local (`fe80::…`), never inside the prefix: it is the
+  gateway of the IPv6 range on the device the route leaves
+  through, and is recorded with that device, since a link-local
+  address means nothing without one:
+  `gateway fe80::1 (link-local, eth0 on web1), MAC …`, with the
+  holder in front where memory knows it,
+  `gateway fe80::1 (fw1; link-local, eth0 on web1)`. With several
+  gateways, each with its host count and MAC. Otherwise
+  `no gateway seen`. A gateway that
   moves between hosts (Dynamic routing below) carries
   `(VRRP — moves between hosts)` after its MAC, which stays the
   VRRP group's virtual one regardless of which host holds it.
@@ -147,7 +165,11 @@ Two observations of the same prefix are one line only when:
 - (b) the hosts are at the same site, confirmed by the user;
 - (c) the user says the two are one network.
 
-Otherwise they stay separate lines, each marked
+A link-local gateway counts for (a) by its address and MAC alone:
+the device beside it is each host's own name for the link.
+
+Observations that meet none of the three stay separate lines, each
+marked
 `same prefix as the line from <host>, not shown to be one
 network`. A wrong split costs a question; a wrong merge pulls a
 host at one site into the site, and the blast radius, of a router
@@ -257,8 +279,9 @@ copied value goes stale when the guest migrates.
 
 ### The question
 
-- **When:** at a host's first full network profile with a person
-  present — onboarding, or a full profile of a host that has no
+- **When:** at a host's first full network profile, or an
+  appliance's first configuration read, with a person present —
+  onboarding, or a full profile or read of a host that has no
   `Site:` line yet.
 - **What it offers,** never more than the three-option picker of
   `rules/ssh-user.md` → Interview format allows, and never more
@@ -286,6 +309,92 @@ copied value goes stale when the guest migrates.
   - for a `Role: workstation` host;
   - for a guest;
   - on a plain connection.
+
+## Uplinks
+
+How a site reaches the internet, found out once and kept, so that a
+later conclusion reads it here instead of probing again. Each uplink
+is a sub-entry of its site's `## Sites` line: `uplink <router>
+<interface>` for a router's WAN interface, one each where a site
+has several (fibre and LTE, say), or `uplink` where only hosts were
+seen. Its fields, in this order, each with a value for "not known":
+
+- **stack:** `dual-stack` · `IPv4 only` · `IPv6 only` ·
+  `IPv6 with DS-Lite` (IPv4 through the provider's AFTR) ·
+  `not known`. Hosts give a family only by working egress in it
+  (`rules/network.md` → Stack): one host with IPv6 egress proves
+  the site has IPv6, and a host without it proves nothing about the
+  line, so hosts alone never give `IPv4 only`, only `IPv4, IPv6
+  not known`.
+- **IPv4:** `public <address>` on the router's WAN ·
+  `public on <host>, no NAT`, naming each host seen with a public
+  address on its own interface, which says nothing about the
+  site's other hosts · `<address> on the WAN`, where it
+  is private or in `100.64.0.0/10` · `DS-Lite` · `not known`.
+- **IPv4 lifetime:** `IPv4 dynamic (changed <date>)` ·
+  `IPv4 static (user)` · `IPv4 dynamic (user)` ·
+  `IPv4 not known`. An address can be seen changing, never seen
+  staying put, and a DHCP or PPPoE WAN can carry a fixed address:
+  `static` comes from the user alone.
+- **IPv6 prefix:** `IPv6 /<n> delegated`, with its lifetime as for
+  IPv4 — some providers rotate prefixes — or
+  `IPv6 prefix not known`.
+- **sources:** `<router> config` or the hosts, and the newest date.
+
+**What an address range proves: nothing, on its own**
+(`rules/network.md` → Stack, for the ranges easy to misread;
+networks also use `100.64.0.0/10` as private space). A private
+address on the WAN means another NAT upstream, a device of the
+user's, such as an ISP router in front of their own firewall, or
+the provider's; which, the address does not say. So it is recorded
+as observed. Whose NAT it is — `provider CGNAT`, or a router of the
+user's, `double NAT` — comes only from the user,
+`provider CGNAT (user)`. An echo the user allowed that shows another
+public address proves a NAT upstream and not whose:
+`another NAT upstream (echo <date>)`. Only an interface with the
+WAN role counts, as the router's appliance file names it; an
+overlay interface never does.
+
+### Where the facts come from
+
+In this order. A later source fills only what an earlier one left
+not known; the user's word stands until the user changes it.
+
+1. **The site's router, where it is in memory:** its WAN interfaces
+   from its configuration read. A WAN address or delegated prefix
+   other than the one recorded writes `dynamic (changed <date>)`.
+2. **The hosts at the site:** their profiles' stack and egress
+   lines (`rules/network.md`), and a public IPv4 address on a
+   host's own interface, which gives `public on <host>, no NAT`
+   for that host alone.
+3. **The path hint** (`rules/network-probe.md` → Path hint), only
+   where no router of the site is in memory: what it saw goes into
+   the question below, never into the entry.
+4. **The user**, asked once per site (below).
+5. **An echo of the public address**, only where the user allows it
+   for that site and names the service: it shows whether another
+   NAT sits upstream of a WAN address that is private, never whose
+   it is. It runs from a host at the site whose route there
+   does not leave through an overlay, as the path hint checks.
+
+### The uplink question
+
+- **When:** in onboarding's step 6 (`hostwarden-onboard`),
+  together with `Site:`, at the first onboarding at a site with a
+  person present — where the site's entry has no field from the
+  user yet — and never where The question above is never asked: a
+  run with nobody at the keyboard records what sources 1 and 2
+  show.
+- **What:** what sources 1 to 3 found, then whether the IPv4
+  address is static or dynamic, whose NAT sits upstream — none, a
+  router of the user's, or the provider's — and, where the site has
+  IPv6, whether its prefix is static. `AskUserQuestion`, or the
+  interview format of `rules/ssh-user.md`. "Don't know" records
+  `not known (user)`, which counts as asked.
+
+`rules/firewall-changes.md` reads the entries before an inbound
+exposure, and `rules/network.md` → Findings for a host that sends
+mail directly.
 
 ## Edges
 
@@ -315,7 +424,10 @@ next hop or tunnel interface, tag, reporting host and date.
     instead of its individual routes;
   - a route over a mesh VPN interface, only where it is a subnet
     route; per-peer routes do not, and the network's entry in
-    `memory/network.md` holds the rest;
+    `memory/network.md` holds the rest. An edge through a Tailscale
+    subnet router carries the router's `SNAT on`, `SNAT off` or
+    `SNAT not known` from its Mesh VPN line (`rules/mesh-vpn.md` →
+    Per agent);
   - a `proto dhcp` or `proto ra` route, recorded as `(from DHCP)`
     or `(from RA)`: DHCP option 121 pushes such static routes.
 - **Default routes are not edges.** They fill the gateway field of
@@ -392,14 +504,52 @@ probe and the profile itself, in one edit of `memory/topology.md`:
 5. **Dynamic routing.** Write or remove the `Dynamic routing:`
    line from the process check, and mark the edges and gateways
    Dynamic routing says.
-6. **Findings.** Rewrite `## Topology findings` from the lines as
+6. **Uplink.** Where the host has a confirmed `Site:` (a guest:
+   its host's), update the site's uplink entry from Uplinks →
+   Where the facts come from, source 2.
+7. **Findings.** Rewrite `## Topology findings` from the lines as
    they now stand: a finding whose cause is gone goes with it.
-7. **Sources and date** on every line the host fed: the host's
+8. **Sources and date** on every line the host fed: the host's
    name, and today's date where it is the newest.
 
 The host's old contributions are replaced, not appended: a range
 or edge the profile no longer shows loses this host as a source
 (Pruning below).
+
+## Folding a configuration read
+
+After an appliance's configuration read (its file's
+`## Network configuration read`), in one edit of
+`memory/topology.md`, with `<appliance> config` as the source:
+
+1. **Ranges.** Each interface or network that the read shows
+   enabled, is not a WAN and has an address gives one range, at the
+   appliance's `Site:`:
+   - VLAN `VLAN <tag>` where it sits on a VLAN, `untagged`
+     otherwise;
+   - IPv4 addressing from the scope of the DHCP server that runs,
+     `DHCP <start>–<end>`, or `static only (DHCP off)` where that
+     server has no enabled scope there or none runs; where the read
+     could not tell which server runs, `DHCP not known`;
+   - the scope's domain name as `suffix <domain> (DHCP option)`;
+   - the appliance's own address on it as the gateway, with the
+     interface's MAC where the read gives one.
+
+   A UniFi console's other UniFi sites are places of their own:
+   their ranges stay `site not known` until the user names each,
+   and The question offers the UniFi site's name.
+2. **Identity,** as Folding a profile step 3: the appliance's line
+   and the hosts' lines of one range merge under (a), gateway
+   address and MAC.
+3. **Edges.** Each enabled static route, from the range of the
+   interface its gateway lies on, tagged `LAN hop`, or `WAN` where
+   that interface is a WAN or a tunnel.
+4. **Uplinks.** Each WAN interface updates its uplink entry at the
+   appliance's site, source 1 of Uplinks.
+5. **Findings, sources and date,** as Folding a profile steps 7
+   and 8.
+
+The appliance's old contributions are replaced as a host's are.
 
 ## Pruning and staleness
 
@@ -408,7 +558,9 @@ or edge the profile no longer shows loses this host as a source
   memory directory going away, which takes the host off every line
   in the same edit, as `## Management controllers` does with its
   rows. A site with no host and no range left stays: it is the
-  user's word.
+  user's word. So does an uplink field the user gave; a field whose
+  source is gone goes back to `not known`, and an uplink entry with
+  no source and no field from the user left is deleted.
 - **A host's `Site:` changes:** the site field of every line it
   feeds is rewritten in the same edit, and, for a line of the same
   prefix that stayed separate only for having no confirmed site to

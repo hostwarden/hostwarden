@@ -189,6 +189,21 @@ what would cut the host off. Every probe is
 read-only. The full profile runs when you ask, on
 onboarding, and when a failure points at the network.
 
+Onboarding an OPNsense or pfSense firewall or a UniFi
+OS console, and every housekeeping run on it, read its
+interfaces, VLANs, DHCP scopes, static routes and
+WAN interfaces over the SSH login it already has,
+printing only allow-listed fields and no free text; no
+API account is needed, except on a UniFi console whose
+SSH is off, which is read with its View Only user
+instead. Each site then records its
+uplinks: the stack, the IPv4 address situation, static
+or dynamic, and the delegated IPv6 prefix. Onboarding
+asks once per site whether the address is static and
+whose NAT sits upstream: CGNAT is recorded only on your
+word. A host whose gateway is not in Hostwarden gets
+an offer to onboard it.
+
 ### Out-of-band access
 
 Each host records a `Management:` line: the BMC,

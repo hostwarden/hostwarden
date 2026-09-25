@@ -196,6 +196,208 @@ documentation, <https://docs.opnsense.org/>, and the
   or `resolv.conf`, and never restart `netif` or `routing` by hand.
 - `ifconfig` and `netstat -rn` are fine for reading.
 
+## Network configuration read
+
+What the firewall knows about the networks behind it — interfaces,
+VLANs, static routes, DHCP scopes and its WAN interfaces — read
+from `/conf/config.xml` over the SSH login Hostwarden already has,
+and folded into `memory/topology.md`
+(`rules/network-topology.md` → Folding a configuration read). No
+API key is set up for it: OPNsense grants API privileges per page,
+not per method, and has no read-only scope to offer
+(`docs/adr/20260925-appliances-read-over-ssh-allow-list.md`).
+
+**An allow-list, never a section printed whole.** `config.xml`
+holds secrets inside the very elements this read needs: a wireless
+interface's passphrase sits under `<interfaces>`, a DDNS key under
+the DHCP settings. So the read loads the configuration with the
+product's own loader and prints only the keys below, as
+`key=value` lines, and no free text: a value that is not an
+address, a number, an identifier or a domain name prints as
+`withheld`, and a key it does not find as `not read`, never
+empty. Nothing else from `config.xml` reaches
+the conversation (`rules/secrets.md`).
+
+One `sh -s` bundle, since root's csh would run a command line
+(Access and Shell), as root or through the privilege prefix
+(`rules/privilege-escalation.md` → Stand-ins for sudo); without one
+the read is not run:
+
+```bash
+<privilege prefix>
+[ "$SUDO" = - ] && { echo "config=unknown(needs-root)"; exit 0; }
+$SUDO php <<'PHP'
+<?php
+require_once("config.inc");
+// Allow-listed keys only, and no free text: a value that is not
+// an address, a number, an identifier (ID) or a domain name (DN)
+// is withheld.
+const V = '#^[A-Za-z0-9 ._:/,-]{1,64}$#';
+const ID = '#^[A-Za-z0-9_.-]{1,32}$#';
+const DN = '#^[A-Za-z0-9-]{1,63}([.][A-Za-z0-9-]{1,63})*$#';
+function v($x, $r = V) {
+  // A value the model stores as a list, Kea's pools say: its leaves.
+  if (is_array($x)) {
+    $l = [];
+    array_walk_recursive($x, function ($e) use (&$l) { $l[] = $e; });
+    $x = implode(',', $l);
+  }
+  if (!is_string($x) && !is_int($x)) return 'not read';
+  $x = trim(str_replace("\n", ',', (string)$x));
+  if ($x === '') return 'not read';
+  return preg_match($r, $x) ? $x : 'withheld';
+}
+function p($k, $x, $r = V) { echo $k, '=', v($x, $r), "\n"; }
+function items($a) {
+  if (!is_array($a)) return [];
+  foreach ($a as $k => $e) if (!is_int($k) && !is_array($e)) return [$a];
+  return array_values($a);
+}
+$c = $GLOBALS['config'] ?? [];
+$gw = [];
+foreach (items($c['gateways']['gateway_item'] ?? null) as $g) {
+  $n = v($g['name'] ?? null, ID); $gw[$n] = $g['gateway'] ?? null;
+  p("gateway.$n.address", $g['gateway'] ?? null);
+  p("gateway.$n.interface", $g['interface'] ?? null);
+}
+$f = ['if' => 'device', 'ipaddr' => 'ipv4',
+  'subnet' => 'ipv4-prefix', 'ipaddrv6' => 'ipv6',
+  'subnetv6' => 'ipv6-prefix', 'gateway' => 'gateway',
+  'gatewayv6' => 'gateway6', 'dhcp6-ia-pd-len' => 'pd-len',
+  'track6-interface' => 'track6'];
+foreach ((array)($c['interfaces'] ?? []) as $n => $i) {
+  if (!is_array($i) || !isset($i['enable'])) continue;
+  $n = v($n, ID);
+  foreach ($f as $k => $o) p("if.$n.$o", $i[$k] ?? null);
+}
+foreach (items($c['vlans']['vlan'] ?? null) as $l) {
+  $n = v($l['vlanif'] ?? null, ID);
+  p("vlan.$n.tag", $l['tag'] ?? null);
+  p("vlan.$n.parent", $l['if'] ?? null);
+}
+foreach (items($c['staticroutes']['route'] ?? null) as $k => $r) {
+  if (isset($r['disabled'])) continue;
+  $g = v($r['gateway'] ?? null, ID);
+  p("route.$k.network", $r['network'] ?? null);
+  p("route.$k.gateway", $g);
+  p("route.$k.via", $gw[$g] ?? null);
+}
+// Which DHCP server runs, from OPNsense's pluginctl or pfSense's
+// service list: a server switched off keeps its settings.
+$run = []; $known = false; $pf = false;
+if (is_executable('/usr/local/sbin/pluginctl')) {
+  $known = true;
+  $l = json_decode((string)shell_exec('pluginctl -S'), true);
+  foreach ((array)$l as $k => $s) {
+    $s = is_array($s) ? $s : [];
+    $n = (string)($s['name'] ?? $k);
+    $i = (string)($s['id'] ?? '');
+    // Kea's four services share one name; `id` tells DHCPv4 apart.
+    if (preg_match('/^dhcpd$/i', $n)) $b = 'isc';
+    elseif (preg_match('/dnsmasq/i', $n)) $b = 'dnsmasq';
+    elseif (preg_match('/kea/i', $n)) $b = $i === 'v4' ? 'kea' : '';
+    else continue;
+    $t = $s['status'] ?? null;
+    $on = is_string($t) ? stripos($t, 'is running') !== false : !empty($t);
+    p('service.' . v($n, ID) . ($i === '' ? '' : '.' . v($i, ID)),
+      $on ? 'running' : 'stopped');
+    if ($on && $b !== '') $run[$b] = true;
+  }
+} elseif ((@include_once 'service-utils.inc') !== false) {
+  $known = $pf = true;
+  foreach (get_services() as $s) {
+    $n = (string)($s['name'] ?? '');
+    if (!preg_match('/dhcp|kea/i', $n) || preg_match('/6|relay/i', $n))
+      continue;
+    $on = (bool)get_service_status($s);
+    p('service.' . v($n), $on ? 'running' : 'stopped');
+    if ($on) $run[$c['dhcpbackend'] ?? 'isc'] = true;
+  }
+}
+p('dhcp.backend', $c['dhcpbackend'] ?? null);
+p('dhcp.running', $known ? ($run ? implode(',', array_keys($run))
+  : 'none') : null);
+if ($pf ? $run : ($run['isc'] ?? false)) {
+  foreach ((array)($c['dhcpd'] ?? []) as $n => $d) {
+    if (!is_array($d) || !isset($d['enable'])) continue;
+    $n = v($n, ID);
+    p("dhcpd.$n.from", $d['range']['from'] ?? null);
+    p("dhcpd.$n.to", $d['range']['to'] ?? null);
+    p("dhcpd.$n.domain", $d['domain'] ?? null, DN);
+  }
+}
+if ($run['dnsmasq'] ?? false) {
+  foreach (items($c['dnsmasq']['dhcp_ranges'] ?? null) as $k => $r) {
+    p("dnsmasq.$k.interface", $r['interface'] ?? null);
+    p("dnsmasq.$k.from", $r['start_addr'] ?? null);
+    p("dnsmasq.$k.to", $r['end_addr'] ?? null);
+    p("dnsmasq.$k.domain", $r['domain'] ?? null, DN);
+  }
+}
+if (!$pf && ($run['kea'] ?? false)) {
+  $e = $c['OPNsense']['Kea']['dhcp4'] ?? [];
+  foreach (items($e['subnets']['subnet4'] ?? null) as $k => $s) {
+    p("kea.$k.subnet", $s['subnet'] ?? null);
+    p("kea.$k.pools", $s['pools'] ?? null);
+    p("kea.$k.domain", $s['option_data']['domain_name'] ?? null, DN);
+  }
+}
+PHP
+ifconfig -a | grep -E '^[a-z]|inet6? |ether |vlan: '
+```
+
+`config.inc` is the loader the product's own scripts use, and
+`$config` the configuration it loads. pfSense's file uses the same
+program (`rules/appliance/pfsense.md` → Network configuration
+read), so it knows both products: `pluginctl` is OPNsense's, and
+on OPNsense `dhcp.backend` is `not read`.
+
+- **Per interface** (`if.<name>.*`): `<name>` is OPNsense's
+  internal name (`wan`, `lan`, `opt1`), `device` the FreeBSD
+  interface. Its description, the name the web UI shows, is free
+  text and is not read, like every other description. `ipv4` is
+  an address with
+  `ipv4-prefix`, or the method: `dhcp`, `pppoe`, `pptp` or `l2tp`.
+  `ipv6` likewise: an address, or `dhcp6`, `slaac`, `6rd`, `6to4`,
+  or `track6`, a LAN that takes its prefix from the WAN `track6`
+  names. `pd-len` is the size of the prefix a WAN asks for, as its
+  distance from `/64`: `8` is a `/56`, `16` a `/48`. The program
+  leaves out a disabled interface, static route or `dhcpd` scope.
+- **What counts as WAN:** the interface named `wan`, one with a
+  `gateway` or `gateway6` of its own (an upstream gateway,
+  multi-WAN), and one whose `ipv4` is `dhcp`, `pppoe`, `pptp` or
+  `l2tp`. A WAN's live address comes from the `ifconfig` lines of
+  its device, since a dynamic method leaves none in the
+  configuration; a PPPoE WAN's device is its `pppoe<n>`. A WAN
+  whose IPv4 runs through a `gif` tunnel to the provider is
+  DS-Lite only where the user says so.
+- **VLANs** (`vlan.<device>.*`): the tag and the parent. A VLAN's
+  own description is free text and is not read.
+- **Static routes** (`route.<n>.*`): the network, the gateway's
+  name and `via` its address from the gateway list.
+- **DHCP:** OPNsense runs one of three servers, ISC (`dhcpd.*`,
+  a plugin since 26.1), dnsmasq (`dnsmasq.*`, the default since
+  25.7) or Kea (`kea.*`, the default for new installs since 26.1).
+  The `service.*` lines, from `pluginctl -S`, say which runs, and
+  `dhcp.running` names them: the program prints the scopes of a
+  running server alone, since a server switched off keeps its
+  settings in `config.xml`. `dhcp.running=none` means every range
+  reads `static only (DHCP off)`; `not read` means the program
+  could not tell, and every range stays `DHCP not known`. A scope
+  gives its range, or Kea's pools, and its domain name; a running
+  server with no scope on an interface leaves that range
+  `static only (DHCP off)`. dnsmasq also runs as a DNS forwarder
+  alone, which then prints no scope.
+- **The `ifconfig` lines** give each device's MAC (`ether`),
+  which `rules/network-topology.md` → Range identity compares, and
+  its live addresses.
+- **Never read here:** firewall and NAT rules, which are the
+  security audit's; DHCP leases; the rest of the configuration.
+
+Where a line prints `not read` on a firewall whose web UI shows
+the setting, the element is elsewhere on this release: report it
+as not read, never guess another name.
+
 ## Replace: Accounts
 
 - Users, groups, passwords and SSH keys are managed under
@@ -286,6 +488,8 @@ documentation, <https://docs.opnsense.org/>, and the
   reload.
 - Report settings OPNsense generates as web UI changes, not file
   edits.
+- Onboarding and every housekeeping run, a scheduled one included,
+  run the Network configuration read and fold it.
 
 **Housekeeping** runs the FreeBSD baseline with these changes:
 

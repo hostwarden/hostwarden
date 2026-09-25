@@ -117,14 +117,18 @@ checkout) and stop.
      → Registries says. Which registries to trust joins step 6.
    - `memory/topology.md` and `Dynamic routing:` — where step 3
      wrote a full network profile, `rules/network-topology.md` →
-     Folding a profile.
+     Folding a profile. On an appliance whose file has a
+     `## Network configuration read`, that read, folded as
+     `rules/network-topology.md` → Folding a configuration read.
 
 6. **Close the host.** Any other question whose answers only get
    recorded — stopped guests, the questions step 5 hands on, the
    host's `Site:` (`rules/network-topology.md` → The question,
    whose answer rewrites the site field of the ranges step 5
    already folded, in the same edit, as → Pruning and staleness
-   requires), the ones its references ask once (a UPS and what it
+   requires) and, at the first onboarding at that site, its uplink
+   (`rules/network-topology.md` → The uplink question), the ones
+   its references ask once (a UPS and what it
    powers, a serial adapter's far end, a reserved device no guest
    claims), anything else the pipeline's rules offer to record — is
    asked once the measurement has run, in the order its rules give,
@@ -150,6 +154,8 @@ checkout) and stop.
      140 days old:
      OS: Debian 12 in memory, Debian 13 now
      baseline: complete; Management: not settled (needs root)
+     gateway 192.0.2.1 is not in Hostwarden — onboarding it
+     (read-only, SSH) gives the full picture of ranges and VLANs
    db1.example.com — not onboarded: SSH timeout
    Written: memory.md and a read-only journal line for each onboarded
      host, network.md for pve1 and web1, guests.md for pve1, the
@@ -165,6 +171,10 @@ checkout) and stop.
      Onboarded and stale lines).
    - The line on registered guests stands where the run registered
      one that it did not reach through its own way in.
+   - The gateway line stands under a host whose range's gateway
+     field in `memory/topology.md` names no host, once per gateway
+     address in the run. It is an offer, never an assumption: an
+     address does not say what answers there.
    - The last line always stands.
 
    Then, where a host has gaps, ask which to take on first: one option

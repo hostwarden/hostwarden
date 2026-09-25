@@ -2,7 +2,8 @@
 
 The read-only probes behind `rules/network.md`, one call per
 family, and how to read what they print. Load this file only
-when that rule says to build or refresh a profile.
+when that rule says to build or refresh a profile, or when
+`rules/network-topology.md` → Uplinks asks for the path hint.
 
 Nothing needs root except the netplan grep, the hook scripts and
 the netfilter reads in section F. Where the probe says
@@ -858,6 +859,35 @@ profile's `## Traffic flow` section (`rules/network.md`):
   call; the profile records per family whether inbound
   traffic to the host is filtered at all.
 
+## Route filter
+
+The FreeBSD and macOS probes put this where they say
+`<route filter>`: `bf`, the `awk` program their route lines run
+through.
+
+```bash
+bf='NF >= 4 && $1 != "Destination" && $4 != "lo0" && $3 !~ /I/ \
+  && $1 !~ /^(fe80|ff[0-9a-f][0-9a-f]):/ \
+  && $1 !~ /^(169\.254|22[4-9]|23[0-9]|255\.255\.255\.255)([.\/]|$)/ {
+    if ($1 == "default") { print "default-" f " " $2 " " $3 " " $4; next }
+    if ($3 ~ /G/ || ($3 ~ /S/ && $3 !~ /H/ && $2 ~ /^link#/ \
+      && $1 !~ /\/(32|128)$/)) l[++c] = $0 }
+  END { if (c <= 50) for (i = 1; i <= c; i++) print "route-" f " " l[i]
+        print "routes-" f "=" c + 0 }'
+```
+
+- **Kept:** every default route, as one `default-<family>` line with
+  its gateway, flags and device; the routes through a gateway (flag
+  `G`), static host routes included; and the static routes set on
+  an interface (`S` with a `link#` gateway, not a host), such as
+  the routes a tunnel's peers get. `route-<family>` lines, and a
+  count line that stands alone over 50, as on Linux.
+- **Left out:** `lo0`; interface-scoped copies (flag `I`), which
+  macOS lists for many interfaces, often ahead of the real
+  default; the link-local, multicast and broadcast scope routes
+  every interface carries; and connected routes and host entries.
+  On a router nearly every entry is one of these.
+
 ## Probe — FreeBSD
 
 ```bash
@@ -865,20 +895,16 @@ sysrc -a | grep -E \
   -e '^(ifconfig_|ipv6_|defaultrouter|rtsold|gateway_enable)' \
   -e '^(resolv|local_unbound|dhclient|cloudinit|nuageinit)'
 ifconfig -a | grep -E '^[a-z]|inet6? |ether |vlan: |nd6 options|status:'
-# The routing tables without host entries (flag H), connected ones
-# (gateway link#) and lo0, with a count, over 50 the count alone;
-# then the default gateway's link-layer address.
+<route filter>
+# Each default gateway's neighbour entry, per gateway and device.
 for f in inet inet6; do
-  o=$(netstat -rn -f $f | awk -v f="$f" 'NF >= 4 && $1 != "Destination" \
-    && $3 !~ /H/ && $2 !~ /^link#/ && $4 != "lo0" {
-      if ($1 == "default") { print "default-" f " " $2; next }
-      l[++c] = $0 }
-    END { if (c <= 50) for (i = 1; i <= c; i++) print "route-" f " " l[i]
-          print "routes-" f "=" c + 0 }')
+  o=$(netstat -rn -f $f | awk -v f="$f" "$bf")
   printf '%s\n' "$o"
-  g=$(printf '%s\n' "$o" | sed -n "s/^default-$f //p" | head -1)
-  [ -n "$g" ] || continue
-  case $f in inet) arp -n "$g" ;; *) ndp -n "$g" ;; esac
+  printf '%s\n' "$o" | awk '/^default-/ && $2 !~ /^link#/ { print $2, $4 }' \
+    | sort -u | while read -r g d; do
+    echo "== gw-$f $g $d"
+    case $f in inet) arp -n "$g" 2>&1 ;; *) ndp -n "$g" 2>&1 ;; esac
+  done
 done
 sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding \
   net.inet6.ip6.accept_rtadv
@@ -895,7 +921,10 @@ grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
   /usr/local/etc/avahi/avahi-daemon.conf
 ```
 
-- `rc.conf` is the source of truth.
+- `rc.conf` is the source of truth, except on an appliance whose
+  file replaces Networking (OPNsense, pfSense, TrueNAS CORE):
+  `sysrc -a` prints nothing of the network there, and that file
+  names the source.
   `ifconfig_<if>="DHCP"` (or `SYNCDHCP`) is DHCP;
   `ifconfig_<if>_ipv6="inet6 accept_rtadv"` together
   with `rtsold_enable="YES"` is SLAAC.
@@ -905,14 +934,19 @@ grep -sE '^[[:space:]]*(disable-publishing|publish-addresses)[[:space:]]*=' \
   interface: <if>` a tagged interface's tag and parent. Both
   serve `rules/network-topology.md`: an appliance built on
   FreeBSD gives its own interface MACs here for Range identity.
-- The `route-inet` and `route-inet6` lines are the tables without
-  host entries, connected routes and `lo0`, with the count line as
-  on Linux, and `default-inet`/`default-inet6` the default gateway.
-  `arp -n` and `ndp -n` give its link-layer address: `at <mac>` and
-  the `Linklayer Address` column are a known MAC, `-- no entry` or
-  `(incomplete)` is not known. The routing-daemon lines read as on
-  Linux; where `see_other_uids` is `0` and the probe ran without
-  root, an empty list is `unchecked`, as for mDNS below.
+- The `default-`, `route-` and count lines read as Route filter
+  says. Each default gateway's neighbour entry follows under
+  `== gw-<family> <gateway> <device>`; a default whose gateway is
+  `link#<n>` goes out an interface with no next hop, and has no
+  neighbour entry and no MAC.
+- `arp -n` and `ndp -n` give each gateway's link-layer address:
+  `at <mac>` and the `Linklayer Address` column are a known MAC;
+  `-- no entry`, `(incomplete)`, or a header with no row under it
+  is not known. `ndp -n` writes `-- no entry` to stderr, which the
+  probe joins to stdout.
+  The routing-daemon lines read as on Linux; where
+  `see_other_uids` is `0` and the probe ran without root, an empty
+  list is `unchecked`, as for mDNS below.
 - With `ip6.forwarding=1` FreeBSD ignores RAs by
   default. Check `sysctl -d net.inet6.ip6.rfc6204w3`
   on the host before relying on that knob.
@@ -939,29 +973,28 @@ route -n get default 2>/dev/null \
   | grep -E 'gateway|interface'
 route -n get -inet6 default 2>/dev/null \
   | grep -E 'gateway|interface'
-# The routing tables and the gateway's link-layer address, as on
-# FreeBSD.
+<route filter>
 for f in inet inet6; do
-  o=$(netstat -rn -f $f | awk -v f="$f" 'NF >= 4 && $1 != "Destination" \
-    && $3 !~ /H/ && $2 !~ /^link#/ && $4 != "lo0" {
-      if ($1 == "default") { print "default-" f " " $2; next }
-      l[++c] = $0 }
-    END { if (c <= 50) for (i = 1; i <= c; i++) print "route-" f " " l[i]
-          print "routes-" f "=" c + 0 }')
+  o=$(netstat -rn -f $f | awk -v f="$f" "$bf")
   printf '%s\n' "$o"
-  g=$(printf '%s\n' "$o" | sed -n "s/^default-$f //p" | head -1)
-  [ -n "$g" ] || continue
-  case $f in
-    inet) arp -n "$g" ;;
-    # macOS ndp has no single-host query: -an dumps every entry.
-    *) ndp -an | awk -v g="${g%%%*}" '$1 ~ "^" g "(%|$)"' ;;
-  esac
+  printf '%s\n' "$o" | awk '/^default-/ && $2 !~ /^link#/ { print $2, $4 }' \
+    | sort -u | while read -r g d; do
+    echo "== gw-$f $g $d"
+    case $f in
+      inet) arp -n "$g" 2>&1 ;;
+      # macOS ndp has no single-host query: -an dumps every entry.
+      *) ndp -an | awk -v g="${g%%%*}" -v d="$d" \
+           '$1 ~ "^" g "(%|$)" && $3 == d' ;;
+    esac
+  done
 done
 scutil --dns | grep -E '^resolver|nameserver|search domain|if_index' \
   | head -40
 sysctl net.inet.ip.forwarding net.inet6.ip6.forwarding
 r='watchfrr|zebra|bgpd|ospf6?d|isisd|ripd|ripngd|babeld|bird6?|keepalived|vrrpd'
-ps -Ao comm= 2>/dev/null | sed 's|.*/||' | sort -u | grep -xE "$r"
+ps -Ao comm= 2>/dev/null \
+  | grep -vE '^/(System|usr/(bin|sbin|libexec)|bin|sbin)/|[.](app|framework)/' \
+  | sed 's|.*/||' | sort -u | grep -xE "$r"
 scutil --get LocalHostName
 scutil --get ComputerName
 defaults read /Library/Preferences/com.apple.mDNSResponder \
@@ -981,12 +1014,20 @@ Automatic, Manual or Off for IPv6.
   per-domain resolvers set by VPN clients.
 - `ether`, `vlan:`, the route, default and count lines and the
   routing-daemon lines read as on FreeBSD; macOS shows every
-  user's processes. `arp -n` reads the same. macOS `ndp` has no
+  user's processes. A connected route carries `S` here, as
+  in `192.168.1 link#12 UCS en0`: a `link#` route whose prefix
+  `ifconfig` gives an address in, on that device, is connected and
+  no edge. `arp -n` reads the same. macOS `ndp` has no
   `ndp -n <address>` query, unlike FreeBSD's: `ndp -an` lists
   every neighbour, matched here to the gateway's address with its
-  `%<zone>` suffix stripped for the match. A matching line's
-  second column is the link-layer address, `(incomplete)` where
-  none is known; any other line is no entry.
+  `%<zone>` suffix stripped and to the default's device. A
+  matching line's second column is the link-layer address,
+  `(incomplete)` where none is known; no line is no entry.
+- `comm` is the full path of each process on macOS, so the
+  routing-daemon check first leaves out what Apple ships — the
+  system directories and anything inside an app or framework
+  bundle — and then matches the program's name: Apple ships no
+  routing daemon, and its iCloud Drive daemon is called `bird`.
 - mDNSResponder always runs and answers for
   `<LocalHostName>.local`: record
   `mDNS responder: mDNSResponder (<name>.local)`.
@@ -1048,8 +1089,57 @@ Reading the result:
   on such a host.
 
 Finding out the public address behind NAT needs an
-external echo service. Do that only when the user
-asks.
+external echo service. Do that only as
+`rules/network-topology.md` → Uplinks allows it.
+
+## Path hint
+
+At most three hops towards the IPv4 egress target, run only when
+`rules/network-topology.md` → Uplinks asks for it. It installs
+nothing: with no tool below on the host, there is no hint. `h` is
+the host of the target the egress test used, without its scheme or
+port, and `o` the overlay pattern of `rules/mesh-vpn.md` → Probe
+(no root).
+
+Linux:
+
+```bash
+h=<target host>
+o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
+a=$(getent ahostsv4 "$h" | awk 'NR == 1 { print $1 }')
+i=$(ip -4 route get "$a" 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+echo "via=$i"
+if [ -z "$i" ] || printf '%s\n' "$i" | grep -qxE "$o"; then
+  echo "path=skipped"
+elif command -v tracepath >/dev/null 2>&1; then tracepath -4 -n -m 3 "$a"
+elif command -v traceroute >/dev/null 2>&1; then
+  traceroute -4 -n -m 3 -q 1 -w 2 "$a"
+else echo "path=no-tool"; fi
+```
+
+FreeBSD and macOS, whose `traceroute` is IPv4 only and takes no
+`-4`:
+
+```bash
+h=<target host>
+o='(wg|tailscale|ts|zt|nebula|netmaker|wt|utun|tun)[0-9a-z.-]*'
+i=$(route -n get "$h" 2>/dev/null | awk '/interface:/ { print $2 }')
+echo "via=$i"
+if [ -z "$i" ] || printf '%s\n' "$i" | grep -qxE "$o"; then
+  echo "path=skipped"
+else traceroute -n -m 3 -q 1 -w 2 "$h" 2>&1; fi
+```
+
+- `path=skipped`: the route to the target leaves through an
+  overlay, such as an exit node, or there is none. That path
+  measures someone else's uplink, so there is no hint.
+- A hop that is private (`10.0.0.0/8`, `172.16.0.0/12`,
+  `192.168.0.0/16`) or in `100.64.0.0/10`, after the first, is a
+  hint that another NAT sits upstream — a router of the user's in
+  front of their own, or the provider's CGNAT — and no more:
+  providers number their own routers from those ranges too.
+- `*` for a hop, BusyBox's `traceroute` refusing to run without
+  root, and `path=no-tool` are no hint, never a finding.
 
 ## Public DNS view
 

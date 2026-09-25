@@ -35,6 +35,19 @@ already, so it is not repeated here.
    to named addresses? Reachable from the internet, or only
    from the internal network? This is the user's decision,
    and it is not implied by "install nginx".
+
+   Before offering reach from the internet, read the uplink
+   of the host's site (`rules/network-topology.md` →
+   Uplinks); `public on <host>` speaks for the hosts it
+   names alone. Behind CGNAT or DS-Lite, say first that an IPv4
+   port forward cannot work; with a WAN address that is
+   private or in `100.64.0.0/10`, or another NAT upstream
+   an echo showed, and no word on whose NAT
+   sits upstream, say that one works only where every NAT
+   upstream forwards too. Then name the ways that work
+   without choosing one: IPv6, a tunnel (a mesh VPN,
+   Cloudflare Tunnel), or a relay with a public address.
+   Where the uplink is `not known`, say so.
 4. **Recommend a safe default and say why.** Narrowest rule
    that makes the service work: a specific source range
    over `any`, a single port over a range, the service name

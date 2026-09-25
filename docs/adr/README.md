@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Router configuration is read over SSH through an allow-list](20260925-appliances-read-over-ssh-allow-list.md) | network, appliances, secrets | — |
 | [`wsl.exe -u root` is treated like passwordless sudo](20260924-wsl-root-is-passwordless-sudo.md) | platforms, windows, privilege-escalation | — |
 | [Windows Server as the only target, WSL as the workstation](20260924-windows-server-only.md) | platforms, windows | — |
 | [Default update channel follows the current major line](20260924-update-channel-follows-major-line.md) | release | — |

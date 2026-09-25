@@ -80,7 +80,7 @@ if [ -n "$ts" ]; then
     | grep -e '"BackendState"' -e '"Online"' -e '"KeyExpiry"' \
       -e '"Expired"'
   "$ts" debug prefs 2>&1 | sed -n '/"ControlURL"/p; /"RunSSH"/p;
-    /"AdvertiseRoutes": null/p; /"AdvertiseRoutes": \[\]/p;
+    /"NoSNAT"/p; /"AdvertiseRoutes": null/p; /"AdvertiseRoutes": \[\]/p;
     /"AdvertiseRoutes": \[$/,/]/p'
 fi
 if command -v netbird >/dev/null 2>&1; then
@@ -138,7 +138,16 @@ name it, and tell the user when it falls within 7 days.
   `login.tailscale.com` is self-hosted, usually Headscale; ask
   the user rather than guess. An `AdvertiseRoutes` list makes the
   host a subnet router, with `0.0.0.0/0` and `::/0` an exit node.
-  Its SSH server is on with `"RunSSH": true`.
+  A subnet router rewrites the source address of what it forwards
+  into those routes (SNAT, Tailscale's default) unless
+  `"NoSNAT": true`, a setting Tailscale documents for Linux alone:
+  with SNAT on,
+  the far site sees the router's own address, and its source-based
+  rules and allow-lists see the router, not the client. The pref's
+  name is the one the installed version prints; where the line is
+  missing, or the router is not Linux, SNAT is `not known`, never
+  on or off. Its SSH server is on with
+  `"RunSSH": true`.
 - **NetBird:** connected with `Management: Connected` and
   `Signal: Connected`; `Daemon status` `NeedsLogin`,
   `LoginFailed` or `SessionExpired` is not. Expiry:
@@ -376,15 +385,16 @@ Per host, a `## Mesh VPN` section in
 `memory/servers/<hostname>/network.md`, created with this section
 alone when the host has no profile yet. One line per agent, also
 when it is down, and for Tailscale, NetBird and Newt whether its
-SSH server is on or off, so a change shows. Newt's state comes
-from the security audit's probe; before one ran, it is
-`unchecked`:
+SSH server is on or off, so a change shows. A Tailscale subnet
+router's line also says `SNAT on`, `SNAT off` or `SNAT not known`
+after its routes (Per agent). Newt's state comes from the security
+audit's probe; before one ran, it is `unchecked`:
 
 ```markdown
 ## Mesh VPN
 - Tailscale 1.102.4, 100.101.102.103, connected, control
-  Headscale hs.example.com, no key expiry, routes 10.0.0.0/24;
-  SSH off
+  Headscale hs.example.com, no key expiry, routes 10.0.0.0/24,
+  SNAT off; SSH off
 - WireGuard wg0 10.8.0.5, hub vpn.example.com
 - NetBird 100.92.1.7, not connected (SessionExpired); SSH on
 ```
