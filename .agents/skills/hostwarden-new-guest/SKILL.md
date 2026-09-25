@@ -109,6 +109,28 @@ entry in `guests.md` has it, and from the host neither
 afterwards shows a MAC (`lladdr`); a `FAILED` or `INCOMPLETE`
 entry means nothing answered.
 
+The settled name must not already belong to another machine, as
+far as the same direct lookup can tell: resolve it directly, the
+same system-resolver lookup step 6 below uses (`rules/dns-aliases.md`
+→ Detection step 1) — the IPv4 addresses it collects, the limit
+every check built on it carries — never `ssh -G`, which a name
+with no memory and no block yet has nothing of its own to answer
+through. Nothing yet is normal — the record, if any, is what step
+6 below writes once the guest exists — and so is a static guest's
+own settled address already answering there, staged by the user or
+left by an earlier attempt at this same name
+(the Address bullet already expects this: its DNS record is "the
+user's to add, said when the name does not resolve to the address
+yet"). A DHCP guest has no address of its own yet to compare
+against, so any address already returned there is unexpected. Any
+other address means the name belongs to someone else, the way
+`rules/host-rename.md` → The New Name → Where it points treats it
+for an existing host: stop and tell the user rather than go on to
+create a guest under a name another machine already answers to.
+After creation step 2 repeats this same lookup once the guest
+itself exists, as a backstop for a name claimed in the gap between
+this plan and the guest's actual first boot.
+
 Say in one line each what is tight: memory against what running
 guests already hold, free space on the storage, CPUs. Creating the
 guest anyway is the user's call.
@@ -183,16 +205,20 @@ guest has no such mechanism, the files are the user's to place
    under libvirt, `virsh domifaddr <domain> --source agent`, once
    the same wait confirms the guest agent answers — has no DNS
    record for the settled FQDN yet to resolve by (step 6 below
-   writes one where the name space allows it). The request's own
-   checks only clear the name against Hostwarden's own memory, not
-   DNS itself: resolve it directly first, the same system-resolver
-   tools step 6 below uses. An address the guest itself already has
-   is normal — DHCP with dynamic DNS registration can beat this
-   step to it. Any other address means the name belongs to another
-   machine: stop and tell the user, the way `rules/host-rename.md`
-   → Where it points does, rather than let this block silently
-   redirect every session that shares `memory/ssh_hosts` to the new
-   guest instead. Add a
+   writes one where the name space allows it). Resolve the settled
+   name directly again, as far as the same lookup can tell — the
+   same system-resolver tools step 6 below uses, as the backstop
+   The request's own check promised: the name could have been
+   claimed by something else in the gap since then. An address the
+   guest itself already has is normal — DHCP with
+   dynamic DNS registration can beat this step to it. Any other
+   address means the name was claimed in that gap: stop and tell
+   the user as The request's own check would have, rather than let
+   this block silently redirect every session that shares
+   `memory/ssh_hosts` to the new guest instead. This address is
+   Hostwarden's own, never the user's: gate writing it as
+   `rules/ssh-config.md` → A Self-Resolved Address says.
+   `same everywhere` adds a
    `Host <settled name>` block to `memory/ssh_hosts` with
    `HostName <that address>` and `HostKeyAlias <settled name>`
    (`rules/ssh-config.md` → Adding a Block, steps 1-3), so every
@@ -213,8 +239,18 @@ guest has no such mechanism, the files are the user's to place
    not live yet, not resolving where the workstation checks, or
    the user's own step to begin with — it works exactly like a
    permanent override, that check included, for as long as nobody
-   revisits it.
-3. **The first login,** by the settled name through that block,
+   revisits it. `only this workstation` or `not sure` skips that
+   write instead: every step below that still connects to the guest
+   does so with
+   `-o HostName=<that address> -o HostKeyAlias=<settled name>` on
+   every call of its own, the gate's own same-session fallback,
+   in place of the block — this run's own resolution, gone once it
+   ends, so the report says plainly that no other session, and no
+   later connection of this one either, reaches the guest by the
+   settled name until DNS does. Step 6 further below has no block to
+   remove in that case and skips that part of it.
+3. **The first login,** by the settled name — through the block, or
+   through the same-run `-o` pair where step 2 used that instead —
    never by the bare address. Record the guest's host key in
    `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
    source 1), with a read of its own into the cache file, never
@@ -238,10 +274,14 @@ guest has no such mechanism, the files are the user's to place
    line by line — and 1 when it failed: report that, leave the
    guest as it is, and ask.
 4. **The pipeline on the guest** (`rules/first-connection.md`),
-   which creates `memory/servers/<settled name>/` directly. The
-   SSH user is the one the user-data created: write its
-   per-server entry in `memory/user.md` instead of asking
-   (`rules/ssh-user.md`).
+   which creates `memory/servers/<settled name>/` directly. Where
+   step 2 used the same-run `-o` pair instead of a block, that pair
+   rides on every one of the pipeline's own SSH calls to this guest,
+   on top of whatever options each of its steps already names — the
+   pipeline's own files know nothing of a per-run override, so
+   nothing but this run supplies it, at each call site in turn. The
+   SSH user is the one the user-data created: write its per-server
+   entry in `memory/user.md` instead of asking (`rules/ssh-user.md`).
 5. **Register it.** Run the host's inventory for the new guest
    (`rules/hypervisors.md` → Inventory): its entry goes into
    `guests.md` with `→ <directory>`, and its keys into the guest's
@@ -261,21 +301,35 @@ guest has no such mechanism, the files are the user's to place
    and the report says so, as it does when no name space covers the
    name at all — the user may already have added it, before or
    during this run. Either way, check whether the settled name
-   already resolves to the guest's address: the workstation's own
-   system resolver, asked directly — `getent ahostsv4`,
-   `dscacheutil -q host -a name`, or `getaddrinfo`, the lookup
-   `rules/dns-aliases.md` → Detection step 1 makes once it already
-   has a name to resolve, never `ssh -G`, which step 2's
-   still-present block would answer with its own override rather
-   than a real lookup. Where it does — Writing → Verify confirming
-   it too, where Hostwarden wrote the record — remove step 2's
-   `Host` block from `memory/ssh_hosts` and rerun
-   `bin/hostwarden-ssh-config`, so a later address change is caught
-   again (`rules/dns-aliases.md` → IP Verification) instead of
-   silently masked. Otherwise leave an item in the guest's
-   `todo.md` (`rules/server-memory.md` → Session to-do list) to
-   repeat that same direct resolver check later and remove the
-   block once it passes.
+   already resolves to the guest's address and nothing else: the
+   workstation's own system resolver, asked directly —
+   `getent ahostsv4`, `dscacheutil -q host -a name`, or
+   `getaddrinfo`, the lookup `rules/dns-aliases.md` → Detection
+   step 1 makes once it already has a name to resolve, never
+   `ssh -G`, which a block step 2 may still have left would answer
+   with its own override rather than a real lookup. This is not the
+   overlap `rules/dns-aliases.md` → IP Verification accepts, which
+   recognizes an already-known multi-homed host rather than
+   checking a name against every other address it could still be
+   claimed by. A name space that still carries a second, unrelated
+   record for the settled name would pass an overlap check, and a
+   later plain connection by that name is not guaranteed to land on
+   the guest's address rather than the other one — the guest's host
+   key was only ever recorded under the bridge's own address, so
+   that connection would fail host-key verification. Requiring
+   every resolved address to be the guest's own, rather than merely
+   one of them, closes that gap as far as the same direct lookup
+   reaches — the same limit The request's own check already
+   carries. Where it holds — Writing → Verify confirming it too, where
+   Hostwarden wrote the record — remove step 2's `Host` block from
+   `memory/ssh_hosts` and rerun `bin/hostwarden-ssh-config`, so a
+   later address change is caught again (`rules/dns-aliases.md` →
+   IP Verification) instead of silently masked. Otherwise — nothing
+   resolves yet, or an address besides the guest's own is among the
+   results — leave an item in the guest's `todo.md`
+   (`rules/server-memory.md` → Session to-do list) to repeat that
+   same direct resolver check later, and, only where step 2 wrote a
+   block, remove it once the check passes.
 7. **Verify the baseline** on the guest as `hostwarden-baseline`
    step 2 measures it: the check each section of
    `rules/baseline.md` names, in as few bundled calls as they

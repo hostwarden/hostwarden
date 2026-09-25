@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Same-session fallback for a declined self-resolved address](20260926-same-session-fallback-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [A team is two active people, not a workspace remote](20260925-team-is-two-active-people.md) | coordination, workspace | — |
 | [A service name is a CNAME to its host's FQDN](20260925-service-name-is-a-cname.md) | dns | — |
 | [No composed classDefs; subgraph class waits for its edges](20260925-mermaid-class-order.md) | — | — |
