@@ -108,6 +108,36 @@ machine that shares it reaches the host too. Never copy it unasked.
 When a host's memory directory is removed, remove its block too,
 and run the script again.
 
+## A Self-Resolved Address
+
+Adding a Block above is for an address the user names — they
+already vouch for it. Where Hostwarden determines the address
+itself instead, with nothing from the user pinning it down — a
+guest's actual address before its DNS record exists, an mDNS
+answer (`rules/mdns.md` → Comparing) — ask first, and only in a
+shared workspace (`rules/server-memory.md` → Personal versus
+shared; solo has no other workstation to misdirect). As
+`rules/ssh-user.md` → Interview format says:
+
+*"Is `<address>` reachable the same way from every workstation
+that shares this workspace, or only from this one?"*
+
+1. `same everywhere` — go on with Adding a Block as written.
+2. `only this workstation` — skip the shared write; the address
+   belongs in the user's own `~/.ssh/config` (The Files) if they
+   want it there, since Hostwarden never writes that file.
+3. `not sure` — treat it as not confirmed: skip the shared write,
+   for the same reason.
+
+Where the caller had no other way to reach the host, say so; a
+login by the bare address stays possible, only the shared name
+stops resolving to it. Where the name already resolves to
+something without this write instead — a name conflict, never a
+fresh guest — a decline does not clear that: verify with `ssh -G`
+that it reaches the address the operator meant before the first
+connection, and stop if it still does not (`rules/mdns.md` →
+Comparing).
+
 ## A Port the User Names
 
 The user may write the port with the host:

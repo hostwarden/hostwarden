@@ -269,8 +269,9 @@ a host that already had one, `references/os-replacement.md` →
 Memory Updates says why nothing needs restoring there instead.
 
 That first connection reaches the target by whatever identifier is
-actually reachable — its current address, a rescue environment's
-own hostname, DHCP's transient one — which the settled name need
+actually reachable — the address the operator gave it at Naming a
+target with no memory yet, a rescue environment's own hostname, or
+DHCP's transient one — which the settled name need
 not match: DNS for a brand-new name often does not exist yet
 (`rules/dns.md` → The proposal). Where the two differ, the
 directory `rules/first-connection.md` created carries the
@@ -278,12 +279,23 @@ connection's identifier, not the settled one. Reconcile them before
 reporting success, in this same session, by `rules/host-rename.md`
 → Memory's mechanism in full: the directory move and its DNS-alias
 symlinks, the `Host` block `memory/ssh_hosts` needs to keep
-reaching the machine (checked with `bin/hostwarden-ssh-config`),
-and `memory/known_hosts`'s lines for the settled name
+reaching the machine — gated by `rules/ssh-config.md` → A
+Self-Resolved Address where the connecting identifier is a rescue
+environment's hostname or DHCP's lease, never where it is the
+address the operator already gave at Naming a target with no
+memory yet, which counts as user-named there too — checked with
+`bin/hostwarden-ssh-config` where it is written, and
+`memory/known_hosts`'s lines for the settled name
 (`rules/host-keys.md` → DNS Aliases) — except keeping the
 connecting identifier itself as a lasting alias, which that section
 does for an old *hostname* someone might still reference: a bare
 address or a rescue environment's own throwaway name is dropped
-instead, never kept as an alias. Never leave the memory entry and
-the name the install actually gave the machine reachable under two
-different identifiers.
+instead, never kept as an alias, once the settled name's `Host`
+block is written. Where the gate declines that block instead, do
+not drop the connecting identifier yet: say so, the way
+`rules/ssh-config.md` → A Port the User Names does for a
+`localhost:2222` guest, and wait for the user's own `~/.ssh/config`
+entry before reporting success — the settled name has nothing else
+to resolve by. Never leave the memory entry and the name the
+install actually gave the machine reachable under two different
+identifiers, or under neither.

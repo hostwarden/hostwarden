@@ -256,7 +256,10 @@ Agree it with the user in the question:
    checks the result as The New Name does either way. Where no DNS
    carries the host's names and `memory/ssh_hosts` reaches it by
    address, this step is the new name on its `Host` line instead,
-   which Memory writes.
+   which Memory writes. That block's address was already accepted
+   once, under whatever name first carried it
+   (`rules/ssh-config.md` → A Self-Resolved Address); renaming
+   only extends the `Host` line and does not revisit it.
 2. Hostwarden renames the host and changes the references the user
    agreed to, then memory.
 3. Last, the old DNS name is removed and the PTR record moved, from
