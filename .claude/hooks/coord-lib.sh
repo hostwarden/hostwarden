@@ -77,7 +77,16 @@
 #       `reboot` as a command, `shutdown` with a `-r` option,
 #       `systemctl reboot` or `systemctl kexec`, `qm reboot` or
 #       `pct reboot`, or `kexec` with `-e`/`--exec` — never a mere
-#       mention such as `last reboot` (rules/busybox.md).
+#       mention such as `last reboot` (rules/busybox.md), and never
+#       one that only names it as data inside a quote nested in a
+#       remote command, such as a grep pattern
+#       (`ssh host "grep -c ';reboot' file"`). The single quoted
+#       argument an ssh remote command ordinarily comes as
+#       (`ssh host "true && reboot"`) is a local ssh-argv boundary,
+#       not remote-shell protection: it is unwrapped and its own
+#       text re-split the same way, so a disruptive command chained
+#       after it is still judged on its own rather than the whole
+#       quoted blob being read, or skipped, as one.
 #   hostwarden_coord_kind <segment>
 #       prints the disruptive kind <segment> — one ;/&/|-delimited
 #       piece of a command, as hostwarden_coord_dest's second field
@@ -302,6 +311,29 @@ hostwarden_coord_affected() {
 hostwarden_coord_is_reboot() {
   printf '%s' "$1" | awk '
     function base(w) { sub(/^.*\//, "", w); return w }
+    # qsplit(s, out) — the same quote-aware, backslash-aware
+    # ;/&/|/(/)/{/}/`-scanner hostwarden_coord_dest uses, kept in
+    # sync with it by hand: a separator inside a matched single- or
+    # double-quote pair stays part of the piece it is in. Returns
+    # the piece count, out[1..count] the pieces.
+    function qsplit(s, out,    n, cur, qc, esc, slen, ci, c) {
+      n = 0; cur = ""; qc = ""; esc = 0; slen = length(s)
+      for (ci = 1; ci <= slen; ci++) {
+        c = substr(s, ci, 1)
+        if (esc) { cur = cur c; esc = 0; continue }
+        if (c == "\\" && qc != "\047") { cur = cur c; esc = 1; continue }
+        if (qc != "") {
+          cur = cur c
+          if (c == qc) qc = ""
+          continue
+        }
+        if (c == "\"" || c == "\047") { qc = c; cur = cur c; continue }
+        if (index(";&|(){}`", c) > 0) { n++; out[n] = cur; cur = ""; continue }
+        cur = cur c
+      }
+      n++; out[n] = cur
+      return n
+    }
     # trig(c, w, nw) — whether the command whose first word base is
     # c, and whose words are w[1..nw], invokes a reboot.
     function trig(c, w, nw,   i) {
@@ -310,7 +342,8 @@ hostwarden_coord_is_reboot() {
         for (i = 2; i <= nw; i++) if (w[i] ~ /^-[A-Za-z]*r/) return 1
         return 0
       }
-      if (c == "systemctl") return nw >= 2 && (w[2] == "reboot" || w[2] == "kexec")
+      if (c == "systemctl") \
+        return nw >= 2 && (w[2] == "reboot" || w[2] == "kexec")
       if (c == "qm" || c == "pct") return nw >= 2 && w[2] == "reboot"
       if (c == "kexec") {
         for (i = 2; i <= nw; i++)
@@ -325,7 +358,7 @@ hostwarden_coord_is_reboot() {
     # `sudo reboot` and `sudo systemctl reboot` are the ordinary
     # case, not an edge one. SUVAL are the short options of either
     # that take a value of their own.
-    function judge(w, nw,    i, c) {
+    function judge(w, nw,    i, c, cw) {
       i = 1
       c = base(w[1])
       if (c == "sudo" || c == "doas") {
@@ -338,6 +371,73 @@ hostwarden_coord_is_reboot() {
       for (j = i; j <= nw; j++) cw[j - i + 1] = w[j]
       return trig(base(cw[1]), cw, nw - i + 1)
     }
+    # seg_reboot(t) — whether the single ;/&/|-delimited segment t
+    # invokes a reboot. Peels a leading ssh/sftp and its destination
+    # the same way hostwarden_coord_dest does; when what follows is
+    # one shell-quoted argument — the ordinary
+    # `ssh host "remote; command"` shape — that outer quote is a
+    # local ssh-argv boundary, not remote-shell protection, so it is
+    # stripped and the inner text re-split with the same qsplit
+    # scanner to find the real remote sub-commands, each judged in
+    # turn: a quote nested inside it, protecting a grep pattern of
+    # its own, still blocks splitting there, while a genuine
+    # compound such as `"systemctl restart nginx && reboot"` is no
+    # longer read as one unsplittable command. An unquoted remote
+    # command cannot hide a separator this way — one outside any
+    # quote would already have ended the segment at the outer split
+    # — so it is judged directly, as before.
+    function seg_reboot(t,    nw, v, vraw, k, c, i, w, ri, rest, first,
+                         last, fc, quoted, inner, m, subs, si, j, rw) {
+      nw = split(t, vraw, /[ \t]+/)
+      if (nw < 1) return 0
+      for (k = 1; k <= nw; k++) {
+        v[k] = vraw[k]
+        gsub(/^["\047]+|["\047]+$/, "", v[k])
+      }
+      if (judge(v, nw)) return 1
+      c = base(v[1])
+      if (c != "ssh" && c != "sftp") return 0
+      i = 2
+      while (i <= nw) {
+        w = v[i]
+        if (w == "--") { i++; break }
+        if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
+        break
+      }
+      ri = i + 1
+      if (ri > nw) return 0
+      first = vraw[ri]
+      last = vraw[nw]
+      fc = substr(first, 1, 1)
+      quoted = 0
+      if (fc == "\"" || fc == "\047") {
+        if (ri == nw) {
+          if (length(first) >= 2 \
+              && substr(first, length(first), 1) == fc) quoted = 1
+        } else if (substr(last, length(last), 1) == fc) {
+          quoted = 1
+        }
+      }
+      if (quoted) {
+        if (ri == nw) {
+          inner = substr(first, 2, length(first) - 2)
+        } else {
+          inner = substr(first, 2)
+          for (j = ri + 1; j < nw; j++) inner = inner " " vraw[j]
+          inner = inner " " substr(last, 1, length(last) - 1)
+        }
+        m = qsplit(inner, subs)
+        for (si = 1; si <= m; si++) {
+          rest = subs[si]
+          gsub(/^[ \t]+|[ \t]+$/, "", rest)
+          if (rest == "") continue
+          if (seg_reboot(rest)) return 1
+        }
+        return 0
+      }
+      for (j = ri; j <= nw; j++) rw[j - ri + 1] = v[j]
+      return judge(rw, nw - ri + 1)
+    }
     BEGIN {
       RS = "\001"; rc = 1
       SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
@@ -346,36 +446,12 @@ hostwarden_coord_is_reboot() {
     {
       s = $0
       gsub(/\$\{/, "$", s)
-      gsub(/[;&|(){}`]/, "\n", s)
-      n = split(s, seg, "\n")
-      for (l = 1; l <= n; l++) {
+      m = qsplit(s, seg)
+      for (l = 1; l <= m; l++) {
         t = seg[l]
         gsub(/^[ \t]+|[ \t]+$/, "", t)
-        nw = split(t, v, /[ \t]+/)
-        if (nw < 1) continue
-        for (k = 1; k <= nw; k++) gsub(/^["\047]+|["\047]+$/, "", v[k])
-        if (judge(v, nw)) { rc = 0; exit }
-        c = base(v[1])
-        # An ssh or sftp call: the same option-skip
-        # hostwarden_coord_dest uses to find the destination, then
-        # one more word — the remote command starts there, and is
-        # judged the same way in turn: `ssh host reboot`, `ssh host
-        # "sudo reboot"`, quoted or not.
-        if (c == "ssh" || c == "sftp") {
-          i = 2
-          while (i <= nw) {
-            w = v[i]
-            if (w == "--") { i++; break }
-            if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
-            break
-          }
-          i++
-          if (i <= nw) {
-            rnw = 0
-            for (j = i; j <= nw; j++) rw[++rnw] = v[j]
-            if (judge(rw, rnw)) { rc = 0; exit }
-          }
-        }
+        if (t == "") continue
+        if (seg_reboot(t)) { rc = 0; exit }
       }
     }
     END { exit rc }'

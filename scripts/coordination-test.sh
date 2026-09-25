@@ -494,6 +494,39 @@ if [ "$HAVE_JQ" = 1 ]; then
   hasi "$TMP/hookout" 'pve1.example.com reboot' \
     "impact.sh: names pve1.example.com after the escaped-quote segment"
 
+  # hostwarden_coord_kind/hostwarden_coord_is_reboot were not made
+  # quote-aware alongside hostwarden_coord_dest (#280's own deferred
+  # finding): a segment kept whole by the destination splitter above
+  # still had its own, separate, quote-unaware internal split, so a
+  # `reboot` appearing only as data inside a quote NESTED in the
+  # remote command misread as an invocation, and the fix tried
+  # first for that — making the internal split quote-symmetric with
+  # the destination one — traded it for the opposite, fail-open
+  # mistake: a genuine reboot chained after a disruptive command
+  # stopped being seen at all once the whole quoted remote command
+  # was left as one unsplittable blob. Both directions here.
+  hook impact.sh PreToolUse mine Bash \
+    "ssh -F memory/ssh_config root@pve1.example.com \"grep -c ';reboot' /var/log/audit.log && true\"" \
+    >/dev/null
+  lacks "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: reboot as data inside a quote nested in the remote command is never denied"
+
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com "systemctl restart nginx && reboot"' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a reboot chained with && after another command, inside one outer-quoted remote command, is still caught"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: the && case names the kind reboot, not merely restart:nginx"
+
+  hook impact.sh PreToolUse mine Bash \
+    'ssh -F memory/ssh_config root@pve1.example.com "systemctl restart nginx; reboot"' \
+    >/dev/null
+  hasi "$TMP/hookout" '"permissionDecision":"deny"' \
+    "impact.sh: a reboot chained with ; after another command, inside one outer-quoted remote command, is still caught"
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: the ; case names the kind reboot, not merely restart:nginx"
+
   # A run entry orphaned by a crashed or denied Bash call (its Post
   # never fires) is not read as live once its marker is older than
   # presence.sh's own sweep window for a run entry, six hours: a

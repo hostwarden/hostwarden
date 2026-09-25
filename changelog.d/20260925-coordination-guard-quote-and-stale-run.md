@@ -12,3 +12,10 @@
   cleanup step never ran used to be seen as still running until an
   unrelated housekeeping sweep happened to clear it; it now stops
   counting once it is older than that sweep's own six-hour window.
+- **Recognizing a reboot inside a remote command is quote-aware
+  too.** `ssh host "grep -c ';reboot' file"` used to be read as
+  invoking a reboot, because a word that only names one as data
+  inside a quote nested in the command was not told apart from an
+  actual invocation; a genuine reboot chained after another command
+  inside one quoted remote command, such as
+  `ssh host "systemctl restart nginx && reboot"`, is still caught.
