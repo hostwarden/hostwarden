@@ -53,7 +53,10 @@ applies before any of this runs.
    `references/smart.md` on bare metal and in a VM its host
    passes a disk to. A host with a `deployed.md`, or a member of
    a cluster with one, gets the drift check from
-   `references/deployed-files.md`. An
+   `references/deployed-files.md`. A host with a `DNS server:`
+   line gets `rules/dns.md` → Reading a DNS server, which keeps
+   its lines in `memory/dns.md` current, and the checks that file's
+   Checks → Where they run gives housekeeping. An
    override of `rules/baseline.md` changes what the checks
    that measure it expect, and where one fills the sections left
    empty there, `rules/baseline.md` → The Sections an Override

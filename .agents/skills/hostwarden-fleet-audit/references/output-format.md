@@ -100,6 +100,27 @@ sudo or doas that runs everything without a password) —
 re-run with a privileged user for full coverage.
 ```
 
+## DNS resolver sets
+
+One table per set (`references/probes.md` → DNS resolver sets), its
+members as columns and a row per name space, each cell the record
+count. The names that differ go to the drift entry, not into cells:
+
+```
+### DNS resolver sets — pihole1, pihole2
+
+| Name space  | pihole1    | pihole2    |
+|-------------|------------|------------|
+| ! home.arpa | 14 records | 13 records |
+```
+
+```
+4. **home.arpa**: pihole1 answers nas.home.arpa A 192.168.1.20,
+   pihole2 does not know the name — clients of pihole2 get
+   NXDOMAIN. Suggested fix: add the record on pihole2 as
+   `rules/dns.md` → The proposal lists it.
+```
+
 ## Drift detected
 
 After all tables, a numbered list. Each entry: which hosts

@@ -72,8 +72,10 @@ exists):
   DNS resolvers. The resolvers default to the host's own, from its
   `/etc/resolv.conf`; Proxmox VE takes those by itself when none
   are given (`--nameserver` in `qm.1` and `pct.1`), every other
-  path writes them into the network config. DNS for the name is
-  the user's; say so when it does not resolve to the address.
+  path writes them into the network config. The name's DNS
+  records are the user's to add: the plan carries them as the
+  record set `rules/dns.md` → The proposal gives, and says so
+  when the name does not resolve to the address yet.
 - **Resources:** vCPUs, memory, disk size, storage, bridge.
   Defaults: 2 vCPUs, 2 GiB, 20 GiB for a VM and 8 GiB for a
   container, the storage and bridge the host's other guests use.
@@ -102,7 +104,7 @@ with its own address touches neither.
 
 Show the plan in one block, and ask once: host, kind, image with
 its checksum source, name, ID, address, resources, the baseline
-version. Creating a guest is a change on the host
+version, and the DNS record set. Creating a guest is a change on the host
 (`rules/system-containers.md` → Changes).
 
 
