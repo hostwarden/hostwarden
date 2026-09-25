@@ -322,11 +322,19 @@ file from a second ISO instead
 and the guest still comes up on the baseline. Only a UI that can
 attach no second ISO at all leaves the installer's own questions
 and a password the user types: say so, and go on only if the user
-wants that. Once the guest answers on SSH, go on at After creation
-step 2 with its address — static as planned, or DHCP as the user
+wants that. The address is static as planned, or DHCP as the user
 reports it, since this run has no session inside the guest to read
-it from itself — so it still ends up reached and known by its
-settled name rather than that address.
+it from itself: check a reported one first, the same way a static
+address is checked before creation (The request above): no `IP:`
+line in memory and no entry in any `guests.md` already names it. A
+match means the user misread or mistyped it and it belongs to
+another machine, not this one — the shared admin key (Admin keys
+above) can make a login against it succeed just as well, so the
+guest answering SSH is never by itself proof of which machine
+answered. Stop and ask the user to recheck it rather than trust a
+match. Once it is clear, go on at After creation step 2 with it, so
+the guest still ends up reached and known by its settled name
+rather than that address.
 
 ## References
 
