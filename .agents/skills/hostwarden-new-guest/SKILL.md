@@ -178,7 +178,7 @@ guest has no such mechanism, the files are the user's to place
    cut by the reboot `package_reboot_if_required` may cause — is
    run once more, then reported.
 2. **The first login,** never by the FQDN, whose DNS record may
-   still be unwritten, at step 5 below or the user's, but by the
+   still be unwritten, at step 6 below or the user's, but by the
    guest's actual address: the one The request settled for a static
    guest, the one step 1 just read for a DHCP guest the manager can
    enter, or, for a DHCP guest under libvirt, `virsh domifaddr
@@ -198,7 +198,37 @@ guest has no such mechanism, the files are the user's to place
    SSH user is the one the user-data created: write its
    per-server entry in `memory/user.md` instead of asking
    (`rules/ssh-user.md`).
-4. **Register it.** Run the host's inventory for the new guest
+4. **Reconcile the name.** Step 2 above never logs in by the
+   settled FQDN, so the memory directory step 3's pipeline created
+   (`rules/first-connection.md` step 6) carries the connecting
+   address, not the name The request settled, and it has no DNS
+   record yet to resolve by (step 6 below writes one where the
+   name space allows it): reconcile them before Register it, in
+   this same session. First add a `Host <settled name>` block to
+   `memory/ssh_hosts` with `HostName <connecting address>` and
+   `HostKeyAlias <settled name>` (`rules/ssh-config.md` → Adding a
+   Block), checked with `bin/hostwarden-ssh-config`, the way
+   `rules/host-rename.md` → The Order step 1 does for a host no
+   DNS covers, so the settled name both resolves and looks its own
+   key up by itself, never by the connecting address
+   (`rules/host-keys.md` → Before the First Connection), for what
+   follows. Then move the directory to the settled name — a plain
+   `mv`, since step 3's directory is new and not yet committed to
+   the workspace, unlike `rules/host-rename.md` → Memory's own
+   `git -C memory mv` for an already-tracked host — give the
+   settled name `memory/known_hosts`'s lines
+   (`rules/host-keys.md` → DNS Aliases) and the SSH user
+   `memory/user.md` already has for the connecting address, then,
+   unlike a rename, keep nothing under the connecting address at
+   all: no symlink, no `- DNS alias:` line, and once the settled
+   name's key is copied, no line of its own left in
+   `memory/known_hosts` (`rules/host-keys.md` → Removing Names) or
+   entry in `memory/user.md` either — it is a bare address, not a
+   hostname worth a lasting alias. The `Host` block is a bridge,
+   not a lasting fix: step 6 below closes it once DNS takes over,
+   so it never masks a real address change the way a permanent
+   override would.
+5. **Register it.** Run the host's inventory for the new guest
    (`rules/hypervisors.md` → Inventory): its entry goes into
    `guests.md` with `→ <directory>`, and its keys into the guest's
    `Guest identity:`, with `Runs on:` as Linking Guest and Host
@@ -210,13 +240,29 @@ guest has no such mechanism, the files are the user's to place
    (`rules/decisions.md`): `## Password login`, with the user's
    reason, settling `baseline → SSH Login` for password login, and
    for SSH with it too where they asked for that.
-5. **The DNS record set**, where a name space it belongs to has a
+6. **The DNS record set**, where a name space it belongs to has a
    `memory/dns.md` line reading `Hostwarden: write`: written as
    `rules/dns.md` → Writing says, the set the question already
    showed. In any other name space this is the user's step instead,
    and the report says so, as it does when no name space covers the
-   name at all.
-6. **Verify the baseline** on the guest as `hostwarden-baseline`
+   name at all. Where Writing → Verify confirms the settled name
+   resolves, and the workstation's own system resolver agrees when
+   asked for it directly — `getent ahostsv4`, `dscacheutil -q host
+   -a name`, or `getaddrinfo`, the lookup `rules/dns-aliases.md` →
+   Detection step 1 makes once it already has a name to resolve,
+   never `ssh -G`, which step 4's still-present block would answer
+   with its own override rather than a real lookup — remove step
+   4's `Host` block from `memory/ssh_hosts` and rerun
+   `bin/hostwarden-ssh-config`, so a later address change is caught
+   again (`rules/dns-aliases.md` → IP Verification) instead of
+   silently masked. Otherwise — Verify reports a wait, the direct
+   resolver check still disagrees, or DNS is the user's own step —
+   leave an item in the guest's `todo.md`
+   (`rules/server-memory.md` → Session to-do list) to repeat that
+   same direct resolver check later and remove the block once it
+   passes, the way `rules/host-rename.md` → Memory does for its
+   own old-name alias.
+7. **Verify the baseline** on the guest as `hostwarden-baseline`
    step 2 measures it: the check each section of
    `rules/baseline.md` names, in as few bundled calls as they
    allow. The backup is looked up from the host instead: on
@@ -234,7 +280,7 @@ guest has no such mechanism, the files are the user's to place
    `hostwarden-onboard` step 5 run in the same calls, their
    questions are asked with this step's, and the guest gets
    `Onboarded:` as that skill's step 6 writes it.
-7. **Log** on both, as `rules/changelog.md` says: the host's
+8. **Log** on both, as `rules/changelog.md` says: the host's
    journal line names the guest created, the guest's names the
    baseline version.
 
