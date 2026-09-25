@@ -1,21 +1,35 @@
 # Preferences
 
-# Language: English
-# Operator: your-handle
-#   short; names you in journal entries and decisions
-# Operator name: Your Full Name
-#   for the email signature only
-# Greeting: Viele Grüße\nHostwarden   # default; override with your own close
+None of these are pre-filled, and most are entirely optional. The
+exception is `Operator:`: in a shared workspace (one with a
+remote) it is required, and Hostwarden interviews you for it on
+first use rather than filling it in silently (`rules/ssh-user.md`
+→ Operator). Add a line to set any field:
+
+- `Language: <name>` — e.g. `Language: German`.
+- `Operator: <handle>` — a short handle; names you in journal
+  entries and decisions.
+- `Operator name: <full name>` — used for the email signature
+  only.
+- `Greeting: <text>` — the default close; override with your own
+  (e.g. `Greeting: Viele Grüße\nHostwarden`).
+- `Notice email: <address>` — the address a maintenance-window
+  IT notice defaults to (`rules/maintenance-windows.md` →
+  Telling IT).
 
 # SSH Users
 
 Default: your-username
 
 ## Per-server overrides
-# - hostname.example.com: different-username
+
+Optional. Add a `- hostname.example.com: different-username`
+line here for each host that needs a different user than the
+default.
 
 # SSH Ports
 
-# Ports you run sshd on instead of 22, tried in this order when
-# port 22 of a new host refuses the connection.
-# Alternative SSH ports: 52222, 2222
+Optional. `Alternative SSH ports: 52222, 2222` — the ports you
+run sshd on instead of 22, tried in this order when port 22 of a
+new host refuses the connection (`rules/ssh-config.md` → Finding
+the Port).
