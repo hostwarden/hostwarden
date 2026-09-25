@@ -427,4 +427,7 @@ a construction built only to evade one is "not a bug: outside the
 guard's scope" (`.claude/rules/repo-release.md` → Guard findings).
 
 Pull requests follow `.claude/rules/pull-requests.md`; read it
-before working on one.
+before working on one. A session coordinating several open ones at
+once also follows `.claude/rules/pr-coordinator.md`, on top of that
+pipeline for each one — polling, readiness before naming a merge
+command, cleanup, subagents versus chips.
