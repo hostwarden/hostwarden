@@ -95,6 +95,16 @@ remove or re-permission a directory you do not own.
   per entry token, not at every renewal. Two sessions that register
   at the same moment both see each other and both ask; that is the
   intended outcome.
+- **An impact entry** — a live entry whose task starts with
+  `impact-` is a step a teammate announced on this host or on one it
+  goes with: a reboot, a firewall or network change, a restart
+  (`rules/coordination.md` → Teams). Nobody writes here under it.
+  Name it in one line — who, the step and its origin from the task,
+  and until when from the beat: *"bob@ws2 announced a reboot of
+  pve1.example.com until 14:05."* Before a change, let the user
+  decide as for a live entry; a session that only reads just says
+  it. One that names your own `<user>@<workstation>` is on this
+  workstation's own map already (`bin/hostwarden-impact status`).
 - **Stale ones** — remove each with `rmdir "$D/<entry>"` and say
   so in one line: *"Stale session entry from 11:02 (bob@ws2 —
   nginx-upgrade) removed."* If `rmdir` fails, the entry was renewed

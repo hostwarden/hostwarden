@@ -376,7 +376,7 @@ trigger — not a request from the user.
 
 - `rules/server-memory.md` — the host's memory file, its `todo.md`
   for a session of two steps or more, and which memory files are
-  personal versus shared in team mode
+  personal versus shared in a shared workspace
 - `memory/network.md` — cross-server facts, current ones only,
   created on first need
 

@@ -185,19 +185,24 @@ It is what `<operator>` stands for wherever
 Hostwarden records who did something: the journal
 prefix, a decision's `Decided:`, a `Planned:` line.
 
-- **Team mode** — the workspace has a remote
+- **Shared workspace** — the workspace has a remote
   (`rules/server-memory.md` → Personal versus
   shared): the line is required, one handle per
-  teammate and per operations host, reserved in the
-  shared `memory/operators.md`. Where teammates share a
-  login such as `root`, `<unix-user>` cannot tell
-  them apart; the handle does. Where it is missing,
+  person and per operations host, reserved in the
+  shared `memory/operators.md`, with the same
+  handle on each of one person's machines. Where
+  people share a login such as `root`,
+  `<unix-user>` cannot tell them apart; the handle
+  does. Where it is missing,
   `rules/session-start.md` asks for it and reserves
   it; until the reservation reaches the remote,
   `<operator>` is `user`, and an operations host's
   nightly run does not start.
-- **Solo** — no remote: the line is optional. Where
-  it is missing, `<operator>` is `user`.
+- **No remote:** the line is optional. Where it is
+  missing, `<operator>` is `user`.
+
+Whether the people on that list make a team is
+`rules/coordination.md` → Teams.
 
 The handle leaves the workstation: it is written
 into the journal of every host a session changes,

@@ -321,11 +321,11 @@ In the desktop app, set it in the `env` of
 `.claude/settings.local.json` instead — see
 [Claude Code Desktop](ai-tools.md#claude-code-desktop).
 
-## Team setup and several machines
+## A shared workspace
 
 A team — or one admin on several machines — shares
 the workspace, `memory/`, through a git remote of its
-own. **Keep that remote private:** the workspace
+own: a **shared workspace**. **Keep that remote private:** the workspace
 holds hostnames, addresses, the blacklist and the
 layout of your network. Create it private; the
 recommended name is `hostwarden-workspace`, and nothing
@@ -372,8 +372,9 @@ that keeps updating.
    every decision you record, so the team can tell
    whose work is whose, even when you all log in
    as `root`. The handles in use are listed in the
-   shared `operators.md`, and one a teammate has
-   already taken is turned down. It lands
+   shared `operators.md`, and one someone else has
+   already taken is turned down. Use the same handle
+   on each of your own machines. It lands
    in the servers' journals, which keep it as long
    as their logs are retained and wherever they are
    shipped, so choose what you are comfortable
@@ -381,7 +382,14 @@ that keeps updating.
    a name, and changing it later does not rewrite
    old entries. Your full name, `Operator name:`,
    stays for the email signature.
-6. Every workspace commit is scanned for secrets by
+6. When someone stops working with you, tell
+   Hostwarden: their line in `operators.md` gets
+   `(inactive since <date>)`. The handle stays
+   reserved for good, since journals and decisions
+   still name it, and the suffix goes again if they
+   come back. An operations host's line reads
+   `(operations host)`.
+7. Every workspace commit is scanned for secrets by
    [betterleaks](https://github.com/betterleaks/betterleaks),
    and every push scans the whole history again. A
    push without it is refused, and so is a commit once
@@ -411,15 +419,18 @@ What it needs from you:
   Operator: ops1
   Report email: ops@example.com
   Workspace push: always
+  Coordinator: off
   ```
   `ops1` is the machine's own handle, which every
   journal line of the nightly run carries —
   `[ops1 as root] read-only: housekeeping: …` — so
   your colleagues can tell it from your own sessions.
-  Like yours, it is reserved in `operators.md`: the
-  first `claude` session there does that, and the
-  nightly run refuses to start until the reservation
-  has been pushed;
+  It is reserved in `operators.md` as
+  `ops1 (operations host)` — the session that sets
+  the machine up does that — and the nightly run
+  refuses to start until the reservation has been
+  pushed. `Coordinator: off` keeps the machine from
+  starting a coordinator (below) nobody needs there;
 - `*` in its `memory/readonly.md`, so no session there
   changes anything, and a copy of your blacklist;
 - the fleet key, made by you, and the key line on each
@@ -454,6 +465,50 @@ other may not (`rules/borrowed-rights.md`). Sessions
 that only read — housekeeping, audits — register
 nothing. Details: `rules/parallel-sessions.md`.
 
+### Steps that reach other hosts
+
+A reboot, a firewall or network change or a restart
+reaches more than its own host: the guests of a
+hypervisor, the hosts behind a jump host, the hosts
+that use a service it runs. Before such a step a
+session announces it; the sessions on this machine
+that work on a host it reaches are named, the ones
+changing something there get up to two minutes to
+reach a safe point, and you decide whether to go,
+wait or stop. A session that then reaches one of
+those hosts is told once what is going on. Details:
+`rules/coordination.md`.
+
+**In a team** — two or more people in
+`operators.md`, not counting a handle marked
+`(inactive since …)` or `(operations host)` — the
+announcement also goes onto each host it reaches, as
+a register entry and a journal line, so your
+colleagues' sessions see it too. Alone, with or
+without a shared workspace, nothing is written on
+other hosts.
+
+### The coordinator
+
+The first session in an operations checkout starts
+a coordinator in the background, one per checkout,
+and says so in one line. It keeps track of which
+session works on which host, asks a session what it
+is doing when it moves on to other hosts, passes an
+announced step on to the sessions it concerns, keeps
+an order of steps that spans sessions, and warns
+about maintenance windows. It never reaches a server
+and never decides anything for you or another
+session.
+
+`claude agents` lists it as `hostwarden coordinator`.
+To turn it off, run `/hostwarden-coordinator` in any
+session: it stops the coordinator and writes
+`Coordinator: off` into your `memory/user.md`, so the
+next session does not start it again. The same skill
+removes the line and starts one when you want it
+back.
+
 ## Backup and restore
 
 Everything the workspace holds is in `memory/`, so a
@@ -468,10 +523,12 @@ the backup.
 
 - `user.md` — SSH usernames, the SSH ports you use
   instead of 22 (`Alternative SSH ports:`), language
-  preference, your handle (`Operator:`) and full name
-  (`Operator name:`)
+  preference, your handle (`Operator:`), full name
+  (`Operator name:`) and `Coordinator: off` where
+  you turned it off
 - `blacklist.md`, `readonly.md` — access policies
-- `operators.md` — the team's handles in use
+- `operators.md` — the handles in use, and which
+  are inactive or an operations host's
 - `service-policy.md` — per-service opt-out /
   opt-in for auto-reload and auto-restart
 - `servers/<hostname>/` — per-server memory,
@@ -516,7 +573,7 @@ before any files are written: all entries must live
 under `memory/`, and symlink or hardlink entries are
 rejected.
 
-### In a team
+### A shared workspace
 
 With a shared workspace, most of `memory/` lives on
 its remote already. The personal files that

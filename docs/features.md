@@ -1149,7 +1149,7 @@ it.
 The workspace, `memory/`, is a git repository of its
 own that a team, or one admin on several machines,
 shares through a private remote:
-[Team setup and several machines](operations.md#team-setup-and-several-machines).
+[A shared workspace](operations.md#a-shared-workspace).
 
 ### Parallel sessions
 
@@ -1157,6 +1157,17 @@ Sessions that change the same host — two windows, or
 teammates on different workstations — see each other
 and, in Claude Code, can message each other directly:
 [Parallel sessions](operations.md#parallel-sessions).
+
+### Steps that reach other hosts
+
+A reboot, a firewall or network change or a restart
+on one host is announced to the sessions working on
+the hosts it reaches — its guests, the hosts behind
+it, the hosts using its services — before it runs,
+and a background coordinator keeps track of which
+session works where:
+[Steps that reach other hosts](operations.md#steps-that-reach-other-hosts),
+[The coordinator](operations.md#the-coordinator).
 
 ### Plan mode
 

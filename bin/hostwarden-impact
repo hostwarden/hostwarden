@@ -31,6 +31,13 @@
 #       restart (rules/coordination.md → Announce, wait, go). Exit
 #       status: 0 announced (affected or not), 1 the radius could
 #       not be computed, 2 usage
+#       In a team — two or more active handles in memory/operators.md
+#       — it also writes a register entry and a journal line on each
+#       radius host it may reach, then prints "team: register entry
+#       and journal line on <k> of <n> hosts" and one line for each
+#       host that did not get both: "journal only: <host> (<why>)",
+#       "register only: <host> (<why>)" or "no entry: <host> (<why>)"
+#       (rules/coordination.md → Teams)
 #   hostwarden-impact wait <id>
 #       Blocks up to two minutes until every session announce
 #       found is safe: no run on a radius host, and every writer
@@ -41,7 +48,8 @@
 #       Records this session's own answer to impact <id>, read by
 #       wait on the origin session
 #   hostwarden-impact done <id>
-#       Ends impact <id>. Idempotent: gone already is not an error
+#       Ends impact <id>, and in a team removes the register entries
+#       announce made. Idempotent: gone already is not an error
 #   hostwarden-impact status <host>
 #       Prints one line per active impact whose radius covers
 #       <host>: "<origin> <kind> by <session> until <HH:MM>;
@@ -53,6 +61,25 @@
 #       names no zone `date`/`date -j` can parse, is left out rather
 #       than guessed at. Exit status: 0 either kind of line printed,
 #       1 neither, 2 usage
+#   hostwarden-impact coordinator
+#       Prints the session of each live coordinator of this checkout
+#       (rules/coordination.md → The coordinator) and exits 0, or
+#       exits 1 where none is: an entry coordinator+<session>+<beat>
+#       beside presence/ whose session `claude agents --json` lists,
+#       or, without the claude CLI, whose beat is under 30 minutes
+#       old. Marks nothing
+#   hostwarden-impact watch
+#       The coordinator's own run, for Monitor. Marks this session as
+#       the coordinator, or exits 1 with "another coordinator runs:
+#       <session>" where one was there first — or, when two marked
+#       themselves at once, has the smaller session id. Then every 5
+#       seconds it prints "+ <item>" or "- <item>" for each change
+#       among the live touched and writer presence entries
+#       ("presence <session> <host> touched|writer"), the impacts
+#       ("impact <entry name>"), the acks ("ack <id> <session>") and
+#       the plans ("plan <file> <checksum>"); "tick <HH:MM>" every 15
+#       minutes while a plan has a Window: line; and renews its mark
+#       every 5, exiting 1 as above once another coordinator stays
 #   hostwarden-impact --help
 #       Show this help
 #
@@ -81,9 +108,16 @@
 # (<origin> several hosts joined by a comma, <until> the epoch
 # second the window ends, <session> $HOSTWARDEN_SESSION or a
 # fallback of this process's own), holding radius/<host>+<relation>
-# +<through> for each host the radius named and, once a writer
-# answers, ack/<session>. Their format is this script's own too
+# +<through> for each host the radius named, once a writer answers
+# ack/<session>, and in a team remote/<host> for each host that got
+# a register entry. Their format is this script's own too
 # (rules/coordination.md → Announce, wait, go).
+#
+# The calls to radius hosts in a team are the only connections this
+# script makes. They skip the pipeline of rules/first-connection.md,
+# so they go only where it has run before: a host with memory, an SSH
+# user, a key in memory/known_hosts, nothing on memory/blacklist.md
+# on its way in, and never a first connection.
 #
 # Exit status: 0 done, 1 it could not be computed, 2 usage.
 set -u
@@ -97,6 +131,8 @@ cd "$REPO_DIR" || exit 1
 . .claude/hooks/hops.sh
 # shellcheck source=../.claude/hooks/coord-lib.sh
 . .claude/hooks/coord-lib.sh
+# shellcheck source=../.claude/hooks/resolve.sh
+. .claude/hooks/resolve.sh
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
@@ -177,6 +213,270 @@ impact_dir_for_id() {
   return 1
 }
 
+# user_for <key> — the SSH user memory/user.md gives <key>: its own
+# entry, else the default (rules/ssh-user.md).
+user_for() {
+  awk -v k="$1" '
+    /^[-*[:space:]]*Default:/ && d == "" {
+      d = $0; sub(/^[-*[:space:]]*Default:[[:space:]]*/, "", d); sub(/[[:space:]].*/, "", d)
+    }
+    index($0, "- " k ":") == 1 {
+      u = substr($0, length(k) + 4); sub(/^[[:space:]]+/, "", u); sub(/[[:space:]].*/, "", u)
+    }
+    END { print (u != "" ? u : d) }' "$M/user.md" 2>/dev/null
+}
+
+# --- teams --------------------------------------------------------
+
+# impact_team — true where memory/operators.md lists two or more
+# active people: a handle without "(inactive since …)" and without
+# "(operations host)" (rules/coordination.md → Teams). A workspace
+# with a remote is no team by itself.
+impact_team() {
+  awk '
+    /^- [a-z0-9-]+[ \t]*(\(.*\))?[ \t]*$/ {
+      if ($0 ~ /\((inactive since|operations host)/) next
+      n++
+    }
+    END { exit !(n >= 2) }' "$M/operators.md" 2>/dev/null
+}
+
+# host_value <host> <key> — the value of "- <key>:" in the host's
+# memory.md, from the fields list in $TW/fields.
+host_value() {
+  awk -F "$TAB" -v h="$1" -v k="$2" \
+    '$1 == h && $2 == k { print $3; exit }' "$TW/fields"
+}
+
+# way_in <host> — sets dest, port and u to how the host is logged
+# into: its Reached as: destination with its SSH port:, else its own
+# name, as the user memory/user.md gives it (rules/ssh-user.md).
+way_in() {
+  dest=$(host_value "$1" 'Reached as' | awk '{ print $1 }')
+  port=''
+  [ -n "$dest" ] && port=$(host_value "$1" 'SSH port' | awk '$1 ~ /^[0-9]+$/ { print $1 }')
+  dest=${dest:-$1}
+  u=$(user_for "$dest")
+  case $dest in *@*) u=${dest%%@*} dest=${dest#*@} ;; esac
+}
+
+# names_of <host> <dest> — every name and address the lists are
+# matched against for <host>: the host, its destination, the names
+# the index knows it by (its IP: and FQDN: among them, and each
+# DNS-alias directory that links to it) and what the
+# destination resolves to (rules/access-control.md → Shared Lookup
+# Logic).
+names_of() {
+  printf '%s %s ' "$1" "$2"
+  awk -F "$TAB" -v h="$1" '($1 == "K" || $1 == "A") && $2 == h { printf "%s ", $3 }
+    $1 == "N" && $3 == h { printf "%s ", $2 }' "$IDX"
+  hostwarden_resolve4 "$2" | tr '\n' ' '
+}
+
+# hop_names <host> — each hop on the host's way in, what it resolves
+# to and, where memory knows the hop, the names of its DNS-alias
+# directories; looked up once per hop however many hosts share it.
+hop_names() {
+  for hop in $(awk -F "$TAB" -v h="$1" '$1 == "J" && $2 == h { print $3 }' "$IDX"); do
+    memo="$TW/hop.$(printf '%s' "$hop" | cksum | cut -d' ' -f1)"
+    [ -f "$memo" ] || printf '%s %s %s ' "$hop" \
+      "$(hostwarden_resolve4 "$hop" | tr '\n' ' ')" \
+      "$(awk -F "$TAB" -v k="$hop" '$1 == "K" && $3 == k { h[$2] = 1 }
+        $1 == "N" { n[$3] = n[$3] " " $2 }
+        END { for (x in h) printf "%s ", n[x] }' "$IDX")" >"$memo"
+    cat "$memo"
+  done
+}
+
+# blocked <host> — true, having named the host, where it or a hop on
+# its way in is on memory/blacklist.md as the file is now: read again
+# right before every call, the cleanup's included, since a host can
+# be listed while the calls before it run (rules/access-control.md →
+# Server Blacklist). Sets names for the read-only check.
+blocked() {
+  BLACK=$(hostwarden_list_entries "$M/blacklist.md")
+  names=''
+  [ -z "$BLACK$RO" ] || names=$(names_of "$1" "$dest")
+  if [ -n "$BLACK" ] && hostwarden_listed "$BLACK" "$names $(hop_names "$1")"; then
+    echo "no entry: $1 (blacklisted, or a hop on its way in is)"
+    return 0
+  fi
+  return 1
+}
+
+# tell_one <host> — the one call a radius host gets in a team: the
+# register entry (rules/parallel-sessions.md → Register, and renew,
+# with <until> as its beat) and the journal line
+# (rules/changelog.md → Impact lines). Prints one result line, or
+# nothing where the host got both, and marks remote/<host> where it
+# got the entry. The hosts it leaves out are rules/coordination.md →
+# Teams's.
+tell_one() {
+  h=$1
+  case $(host_value "$h" Mode | tr '[:upper:]' '[:lower:]') in
+    via*) echo "no entry: $h (reached through its host)"; return ;;
+    local*) echo "no entry: $h (the local machine)"; return ;;
+  esac
+  case $(host_value "$h" 'Distro family' | tr '[:upper:]' '[:lower:]') in
+    windows*) echo "no entry: $h (Windows: no sh to write with)"; return ;;
+  esac
+  case $(host_value "$h" SSH) in
+    untested*) echo "no entry: $h (never connected)"; return ;;
+  esac
+  way_in "$h"
+  [ -n "$u" ] || { echo "no entry: $h (no SSH user in memory/user.md)"; return; }
+  blocked "$h" && return
+  if ! g=$(ssh -F "$SSHCFG" -G -l "$u" ${port:+-p "$port"} "$dest" </dev/null 2>/dev/null); then
+    echo "no entry: $h (ssh -G cannot read its configuration)"; return
+  fi
+  kh=$(printf '%s\n' "$g" | awk '$1 == "hostkeyalias" { a = $2 } $1 == "hostname" { n = $2 }
+    $1 == "port" { p = $2 } END { k = (a != "" ? a : n); print (p == 22 ? k : "[" k "]:" p) }')
+  if ! ssh-keygen -F "$kh" -f "$M/known_hosts" >/dev/null 2>&1; then
+    echo "no entry: $h (no key in memory/known_hosts)"; return
+  fi
+  # The journal line goes where the host's OS file writes one
+  # (rules/changelog.md → Journal Headlines): QNAP's event log
+  # through log_tool, none where memory records that logger does not
+  # land (rules/appliance/synology-dsm.md → Logs), syslog elsewhere.
+  case $(host_value "$h" Journal):$(host_value "$h" Appliance) in
+    'not written'*) log='' ;;
+    *:QTS* | *:QuTS*) log=$T_QLOG ;;
+    *) log=$T_LOG ;;
+  esac
+  reg=1
+  if [ "$RO_ALL" = 1 ] || { [ -n "$RO" ] && hostwarden_listed "$RO" "$names"; }; then
+    reg=''
+  fi
+  if [ -z "$reg$log" ]; then
+    echo "no entry: $h (read-only, and memory says its journal is not written)"; return
+  fi
+  out=$({ [ -z "$reg" ] || printf '%s\n' "$T_REG"; [ -z "$log" ] || printf '%s\n' "$log"; } \
+    | ssh -F "$SSHCFG" -l "$u" ${port:+-p "$port"} "$dest" sh -s 2>/dev/null)
+  case $out in *registered*) : >"$T_DIR/remote/$h" ;; esac
+  case ${reg:-ro}:$out in
+    *registered*logged*) ;;
+    ro:*logged*) echo "journal only: $h (read-only)" ;;
+    *logged*) echo "journal only: $h (no register it can use)" ;;
+    *registered*)
+      if [ -n "$log" ]; then echo "register only: $h (the journal line failed)"
+      else echo "register only: $h (memory says its journal is not written)"; fi ;;
+    *:) echo "no entry: $h (not reached)" ;;
+    *) echo "no entry: $h (neither written)" ;;
+  esac
+}
+
+# team_setup [lists] — what tell_one and untell read, worked out
+# once; with "lists", also the access lists tell_one checks.
+team_setup() {
+  SSHCFG=$REPO_DIR/memory/ssh_config
+  [ -r "$SSHCFG" ] || sh bin/hostwarden-ssh-config >&2
+  TW=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-impact-team.XXXXXX") || die "no temp directory"
+  trap 'rm -rf "$TW"' EXIT INT TERM
+  fields >"$TW/fields"
+  [ "${1:-}" = lists ] || return 0
+  IDX=$HOSTWARDEN_CACHE/radius.idx
+  hostwarden_resolver
+  RO=$(hostwarden_list_entries "$M/readonly.md")
+  RO_ALL=0
+  case " $RO " in *' * '*) RO_ALL=1 ;; esac
+}
+
+# tell <dir> <radius> — tell_one for every radius host with memory
+# here, the hosts behind one jump host one after another and the
+# groups side by side (rules/multi-host.md → Order), then the
+# summary. The impact is ID, UNTIL, AKIND and ORIGINJ of announce.
+tell() {
+  T_DIR=$1
+  team_setup lists
+  T_OP=$(sed -n 's/^[-*[:space:]]*Operator:[[:space:]]*//p' "$M/user.md" 2>/dev/null \
+    | head -n 1 | awk '{ print $1 }')
+  case $T_OP in '' | *[!a-z0-9-]*) T_OP=user ;; esac
+  T_WS="$(hostwarden_coord_sanitize "$(id -un)")@$(hostwarden_coord_sanitize \
+    "$(hostname -s 2>/dev/null || hostname)")"
+  T_TASK=$(printf 'impact-%s-%s' "$AKIND" "$ORIGINJ" | tr ':' '-' \
+    | tr '[:upper:]' '[:lower:]')
+  # The two parts of the call, their values filled in here: every one
+  # of them is held to the characters announce accepts, none of which
+  # a shell or sed's | reads. The register part is the call of
+  # rules/parallel-sessions.md → Register, and renew, with <until> as
+  # the beat, which that section allows for a step that ends later.
+  fill() {
+    sed -e "s|@ID@|$ID|g" -e "s|@UNTIL@|$UNTIL|g" -e "s|@WS@|$T_WS|g" \
+      -e "s|@TASK@|$T_TASK|g" -e "s|@OP@|$T_OP|g" -e "s|@KIND@|$AKIND|g" \
+      -e "s|@ORIGIN@|$ORIGINJ|g"
+  }
+  T_REG=$(fill <<'EOF'
+D=/tmp/hostwarden
+[ -e "$D" ] || (umask 0 && mkdir "$D")
+ls -ld "$D"
+if [ ! -L "$D" ] && cd "$D" 2>/dev/null \
+   && [ "$(pwd -P)" = "$(cd /tmp && pwd -P)/hostwarden" ] \
+   && [ "$(ls -ld . | cut -c1-10)" = drwxrwxrwx ]; then
+  N="@ID@+@UNTIL@+@WS@+@TASK@"
+  E=$(ls -d @ID@+* 2>/dev/null)
+  if [ -n "$E" ]; then mv "$E" "$N"; else mkdir "$N"; fi && echo registered
+fi
+cd /
+EOF
+)
+  T_LOG=$(fill <<'EOF'
+hm=$(date -d @@UNTIL@ +%H:%M 2>/dev/null || date -r @UNTIL@ +%H:%M 2>/dev/null || echo @UNTIL@)
+logger -t hostwarden "[@OP@ as $(id -un)] impact @ID@: @KIND@ of @ORIGIN@ until $hm" && echo logged
+EOF
+)
+  T_QLOG=$(fill <<'EOF'
+hm=$(date -d @@UNTIL@ +%H:%M 2>/dev/null || date -r @UNTIL@ +%H:%M 2>/dev/null || echo @UNTIL@)
+/sbin/log_tool -t0 -uSystem -p127.0.0.1 -mlocalhost -a "hostwarden: [@OP@ as $(id -un)] impact @ID@: @KIND@ of @ORIGIN@ until $hm" && echo logged
+EOF
+)
+  mkdir -p "$T_DIR/remote" "$TW/out"
+  # A host without memory here never gets a call, so it is not walked
+  # for its jump group either.
+  hosts=''
+  for th in $(printf '%s\n' "$2" | awk '{ print $1 }'); do
+    if [ -f "$M/servers/$th/memory.md" ]; then hosts="$hosts $th"
+    else echo "no entry: $th (no memory here)" >>"$TW/out/nomem"
+    fi
+  done
+  # shellcheck disable=SC2086 # each host is its own argument
+  [ -z "$hosts" ] || sh "$SCRIPT_DIR/hostwarden-impact" radius --jumps $hosts \
+    >"$TW/groups" 2>/dev/null
+  gi=0
+  while read -r what rest; do
+    gi=$((gi + 1))
+    case $what in
+      unreadable) echo "no entry: $rest (way in not readable)" >"$TW/out/u$gi" ;;
+      group) ( for gh in $rest; do tell_one "$gh"; done >"$TW/out/g$gi" ) & ;;
+    esac
+  done <"$TW/groups"
+  wait
+  n=$(printf '%s\n' "$2" | grep -c .)
+  cat "$TW"/out/* 2>/dev/null | sort >"$TW/results"
+  k=$(grep -c . "$TW/results")
+  echo "team: register entry and journal line on $((n - k)) of $n hosts"
+  cat "$TW/results"
+}
+
+# untell <dir> — removes the register entries announce made on the
+# hosts under <dir>/remote/, one call each; a host that cannot be
+# reached, or is on the blacklist by now, keeps its entry until it
+# goes stale.
+untell() {
+  [ -d "$1/remote" ] || return 0
+  team_setup lists
+  u_id=${1##*/}; u_id=${u_id%%+*}
+  for f in "$1"/remote/*; do
+    [ -e "$f" ] || continue
+    h=${f##*/}
+    way_in "$h"
+    blocked "$h" >/dev/null \
+      && { echo "entry left: $h (blacklisted now; it goes stale on its own)"; continue; }
+    ssh -F "$SSHCFG" -l "$u" ${port:+-p "$port"} "$dest" \
+      "rmdir /tmp/hostwarden/$u_id+* 2>/dev/null; true" </dev/null >/dev/null 2>&1 \
+      || echo "entry left: $h (not reached; it goes stale on its own)"
+  done
+}
+
 do_announce() {
   [ $# -ge 2 ] || { usage >&2; exit 2; }
   ip_prev='' ip_last=''
@@ -236,6 +536,7 @@ do_announce() {
         if (pr > best[$1] || !($1 in best)) { best[$1] = pr; bh[$1] = $2; bk[$1] = $3 } }
       END { for (s in best) print s, bh[s], bk[s] }' | sort
   fi
+  if impact_team; then tell "$DIR" "$RADIUS"; fi
 }
 
 do_wait() {
@@ -300,7 +601,10 @@ do_ack() {
 do_done() {
   [ $# -eq 1 ] || { usage >&2; exit 2; }
   impact_setup
-  if DIR=$(impact_dir_for_id "$1"); then rm -rf "$DIR"; fi
+  if DIR=$(impact_dir_for_id "$1"); then
+    untell "$DIR"
+    rm -rf "$DIR"
+  fi
   exit 0
 }
 
@@ -406,6 +710,121 @@ window_status() {
   return 1
 }
 
+# coordinators — the session of each live coordinator entry: its
+# session listed by `claude agents --json`, or, without the claude
+# CLI, its beat under 30 minutes old. Removes the others; asks the
+# CLI only where there is an entry to ask about.
+coordinators() {
+  set -- "$HOSTWARDEN_CACHE"/coordinator+*
+  [ -e "$1" ] || return 0
+  cs_ag=$(claude agents --json 2>/dev/null) || cs_ag=''
+  cs_now=$(date +%s)
+  for cs_e; do
+    cs_s=${cs_e##*/coordinator+}; cs_b=${cs_s##*+}; cs_s=${cs_s%+*}
+    case $cs_b in *[!0-9]* | '') rm -rf "$cs_e"; continue ;; esac
+    if [ -n "$cs_ag" ]; then
+      case $cs_ag in *"\"$cs_s\""*) ;; *) rm -rf "$cs_e"; continue ;; esac
+    elif [ $((cs_now - cs_b)) -ge 1800 ]; then
+      rm -rf "$cs_e"; continue
+    fi
+    echo "$cs_s"
+  done
+}
+
+# coordinator_mark — marks this session as the coordinator, or
+# renews its mark; returns 1, having said why, where another stays:
+# one that was there first, or on a renewal one with the smaller
+# session id, so two that marked themselves at once settle on one.
+coordinator_mark() {
+  SESSION=$(impact_session)
+  MINE=''
+  for ip_e in "$HOSTWARDEN_CACHE"/coordinator+"$SESSION"+*; do
+    [ -e "$ip_e" ] && MINE=1
+  done
+  for ip_s in $(coordinators); do
+    [ "$ip_s" = "$SESSION" ] && continue
+    if [ -z "$MINE" ] || [ "$(printf '%s\n%s\n' "$ip_s" "$SESSION" | LC_ALL=C sort | head -n 1)" = "$ip_s" ]; then
+      echo "another coordinator runs: $ip_s"
+      return 1
+    fi
+  done
+  hostwarden_coord_beat "$HOSTWARDEN_CACHE" "coordinator+$SESSION"
+  rmdir "$HOSTWARDEN_CACHE/coordinator-start" 2>/dev/null
+  return 0
+}
+
+do_coordinator() {
+  [ $# -eq 0 ] || { usage >&2; exit 2; }
+  impact_setup
+  CS=$(coordinators)
+  [ -n "$CS" ] || exit 1
+  printf '%s\n' "$CS"
+}
+
+# snapshot — one line per thing the coordinator watches: each live
+# touched and writer presence entry, without its time, each impact and
+# each ack under it, and each plan with its checksum. A run entry
+# comes and goes with every long command and asks nothing of it.
+snapshot() {
+  sn_now=$(date +%s)
+  (cd "$HOSTWARDEN_CACHE" 2>/dev/null && ls -1d presence/* impact/* impact/*/ack/* 2>/dev/null) \
+    | awk -F/ -v now="$sn_now" '
+      $1 == "presence" {
+        n = split($2, p, "+")
+        if (p[n] ~ /^[0-9]+$/ && now - p[n] <= 1800) print "presence " p[1] " " p[2] " touched"
+        next
+      }
+      $1 == "impact" && NF == 2 { print "impact " $2; next }
+      $1 == "impact" && $3 == "ack" { split($2, i, "+"); print "ack " i[1] " " $4 }'
+  # A writer entry counts while its own age is under 30 minutes, as
+  # hostwarden_coord_affected (coord-lib.sh) counts it.
+  find "$HOSTWARDEN_CACHE/presence" -mindepth 1 -maxdepth 1 -name '*+writer' -mmin -30 \
+    2>/dev/null | while IFS= read -r sn_w; do
+      sn_w=${sn_w##*/}; sn_w=${sn_w%+writer}
+      echo "presence ${sn_w%%+*} ${sn_w#*+} writer"
+    done
+  for sn_f in "$M"/plans/*.md; do
+    [ -f "$sn_f" ] && printf 'plan %s %s\n' "${sn_f##*/}" "$(cksum <"$sn_f" | cut -d' ' -f1)"
+  done
+}
+
+do_watch() {
+  [ $# -eq 0 ] || { usage >&2; exit 2; }
+  impact_setup
+  coordinator_mark || exit 1
+  POLL=${HOSTWARDEN_WATCH_POLL:-5}
+  OLD=$(mktemp "${TMPDIR:-/tmp}/hostwarden-watch.XXXXXX") || die "no temp file"
+  NEW=$OLD.new
+  trap 'rm -f "$OLD" "$NEW"' EXIT INT TERM
+  : >"$OLD"
+  ELAPSED=0 BEAT=0 TICK=0
+  while :; do
+    impact_prune
+    snapshot | LC_ALL=C sort -u >"$NEW"
+    LC_ALL=C comm -13 "$OLD" "$NEW" | sed 's/^/+ /'
+    LC_ALL=C comm -23 "$OLD" "$NEW" | sed 's/^/- /'
+    mv "$NEW" "$OLD"
+    # Another mark that appeared since — two coordinators that
+    # started at the same moment — settles at once, not at the next
+    # renewal: the smaller session id stays.
+    for ip_e in "$HOSTWARDEN_CACHE"/coordinator+*; do
+      case $ip_e in "$HOSTWARDEN_CACHE/coordinator+$SESSION+"* | *'*') continue ;; esac
+      [ -e "$ip_e" ] && { coordinator_mark || exit 1; BEAT=$ELAPSED; break; }
+    done
+    if [ $((ELAPSED - BEAT)) -ge 300 ]; then
+      coordinator_mark || exit 1
+      BEAT=$ELAPSED
+    fi
+    if [ $((ELAPSED - TICK)) -ge 900 ]; then
+      grep -qs '^- Window:' "$M"/plans/*.md && echo "tick $(date +%H:%M)"
+      TICK=$ELAPSED
+    fi
+    [ -z "${HOSTWARDEN_WATCH_ONCE:-}" ] || exit 0
+    sleep "$POLL"
+    ELAPSED=$((ELAPSED + POLL))
+  done
+}
+
 MODE='' KIND='' TARGETS='' last=''
 case ${1:-} in
   radius) shift ;;
@@ -414,6 +833,8 @@ case ${1:-} in
   ack) shift; do_ack "$@"; exit $? ;;
   done) shift; do_done "$@"; exit $? ;;
   status) shift; do_status "$@"; exit $? ;;
+  coordinator) shift; do_coordinator "$@"; exit $? ;;
+  watch) shift; do_watch "$@"; exit $? ;;
   -h | --help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;
 esac
@@ -463,19 +884,6 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-impact.XXXXXX") || die "no temp dir
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
 # --- memory -----------------------------------------------------
-
-# user_for <key> — the SSH user memory/user.md gives <key>: its own
-# entry, else the default (rules/ssh-user.md).
-user_for() {
-  awk -v k="$1" '
-    /^[-*[:space:]]*Default:/ && d == "" {
-      d = $0; sub(/^[-*[:space:]]*Default:[[:space:]]*/, "", d); sub(/[[:space:]].*/, "", d)
-    }
-    index($0, "- " k ":") == 1 {
-      u = substr($0, length(k) + 4); sub(/^[[:space:]]+/, "", u); sub(/[[:space:]].*/, "", u)
-    }
-    END { print (u != "" ? u : d) }' "$M/user.md" 2>/dev/null
-}
 
 # sshg <config> <user> <port> <host> — ssh -G for <host>; <config>
 # is - for the standard options, empty for the user's own, or the

@@ -96,8 +96,9 @@ to happen, whichever session catches it.
 - **The activity check**, on a host with a `Downtime:` line, says
   so as part of what it reports for that host.
 - **`hostwarden-impact status`** also reports a window that covers
-  the current time, so losing SSH during it reads as a known cause
-  rather than an outage.
+  the current time. Losing SSH during it has the window as its
+  likely explanation, never its proven cause: a plan runs only when
+  a session is asked to run it (`rules/ssh-unreachable.md`).
 
 ## Running it later
 

@@ -264,9 +264,9 @@ Only on the user's word, never because a date passed.
 - **Move to another scope:** write it at the new one and delete it
   at the old one, in one commit.
 
-## Team mode
+## Shared workspace
 
 Decision files are shared, like the rest of a host's memory
-(`rules/server-memory.md` → Personal versus shared). A teammate's
-decision binds this session as the user's own does; `Decided:`
-names whose it was.
+(`rules/server-memory.md` → Personal versus shared). A decision
+another person made binds this session as the user's own does;
+`Decided:` names whose it was.

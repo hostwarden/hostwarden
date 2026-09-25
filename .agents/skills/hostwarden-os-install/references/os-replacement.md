@@ -102,7 +102,7 @@ system before it is wiped. Store it in
 
 **Never store private key material anywhere
 under the Hostwarden repo.** `pre-replacement.md`
-can be git-shared in team mode. Copy keys to a
+can be git-shared in a shared workspace. Copy keys to a
 location outside the repo (e.g.
 `~/hostwarden-keys/<hostname>/`) with `0600` file
 and `0700` directory permissions, and record

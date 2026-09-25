@@ -57,8 +57,8 @@ servers, one internal and one public. Both are recorded view by view.
 
 ## The inventory
 
-`memory/dns.md`, created on first need, shared in team mode
-(`rules/server-memory.md` → Personal versus shared). Current facts
+`memory/dns.md`, created on first need, shared in a shared
+workspace (`rules/server-memory.md` → Personal versus shared). Current facts
 only, one line per name space, in the shape of `memory/network.md`'s
 entries, and a findings section:
 
