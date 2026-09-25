@@ -37,6 +37,7 @@ Four sections, each in the shape of `## Management controllers`:
 ```markdown
 ## Sites
 - home — the house and the garage rack (user, 2026-09-24)
+  - code: muc (user, 2026-09-24)
   - uplink fw1 wan: dual-stack · IPv4 100.64.12.7 on the WAN,
     provider CGNAT (user) · IPv4 dynamic (changed 2026-09-20) ·
     IPv6 /56 delegated, dynamic (user) — from fw1 config;
@@ -77,10 +78,10 @@ Four sections, each in the shape of `## Management controllers`:
 ```
 
 **`## Sites`** holds site names, the user's own words about each,
-and each site's uplinks as sub-entries (Uplinks below), and
-nothing else. The hosts at a site are found through
-their `Site:` lines, and its ranges through their site field; a
-host list here would be a second copy that drifts.
+and each site's uplinks and code as sub-entries (Uplinks and A
+site's code below), and nothing else. The hosts at a site are found
+through their `Site:` lines, and its ranges through their site
+field; a host list here would be a second copy that drifts.
 
 ## Ranges
 
@@ -282,7 +283,8 @@ copied value goes stale when the guest migrates.
 - **When:** at a host's first full network profile, or an
   appliance's first configuration read, with a person present —
   onboarding, or a full profile or read of a host that has no
-  `Site:` line yet.
+  `Site:` line yet; or before `hostwarden-os-install`'s first write
+  on a host whose memory has no `Site:` line.
 - **What it offers,** never more than the three-option picker of
   `rules/ssh-user.md` → Interview format allows, and never more
   than one named site: the confirmed site of the host's component,
@@ -309,6 +311,79 @@ copied value goes stale when the guest migrates.
   - for a `Role: workstation` host;
   - for a guest;
   - on a plain connection.
+
+### A site's code
+
+A site's name is the user's own word for it — `home`, `colo-fra` —
+what `Site:` records and what The question above asks for. A
+**site code** is a separate, short form of the same place: what a
+naming scheme's `site` token uses, and what its per-site subdomain
+model uses as a label of its own (`rules/naming-scheme.md` → The
+best-practice proposal, → Domain models). It is a sub-entry of the
+site's `## Sites` line, the same way an uplink is (Uplinks below):
+`code: <value>`, with who gave it and when.
+
+Not every site needs one — only a site a naming scheme's `<site>`
+token reaches, in a hostname label or in a per-site subdomain. It
+is established when the scheme itself is: at the
+best-practice proposal, or at detection, where a token position
+with no site behind it is asked about in the same exchange
+(`rules/naming-scheme.md` → The best-practice proposal, →
+Detection). It is recorded here once the user accepts or changes
+it. A site that first needs one only later — a new guest at a site
+the scheme has never named, or an adopted scheme's own `Regex:`
+after a code is added or changed — is naming-scheme.md's and
+`hostwarden-new-guest`'s mechanism to keep current with this store;
+this section defines the code, not when every consumer re-reads
+it.
+
+**Where the code comes from, in order:**
+
+1. **The user's own code** — theirs to give even where it merely
+   borrows the airport-code style without being one, the way
+   Hetzner's own `fsn` for Falkenstein does.
+2. **The IATA code of the site's own city**, where it has one
+   (Resolution 763).
+3. **UN/LOCODE's location part** (the United Nations Code for Trade
+   and Transport Locations, maintained by UNECE), for a place with
+   no IATA code. It names the place itself, in the same three
+   letters, and reaches far more places than airports do.
+
+**Three letters is recommended, never enforced.**
+
+**Every code is a valid DNS label on its own** — the syntax
+`rules/naming-scheme.md` → The best-practice proposal already gives
+(RFC 1123 §2.1, RFC 952): lowercase letters and digits, starting
+with a letter, but no hyphen — a template's own hyphen already sets
+the code apart. It sits inside a hostname label, and, in the
+per-site subdomain model, as a label by itself — so "the user's own
+code" means any code that meets this, not any string.
+
+**A code is unique across `## Sites`.** A LOCODE location part is
+only unique within its own country, so a collision between two
+different places is asked about once (`AskUserQuestion`, or the
+interview format of `rules/ssh-user.md` as the fallback), offering
+a country-qualified form or another code the user picks.
+
+**A second site or campus in the same city, or a second datacenter
+or building at one site, is the same case: both take the site's
+code with a number appended** — the second `fsn2`, the third
+`fsn3`, and so on. The first site keeps its bare code and is never
+renumbered once given; where the user already knows from the
+outset there will be several, they may start numbering at `fsn1`
+instead, the way Hetzner itself numbers Falkenstein. Unlike a
+host's own index (`rules/naming-scheme.md` → The best-practice
+proposal), the number is never shown zero-padded: `fsn2`, never
+`fsn02` — a city rarely holds enough sites to need the padding, and
+it would look wrong at that scale. Anything finer than a site or a
+building — a hall, a rack, a room — does not belong in a site code
+at all; it stays in inventory or topology detail.
+
+**A code is sticky,** for the reason a naming scheme's own name
+already is (`rules/naming-scheme.md` → Existing hosts: gradually,
+never forced): changing it renames every host that carries it, and
+that happens only when the user asks, one host at a time
+(`rules/host-rename.md`).
 
 ## Uplinks
 

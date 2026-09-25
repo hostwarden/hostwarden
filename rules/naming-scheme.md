@@ -57,8 +57,8 @@ a judgement call: two runs of the same check must agree.
   name** — `Role:`, `Index:` above — spelling out what its values
   mean or how the next one is picked. A `site` token needs no such
   line: its codes live with the sites they name, in
-  `rules/network-topology.md` → Sites. A `literal` or `free` token
-  needs no such line either.
+  `rules/network-topology.md` → A site's code. A `literal` or
+  `free` token needs no such line either.
 - **`Exempt:`** one line per host that deliberately stays off this
   block's scheme, each with the reason and who and when. Kept
   centrally so a host's own `memory.md` gets no new line, and
@@ -241,9 +241,9 @@ already `Exempt:` in `memory/naming.md`.
 
 - its directory name and `- FQDN:`;
 - `Site:` (a guest's: its host's, through `Runs on:`) and, through
-  it, the site's code in `rules/network-topology.md` → Sites, the
-  service lines (`Web server:`, `Database:`, …), and `Appliance:`
-  or `Hypervisor:`, for correlation.
+  it, the site's code in `rules/network-topology.md` → A site's
+  code, the service lines (`Web server:`, `Database:`, …), and
+  `Appliance:` or `Hypervisor:`, for correlation.
 
 **Method.** Split the first label — the directory name, or the
 FQDN's first component where it differs — at every hyphen and at
@@ -252,7 +252,7 @@ across the hosts that count:
 
 - a `site` token when its values line up with the code recorded
   for the host's `Site:` (a guest's: its host's, through
-  `Runs on:`) in `rules/network-topology.md` → Sites;
+  `Runs on:`) in `rules/network-topology.md` → A site's code;
 - an `index` when it is digits at that position on every host that
   has one there. Its width is the width every host that counts
   shares; where they disagree, the regex takes `[0-9]+` at that
@@ -302,9 +302,10 @@ these changes** (the changed template and regex go through the same
 confirmation once more) / **not a scheme** (offer The best-practice
 proposal below, or no scheme at all, in the same exchange). A site
 position whose value names no site with that code yet in
-`rules/network-topology.md` → Sites is asked about in the same
-exchange; the answer names or creates the site, and the code is
-recorded there, never in `memory/naming.md`. **No structure found:**
+`rules/network-topology.md` → A site's code is asked about in the
+same exchange; the answer names or creates the site, and the code
+is recorded there, never in `memory/naming.md`. **No structure
+found:**
 say so in one line and offer the same two alternatives.
 
 Nothing is adopted without a yes — a `correct` or `correct with
@@ -336,8 +337,8 @@ customer.
 **Default template:** `<site>-<role><nn>`, one domain for every
 host.
 
-- The site is a short code of 2–4 letters: the user's own, or an
-  airport code such as `muc`.
+- The site is a site's code (`rules/network-topology.md` → A
+  site's code).
 - The index is shown zero-padded to two digits (`01`, `02`, …) —
   the default, not a rule: unpadded (`1`, `2`, …) or another width
   is a change to the shown template like any other, taken with

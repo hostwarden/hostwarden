@@ -65,8 +65,9 @@ exists):
 - **Name:** the guest's FQDN. Where a `rules/naming-scheme.md` block
   applies to the guest, propose the next name it gives: the site
   token is the code recorded for the hypervisor's `Site:` in
-  `rules/network-topology.md` → Sites, never the site name itself —
-  asked, alongside the site, where the host has neither yet — the
+  `rules/network-topology.md` → A site's code, never the site name
+  itself — asked, alongside the site, where the host has neither
+  yet — the
   role asked, the index the next one free across `memory/servers/`
   and every `guests.md`, and the domain from the block. The user
   confirms it or types another. A
