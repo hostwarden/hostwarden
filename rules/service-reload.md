@@ -69,27 +69,21 @@ explicitly listed in `restart-auto`. No heuristics.
 
 ## Config: `memory/service-policy.md`
 
-Optional. Missing file = defaults apply. The format
-mirrors `memory/blacklist.md` / `memory/readonly.md`
-— plain markdown, three sections, one service name
-per line, lines starting with `#` ignored.
+Optional. Missing file = defaults apply. Plain markdown, three
+`##` sections, one service name per line as a `- ` bullet under
+the section it belongs to.
 
 ```markdown
 # Service Policy
 
 ## reload-always-ask
-# Claude will ask before `systemctl reload` on these.
 - postgresql
 
 ## restart-auto
-# Claude may `systemctl restart` these without asking.
 - nginx
 - caddy
 
 ## restart-never
-# Claude refuses to restart these outright, without
-# prompting. Tell the user to do it manually or
-# remove the entry.
 - mariadb
 ```
 
@@ -149,12 +143,13 @@ After a write, confirm in one short line, e.g.
 
 ### Write-Back Rules
 
-- Preserve comments, blank lines, and section order.
+- Preserve the explanatory text, blank lines, and
+  section order.
 - Only edit the specific list the answer affects.
 - If `memory/service-policy.md` is missing, create
   it from `templates/memory/service-policy.md.example`
-  with the one new entry added (and all commented
-  examples intact).
+  with the one new entry added under the right
+  heading.
 - Deduplicate — never add a service already in the
   list.
 - Never reorder or touch other sections.
