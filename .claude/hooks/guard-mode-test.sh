@@ -381,7 +381,7 @@ mon pass "$OPS" 'ssh root@server1.example.com tail -f /var/log/syslog'
 cmd pass "$DEV" 'echo "Monitor" ssh'
 # Containers: as bin/hostwarden-lab starts them, never with a way
 # into this machine.
-cmd pass "$DEV" 'docker run --detach --rm --init --name hwlab-x-debian --label hostwarden.lab=x --security-opt no-new-privileges docker.io/library/debian:13 tail -f /dev/null'
+cmd pass "$DEV" 'docker run --detach --rm --init --name hwlab-x-debian --label hostwarden.lab=x --security-opt no-new-privileges docker.io/library/debian:13 sh -c "sleep 21600"'
 cmd pass "$DEV" 'podman run --rm -it docker.io/library/alpine:3.24 sh'
 cmd pass "$DEV" 'docker run --rm -v cache:/var/cache/apt debian:13 true'
 cmd pass "$DEV" 'docker run --rm -v /data debian:13 true'

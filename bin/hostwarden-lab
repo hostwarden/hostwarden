@@ -4,7 +4,9 @@
 #
 # Usage:
 #   hostwarden-lab up <family>[:<tag>]
-#                                Start a container of that family
+#                                Start a container of that family,
+#                                for HOSTWARDEN_LAB_TTL seconds
+#                                (default 6h)
 #   hostwarden-lab exec <family> -- <command...>
 #                                Run a command in it, as root;
 #                                starts it first when it is not up
@@ -33,6 +35,21 @@
 # privilege, and carries the label hostwarden.lab=<checkout>-<sum>,
 # the checkout's name and a checksum of its path, which is all
 # that down removes by.
+#
+# A container's own lifetime decides when it goes away, not the
+# session that started it (docs/adr/20260925-lab-containers-self-expire.md):
+# nothing in Claude Code reliably marks a session's end, SessionEnd
+# fires on neither /exit nor /clear, the two ordinary ways one
+# closes (github.com/anthropics/claude-code issues #17885, #6428),
+# so up gives the container a fixed lifetime, HOSTWARDEN_LAB_TTL
+# seconds, default 6h, instead of hanging cleanup on that. Once the
+# sleep it runs as ends, the engine's own --rm removes it, whether
+# or not the checkout that started it, or the session, still
+# exists — a command still running at that moment is killed with
+# it, unexplained. exec recreates a container that is gone, so a
+# session that starts a new command past the TTL notices nothing
+# but a moment's delay; pick a longer HOSTWARDEN_LAB_TTL first when
+# a command is expected to run close to or past the default.
 #
 # A container has no init, no firewall and a shared kernel: systemd
 # services, the firewall, kernel parameters, a reboot and the SSH
@@ -194,19 +211,52 @@ up() {
     --filter "label=hostwarden.lab.family=$f" --format '{{.Image}}')
   if [ -n "$now" ]; then
     case "$img" in
-      *"$now") echo "$(name "$f") is up: $img." ;;
+      *"$now")
+        # A container from before self-expiry runs tail -f
+        # /dev/null, no lifetime of its own: replace it so it does
+        # not run forever, the same forgotten container this
+        # command exists to prevent. Only a clean read that shows
+        # the old form removes anything: an inspect that fails —
+        # the container gone between ps and here, another
+        # session's down racing this one, an engine hiccup — is
+        # never read as "must be old, remove it". It falls through
+        # to run instead, which recreates cleanly if the container
+        # really is gone, or fails loudly on the name still being
+        # taken if it is not, rather than silently taking a
+        # container that may be someone else's still-active one.
+        cmd=$("$ENGINE" inspect --format '{{index .Config.Cmd 0}}' \
+          "$(name "$f")" 2>/dev/null) || cmd=
+        case "$cmd" in
+          sh) echo "$(name "$f") is up: $img." ; return 0 ;;
+          tail) "$ENGINE" rm -f "$(name "$f")" >/dev/null 2>&1 \
+            || true ;;
+        esac ;;
       *) die "$(name "$f") is up with $now; down $f first." ;;
     esac
-    return 0
   fi
-  # --init reaps and stops at once; tail -f /dev/null is the one
-  # idle command every one of these images has.
+  ttl=${HOSTWARDEN_LAB_TTL:-21600}
+  case "$ttl" in
+    ''|*[!0-9]*) die "HOSTWARDEN_LAB_TTL must be a whole number of \
+seconds, not '$ttl'." ;;
+  esac
+  # 0 parses as a whole number but sleep 0 exits at once, so --rm
+  # removes the container before up can report it as running; a
+  # string over 9 digits would overflow the shell's own -gt before
+  # die could run, with a raw shell error instead of this one. A
+  # lab container has no legitimate need for a lifetime near either
+  # end.
+  [ "${#ttl}" -le 9 ] && [ "$ttl" -gt 0 ] || die "HOSTWARDEN_LAB_TTL \
+must be a positive number of seconds, at most 9 digits, not '$ttl'."
+  # --init reaps and stops at once; sleep is the one idle command
+  # every one of these images has, and running it for a fixed time
+  # gives the container its own lifetime, so nothing outside the
+  # engine has to remember to end it.
   "$ENGINE" run --detach --rm --init \
     --name "$(name "$f")" --hostname "hwlab-$f" \
     --label "hostwarden.lab=$LAB" --label "hostwarden.lab.family=$f" \
     --security-opt no-new-privileges \
-    "$img" tail -f /dev/null >/dev/null
-  echo "$(name "$f") is up: $img."
+    "$img" sh -c "sleep $ttl" >/dev/null
+  echo "$(name "$f") is up: $img, for ${ttl}s."
 }
 
 down() {

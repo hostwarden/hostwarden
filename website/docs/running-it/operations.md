@@ -96,7 +96,12 @@ A lab container is neither a server nor local mode,
 so a development session uses it directly. Each
 worktree gets its own, labelled with the worktree's
 name and a checksum of its path, and `down` removes
-by that label alone. They run without a published
+by that label alone. It also self-expires: `up`
+gives it a fixed lifetime, `HOSTWARDEN_LAB_TTL`
+seconds (default 6h), and the engine removes it on
+its own once that ends, whether or not `down` was
+ever run — a command still running at that moment
+is killed with it. They run without a published
 port, a host path, the engine's socket or any extra
 privilege. In development the mode guard lets
 `docker`, `podman` and `nerdctl` read, pull, build,
