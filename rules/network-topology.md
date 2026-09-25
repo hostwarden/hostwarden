@@ -330,12 +330,13 @@ best-practice proposal, or at detection, where a token position
 with no site behind it is asked about in the same exchange
 (`rules/naming-scheme.md` → The best-practice proposal, →
 Detection). It is recorded here once the user accepts or changes
-it. A site that first needs one only later — a new guest at a site
-the scheme has never named, or an adopted scheme's own `Regex:`
-after a code is added or changed — is naming-scheme.md's and
-`hostwarden-new-guest`'s mechanism to keep current with this store;
-this section defines the code, not when every consumer re-reads
-it.
+it. A site that first needs one only later — a new guest or a
+bare-metal target at a site the scheme has never named, or an
+adopted scheme's own `Regex:` after a code is added or changed — is
+naming-scheme.md's, `hostwarden-new-guest`'s and
+`hostwarden-os-install`'s mechanism to keep current with this
+store; this section defines the code, not when every consumer
+re-reads it.
 
 **Where the code comes from, in order:**
 

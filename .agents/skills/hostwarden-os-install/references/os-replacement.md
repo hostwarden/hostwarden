@@ -307,8 +307,21 @@ restoring services.
 ## Memory Updates
 
 After replacement:
-- Update `memory.md` with the new OS, services,
-  and configuration.
+- Update `memory.md` with the new OS, services, and
+  configuration — edit the fields the reinstall
+  actually changed, never rewrite the file whole.
+  `Site:` (`rules/network-topology.md` → Sites) is a
+  fact about the place, not the OS that just left,
+  and was never touched by the wipe: a wholesale
+  rewrite that drops it anyway gets the host asked
+  for one again, as if it were never onboarded.
+- Treat this host's first connection under the new
+  OS as a full network profile like any first
+  connection (`rules/first-connection.md`,
+  `rules/network.md`): the new OS can bring
+  different interface names, drivers or a network
+  stack, and `rules/network-topology.md` → Folding a
+  profile has to see it fresh.
 - Keep the changelog — add an entry for the OS
   replacement.
 - Delete `pre-replacement.md` once everything is

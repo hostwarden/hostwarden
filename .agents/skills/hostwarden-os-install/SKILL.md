@@ -127,6 +127,71 @@ Code blocks in the references that only run with the guard off
 carry `guard-off` on their fence. Blocks marked `operator` are for
 the user to type at a console, not for Hostwarden to run.
 
+## Naming a target with no memory yet
+
+Only where the target has no `memory/servers/<hostname>/` directory
+yet — bare-metal hardware, or an already-provisioned VM that has
+not booted. Never a reinstall of a host already in memory: its name
+and `Site:` stand as they are, untouched by the wipe
+(`references/os-replacement.md` → Memory Updates).
+
+Settle this before this session's first connection to the target at
+all, never merely before the disk write. The pipeline of
+`rules/first-connection.md` runs before any command over SSH, a
+read-only one included (`AGENTS.md` → Before Any Remote Command),
+and creates `memory/servers/<hostname>/` on that first command
+(step 6): reaching a rescue or minimal environment to inspect the
+target, or to prepare a hot-migration
+(`references/os-replacement-ssh-only.md`), takes away its "no
+memory yet" status before this section would otherwise run. Naming
+uses only what the operator already knows about the target — its
+intended hostname or address, and, for a VM, its hypervisor —
+never a read from the target itself, so nothing here needs that
+first connection to happen first.
+
+**Site**, where the target needs one it does not have. A guest
+never gets a `Site:` of its own (`rules/network-topology.md` →
+Sites): its site is its hypervisor's, read through `Runs on:` once
+it is registered, and the question below is never asked for it —
+only for the hypervisor, where that itself lacks a `Site:`. Bare
+metal with no hypervisor is asked directly, at
+`rules/network-topology.md` → Sites → The question's own trigger
+for this moment ("before `hostwarden-os-install`'s first write on a
+host whose memory has no `Site:` line"), and, in the same exchange,
+the site's code where a naming scheme's template needs a `<site>`
+token and the resolved site lacks one yet
+(`rules/network-topology.md` → A site's code) — the way
+`hostwarden-new-guest` → The request asks Site alongside the name.
+With no memory directory yet to write into, the answer is held for
+this session and written in when this session's own first
+connection to the target creates that directory
+(`rules/first-connection.md` step 6). Where the session ends before
+any connection to the target happens — a bare-metal install that
+spans a reboot nobody stayed at the console for — nothing carries
+the answer forward, and it may have to be given again to whatever
+later asks this host for its `Site:`.
+
+**The name.** Where a `rules/naming-scheme.md` block applies to the
+target's role — `Role: server`, unless this is the local machine
+itself, which follows the ordinary rule instead
+(`rules/first-detection.md` → Roles) — propose the next name it
+gives and confirm it or take a typed name instead, exactly as
+`rules/naming-scheme.md` → New hosts follow it immediately
+describes for `hostwarden-new-guest`. Whichever name is settled,
+proposed or typed, passes the same checks `hostwarden-new-guest` →
+The request applies before creating anything: no directory of that
+name already under `memory/servers/`, no guest of that name in a
+host's `guests.md`, and neither the name nor a static address on
+the blacklist or the read-only list (`rules/access-control.md`).
+Where no block applies, the user's own hostname stands, checked the
+same way.
+
+Nothing here writes to `memory/naming.md` beyond an `Exempt:` line
+where a typed name is kept off-scheme, and nothing here creates the
+target's directory: that is first connection's job, whichever
+connection to the target — rescue environment or new OS — turns
+out to be first (After, below).
+
 ## Which reference
 
 - **Wipe and reinstall, same machine, new OS** →
@@ -193,3 +258,32 @@ Run the post-replacement checklist in the reference you used, then
 verify against the live system before reporting success
 (`rules/verify-before-reporting.md`). A machine that answers SSH is
 not yet a machine that survives a reboot.
+
+Where Naming a target with no memory yet held a `Site:`, this
+session's first connection to the target — rescue environment or
+new OS, whichever comes first — writes the held answer in as it
+creates the `memory/servers/` entry (`rules/first-connection.md`
+step 6). A first connection from a later session has no record of
+it; see Naming a target with no memory yet for what that means. For
+a host that already had one, `references/os-replacement.md` →
+Memory Updates says why nothing needs restoring there instead.
+
+That first connection reaches the target by whatever identifier is
+actually reachable — its current address, a rescue environment's
+own hostname, DHCP's transient one — which the settled name need
+not match: DNS for a brand-new name often does not exist yet
+(`rules/dns.md` → The proposal). Where the two differ, the
+directory `rules/first-connection.md` created carries the
+connection's identifier, not the settled one. Reconcile them before
+reporting success, in this same session, by `rules/host-rename.md`
+→ Memory's mechanism in full: the directory move and its DNS-alias
+symlinks, the `Host` block `memory/ssh_hosts` needs to keep
+reaching the machine (checked with `bin/hostwarden-ssh-config`),
+and `memory/known_hosts`'s lines for the settled name
+(`rules/host-keys.md` → DNS Aliases) — except keeping the
+connecting identifier itself as a lasting alias, which that section
+does for an old *hostname* someone might still reference: a bare
+address or a rescue environment's own throwaway name is dropped
+instead, never kept as an alias. Never leave the memory entry and
+the name the install actually gave the machine reachable under two
+different identifiers.
