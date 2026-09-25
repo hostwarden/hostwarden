@@ -363,6 +363,22 @@ on OPNsense `dhcp.backend` is `not read`.
   names. `pd-len` is the size of the prefix a WAN asks for, as its
   distance from `/64`: `8` is a `/56`, `16` a `/48`. The program
   leaves out a disabled interface, static route or `dhcpd` scope.
+- **Named gateways** (`gateway.<name>.*`): only a gateway added by
+  hand under Gateways in the UI is stored in `gateway_item`, so
+  only that kind gets a line here. OPNsense also builds one on its
+  own for a WAN whose `ipv4` is `dhcp`, `pppoe`, `pptp` or `l2tp`,
+  or whose `ipv6` is `dhcp6`, `slaac`, `6rd` or `6to4`, named
+  `<if>_GW`, `<if>_DHCP`, `<if>_PPPOE`, `<if>_PPTP`, `<if>_L2TP`,
+  `<if>_DHCP6`, `<if>_SLAAC`, `<if>_6RD` or `<if>_6TO4`, and marks
+  it virtual, so it never reaches `config.xml`; a LAN's `track6`
+  takes its prefix from the WAN and has no gateway of its own to
+  build. `if.<name>.gateway` or `.gateway6` can name such a
+  gateway, and a static route can point at one, with no matching
+  `gateway.<name>.*` line to go with it: that is this gap, not a
+  parsing failure. Its own live address — the upstream router's,
+  not the WAN interface's — is not read either: OPNsense keeps it
+  in its own dynamic-gateway state, set by whichever client
+  configured that WAN, never in `config.xml`.
 - **What counts as WAN:** the interface named `wan`, one with a
   `gateway` or `gateway6` of its own (an upstream gateway,
   multi-WAN), and one whose `ipv4` is `dhcp`, `pppoe`, `pptp` or
@@ -374,7 +390,9 @@ on OPNsense `dhcp.backend` is `not read`.
 - **VLANs** (`vlan.<device>.*`): the tag and the parent. A VLAN's
   own description is free text and is not read.
 - **Static routes** (`route.<n>.*`): the network, the gateway's
-  name and `via` its address from the gateway list.
+  name and `via` its address from the gateway list — `not read`
+  for `via` where the route's own gateway is one of the virtual
+  ones the gateway bullet above describes.
 - **DHCP:** OPNsense runs one of three servers, ISC (`dhcpd.*`,
   a plugin since 26.1), dnsmasq (`dnsmasq.*`, the default since
   25.7) or Kea (`kea.*`, the default for new installs since 26.1).
