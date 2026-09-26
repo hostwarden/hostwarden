@@ -33,13 +33,34 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create and push tag
+      # Signed and verified before the push
+      # (.claude/rules/repo-release.md → VERSION). A failure here
+      # leaves no tag; re-run the job once the secret is right.
+      - name: Create, verify and push signed tag
         if: steps.check.outputs.exists == 'false'
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          TAG: v${{ steps.v.outputs.version }}
         run: |
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::RELEASE_SIGNING_KEY is not set; refusing to push an unsigned release tag"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key")
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.v.outputs.version }}" -m "Release v${{ steps.v.outputs.version }}"
-          git push origin "v${{ steps.v.outputs.version }}"
+          git config gpg.format ssh
+          git config user.signingkey "$key"
+          git config gpg.ssh.allowedSignersFile "$PWD/.github/release-signers"
+          git tag -s "$TAG" -m "Release $TAG"
+          if ! git verify-tag "$TAG"; then
+            git tag -d "$TAG"
+            echo "::error::$TAG does not verify against .github/release-signers; RELEASE_SIGNING_KEY is not the published release key"
+            exit 1
+          fi
+          git push origin "$TAG"
 
       # Cuts a new Docusaurus doc version for the major line, if
       # this release started one — website/ has no versioned_docs/

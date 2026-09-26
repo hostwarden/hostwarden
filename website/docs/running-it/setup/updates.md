@@ -20,6 +20,30 @@ settles on that line with its next update, and keeps it when the
 next major is released. Before any such release exists, it follows
 `main`. A development checkout never settles on a line by itself.
 
+## Release signatures
+
+Every release tag from v1.0.0 on is an annotated tag signed with
+Hostwarden's release key, an SSH key used for nothing else:
+
+```text
+release@hostwarden namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0cMXwoEAtpFv+0ptBS/Za6djrMigZ6P6NIUZq8YHI7
+```
+
+Its fingerprint is
+`SHA256:Ut0GmoL9jbqB/BRdlNZmyjdakDDLKsR1Y/OcU8l8nmk`. The same line
+is in `.github/release-signers`, which the release workflow checks
+each tag against before it pushes it. To check a tag yourself, save the
+lines above to a file outside the checkout and run:
+
+```bash
+git -c gpg.ssh.allowedSignersFile=<that file> verify-tag vX.Y.Z
+```
+
+Take the lines from this page, not from the checkout: a file in the
+checkout proves nothing about the tag that brought it. A key retired
+in the normal course stays listed, bounded with `valid-before`, so
+an older release still verifies; a key that leaked is removed.
+
 ## Automatic updates
 
 On every session start in an operations checkout, a hook (Claude
