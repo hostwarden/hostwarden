@@ -129,6 +129,18 @@ that shares this workspace, or only from this one?"*
 3. `not sure` — treat it as not confirmed: skip the shared write,
    for the same reason.
 
+2 and 3 both leave a caller whose own remaining steps in this same
+run need the settled name to resolve — never future convenience,
+the way a rename's alias or an mDNS answer is — one option
+Hostwarden itself may still take: pass `-o HostName=<address>` and
+`-o HostKeyAlias=<settled name>` on each of its own remaining
+calls, in place of the block. That resolves the name for this run
+alone; it is written nowhere, not `memory/ssh_hosts`, not the
+user's own `~/.ssh/config`, and it answers no other session's call
+and none of this session's own later ones either. A caller with no
+such remaining steps has nothing to gain from it and stops here, as
+before.
+
 Where the caller had no other way to reach the host, say so; a
 login by the bare address stays possible, only the shared name
 stops resolving to it. Where the name already resolves to

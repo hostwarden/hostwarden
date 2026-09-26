@@ -6,7 +6,9 @@
   brand-new name often is not live yet, so the memory directory the
   first connection created carried that address, and the host's
   `guests.md` linked to it that way for good.
-  `hostwarden-new-guest` now bridges the settled name to the
-  guest's address in `memory/ssh_hosts` before the first login, so
-  the guest is reached, keyed and registered by its settled name
-  from the start, and closes that bridge once DNS takes over.
+  `hostwarden-new-guest` now checks the settled name against DNS
+  before creating the guest, and again before the first login, and
+  bridges it to the guest's address in `memory/ssh_hosts` in
+  between, so the guest is reached, keyed and registered by its
+  settled name from the start. It closes that bridge only once the
+  settled name resolves to the guest's address and nothing else.
