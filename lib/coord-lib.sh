@@ -237,32 +237,64 @@ BEGIN {
 hostwarden_coord_dest() {
   printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK$HOSTWARDEN_COORD_DEST_AWK"'
     BEGIN { RS = "\001"; HC_NL_SEP = 1 }
-    # hc_feed(v, i0, nw) — the lines an upstream printf or echo at
-    # v[i0] writes into a pipe, one command each, a literal \n in
-    # an argument read as the newline it prints; "" for any other
+    # hc_feed(v, i0, nw) — what an upstream printf or echo at v[i0]
+    # writes into a pipe: echo its operands joined by one blank,
+    # printf its format with each conversion taking the next
+    # argument, reused while arguments are left (man printf), and a
+    # literal \n read as the newline it prints; "" for any other
     # command, whose output cannot be read here.
-    function hc_feed(v, i0, nw,    c, k, w, out) {
+    function hc_feed(v, i0, nw,    c, k, out, fmt, i, ch, used) {
       c = base(v[i0]); out = ""
-      if (c != "printf" && c != "echo") return ""
-      for (k = i0 + 1; k <= nw; k++) {
-        w = v[k]
-        if (c == "echo" && out == "" && w ~ /^-[neE]+$/) continue
-        gsub(/\\n/, "\n", w)
-        out = out w "\n"
-      }
-      return out
+      if (c == "echo") {
+        for (k = i0 + 1; k <= nw && v[k] ~ /^-[neE]+$/; k++) ;
+        if (k <= nw) out = joinw(v, k, nw)
+      } else if (c == "printf") {
+        # bash -v assigns to a variable and writes nothing; -- ends
+        # the options.
+        k = i0 + 1
+        if (v[k] == "-v") return ""
+        if (v[k] == "--") k++
+        if (k > nw) return ""
+        fmt = v[k]; k++
+        do {
+          used = 0
+          for (i = 1; i <= length(fmt); i++) {
+            ch = substr(fmt, i, 1)
+            if (ch != "%") { out = out ch; continue }
+            if (substr(fmt, i + 1, 1) == "%") { out = out "%"; i++; continue }
+            if (!match(substr(fmt, i), /^%[-+ #0-9.]*[A-Za-z]/)) { out = out ch; continue }
+            out = out (k <= nw ? v[k++] : "")
+            used = 1
+            i += RLENGTH - 1
+          }
+        } while (used && k <= nw)
+      } else return ""
+      gsub(/\\n/, "\n", out)
+      return out "\n"
     }
     # hc_stdin_shell(v, j, nw) — true when the remote command in
     # v[j..nw] is a shell reading its commands from stdin: none at
-    # all (the login shell), or sh, bash and the like without -c.
+    # all (the login shell), or sh, bash and the like, or su,
+    # without -c, past env with its options and assignments and a
+    # plain VAR=value prefix.
     function hc_stdin_shell(v, j, nw,    R, nr, r, c) {
       if (j > nw) return 1
       nr = hc_words(joinw(v, j, nw), R)
-      r = hc_skip_prefix(R, 1, nr)
-      if (r > nr) return 1
+      r = 1
+      while (1) {
+        r = hc_skip_prefix(R, r, nr)
+        if (r > nr) return 1
+        if (R[r] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { r++; continue }
+        if (base(R[r]) != "env") break
+        for (r++; r <= nr && R[r] ~ /^-/; r++) {
+          if (R[r] ~ /^-S|^--split-string/) return 0
+          if (R[r] ~ /^(-u|--unset|-C|--chdir)$/) r++
+        }
+      }
       c = base(R[r])
-      if (c !~ /^(sh|bash|dash|ksh|zsh|ash)$/) return 0
-      for (r++; r <= nr; r++) if (R[r] == "-c") return 0
+      if (c !~ /^(sh|bash|dash|ksh|zsh|ash|su)$/) return 0
+      for (r++; r <= nr; r++)
+        if (R[r] ~ /^-[A-Za-z]*c$/ || R[r] ~ /^--command/) return 0
       return 1
     }
     {

@@ -521,7 +521,7 @@ destkind "printf piped into a remote sh -s" \
   'reboot'
 dest "printf piped into a remote sh -s joins its segment" \
   "printf '%s\n' 'export LC_ALL=C' 'systemctl reboot' | ssh web2 'sh -s'" \
-  "$(printf "web2\tssh web2 'sh -s';%%s;export LC_ALL=C;systemctl reboot")"
+  "$(printf "web2\tssh web2 'sh -s';export LC_ALL=C;systemctl reboot")"
 destkind "echo piped into a remote login shell" \
   "echo 'systemctl restart nginx' | ssh web2" 'restart:nginx'
 destkind "an escaped newline in a printf format" \
@@ -536,6 +536,31 @@ destkind "a remote sh -c reads no feed" \
   "echo reboot | ssh web2 sh -c uptime" ''
 destkind "|| is no pipe" "echo reboot || ssh web2 sh" ''
 destkind "a ; ends the feed" "echo reboot; true | ssh web2 sh" ''
+destkind "echo writes its operands as one line" \
+  "echo shutdown -r now | ssh web2 sh" 'reboot'
+destkind "echo of an unquoted restart" \
+  "echo systemctl restart nginx | ssh web2" 'restart:nginx'
+destkind "printf fills its format and reuses it" \
+  "printf 'systemctl restart %s\n' nginx php-fpm | ssh web2 sh" \
+  "$(printf 'restart:nginx\nrestart:php-fpm')"
+destkind "printf -- takes the next word as its format" \
+  "printf -- '%s\n' 'systemctl reboot' | ssh web2 sh -s" 'reboot'
+destkind "printf -v writes nothing into the pipe" \
+  "printf -v x 'reboot\n' | ssh web2 sh -s" ''
+destkind "a double-quoted printf format keeps its \\n" \
+  'printf "uptime\nsystemctl reboot\n" | ssh web2 sh -s' 'reboot'
+destkind "echo -e of a double-quoted \\n" \
+  'echo -e "uptime\nreboot" | ssh web2 sh -s' 'reboot'
+destkind "a remote env with an assignment reads stdin" \
+  "printf 'systemctl reboot\n' | ssh web2 env LC_ALL=C sh -s" 'reboot'
+destkind "a remote env -C reads stdin" \
+  "echo reboot | ssh web2 env -C /tmp sh" 'reboot'
+destkind "a remote VAR=value prefix reads stdin" \
+  "echo reboot | ssh web2 LC_ALL=C bash" 'reboot'
+destkind "a remote su - reads stdin" \
+  "echo reboot | ssh web2 sudo su -" 'reboot'
+destkind "a remote su -c reads no feed" \
+  "echo reboot | ssh web2 su -c uptime" ''
 destkind "an unreadable upstream adds nothing" \
   "cat script.sh | ssh web2 sh" ''
 

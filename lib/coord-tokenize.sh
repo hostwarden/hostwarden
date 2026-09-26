@@ -46,7 +46,8 @@
 #   hc_words(s, W) is the real word reader hc_segments never was: a
 #     single-quoted run is literal to its close; a double-quoted
 #     run is literal except a backslash escapes the very next
-#     character; a single quote inside a double-quoted run is an
+#     character the shell escapes there ($ ` " \ newline) and is kept
+#     before any other; a single quote inside a double-quoted run is an
 #     ordinary character, never a quote of its own — the very thing
 #     `sudo bash -c '…'` sent through an outer double-quoted ssh
 #     argument needs; and two quoted spans with nothing between
@@ -275,9 +276,14 @@ function hc_words(s, W,
       else cur = cur c
       continue
     }
+    # In double quotes a backslash escapes only $ ` " \ and a
+    # newline; before any other character it stays, as the shell
+    # keeps it: the \n of a printf format reaches printf.
     if (qc == "\"") {
       if (c == "\"") qc = ""
-      else if (c == "\\" && i < slen) { i++; cur = cur substr(s, i, 1) }
+      else if (c == "\\" && i < slen && substr(s, i + 1, 1) ~ /[$`"\\\n]/) {
+        i++; cur = cur substr(s, i, 1)
+      }
       else cur = cur c
       continue
     }
