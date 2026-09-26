@@ -377,8 +377,9 @@ mode that needs no failed SSH first
 (`rules/system-containers.md` → Reaching It). Which guests the
 manager can enter, and how, is listed there: containers always,
 FreeBSD jails among them, a Proxmox VM only with a responding
-agent, whose answer is read as that section says (`out-data`,
-`exitcode`). A libvirt, Hyper-V, XCP-ng, bhyve or VirtualBox VM,
+agent, within the limits and with the answer read as
+`rules/system-containers.md` → The QEMU Guest Agent says. A
+libvirt, Hyper-V, XCP-ng, bhyve or VirtualBox VM,
 a Windows guest on any of them (reached over OpenSSH only), and
 every stopped guest stay in `guests.md` alone until they are
 connected to by name.
@@ -445,11 +446,31 @@ one line (*"Registering 7 guests of pve1.example.com through
    EOS
    ```
 
-   For `qm guest exec`, each pass reads the answer as
-   `rules/system-containers.md` → Reaching It says. Only a line
-   with the nonce is a marker. A guest whose exit status is not 0
-   (a timeout included), or whose marker has no output after it,
-   gets the step again on its own.
+   For `qm guest exec`, each pass is
+
+   ```bash
+   timeout 75 qm guest exec "$id" --timeout 60 -- \
+     env LC_ALL=C sh -c "$P" </dev/null 2>&1
+   ```
+
+   `2>&1` puts `qm`'s own error line — `got timeout`,
+   `QEMU guest agent is not running`,
+   `timeout reached, returning pid` — between that guest's
+   markers, where it tells which VM it belongs to; the JSON answer
+   follows it.
+
+   with `$P` within the size cap, a step above it split into loops
+   of their own, and the answer read, all as
+   `rules/system-containers.md` → The QEMU Guest Agent says. Only
+   a line with the nonce is a marker. A guest whose exit status is
+   not 0 (a timeout included), or whose marker has no output after
+   it, gets the step again on its own. For a VM, `qm` exits 0
+   whatever the probe did, so its JSON decides instead: an
+   `exitcode` other than 0 gets the step again on its own, an
+   answer with only a `pid` is read back with `exec-status` and
+   never sent again, and a VM whose agent stopped answering gets
+   nothing more through it: it is listed under `failed` in the
+   report.
 3. The hostname names the memory directory. Where one exists
    already and its `Guest identity:` or its `IP:` matches this
    guest, it is the same server: add only `Runs on:`, the
@@ -489,7 +510,9 @@ Registered 17 of 23 guests of pve1.example.com, read-only, no SSH:
   read inside through qm guest exec: 105 app1, …
   not registered: 110 mail-old (stopped), 120 win1 (Windows),
     121 fw1 (VM, no agent), 130 old-db (blacklisted)
-  failed: 131 ci1 (OS detection: timeout; nothing written)
+  failed: 131 ci1 (OS detection: timeout; nothing written),
+    132 ci2 (guest agent stopped answering at OS detection, VM
+    running; nothing written)
   written: a read-only: journal line in 16 guests (102 db1: no
     logger); 15 new memory directories, 2 existing ones given Runs on:,
     guests.md, host keys of 16 guests in memory/known_hosts, the

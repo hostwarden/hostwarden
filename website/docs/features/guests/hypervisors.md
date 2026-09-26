@@ -48,6 +48,11 @@ naming each one.
   make it for you.
 - **A stopped guest stays stopped.** It is never started to look
   inside.
+- **A VM's guest agent gets small calls.** Hostwarden sends a
+  Proxmox VE VM's agent at most 2 KiB of script per call, each with
+  a timeout. Where the agent stops answering, it sends that VM
+  nothing more, lists it as failed, and leaves restarting the
+  agent or the VM to you: it never does either without asking.
 
 ## Stopped guests
 

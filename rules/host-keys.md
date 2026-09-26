@@ -87,7 +87,7 @@ differs is A Changed Key, and nothing is written for it.
 
 A guest whose `Runs on:` names its host, where the host's
 manager can enter it (`rules/system-containers.md` → Reaching
-It, which also says how to read `qm guest exec`'s answer). The
+It, and → The QEMU Guest Agent for `qm guest exec`). The
 connection to the host was itself checked against the file, so
 what it carries is as trustworthy as the host. Read the public
 key inside the guest, in one call on the host, into the cache

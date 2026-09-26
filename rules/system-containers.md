@@ -48,24 +48,9 @@ takes `env LC_ALL=C` in front (`rules/locale.md`).
   stdin on to the `sh -s` bundle. Leave out `jexec -l`, which
   cuts `PATH` down to `/bin:/usr/bin` and loses `sysctl` and
   `pkg`. Never `iocage exec --force`: it starts a stopped jail.
-- **Proxmox VM:** `qm guest exec <vmid> -- <cmd>`, after
-  `qm guest cmd <vmid> ping` in the same call. It answers with a
-  JSON object, not with the guest's own output and exit status:
-  read the command's output from `out-data`, its errors from
-  `err-data`, and treat any `exitcode` other than 0 as a failed
-  command — a probe whose output is taken from the raw answer
-  reads the serialised JSON as if it were the guest's, and a
-  failed command passes for an answer:
-
-  ```bash
-  qm guest exec 105 -- sh -c 'export LC_ALL=C; …' \
-    | jq -e '.exitcode == 0' >/dev/null && \
-  qm guest exec 105 -- sh -c 'export LC_ALL=C; …' | jq -r '."out-data"'
-  ```
-
-  Where a single call has to do, keep the two apart in it: run the
-  probe once, hold the object, then read `exitcode` and `out-data`
-  from what is held.
+- **Proxmox VM:** `qm guest exec <vmid> --timeout <s> -- <cmd>`,
+  after `qm guest cmd <vmid> ping` in the same call, within the
+  limits of → The QEMU Guest Agent below.
 
 An Incus or LXD guest lives in a project, and every command
 except `--all-projects` acts in the default one. So carry the
@@ -82,6 +67,86 @@ On an appliance, only the tools its file names: on Proxmox VE
 guests are LXC and QEMU underneath.
 A libvirt VM, or one without the QEMU guest agent, has only its
 console: interactive, the user's tool, not Hostwarden's.
+
+### The QEMU Guest Agent
+
+`qm guest exec` hands one command to the agent inside the VM,
+then asks the agent once a second whether it has exited, until it
+has or `--timeout` runs out; each of those questions fails after
+5 seconds without an answer (`got timeout`). The default timeout
+is 30 seconds, and `--timeout 0` waits for ever
+(<https://pve.proxmox.com/pve-docs/qm.1.html>, `src/PVE/CLI/qm.pm`
+and `src/PVE/QMPClient.pm` in `qemu-server`).
+
+- **Every call names its timeout,** never `0`, and runs under the
+  host's `timeout` with 15 seconds more, so neither a slow command
+  nor an agent that stops answering between two questions holds
+  the call: `timeout 75 qm guest exec 105 --timeout 60 -- …`.
+- **One call carries at most 2 KiB of script,** whether as the
+  `sh -c` argument or on stdin with `--pass-stdin 1`. Measure it
+  before sending (`printf %s "$P" | wc -c`), and split a bundle
+  that is larger at its steps, then within a step, one call each.
+  The protocol would take far more — up to 1 MiB on stdin — so
+  the cap is Hostwarden's: a bundle of about 5 KB has timed out
+  and left the agent answering nothing, and a small call keeps
+  what one failure takes with it small. A step that cannot be
+  split below the cap is not sent through the agent: a guest that
+  has SSH gets it on its first own connection, and for one
+  without, ask the user.
+- **The answer is a JSON object,** not the guest's own output and
+  exit status: read the command's output from `out-data`, its
+  errors from `err-data`, and treat any `exitcode` other than 0
+  as a failed command. A probe whose output is taken from the raw
+  answer reads the serialised JSON as if it were the guest's, and
+  a failed command passes for an answer. `out-truncated: true`
+  means the output was cut at 16 MiB, and what arrived is not all
+  of it
+  (<https://www.qemu.org/docs/master/interop/qemu-ga-ref.html>).
+
+  Run the probe once, hold the object, then read `exitcode` and
+  `out-data` from what is held. Held under `&&`, a 124 from the
+  host's `timeout` stays the call's exit status; a pipe straight
+  into `jq` would put `jq`'s status in its place:
+
+  ```bash
+  r=$(timeout 45 qm guest exec 105 --timeout 30 -- \
+    sh -c 'export LC_ALL=C; …') &&
+  if printf '%s\n' "$r" | jq -e '.exitcode == 0' >/dev/null
+  then printf '%s\n' "$r" | jq -r '."out-data"'
+  else printf '%s\n' "$r"; false
+  fi
+  ```
+
+  Where the gate fails, the whole object is printed: the `pid` of a
+  call whose timeout ran out, or the `err-data` of a failed one.
+- **A call whose timeout ran out** prints
+  `timeout reached, returning pid` and answers `{"pid": <n>}`,
+  with no `exitcode`: the command still runs in the guest. Never
+  send it again on top. Read its end with
+  `qm guest exec-status <vmid> <pid>`, in one call on the host that
+  asks every 5 seconds for as long as the first call's timeout, under
+  the host's `timeout` as above. Once it shows `exited` true, that
+  is the answer, and the agent forgets the process, so a second
+  read finds nothing. Still running after that: report the command
+  and its pid as still running, and send nothing more for that step.
+
+**When the agent stops answering** — `ping` fails, or a call ends
+in `got timeout` or `QEMU guest agent is not running`, or the
+host's `timeout` ends it with exit status 124 — send this
+VM nothing more through the agent in this session: no retry, no
+loop waiting for it. A VM that `hostwarden-new-guest` is creating
+is the exception until its first boot is done: its agent is silent
+until the image has installed it, and again through the reboot
+first boot may cause, and that skill's wait says what follows. `qm
+status <vmid>` on the host, read-only,
+says whether the VM itself still runs. Report the VM, the call it
+was on (the step, the script's size, the timeout), the error line
+and that status, and offer what the user can choose: the guest's
+own SSH where it has one, the console in the web UI, or a restart.
+Restarting `qemu-guest-agent` in the guest is a service restart,
+and `qm reboot`, `qm reset`, `qm shutdown` or `qm stop` a reboot
+or a power cut of a server: none of them without the user's
+explicit yes (→ Changes).
 
 ## Privileges
 

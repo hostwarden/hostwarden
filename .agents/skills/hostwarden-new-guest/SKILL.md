@@ -203,7 +203,10 @@ guest has no such mechanism, the files are the user's to place
    key and the address in a second call right after the wait
    (`references/lxc.md`). A call that ends before the signal — out of time, or
    cut by the reboot `package_reboot_if_required` may cause — is
-   run once more, then reported.
+   run once more, then reported; where `qm guest exec` answered
+   with only a pid, the repeat reads that pid instead of starting
+   the wait again (`references/proxmox.md` → Waiting for the first
+   boot).
 2. **Bridge the name.** The guest's actual address — the one The
    request settled for a static guest, the one step 1 just read
    for a DHCP guest the manager can enter, or, for a DHCP guest

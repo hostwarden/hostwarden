@@ -149,20 +149,39 @@ Then `qm start <vmid>`.
 ### Waiting for the first boot
 
 The QEMU guest agent answers once cloud-init has installed it. One
-call waits for it and for cloud-init, within the time a call may
-take, then reads the public host key:
+call waits for it, then for cloud-init, then reads the public host
+key, each step under a host `timeout` of its own and the three
+within the time a call may take:
 
 ```bash
-timeout 570 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null
-  do sleep 15; done
-  qm guest exec <vmid> --timeout 0 -- cloud-init status --wait --long' &&
-  qm guest exec <vmid> -- cat /etc/ssh/ssh_host_ed25519_key.pub
+timeout 270 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null
+  do sleep 15; done' &&
+  r=$(timeout 240 qm guest exec <vmid> --timeout 225 -- \
+    cloud-init status --wait --long) &&
+  printf '%s\n' "$r" &&
+  printf '%s\n' "$r" | jq -e '.exitcode == 0' >/dev/null &&
+  timeout 45 qm guest exec <vmid> --timeout 30 -- \
+    cat /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
 `qm guest exec` prints JSON: `exitcode` is the command's exit
-code, `out-data` its output. Judge cloud-init by the first
-object's `exitcode`, not by the call's exit status, and use the
-key only when that is 0.
+code, `out-data` its output, and `qm` itself exits 0 whatever the
+command did. So the chain reads the key only once cloud-init's
+object shows `exitcode` 0; an object without one stops it. The
+key read is judged the same way: its `out-data` is the key only
+where its own `exitcode` is 0, and otherwise
+`ssh_host_ecdsa_key.pub` is read as `rules/host-keys.md` says. A
+DHCP guest's address read (`SKILL.md` → After creation, step 1)
+is one more call of this form, judged by its own `exitcode`.
+An object with only a `pid` is a wait
+that ran out while cloud-init still runs: the one repeat the skill
+allows (`SKILL.md` → After creation, step 1) reads that pid with
+`qm guest exec-status <vmid> <pid>` rather than starting a second
+wait, then reads the key. A call that ended in the ping loop, or
+that the first boot's reboot cut with the agent silent, is
+repeated as it stands. Every other limit is
+`rules/system-containers.md` → The QEMU Guest Agent; its rule for
+an agent that stops answering applies once this wait has ended.
 
 ### A VM that reads Ignition
 

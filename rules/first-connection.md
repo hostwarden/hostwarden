@@ -157,9 +157,12 @@ export LC_ALL=C
 EOS
 ```
 
-The heredoc needs stdin; for `qm guest exec`, bundle
-into one `sh -c 'export LC_ALL=C; …'` argument
-instead.
+For `qm guest exec`, the bundle is one
+`sh -c 'export LC_ALL=C; …'` argument, and a step
+takes as many calls as the size cap in
+`rules/system-containers.md` → The QEMU Guest Agent
+needs, each with its timeout. Where the agent stops
+answering, that section says what follows.
 
 ## Why it's mandatory
 
