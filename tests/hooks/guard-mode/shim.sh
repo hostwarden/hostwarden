@@ -12,14 +12,14 @@ for f in "$HOOKS"/shim/*; do
   [ -x "$f" ] && grep -q '/../shim.sh"$' "$f" && ok \
     || bad "shim/$t does not source shim.sh"
   case "$t" in
-  *.exe) grep -q "W = .*[(|]${t%.exe}[|)]" "$HOOKS/guard-mode.sh" ;;
-  *) grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.sh" ;;
+  *.exe) grep -q "W = .*[(|]${t%.exe}[|)]" "$HOOKS/guard-mode.d/scan.awk" ;;
+  *) grep -q "T = .*[(|]${t}[|)]" "$HOOKS/guard-mode.d/scan.awk" ;;
   esac && ok || bad "shim/$t names a tool the guard does not"
 done
 # And as many as the guard names, counted from its two lists.
-nt=$(sed -n 's/^ *T = "^(\([^)]*\))\$"$/\1/p' "$HOOKS/guard-mode.sh" \
+nt=$(sed -n 's/^ *T = "^(\([^)]*\))\$"$/\1/p' "$HOOKS/guard-mode.d/scan.awk" \
   | tr '|' '\n' | grep -c .)
-nw=$(sed -n 's/^ *W = "^(\([^)]*\))\[\.\]exe\$"$/\1/p' "$HOOKS/guard-mode.sh" \
+nw=$(sed -n 's/^ *W = "^(\([^)]*\))\[\.\]exe\$"$/\1/p' "$HOOKS/guard-mode.d/scan.awk" \
   | tr '|' '\n' | grep -c .)
 [ "$n" -eq $((nt + nw)) ] && [ "$nt" -gt 0 ] && [ "$nw" -gt 0 ] && ok \
   || bad "shim/ holds $n tools, the guard names $nt and $nw .exe"

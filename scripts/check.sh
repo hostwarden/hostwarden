@@ -176,6 +176,19 @@ shell_files() {
     'templates/fleet-read/*'
 }
 
+# file_size -- no shell or awk file past 500 lines
+# (.claude/rules/repo-release.md → Where code goes). The tokenizer is
+# one awk program, which a split would only scatter.
+file_size() {
+  rc=0
+  for f in $(shell_files) $(git ls-files '*.awk'); do
+    case $f in lib/coord-tokenize.sh) continue ;; esac
+    n=$(wc -l <"$f")
+    [ "$n" -le 500 ] || { echo "  $f: $n lines"; rc=1; }
+  done
+  return $rc
+}
+
 sh_syntax() {
   rc=0
   for f in $(shell_files); do
@@ -283,6 +296,7 @@ else
 fi
 step "JSON" json_valid
 step "shell syntax" sh_syntax
+step "file size" file_size
 # shellcheck disable=SC2046 # one argument per file is the point
 step "ShellCheck" shellcheck -S warning $(shell_files)
 step "workflows" actionlint

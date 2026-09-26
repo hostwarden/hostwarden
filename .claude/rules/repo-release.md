@@ -194,7 +194,7 @@ does not reach the person editing the guard.
 In auto mode, Claude Code does not let an agent edit
 `.claude/hooks/guard-*.sh`. The agent builds the change in a scratch
 clone and hands the maintainer a patch to apply with `git am`, and a
-change to `guard-taboos.d/` goes the same way.
+change to `guard-taboos.d/` or `guard-mode.d/` goes the same way.
 
 ## Where code goes
 
@@ -203,7 +203,8 @@ change to `guard-taboos.d/` goes the same way.
 - `lib/` — code `bin/` and the hooks share, sourced and never run,
   and in `lib/<script>/` the stages a large `bin/` script sources.
 - `.claude/hooks/` — the entry points `settings.json` registers, and
-  what they call directly (`shim/`, `git-ssh.sh`, `guard-taboos.d/`).
+  what they call directly (`shim/`, `git-ssh.sh`, `guard-taboos.d/`,
+  `guard-mode.d/`).
 - `scripts/` — what developing Hostwarden needs and running it does
   not: CI, releases, reviews, `lab.sh`.
 - `tests/` — every matrix, at the path of what it checks:
@@ -211,11 +212,14 @@ change to `guard-taboos.d/` goes the same way.
   Never a `-test.sh` beside the code. `tests/helpers.sh` holds what
   they share.
 
-A file past about 500 lines is split along its sections, into a
-directory its entry point sources in a fixed order, as
+A shell or awk file past 500 lines is split along its sections, into
+a directory its entry point sources in a fixed order, as
 `guard-taboos.d/`, `lib/hostwarden-map/` and
 `tests/hooks/guard-taboos/` are. What one part defines, the parts
-after it read.
+after it read. A long awk program moves into an `.awk` file of its
+own, as `guard-mode.d/scan.awk` is. `scripts/check.sh` fails a file
+past the limit; `lib/coord-tokenize.sh`, one awk program held in a
+shell variable, is the one exception.
 
 ## Guard findings
 
