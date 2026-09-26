@@ -6,6 +6,10 @@
 # Idempotent: re-running on an already-migrated
 # tree is a silent no-op.
 #
+# Usage:
+#   hostwarden-migrate         Migrate
+#   hostwarden-migrate --help  Show this help
+#
 # Called automatically by
 # .claude/hooks/check-updates.sh and by
 # bin/hostwarden-update. Safe to run by hand.
@@ -14,6 +18,17 @@ set -e
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$REPO_DIR"
+
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
+    "$SCRIPT_DIR/${0##*/}"
+}
+
+case ${1:-} in
+  -h | --help) usage; exit 0 ;;
+  '') ;;
+  *) usage >&2; exit 2 ;;
+esac
 
 MOVED=""
 
