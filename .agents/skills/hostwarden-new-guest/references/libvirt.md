@@ -104,4 +104,11 @@ timeout 570 sh -c 'until virsh -c qemu:///system domifaddr web1 \
   virsh -c qemu:///system domifaddr web1 --source agent
 ```
 
-Then go on at `SKILL.md` → After creation step 2.
+Unlike the exec channel's own `ip -4 addr show scope global`
+(`SKILL.md` → After creation step 1), nothing here filters the
+table: it prints one row per interface and protocol, `lo`'s own
+loopback address and every interface's link-local address included
+alongside its real one, each address with its `/<prefix>`. Pick
+the guest's actual address the way `rules/hypervisors.md` → Guest
+tools says, its `/<prefix>` dropped too. Then go on at `SKILL.md`
+→ After creation step 2 with it.
