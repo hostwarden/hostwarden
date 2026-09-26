@@ -1,8 +1,12 @@
 # markdown-blocks.awk — a Markdown document's blocks, read as
 # CommonMark 0.31.2 reads them, tabs stopping every four columns, in
-# awk that BWK awk, gawk, mawk and busybox all run. The one reader
-# of scripts/review-record.sh and bin/hostwarden-wrap: each runs it
-# with its own program after it, as one program text.
+# awk that BWK awk, gawk, mawk and busybox all run. One addition,
+# only where the caller sets ADMON: a line that starts with `:::`,
+# the fence of a Docusaurus admonition such as `:::warning` or its
+# bare closing `:::`, is a block of its own that ends a paragraph,
+# never a line of one. The one reader of scripts/review-record.sh
+# and bin/hostwarden-wrap: each runs it with its own program after
+# it, as one program text.
 #
 # The caller's main rule calls block() for each line of the
 # document, and blocks_end() once the document is over, which
@@ -22,7 +26,8 @@
 #                    setext underline, whose text is "".
 #   on_other(kind)   any other line: "f" fenced code, its fences
 #                    included, "i" indented code, "h" an HTML block,
-#                    "t" a thematic break, "b" a blank line.
+#                    "t" a thematic break, "d" an admonition fence
+#                    where ADMON is set, "b" a blank line.
 #
 # N is the depth of containers the line is in, CT[1..N] their kinds,
 # "q" a block quote and "l" a list item, and CW[i] a list item's
@@ -157,6 +162,9 @@ function block(   i, k, t, r, c, s, mw, num, pad, para) {
     if ((c == "`" || c == "~") && (k = run(r, 1, c)) >= 3 \
       && !(c == "`" && index(substr(r, k + 1), "`"))) {
       open(M); LEAF = "f"; FC = c; FL = k; on_other("f"); return
+    }
+    if (ADMON && c == ":" && substr(r, 1, 3) == ":::") {
+      open(M); on_other("d"); return
     }
     if (c == "<" && (t = hstart(r, para))) {
       open(M); LEAF = "h"; HT = t

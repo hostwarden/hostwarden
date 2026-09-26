@@ -224,6 +224,37 @@ a fenced line that is longer than eighty characters and must never be touched at
   ```
 EOF
 
+fixture "an admonition's fences stay on lines of their own" <<'EOF'
+:::warning[Off for one host]
+Only a session started with the guard off may install an operating system (a variable, Claude Code).
+:::
+
+- An item:
+
+  :::note
+  A note inside a list item whose one line runs past eighty characters, so it wraps.
+  :::
+=== want
+:::warning[Off for one host]
+Only a session started with the guard off may install an operating system (a
+variable, Claude Code).
+:::
+
+- An item:
+
+  :::note
+  A note inside a list item whose one line runs past eighty characters, so it
+  wraps.
+  :::
+EOF
+
+fixture "no line starts with an admonition fence" <<'EOF'
+Words words words words words words words words words words words words abcdefgh ::: x
+=== want
+Words words words words words words words words words words words words
+abcdefgh ::: x
+EOF
+
 fixture "a setext heading's text is left" 1 <<'EOF'
 A setext heading whose text line is longer than eighty characters is not a paragraph
 =====

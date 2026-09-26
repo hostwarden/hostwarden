@@ -27,9 +27,10 @@
 # they are, so a file somebody wrapped by hand keeps its breaks. The
 # list marker, the quote's `>` and the indentation stay, and the
 # continuation lines go under the item's text. A heading, a table,
-# a code block, an HTML block, a link reference definition and
-# YAML front matter are never touched; a line of one that is over
-# 80 is left for a person, and listed. So is a paragraph with a
+# a code block, an HTML block, a Docusaurus admonition fence
+# (`:::note`, `:::`), a link reference definition and YAML front
+# matter are never touched; a line of one that is over 80 is left
+# for a person, and listed. So is a paragraph with a
 # tab or a carriage return in it.
 #
 # A file whose first line is an HTML comment of the form
@@ -44,13 +45,15 @@
 # target `](…)` counts as `]`, and a URL as nothing; a line of a
 # code block, fenced or indented, is not measured. The blocks are
 # read as CommonMark 0.31.2 reads them, by the reader in
-# lib/markdown-blocks.awk that scripts/review-record.sh runs too.
+# lib/markdown-blocks.awk that scripts/review-record.sh runs too,
+# with its one addition turned on: a Docusaurus admonition fence.
 #
 # A new line never starts with what would open a block there — a
-# list marker, `#`, `>`, a fence, `<`, a `|` or a run of `=`, `-`,
-# `*` or `_` — nor with the `→` or `§` of a pointer at a heading,
-# which the layout test reads on the line of the file it names. A
-# word ending in `\` never ends a line, where it would break it.
+# list marker, `#`, `>`, a fence, `:::`, `<`, a `|` or a run of
+# `=`, `-`, `*` or `_` — nor with the `→` or `§` of a pointer at a
+# heading, which the layout test reads on the line of the file it
+# names. A word ending in `\` never ends a line, where it would
+# break it.
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
@@ -76,6 +79,8 @@ BLOCKS=$(cat "$(dirname "$0")/../lib/markdown-blocks.awk") || exit 2
 WRAP_AWK=$BLOCKS'
 BEGIN {
   MAX = 80
+  # A `:::` line is a block: the fence of a Docusaurus admonition.
+  ADMON = 1
   LRD = "^\\[[^][]+\\]:"
   PUNCT = "!\"#$%&" SQ "()*+,-./:;<=>?@[\\]^_`{|}~"
   # A GFM table: a paragraph with a delimiter row in it is one.
@@ -119,7 +124,7 @@ function cont(   i, s) {
 # or split a pointer from the file it names.
 function nostart(w) {
   return w ~ /^(#+|[-+*]|[0-9]+[.)]|=+|-+|:?-+:?|\*\*\*+|___+|→|§)$/ \
-    || w ~ /^(>|<|\||```|~~~)/
+    || w ~ /^(>|<|\||```|~~~|:::)/
 }
 # spans() -- where the code spans of the paragraph stand, found as
 # CommonMark finds them: a run of backticks opens one only where a
