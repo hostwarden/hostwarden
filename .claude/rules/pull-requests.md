@@ -16,6 +16,37 @@ This file is the pipeline one pull request goes through. A session
 that has several open on `hostwarden/hostwarden` at once follows
 `pr-coordinator.md` for its own conduct between them.
 
+## Telling the coordinator
+
+A session carrying a pull request does not sit on a change once it
+notices one — and it does not watch continuously either, since
+nothing here runs that way. Whenever it checks in on its own pull
+request — a natural turn, or the pipeline's own read of `mergeable`
+(→ Lifting the draft) — and finds its state materially different
+from what it last reported, it messages the coordinating session at
+once rather than waiting to be asked: a CI run's overall result
+changed, a merge conflict appeared where the pull request read clean
+before, a round of review found something, the draft became ready to
+lift, or the session is stuck on something outside its own control, a
+Codex sign-in failure among them.
+
+`ListAgents` finds the coordinating session, where one is running:
+the session already in contact about this pull request, or, on a
+first contact, whichever session identifies itself as coordinating
+pull requests; ask the user rather than guess where neither holds.
+The session found this way is kept for the rest of this pull
+request — but a `SendMessage` that fails to reach it, or a later
+`ListAgents` that no longer lists it, means looking again, never
+treating the report as delivered on a stale handle.
+
+This is what a pull request that quietly went from CLEAN to
+CONFLICTING once other pull requests merged ahead of it needed:
+nobody watches for that in between, so the report is owed the next
+time the session looks, not held until the coordinator asks
+directly. Where none is running, the tells to whoever merges below
+(→ Lifting the draft) still apply on their own — owed to the person
+deciding whether to merge, coordinator or not.
+
 ## The project's branches
 
 Remote names say nothing here: in a fork `origin` is the fork, and
