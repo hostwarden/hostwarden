@@ -21,7 +21,8 @@ cp "$REPO/scripts/changelog-release.sh" "$C/scripts/"
 git -C "$C" init --quiet
 fold() { sh "$C/scripts/changelog-release.sh" "$@" 2>&1; }
 echo 1.1.0 > "$C/VERSION"
-printf '# Changelog\n\n## 1.0.0 - 2026-01-01\n\n- old\n' > "$C/CHANGELOG.md"
+printf '# Changelog\n\nHead.\n\n## 1.0.0 - 2026-01-01\n\n- old\n' \
+  > "$C/CHANGELOG.md"
 printf '### Fixed\n\n- **Fix one.** Detail\n  wrapped.\n' \
   > "$C/changelog.d/a.md"
 printf '%s\n' '### Added' '' '- **New.** Detail.' '' '### Fixed' '' \
@@ -30,10 +31,11 @@ git -C "$C" add -A
 git -C "$C" commit --quiet -m init
 fold --check >/dev/null && ok || bad "well-formed fragments failed --check"
 fold >/dev/null && ok || bad "the fold failed"
-want=$(printf '%s\n' '# Changelog' '' "## 1.1.0 - $(date -u +%Y-%m-%d)" '' \
+# The head stays; the previous release's notes go, kept at its tag.
+want=$(printf '%s\n' '# Changelog' '' 'Head.' '' \
+  "## 1.1.0 - $(date -u +%Y-%m-%d)" '' \
   '### Added' '' '- **New.** Detail.' '' '### Fixed' '' \
-  '- **Fix one.** Detail' '  wrapped.' '- **Fix two.** More.' '' \
-  '## 1.0.0 - 2026-01-01' '' '- old')
+  '- **Fix one.** Detail' '  wrapped.' '- **Fix two.** More.')
 [ "$(cat "$C/CHANGELOG.md")" = "$want" ] && ok \
   || bad "the fold wrote: $(cat "$C/CHANGELOG.md")"
 [ -z "$(ls "$C/changelog.d" 2>/dev/null)" ] \
@@ -51,7 +53,7 @@ mkdir -p "$C/changelog.d"
 printf '### Security\n\n- **Safe.** Now.\n' > "$C/changelog.d/c.md"
 fold >/dev/null
 want=$(printf '%s\n' '# Changelog' '' "## 1.2.0 - $(date -u +%Y-%m-%d)" '' \
-  '- kept' '' '### Security' '' '- **Safe.** Now.' '' '## 1.1.0')
+  '- kept' '' '### Security' '' '- **Safe.** Now.')
 [ "$(cat "$C/CHANGELOG.md")" = "$want" ] && ok \
   || bad "the fold of ## Unreleased wrote: $(cat "$C/CHANGELOG.md")"
 # A malformed fragment stops it, and nothing changes.

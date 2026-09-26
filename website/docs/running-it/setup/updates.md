@@ -7,13 +7,14 @@ description: Which updates a checkout takes, how it updates itself,
 # Updates and versioning
 
 Hostwarden uses [semantic versioning](https://semver.org). The
-current version is in the `VERSION` file; released changes are
-listed in `CHANGELOG.md`, changes not released yet in `changelog.d/`.
+current version is in the `VERSION` file; `CHANGELOG.md` lists what
+that release changed, changes not released yet are in `changelog.d/`.
 Each release is a signed tag `vX.Y.Z` with a GitHub release titled
 `Hostwarden X.Y.Z`, whose notes link to that version's section of
-`CHANGELOG.md` at the tag. A checkout updates from the tag; the
-source archives GitHub lists with every release are no way to
-install, since a copy without git cannot update
+`CHANGELOG.md` at the tag; an earlier release's notes are read there,
+since `CHANGELOG.md` holds only its own release. A checkout updates
+from the tag; the source archives GitHub lists with every release are
+no way to install, since a copy without git cannot update
 ([Installation](../../getting-started/install.md)).
 
 ## Which updates a checkout takes

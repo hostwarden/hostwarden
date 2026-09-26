@@ -63,7 +63,7 @@ report() {
   show_changelog_section "$NEW"
   if [ "${1%%.*}" != "${NEW%%.*}" ]; then
     echo ""
-    echo "BREAKING CHANGES — read CHANGELOG.md"
+    echo "BREAKING CHANGES — read the CHANGELOG.md at each tag since v$1"
   fi
 }
 
@@ -318,8 +318,8 @@ line_notice() {
     echo "  An update refuses it: $WHY"
     return 0
   fi
-  echo "  Read what it changes, 'git show $NEWEST:CHANGELOG.md', then"
-  echo "  'hostwarden-update --follow $NEXT'."
+  echo "  Read the CHANGELOG.md at each tag after v$(current_version) up to"
+  echo "  $NEWEST, then 'hostwarden-update --follow $NEXT'."
 }
 
 # follow_update <line> [set] — check out the newest release on the

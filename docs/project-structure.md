@@ -4,7 +4,7 @@
 README.md              — What Hostwarden is and how to start
 LICENSE                — The licence
 VERSION                — Current version number (semver)
-CHANGELOG.md           — Release history
+CHANGELOG.md           — What this release changed
 changelog.d/           — One entry per unreleased change,
                          folded into CHANGELOG.md at a release
 CONTRIBUTING.md        — Setup, checks, and where changes go
