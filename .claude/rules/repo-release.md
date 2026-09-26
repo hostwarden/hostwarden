@@ -31,6 +31,20 @@ Tags are never created by hand. Commit the bump, with the
 changelog folded (→ CHANGELOG.md), push, and let the workflow tag
 it.
 
+The workflow signs every tag with the release key, an SSH key held
+only in the repository secret `RELEASE_SIGNING_KEY`, and verifies
+it against `.github/release-signers` before pushing; without the
+secret, or with another key in it, no tag is pushed. A new key is
+added to that file and to `website/docs/running-it/setup/updates.md`
+→ Release signatures, line and fingerprint, with
+`valid-after=<date>`, in one pull request before the secret is
+replaced; the old key's line stays in both, bounded with
+`valid-before=<date>`, so every tag it signed still verifies. A
+bound holds against the tag's own date, which the signer picks, so
+a leaked key is removed from both instead: the tags it signed stop
+verifying, and a new release under the new key is the way forward
+(`docs/adr/20260926-release-tags-signed-with-dedicated-ssh-key.md`).
+
 `VERSION` holds a semver string and nothing else. Release notes live
 in `CHANGELOG.md`. The session-start hook compares the version
 before and after an update and tells the user what changed; users

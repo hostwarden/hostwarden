@@ -1,0 +1,5 @@
+# The key that signs Hostwarden's release tags, in git's
+# allowed-signers format. tag-release.yml verifies each new tag
+# against it before pushing; the fingerprint to compare it with is
+# published in website/docs/running-it/setup/updates.md.
+release@hostwarden namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0cMXwoEAtpFv+0ptBS/Za6djrMigZ6P6NIUZq8YHI7
