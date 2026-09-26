@@ -176,16 +176,16 @@ a renamed one included, and from nothing else.
 the files that made it full. Its `LIGHT` is the list below, and
 `tests/scripts/review-record.sh` fails when the two differ.
 
-- **Light** when every one of them is in `docs/`, `README.md`,
-  `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `changelog.d/`
-  or `.claude/rules/` other than this file, a new file there
-  included. One reviewer with focus `consistency` reviews the
-  branch, and each command the changed lines add or alter as focus
-  `commands` would; no pass checks its fixes and no sweep runs: the
-  session names a finding's class and looks for its siblings
-  itself, with `rg --hidden -g '!.git'` for its terms. The second
-  review checks the fixes; → Rounds says what checks a fix
-  commit's.
+- **Light** when every one of them is in `docs/`,
+  `website/docs/*.md`, `README.md`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `CHANGELOG.md`, `changelog.d/` or `.claude/rules/`
+  other than this file, a new file there included. One reviewer
+  with focus `consistency` reviews the branch, and each command the
+  changed lines add or alter as focus `commands` would; no pass
+  checks its fixes and no sweep runs: the session names a finding's
+  class and looks for its siblings itself, with
+  `rg --hidden -g '!.git'` for its terms. The second review checks
+  the fixes; → Rounds says what checks a fix commit's.
 - **Full** otherwise, whatever the size: a single file outside that
   list — this one, the reviewer's, one in a directory the list does
   not name — makes the whole pull request full. Two reviewers,
@@ -196,9 +196,16 @@ the files that made it full. Its `LIGHT` is the list below, and
 Size is no trigger: it does not tell where depth pays. The defects
 full depth finds cluster in hooks, scripts, parsers and probes; the
 one a docs change typically carries, a claim another file does not
-bear out, is one the second review finds. This file and the
-reviewer's are full so that the review never judges a change to
-itself lightly.
+bear out, is one the second review finds. Of `website/`, only the
+pages are light; its configuration, its dependencies, its styles
+and every other file under `website/docs/`, a sidebar's
+`_category_.json` or a component beside a page, are the code that
+builds the site. The site reads each page as MDX, so a page can
+carry an `import` or a `{…}` expression that runs at build time
+and in the reader's browser; in a light pull request only the
+consistency reviewer and the second review see it. This
+file and the reviewer's are full so that the review never judges a
+change to itself lightly.
 
 A light pull request turns full, and stays full, when a push would
 add a file outside the light list, or a round of the second review
