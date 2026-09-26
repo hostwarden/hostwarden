@@ -199,7 +199,9 @@ guest has no such mechanism, the files are the user's to place
    and, where the address is DHCP, the guest's own
    (`ip -4 addr show scope global`, run inside it through the same
    exec channel); read-only, and only on the guest this run
-   created. A call that ends before the signal — out of time, or
+   created. Classic LXC enters it with `lxc-attach` and reads the
+   key and the address in a second call right after the wait
+   (`references/lxc.md`). A call that ends before the signal — out of time, or
    cut by the reboot `package_reboot_if_required` may cause — is
    run once more, then reported.
 2. **Bridge the name.** The guest's actual address — the one The
@@ -238,12 +240,26 @@ guest has no such mechanism, the files are the user's to place
    session that shares `memory/ssh_hosts` to the new guest instead.
    A resolver-unreachable result gets the same stop, for the same
    reason The request's own check does not take one for nothing
-   yet. This address is Hostwarden's own, never the user's: gate
+   yet. Before anything is written, `ssh -G` for the settled name,
+   read as `rules/ssh-config.md` → Adding a Block step 3 does with
+   `proxycommand` added to its pattern, shows what the name routes
+   to already: the bridge sets only `HostName`
+   and `HostKeyAlias`, and a block in `memory/ssh_hosts`, a pattern
+   there or the user's own `~/.ssh/config` keeps lending the rest,
+   on the bridge's path and after it is gone. A `hostname` other
+   than the settled name, a `hostkeyalias` other than the settled
+   name, a `port` other than 22, or any
+   `proxyjump` or `proxycommand` line at all — ssh prints none
+   where nothing is set — that the user did not name for this guest may
+   be an earlier host's leftover: stop and tell the user, whose
+   configuration it is to correct or confirm, before the bridge.
+   This address is Hostwarden's own, never the user's: gate
    writing it as `rules/ssh-config.md` → A Self-Resolved Address
    says. `same everywhere` adds a
    `Host <settled name>` block to `memory/ssh_hosts` with
    `HostName <that address>` and `HostKeyAlias <settled name>`
-   (`rules/ssh-config.md` → Adding a Block, steps 1-3), so every
+   (`rules/ssh-config.md` → Adding a Block, steps 1-3, and A
+   Self-Resolved Address for a block already there), so every
    connection from here on reaches the guest, and looks its key up,
    by the settled name rather than the address
    (`rules/host-keys.md` → Before the First Connection) —

@@ -684,7 +684,8 @@ version can move a flag from the one below.
 
   The report names any secondary whose serial still trails, so the
   user knows a client reaching it sees the old answer until the next
-  transfer.
+  transfer. An empty answer is a lookup that failed, named as one,
+  never a serial that trails or matches.
 - **Windows DNS**, AD-integrated included: report-only, like every
   Windows write (`rules/os/windows.md`). The record set goes to the
   user; Hostwarden never attempts it.
@@ -765,10 +766,30 @@ both reuse the requests, the markers and the secret filter of
 
 Through the resolvers clients use for this name space — the
 `resolved by:` field's list (The inventory) — never only at the
-authoritative server, every resolver's lookups in one call to it:
-`dig +short <type> <name> @<resolver>` for each record added or
-changed, its new value compared with the proposal; the same for each
-record a rename's second set removes, expecting no answer. A name
+authoritative server, every resolver's lookups in one call to it,
+each with its status, since an empty answer alone is the same for a
+record that is gone and a lookup that failed. One such pipeline per
+lookup, each line it prints labelled with that lookup:
+
+```bash
+dig +time=2 +tries=1 +noall +comments +answer <type> <name> @<resolver> |
+  awk -v q='<type> <name> @<resolver>' -v t='<type>' '
+    /status:/ { s = $6; sub(/,/, "", s); print q, s }
+    $4 == t { v = $5; for (i = 6; i <= NF; i++) v = v " " $i
+      print q, "=", v }
+    END { if (s == "") print q, "no answer" }'
+```
+
+For each record added or changed, the status is `NOERROR` and the
+new value, on the `=` lines, is compared with the proposal, an
+AAAA as an address rather than as text; the
+same for each record a rename's second set removes, expecting
+`NOERROR` with no `=` line, or `NXDOMAIN`. `SERVFAIL`, `REFUSED`,
+any other status, or `no answer` because the resolver did not
+answer, is a failed lookup, never an absent record or a cached
+one: the report names the resolver and its status, and
+where the zone is signed, it says the write may have broken its
+validation. A name
 asked for before this write existed is held at a resolver as a
 negative answer until the SOA's negative TTL runs out (RFC 2308); a
 record just removed is cached instead, under its own TTL, until that
