@@ -84,7 +84,7 @@ retry() {
           sleep 1; continue
         fi ;;
     esac
-    printf '%s\n' "$OUT" >&2
+    printf '%s\n' "$OUT" | hostwarden_redact >&2
     return 1
   done
 }
@@ -143,7 +143,7 @@ pull)
     W rebase --abort >/dev/null 2>&1 || true
     echo "hostwarden: the workspace could not be brought up to"
     echo "  date with its remote, and was left as it was:"
-    printf '%s\n' "$OUT" | sed 's/^/    /'
+    printf '%s\n' "$OUT" | hostwarden_redact | sed 's/^/    /'
     echo "  Resolve it with git -C memory pull before relying on"
     echo "  machine memory another machine may have changed."
   fi

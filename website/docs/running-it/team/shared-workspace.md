@@ -14,18 +14,34 @@ private; the recommended name is `hostwarden-workspace`, and nothing
 checks it. Hostwarden itself stays an unmodified clone that keeps
 updating.
 
-1. Set the workspace up as the
-   [README](https://github.com/hostwarden/hostwarden#steps)
-   describes, then publish it once:
+1. On the first machine, publish the workspace once:
    ```
-   bin/hostwarden-sync commit "Start the shared workspace"
-   git -C memory remote add origin <private-repo-url>
-   git -C memory push -u origin main
+   bin/hostwarden-init --remote <private-repo-url> --create
    ```
+   It refuses a repository anyone can read, and one that already
+   holds commits. A GitHub repository that does not exist yet is
+   created private with `gh`, where `gh` is signed in. Where git
+   cannot reach the repository otherwise, it prints git's error and
+   how to create the repository: create it, or deal with what the
+   error names, such as credentials or a host key, and run the
+   command again. Then
+   it commits the workspace and pushes it.
 2. On every other machine, clone Hostwarden and join:
    ```
    bin/hostwarden-init --clone <private-repo-url>
    ```
+   On a workspace `bin/hostwarden-init` has only just created,
+   with nothing written to it yet, that works too: the clone takes
+   its place, and your personal files stay.
+
+You rarely type either. `bin/hostwarden-init` run in a terminal on
+a new workspace asks which of the two you want, or whether the
+workspace stays on this machine. Where you did not decide there,
+the first session asks: a new private repository, an existing
+workspace while yours has no commit yet, or this machine only. Any
+other answer leaves it open, and the next session asks again. "This
+machine only" is kept as `Workspace remote: none` in your `user.md`, and
+`bin/hostwarden-init --local` records the same.
 
 ## Staying in step
 

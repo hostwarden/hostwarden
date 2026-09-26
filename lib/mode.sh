@@ -48,6 +48,11 @@
 #   hostwarden_git_batch [<repo>]
 #                           — sets up git to reach <repo>'s remote
 #                             (none: a clone's) without ever prompting
+#   hostwarden_redact       — copies stdin to stdout with every
+#                             URL cut to its scheme and host, and
+#                             every user@host:path to user@host,
+#                             for printing a git message or a
+#                             remote (rules/secrets.md)
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
@@ -190,6 +195,16 @@ ControlPersist=10m ServerAliveInterval=15 ServerAliveCountMax=3"
 # connection, so a dead link cannot hold the session, but not its
 # -F file: the remote is no managed host, and its key is checked
 # against the user's own known_hosts (rules/host-keys.md).
+# A URL's user info, path and query can each hold a token, so of a
+# URL only the scheme and the host are printed, and of an scp-style
+# address, user@host:path, the user and the host: git itself takes
+# out the user info alone.
+hostwarden_redact() {
+  sed -E \
+    -e "s|([A-Za-z][A-Za-z0-9+.-]*://)([^/@[:space:]'\"]*@)?([^/?#[:space:]'\"]+)[^[:space:]'\"]*|\\1\\3/...|g" \
+    -e "s|([A-Za-z0-9._-]+@[A-Za-z0-9.-]+):[^[:space:]'\"]+|\\1:...|g"
+}
+
 hostwarden_git_batch() {
   GIT_TERMINAL_PROMPT=0
   # Only the socket directory needs 0700; ~/.cache keeps the umask.
