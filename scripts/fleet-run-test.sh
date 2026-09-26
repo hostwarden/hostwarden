@@ -120,6 +120,9 @@ server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
 server bad1.example.com 'key line present' ''
+server unreachable1.example.com 'key line present' ''
+server partial1.example.com 'key line present' ''
+server routed1.corp.example.net 'key line present' ''
 printf -- '- alice\n- ops1 (operations host)\n' >"$M/operators.md"
 git -C "$M" add -A && git -C "$M" commit --quiet -m init
 git init --bare --quiet "$TMP/remote.git"
@@ -198,7 +201,55 @@ printf '%s\n' "\$p" >"$TMP/prompt"
 printf '%s\n' "\$*" >"$TMP/claude-args"
 cat "$TMP/verdict"
 EOF
-chmod +x "$S/ssh" "$S/claude"
+# A dig stand-in for the blacklist check's resolver-outage
+# disambiguation (bin/hostwarden-fleet-run's blacklisted): one
+# header line per query it is asked (the real dig's own shape, one
+# per record type), NOERROR by default so every other host here
+# still clears the blacklist on a clean, deterministic miss
+# regardless of whether this machine can reach the real internet.
+# unreachable1 fails both queries outright; partial1 answers its A
+# query cleanly and drops the AAAA one silently, the way one of two
+# back-to-back UDP queries timing out looks — genuinely unreachable
+# either way, never a clean miss on one confirmed-good line alone.
+cat >"$S/dig" <<'EOF'
+#!/bin/sh
+case " $* " in *' +short '*) exit 0 ;; esac
+args=
+for a; do
+  case $a in
+    +*) ;;
+    *) args="$args $a" ;;
+  esac
+done
+set -- $args
+while [ $# -ge 2 ]; do
+  n=$1 t=$2
+  case $n in
+    unreachable1.example.com)
+      echo ';; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 0' ;;
+    partial1.example.com)
+      [ "$t" = A ] \
+        && echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0' ;;
+    *) echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0' ;;
+  esac
+  shift 2
+done
+EOF
+# A resolvectl stand-in, so this runner's own systemd-resolved never
+# decides which path the check takes: one link routes
+# corp.example.net to a scoped resolver that times out, while the
+# dig stand-in's default servers answer every name cleanly - the
+# split-DNS case the check has to ask the routed resolver for.
+cat >"$S/resolvectl" <<'EOF'
+#!/bin/sh
+case $1 in
+  domain) echo 'Global:'; echo 'Link 3 (wg0): ~corp.example.net' ;;
+  query) for a; do n=$a; done
+    echo "$n: resolve call failed: Connection timed out" >&2; exit 1 ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod +x "$S/ssh" "$S/claude" "$S/dig" "$S/resolvectl"
 cat >"$TMP/verdict" <<'EOF'
 {"type":"result","is_error":false,"structured_output":{
  "report":"## Housekeeping Report: web1.example.com",
@@ -273,6 +324,23 @@ lacks "$TMP/out" "fake" "a floors line outside the last section counted"
 has "$TMP/out" "db1.example.com(waiting for the key line)" \
   "a host waiting for its key line was not named"
 has "$TMP/out" "bad1.example.com(blacklisted)" "a blacklisted host was not named"
+has "$TMP/out" \
+  "unreachable1.example.com(blacklist unverifiable: resolver unreachable)" \
+  "a host the resolver could not check against the blacklist was read anyway"
+has "$TMP/out" \
+  "- unreachable1.example.com: could not resolve it to check the blacklist (unreachable)" \
+  "the resolver outage was not noted for the report"
+[ -e "$TMP/collect-unreachable1.example.com" ] \
+  && bad "a host unverifiable against the blacklist was reached" || ok
+has "$TMP/out" \
+  "partial1.example.com(blacklist unverifiable: resolver unreachable)" \
+  "a name whose AAAA query alone timed out was read as a clean miss"
+[ -e "$TMP/collect-partial1.example.com" ] \
+  && bad "a host with one query answered and one silently dropped was reached" \
+  || ok
+has "$TMP/out" \
+  "routed1.corp.example.net(blacklist unverifiable: resolver unreachable)" \
+  "a split-DNS name was cleared by the default servers, not its own resolver"
 has "$TMP/out" "alias2.example.com(blacklisted)" \
   "a host blacklisted by its DNS alias was not refused"
 has "$TMP/out" "jumped1.example.com(blacklisted)" \

@@ -160,7 +160,8 @@ PUSH=$(user_line 'Workspace push')
 WORK=$(mktemp -d) || die "no temporary directory"
 trap 'rm -rf "$WORK"' EXIT
 trap 'exit 1' HUP INT TERM
-mkdir "$WORK/judge-cwd" "$WORK/hosts" "$WORK/running" "$WORK/verified"
+mkdir "$WORK/judge-cwd" "$WORK/hosts" "$WORK/running" "$WORK/verified" \
+  "$WORK/resolve-ok"
 
 # When each finding was first seen. A dry run reads it where it
 # exists and creates nothing: no directory, no lock.
@@ -206,12 +207,20 @@ SCHEMA='{"type":"object","required":["report","findings"],
 "quote":{"type":["string","null"]}}}}}}'
 
 hostwarden_resolver
-[ -n "$HOSTWARDEN_RESOLVER" ] \
-  || note "no resolver tool here: names were compared, addresses were not"
+# Caches hostwarden_resolve_ok's answer for a name across every host
+# and hop this run checks, so one unreachable entry does not ask dig
+# again for each of them in turn.
+# shellcheck disable=SC2034 # read by hostwarden_resolve_ok in resolve.sh
+HOSTWARDEN_RESOLVE_CACHE=$WORK/resolve-ok
 
 # The blacklist (rules/access-control.md → Shared Lookup Logic),
-# every entry and what it resolves to, worked out once.
+# every entry and what it resolves to, worked out once. Only a
+# blacklist that exists makes a missing resolver tool worth a note:
+# with none, every host on it is skipped as unverifiable.
 BLACK=$(hostwarden_list_entries "$M/blacklist.md")
+[ -z "$BLACK" ] || [ -n "$HOSTWARDEN_RESOLVER" ] \
+  || note "no resolver tool here: every host on the blacklist is \
+skipped as unverifiable"
 # aliases_of <host> — the DNS-alias directories that link to the
 # host's memory (rules/dns-aliases.md): the blacklist may name it by
 # one of them.
@@ -222,6 +231,31 @@ aliases_of() {
     [ "${at##*/}" = "$1" ] && printf '%s ' "${al##*/}"
   done
 }
+# bl_why_unresolved <host> <reason> — sets BL_WHY and notes why <host>
+# could not be cleared against the blacklist: hostwarden_resolve_ok's
+# "no-dig" is a missing tool, not a resolver problem, and gets said
+# that way (rules/dns-aliases.md → Detection step 1); anything else
+# from it is a resolver that could not be reached.
+bl_why_unresolved() {
+  case $2 in
+    no-dig)
+      BL_WHY="blacklist unverifiable: no dig here to tell a clean miss \
+from an outage"
+      ;;
+    *) BL_WHY="blacklist unverifiable: resolver unreachable" ;;
+  esac
+  note "$1: could not resolve it to check the blacklist ($2)"
+}
+
+# bl_check_unresolved <host> — true, having set BL_WHY and noted it,
+# where $bl_a (the caller's own hostwarden_resolve "<host>") came
+# back empty and hostwarden_resolve_ok cannot clear it either.
+bl_check_unresolved() {
+  [ -z "$bl_a" ] || return 1
+  bl_r=$(hostwarden_resolve_ok "$1") && return 1
+  bl_why_unresolved "$1" "$bl_r"
+}
+
 # blacklisted <host> <depth> [<user>] [<config>] — the host, the name
 # ssh maps it to for that login user, its recorded IP or an address it
 # resolves to is on the blacklist, or so is a jump host the
@@ -233,16 +267,27 @@ aliases_of() {
 # empty for the user's own, which is what a ProxyCommand's ssh reads
 # without -F; = for a host reached another way than an ssh from here
 # (a proxy, what a jump host goes on to), looked up by name and
-# address alone.
+# address alone. A resolver that cannot be reached while any of this
+# runs counts as blacklisted too, never as a clean miss: this is the
+# one gate before a connection, so it fails the same way whether it
+# was never resolvable or could not be resolved right now.
 blacklisted() {
   [ -n "$BLACK" ] || return 1
   [ "$2" -gt 0 ] || BL_SEEN=
   BL_WHY=blacklisted
+  if hostwarden_listed "$BLACK" \
+    "$HOSTWARDEN_UNRESOLVED_NO_DIG $HOSTWARDEN_UNRESOLVED_UNREACHABLE"; then
+    bl_words=$(hostwarden_unresolved_words "$BLACK")
+    BL_WHY="blacklist unverifiable: $bl_words"
+    note "$1: the blacklist has an entry the resolver could not check ($bl_words)"
+    return 0
+  fi
   if [ "${4-}" = = ]; then
-    for x in "$1" $(mem_line "$1" IP) $(hostwarden_resolve "$1") \
-        $(aliases_of "$1"); do
+    bl_a=$(hostwarden_resolve "$1")
+    for x in "$1" $(mem_line "$1" IP) $bl_a $(aliases_of "$1"); do
       case " $BLACK " in *" $x "*) return 0 ;; esac
     done
+    bl_check_unresolved "$1" && return 0
     return 1
   fi
   bl_c=$SSHCFG
@@ -252,11 +297,13 @@ blacklisted() {
     note "$1: ssh -G could not read its configuration${bl_c:+ ($bl_c)}"
     return 0
   fi
+  bl_a=$(hostwarden_resolve "$1")
   for x in "$1" "$(printf '%s\n' "$bl_g" | sed -n 's/^hostname //p')" \
-      $(mem_line "$1" IP) $(hostwarden_resolve "$1") $(aliases_of "$1"); do
+      $(mem_line "$1" IP) $bl_a $(aliases_of "$1"); do
     [ -n "$x" ] || continue
     case " $BLACK " in *" $x "*) return 0 ;; esac
   done
+  bl_check_unresolved "$1" && return 0
   # The hops, each as <config>|<user>|<host>, and !|| where the path
   # cannot be read (.claude/hooks/hops.sh).
   hops=$(printf '%s\n' "$bl_g" | hostwarden_hops "$1" "${4--}")

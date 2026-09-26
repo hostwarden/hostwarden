@@ -270,7 +270,7 @@ names_of() {
   printf '%s %s ' "$1" "$2"
   awk -F "$TAB" -v h="$1" '($1 == "K" || $1 == "A") && $2 == h { printf "%s ", $3 }
     $1 == "N" && $3 == h { printf "%s ", $2 }' "$IDX"
-  hostwarden_resolve "$2" | tr '\n' ' '
+  hostwarden_resolve_or_unresolved "$2"
 }
 
 # hop_names <host> — each hop on the host's way in, what it resolves
@@ -280,7 +280,7 @@ hop_names() {
   for hop in $(awk -F "$TAB" -v h="$1" '$1 == "J" && $2 == h { print $3 }' "$IDX"); do
     memo="$TW/hop.$(printf '%s' "$hop" | cksum | cut -d' ' -f1)"
     [ -f "$memo" ] || printf '%s %s %s ' "$hop" \
-      "$(hostwarden_resolve "$hop" | tr '\n' ' ')" \
+      "$(hostwarden_resolve_or_unresolved "$hop")" \
       "$(awk -F "$TAB" -v k="$hop" '$1 == "K" && $3 == k { h[$2] = 1 }
         $1 == "N" { n[$3] = n[$3] " " $2 }
         END { for (x in h) printf "%s ", n[x] }' "$IDX")" >"$memo"
@@ -292,14 +292,31 @@ hop_names() {
 # its way in is on memory/blacklist.md as the file is now: read again
 # right before every call, the cleanup's included, since a host can
 # be listed while the calls before it run (rules/access-control.md →
-# Server Blacklist). Sets names for the read-only check.
+# Server Blacklist). Sets names for the read-only check, and
+# BLOCKED_WHY to the reason where true. A resolver
+# that cannot be reached while any of this runs is treated as if the
+# host were blacklisted, never as a clean miss (rules/access-control.md
+# → Server Blacklist): "no entry" either way, since the fail-safe
+# outcome for hostwarden-impact's team-telling is the same one the
+# blacklist itself gets.
 blocked() {
   BLACK=$(hostwarden_list_entries "$M/blacklist.md")
   names=''
   [ -z "$BLACK$RO" ] || names=$(names_of "$1" "$dest")
-  if [ -n "$BLACK" ] && hostwarden_listed "$BLACK" "$names $(hop_names "$1")"; then
-    echo "no entry: $1 (blacklisted, or a hop on its way in is)"
-    return 0
+  if [ -n "$BLACK" ]; then
+    hops=$(hop_names "$1")
+    if hostwarden_listed "$BLACK $names $hops" "$HOSTWARDEN_UNRESOLVED_NO_DIG \
+$HOSTWARDEN_UNRESOLVED_UNREACHABLE"; then
+      BLOCKED_WHY="blacklist unverifiable: \
+$(hostwarden_unresolved_words "$BLACK $names $hops")"
+      echo "no entry: $1 ($BLOCKED_WHY)"
+      return 0
+    fi
+    if hostwarden_listed "$BLACK" "$names $hops"; then
+      BLOCKED_WHY='blacklisted now'
+      echo "no entry: $1 (blacklisted, or a hop on its way in is)"
+      return 0
+    fi
   fi
   return 1
 }
@@ -344,18 +361,25 @@ tell_one() {
     *) log=$T_LOG ;;
   esac
   reg=1
-  if [ "$RO_ALL" = 1 ] || { [ -n "$RO" ] && hostwarden_listed "$RO" "$names"; }; then
+  ro_reason=read-only
+  if [ -n "$RO_UNRESOLVED" ] || hostwarden_listed "$names" \
+    "$HOSTWARDEN_UNRESOLVED_NO_DIG $HOSTWARDEN_UNRESOLVED_UNREACHABLE"; then
+    reg=''
+    ro_reason="read-only status unverifiable: \
+$(hostwarden_unresolved_words "$RO $names")"
+  elif [ "$RO_ALL" = 1 ] || { [ -n "$RO" ] && hostwarden_listed "$RO" "$names"; }; then
     reg=''
   fi
   if [ -z "$reg$log" ]; then
-    echo "no entry: $h (read-only, and memory says its journal is not written)"; return
+    echo "no entry: $h ($ro_reason, and memory says its journal is not written)"
+    return
   fi
   out=$({ [ -z "$reg" ] || printf '%s\n' "$T_REG"; [ -z "$log" ] || printf '%s\n' "$log"; } \
     | ssh -F "$SSHCFG" -l "$u" ${port:+-p "$port"} "$dest" sh -s 2>/dev/null)
   case $out in *registered*) : >"$T_DIR/remote/$h" ;; esac
   case ${reg:-ro}:$out in
     *registered*logged*) ;;
-    ro:*logged*) echo "journal only: $h (read-only)" ;;
+    ro:*logged*) echo "journal only: $h ($ro_reason)" ;;
     *logged*) echo "journal only: $h (no register it can use)" ;;
     *registered*)
       if [ -n "$log" ]; then echo "register only: $h (the journal line failed)"
@@ -376,9 +400,22 @@ team_setup() {
   [ "${1:-}" = lists ] || return 0
   IDX=$HOSTWARDEN_CACHE/radius.idx
   hostwarden_resolver
+  # Caches hostwarden_resolve_ok's answer for a name across every
+  # radius host this team-telling call checks, so one unreachable
+  # entry does not ask dig again for each of them in turn.
+  # shellcheck disable=SC2034 # read by hostwarden_resolve_ok in resolve.sh
+  HOSTWARDEN_RESOLVE_CACHE=$TW
   RO=$(hostwarden_list_entries "$M/readonly.md")
   RO_ALL=0
   case " $RO " in *' * '*) RO_ALL=1 ;; esac
+  # A readonly.md entry the resolver could not check leaves every
+  # host's read-only status unverifiable for this run: default to
+  # the safe direction, read-only, rather than to registering a
+  # write on a host the list might actually cover.
+  RO_UNRESOLVED=''
+  hostwarden_listed "$RO" \
+    "$HOSTWARDEN_UNRESOLVED_NO_DIG $HOSTWARDEN_UNRESOLVED_UNREACHABLE" \
+    && RO_UNRESOLVED=1
 }
 
 # tell <dir> <radius> — tell_one for every radius host with memory
@@ -470,7 +507,7 @@ untell() {
     h=${f##*/}
     way_in "$h"
     blocked "$h" >/dev/null \
-      && { echo "entry left: $h (blacklisted now; it goes stale on its own)"; continue; }
+      && { echo "entry left: $h ($BLOCKED_WHY; it goes stale on its own)"; continue; }
     ssh -F "$SSHCFG" -l "$u" ${port:+-p "$port"} "$dest" \
       "rmdir /tmp/hostwarden/$u_id+* 2>/dev/null; true" </dev/null >/dev/null 2>&1 \
       || echo "entry left: $h (not reached; it goes stale on its own)"
