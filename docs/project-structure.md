@@ -69,6 +69,9 @@ lib/                   — Code bin/ and the hooks share; sourced,
   markdown-blocks.awk  — Markdown's blocks as CommonMark reads
                          them, for hostwarden-wrap and
                          review-record.sh
+  wrap-verbatim.sh     — The workspace's Markdown kept byte for
+                         byte, which hostwarden-wrap --changed
+                         and wrap-markdown.sh leave alone
   hostwarden-<name>/   — The stages of bin/hostwarden-<name>,
                          which sources them in order: -impact,
                          -map, -fleet-run, -heinzel-takeover

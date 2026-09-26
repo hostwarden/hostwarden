@@ -17,7 +17,9 @@
 # files read-only in an operations checkout. So there it rewraps
 # only a file git ignores — memory/ and the like — and, in either
 # mode, never a symbolic link or a file whose real path leaves the
-# checkout.
+# checkout. Nor, after an edit or a command, a workspace file whose
+# bytes are a copy — a master, evidence, Heinzel's memory — which
+# it neither rewraps nor lists (lib/wrap-verbatim.sh).
 #
 # Emits hookSpecificOutput.additionalContext, which PostToolUse
 # honors, only when there is something to say: a file was
@@ -58,6 +60,12 @@ if [ -n "$FILE" ]; then
   esac
   if [ "$HOSTWARDEN_MODE" = operations ]; then
     git -C "$ROOT" check-ignore -q -- "$REL" 2>/dev/null || exit 0
+    case $REL in
+      memory/*)
+        # shellcheck source=../../lib/wrap-verbatim.sh
+        . "$ROOT/lib/wrap-verbatim.sh"
+        ! wrap_verbatim "$ROOT/memory" "${REL#memory/}" || exit 0 ;;
+    esac
   fi
   wrap "$ROOT" '' -- "$REL"
 elif [ "$HOSTWARDEN_MODE" = operations ]; then

@@ -1,6 +1,7 @@
 #!/bin/sh
 # hostwarden-wrap — wrap Markdown at 80 characters, as every .md in
-# Hostwarden and in its memory/ is written.
+# Hostwarden and in its memory/ is written, but for the copies the
+# workspace keeps byte for byte (lib/wrap-verbatim.sh).
 #
 # Usage:
 #   hostwarden-wrap <file.md>...          Rewrap in place
@@ -15,7 +16,10 @@
 # not a name git prints in quotes. Names are relative to the current
 # directory. No mode rewrites a file that holds a line of conflict
 # markers, `<<<<<<<` or `>>>>>>>`: it is left, unlisted, to whoever
-# resolves the merge.
+# resolves the merge. In a Hostwarden workspace, a repository whose
+# top holds .hostwarden-workspace, --changed also leaves every file
+# whose bytes are a copy — a master, evidence, Heinzel's memory —
+# unwrapped and unlisted: lib/wrap-verbatim.sh names them.
 #
 # Prints `<file>: rewrapped` for each file it changed, and
 # `<file>:<line> (<width>)` for each line still over 80 — with
@@ -294,10 +298,17 @@ wrap() {
 }
 
 if [ -n "$CHANGED" ]; then
-  git rev-parse --git-dir >/dev/null 2>&1 || {
+  # The top of the work tree, then the current directory below it:
+  # an empty second line where the two are one.
+  TOP=$(git rev-parse --show-toplevel --show-prefix 2>/dev/null) || {
     echo "hostwarden-wrap: --changed needs a git repository" >&2
     exit 2
   }
+  HERE=${TOP#*"
+"}
+  [ "$HERE" != "$TOP" ] || HERE=''
+  TOP=${TOP%%"
+"*}
   # What differs from HEAD, or all of a repository without a commit
   # yet, and what is new.
   LIST=$( {
@@ -309,10 +320,19 @@ if [ -n "$CHANGED" ]; then
     fi
     git -c core.quotePath=false ls-files --others --exclude-standard -- "$@"
   } | sort -u)
+  # In a Hostwarden workspace, the files whose bytes are a copy stay
+  # as they came, unlisted (lib/wrap-verbatim.sh).
+  if [ -e "$TOP/.hostwarden-workspace" ]; then
+    # shellcheck source=../lib/wrap-verbatim.sh
+    . "$(dirname "$0")/../lib/wrap-verbatim.sh" || exit 2
+  else
+    wrap_verbatim() { return 1; }
+  fi
   set --
   while IFS= read -r f; do
     case $f in \"*) continue ;; *.md) ;; *) continue ;; esac
     [ -f "$f" ] && ! [ -L "$f" ] || continue
+    ! wrap_verbatim "$TOP" "$HERE$f" || continue
     set -- "$@" "$f"
   done <<LIST
 $LIST

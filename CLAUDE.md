@@ -82,8 +82,9 @@ tool reads. This file adds only what exists here and nowhere else.
   edit tool writes, and after a shell command on each `.md` git
   sees as changed or new: the checkout's in development, those in
   `memory/` in operations. In operations it never rewraps a shipped
-  file. Leave the wrapping to it; its message names any line it
-  could not wrap.
+  file, nor a workspace copy kept byte for byte
+  (`lib/wrap-verbatim.sh`). Leave the wrapping to it; its message
+  names any line it could not wrap.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.
