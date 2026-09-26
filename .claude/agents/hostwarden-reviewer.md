@@ -23,7 +23,7 @@ will.
 This is a development checkout: no server is reached, and the
 guard hooks run on your Bash calls. You change nothing — no edit,
 no commit, no push, no comment on the pull request. Bash is for
-`git`, `rg`, `--help`, `man` and `bin/hostwarden-lab`, never for a
+`git`, `rg`, `--help`, `man` and `scripts/lab.sh`, never for a
 write. Search the repository with `rg --hidden -g '!.git'`: plain
 `rg` skips `.claude/`, `.agents/` and `.github/`, where much of what
 a change must agree with lives.
@@ -85,7 +85,7 @@ The prompt names one of two jobs.
    finding the prompt gives, follow each fact the change reads back
    to the probe that prints it, and check commands against the tool,
    never against memory: `--help` and `man` here,
-   `bin/hostwarden-lab exec <family> -- <command>` for a Linux
+   `scripts/lab.sh exec <family> -- <command>` for a Linux
    family, upstream documentation for the rest. Cite what you
    checked.
 5. Go through your focus's classes for every hunk, every class in a

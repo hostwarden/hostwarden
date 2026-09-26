@@ -58,7 +58,7 @@ jobs:
           restore-keys: npm-
 
       # The awks bin/hostwarden-wrap has to work with, which
-      # scripts/wrap-test.sh runs it under.
+      # tests/bin/hostwarden-wrap.sh runs it under.
       - name: Install awks
         run: |
           sudo apt-get update -qq

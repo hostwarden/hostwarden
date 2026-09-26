@@ -1,5 +1,5 @@
 #!/bin/sh
-# fleet-run-test.sh — dev-only fixture matrix for
+# tests/bin/hostwarden-fleet-run.sh — dev-only fixture matrix for
 # bin/hostwarden-fleet-run, the unattended housekeeping of an
 # operations host. CI runs it through scripts/check.sh; an agent
 # session leaves it to CI (.claude/rules/pull-requests.md →
@@ -11,14 +11,11 @@
 # per host and records "log", the claude stand-in returns a fixed
 # verdict and keeps the prompt it was given.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-fleet-run-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp fleet-run
 
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 has() { grep -qF -- "$2" "$1" && ok || bad "$3"; }
 lacks() { grep -qF -- "$2" "$1" && bad "$3" || ok; }
 
@@ -30,12 +27,11 @@ unset HOSTWARDEN_FLEET_MODEL
 # --- the checkout -----------------------------------------------
 R="$TMP/repo"
 H="$R/.agents/skills/hostwarden-housekeeping/references"
-mkdir -p "$R/bin" "$R/.claude/hooks" "$H"
+mkdir -p "$R/bin" "$R/lib" "$R/.claude/hooks" "$H"
 cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" \
   "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
-  "$REPO/.claude/hooks/resolve.sh" \
-  "$R/.claude/hooks/"
+cp "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/resolve.sh" \
+  "$R/lib/"
 printf 'Report format marker\n' >"$H/report-format.md"
 printf 'Baseline marker: CRITICAL if any filesystem > 95%%\n' \
   >"$H/baseline-linux.md"
@@ -509,5 +505,4 @@ rc=$?
 [ "$rc" = 1 ] && grep -q 'operations checkout only' "$TMP/err" && ok \
   || bad "a development checkout ran (rc $rc)"
 
-echo "fleet-run: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish fleet-run

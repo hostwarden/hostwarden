@@ -33,7 +33,7 @@ which before anything else, from the files, never from the remote:
   Start nor the pipeline below applies, except
   `rules/session-start.md` → Workstation tools. Server work is
   handed to an operations checkout, never worked around. A
-  container from `bin/hostwarden-lab` is neither a server nor local
+  container from `scripts/lab.sh` is neither a server nor local
   mode: try a command there rather than guess its syntax.
 
 ## How It Works

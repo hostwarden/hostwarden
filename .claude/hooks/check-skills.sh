@@ -35,7 +35,7 @@ if [ ! -d .agents/skills ]; then
   exit 0
 fi
 
-# The same question instructions-test.sh asks: does the link
+# The same question tests/instructions.sh asks: does the link
 # land on the skill tree? A link to anywhere else is somebody's
 # own arrangement, and it has the same consequence here.
 # -d before the comparison on purpose: a dangling link would

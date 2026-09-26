@@ -19,8 +19,8 @@
 [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || exit 0
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
 cd "$ROOT" || exit 0
 
 hostwarden_mode "$ROOT"

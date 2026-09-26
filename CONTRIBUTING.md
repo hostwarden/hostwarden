@@ -158,7 +158,7 @@ git config core.hooksPath .githooks
 
 To try a command on a Linux family instead of guessing its
 syntax, install docker or podman (OrbStack provides docker on
-macOS); `bin/hostwarden-lab` runs disposable containers with it.
+macOS); `scripts/lab.sh` runs disposable containers with it.
 What only a full VM can answer goes to a test clone
 ([Testing a change](https://hostwarden.github.io/docs/development/testing)).
 

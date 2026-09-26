@@ -1,5 +1,5 @@
 #!/bin/sh
-# coordination-test.sh — dev-only fixture matrix for
+# tests/hooks/coordination.sh — dev-only fixture matrix for
 # bin/hostwarden-impact's announce/wait/ack/done/status and for
 # .claude/hooks/presence.sh and impact.sh. CI runs it through
 # scripts/check.sh; an agent session leaves it to CI
@@ -9,14 +9,11 @@
 # directory, a fixture memory of one hypervisor and one guest, and
 # a stand-in for ssh that answers only -G.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-coordination-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp coordination
 
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 has() { grep -qxF -- "$2" "$1" && ok || { bad "$3"; echo "--- got"; cat "$1"; }; }
 hasi() { grep -qF -- "$2" "$1" && ok || { bad "$3"; echo "--- got"; cat "$1"; }; }
 lacks() { grep -qF -- "$2" "$1" && bad "$3" || ok; }
@@ -26,12 +23,12 @@ mkdir -p "$HOME"
 
 # --- the checkout -----------------------------------------------
 R="$TMP/repo"
-mkdir -p "$R/bin" "$R/.claude/hooks"
+mkdir -p "$R/bin" "$R/lib" "$R/.claude/hooks"
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
-  "$REPO/.claude/hooks/coord-lib.sh" "$REPO/.claude/hooks/json.sh" \
-  "$REPO/.claude/hooks/resolve.sh" \
-  "$REPO/.claude/hooks/presence.sh" "$REPO/.claude/hooks/impact.sh" \
+cp "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/coord-tokenize.sh" \
+  "$REPO/lib/coord-lib.sh" "$REPO/lib/json.sh" "$REPO/lib/resolve.sh" \
+  "$R/lib/"
+cp "$REPO/.claude/hooks/presence.sh" "$REPO/.claude/hooks/impact.sh" \
   "$REPO/.claude/hooks/check-session.sh" "$R/.claude/hooks/"
 git -C "$R" init --quiet
 M="$R/memory"
@@ -103,7 +100,7 @@ exit 0
 EOF
 chmod +x "$TMP/bin/ssh"
 # A dig stand-in for the blacklist/read-only resolver-outage
-# disambiguation (.claude/hooks/resolve.sh's hostwarden_resolve_ok):
+# disambiguation (lib/resolve.sh's hostwarden_resolve_ok):
 # one header line per query it is asked (the real dig's own shape,
 # one per record type), NOERROR for every name but the ones a test
 # below names, so the rest of this file's hosts still clear on a
@@ -926,5 +923,4 @@ lacks "$TMP/hookout" "coordinator started" "check-session: a development checkou
 : >"$M/.hostwarden-workspace"
 rm -f "$TMP/bin/claude"
 
-echo "coordination: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish coordination

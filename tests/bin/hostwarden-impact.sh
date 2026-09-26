@@ -1,7 +1,7 @@
 #!/bin/sh
-# impact-test.sh — dev-only fixture matrix for bin/hostwarden-impact,
-# the blast radius of a disruptive step. CI runs it through
-# scripts/check.sh; an agent session leaves it to CI
+# tests/bin/hostwarden-impact.sh — dev-only fixture matrix for
+# bin/hostwarden-impact, the blast radius of a disruptive step. CI
+# runs it through scripts/check.sh; an agent session leaves it to CI
 # (.claude/rules/pull-requests.md → Checks).
 #
 # Everything runs in a throwaway operations checkout under a temp
@@ -9,14 +9,11 @@
 # answers only -G, from one file per destination, and records every
 # call.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-impact-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp impact
 
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 has() { grep -qxF -- "$2" "$1" && ok || bad "$3"; }
 lacks() { grep -qF -- "$2" "$1" && bad "$3" || ok; }
 same() {
@@ -29,15 +26,14 @@ export HOME="$TMP/home"
 mkdir -p "$HOME"
 
 # --- the checkout -----------------------------------------------
-mkdir -p "$TMP/repo/bin" "$TMP/repo/.claude/hooks"
+mkdir -p "$TMP/repo/bin" "$TMP/repo/lib"
 # Normalized like hostwarden-impact's own REPO_DIR (cd .. && pwd),
 # so the cksum below matches its checkout-ID computation even when
 # TMPDIR ends in a slash, as macOS's always does.
 R=$(cd "$TMP/repo" && pwd)
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
-  "$REPO/.claude/hooks/coord-lib.sh" "$REPO/.claude/hooks/resolve.sh" \
-  "$R/.claude/hooks/"
+cp "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/coord-tokenize.sh" \
+  "$REPO/lib/coord-lib.sh" "$REPO/lib/resolve.sh" "$R/lib/"
 git -C "$R" init --quiet
 M="$R/memory"
 mkdir -p "$M/machines" "$M/clusters/prod"
@@ -327,5 +323,4 @@ has "$TMP/out" 'app2.example.com behind bastion2 bastion2' \
 rm "$M/.hostwarden-workspace"
 exits 1 "runs outside an operations checkout" radius pve1.example.com reboot
 
-echo "impact: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish impact

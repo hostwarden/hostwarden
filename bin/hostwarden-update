@@ -142,10 +142,10 @@ if ! command -v git >/dev/null 2>&1; then
   echo "hostwarden-update: git is not installed" >&2
   exit 1
 fi
-# shellcheck source=../.claude/hooks/follow.sh
-. .claude/hooks/follow.sh
-# shellcheck source=../.claude/hooks/mode.sh
-. .claude/hooks/mode.sh
+# shellcheck source=../lib/follow.sh
+. lib/follow.sh
+# shellcheck source=../lib/mode.sh
+. lib/mode.sh
 if ! hostwarden_clone_top; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2

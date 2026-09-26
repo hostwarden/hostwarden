@@ -8,10 +8,10 @@
 # (rules/coordination.md → Presence map).
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
-# shellcheck source=json.sh
-. "$ROOT/.claude/hooks/json.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
 cd "$ROOT" || exit 0
 
 # shellcheck disable=SC2034 # read by hook_field in json.sh
@@ -83,12 +83,12 @@ hostwarden_next_step
 echo "  A question only a live server answers: $HOSTWARDEN_NEXT_STEP."
 # Operations never gets here: it has servers to try a command on.
 echo "  To try a command instead of guessing its syntax:"
-echo "  bin/hostwarden-lab exec <family> -- <command> runs it in a"
+echo "  scripts/lab.sh exec <family> -- <command> runs it in a"
 echo "  disposable container (debian, ubuntu, rhel, fedora, suse,"
 echo "  alpine), neither a server nor local mode. A container cannot"
 echo "  answer for systemd services, the firewall, kernel parameters,"
 echo "  a reboot, the SSH pipeline, FreeBSD or macOS; for the Linux"
-echo "  ones, bin/hostwarden-lab vm up gives a test clone a VM."
+echo "  ones, scripts/lab.sh vm up gives a test clone a VM."
 
 # The shim (shim.sh) goes first on the PATH of every later Bash
 # call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE

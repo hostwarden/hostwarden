@@ -28,10 +28,10 @@ ROOT=$(cd "${0%/*}/../.." && pwd -P)
 
 # shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
-# shellcheck source=json.sh
-. "$ROOT/.claude/hooks/json.sh"
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
 hostwarden_mode "$ROOT"
 
 # wrap <dir> <prefix> <args...> -- the command in <dir>, its names

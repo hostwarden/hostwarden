@@ -36,8 +36,8 @@
 # the shim.
 
 ROOT=${0%/*}/../../..
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
 hostwarden_mode "$ROOT"
 hostwarden_refusal "${0##*/}"
 echo "$HOSTWARDEN_REFUSAL Explain this to the user; do not call the \

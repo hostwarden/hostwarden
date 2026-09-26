@@ -39,7 +39,7 @@
 # `scripts/decisions.py --write` generates, is the one there is
 # today.
 #
-# The width is what .claude/hooks/instructions-test.sh holds a line
+# The width is what tests/instructions.sh holds a line
 # to, since that test calls --check: characters, not bytes; a link
 # target `](…)` counts as `]`, and a URL as nothing; a line of a
 # code block, fenced or indented, is not measured. The blocks are

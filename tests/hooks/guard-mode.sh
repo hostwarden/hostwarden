@@ -1,8 +1,8 @@
 #!/bin/sh
-# guard-mode-test.sh — dev-only fixture matrix for mode.sh,
+# tests/hooks/guard-mode.sh — dev-only fixture matrix for mode.sh,
 # guard-mode.sh, session-mode.sh, bin/hostwarden-init,
 # bin/hostwarden-sync, bin/hostwarden-ssh-config and
-# bin/hostwarden-lab. CI runs it through
+# scripts/lab.sh. CI runs it through
 # scripts/check.sh; an agent session leaves it to CI
 # (.claude/rules/pull-requests.md → Checks), except while building a
 # guard patch in a scratch clone. Not invoked by Claude Code at
@@ -12,8 +12,8 @@
 # directory, because the mode is a property of the tree the hook
 # sits in: the guard finds its root from its own path.
 
-HOOKS="$(cd "$(dirname "$0")" && pwd)"
-REPO="$(cd "$HOOKS/../.." && pwd)"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+HOOKS="$REPO/.claude/hooks"
 
 # bash_json <command> [tool] — for Bash, or the tool named.
 bash_json() {
@@ -43,11 +43,10 @@ if [ "${1:-}" = --verdict ]; then
   [ $# -eq 0 ] || echo "FAIL: a batch ended mid-fixture ($# arguments left)"
   exit 0
 fi
-SELF="$HOOKS/${0##*/}"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-mode-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
+SELF="$REPO/tests/hooks/${0##*/}"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp mode
 # Run inside a Claude Code session, session-mode.sh would write to
 # that session's own env file, and every call carries what that
 # file set: the shim first on PATH and git-ssh.sh as
@@ -58,8 +57,6 @@ PATH=$(printf %s "$PATH" | tr : '\n' | grep -v '/\.claude/hooks/shim$' |
   paste -sd: -)
 export PATH
 
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 # fails <message> <command...> — the command must fail.
 fails() { m=$1; shift; if "$@" >/dev/null 2>&1; then bad "$m"; else ok; fi; }
 # has <text> <needle> <message> — the text contains the needle.
@@ -76,14 +73,15 @@ commit() {
 # with its workspace skeleton, and a .gitignore like the real one.
 checkout() {
   c="$TMP/$1"
-  mkdir -p "$c/.claude/hooks" "$c/bin" "$c/rules"
-  cp "$HOOKS/mode.sh" "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" \
-    "$HOOKS/shim.sh" "$HOOKS/git-ssh.sh" "$HOOKS/json.sh" \
-    "$c/.claude/hooks/"
+  mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/scripts" "$c/rules"
+  cp "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" "$HOOKS/shim.sh" \
+    "$HOOKS/git-ssh.sh" "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$c/.claude/hooks/"
+  cp "$REPO/lib/mode.sh" "$REPO/lib/json.sh" "$c/lib/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
     "$REPO/bin/hostwarden-ssh-config" "$REPO/bin/hostwarden-backup" \
-    "$REPO/bin/hostwarden-lab" "$c/bin/"
+    "$c/bin/"
+  cp "$REPO/scripts/lab.sh" "$c/scripts/"
   mkdir -p "$c/templates"
   cp -R "$REPO/templates/workspace" "$c/templates/"
   printf 'memory/\n.claude/settings.local.json\n' > "$c/.gitignore"
@@ -103,8 +101,8 @@ git -C "$DEV" worktree add --quiet -b feat/x "$WT" 2>/dev/null
 
 # --- mode.sh ---------------------------------------------------
 mode_is() {
-  # shellcheck source=mode.sh
-  got=$(. "$HOOKS/mode.sh"; hostwarden_mode "$2"; echo "$HOSTWARDEN_MODE")
+  # shellcheck source=../../lib/mode.sh
+  got=$(. "$REPO/lib/mode.sh"; hostwarden_mode "$2"; echo "$HOSTWARDEN_MODE")
   if [ "$got" = "$1" ]; then ok; else bad "mode of $2: want $1, got $got"; fi
 }
 mode_is development "$DEV"
@@ -114,7 +112,7 @@ mode_is worktree "$WT"
 # workspace in it, and init refuses to make one.
 ARC="$TMP/archive"
 mkdir -p "$ARC/memory"
-cp -R "$DEV/.claude" "$DEV/bin" "$DEV/templates" "$ARC/"
+cp -R "$DEV/.claude" "$DEV/bin" "$DEV/lib" "$DEV/templates" "$ARC/"
 cp "$OPS/memory/.hostwarden-workspace" "$ARC/memory/"
 mode_is development "$ARC"
 rm "$ARC/memory/.hostwarden-workspace"
@@ -281,7 +279,7 @@ cmd pass "$DEV" 'git push -u origin feat/28-workspace-mode'
 cmd pass "$DEV" 'ssh-keygen -lf key.pub'
 cmd pass "$DEV" 'ls -l /etc/ssh/'
 cmd pass "$DEV" 'rsync -a templates/ /tmp/copy/'
-cmd pass "$DEV" 'sh .claude/hooks/guard-taboos-test.sh'
+cmd pass "$DEV" 'sh tests/hooks/guard-taboos.sh'
 cmd pass "$DEV" 'git commit -m "ssh: keep one connection per host"'
 cmd pass "$DEV" 'command -v ssh'
 cmd pass "$DEV" 'command -pv sudo'
@@ -379,7 +377,7 @@ mon deny "$WT" 'ssh root@server1.example.com uptime'
 mon pass "$OPS" 'ssh root@server1.example.com tail -f /var/log/syslog'
 # Text that says Monitor does not turn a Bash call into one.
 cmd pass "$DEV" 'echo "Monitor" ssh'
-# Containers: as bin/hostwarden-lab starts them, never with a way
+# Containers: as scripts/lab.sh starts them, never with a way
 # into this machine.
 cmd pass "$DEV" 'docker run --detach --rm --init --name hwlab-x-debian --label hostwarden.lab=x --security-opt no-new-privileges docker.io/library/debian:13 sh -c "sleep 21600"'
 cmd pass "$DEV" 'podman run --rm -it docker.io/library/alpine:3.24 sh'
@@ -412,7 +410,7 @@ cmd deny "$DEV" '(docker rm -f other-project)'
 cmd deny "$DEV" 'x=$(orb create debian y)'
 cmd pass "$DEV" 'find . -name "*.md" -exec grep -l docker {} +'
 cmd pass "$DEV" 'gh pr comment 5 --body "docker rm other"'
-cmd pass "$DEV" 'bin/hostwarden-lab exec debian -- sh -c "ls -v /etc"'
+cmd pass "$DEV" 'scripts/lab.sh exec debian -- sh -c "ls -v /etc"'
 cmd deny "$DEV" 'docker run --rm --privileged debian:13 true'
 cmd deny "$DEV" 'docker run --rm -v /:/host debian:13 true'
 cmd deny "$DEV" 'docker run --rm -v "$HOME:/h" debian:13 true'
@@ -528,7 +526,7 @@ cmd pass "$DEV" 'docker run --rm --pid=private --pull=missing debian:13 true'
 cmd deny "$DEV" 'orb create --isolated debian:13 hwlab-x-debian'
 cmd deny "$DEV" 'orbctl add debian x'
 cmd deny "$DEV" 'limactl create template:debian-13'
-cmd pass "$DEV" 'bin/hostwarden-lab vm up debian --ops ~/hostwarden-test'
+cmd pass "$DEV" 'scripts/lab.sh vm up debian --ops ~/hostwarden-test'
 cmd deny "$DEV" 'orb delete --force hwlab-x-debian'
 cmd pass "$DEV" 'orb list'
 cmd pass "$DEV" 'orb --help'
@@ -664,10 +662,10 @@ git -C "$DEV" remote remove origin
 says operations "$OPS" "operations checkout"
 says worktree "$WT" "linked worktree"
 says worktree "$WT" "how: rules/server-check-handoff.md"
-says development "$DEV" "bin/hostwarden-lab exec <family>"
+says development "$DEV" "scripts/lab.sh exec <family>"
 says worktree "$WT" "the SSH pipeline, FreeBSD or macOS"
 case "$(sh "$OPS/.claude/hooks/session-mode.sh")" in
-*hostwarden-lab*) bad "session-mode named the lab in operations" ;;
+*lab.sh*) bad "session-mode named the lab in operations" ;;
 *) ok ;;
 esac
 out=$(unset CLAUDE_ENV_FILE; sh "$DEV/.claude/hooks/session-mode.sh")
@@ -1087,7 +1085,7 @@ mode_is operations "$B"
 sync_b() { sh "$B/bin/hostwarden-sync" "$@"; }
 # A GIT_SSH_COMMAND the user set gets the no-prompt options too.
 got=$(GIT_SSH_COMMAND='ssh -i /tmp/k' HOME="$TMP" sh -c \
-  '. "$1"; hostwarden_git_batch; echo "$GIT_SSH_COMMAND"' _ "$HOOKS/mode.sh")
+  '. "$1"; hostwarden_git_batch; echo "$GIT_SSH_COMMAND"' _ "$REPO/lib/mode.sh")
 case "$got" in
 "ssh -i /tmp/k -o BatchMode=yes"*ServerAliveInterval=15*) ok ;;
 *) bad "an inherited GIT_SSH_COMMAND lost the required options: $got" ;;
@@ -1237,14 +1235,14 @@ mode_is operations "$R"
 [ -f "$R/memory/machines/server1.example.com/memory.md" ] && ok \
   || bad "a restore lost machine memory"
 
-# --- bin/hostwarden-lab ----------------------------------------
+# --- scripts/lab.sh ----------------------------------------
 # What it refuses before an engine or a VM manager is asked, and on
 # a PATH without either, so no container or VM is ever started.
 mkdir -p "$TMP/novm"
 for t in sh git awk grep sed tr basename dirname mktemp cat cut cksum; do
   ln -s "$(command -v "$t")" "$TMP/novm/$t"
 done
-lab() { c=$1; shift; PATH="$TMP/novm" sh "$c/bin/hostwarden-lab" "$@" 2>&1; }
+lab() { c=$1; shift; PATH="$TMP/novm" sh "$c/scripts/lab.sh" "$@" 2>&1; }
 fails "the lab ran in an operations checkout" lab "$OPS" list
 fails "the lab took an unknown family" lab "$DEV" up nosuch
 fails "vm up ran without a test clone" lab "$DEV" vm up debian
@@ -1262,8 +1260,7 @@ has "$(lab "$DEV" up debian)" "no container engine" \
   "up did not ask for an engine"
 HOSTWARDEN_LAB_ENGINE=false lab "$DEV" list >/dev/null && ok \
   || bad "list failed without a running engine"
-has "$(lab "$WT" --help)" "hostwarden-lab up <family>" "no help"
+has "$(lab "$WT" --help)" "lab.sh up <family>" "no help"
 rm "$OPS/memory/blacklist.md"
 
-echo "guard-mode: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish guard-mode

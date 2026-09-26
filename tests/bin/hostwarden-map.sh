@@ -1,5 +1,5 @@
 #!/bin/sh
-# hostwarden-map-test.sh — golden-fixture matrix for bin/hostwarden-map:
+# tests/bin/hostwarden-map.sh — golden-fixture matrix for bin/hostwarden-map:
 # every level's Mermaid and table, determinism, and the palette's own
 # contrast rule, computed here rather than eyeballed
 # (rules/network-topology.md's design; .claude/rules/pull-requests.md
@@ -11,14 +11,11 @@
 # drift into the other state and the golden files would go stale
 # with it.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-map-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp map
 
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 has() { grep -qxF -- "$2" "$1" && ok || bad "$3 ($1)"; }
 haspart() { grep -qF -- "$2" "$1" && ok || bad "$3 ($1)"; }
 lacks() { grep -qF -- "$2" "$1" && bad "$3 ($1)" || ok; }
@@ -34,9 +31,9 @@ STALE=$(days_ago 100)
 
 # --- the checkout -------------------------------------------------
 R="$TMP/repo"
-mkdir -p "$R/bin" "$R/.claude/hooks"
+mkdir -p "$R/bin" "$R/lib"
 cp "$REPO/bin/hostwarden-map" "$R/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$R/.claude/hooks/"
+cp "$REPO/lib/mode.sh" "$R/lib/"
 cp "$REPO/VERSION" "$R/VERSION"
 git -C "$R" init --quiet
 M="$R/memory"
@@ -517,9 +514,9 @@ exists "$MAPS/sites/colo-fra.md" \
 # that exit and appends a second, stray zero, corrupting link_idx
 # and aborting the dashed-fallback loop after its first site -------
 R2="$TMP/repo2"
-mkdir -p "$R2/bin" "$R2/.claude/hooks"
+mkdir -p "$R2/bin" "$R2/lib"
 cp "$REPO/bin/hostwarden-map" "$R2/bin/"
-cp "$REPO/.claude/hooks/mode.sh" "$R2/.claude/hooks/"
+cp "$REPO/lib/mode.sh" "$R2/lib/"
 cp "$REPO/VERSION" "$R2/VERSION"
 git -C "$R2" init --quiet
 M2="$R2/memory"
@@ -556,5 +553,4 @@ has "$WAN2" '  site_alpha -.- inet' \
 has "$WAN2" '  site_beta -.- inet' \
   "beta gets its own dashed line too -- the corrupted link_idx used to abort the loop after the first site, silently dropping every one after it"
 
-echo "hostwarden-map: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish hostwarden-map

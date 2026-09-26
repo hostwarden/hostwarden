@@ -5,12 +5,14 @@ paths:
   - "changelog.d/**"
   - ".github/**"
   - ".claude/hooks/**"
+  - "lib/**"
   - "scripts/**"
+  - "tests/**"
   - ".githooks/**"
   - "mise.dev.toml"
-description: Versioning, tagging, porting from Heinzel, and what
-  counts as a guard finding — for work on the Hostwarden repository
-  itself, not for sysadmin sessions.
+description: Versioning, tagging, porting from Heinzel, where code
+  and tests go, and what counts as a guard finding — for work on the
+  Hostwarden repository itself, not for sysadmin sessions.
 ---
 
 # Releasing Hostwarden
@@ -167,7 +169,7 @@ again, which would add a second one enforced beside the old:
       --input .github/rulesets/main.json
 
 It puts `main` behind the merge queue and requires the `check` and
-`review record` jobs; `instructions-test.sh` fails when a required
+`review record` jobs; `tests/instructions.sh` fails when a required
 name matches no job. `gh pr merge` puts a pull request into the
 queue through auto-merge, which the repository allows, set once:
 
@@ -181,16 +183,37 @@ pull request is squashed before its draft is lifted
 The repository belongs to the organization `hostwarden`
 (`docs/adr/20260924-org-owned-for-merge-queue.md`).
 
-**A change to `.claude/hooks/guard-taboos.sh` without a new line in
-the fixture matrix is incomplete.** The matrix is how a taboo stays
-blocked after somebody refactors the pattern that blocks it — and
-it is why `.claude/hooks/**` is in this file's `paths`. A rule that
-only loads when someone opens the changelog does not reach the
-person editing the guard.
+**A change to the taboo guard's rules in
+`.claude/hooks/guard-taboos.d/` without a new line in its fixture
+matrix, `tests/hooks/guard-taboos/`, is incomplete.** The matrix is
+how a taboo stays blocked after somebody refactors the pattern that
+blocks it — and it is why `.claude/hooks/**` is in this file's
+`paths`. A rule that only loads when someone opens the changelog
+does not reach the person editing the guard.
 
 In auto mode, Claude Code does not let an agent edit
 `.claude/hooks/guard-*.sh`. The agent builds the change in a scratch
-clone and hands the maintainer a patch to apply with `git am`.
+clone and hands the maintainer a patch to apply with `git am`, and a
+change to `guard-taboos.d/` goes the same way.
+
+## Where code goes
+
+- `bin/` — commands an operator runs, or the instructions run for
+  them. No extension: the name is the interface.
+- `lib/` — code `bin/` and the hooks share, sourced and never run.
+- `.claude/hooks/` — the entry points `settings.json` registers, and
+  what they call directly (`shim/`, `git-ssh.sh`, `guard-taboos.d/`).
+- `scripts/` — what developing Hostwarden needs and running it does
+  not: CI, releases, reviews, `lab.sh`.
+- `tests/` — every matrix, at the path of what it checks:
+  `tests/bin/hostwarden-impact.sh` checks `bin/hostwarden-impact`.
+  Never a `-test.sh` beside the code. `tests/helpers.sh` holds what
+  they share.
+
+A file past about 500 lines is split along its sections, into a
+directory its entry point sources in a fixed order, as
+`guard-taboos.d/` and `tests/hooks/guard-taboos/` are. What one part
+defines, the parts after it read.
 
 ## Guard findings
 

@@ -51,6 +51,9 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
 
 ## For working on Hostwarden
 
-- **`hostwarden-lab`** — disposable Linux containers and VMs to try a
+Tools that only developing Hostwarden needs live in `scripts/`, not
+here, and a checkout that runs Hostwarden never calls them:
+
+- **`scripts/lab.sh`** — disposable Linux containers and VMs to try a
   command on instead of guessing its syntax
   ([Testing a change](../development/testing.md)).

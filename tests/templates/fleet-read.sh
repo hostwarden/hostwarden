@@ -1,5 +1,5 @@
 #!/bin/sh
-# fleet-read-test.sh — dev-only fixture matrix for
+# tests/templates/fleet-read.sh — dev-only fixture matrix for
 # templates/fleet-read/fleet-read, the forced command of an
 # operations host's key. CI runs it through scripts/check.sh; an
 # agent session leaves it to CI (.claude/rules/pull-requests.md →
@@ -9,14 +9,10 @@
 # pointed at a throwaway allowed_signers file, two throwaway
 # signing keys, and a logger stand-in that records its arguments.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-fleet-read-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
-
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp fleet-read
 
 # The wrapper, with its signers file and PATH moved into $TMP. The
 # PATH keeps the system directories, so only logger is replaced.
@@ -158,5 +154,4 @@ n=$(sed 's/.*read-only: //' "$TMP/logged" | tr -d '\n' | wc -c)
 logline '\n'
 [ ! -e "$TMP/logged" ] && ok || bad "an empty line was logged"
 
-echo "fleet-read: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish fleet-read

@@ -1,5 +1,5 @@
 #!/bin/sh
-# release-test.sh — dev-only fixture matrix for how a copy of
+# tests/bin/hostwarden-update.sh — dev-only fixture matrix for how a copy of
 # Hostwarden gets its releases: bin/hostwarden-mirror,
 # bin/hostwarden-update and check-updates.sh, with follow.sh
 # between them. CI runs it through scripts/check.sh; an agent
@@ -10,15 +10,10 @@
 # directory: an upstream, a bare mirror of it, and a production
 # clone of the mirror.
 
-HOOKS="$(cd "$(dirname "$0")" && pwd)"
-REPO="$(cd "$HOOKS/../.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-release-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
-
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp release
 
 export GIT_AUTHOR_NAME=alice GIT_AUTHOR_EMAIL=alice@example.com
 export GIT_COMMITTER_NAME=alice GIT_COMMITTER_EMAIL=alice@example.com
@@ -27,10 +22,10 @@ unset HOSTWARDEN_NO_UPDATE HEINZEL_NO_UPDATE CLAUDE_PROJECT_DIR \
 
 # Upstream: the scripts under test, and one commit per release.
 U="$TMP/upstream"
-mkdir -p "$U/bin" "$U/.claude/hooks"
+mkdir -p "$U/bin" "$U/lib" "$U/.claude/hooks"
 cp "$REPO/bin/hostwarden-update" "$REPO/bin/hostwarden-mirror" "$U/bin/"
-cp "$HOOKS/mode.sh" "$HOOKS/follow.sh" "$HOOKS/check-updates.sh" \
-  "$U/.claude/hooks/"
+cp "$REPO/lib/mode.sh" "$REPO/lib/follow.sh" "$U/lib/"
+cp "$REPO/.claude/hooks/check-updates.sh" "$U/.claude/hooks/"
 printf 'memory/\n' > "$U/.gitignore"
 git -C "$U" init --quiet --initial-branch=main
 # release <version> — commit VERSION and tag it; "-" commits only.
@@ -323,5 +318,4 @@ hook >/dev/null
 follows main && [ "$(git -C "$P" symbolic-ref --short HEAD)" = main ] \
   && ok || bad "a checkout that chose main left it"
 
-echo "release: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish release

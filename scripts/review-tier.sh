@@ -3,7 +3,7 @@
 # files it touches, as .claude/rules/pull-requests.md → The own
 # review says. The own review's tier and the review record's fix
 # line both read it here. LIGHT below is the rule's light list,
-# word for word; review-record-test.sh fails when the two differ.
+# word for word; tests/scripts/review-record.sh fails when the two differ.
 #
 #   sh scripts/review-tier.sh <old> [<new>]
 #

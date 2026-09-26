@@ -18,16 +18,16 @@ fi
 # Only an operations install follows main. A development
 # checkout moves by its own branches and pull requests, and a
 # pull on its main would only surprise whoever works there
-# (.claude/hooks/mode.sh).
-# shellcheck source=mode.sh
-. "${0%/*}/mode.sh"
+# (lib/mode.sh).
+# shellcheck source=../../lib/mode.sh
+. "${0%/*}/../../lib/mode.sh"
 hostwarden_mode "${0%/*}/../.."
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
 
 # bin/hostwarden-doctor, beside this hook, reports a missing git.
 command -v git >/dev/null 2>&1 || exit 0
-# shellcheck source=follow.sh
-. "${0%/*}/follow.sh"
+# shellcheck source=../../lib/follow.sh
+. "${0%/*}/../../lib/follow.sh"
 if ! hostwarden_clone_top; then
   echo "hostwarden: this is not a git clone (an archive" \
     "download?), so no update check — clone the repository" \
