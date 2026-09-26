@@ -73,7 +73,8 @@ until every host is probed. What belongs to a place — the site, its
 uplink, what filters in front of the hosts, how you reach a machine
 when SSH is gone, a backup the hosts cannot see — is asked once per
 site, naming the hosts it covers, and each host's memory records
-the answer. The rest is asked host by host.
+the answer. Container registries are asked once for the hosts
+that pull from the same ones, and the rest host by host.
 
 A guest that its hypervisor registered finishes its onboarding on
 its first own login, read-only, before whatever you asked for. The

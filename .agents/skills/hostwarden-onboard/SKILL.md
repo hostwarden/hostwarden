@@ -244,14 +244,17 @@ options and puts the hosts in its first line:
 
 In this order:
 
-1. **Sites.** A host whose memory has a `Site:` line keeps it, and a
-   guest's site is its host's. The others are asked as
+1. **Sites.** A guest's site is its host's, and a host whose memory
+   names a site keeps it. The hosts the site question is open for
+   are asked as
    `rules/network-topology.md` → The question → Several hosts at
    once says. The uplink question comes with the first answer that
    names a site where it is still open (`rules/network-topology.md`
    → The uplink question).
 2. **Per site, one question each,** for the hosts of that site the
-   question is open for:
+   question is open for. A host with no site to group by —
+   `Site: unknown`, a workstation, a guest whose host has none — is
+   no place: its questions go to step 4.
    - what filters in front of the hosts (`rules/baseline.md` →
      Filtering in front of the host), for those whose measurement
      found a family unfiltered and whose memory has no
@@ -271,7 +274,8 @@ In this order:
 3. **Container registries,** one question for the hosts whose images
    come from the same registries, and each host's line lists the
    ones the user trusts among its own.
-4. **Every other question,** host by host in the run's order.
+4. **Every other question,** host by host in the run's order, and
+   step 2's for a host with no site.
 
 The answers are written into each host's memory and committed once,
 with every path they changed (`rules/changelog.md` → The
