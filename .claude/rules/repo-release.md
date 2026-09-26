@@ -197,6 +197,12 @@ queue through auto-merge, which the repository allows, set once:
 
     gh api -X PATCH repos/<owner>/<repo> -F allow_auto_merge=true
 
+Releases are immutable: once published, neither a release's assets
+nor its tag can change. That is a repository setting, not a ruleset
+rule, so no file carries it; set it once:
+
+    gh api -X PUT repos/<owner>/<repo>/immutable-releases
+
 The queue takes no commit message of its own: a pull request of one
 commit lands as that commit, its title and message, which is why a
 pull request is squashed before its draft is lifted
