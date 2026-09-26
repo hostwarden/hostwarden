@@ -37,13 +37,21 @@ it against `.github/release-signers` before pushing; without the
 secret, or with another key in it, no tag is pushed. A new key is
 added to that file and to `website/docs/running-it/setup/updates.md`
 → Release signatures, line and fingerprint, with
-`valid-after=<date>`, in one pull request before the secret is
-replaced; the old key's line stays in both, bounded with
+`valid-after=<date>`, in one pull request, and a release signed
+with the old key follows before the secret is replaced; the old
+key's line stays in both, bounded with
 `valid-before=<date>`, so every tag it signed still verifies. A
 bound holds against the tag's own date, which the signer picks, so
 a leaked key is removed from both instead: the tags it signed stop
 verifying, and a new release under the new key is the way forward
 (`docs/adr/20260926-release-tags-signed-with-dedicated-ssh-key.md`).
+`bin/hostwarden-update` verifies each tag against the file of the
+version a checkout is on, never the tag's own, and hands the file of
+each release in between that verifies on to the next: a new key
+reaches a checkout only through that release the old key signed.
+After a leaked key, each checkout takes its next release by hand,
+as the updates page says
+(`docs/adr/20260926-release-key-from-the-checked-out-version.md`).
 
 `VERSION` holds a semver string and nothing else. Release notes live
 in `CHANGELOG.md`. The session-start hook compares the version

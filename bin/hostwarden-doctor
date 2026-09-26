@@ -53,6 +53,8 @@ case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
 ROOT=$(cd "$ROOT" && pwd)
 # shellcheck source=../lib/mode.sh
 . "$ROOT/lib/mode.sh"
+# shellcheck source=../lib/follow.sh
+. "$ROOT/lib/follow.sh"
 # website/docs/getting-started/install.md, published — every row
 # below that points a user there names it once.
 INSTALL_DOCS=https://hostwarden.github.io/docs/getting-started/install
@@ -336,6 +338,14 @@ done
 # (.claude/hooks/shim.sh), which refuses even -G.
 [ -n "$DEV" ] || ! real_ssh \
   || probe need "ssh connection sharing and Include (OpenSSH 7.3+)" ssh ssh_shares
+# An update checks out only a release tag it can verify
+# (bin/hostwarden-update); a development checkout verifies none.
+if [ -z "$DEV" ] && real_ssh; then
+  probe need "release tag signatures in git (2.34+)" git \
+    hostwarden_follow_git_verifies
+  probe need "release tag signatures in OpenSSH (8.7+)" ssh \
+    hostwarden_follow_ssh_verifies
+fi
 probe need "symbolic links ($INSTALL_DOCS#symbolic-links)" "" links_work
 
 if [ -n "$DEV" ]; then

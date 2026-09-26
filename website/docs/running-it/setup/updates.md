@@ -44,6 +44,25 @@ checkout proves nothing about the tag that brought it. A key retired
 in the normal course stays listed, bounded with `valid-before`, so
 an older release still verifies; a key that leaked is removed.
 
+An operations checkout does this itself before every checkout of a
+release tag, with `--follow`, `--pin` and every update on a line.
+The key it trusts is the `.github/release-signers` of the version it
+is on, copied aside before anything is fetched, never the file of the
+tag it checks; a checkout on `main` settling on its first release
+line uses `main`'s. Each release in between that verifies hands its
+own file on, so a new key listed by a release the old key signed is
+trusted from there on, even where the update skips that release. A
+tag that does not verify, or carries another release's name, is
+refused: the update says so and stops, and the checkout stays where
+it is, `main` included. `--check` names such a tag too. Verifying
+needs git 2.34 and OpenSSH 8.7 or later, which
+`bin/hostwarden-doctor` checks. After a refusal, compare the
+checkout's `.github/release-signers` with the lines above. Where
+they differ, as after a leaked key was replaced, check the tag by
+hand with the lines from this page, as above, and only once it
+verifies, `git checkout vX.Y.Z`; from there on the updater trusts
+the new key. A development checkout verifies nothing.
+
 ## Automatic updates
 
 On every session start in an operations checkout, a hook (Claude
@@ -77,7 +96,8 @@ line; pre-releases do not count. Only the newest release gets fixes
 ([SECURITY.md](https://github.com/hostwarden/hostwarden/blob/main/SECURITY.md)):
 once a release outside the line is out, every update and `--check`
 say so, and name the line to follow next and where to read what it
-changes.
+changes, or, where that release does not verify, that an update
+refuses it.
 
 ## Following main
 

@@ -38,6 +38,11 @@
 #                                (bin/hostwarden-update)
 #   hostwarden_clone_top       — true at the top of a clone that
 #                                tracks Hostwarden
+#   hostwarden_follow_can_verify
+#                              — true when git and OpenSSH here can
+#                                verify a release tag's signature
+#   hostwarden_follow_git_verifies, hostwarden_follow_ssh_verifies
+#                              — its two halves, each on its own
 
 # Outside a clone every git call fails, and the caller would blame
 # something else, a detached HEAD for one. Unpacked into some other
@@ -90,4 +95,28 @@ hostwarden_follow_default() {
   hd=$(hostwarden_follow_tag '[1-9]*')
   hd=${hd#v}
   [ -z "$hd" ] || printf '%s\n' "${hd%%.*}"
+}
+
+# git verifies an SSH signature from 2.34 on. ssh-keygen finds the
+# signer from OpenSSH 8.2 on, but reads the valid-after and
+# valid-before a key rotation writes only from 8.7 on, and skips
+# such a line before. Older, a good tag reads as unsigned, or as
+# not verifying.
+hostwarden_follow_git_verifies() {
+  hv=$(git version 2>/dev/null) hv=${hv#git version }
+  hostwarden_follow_at_least "$hv" 2 34
+}
+hostwarden_follow_ssh_verifies() {
+  hs=$(ssh -V 2>&1) hs=${hs#OpenSSH_}
+  hostwarden_follow_at_least "$hs" 8 7
+}
+hostwarden_follow_can_verify() {
+  hostwarden_follow_git_verifies && hostwarden_follow_ssh_verifies
+}
+
+# hostwarden_follow_at_least <version> <major> <minor>
+hostwarden_follow_at_least() {
+  hm=${1%%[!0-9]*} hn=${1#"$hm".} hn=${hn%%[!0-9]*}
+  [ -n "$hm" ] && [ -n "$hn" ] || return 1
+  [ "$hm" -gt "$2" ] || { [ "$hm" -eq "$2" ] && [ "$hn" -ge "$3" ]; }
 }
