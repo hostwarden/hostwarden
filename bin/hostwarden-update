@@ -18,6 +18,9 @@
 #
 # A checkout on main that never chose follows main until a
 # release exists, then the major line of the newest release.
+# An operations checkout checks a release tag out only once its
+# signature verifies against the release key of the version it is
+# on.
 set -e
 
 # Find the repo root (this script lives in bin/).
@@ -152,6 +155,94 @@ if ! hostwarden_clone_top; then
   exit 1
 fi
 FOLLOW=$(hostwarden_follow)
+hostwarden_mode "$REPO_DIR"
+
+# The release key an operations checkout trusts: the
+# .github/release-signers of the commit it is on, copied outside
+# the working tree before anything is fetched. Never the file of the
+# tag being checked: whoever serves a forged tag serves its key too
+# (docs/adr/20260926-release-key-from-the-checked-out-version.md).
+# trust_head — take the file of the commit checked out: at the start,
+# and after each checkout of a tag that verified.
+trust_head() {
+  [ -z "$SIGNERS" ] || git show HEAD:.github/release-signers \
+    > "$SIGNERS" 2>/dev/null || : > "$SIGNERS"
+}
+SIGNERS=
+if [ "$HOSTWARDEN_MODE" = operations ]; then
+  SIGNERS=$(mktemp "${TMPDIR:-/tmp}/hostwarden-signers.XXXXXX")
+  trap 'rm -f "$SIGNERS" "$SIGNERS.chain" "$SIGNERS.next"' EXIT
+  trap 'exit 1' INT TERM
+  trust_head
+fi
+
+# signed_by <tag> <allowed signers> — true when <tag> is an annotated
+# tag of that name signed by a key the file lists; sets WHY
+# otherwise. A signed tag object of another release, under this
+# name, would verify too, hence the name.
+signed_by() {
+  if [ "$(git for-each-ref --format='%(objecttype) %(tag)' \
+    "refs/tags/$1")" != "tag $1" ]; then
+    WHY="it is no annotated tag named $1"
+    return 1
+  fi
+  # A key the file lists is trusted fully; a gpg.minTrustLevel of
+  # the user's own must not let an unlisted one pass.
+  if ! WHY=$(git -c gpg.ssh.allowedSignersFile="$2" \
+    -c gpg.minTrustLevel=fully verify-tag "$1" 2>&1); then
+    WHY="its signature does not verify against the release key this
+  checkout trusts:
+$(printf '%s\n' "$WHY" | sed 's/^/    /')
+  Compare .github/release-signers with the release key on the
+  updates page (Release signatures)."
+    return 1
+  fi
+}
+
+# verify_tag <tag> — true when <tag> verifies against the key this
+# checkout trusts; sets WHY otherwise. Always true in a development
+# checkout, which is not verified.
+#
+# Every release between the checkout and <tag> that verifies hands
+# its own file on to the next, so a new key, listed by a release the
+# old key signed, is trusted from there on although the update
+# skips that release (.claude/rules/repo-release.md → VERSION).
+verify_tag() {
+  [ -n "$SIGNERS" ] || return 0
+  if [ ! -s "$SIGNERS" ]; then
+    WHY="this checkout has no .github/release-signers to check it with"
+    return 1
+  fi
+  if ! hostwarden_follow_can_verify; then
+    WHY="this machine cannot verify a signature: that needs git 2.34
+  and OpenSSH 8.7 or later (bin/hostwarden-doctor)"
+    return 1
+  fi
+  cp "$SIGNERS" "$SIGNERS.chain"
+  for vt in $(git tag -l 'v*' --merged "$1" --no-merged HEAD \
+    --sort=v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'); do
+    [ "$vt" != "$1" ] && signed_by "$vt" "$SIGNERS.chain" &&
+      git show "$vt:.github/release-signers" > "$SIGNERS.next" \
+        2>/dev/null && mv "$SIGNERS.next" "$SIGNERS.chain" || :
+  done
+  signed_by "$1" "$SIGNERS.chain"
+}
+
+# checkout_tag <tag> — the one way a release tag is checked out:
+# verified first, and nothing moves when it does not verify.
+checkout_tag() {
+  if ! verify_tag "$1"; then
+    echo "hostwarden update refused: $1 — $WHY"
+    echo "  Nothing was checked out."
+    exit 1
+  fi
+  if ! OUTPUT=$(git checkout --quiet "$1" 2>&1); then
+    echo "hostwarden update failed: $OUTPUT"
+    echo "Likely cause: local changes (run 'git status')."
+    exit 1
+  fi
+  trust_head
+}
 
 # follow_target <line> — sets TAG to the newest release on the
 # line, from origin; exits when there is none to be had.
@@ -169,13 +260,36 @@ follow_target() {
   fi
 }
 
+# need_arg <value> <usage> — an option's argument, or the usage. Not
+# ${2:?}: under set -e with an EXIT trap, bash 3.2 as macOS /bin/sh
+# exits 0 on that error.
+need_arg() {
+  [ -n "$1" ] && return
+  echo "Usage: hostwarden-update $2" >&2
+  exit 1
+}
+
+# pull_failed — why main could not move; $OUTPUT is git's own word.
+pull_failed() {
+  echo "hostwarden update failed: $OUTPUT"
+  echo "Likely causes: local changes (run 'git status',"
+  echo "stash them with 'git stash'), local commits on a"
+  echo "diverged main, or no network. Fix and re-run."
+  exit 1
+}
+
 at_tag() { [ "$(git rev-parse HEAD)" = "$(git rev-parse "$1^{commit}")" ]; }
+
+# on_tag <tag> — true when the checkout needs no checkout to be at
+# <tag>. On a branch it checks out, and so verifies, even when the
+# branch is at the tag already, or the line would look like a
+# checkout of main. The update and --check both decide by this.
+on_tag() { at_tag "$1" && ! git symbolic-ref -q HEAD >/dev/null; }
 
 # settle_line — the release line an operations checkout that never
 # chose settles on, or nothing. A development checkout stays where
 # its developer put it.
 settle_line() {
-  hostwarden_mode "$REPO_DIR"
   [ "$HOSTWARDEN_MODE" != operations ] || hostwarden_follow_default
 }
 
@@ -193,6 +307,10 @@ line_notice() {
   *) NEXT=${NEXT%%.*} ;;
   esac
   echo "hostwarden: $NEWEST is out, and line $1 gets no more fixes."
+  if ! verify_tag "$NEWEST"; then
+    echo "  An update refuses it: $WHY"
+    return 0
+  fi
   echo "  Read what it changes, 'git show $NEWEST:CHANGELOG.md', then"
   echo "  'hostwarden-update --follow $NEXT'."
 }
@@ -207,14 +325,7 @@ follow_update() {
   follow_target "$1"
   OLD_VERSION=${OLD_VERSION:-$(current_version)}
   OLD_HEAD=${OLD_HEAD:-$(git rev-parse HEAD)}
-  # On a branch the checkout detaches even when the branch is at the
-  # tag already, or the line would look like a checkout of main.
-  if { ! at_tag "$TAG" || git symbolic-ref -q HEAD >/dev/null; } &&
-    ! OUTPUT=$(git checkout --quiet "$TAG" 2>&1); then
-    echo "hostwarden update failed: $OUTPUT"
-    echo "Likely cause: local changes (run 'git status')."
-    exit 1
-  fi
+  on_tag "$TAG" || checkout_tag "$TAG"
   [ -z "${2:-}" ] || hostwarden_follow_set "$1"
   run_migration
   report "$OLD_VERSION" "$OLD_HEAD"
@@ -227,10 +338,12 @@ case "${1:-}" in
     if [ -n "$FOLLOW" ]; then
       echo "Following $FOLLOW (the newest v$FOLLOW.x release)."
       follow_target "$FOLLOW"
-      if at_tag "$TAG"; then
+      if on_tag "$TAG"; then
         echo "Up to date."
-      else
+      elif verify_tag "$TAG"; then
         echo "$TAG is available."
+      else
+        echo "$TAG is out, and an update refuses it: $WHY"
       fi
       line_notice "$FOLLOW"
       exit 0
@@ -253,9 +366,10 @@ case "${1:-}" in
     git fetch --quiet origin
     LINE=$(settle_line)
     if [ -n "$LINE" ]; then
+      follow_target "$LINE"
       echo "The next update follows release line $LINE, at"
-      echo "$(hostwarden_follow_tag "$LINE"). 'hostwarden-update --unpin'"
-      echo "follows main instead."
+      echo "$TAG. 'hostwarden-update --unpin' follows main instead."
+      verify_tag "$TAG" || echo "It refuses $TAG: $WHY"
       exit 0
     fi
     LOCAL=$(git rev-parse HEAD)
@@ -271,7 +385,8 @@ case "${1:-}" in
     ;;
 
   --follow)
-    LINE="${2:?Usage: hostwarden-update --follow LINE (e.g. 1 or 1.2)}"
+    LINE=${2:-}
+    need_arg "$LINE" "--follow LINE (e.g. 1 or 1.2)"
     if ! hostwarden_follow_valid "$LINE"; then
       echo "Error: '$LINE' is no release line: give a major (1)"
       echo "or a major.minor (1.2)."
@@ -284,7 +399,8 @@ case "${1:-}" in
     ;;
 
   --pin)
-    VER="${2:?Usage: hostwarden-update --pin VERSION (e.g. v2.0.0)}"
+    VER=${2:-}
+    need_arg "$VER" "--pin VERSION (e.g. v2.0.0)"
     # Fresh/shallow clones may not have tags yet.
     # Fetch them before checking so --pin can reach
     # remote-only tags.
@@ -295,7 +411,7 @@ case "${1:-}" in
       git tag --sort=-v:refname | head -10
       exit 1
     fi
-    git checkout "$VER"
+    checkout_tag "$VER"
     # An exact version replaces a line.
     hostwarden_follow_clear
     echo "hostwarden pinned to $VER ($(current_version))"
@@ -343,23 +459,25 @@ case "${1:-}" in
 
     OLD_VERSION=$(current_version)
     OLD_HEAD=$(git rev-parse HEAD)
-    # --ff-only: never create a silent merge commit
-    # on a diverged main. Capture the failure so
-    # set -e doesn't kill us with a raw git error.
-    if ! OUTPUT=$(git pull --ff-only --quiet 2>&1); then
-      echo "hostwarden update failed: $OUTPUT"
-      echo "Likely causes: local changes (run 'git status',"
-      echo "stash them with 'git stash'), local commits on a"
-      echo "diverged main, or no network. Fix and re-run."
-      exit 1
+    # Capture a failure so set -e doesn't kill us with a raw git
+    # error. Without a refspec the fetch brings the tags on main
+    # along.
+    if ! OUTPUT=$(git fetch --quiet origin 2>&1); then
+      pull_failed
     fi
-    # The pull brings the tags on main along.
+    # Before main moves: settling goes to the tag, or, refused,
+    # leaves main where it was.
     LINE=$(settle_line)
     if [ -n "$LINE" ]; then
       follow_update "$LINE" set
       echo "hostwarden follows release line $LINE from now on."
       echo "'hostwarden-update --unpin' follows main instead."
       exit 0
+    fi
+    # --ff-only: never create a silent merge commit on a diverged
+    # main.
+    if ! OUTPUT=$(git merge --ff-only --quiet '@{upstream}' 2>&1); then
+      pull_failed
     fi
     run_migration
     report "$OLD_VERSION" "$OLD_HEAD"
