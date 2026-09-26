@@ -303,6 +303,23 @@ copied value goes stale when the guest migrates.
   line is asked again only when the user names a site, or once
   when co-presence later gives the host's component a confirmed
   site it did not have at the time.
+- **Several hosts at once:** at the close of an onboarding of
+  several hosts (`hostwarden-onboard` → Several hosts: questions by
+  site), every host of the run is folded, and the hosts it is open
+  for — no `Site:` line, `Site: unknown (not asked)`, and
+  `Site: unknown (user)` where the run's fold, or an answer given
+  earlier in the close, gives its component a confirmed site it
+  did not have, asked after that answer — are asked in groups, one question per
+  group naming each of its hosts. A group is the hosts that would get the same
+  offer alone: the hosts whose components, ranges already in
+  memory included, confirm the same site; the hosts of one
+  candidate group without a confirmed site; and together the hosts
+  in no candidate group with another host, offered the newest line
+  in `## Sites` as it stands when their question comes. The groups
+  with a confirmed site go first. The answer writes each host's
+  `Site:` line as if it had been asked alone, `(user)` included.
+  An answer that names exceptions records the others and asks each
+  exception alone.
 - **Never asked:**
   - on a run with nobody at the keyboard (a scheduled run, an
     agent of `rules/multi-host.md`): it writes
@@ -455,12 +472,12 @@ not known; the user's word stands until the user changes it.
 
 ### The uplink question
 
-- **When:** in onboarding's step 6 (`hostwarden-onboard`),
-  together with `Site:`, at the first onboarding at a site with a
-  person present — where the site's entry has no field from the
-  user yet — and never where The question above is never asked: a
-  run with nobody at the keyboard records what sources 1 and 2
-  show.
+- **When:** in onboarding's step 6 (`hostwarden-onboard`), with
+  `Site:` or after it, in a run of several hosts once per site,
+  with a person present, wherever the site's entry has no field
+  from the user yet, whether the host's `Site:` line is new or was
+  there — and never where The question above is never asked: a run
+  with nobody at the keyboard records what sources 1 and 2 show.
 - **What:** what sources 1 to 3 found, then whether the IPv4
   address is static or dynamic, whose NAT sits upstream — none, a
   router of the user's, or the provider's — and, where the site has

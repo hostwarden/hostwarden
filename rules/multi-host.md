@@ -68,7 +68,8 @@ Decide the mode:
 - `skill` — `hostwarden-housekeeping` or `hostwarden-security`. A
   skill that changes a host step by step with questions — baseline,
   runtimes, deploy user, a new guest, an OS install — runs one host
-  at a time, and so does onboarding, which asks as it records;
+  at a time, and so does onboarding, whose pipeline and measurement
+  stop for questions host by host;
 - `change` — anything that writes to a host; → Changes on several
   hosts comes first.
 

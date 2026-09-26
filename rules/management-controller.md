@@ -210,7 +210,9 @@ How do you reach this machine when SSH is gone?
 
 The three answers record as `provider console (user)`,
 `physical access (user)` and `none (user)`, and the question is
-never asked again.
+never asked again. An onboarding of several hosts asks it once for
+the hosts of a site (`hostwarden-onboard` → Several hosts:
+questions by site), and each host gets its own line.
 
 ## A controller without an address
 
