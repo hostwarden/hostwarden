@@ -8,7 +8,7 @@ reads both journal tags, and the first connection to
 a host looks for what Heinzel left there. Heinzel
 knows nothing about Hostwarden — it reads only its
 own tag, so work done by Hostwarden is invisible to
-it, and its server memory silently drifts away from
+it, and its machine memory silently drifts away from
 the host.
 
 These three files close that gap from Heinzel's side.
@@ -59,7 +59,7 @@ do this for you, following this section.
   report its own backup directory as lost when
   Hostwarden has taken it over.
 - `all.md` — the general rules of the parallel phase:
-  server memory is a hint rather than a fact, the
+  machine memory is a hint rather than a fact, the
   other tool's files are not litter to clean up, and
   two agents on one host at the same time is the risk
   worth naming.

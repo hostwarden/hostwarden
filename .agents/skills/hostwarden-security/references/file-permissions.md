@@ -100,7 +100,7 @@ find /etc /usr /var -xdev -exec stat -c '%u %g %n' {} + \
 ```
 
 Accounts from a directory service (LDAP, SSSD) are not in
-`/etc/passwd`; where the `Accounts:` line in server memory names a
+`/etc/passwd`; where the `Accounts:` line in machine memory names a
 directory (`rules/accounts.md` → Memory), check a hit with
 `getent passwd <uid>` before reporting it.
 

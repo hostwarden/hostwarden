@@ -50,7 +50,7 @@ than what the host contains.
   release underneath is the os-release `VERSION_ID` from the probe;
   it says how Debian's tools behave, never that Debian's rules
   apply.
-- Record in server memory:
+- Record in machine memory:
   `Appliance: UniFi OS <version>, <model>` and the applications with
   their versions, e.g. `Apps: Network 10.6.106`. A console without
   UniFi Network (a UNAS, a Cloud Key running only Protect) records
@@ -95,10 +95,10 @@ than what the host contains.
   differs between releases, and both binaries can be installed while
   only one serves: the daemon behind the port is the one that
   answers, so read the listener rather than the binaries —
-  `ss -tlnp | awk '$4 ~ /:22$/'`, with the port from server memory
+  `ss -tlnp | awk '$4 ~ /:22$/'`, with the port from machine memory
   where it is not 22. The local address field ends in the port, and
   an address in front of it (`0.0.0.0:22`) would defeat a
-  whole-word `grep`. Server memory records the daemon as
+  whole-word `grep`. Machine memory records the daemon as
   `SSH server: openssh` or `dropbear`.
 
 ## What Does Not Apply
@@ -179,7 +179,7 @@ included
   Integration API everywhere — use the write key only when the user
   agrees to that for this console, recorded as
   `API key reads: allowed`. Without it, name what could not be read.
-- In server memory:
+- In machine memory:
   ```
   API read: api-read (View Only), ~/hostwarden-keys/<console>/unifi-ro.json
   API write: api-write (Full Management), ~/hostwarden-keys/<console>/unifi-rw.header
@@ -476,7 +476,7 @@ directory.
   systemctl is-active unifi-on-boot
   ls -l /data/on_boot.d
   ```
-  Record in server memory:
+  Record in machine memory:
   `Boot scripts: unifi-on-boot <version>` or `udm-boot`, or none,
   and the scripts by name.
 - **Install only on request**: it is a third-party source
@@ -584,7 +584,7 @@ directory.
   `/data/unifi/data/backup/autobackup`, and where that is empty,
   `find -H /data /ssd1/.data -maxdepth 6 -path '*/backup/autobackup/*'
   -name '*.unf'` finds it once (a UDM SE keeps it under `/ssd1`);
-  record it in server memory.
+  record it in machine memory.
 - A backup holds every credential of the network: Wi-Fi keys, VPN
   keys, admin hashes. It never passes through the session and never
   goes into memory (`rules/secrets.md`); report name, age and size.

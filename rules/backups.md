@@ -34,7 +34,7 @@ git -C memory show HEAD:<path-in-memory> | shasum -a 256
 Everything else is backed up as above: a host copy that
 no longer matches, a master not yet committed, and every
 file on the local machine, whose memory directory the
-workspace never commits (`rules/server-memory.md` →
+workspace never commits (`rules/machine-memory.md` →
 Personal versus shared).
 
 In unprivileged mode, use `~/.hostwarden-backups/` for
@@ -95,7 +95,7 @@ from anywhere else.
 So before moving backups in, count how many are older
 than the window and say that number. Then move, or
 `touch` the ones worth keeping, or raise the window
-for this host in `memory/servers/<hostname>/rules.md`
+for this host in `memory/machines/<hostname>/rules.md`
 — but never silently move a file that the next
 cleanup eats.
 

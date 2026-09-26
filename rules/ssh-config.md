@@ -18,7 +18,7 @@ stands for `<checkout>` in the commands below.
   `/etc/ssh/ssh_config`.
 - **`memory/ssh_hosts`:** host blocks in ssh_config syntax,
   limited to five keywords. Shared in a shared workspace
-  (`rules/server-memory.md` → Personal versus shared).
+  (`rules/machine-memory.md` → Personal versus shared).
 - **`~/.ssh/config`:** the user's own. It still applies to every
   call, for what the two above leave open. Hostwarden never
   writes it.
@@ -115,7 +115,7 @@ already vouch for it. Where Hostwarden determines the address
 itself instead, with nothing from the user pinning it down — a
 guest's actual address before its DNS record exists, an mDNS
 answer (`rules/mdns.md` → Comparing) — ask first, and only in a
-shared workspace (`rules/server-memory.md` → Personal versus
+shared workspace (`rules/machine-memory.md` → Personal versus
 shared; solo has no other workstation to misdirect). As
 `rules/ssh-user.md` → Interview format says:
 
@@ -159,7 +159,7 @@ An IPv6 address carries a port only in brackets,
 `[2001:db8::1]:2222`; a bare one has none. The host is the name
 without the scheme, the user and the port, and that is the name
 everything reads: the blacklist and read-only checks, the
-directory under `memory/servers/`, the entry in `memory/user.md`.
+directory under `memory/machines/`, the entry in `memory/user.md`.
 A user written with it is one named on the command line
 (`rules/ssh-user.md`).
 
@@ -177,7 +177,7 @@ A user written with it is one named on the command line
 - **A WSL instance in memory:** where memory holds
   `<windows-hostname>-wsl-*` directories for the name, the one
   whose `SSH port:` is this port is the host
-  (`rules/server-memory.md`): use it, and write nothing.
+  (`rules/machine-memory.md`): use it, and write nothing.
 
 Where the `port` line of `ssh -G <user>@<host>` already shows that
 port, nothing is written. Otherwise the port goes into
@@ -213,7 +213,7 @@ Host web1.example.com
   block stays as it is, since every later call to that name
   would reach the new machine. Ask for a name of its own — for a
   WSL distribution `<windows-hostname>-wsl-<distribution>`
-  (`rules/server-memory.md`) — and give that name a block with
+  (`rules/machine-memory.md`) — and give that name a block with
   the shared name as `HostName`:
 
   ```
@@ -233,7 +233,7 @@ Host web1.example.com
 
 ## Finding the Port
 
-A new host — no `memory/servers/<host>/` yet — for which `ssh -G`
+A new host — no `memory/machines/<host>/` yet — for which `ssh -G`
 shows port 22, and whose first call fails without an answer from
 sshd. A known host never comes here: a port that stops answering
 is `rules/ssh-unreachable.md`'s.

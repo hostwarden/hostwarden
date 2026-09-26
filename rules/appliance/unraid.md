@@ -31,7 +31,7 @@ repositories on GitHub where the docs are silent.
 - Releases come as Stable, Release Candidate (`-rc.<n>`) and Beta
   (`-beta.<n>`)
   (<https://docs.unraid.net/unraid-os/updating-unraid/release-types/>).
-- Record in server memory: `Appliance: Unraid <version>`, and the
+- Record in machine memory: `Appliance: Unraid <version>`, and the
   boot device from the type the housekeeping `df -hT /boot` shows:
   `zfs` is an internal boot pool, which always uses ZFS
   (<https://docs.unraid.net/unraid-os/getting-started/set-up-unraid/internal-boot-faq/>);
@@ -507,7 +507,7 @@ security audit reads from files.
   fails or a query comes back with `errors`, say so and read those
   files over SSH instead: a failed read is never a clean result.
 - Findings:
-  - load (against the CPU count in server memory), memory or swap
+  - load (against the CPU count in machine memory), memory or swap
     past the baseline thresholds;
   - OOM kills, I/O errors, or failed SSH passwords in the syslog;
   - the array not `STARTED`, a disabled, invalid or missing disk, a
@@ -549,7 +549,7 @@ security audit reads from files.
   A file that prints no `name` line is in a layout the pattern does
   not know: count it and say so, never read it another way. An
   `ADMIN` key the user cannot account for, and a key Hostwarden
-  recorded with more than the permissions in server memory, are
+  recorded with more than the permissions in machine memory, are
   findings; `"sandbox": true`, which serves the GraphQL sandbox page
   and answers introspection, is meant for development and is INFO.
 - Fleet audit: compare Unraid servers only with each other, on the

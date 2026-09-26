@@ -2,7 +2,7 @@
 
 The same physical server can have multiple DNS names.
 Hostwarden detects this automatically using the `- IP:`
-field in server memory files.
+field in machine memory files.
 
 **Canonical name** = the first hostname used for a
 server. Additional DNS names become filesystem
@@ -19,7 +19,7 @@ Name Is Gone says.
 ## Detection (on every new hostname)
 
 When connecting to a hostname with no
-`memory/servers/<hostname>/` directory (and not a
+`memory/machines/<hostname>/` directory (and not a
 symlink):
 
 1. **Resolve the IP(s) the way `ssh` does.** First
@@ -94,7 +94,7 @@ symlink):
    `rules/mdns.md` before step 2.
 
 2. **Compare against known servers.** Scan existing
-   `memory/servers/*/memory.md` files (skip
+   `memory/machines/*/memory.md` files (skip
    symlinks) for a matching `- IP:` line whose
    `- SSH port:` also matches the `port` line of
    `ssh -G <user>@<hostname>`, with the SSH user
@@ -119,8 +119,8 @@ symlink):
      does not verify writes nothing here: no symlink,
      no `DNS alias:` line.
    - Create symlink:
-     `ln -s <canonical> memory/servers/<alias>`
-   - Confirm it is one: `test -L memory/servers/<alias>`.
+     `ln -s <canonical> memory/machines/<alias>`
+   - Confirm it is one: `test -L memory/machines/<alias>`.
      If not, delete the copy, use the canonical
      `memory.md` for this session, and point the user to
      `https://hostwarden.github.io/docs/getting-started/install#symbolic-links`.
@@ -195,7 +195,7 @@ connection reads again.
 ## Short Names Matching More Than One Server
 
 In remote mode, when the user names a host without a dot,
-scan `memory/servers/`, skipping symlinks, for directories
+scan `memory/machines/`, skipping symlinks, for directories
 whose name or `- FQDN:` line in `memory.md` has that first
 label, ignoring case. A directory with `heinzel-memory.md`
 and no `memory.md` counts as `rules/heinzel-takeover.md` →
@@ -205,7 +205,7 @@ audit, a scheduled run — is that directory: no scan.
 
 One match or none, or matches that are WSL instances of one
 Windows machine, which the port tells apart
-(`rules/server-memory.md`): go on as usual. Otherwise, ask
+(`rules/machine-memory.md`): go on as usual. Otherwise, ask
 which server is meant before anything reaches the network,
 in the picker form of `rules/service-reload.md` → Prompt
 Shape When Asking: one option per directory, labelled with
@@ -235,7 +235,7 @@ Detection step 1 and compare against the full set
 of resolved IPs: round-robin DNS gives a host
 multiple A records, and any overlap with the stored
 IP(s) counts as a match. Note multi-A hosts in
-server memory instead of alarming. Only when there
+machine memory instead of alarming. Only when there
 is no overlap at all, **stop and tell the user.**
 Ask whether the server migrated (update IP) or the
 alias now points elsewhere (detach it). Where the
@@ -256,7 +256,7 @@ about a changed address.
 
 ## Removing an Alias
 
-1. Delete the symlink from `memory/servers/`.
+1. Delete the symlink from `memory/machines/`.
 2. Remove the `- DNS alias:` line from canonical
    `memory.md`, and the `- Resolved via:` line for
    the name ssh reached the alias by, unless another

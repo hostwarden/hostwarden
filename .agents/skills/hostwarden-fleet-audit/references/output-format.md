@@ -254,7 +254,7 @@ at the end of its line.
 After Decided, from the memory files alone: one line for the
 hosts without an `Onboarded:` line, and one per host whose lines
 housekeeping refreshes are stale, naming those its memory has and
-the date they go by (`rules/server-memory.md` → Onboarded and
+the date they go by (`rules/machine-memory.md` → Onboarded and
 stale lines). Each names the run that brings it up to date.
 
 ```

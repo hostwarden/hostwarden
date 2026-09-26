@@ -593,7 +593,7 @@ edit deny "$OPS" "$OPS/memory/../rules/backups.md"
 write deny "$OPS" "$OPS/memory/nosuch/../../rules/backups.md"
 write pass "$OPS" "$OPS/memory/nosuch/../../memory/network.md"
 edit deny "$OPS" "$OPS/.claude/hooks/guard-mode.sh"
-edit pass "$OPS" "$OPS/memory/servers/server1.example.com/memory.md"
+edit pass "$OPS" "$OPS/memory/machines/server1.example.com/memory.md"
 edit pass "$OPS" "$OPS/memory/user.md"
 edit pass "$OPS" "$OPS/.claude/settings.local.json"
 edit pass "$OPS" "$TMP/elsewhere.txt"
@@ -602,7 +602,7 @@ write deny "$OPS" "$OPS/rules/x.md"
 verdict deny "$OPS" "$(jq -n --arg p "$OPS/rules/x.md" \
   '{tool_name:"Write",tool_input:{file_path:$p,content:"\"tool_name\":\"Bash\""}}')"
 write pass "$OPS" "$OPS/memory/network.md"
-write pass "$OPS" "$OPS/memory/servers/server2.example.com/memory.md"
+write pass "$OPS" "$OPS/memory/machines/server2.example.com/memory.md"
 # A link in memory/ that leads to a shipped file is that file.
 ln -s ../rules/backups.md "$OPS/memory/sneaky.md"
 edit deny "$OPS" "$OPS/memory/sneaky.md"
@@ -617,9 +617,9 @@ edit deny "$OPS" "$OPS/memory/l11"
 drain
 rm "$OPS"/memory/l*
 # A DNS alias links to another host's directory in memory/.
-mkdir -p "$OPS/memory/servers/web1.example.com"
-ln -s web1.example.com "$OPS/memory/servers/www.example.com"
-edit pass "$OPS" "$OPS/memory/servers/www.example.com/memory.md"
+mkdir -p "$OPS/memory/machines/web1.example.com"
+ln -s web1.example.com "$OPS/memory/machines/www.example.com"
+edit pass "$OPS" "$OPS/memory/machines/www.example.com/memory.md"
 
 # Without jq the guard reads what it can with sed and refuses
 # what it cannot, never the other way round. A PATH that holds
@@ -640,7 +640,7 @@ nojq deny "$DEV" "$(bash_json 'tail -f /tmp/build.log' Monitor)"
 nojq pass "$OPS" "$(bash_json 'ssh server1.example.com true' Monitor)"
 nojq pass "$DEV" "$(edit_json "$DEV/rules/backups.md")"
 nojq deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
-nojq pass "$OPS" "$(edit_json "$OPS/memory/servers/server1.example.com/memory.md")"
+nojq pass "$OPS" "$(edit_json "$OPS/memory/machines/server1.example.com/memory.md")"
 nojq pass "$OPS" "$(bash_json 'ssh server1.example.com true')"
 drain
 
@@ -921,16 +921,16 @@ esac
 if [ -z "$(git -C "$OPS" status --porcelain)" ]; then ok
 else bad "the workspace shows up in the outer repository"; fi
 # What a team shares is not ignored, what stays personal is.
-mkdir -p "$OPS/memory/servers/server1.example.com"
-for f in servers/server1.example.com/memory.md \
-    servers/server1.example.com/changelog.log network.md \
+mkdir -p "$OPS/memory/machines/server1.example.com"
+for f in machines/server1.example.com/memory.md \
+    machines/server1.example.com/changelog.log network.md \
     custom-rules/all.md service-policy.md .hostwarden-workspace; do
   if git -C "$OPS/memory" check-ignore -q --no-index -- "$f"; then
     bad "the workspace ignores $f, which a team shares"
   else ok; fi
 done
 for f in user.md blacklist.md readonly.md opencode.json \
-    servers/localhost/memory.md servers/.link-probe.x; do
+    machines/localhost/memory.md machines/.link-probe.x; do
   if git -C "$OPS/memory" check-ignore -q --no-index -- "$f"; then ok
   else bad "the workspace would share $f, which is personal"; fi
 done
@@ -1111,13 +1111,13 @@ case "$out" in
 *"made no symlinks"*) ok ;;
 *) bad "a clone without symlinks went unmentioned" ;;
 esac
-LOG=servers/server1.example.com/changelog.log
+LOG=machines/server1.example.com/changelog.log
 
 # Both machines add to the same changelog; union merge keeps both.
 printf '[2026-09-21 10:00] from a\n' > "$OPS/memory/$LOG"
 sync_a commit "a: changelog"
 sync_a push
-mkdir -p "$B/memory/servers/server1.example.com"
+mkdir -p "$B/memory/machines/server1.example.com"
 printf '[2026-09-21 10:05] from b\n' > "$B/memory/$LOG"
 sync_b commit "b: changelog"
 out=$(sync_b pull)
@@ -1132,7 +1132,7 @@ grep -q 'from b' "$OPS/memory/$LOG" && ok \
 # Uncommitted edits belong to another session, or to one that
 # ended before committing: pull leaves them and the workspace
 # alone, says so, and stashes nothing.
-MEM=servers/server1.example.com/memory.md
+MEM=machines/server1.example.com/memory.md
 echo 'Kernel: 6.0' > "$OPS/memory/$MEM"
 sync_a commit "a: base"
 sync_a push
@@ -1155,18 +1155,18 @@ sync_b pull
 echo 'Kernel: 6.2' > "$OPS/memory/$MEM"
 sync_a commit "a: kernel 6.2" "$MEM"
 sync_a push
-mkdir -p "$B/memory/servers/server3.example.com"
-echo 'OS: Alpine' > "$B/memory/servers/server3.example.com/memory.md"
+mkdir -p "$B/memory/machines/server3.example.com"
+echo 'OS: Alpine' > "$B/memory/machines/server3.example.com/memory.md"
 out=$(sync_b pull)
 if [ -z "$out" ] && grep -q 'Kernel: 6.2' "$B/memory/$MEM" \
-    && [ -e "$B/memory/servers/server3.example.com/memory.md" ]; then ok
+    && [ -e "$B/memory/machines/server3.example.com/memory.md" ]; then ok
 else bad "pull did not fast-forward past an untouched uncommitted file: $out"; fi
-rm -rf "$B/memory/servers/server3.example.com"
+rm -rf "$B/memory/machines/server3.example.com"
 
 # commit with paths takes only those files — a new one included —
 # and leaves another session's changes where they are.
-N=servers/server2.example.com/memory.md
-mkdir -p "$B/memory/servers/server2.example.com"
+N=machines/server2.example.com/memory.md
+mkdir -p "$B/memory/machines/server2.example.com"
 echo 'OS: FreeBSD 14' > "$B/memory/$N"
 echo 'Kernel: another session' > "$B/memory/$MEM"
 sync_b commit "b: server2" "memory/$N"
@@ -1186,17 +1186,17 @@ sync_b push
 sync_a pull
 
 # A real disagreement is aborted, reported and left alone.
-echo 'OS: Debian 13' > "$OPS/memory/servers/server1.example.com/memory.md"
+echo 'OS: Debian 13' > "$OPS/memory/machines/server1.example.com/memory.md"
 sync_a commit "a: os"
 sync_a push
-echo 'OS: Debian 12' > "$B/memory/servers/server1.example.com/memory.md"
+echo 'OS: Debian 12' > "$B/memory/machines/server1.example.com/memory.md"
 sync_b commit "b: os"
 out=$(sync_b pull)
 case "$out" in
 *"could not be brought up to"*) ok ;;
 *) bad "a conflicting pull was not reported: $out" ;;
 esac
-grep -q 'Debian 12' "$B/memory/servers/server1.example.com/memory.md" \
+grep -q 'Debian 12' "$B/memory/machines/server1.example.com/memory.md" \
   && [ ! -d "$B/memory/.git/rebase-merge" ] && ok \
   || bad "a conflicting pull did not leave the workspace as it was"
 
@@ -1234,8 +1234,8 @@ mode_is development "$R"
 R=$(checkout restored)
 sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null
 mode_is operations "$R"
-[ -f "$R/memory/servers/server1.example.com/memory.md" ] && ok \
-  || bad "a restore lost server memory"
+[ -f "$R/memory/machines/server1.example.com/memory.md" ] && ok \
+  || bad "a restore lost machine memory"
 
 # --- bin/hostwarden-lab ----------------------------------------
 # What it refuses before an engine or a VM manager is asked, and on

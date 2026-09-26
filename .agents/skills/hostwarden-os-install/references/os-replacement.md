@@ -25,7 +25,7 @@ capture.
 
 Gather and save this information from the running
 system before it is wiped. Store it in
-`memory/servers/<hostname>/pre-replacement.md`.
+`memory/machines/<hostname>/pre-replacement.md`.
 
 ### System Facts
 
@@ -239,7 +239,7 @@ other servers depend on this IP staying the same.
 After the new OS is installed and accessible:
 
 1. [ ] SSH access works
-2. [ ] OS detected and server memory updated
+2. [ ] OS detected and machine memory updated
 3. [ ] Hostname set correctly
 4. [ ] Network configured (same IP as before)
 5. [ ] Firewall installed and configured

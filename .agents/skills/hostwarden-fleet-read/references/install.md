@@ -81,7 +81,7 @@ asked for; `from=` refuses the key anywhere else. The public key
 comes from the operations host, where the operator made it — the
 session never makes, copies or reads a private key.
 
-Record the host as waiting (SKILL.md → Server memory) and carry on
+Record the host as waiting (SKILL.md → Machine memory) and carry on
 with the next host. Once the operator says it is done, confirm it,
 reading only:
 

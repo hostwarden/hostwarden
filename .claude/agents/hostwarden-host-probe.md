@@ -141,7 +141,7 @@ around them:
 - Heinzel artifacts, with path, file count and age
   (`rules/heinzel-takeover.md`);
 - pending items in the host's `todo.md`
-  (`rules/server-memory.md`);
+  (`rules/machine-memory.md`);
 - a memory file that disagrees with what the host answered;
 - a question or baseline gaps from a guest's first own login, each
   naming `hostwarden-onboard` → The first own login.

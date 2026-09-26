@@ -23,7 +23,7 @@ documentation, <https://docs.opnsense.org/>, and the
   `opnsense-version -v` only the version, `-V` the series (`26.7`).
 - Two major releases a year (`YY.1`, `YY.7`), minor updates in
   between.
-- Record in server memory: `Appliance: OPNsense <version>`.
+- Record in machine memory: `Appliance: OPNsense <version>`.
 
 ## Access and Shell
 
@@ -448,7 +448,7 @@ Unbound's host overrides, Services > Unbound DNS > Overrides
   ```
   user = "<key>:<secret>"
   ```
-  Record in server memory (`rules/appliance-api.md` → Access levels):
+  Record in machine memory (`rules/appliance-api.md` → Access levels):
   ```
   API write (Unbound overrides): <user> (Services: Unbound), ~/hostwarden-keys/<host>/unbound-write
   ```

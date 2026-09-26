@@ -25,7 +25,7 @@ Later wins:
    that mirrors it, see below.
 3. **Every file** — `memory/custom-rules/all.md`,
    loaded at session start and applying to everything.
-4. **This host** — `memory/servers/<hostname>/rules.md`.
+4. **This host** — `memory/machines/<hostname>/rules.md`.
 
 Two things no override changes: the Critical Safety
 Rules in `AGENTS.md`, and whether a skill starts at all.
@@ -63,7 +63,7 @@ What there is to override:
 directory of any skill.
 
 For one host, everything goes into one file,
-`memory/servers/<hostname>/rules.md`, with a `#` heading
+`memory/machines/<hostname>/rules.md`, with a `#` heading
 per subject, named the way the table names it:
 
 ```markdown
@@ -125,7 +125,7 @@ your yes. `rules/decisions.md` has the rest.
 
 | For | File |
 | --- | --- |
-| One host | `memory/servers/<hostname>/decisions.md` |
+| One host | `memory/machines/<hostname>/decisions.md` |
 | A cluster | `memory/clusters/<name>/decisions.md` |
 | A group, or all hosts | `memory/decisions/<name>.md` |
 
@@ -142,7 +142,7 @@ your yes. `rules/decisions.md` has the rest.
 Where the reasoning is longer — the options you weighed, the
 numbers behind it — it goes into a file beside the decision
 file, in a directory of the same name without `.md`
-(`servers/<hostname>/decisions/<name>.md` under `memory/` for
+(`machines/<hostname>/decisions/<name>.md` under `memory/` for
 a host), and the entry names that file in a `Details:` line.
 Hostwarden reads it only when the decision is in question.
 

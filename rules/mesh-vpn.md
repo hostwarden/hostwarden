@@ -382,7 +382,7 @@ that way.
 ## Memory
 
 Per host, a `## Mesh VPN` section in
-`memory/servers/<hostname>/network.md`, created with this section
+`memory/machines/<hostname>/network.md`, created with this section
 alone when the host has no profile yet. One line per agent, also
 when it is down, and for Tailscale, NetBird and Newt whether its
 SSH server is on or off, so a change shows. A Tailscale subnet

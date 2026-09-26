@@ -24,7 +24,7 @@ directory takes the form the old one had: the full name where it
 was named by one, the first label where it was named by a short
 name, with the suffix a second guest of the same name carries,
 and for a WSL instance `<new windows hostname>-wsl-<distribution>`
-(`rules/server-memory.md`). Where a `rules/naming-scheme.md` block
+(`rules/machine-memory.md`). Where a `rules/naming-scheme.md` block
 applies to the host, check the new name against it
 (`rules/naming-scheme.md` → Checking a name) and say in the
 question where it departs; a yes to a name that fails it adds an
@@ -48,7 +48,7 @@ Before anything else, on the workstation:
 
   No output: say what is wrong and ask for another name.
 - **Unused.** The directory name the new name gives, in the old
-  one's form, is free: no `memory/servers/<it>` exists, as a
+  one's form, is free: no `memory/machines/<it>` exists, as a
   directory or a link, and no `guests.md` entry links `→ <it>`.
   Nor is the full new name a directory, a link or a `→` target,
   where the form is a short one. Any of them means the name
@@ -76,7 +76,7 @@ out Memory and Verify's last two bullets.
 
 - **Windows,** which Hostwarden only reports on
   (`rules/os/windows.md`), and a **WSL instance**, whose memory
-  is named after its Windows machine (`rules/server-memory.md`),
+  is named after its Windows machine (`rules/machine-memory.md`),
   so that its rename is that machine's.
 - **A Proxmox VE node in a cluster:**
   `rules/appliance/proxmox-ve.md` → Replace: Networking.
@@ -365,11 +365,11 @@ keeps it and links `→` the new memory directory.
 In one commit, once the host is renamed:
 
 - **The directory moves:**
-  `git -C memory mv servers/<old> servers/<new>`, and the title
+  `git -C memory mv machines/<old> machines/<new>`, and the title
   line of each file in it that names the host (`memory.md`,
   `deployed.md`, `guests.md`, `storage.md`) takes the new name.
   In `deployed.md`, every entry whose master line names
-  `servers/<old>` names `servers/<new>`
+  `machines/<old>` names `machines/<new>`
   (`rules/deployed-files.md`). A master's marker still names the
   old path; it is left as it is, since changing it would make the
   master differ from what was deployed, and the file's next change
@@ -377,11 +377,11 @@ In one commit, once the host is renamed:
   directory, which the workspace does not commit, moves with `mv`.
   Every alias its `- DNS alias:` lines name is a link to the old
   directory: point each at the new one,
-  `ln -sfn <new> memory/servers/<alias>`, so that none depends on
+  `ln -sfn <new> memory/machines/<alias>`, so that none depends on
   the old name's link.
 - **The old name stays an alias** as `rules/dns-aliases.md`
   says for a renamed host. Leave an item in the host's `todo.md`
-  (`rules/server-memory.md` → Session to-do list) that names the
+  (`rules/machine-memory.md` → Session to-do list) that names the
   references Apply step 5 kept the old name in:
 
   ```markdown
@@ -404,7 +404,7 @@ The Workspace):
 
 ```
 bin/hostwarden-sync commit "renamed web1.example.com to web2.example.com" \
-  memory/servers/web1.example.com memory/servers/web2.example.com \
+  memory/machines/web1.example.com memory/machines/web2.example.com \
   memory/known_hosts
 ```
 
@@ -415,7 +415,7 @@ by it finds no address:
 
 - the alias goes, as `rules/dns-aliases.md` → Removing an Alias
   says, with its `known_hosts` lines, once no other link in
-  `memory/servers/` points at it (Memory repointed them);
+  `memory/machines/` points at it (Memory repointed them);
 - a `Host` line in `memory/ssh_hosts` drops the old name, and the
   file is checked with `bin/hostwarden-ssh-config`;
 - each reference on the host that Apply step 5 gave the new name

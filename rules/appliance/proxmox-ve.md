@@ -21,7 +21,7 @@ Source for everything below unless noted: the admin guide,
 - Clustered or standalone: `pvecm status`. A cluster shows
   `Quorate:`, `Expected votes:` and a member list; `pvecm nodes`
   lists the nodes.
-- Record in server memory: `Appliance: Proxmox VE <version>`, and
+- Record in machine memory: `Appliance: Proxmox VE <version>`, and
   the cluster name and node count, or `standalone`. A cluster
   member also gets the `Cluster:` line of `rules/hypervisors.md`
   → Clusters and Pools; the name is the `Name:` under

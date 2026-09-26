@@ -98,7 +98,7 @@ the remote path converge here.
    Hostwarden" close stays the tool's voice. Users who want a
    different wording can set a `Greeting:` line in
    `memory/user.md` (global) or
-   `memory/servers/<host>/memory.md` (per-host); if present,
+   `memory/machines/<host>/memory.md` (per-host); if present,
    it replaces both lines verbatim (multi-line allowed).
    Per-send instructions ("use 'Mit freundlichen Grüßen'
    this time") always win over memory.
@@ -125,7 +125,7 @@ the remote path converge here.
    like `root`, `admin` or the `Operator:` line:
 
    1. `Operator name:` line in
-      `memory/servers/<host>/memory.md` (per-host override,
+      `memory/machines/<host>/memory.md` (per-host override,
       rare).
    2. `Operator name:` line in `memory/user.md` (global,
       canonical).
@@ -156,7 +156,7 @@ the remote path converge here.
    - Remote path: `<sending-host-fqdn>` is the `- FQDN:`
      line of the server's `memory.md`; where that holds no
      name (missing, `none`, `unknown`), the directory name
-     under `memory/servers/<host>/`.
+     under `memory/machines/<host>/`.
    - Local path: `<sending-host-fqdn>` is the workstation's
      FQDN (`hostname -f`, fall back to `hostname`).
 
@@ -194,7 +194,7 @@ the remote path converge here.
    from a managed host:
 
    1. `Reply-To:` line in
-      `memory/servers/<host>/memory.md` (per-host
+      `memory/machines/<host>/memory.md` (per-host
       override, rare — e.g. a different operator fields
       replies for one specific host; still must be a
       real off-server inbox).

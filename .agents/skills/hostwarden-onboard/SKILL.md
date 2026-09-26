@@ -53,7 +53,7 @@ checkout) and stop.
 3. **Run `rules/first-connection.md`** for it: on a new host as its
    first connection, with the full probe of
    `rules/first-detection.md` and `memory.md` in the form of
-   `rules/server-memory.md`; on a known host as a known one, with the
+   `rules/machine-memory.md`; on a known host as a known one, with the
    full re-probe in place of the short one. Either way it gets the
    full network profile where `rules/network.md` → When gives the
    host one, and on a hypervisor the full inventory
@@ -63,7 +63,7 @@ checkout) and stop.
    to the next one.
 
 4. **Where the host stands.** For a host reached through its own way
-   in (`rules/server-memory.md` → Onboarded and stale lines), run
+   in (`rules/machine-memory.md` → Onboarded and stale lines), run
    `hostwarden-baseline` steps 1 and 2 — its overrides and the
    measurement, read-only — and not its question. A decision the
    pipeline offers to record is asked before the measurement, so a
@@ -170,7 +170,7 @@ checkout) and stop.
    ```
 
    - A known host's line names the age of the record the re-probe
-     replaced where it was stale (`rules/server-memory.md` →
+     replaced where it was stale (`rules/machine-memory.md` →
      Onboarded and stale lines).
    - The line on registered guests stands where the run registered
      one that it did not reach through its own way in.

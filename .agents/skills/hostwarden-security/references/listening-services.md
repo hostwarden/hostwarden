@@ -202,5 +202,5 @@ past ufw and firewalld.
 - **WARN** if the web interface is reachable on a public address
   with a password — it belongs behind the firewall, a VPN or a
   `webserver.acl`
-- OK with context where server memory records the exposure as
+- OK with context where machine memory records the exposure as
   intended, as for the databases above

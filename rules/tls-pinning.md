@@ -34,7 +34,7 @@ hashes the public key, a browser's certificate viewer shows the hash
 of the whole certificate, and the two differ for the same
 certificate. Show the fingerprint, and once the user confirms it
 against what their browser shows for the same host, record the pin
-from the same file in server memory as `API pin: sha256//<hash>`.
+from the same file in machine memory as `API pin: sha256//<hash>`.
 The pin is a public key's hash, not a secret.
 
 ## Using it

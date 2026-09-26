@@ -151,7 +151,7 @@ dependencies the install pulled in. If more than
 the intended package came from testing, flag this
 to the user immediately.
 
-**Step 4 — Document in server memory:**
+**Step 4 — Document in machine memory:**
 
 ```markdown
 - apt-pinning: <package> from testing (reason:
@@ -655,7 +655,7 @@ and unattended-upgrades:
   `--hold=forever`) holds one snap; without a name it
   holds automatic refreshes of all snaps. A snap held
   forever gets no security fixes — record every hold in
-  server memory and report it.
+  machine memory and report it.
 - `snap list` names what is installed and from which
   channel.
 

@@ -24,7 +24,7 @@
 #   worktree     a linked git worktree, whatever it holds.
 #                Treated as development. memory/ is gitignored,
 #                so a worktree never carries the access lists or
-#                the server memory of the checkout it came from,
+#                the machine memory of the checkout it came from,
 #                and anything written there is lost when the
 #                worktree is removed.
 #
@@ -114,7 +114,7 @@ rules/server-check-handoff.md"
 hostwarden_refusal() {
   if [ "$HOSTWARDEN_MODE" = worktree ]; then
     hr_why="this session runs in a linked git worktree. A worktree \
-never carries memory/, so the access lists and the server memory are \
+never carries memory/, so the access lists and the machine memory are \
 missing here"
   else
     hr_why="this checkout develops Hostwarden (memory/ holds no \

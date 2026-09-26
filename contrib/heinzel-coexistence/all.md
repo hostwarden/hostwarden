@@ -21,15 +21,15 @@ Do not clean it up, move it, or report it as stray
 litter. It is not an anomaly
 (`rules/anomaly-detection.md`).
 
-## Add: Server memory may be behind the host
+## Add: Machine memory may be behind the host
 
 The memory files here describe what *this*
 installation last saw. Hostwarden works on the same
 hosts and writes its own memory elsewhere, so a fact
-in `memory/servers/<host>/memory.md` can be out of
+in `memory/machines/<host>/memory.md` can be out of
 date through no fault of anyone's.
 
-Treat server memory as a lead, not as truth: before
+Treat machine memory as a lead, not as truth: before
 reporting that something is missing, changed or
 broken, confirm it against the live host
 (`rules/verify-before-reporting.md`). During the

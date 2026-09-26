@@ -28,7 +28,7 @@ fact about a real system. The `hostwarden-os-install`
 skill says so where it needs it.
 
 This file is read on every connection. What
-detection settles once and records in server memory
+detection settles once and records in machine memory
 is in `rules/first-detection.md`: a first connection
 reads all of it, a known host only the section that
 settles a line its memory lacks (On subsequent
@@ -150,7 +150,7 @@ has no rules for it, and change nothing on the host.
 
 Where the appliance file lists settings only its web
 UI shows, ask the user for them once, record the
-answers in server memory with the date, and name a
+answers in machine memory with the date, and name a
 setting as unchecked when its record is older than
 three months.
 
@@ -219,7 +219,7 @@ whose memory has `SSH: untested` gets one on its first
 own connection, in place of the short first call
 (`rules/first-connection.md` step 9). It
 rewrites the lines detection owns
-(`rules/server-memory.md` → Who writes which line:
+(`rules/machine-memory.md` → Who writes which line:
 this file's, `rules/first-detection.md`'s, and those
 a Version Detection section names) and `FQDN:`
 (`rules/dns-aliases.md` → The FQDN) where the probe

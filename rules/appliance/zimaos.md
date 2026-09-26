@@ -45,7 +45,7 @@ third party says so; check it on the live host before relying on it.
   (<https://www.zimaspace.com/docs/developer/v-1-4-0>).
 - **This file covers ZimaOS 1.x.** When `VERSION_ID` is 2 or later,
   stop (`rules/os-detection.md` → Layers).
-- Record in server memory: `Appliance: ZimaOS <version>`, and `beta`
+- Record in machine memory: `Appliance: ZimaOS <version>`, and `beta`
   after it when the version carries a `-beta` suffix.
 
 ## Access and Privileges
@@ -303,7 +303,7 @@ third party says so; check it on the live host before relying on it.
   - a published port (`->`) not bound to `127.0.0.1` or `[::1]`,
     as the Docker part of the baseline's Firewall Status rates it:
     with no host firewall, it answers on every network the NAS is
-    on, unless server memory records it as meant to be reachable;
+    on, unless machine memory records it as meant to be reachable;
   - a container not `Up` that the user expects to run, and an app
     from a third-party store.
 - A security audit reports instead: with SSH on, the effective

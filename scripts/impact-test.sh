@@ -40,7 +40,7 @@ cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
   "$R/.claude/hooks/"
 git -C "$R" init --quiet
 M="$R/memory"
-mkdir -p "$M/servers" "$M/clusters/prod"
+mkdir -p "$M/machines" "$M/clusters/prod"
 : >"$M/.hostwarden-workspace"
 : >"$M/ssh_config"
 cat >"$M/user.md" <<'EOF'
@@ -51,9 +51,9 @@ EOF
 
 # server <name> <lines> — a memory.md with the lines given.
 server() {
-  mkdir -p "$M/servers/$1"
+  mkdir -p "$M/machines/$1"
   printf '# %s\n%s\n- Last connected: 2026-09-20\n' "$1" "$2" \
-    >"$M/servers/$1/memory.md"
+    >"$M/machines/$1/memory.md"
 }
 server pve1.example.com '- IP: 192.0.2.1
 - Role: hypervisor
@@ -66,7 +66,7 @@ cat >"$M/clusters/prod/cluster.md" <<'EOF'
 - Members: pve1 → pve1.example.com, pve2 → pve2.example.com,
   pve3 → pve3.example.com, pve4 (no memory)
 EOF
-cat >"$M/servers/pve1.example.com/guests.md" <<'EOF'
+cat >"$M/machines/pve1.example.com/guests.md" <<'EOF'
 # Guests on pve1.example.com
 
 - Inventoried: 2026-01-02
@@ -79,7 +79,7 @@ server web1.example.com '- IP: 192.0.2.21
 - Role: web server
 - Web server: nginx
 - Runs on: pve1.example.com (VM 101)'
-ln -s web1.example.com "$M/servers/web1"
+ln -s web1.example.com "$M/machines/web1"
 server db1.example.com '- Runs on: cluster prod (VM 102), last on
   pve2.example.com'
 server ct1.example.com '- Mode: via
@@ -196,7 +196,7 @@ sed 1d "$TMP/out" >"$TMP/a"; sed 1d "$TMP/out2" >"$TMP/b"
 cmp -s "$TMP/a" "$TMP/b" && ok || bad "network and reboot differ"
 sleep 1
 printf -- '- Depends on: web1.example.com (SMB /srv/share)\n' \
-  >>"$M/servers/lone.example.com/memory.md"
+  >>"$M/machines/lone.example.com/memory.md"
 run radius pve1.example.com reboot >"$TMP/out"
 [ "$(wc -l <"$TMP/ssh.log")" -gt "$calls" ] && ok || bad "a changed memory.md did not rebuild"
 has "$TMP/out" 'lone.example.com depends web1.example.com SMB /srv/share' \
@@ -224,7 +224,7 @@ run radius pve1.example.com reboot >/dev/null
 [ "$(wc -l <"$TMP/ssh.log")" -gt "$calls" ] && ok \
   || bad "a changed Include target outside ~/.ssh did not rebuild"
 # A file the index was read from, removed, rebuilds it.
-for f in "$M/servers/reg1.example.com/memory.md" "$TMP/dot/extra" "$M/user.md"; do
+for f in "$M/machines/reg1.example.com/memory.md" "$TMP/dot/extra" "$M/user.md"; do
   sleep 1
   cp "$f" "$TMP/keep"
   calls=$(wc -l <"$TMP/ssh.log")
@@ -235,7 +235,7 @@ for f in "$M/servers/reg1.example.com/memory.md" "$TMP/dot/extra" "$M/user.md"; 
   cp "$TMP/keep" "$f"
 done
 sleep 1
-ln -s pve1.example.com "$M/servers/pve1"
+ln -s pve1.example.com "$M/machines/pve1"
 run radius pve1 reboot >"$TMP/out"
 head -n 1 "$TMP/out" >"$TMP/a"
 same "$TMP/a" 'pve1.example.com origin -' "a new alias did not rebuild the index"
@@ -314,7 +314,7 @@ run radius --jumps pc1-wsl-debian pc1.example.com >"$TMP/out"
 same "$TMP/out" 'group pc1-wsl-debian pc1.example.com' \
   "a Reached as: destination and its host in one group"
 # An alias with its own SSH user takes its own way in too.
-ln -s app2.example.com "$M/servers/app2"
+ln -s app2.example.com "$M/machines/app2"
 printf -- '- app2: deploy\n' >>"$M/user.md"
 printf 'proxyjump bastion2\n' >"$G/deploy@app2"
 run radius --jumps app2 app6.example.com >"$TMP/out"

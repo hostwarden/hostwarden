@@ -486,7 +486,7 @@ skips itself where `iptables -V` says `nf_tables`.
 **Docker** (when `command -v docker` finds it): run the probe
 from the same reference → Docker published ports, and judge
 it by the severities there. Housekeeping adds one exception: a
-port that server memory records as meant to be public is OK.
+port that machine memory records as meant to be public is OK.
 When the user confirms that for a port, add it there so the
 next run stays quiet.
 
@@ -688,7 +688,7 @@ ls /lib/modules
 ## CPU Microcode
 
 Physical x86 hardware only, decided from the `Virtualization:`
-and `Arch:` lines in server memory, which the pipeline has
+and `Arch:` lines in machine memory, which the pipeline has
 settled before any check runs. Where one of the three
 conditions does not hold, run nothing and report nothing:
 

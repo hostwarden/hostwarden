@@ -85,4 +85,4 @@ this host.
 
 Log the change (`rules/changelog.md`) and record the
 resulting exposure in the host's memory file
-(`rules/server-memory.md`).
+(`rules/machine-memory.md`).

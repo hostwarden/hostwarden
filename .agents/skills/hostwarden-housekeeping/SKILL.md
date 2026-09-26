@@ -26,9 +26,9 @@ applies before any of this runs.
 
 1. **Load overrides**, key `hostwarden-housekeeping`, per
    `rules/overrides.md`. Read
-   `memory/servers/<hostname>/memory.md` for the service list,
-   last-known state and per-server quirks, and
-   `memory/housekeeping.md` if present for cross-server custom
+   `memory/machines/<hostname>/memory.md` for the service list,
+   last-known state and per-machine quirks, and
+   `memory/housekeeping.md` if present for cross-machine custom
    checks (free-form Markdown, gitignored by default).
 2. **Select checks.** Run all baseline checks for the detected OS
    plus any service-specific checks triggered by entries in the
@@ -73,7 +73,7 @@ applies before any of this runs.
 6. **Update `memory.md`** immediately after, if the checks
    revealed changed facts (disk usage shifted significantly, a
    new service appeared, a service was removed). Where every
-   probe behind the lines `rules/server-memory.md` → Onboarded and
+   probe behind the lines `rules/machine-memory.md` → Onboarded and
    stale lines names ran that applies to this host — the USB
    inventory not in a container, the passthrough inventory only on
    a host with guests, the disks only on bare metal and in a VM

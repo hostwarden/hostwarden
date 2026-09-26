@@ -63,7 +63,7 @@ host, not as documented behaviour.
   are x86, the DH2300 and DH4300 series ARM (article 915). The iDX
   series has release numbers of its own. The CPU architecture comes
   from the probe's `uname -m`.
-- Record in server memory: `Appliance: UGOS Pro <version>`, with
+- Record in machine memory: `Appliance: UGOS Pro <version>`, with
   `(beta)` appended where `OS_IS_BETA` is true, and the model the
   user names or the web UI shows.
 - Release notes: UGREEN publishes a monthly "UGOS Pro <Month> <Year>
@@ -101,7 +101,7 @@ host, not as documented behaviour.
   The Low level widens the cipher suites in `sshd_config` for old
   clients (article 84).
 - **The automatic disable time switches SSH off on its own.** Read
-  whether the user set one and record it in server memory: a host
+  whether the user set one and record it in machine memory: a host
   that stops answering on port 22 may simply have reached it
   (`rules/ssh-unreachable.md`). Turning SSH back on is the user's
   step in the web UI.
@@ -272,7 +272,7 @@ host, not as documented behaviour.
   to `127.0.0.1` or `[::1]` with the UGOS firewall rule the user
   reads for it. The finding is a port that the first matching rule
   allows from every source, or that no rule matches while the
-  default action is "Access allowed", unless server memory records
+  default action is "Access allowed", unless machine memory records
   it as meant to be public.
 - **Virtual machines** are the Virtual Machine app from the App
   Center, not supported on the DH series (article 772). UGREEN's

@@ -493,7 +493,7 @@ cannot write reports the gap.
 
 ## Memory
 
-Per host, in `memory/servers/<hostname>/memory.md`, one line per
+Per host, in `memory/machines/<hostname>/memory.md`, one line per
 direction, only where present. `SSH host cert:` names a
 certificate sshd serves, never one that only lies on disk, and
 its `valid to` is the presented certificate's where the probe

@@ -2,7 +2,7 @@
 
 Whether the files sessions wrote onto this host are still what was
 deployed, and whether their masters have moved on since. Runs on a
-host with `memory/servers/<hostname>/deployed.md`, and on a cluster
+host with `memory/machines/<hostname>/deployed.md`, and on a cluster
 member for the cluster's own `deployed.md` too.
 
 ## Probe

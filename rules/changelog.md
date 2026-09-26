@@ -7,7 +7,7 @@ Two layers for two audiences:
    `journalctl -t hostwarden` should read like a
    colleague's handover notes, not a debug dump.
 2. **Local changelog**
-   (`memory/servers/<hostname>/changelog.log`) — the
+   (`memory/machines/<hostname>/changelog.log`) — the
    full technical detail for future Hostwarden sessions
    and audits.
 
@@ -121,7 +121,7 @@ permissions instead. See `rules/secrets.md`.
 ## Local Changelog (full detail)
 
 Mirror every journal headline to
-`memory/servers/<hostname>/changelog.log` with a
+`memory/machines/<hostname>/changelog.log` with a
 full `[YYYY-MM-DD HH:MM]` timestamp, then indent the
 technical detail the journal omitted:
 
@@ -150,7 +150,7 @@ and the first 16 characters of the hash it was
 deployed with, which finds that version in the
 workspace history for a later rollback:
 
-      Source: servers/web1.example.com/files/usr/local/
+      Source: machines/web1.example.com/files/usr/local/
       bin/backup-usb-watch (sha256 98ea6e4f216f2fb4)
 
 Trim entries older than 2 years when writing, except

@@ -35,7 +35,7 @@ Source for everything below unless noted: the XCP-ng documentation,
   This host is the pool master (the docs also say coordinator)
   when its UUID is the pool's `master`; a pool of one host is
   standalone.
-- Record in server memory: `Appliance: XCP-ng <version>`, and
+- Record in machine memory: `Appliance: XCP-ng <version>`, and
   `standalone` or, for a pool of more than one host, the
   `Cluster:` line of `rules/hypervisors.md` → Clusters and Pools,
   named by the pool's `name-label`. A fresh host is in its own

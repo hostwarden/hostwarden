@@ -58,7 +58,7 @@ What counts as a first connection:
 
    **The second line is the shell** (compare its
    basename; macOS may print `-zsh` or a path). Record
-   it per SSH user in server memory (`Shell: csh
+   it per SSH user in machine memory (`Shell: csh
    (root)`); every later call goes through `sh -s`
    whatever it is (`rules/os-detection.md` → The
    first call). An error in place of the second line
@@ -132,7 +132,7 @@ What counts as a first connection:
 5. **Settle the role**, server or workstation. See
    Roles below.
 
-6. Create a server memory file.
+6. Create a machine memory file.
 
 ## Appliances
 
@@ -200,7 +200,7 @@ match; OpenWrt has an `/etc/config` but no such file.
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it
 (`rules/os-detection.md` → Layers). Record
-`Appliance: …` in server memory, in the form the
+`Appliance: …` in machine memory, in the form the
 appliance file gives.
 
 The line under `Base:` says whose hardware the
@@ -236,12 +236,12 @@ kernel, its firewall and its reboot.
 | `microsoft` in `/proc/version`, any case  | `rules/platform/wsl.md` |
 
 The environment variable under `@platform` is a label
-for the memory directory (`rules/server-memory.md`),
+for the memory directory (`rules/machine-memory.md`),
 never a marker: whoever starts the shell sets it.
 
 The platform file applies on top of the family and
 appliance files (`rules/os-detection.md` → Layers).
-Record `Platform: …` in server memory, in the form the
+Record `Platform: …` in machine memory, in the form the
 platform file gives.
 
 ## Virtualization
@@ -369,7 +369,7 @@ and `Model` in the `@hardware` part of
 On WSL record `wsl (container)`, whatever the lines
 say; `Platform:` carries what that means.
 
-Record it in server memory with the type the
+Record it in machine memory with the type the
 detector named. Where a case matched but named no
 type — a `hypervisor` count above 0 whose DMI lines
 are in no row of the type table — the kind alone is

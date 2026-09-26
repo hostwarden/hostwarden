@@ -81,7 +81,7 @@ Extensions live in
 `memory/custom-rules/service-class-check.md` using
 the repo's standard `## Add:`, `## Replace:`, and
 `## Remove:` heading prefixes. Per-host overrides
-live in `memory/servers/<hostname>/rules.md`.
+live in `memory/machines/<hostname>/rules.md`.
 
 ## Detection Procedure
 
@@ -392,7 +392,7 @@ for (no conflict): proceed with the install.
 
 After the install completes, record the canonical
 class member in
-`memory/servers/<hostname>/memory.md`:
+`memory/machines/<hostname>/memory.md`:
 
 ```markdown
 - Web server: nginx

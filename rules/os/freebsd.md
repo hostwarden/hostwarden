@@ -58,7 +58,7 @@ updates follow the owner's source build, and a
 check for pending base patches reports itself as
 not applicable there.
 
-Record which one in server memory.
+Record which one in machine memory.
 
 ## Version Detection
 

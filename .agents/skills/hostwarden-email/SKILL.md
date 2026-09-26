@@ -31,15 +31,15 @@ per-host preference that's asked once and remembered.
    goes through every step of it.
 
 2. **Load overrides**, key `hostwarden-email`, per
-   `rules/overrides.md`. Read `memory/servers/<host>/memory.md`
+   `rules/overrides.md`. Read `memory/machines/<host>/memory.md`
    for recipient, source, transport and policies — see
-   "Per-server memory" below.
+   "Per-machine memory" below.
 
 3. **Resolve recipient.** In order of precedence:
    1. **User said an explicit address** ("send to alice@…",
       "mail it to bob@example.com") → use that. Don't override
       it with stored values.
-   2. **Per-server memory** — `memory/servers/<host>/memory.md`
+   2. **Per-machine memory** — `memory/machines/<host>/memory.md`
       has an `Alert email:` line (the established pattern) →
       use that.
    3. **"Send me" shorthand** ("email me", "send me", "mail it
@@ -47,7 +47,7 @@ per-host preference that's asked once and remembered.
       Claude Code's auto-memory (the `MEMORY.md` index will
       show a "Default email" entry under User → load that file
       and use the address) → use it without prompting. Still
-      write the address back to the per-server `memory.md` as
+      write the address back to the per-machine `memory.md` as
       `- Alert email: <addr>` on first use so the skill stays
       self-contained for future runs.
    4. Otherwise, ask once via the picker, then persist to
@@ -58,7 +58,7 @@ per-host preference that's asked once and remembered.
      this order: its recipient is `Notice email:` under
      `# Preferences` in `memory/user.md` — the user's own address
      by default — asked once and written there when missing, never
-     the per-server `Alert email:`.
+     the per-machine `Alert email:`.
 
 4. **Consent gate 0 — sender side (local vs remote).** Check
    `memory.md` for `Email source: local | remote`:
@@ -120,10 +120,10 @@ reading a workflow that will not run.
    chosen, transport discovered or installed, recipient
    added, policy set, sender identity confirmed, per-host
    operator override requested). Use the shape under
-   "Per-server memory" below. Only write `…always` or
+   "Per-machine memory" below. Only write `…always` or
    `…never` lines when the user explicitly picked them;
    absence means "ask next time". The global `Operator name`
-   is persisted to `memory/user.md`, not to per-server
+   is persisted to `memory/user.md`, not to per-machine
    memory — write a per-host `Operator name:` line only when
    the user asks for a different signer on that specific
    host.
@@ -135,11 +135,11 @@ reading a workflow that will not run.
         <recipient> from <local|remote/<user>>: <subject>"
     ```
 
-## Per-server memory
+## Per-machine memory
 
 No new file. The skill reads and updates lines in the
-existing `memory/servers/<host>/memory.md`, extending the
-existing per-server memory format. Policy lines are only
+existing `memory/machines/<host>/memory.md`, extending the
+existing per-machine memory format. Policy lines are only
 written once the user picks **Always** or **Never**;
 absence means "ask next time".
 
@@ -179,7 +179,7 @@ them. Beyond those:
 
 - `rules/first-connection.md` — the mandatory onboarding
   pipeline.
-- `rules/server-memory.md` — server memory file format.
+- `rules/machine-memory.md` — machine memory file format.
 - `rules/changelog.md` — session logging procedure.
 - `rules/best-practices.md` — anti-pattern review before
   installing software.

@@ -55,7 +55,7 @@ entry shows.
   keep it off, or leave it running. On stop: `claude stop <id>`,
   then write `Coordinator: off` under
   `# Preferences` in `memory/user.md`, creating the heading where it
-  lacks one. The file is personal (`rules/server-memory.md` →
+  lacks one. The file is personal (`rules/machine-memory.md` →
   Personal versus shared): nothing to commit.
 - **None runs, `Coordinator: off` is there:** ask — start one and
   remove the line, or leave it off. On start: remove the line, then

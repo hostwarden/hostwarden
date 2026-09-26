@@ -2,7 +2,7 @@
 name: hostwarden-fleet-audit
 argument-hint: "[hostname1 hostname2 ...]"
 description: Compare key policies across all servers in
-  memory/servers/ to surface silent drift. Makes no configuration
+  memory/machines/ to surface silent drift. Makes no configuration
   changes; writes one audit-trail line to each host's journal.
   Probes unattended-upgrades, sshd effective config and SSH CA
   trust, firewall posture, MTA, network stack and resolver, time
@@ -18,10 +18,10 @@ description: Compare key policies across all servers in
 
 # hostwarden-fleet-audit
 
-Cross-server policy audit. Hostwarden knows every host
+Cross-machine policy audit. Hostwarden knows every host
 individually but has nothing that holds hosts against each
 other. This skill closes that gap by probing the same set of
-settings on every server in `memory/servers/` and rendering a
+settings on every server in `memory/machines/` and rendering a
 side-by-side comparison so silent drift becomes visible.
 
 **No configuration changes.** The audit never alters any
@@ -61,7 +61,7 @@ Layers).
 ## Workflow
 
 1. **Discover hosts.** List directories under
-   `memory/servers/` whose name resolves to a real host,
+   `memory/machines/` whose name resolves to a real host,
    whose `memory.md` has a `Mode: via` line (reached
    through the host its `Runs on:` names, step 2), or a
    `Reached as:` line, which is then the destination, for
@@ -84,7 +84,7 @@ Layers).
 
    **Group the guests under their host.** A host whose
    `Runs on:` line (`rules/hypervisors.md` → Linking Guest
-   and Host) names a directory in `memory/servers/` — the
+   and Host) names a directory in `memory/machines/` — the
    name before the brackets, an alias followed to its
    canonical host — is a guest of that hypervisor,
    whether it is reached over SSH or through the host. The
@@ -240,7 +240,7 @@ Layers).
 7. **No audit result in memory.** What the pipeline owns,
    it still writes: `Last connected` for every host
    reached, because each was in fact connected to
-   (`rules/server-memory.md`), a changed OS version
+   (`rules/machine-memory.md`), a changed OS version
    where detection found one (`rules/os-detection.md`),
    what `rules/network.md` → When writes on
    connecting, and what a guest's first own login

@@ -109,7 +109,7 @@ if [ -n "$CLONE" ]; then
     exit 1
   fi
   mv memory.clone memory
-  # DNS aliases are symlinks under memory/servers/. A clone that
+  # DNS aliases are symlinks under memory/machines/. A clone that
   # cannot make links turns each into a text file, and alias
   # resolution stops working without a word.
   if [ "$(git -C memory config --bool core.symlinks)" = false ]; then
@@ -124,7 +124,7 @@ fi
 
 # Every step only fills in what is missing, so running this on
 # a workspace repairs it and changes nothing else.
-mkdir -p memory/servers memory/custom-rules
+mkdir -p memory/machines memory/custom-rules
 [ -e memory/.git ] || {
   git -C memory init --quiet
   git -C memory symbolic-ref HEAD refs/heads/main

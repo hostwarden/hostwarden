@@ -11,7 +11,7 @@
 #   hostwarden-heinzel-takeover --help             Show this help
 #
 # Copies memory/ state — access lists, service policy,
-# overrides, trusted host keys, per-server memory, a
+# overrides, trusted host keys, per-machine memory, a
 # host's memory.md as heinzel-memory.md — and then runs
 # hostwarden-migrate to rename skill overrides. Reads
 # the old checkout, never writes into it.
@@ -25,7 +25,7 @@
 # repeated. The shared state (access lists, service
 # policy, overrides, network and housekeeping
 # notes) comes along on the first run whatever is
-# selected, because a per-server move without it would
+# selected, because a per-machine move without it would
 # leave the blacklist and the read-only list behind —
 # and those decide whether a host may be touched at
 # all. --shared moves only that part, for a migration
@@ -271,7 +271,7 @@ fi
 
 cd "$REPO_DIR"
 
-# Access lists and server memory copied from Heinzel are operations
+# Access lists and machine memory copied from Heinzel are operations
 # state (AGENTS.md → Development or Operations). A
 # development checkout or a worktree can neither keep
 # them nor onboard a host, so it gets nothing; a dry
@@ -291,8 +291,8 @@ fi
 # In the destination itself: a temporary directory can sit on a
 # filesystem that links when this one does not.
 if [ -z "$LIST" ]; then
-  mkdir -p memory/servers
-  probe=$(mktemp -d memory/servers/.link-probe.XXXXXX)
+  mkdir -p memory/machines
+  probe=$(mktemp -d memory/machines/.link-probe.XXXXXX)
   # ".", not "$probe": that path is relative and would dangle
   # from inside.
   ln -s . "$probe/l" 2>/dev/null || :
@@ -310,7 +310,7 @@ fi
 # A host name is one path component. Interpolated
 # into both the source and the destination path, a
 # value with a slash or .. would read and write
-# outside memory/servers/ — `--server ../../bin/foo`
+# outside memory/machines/ — `--server ../../bin/foo`
 # would land in the repo root.
 for H in $HOSTS; do
   valid_hostname "$H" || {
@@ -333,7 +333,7 @@ for H in $HOSTS; do
 done
 
 # Copy <src> to memory/<dst>, preserving symlinks —
-# memory/servers/ holds DNS aliases as symlinks to the
+# memory/machines/ holds DNS aliases as symlinks to the
 # canonical directory (rules/dns-aliases.md), and
 # resolving them would duplicate a host's memory.
 # Local names only: sh has no scoping, and a plain
@@ -341,7 +341,7 @@ done
 # copy_item <src> memory/<dst> [link]
 #
 # `link` preserves a symlink source as a symlink —
-# for DNS aliases under servers/, whose target is a
+# for DNS aliases under machines/, whose target is a
 # validated sibling host. Everything else is copied
 # by content: a shared file that is a link in the old
 # checkout must arrive here as the file itself, since
@@ -390,7 +390,7 @@ copy_item() {
   fi
 }
 
-# keep_heinzel_memory memory/servers/<host>
+# keep_heinzel_memory memory/machines/<host>
 #
 # Heinzel's memory.md becomes heinzel-memory.md, byte
 # for byte. Left as memory.md, it would read as a
@@ -420,11 +420,11 @@ HOSTS_PENDING=""
 # a failure. The shared state has drawn that line
 # since the beginning — see SHARED_PENDING.
 keep_host() {
-  echo "kept memory/servers/$1 — $2" >&2
+  echo "kept memory/machines/$1 — $2" >&2
   HOSTS_PENDING="$HOSTS_PENDING $1"
 }
 skip_host() {
-  echo "skipped memory/servers/$1 — $2" >&2
+  echo "skipped memory/machines/$1 — $2" >&2
   SKIPPED_HOST=yes
 }
 plan() { COPIED="$COPIED\n  memory/$1"; }
@@ -535,7 +535,7 @@ if [ -n "$BLOCK_REASON" ]; then
   exit 1
 fi
 
-# Shared state first, always: a per-server takeover
+# Shared state first, always: a per-machine takeover
 # without the blacklist and the read-only list would
 # work on hosts whose access rules stayed behind.
 [ -n "$LIST" ] || mkdir -p memory
@@ -645,7 +645,7 @@ user_line() {
 
 # A user.md of this clone's own is merged rather than
 # kept whole: the old one's language, reply address and
-# per-server SSH users would otherwise stay behind
+# per-machine SSH users would otherwise stay behind
 # unnoticed. Every "Key: value" line this clone does not
 # set comes across, under the heading it had in the old
 # file — "# Preferences", "# SSH Users",
@@ -755,7 +755,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
     done
     set -f
   fi
-  [ -n "$LIST" ] || mkdir -p memory/servers
+  [ -n "$LIST" ] || mkdir -p memory/machines
   # One walk of the whole servers tree instead of a
   # find per host: the fork is the cost, and over a
   # fleet that is the difference between seconds and
@@ -779,7 +779,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       continue
     }
     SRC="$OLD/memory/servers/$H"
-    DST="memory/servers/$H"
+    DST="memory/machines/$H"
     { [ -e "$SRC" ] || [ -L "$SRC" ]; } || continue
     case "$DONE_HOSTS" in *"|$H|"*) continue ;; esac
 
@@ -810,7 +810,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
             STATE=taken_over ;;
           *)
             if already_taken_over "$OLD/memory/servers/$CANON" \
-                "memory/servers/$CANON"; then
+                "memory/machines/$CANON"; then
               STATE=taken_over
             else
               CANON_SAME=no
@@ -830,11 +830,11 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       # Named on stdout: the hostwarden-heinzel-takeover skill builds an
       # inventory for the hosts a run selected, and a
       # repeat run copies none of them.
-      echo "already taken over: memory/servers/$H"
+      echo "already taken over: memory/machines/$H"
       # A memory.md identical to the old checkout's is
       # still Heinzel's, whatever copied it here.
       if [ -z "$LIST" ]; then
-        for AD in "memory/servers/$H" ${CANON:+"memory/servers/$CANON"}; do
+        for AD in "memory/machines/$H" ${CANON:+"memory/machines/$CANON"}; do
           AD_SRC="$OLD/memory/servers/${AD##*/}"
           cmp -s "$AD_SRC/memory.md" "$AD/memory.md" 2>/dev/null \
             && keep_heinzel_memory "$AD"
@@ -881,7 +881,7 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       # And here it has to be a real directory, or the
       # alias would resolve to a file or follow a link
       # of theirs out of memory/servers/.
-      DST_CANON="memory/servers/$CANON"
+      DST_CANON="memory/machines/$CANON"
       if [ -z "$FORCE" ] \
           && { [ -L "$DST_CANON" ] \
             || { [ -e "$DST_CANON" ] && [ ! -d "$DST_CANON" ]; }; }; then
@@ -902,11 +902,11 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
       fi
       if [ ! -d "$DST_CANON" ] || [ -L "$DST_CANON" ] \
           || [ -n "$FORCE" ]; then
-        plan "servers/$CANON (canonical host of $H)"
+        plan "machines/$CANON (canonical host of $H)"
         DONE_HOSTS="$DONE_HOSTS$CANON|"
         if [ -z "$LIST" ]; then
-          copy_item "$OLD/memory/servers/$CANON" "servers/$CANON" link
-          keep_heinzel_memory "memory/servers/$CANON"
+          copy_item "$OLD/memory/servers/$CANON" "machines/$CANON" link
+          keep_heinzel_memory "memory/machines/$CANON"
         fi
       fi
     fi
@@ -920,11 +920,11 @@ if [ -z "$SHARED_ONLY" ] && [ -d "$OLD/memory/servers" ]; then
         skip_host "$H" "it holds a link out of the old checkout"
         continue ;;
     esac
-    plan "servers/$H"
+    plan "machines/$H"
     DONE_HOSTS="$DONE_HOSTS$H|"
     if [ -z "$LIST" ]; then
-      copy_item "$SRC" "servers/$H" link
-      keep_heinzel_memory "memory/servers/$H"
+      copy_item "$SRC" "machines/$H" link
+      keep_heinzel_memory "memory/machines/$H"
     fi
   done
 fi

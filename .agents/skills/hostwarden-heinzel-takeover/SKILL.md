@@ -25,7 +25,7 @@ onboarding by Hostwarden would have left it. Two phases:
    This is the default; the user does not have to ask for it.
 
 **Only in an operations checkout** (`AGENTS.md` → Development or
-Operations). Access lists and server memory copied from Heinzel are
+Operations). Access lists and machine memory copied from Heinzel are
 operations state, and a development checkout can neither keep them
 nor onboard a host: there, say so, name the operations checkout —
 the main checkout of a worktree, or one `bin/hostwarden-init` sets
@@ -52,7 +52,7 @@ the shapes are listed in `rules/heinzel-legacy.md` § "What to look
 for", which is also what the first connection probes for, so the two
 sides cannot drift apart. Those artifacts differ per host, and the
 only local trace is what the session wrote into
-`memory/servers/<host>/` and its changelog.
+`memory/machines/<host>/` and its changelog.
 
 Memory says what was true when it was written. It is a lead, not a
 finding (`rules/verify-before-reporting.md`) — this skill collects the
@@ -70,14 +70,14 @@ leads, the host confirms them.
    this once, so the user knows the original stays intact. The single
    exception is step 7, which the user approves explicitly. What you
    read or copy out of it never goes through a link, a DNS alias to a
-   sibling host in `memory/servers/` aside (`rules/dns-aliases.md`): a
+   sibling host in `memory/machines/` aside (`rules/dns-aliases.md`): a
    link may point anywhere, at a credential too. The link stays where
    it is and is named in the report.
 
    So before anything in it is read, `find -H <path>/memory -type l`
    lists every link below `memory/`, into it even when it is a link
    itself, and `[ -L <path>/memory ]` says whether it is one. A
-   link directly in `memory/servers/` is an alias and left to
+   link directly in `memory/machines/` is an alias and left to
    `bin/hostwarden-heinzel-takeover`, which checks them. Every other
    link is never read through, by any step, and named in the report.
    The script refuses a link further down, but copies a top-level
@@ -100,13 +100,13 @@ leads, the host confirms them.
 4. **Copy the state.** `bin/hostwarden-heinzel-takeover <path>` does
    it: shared state — access lists, service policy, overrides,
    network and housekeeping notes, and `memory/known_hosts` with its
-   host-key records only, no comments — then every server's memory,
+   host-key records only, no comments — then every machine's memory,
    then `bin/hostwarden-migrate` for the `heinzel-<skill>.md` →
    `hostwarden-<skill>.md` renames. It
    keeps this clone's version of anything that already holds user
    data and says so; `--list` shows the plan without copying. A
    `user.md` of this clone's own is the exception: it gains the lines
-   it lacks — language, operator name and handle, per-server SSH
+   it lacks — language, operator name and handle, per-machine SSH
    users — and a key the two set differently is kept here and
    reported. Put each of those to the user in the report; change
    `user.md` only on their answer.
@@ -183,8 +183,8 @@ leads, the host confirms them.
      over.
    - **A fact about the network or several hosts** — sites, VPNs,
      break-glass access, a firewall between sites, which host backs
-     up which: `memory/network.md` (`rules/server-memory.md` →
-     Cross-server facts).
+     up which: `memory/network.md` (`rules/machine-memory.md` →
+     Cross-machine facts).
    - **About the operator** — language, full name as
      `Operator name:`, how they want to be written to:
      `memory/user.md`, under `# Preferences`, where
@@ -217,14 +217,14 @@ leads, the host confirms them.
 
 6. **Build the inventory.** This is the part no script can do. It
    covers every host the run named: listed as copied,
-   `already taken over: memory/servers/<host>`, or
-   `kept memory/servers/<host> — …`. A repeat or interrupted run
+   `already taken over: memory/machines/<host>`, or
+   `kept memory/machines/<host> — …`. A repeat or interrupted run
    copies nothing, and a kept host is one whose leads sit in the old
    checkout's records — both would otherwise end up with no leads at
    all. A selection that is a DNS alias means
    the canonical host it points at (`rules/dns-aliases.md`): take
    that one, drop the alias. Never every host under
-   `memory/servers/`, or a `--shared` run builds inventories for
+   `memory/machines/`, or a `--shared` run builds inventories for
    hosts the run did not select. Skip a host whose inventory already
    holds leads, or whose `heinzel legacy:` line settles the question
    (`rules/heinzel-takeover.md` → Record): its leads were collected or
@@ -237,7 +237,7 @@ leads, the host confirms them.
    a Heinzel session created or configured — the shapes are listed
    in `rules/heinzel-legacy.md` § "What to look for",
    `references/inventory.md` has the file format and what does not
-   count. Write it to `memory/servers/<host>/heinzel-inventory.md`.
+   count. Write it to `memory/machines/<host>/heinzel-inventory.md`.
    Its existence is what makes the first connection check the leads;
    no status line is needed for that. Note in passing which hosts'
    memory names a hypervisor — Proxmox VE, libvirt, Incus, LXD, LXC,
@@ -269,7 +269,7 @@ leads, the host confirms them.
    `rules/parallel-sessions.md` → The workspace says, with the
    message `Took over <n> hosts from Heinzel (<path>)`. Name
    the copied and rebuilt files that are not personal
-   (`rules/server-memory.md` → Personal versus shared) and each
+   (`rules/machine-memory.md` → Personal versus shared) and each
    copied host's directory.
 
 7. **Offer the coexistence rules.** Ask whether Heinzel stays in use

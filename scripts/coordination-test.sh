@@ -35,7 +35,7 @@ cp "$REPO/.claude/hooks/mode.sh" "$REPO/.claude/hooks/hops.sh" \
   "$REPO/.claude/hooks/check-session.sh" "$R/.claude/hooks/"
 git -C "$R" init --quiet
 M="$R/memory"
-mkdir -p "$M/servers"
+mkdir -p "$M/machines"
 : >"$M/.hostwarden-workspace"
 : >"$M/ssh_config"
 cat >"$M/user.md" <<'EOF'
@@ -44,13 +44,13 @@ Default: alice
 EOF
 
 server() {
-  mkdir -p "$M/servers/$1"
+  mkdir -p "$M/machines/$1"
   printf '# %s\n%s\n- Last connected: 2026-09-20\n' "$1" "$2" \
-    >"$M/servers/$1/memory.md"
+    >"$M/machines/$1/memory.md"
 }
 server pve1.example.com '- IP: 192.0.2.1
 - Role: hypervisor'
-cat >"$M/servers/pve1.example.com/guests.md" <<'EOF'
+cat >"$M/machines/pve1.example.com/guests.md" <<'EOF'
 # Guests on pve1.example.com
 
 - Inventoried: 2026-01-02
@@ -161,13 +161,13 @@ hasi "$TMP/out" "web1.example.com guest pve1.example.com" \
 # index or a connection, so a session that touches web1 by its
 # alias before any radius has run is still seen under its canonical
 # name.
-ln -s web1.example.com "$M/servers/web1"
+ln -s web1.example.com "$M/machines/web1"
 hook presence.sh PreToolUse sessalias Bash \
   'ssh -F memory/ssh_config root@web1 uptime' >/dev/null
 [ -n "$(find "$PRES" -maxdepth 1 -name 'sessalias+web1.example.com+run' 2>/dev/null)" ] \
   && ok || bad "presence: a DNS-alias symlink resolves to its canonical host"
 rm -rf "$PRES/sessalias+web1.example.com+"*
-rm "$M/servers/web1"
+rm "$M/machines/web1"
 
 # Another session's presence: a run entry on the guest.
 mkdir -p "$PRES"
@@ -252,7 +252,7 @@ rm -rf "$PRES/otherstale+web1.example.com+run"
 # hour around "now", so the test never flakes by crossing midnight
 # — a Downtime: line's single date cannot express that, the same
 # limit the plan format itself has.
-drop_downtime() { sed -i.bak '/^- Downtime:/d' "$M/servers/pve1.example.com/memory.md"; }
+drop_downtime() { sed -i.bak '/^- Downtime:/d' "$M/machines/pve1.example.com/memory.md"; }
 
 TODAY=$(date +%Y-%m-%d)
 YESTERDAY=$(date -v-1d +%Y-%m-%d 2>/dev/null || date -d yesterday +%Y-%m-%d)
@@ -261,7 +261,7 @@ WTZ=$(readlink /etc/localtime 2>/dev/null | sed 's#.*/zoneinfo/##')
 mkdir -p "$M/plans"
 
 printf -- '- Downtime: %s 00:00-23:59 (plan now-window)\n' "$TODAY" \
-  >>"$M/servers/pve1.example.com/memory.md"
+  >>"$M/machines/pve1.example.com/memory.md"
 printf -- '# now window\n- Window: %s 00:00-23:59 %s\n' "$TODAY" "$WTZ" \
   >"$M/plans/now-window.md"
 run status pve1.example.com >"$TMP/out"
@@ -272,19 +272,19 @@ drop_downtime
 rm "$M/plans/now-window.md"
 
 printf -- '- Downtime: %s 00:00-23:59 (plan gone-window)\n' "$TODAY" \
-  >>"$M/servers/pve1.example.com/memory.md"
+  >>"$M/machines/pve1.example.com/memory.md"
 run status pve1.example.com >"$TMP/out"
 [ $? = 1 ] && ok || bad "status: a window whose plan file is missing is left out"
 drop_downtime
 
 printf -- '- Downtime: %s 00:00-23:59 (plan past-window)\n' "$YESTERDAY" \
-  >>"$M/servers/pve1.example.com/memory.md"
+  >>"$M/machines/pve1.example.com/memory.md"
 printf -- '# past window\n- Window: %s 00:00-23:59 %s\n' "$YESTERDAY" "$WTZ" \
   >"$M/plans/past-window.md"
 run status pve1.example.com >"$TMP/out"
 [ $? = 1 ] && ok || bad "status: a window that has already passed is not active"
 drop_downtime
-rm -f "$M/plans/past-window.md" "$M/servers/pve1.example.com/memory.md.bak"
+rm -f "$M/plans/past-window.md" "$M/machines/pve1.example.com/memory.md.bak"
 
 # --- only in an operations checkout -----------------------------
 rm "$M/.hostwarden-workspace"
@@ -695,13 +695,13 @@ rm -f "$M/readonly.md" "$G/call-pve1.example.com"
 
 # The journal line goes where the host's OS file writes one: QNAP's
 # log_tool, none where memory records that logger does not land.
-printf -- '- Appliance: QTS 5.2.1\n' >>"$M/servers/web1.example.com/memory.md"
+printf -- '- Appliance: QTS 5.2.1\n' >>"$M/machines/web1.example.com/memory.md"
 : >"$TMP/sshcalls"
 run announce pve1.example.com reboot >"$TMP/out"
 hasi "$TMP/sshcalls" "/sbin/log_tool -t0" "announce: QNAP's journal line goes through log_tool"
 run 'done' "$(head -n1 "$TMP/out")"
-sed -i.bak '/^- Appliance: QTS/d' "$M/servers/web1.example.com/memory.md"
-printf -- '- Journal: not written\n' >>"$M/servers/web1.example.com/memory.md"
+sed -i.bak '/^- Appliance: QTS/d' "$M/machines/web1.example.com/memory.md"
+printf -- '- Journal: not written\n' >>"$M/machines/web1.example.com/memory.md"
 : >"$TMP/sshcalls"
 run announce pve1.example.com reboot >"$TMP/out"
 hasi "$TMP/out" "register only: web1.example.com (memory says its journal is not written)" \
@@ -716,8 +716,8 @@ lacks "$TMP/sshcalls" "== alice@web1.example.com" \
   "announce: a host with nothing to write gets no call"
 run 'done' "$(head -n1 "$TMP/out")"
 rm -f "$M/readonly.md"
-sed -i.bak '/^- Journal: not written/d' "$M/servers/web1.example.com/memory.md"
-rm -f "$M/servers/web1.example.com/memory.md.bak"
+sed -i.bak '/^- Journal: not written/d' "$M/machines/web1.example.com/memory.md"
+rm -f "$M/machines/web1.example.com/memory.md.bak"
 
 # The read-only list's * makes every host read-only, and a host
 # blacklisted by a DNS alias that resolves nowhere is not called.
@@ -729,7 +729,7 @@ hasi "$TMP/out" "journal only: pve1.example.com (read-only)" \
 lacks "$TMP/sshcalls" 'mkdir "$N"' "announce: no register entry under readonly.md's *"
 run 'done' "$(head -n1 "$TMP/out")"
 rm -f "$M/readonly.md"
-ln -s web1.example.com "$M/servers/web1-old"
+ln -s web1.example.com "$M/machines/web1-old"
 printf -- '- web1-old\n' >"$M/blacklist.md"
 : >"$TMP/sshcalls"
 run announce pve1.example.com reboot >"$TMP/out"
@@ -738,7 +738,7 @@ hasi "$TMP/out" "no entry: web1.example.com (blacklisted" \
 lacks "$TMP/sshcalls" "== alice@web1.example.com" \
   "announce: a host blacklisted by its DNS alias is not called"
 run 'done' "$(head -n1 "$TMP/out")"
-rm -f "$M/blacklist.md" "$M/servers/web1-old"
+rm -f "$M/blacklist.md" "$M/machines/web1-old"
 printf -- '- web1.example.com' >"$M/blacklist.md"
 run announce pve1.example.com reboot >"$TMP/out"
 hasi "$TMP/out" "no entry: web1.example.com (blacklisted" \

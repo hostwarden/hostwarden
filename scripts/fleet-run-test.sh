@@ -78,9 +78,9 @@ sign() {
 sign "$FR/src/linux.sh"
 
 server() {
-  mkdir -p "$M/servers/$1"
+  mkdir -p "$M/machines/$1"
   printf '# %s\n\n- Fleet read: ops1 (bundle linux, %s, 2026-09-23)\n%s\n' \
-    "$1" "$2" "$3" >"$M/servers/$1/memory.md"
+    "$1" "$2" "$3" >"$M/machines/$1/memory.md"
 }
 server web1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
@@ -112,10 +112,10 @@ printf '%s\n' '# Decisions — dec1' 'Applies to: hosts dec1.example.com' '' \
   >"$M/decisions/dec1.md"
 sed -i.bak '2s/.*/Applies to: hosts dec1.example.com, dec2.example.com/' \
   "$M/decisions/dec1.md" && rm -f "$M/decisions/dec1.md.bak"
-ln -s web1.example.com "$M/servers/alias1.example.com"
+ln -s web1.example.com "$M/machines/alias1.example.com"
 # Blacklisted by a DNS alias that resolves nowhere.
 server alias2.example.com 'key line present' ''
-ln -s alias2.example.com "$M/servers/alias2-old"
+ln -s alias2.example.com "$M/machines/alias2-old"
 server two1.example.com 'key line present' \
 '- Firewall: none on this host. The provider filters every packet in
   front of it, confirmed by alice.'
@@ -311,7 +311,7 @@ has "$TMP/out" "jumped10.example.com(blacklisted)" \
 [ -e "$TMP/collect-db1.example.com" ] && bad "a waiting host was reached" || ok
 has "$TMP/out" "## Housekeeping Report: web1.example.com" "the host report is missing"
 [ -e "$TMP/logs" ] && bad "a dry run logged on a host" || ok
-[ -s "$M/servers/web1.example.com/changelog.log" ] \
+[ -s "$M/machines/web1.example.com/changelog.log" ] \
   && bad "a dry run wrote a changelog" || ok
 
 # What the judge was given, and how it was started.
@@ -333,9 +333,9 @@ has "$TMP/out" "/var at 97% — since 2026-01-01" "a known finding lost its date
 has "$TMP/logs" "web1.example.com housekeeping: 2 CRITICAL, 1 WARN" \
   "the journal line was not sent"
 lacks "$TMP/logs" "down1.example.com" "an unreachable host was sent a log line"
-has "$M/servers/web1.example.com/changelog.log" \
+has "$M/machines/web1.example.com/changelog.log" \
   "[ops1 as root] read-only: housekeeping: 2 CRITICAL" "no changelog line"
-has "$M/servers/down1.example.com/changelog.log" "not read (exit 255): ssh" \
+has "$M/machines/down1.example.com/changelog.log" "not read (exit 255): ssh" \
   "the unreachable host has no changelog line"
 case $(git -C "$M" log -1 --format=%s) in
   *"read-only: fleet housekeeping, 4 critical, 8 warning"*) ok ;;
@@ -343,7 +343,7 @@ case $(git -C "$M" log -1 --format=%s) in
 esac
 [ -z "$(git -C "$M" status --porcelain)" ] && ok \
   || bad "the run left uncommitted changes"
-lacks "$M/servers/web1.example.com/memory.md" "Last connected" \
+lacks "$M/machines/web1.example.com/memory.md" "Last connected" \
   "the run wrote memory.md"
 
 # --- a host nobody judged, without an alarm ----------------------

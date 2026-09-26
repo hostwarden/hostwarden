@@ -27,7 +27,7 @@ silent.
 - `midclt call system.version` prints e.g. `TrueNAS-25.10.7` and
   needs no privileges. It is the version command on every
   connection.
-- Record in server memory: `Appliance: TrueNAS <version>`, and on
+- Record in machine memory: `Appliance: TrueNAS <version>`, and on
   the first connection `Community Edition` or `Enterprise` from
   `midclt call system.product_type`.
 - Releases are named `YY.MM` with a codename (25.04 Fangtooth,
@@ -155,7 +155,7 @@ outside the caller's role answers `Not authorized`.
   `truenas-rw.key` for the write key.
 - The first read confirms the access: `midclt call auth.me` as the
   read user names the user and its privilege.
-- Server memory records `API read: api-read (Readonly Admin)`,
+- Machine memory records `API read: api-read (Readonly Admin)`,
   with the key file after the role on the workstation path only.
   `api-read` is an account on the appliance, recorded there, never
   in `memory/user.md` (`rules/ssh-user.md`): it serves API reads
@@ -554,7 +554,7 @@ never replaces it.
 ## Housekeeping and Audits
 
 - Read, in one call; `select` keeps the JSON to the fields the
-  findings need. Where server memory records `API read:`, the call
+  findings need. Where machine memory records `API read:`, the call
   runs as that user with the markers and the filter from API >
   Reading, otherwise as the session's SSH user. Before 25.10 the
   update and reboot calls differ (see Updates):

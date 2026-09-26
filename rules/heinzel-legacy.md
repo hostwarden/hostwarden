@@ -69,7 +69,7 @@ memory and changelog, not on the host.
 ## Detect
 
 **Read the leads first.**
-`memory/servers/<hostname>/heinzel-inventory.md`, if
+`memory/machines/<hostname>/heinzel-inventory.md`, if
 it exists, holds what memory and changelog say this
 host carries; the `hostwarden-heinzel-takeover` skill
 writes it when a Heinzel installation is taken over.
@@ -218,4 +218,4 @@ Read `rules/heinzel-takeover.md`. It covers the
 report, the question, moving the fixed paths,
 giving what a session created Hostwarden's name when
 the user chooses it, and what gets recorded in
-server memory.
+machine memory.

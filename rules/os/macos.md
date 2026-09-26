@@ -41,7 +41,7 @@ Rules for macOS (Apple Silicon and Intel).
 - Product name: `sw_vers -productName` (e.g. `macOS`)
 - Architecture: `uname -m` (`arm64` or `x86_64`)
 - There is no `/etc/os-release` on macOS.
-- Record `Full disk access:` in server memory too, from Privacy
+- Record `Full disk access:` in machine memory too, from Privacy
   Protection (TCC) below.
 
 ## Firewall
@@ -232,7 +232,7 @@ An SSH session reaches protected data only when "Allow full
 disk access for remote users" is on under Remote Login; without
 it, reads fail with `Operation not permitted`, even as root.
 Find out on the first connection and whenever such a refusal
-turns up, and record it in server memory as
+turns up, and record it in machine memory as
 `Full disk access: on`, `off` or `unknown`. While it reads `off`
 or `unknown`, or memory has no such line, check again on every
 connection: nothing else notices when the user turns the setting

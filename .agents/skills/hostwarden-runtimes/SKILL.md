@@ -26,7 +26,7 @@ is that a second version manager on the same host is a second
 source of truth. Either is fine when the user asks for it by
 name — never by default, and never silently.
 
-**Appliances get no runtime.** When the host's server memory
+**Appliances get no runtime.** When the host's machine memory
 has an `Appliance:` line and that file in `rules/appliance/`
 rules out installing packages on the host, install neither mise
 nor a runtime there. Say so, and name what
@@ -153,7 +153,7 @@ mise ls ruby
 it; report that rather than removing it from there. Then update
 the memory line below.
 
-## Server Memory Convention
+## Machine Memory Convention
 
 When mise and languages are installed, add a single
 line to the server's `memory.md`:

@@ -68,7 +68,7 @@ exists):
   `rules/network-topology.md` → A site's code, never the site name
   itself — asked, alongside the site, where the host has neither
   yet — the
-  role asked, the index the next one free across `memory/servers/`
+  role asked, the index the next one free across `memory/machines/`
   and every `guests.md`, and the domain from the block. The user
   confirms it or types another. A
   typed name checked against the block and found not to match it
@@ -78,7 +78,7 @@ exists):
   and when to `memory/naming.md` and creation goes on with the
   typed name; a no returns to naming the guest, offering the
   proposed name again or another typed name. Once a name is
-  settled: no directory of that name under `memory/servers/`, no
+  settled: no directory of that name under `memory/machines/`, no
   guest of that name in the host's `guests.md`, and neither the
   name nor a static address on the blacklist or the read-only list
   (the lookup of `rules/access-control.md`).
@@ -274,13 +274,13 @@ guest has no such mechanism, the files are the user's to place
    line by line — and 1 when it failed: report that, leave the
    guest as it is, and ask.
 4. **The pipeline on the guest** (`rules/first-connection.md`),
-   which creates `memory/servers/<settled name>/` directly. Where
+   which creates `memory/machines/<settled name>/` directly. Where
    step 2 used the same-run `-o` pair instead of a block, that pair
    rides on every one of the pipeline's own SSH calls to this guest,
    on top of whatever options each of its steps already names — the
    pipeline's own files know nothing of a per-run override, so
    nothing but this run supplies it, at each call site in turn. The
-   SSH user is the one the user-data created: write its per-server
+   SSH user is the one the user-data created: write its per-machine
    entry in `memory/user.md` instead of asking (`rules/ssh-user.md`).
 5. **Register it.** Run the host's inventory for the new guest
    (`rules/hypervisors.md` → Inventory): its entry goes into
@@ -327,7 +327,7 @@ guest has no such mechanism, the files are the user's to place
    IP Verification) instead of silently masked. Otherwise — nothing
    resolves yet, or an address besides the guest's own is among the
    results — leave an item in the guest's `todo.md`
-   (`rules/server-memory.md` → Session to-do list) to repeat that
+   (`rules/machine-memory.md` → Session to-do list) to repeat that
    same direct resolver check later, and, only where step 2 wrote a
    block, remove it once the check passes.
 7. **Verify the baseline** on the guest as `hostwarden-baseline`

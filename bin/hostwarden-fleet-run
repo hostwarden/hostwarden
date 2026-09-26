@@ -126,7 +126,7 @@ mem_line() {
 }
 # mem_value <host> <field> — the whole value after "- <field>:".
 mem_value() {
-  sed -n "s/^- $2:[[:space:]]*//p" "$M/servers/$1/memory.md" 2>/dev/null \
+  sed -n "s/^- $2:[[:space:]]*//p" "$M/machines/$1/memory.md" 2>/dev/null \
     | head -n 1 | sed 's/[[:space:]]*$//'
 }
 
@@ -216,7 +216,7 @@ BLACK=$(hostwarden_list_entries "$M/blacklist.md")
 # host's memory (rules/dns-aliases.md): the blacklist may name it by
 # one of them.
 aliases_of() {
-  for al in "$M"/servers/*; do
+  for al in "$M"/machines/*; do
     [ -L "$al" ] || continue
     at=$(readlink "$al"); at=${at%/}
     [ "${at##*/}" = "$1" ] && printf '%s ' "${al##*/}"
@@ -288,7 +288,7 @@ blacklisted() {
 # line present. Each gets its directory with the bundle it is sent.
 HOSTS=
 SKIPPED=
-for f in "$M"/servers/*/memory.md; do
+for f in "$M"/machines/*/memory.md; do
   [ -f "$f" ] || continue
   # A DNS alias is a symlink to its host's directory: read the host
   # once, under its canonical name.
@@ -366,8 +366,8 @@ floors() {
 decisions() {
   # scoped <scope> <file> — the file under its scope line.
   scoped() { printf '\n----- scope: %s (%s)\n' "$1" "${2#"$M"/}"; cat "$2"; }
-  [ -f "$M/servers/$1/decisions.md" ] \
-    && scoped host "$M/servers/$1/decisions.md"
+  [ -f "$M/machines/$1/decisions.md" ] \
+    && scoped host "$M/machines/$1/decisions.md"
   c=$(mem_line "$1" Cluster)
   [ -n "$c" ] && [ -f "$M/clusters/$c/decisions.md" ] \
     && scoped cluster "$M/clusters/$c/decisions.md"
@@ -440,11 +440,11 @@ EOF
       [ -f "$o" ] && { printf '\n===== override of %s\n' "$s"; cat "$o"; }
     done
     for o in "$M/custom-rules/all.md" "$M/custom-rules/hostwarden-housekeeping.md" \
-        "$M/servers/$1/rules.md"; do
+        "$M/machines/$1/rules.md"; do
       [ -f "$o" ] && { printf '\n===== override %s\n' "${o#"$M"/}"; cat "$o"; }
     done
     printf '\n===== memory.md of %s (our own notes, trusted)\n' "$1"
-    cat "$M/servers/$1/memory.md"
+    cat "$M/machines/$1/memory.md"
     if [ -s "$2/decisions" ]; then
       printf '\n===== decisions that apply to %s (the user'"'"'s, trusted)\n' "$1"
       cat "$2/decisions"
@@ -541,7 +541,7 @@ run_host() {
   fi
   [ -f "$d/judge.json" ] || echo '{"report":"","findings":[]}' >"$d/judge.json"
   jq -n --arg h "$h" --arg today "$TODAY" \
-    --rawfile mem "$M/servers/$h/memory.md" --rawfile err "$d/judge.err" \
+    --rawfile mem "$M/machines/$h/memory.md" --rawfile err "$d/judge.err" \
     --slurpfile dh "$d/decided.json" \
     --slurpfile fl "$d/floors.jsonl" \
     --slurpfile prev "$PREV" \
@@ -616,7 +616,7 @@ run_host() {
   {
     printf '[%s] [%s as root] read-only: %s\n' "$NOW" "$NAME" "$(cat "$d/summary")"
     printf '  Detail: fleet read from %s, bundle %s.\n' "$NAME" "$b"
-  } >>"$M/servers/$h/changelog.log"
+  } >>"$M/machines/$h/changelog.log"
 }
 
 # Four hosts at a time, the next one started as soon as any ends.
@@ -737,7 +737,7 @@ jq --slurpfile prev "$PREV" 'reduce .[] as $r ($prev[0];
 
 # The workspace: the changelog lines of this run, nothing else.
 PATHS=
-for h in $HOSTS; do PATHS="$PATHS servers/$h/changelog.log"; done
+for h in $HOSTS; do PATHS="$PATHS machines/$h/changelog.log"; done
 # shellcheck disable=SC2086 # one path per word
 sh bin/hostwarden-sync commit \
   "[$NAME as root] read-only: fleet housekeeping, $CRIT critical, $WARN warning" \

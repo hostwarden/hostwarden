@@ -6,7 +6,7 @@ settles this early, records it, applies it to every new host from
 then on, and never forces an existing host to move.
 
 The store is `memory/naming.md`, shared like the rest of the
-workspace (`rules/server-memory.md` → Personal versus shared),
+workspace (`rules/machine-memory.md` → Personal versus shared),
 created on first need. **A name is never judged whole.** Once a
 scheme is recorded, its hostname label and its domain are each
 checked in their own mechanical way (Checking a name, below), never
@@ -233,7 +233,7 @@ that count (below). Three is the fewest names in which a shared
 structure can be told apart from coincidence; two names always
 share something.
 
-**What counts.** Every host under `memory/servers/`, skipping
+**What counts.** Every host under `memory/machines/`, skipping
 symlinks (DNS aliases), a `Role: workstation` host, and a host
 already `Exempt:` in `memory/naming.md`.
 
@@ -386,7 +386,7 @@ the next name a scheme gives the target, confirm it or take a typed
 name instead, and report a name that does not match before the
 target is created or written to. `hostwarden-os-install` → Naming a
 target with no memory yet is its second consumer, for a machine
-with no `memory/servers/` entry yet. Neither invents a
+with no `memory/machines/` entry yet. Neither invents a
 name-proposal step of its own; a third consumer reaches for this
 section too, rather than a new one.
 

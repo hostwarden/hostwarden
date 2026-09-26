@@ -27,7 +27,7 @@ Quietly load `memory/user.md`, `memory/blacklist.md`,
 `memory/readonly.md`, `memory/service-policy.md`,
 `memory/naming.md`, and `memory/custom-rules/all.md` (if present),
 `memory/operators.md` where the workspace has a remote, and glance
-at `memory/servers/`, `memory/custom-rules/` and `memory/plans/` to
+at `memory/machines/`, `memory/custom-rules/` and `memory/plans/` to
 see what's there. A file under `memory/plans/` with a `Window:`
 line is a maintenance window (`rules/maintenance-windows.md` →
 The window plan); read its `Window:` and `Notify by:` lines for

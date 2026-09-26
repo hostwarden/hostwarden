@@ -14,11 +14,11 @@ for the first two cases below, and the last two are contacts of
 their own:
 
 - **SSH gives no answer:** only as `rules/ssh-unreachable.md` →
-  A guest on a known host allows, for this session. Server memory
+  A guest on a known host allows, for this session. Machine memory
   keeps its SSH access.
 - **No sshd in the guest:** ask the user once: install one (then
   SSH), or record `Mode: via` in its memory
-  (`rules/server-memory.md`). Not for a Windows guest: Hostwarden
+  (`rules/machine-memory.md`). Not for a Windows guest: Hostwarden
   reaches Windows over OpenSSH only (`rules/os/windows.md`), and
   the pipeline's `sh -c` finds no shell there. Install OpenSSH,
   or leave the guest to its console.
@@ -229,7 +229,7 @@ A snapshot Hostwarden took is Hostwarden's to remove, because it
 grows while it exists. Offer to delete it once the change has
 proved itself; if the user wants to wait, write
 `- [ ] delete snapshot <name> on <host>` into the guest's
-`todo.md` (`rules/server-memory.md` → Session to-do list).
+`todo.md` (`rules/machine-memory.md` → Session to-do list).
 
 Docker in a system container (common with Proxmox `nesting=1`):
 `rules/containers.md`.

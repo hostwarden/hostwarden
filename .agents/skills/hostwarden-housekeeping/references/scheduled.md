@@ -45,7 +45,7 @@ unattended run cannot:
 - the email skill's pickers (recipient, local vs
   remote source, MTA choice) — persisted as
   `Alert email:` / `Email source:` lines in
-  `memory/servers/<host>/memory.md`;
+  `memory/machines/<host>/memory.md`;
 - the backup-presence question from housekeeping;
 - how the host is reached when SSH is gone, where
   nothing on it answers that
@@ -138,4 +138,4 @@ is the native equivalent; cron also works.
   log file from the template (or cron's `MAILTO`).
 - **Audit trail:** as in any session —
   `journalctl -t hostwarden` on the server and
-  `memory/servers/<host>/changelog.log` locally.
+  `memory/machines/<host>/changelog.log` locally.

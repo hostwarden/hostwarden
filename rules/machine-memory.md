@@ -1,8 +1,8 @@
-# Server Memory
+# Machine Memory
 
-Each server: `memory/servers/<hostname>/` with
+Each machine: `memory/machines/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
-optionally `rules.md` (per-server rule
+optionally `rules.md` (per-machine rule
 overrides — see `rules/overrides.md`), optionally
 `decisions.md` (the user's decisions about it —
 see `rules/decisions.md`), on a
@@ -30,7 +30,23 @@ project included: `- Runs on: incus1.example.com (container
 prod/web)` (`rules/hypervisors.md` → Linking Guest and Host).
 Without that, the second guest's onboarding writes over the
 first one's memory and a later session acts on the wrong
-server.
+machine.
+
+In local mode outside WSL, the directory name is always the machine's own name —
+`<workstation>`, `hostname -s` falling back to plain `hostname` the way
+`bin/hostwarden-impact` already does, the same name `rules/parallel-sessions.md`
+and `rules/host-keys.md` use — resolved this way whatever word the user typed to
+enter local mode (`localhost`, `127.0.0.1`, the machine's own real hostname,
+"this machine", "here", …), so the same machine is never filed under two
+different directories. This never runs over SSH, not even to the machine's own
+address: local mode has no SSH (`AGENTS.md` → Local mode).
+
+Its first connection also adds `/machines/<name>/` to `memory/.gitignore` if a
+pattern for it is not already there, so the machine's own memory stays personal
+by default (below, → Personal versus shared) without a manual step —
+`templates/workspace/.gitignore`'s `/machines/localhost/` and
+`/machines/127.0.0.1/` only cover a workspace whose local machine was never
+resolved this way.
 
 On WSL the directory is
 `<windows-hostname>-wsl-<distribution>`, lowercase:
@@ -268,7 +284,7 @@ refreshes it`.
 ## Session to-do list
 
 For a session of two steps or more, create
-`memory/servers/<hostname>/todo.md`. Mark a task
+`memory/machines/<hostname>/todo.md`. Mark a task
 `[x]` the moment it is done, not at the end — a
 session that is interrupted has to leave behind
 what was actually finished. On reconnection, show
@@ -323,9 +339,9 @@ its master in the workspace, beside the memory it
 belongs to:
 
 ```
-memory/servers/<host>/files/<path on the host>
-memory/servers/<host>/src/<name>/
-memory/servers/<host>/deployed.md
+memory/machines/<host>/files/<path on the host>
+memory/machines/<host>/src/<name>/
+memory/machines/<host>/deployed.md
 memory/fleet/<name>/files/<path on the host>
 memory/clusters/<name>/files/<path on the host>
 memory/tools/<name>
@@ -340,14 +356,14 @@ What a session needs to keep but nobody deploys — a
 list of files quarantined before a cleanup, an export
 of a device inventory, a snapshot of a config for
 comparison — goes to
-`memory/servers/<host>/notes/`, named with its date:
+`memory/machines/<host>/notes/`, named with its date:
 `smb-leftovers-quarantine-2026-08-27.tsv`. The
 changelog entry that produced it names the file. A
 note that no entry and no memory line points to any
 more is deleted. Secrets never go in a note
 (`rules/secrets.md`).
 
-## Cross-server facts
+## Cross-machine facts
 
 Facts that belong to no single host — a mesh VPN
 network, which machine holds the backup target,
@@ -384,10 +400,11 @@ machines — and then the split matters.
 writes for each machine, and the memory directory of
 anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname
-directory has to be added there by hand.
+directory is added there on its first local-mode
+connection (above).
 
 **Shared in a shared workspace:** everything else —
-`memory/servers/*/` with each host's `rules.md`,
+`memory/machines/*/` with each host's `rules.md`,
 its masters and `decisions.md`, `memory/clusters/*/`,
 `memory/decisions/`, `memory/fleet/`, `memory/tools/`,
 `memory/plans/`, `memory/known_hosts`

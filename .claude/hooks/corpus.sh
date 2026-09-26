@@ -19,7 +19,7 @@
 #
 # The corpus is what the repository ships, which is what git
 # would carry: tracked files, plus files that are new and not
-# ignored. Everything a user generates — server memory, their own
+# ignored. Everything a user generates — machine memory, their own
 # overrides — is gitignored by construction, so it cannot wander
 # in. Naming the directories instead meant a new one was outside
 # every scan until somebody remembered to add it, and nothing

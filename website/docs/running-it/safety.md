@@ -124,11 +124,11 @@ under pressure.
   and why) that any admin can follow; the full
   technical detail (rollback paths, verification,
   flags) is mirrored locally in
-  `memory/servers/<hostname>/changelog.log`, and a
+  `memory/machines/<hostname>/changelog.log`, and a
   constraint or rollback that still holds goes into
   the host's `memory.md` as well.
 - **Remembers servers** — stores OS, services, and
-  notes in `memory/servers/` for future sessions.
+  notes in `memory/machines/` for future sessions.
 - **Stable repos only** — no third-party sources
   without your explicit approval.
 - **Least privilege** — uses a normal user when
@@ -203,7 +203,7 @@ Hostwarden reduces this risk with multiple layers:
   to check `--help`, man pages, or upstream docs
   before running any command. This catches wrong
   flags and syntax before they reach the server.
-- **Server memory** — Each server's OS, version,
+- **Machine memory** — Each server's OS, version,
   installed services, and configuration are recorded
   in a memory file. On subsequent connections, the
   LLM reads facts instead of guessing.

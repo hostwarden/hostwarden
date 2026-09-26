@@ -143,7 +143,7 @@ Next week, in a new session:
  ❯ Check on web1.example.com.
 ```
 
-It reads `memory/servers/web1.example.com/memory.md`
+It reads `memory/machines/web1.example.com/memory.md`
 (Debian 12, nginx, PostgreSQL), the host's open to-do
 items, your decisions for it, and the local changelog.
 
@@ -163,7 +163,7 @@ runs.
 ### Session to-do list
 
 For any task of two or more steps, Hostwarden keeps
-`memory/servers/<hostname>/todo.md` and checks off
+`memory/machines/<hostname>/todo.md` and checks off
 each step as it finishes, so an interrupted session
 leaves behind what was really done. The next
 connection shows the open items before new work, and
@@ -610,7 +610,7 @@ memory as one `Accounts:` line, next to the
 On bare metal, and in a VM for the disks passed
 through to it, housekeeping records each disk once —
 type, bus, size, model, serial and firmware — in
-`memory/servers/<host>/storage.md`, so a failing disk
+`memory/machines/<host>/storage.md`, so a failing disk
 is known by the serial you replace it by. It reads
 SMART there and on the appliances whose file asks for
 it, and says when a disk appears, disappears, or its
@@ -762,7 +762,7 @@ MTA, the network stack and resolver, time sync,
 auto-reboot behaviour and needrestart's restart mode,
 mesh VPNs and their SSH servers, accounts and sudo
 rules and, on Ubuntu, Pro/ESM coverage on each host in
-`memory/servers/`, then renders a side-by-side table
+`memory/machines/`, then renders a side-by-side table
 that highlights where servers disagree, with sections
 for drift, warnings, what you decided, and the hosts
 whose memory is stale or never onboarded. Alpine,
@@ -836,7 +836,7 @@ LXD, LXC, vm-bhyve, Hyper-V or VirtualBox on an ordinary
 system, and FreeBSD with its jails from `jail.conf`,
 Bastille or iocage — Hostwarden lists every guest without
 being asked, stopped ones and templates included, in
-`memory/servers/<host>/guests.md`. It reads them through
+`memory/machines/<host>/guests.md`. It reads them through
 the hypervisor and asks the guest tools for hostname, OS
 and addresses where they run. Other running jails are
 listed too, and VirtualBox lists the VMs of the user
@@ -1048,7 +1048,7 @@ A script, a systemd unit or timer, a cron file, a
 config drop-in or a rendered template that Hostwarden
 writes onto a server has its master copy in your
 workspace, at the same path it has on the host:
-`memory/servers/<hostname>/files/usr/local/bin/backup-usb-watch`.
+`memory/machines/<hostname>/files/usr/local/bin/backup-usb-watch`.
 One file deployed to several hosts lives in
 `memory/fleet/<name>/`, or in
 `memory/clusters/<name>/files/` for a cluster's members.

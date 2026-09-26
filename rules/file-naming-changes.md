@@ -332,7 +332,7 @@ restored.
 **The first run is the proof,** and it comes after
 the session. For every job that will run, leave an
 item in the host's `todo.md`
-(`rules/server-memory.md` → Session to-do list) with
+(`rules/machine-memory.md` → Session to-do list) with
 the job and when it next runs; a unit left disabled
 gets none:
 
