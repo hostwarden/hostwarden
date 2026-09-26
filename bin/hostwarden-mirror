@@ -75,7 +75,7 @@ if [ -n "${HOSTWARDEN_MIRROR_TOKEN:-}" ]; then
 fi
 
 # Nothing git says reaches a CI log with a credential in it.
-redact() { sed -E 's#(://)[^/@]*@#\1#g' >&2; }
+redact() { hostwarden_redact >&2; }
 say() { echo "hostwarden-mirror: $*" | redact; }
 
 # A scratch repository holding upstream's main and tags and

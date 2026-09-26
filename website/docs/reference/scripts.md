@@ -14,7 +14,9 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
 
 - **`hostwarden-init`** — turns the checkout into an operations
   install: `memory/` becomes the workspace. `--clone <url>` joins a
-  shared workspace instead
+  shared workspace instead, `--remote <url>` publishes this one to a
+  private repository, and `--local` records that it stays on this
+  machine
   ([A shared workspace](../running-it/team/shared-workspace.md)).
 - **`hostwarden-doctor`** — lists the tools Hostwarden runs on your
   workstation, what is missing, and the command to install it.

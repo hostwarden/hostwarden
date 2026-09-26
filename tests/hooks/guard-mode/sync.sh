@@ -35,8 +35,62 @@ chmod +x "$TMP/stub/betterleaks"
 PATH="$TMP/stub:$PATH"
 sync_a commit "start the workspace" \
   && ok || bad "sync commit failed"
-git -C "$OPS/memory" remote add origin "$TMP/remote.git"
-git -C "$OPS/memory" push --quiet -u origin main
+# init --remote publishes it: the remote, a commit, the push. A
+# workspace that has commits already, as after a takeover, too.
+sh "$OPS/bin/hostwarden-init" --remote "$TMP/remote.git" >/dev/null 2>&1 \
+  && git -C "$TMP/remote.git" rev-parse -q --verify main >/dev/null && ok \
+  || bad "init --remote did not publish the workspace"
+# Run again it picks up where it stopped, and another address is
+# refused rather than put in place of the one there.
+sh "$OPS/bin/hostwarden-init" --remote "$TMP/remote.git" >/dev/null 2>&1 \
+  && ok || bad "init --remote failed on its own remote"
+fails "init --remote replaced the workspace's remote" \
+  sh "$OPS/bin/hostwarden-init" --remote "$TMP/other.git"
+# A repository with commits is a workspace to join, not to publish
+# to; a missing one exits 3 with the steps to create it.
+P=$(checkout publish)
+sh "$P/bin/hostwarden-init" >/dev/null
+fails "init --remote published into a repository with commits" \
+  sh "$P/bin/hostwarden-init" --remote "$TMP/remote.git"
+[ -z "$(git -C "$P/memory" remote)" ] && ok \
+  || bad "a refused init --remote left its remote behind"
+sh "$P/bin/hostwarden-init" --remote "$TMP/missing.git" >/dev/null 2>&1
+[ $? -eq 3 ] && ok || bad "init --remote to a missing repository did not exit 3"
+# Of a URL only the scheme and host are printed: a token can sit in
+# the user info, the path or the query. The @ is added at run time,
+# so the test file holds no credential-shaped URL.
+AT=@
+out=$(sh "$P/bin/hostwarden-init" --remote \
+  "https://alice:s3cret${AT}git.invalid/ops/s3cret.git?t=s3cret" 2>&1)
+case "$out" in
+*s3cret*) bad "init --remote printed a credential: $out" ;;
+*) ok ;;
+esac
+fails "init took --create without --remote" sh "$P/bin/hostwarden-init" --create
+fails "init took --local beside --remote" \
+  sh "$P/bin/hostwarden-init" --local --remote "$TMP/remote.git"
+# --local records the answer once, under # Preferences.
+printf '# Preferences\n\nLanguage: German\n' > "$P/memory/user.md"
+sh "$P/bin/hostwarden-init" --local >/dev/null \
+  && sh "$P/bin/hostwarden-init" --local >/dev/null \
+  && [ "$(grep -c '^Workspace remote: none$' "$P/memory/user.md")" = 1 ] \
+  && grep -q '^Language: German$' "$P/memory/user.md" && ok \
+  || bad "init --local did not record Workspace remote: none once"
+# --clone takes the place of a workspace nothing was written to, and
+# keeps its personal files; one that holds work stays.
+echo '{}' > "$P/memory/opencode.json"
+sh "$P/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null 2>&1 \
+  && git -C "$P/memory" rev-parse -q --verify HEAD >/dev/null \
+  && grep -q '^Language: German$' "$P/memory/user.md" \
+  && [ -f "$P/memory/opencode.json" ] && ok \
+  || bad "init --clone did not replace a new workspace, personal files kept"
+mode_is operations "$P"
+Q=$(checkout used)
+sh "$Q/bin/hostwarden-init" >/dev/null
+echo x > "$Q/memory/network.md"
+fails "init --clone replaced a workspace that holds work" \
+  sh "$Q/bin/hostwarden-init" --clone "$TMP/remote.git"
+[ -f "$Q/memory/network.md" ] && ok || bad "a refused clone removed work"
 B=$(checkout b)
 sh "$B/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null
 mode_is operations "$B"

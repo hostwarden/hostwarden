@@ -4,9 +4,21 @@
 # marked as the workspace.
 #
 # Usage:
-#   hostwarden-init              Create the workspace
+#   hostwarden-init              Create the workspace. Run in a
+#                                terminal on a new one, it asks
+#                                whether to share it, and how
 #   hostwarden-init --clone URL  Join a team: clone its shared
-#                                workspace into an empty memory/
+#                                workspace into an empty memory/,
+#                                or in place of a new workspace
+#                                nothing has been written to yet
+#   hostwarden-init --remote URL [--create]
+#                                Share this workspace: refuse a
+#                                public or non-empty URL, create a
+#                                missing GitHub one private with gh
+#                                where --create asks for that, then
+#                                commit the workspace and push it
+#   hostwarden-init --local      Record in memory/user.md that the
+#                                workspace stays on this machine
 #   hostwarden-init --help       Show this help
 #
 # Idempotent: on a workspace it fills in whatever is
@@ -30,13 +42,24 @@ usage() {
     "$SCRIPT_DIR/${0##*/}"
 }
 
-CLONE=""
-case "${1:-}" in
-  "") ;;
-  --clone) CLONE="${2:?Usage: hostwarden-init --clone URL}" ;;
-  -h|--help) usage; exit 0 ;;
-  *) usage >&2; exit 1 ;;
+CLONE="" REMOTE="" CREATE="" LOCAL=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --clone) CLONE="${2:?Usage: hostwarden-init --clone URL}"; shift ;;
+    --remote) REMOTE="${2:?Usage: hostwarden-init --remote URL}"; shift ;;
+    --create) CREATE=1 ;;
+    --local) LOCAL=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; exit 1 ;;
+  esac
+  shift
+done
+case "$CLONE$REMOTE" in -*)
+  echo "hostwarden-init: a URL cannot start with a dash." >&2; exit 1 ;;
 esac
+# One way to share at most, and --create only with --remote.
+case "${CLONE:+c}${REMOTE:+r}${LOCAL:+l}" in ??*) usage >&2; exit 1 ;; esac
+if [ -n "$CREATE" ] && [ -z "$REMOTE" ]; then usage >&2; exit 1; fi
 
 hostwarden_mode "$REPO_DIR"
 WAS=$HOSTWARDEN_MODE
@@ -84,6 +107,138 @@ check_hooks() {
   done
 }
 
+# The personal files a clone never brings (templates/workspace/
+# .gitignore), which a clone in place of a new workspace carries
+# across from it.
+PERSONAL="user.md opencode.json blacklist.md readonly.md"
+
+# pristine — memory/ is a workspace nothing has been written to:
+# no commit, and no file but the ones init puts there, unchanged,
+# the ssh_config it writes and the personal files. Only such a one
+# makes way for a clone; anything more is somebody's work.
+pristine() {
+  [ -d memory/.git ] || return 1
+  if git -C memory rev-parse -q --verify HEAD >/dev/null; then return 1; fi
+  find memory -path memory/.git -prune -o ! -type d -print |
+    while IFS= read -r f; do
+      case " ssh_config $PERSONAL " in *" ${f#memory/} "*) continue ;; esac
+      cmp -s "$f" "templates/workspace/${f#memory/}" || echo "$f"
+    done | grep -q . && return 1
+  return 0
+}
+
+# show <url> — <url> fit to print (hostwarden_redact).
+show() { printf '%s\n' "$1" | hostwarden_redact; }
+
+# resolve_url <url> — the address git and ssh really reach for
+# <url>: git's insteadOf rewrites applied, and an ssh host alias
+# replaced by the HostName the user's ssh configuration gives it,
+# so a github-work alias is checked as github.com.
+resolve_url() {
+  ru=$(git ls-remote --get-url -- "$1" 2>/dev/null) || ru=$1
+  case $ru in
+  ssh://*) ru_host=$(printf '%s\n' "$ru" |
+      sed -E 's#^ssh://([^/@]*@)?([^/:]+).*#\2#') ;;
+  *://*|/*|./*|../*) printf '%s\n' "$ru"; return ;;
+  *:*) ru_host=$(printf '%s\n' "$ru" | sed -E 's#^([^@:/]*@)?([^:/]+):.*#\2#') ;;
+  *) printf '%s\n' "$ru"; return ;;
+  esac
+  ru_real=$(ssh -G -- "$ru_host" 2>/dev/null |
+    awk '$1 == "hostname" { print $2; exit }')
+  if [ -z "$ru_real" ] || [ "$ru_real" = "$ru_host" ]; then
+    printf '%s\n' "$ru"; return
+  fi
+  ru_esc=$(printf '%s' "$ru_host" | sed 's/[].[\*^$#]/\\&/g')
+  printf '%s\n' "$ru" | sed -E \
+    -e "s#^(ssh://([^/@]*@)?)$ru_esc([:/])#\\1$ru_real\\3#" \
+    -e "t" -e "s#^([^@:/]*@)?$ru_esc:#\\1$ru_real:#"
+}
+
+# github_slug <url> — owner/repo of a github.com URL, or nothing.
+github_slug() {
+  printf '%s\n' "$1" | sed -n -E \
+    's#^(https://|ssh://)?([^@/]+@)?github\.com[:/]([^/]+/[^/]+)$#\3#p' |
+    sed 's#\.git$##; s#/$##'
+}
+
+# anon_url <url> — where anyone could read <url> without a
+# credential: its https address, with any user or token taken out.
+# git:// is anonymous by design and stays as it is. A path on this
+# machine or a mount gives nothing: nobody else reaches it.
+anon_url() {
+  case $1 in
+  git://*) printf '%s\n' "$1" ;;
+  http://*|https://*) printf '%s\n' "$1" | sed -E 's#^(https?://)[^/@]*@#\1#' ;;
+  ssh://*) printf '%s\n' "$1" |
+    sed -E 's#^ssh://([^/@]*@)?([^/:]+)(:[0-9]+)?/#https://\2/#' ;;
+  /*|./*|../*|file://*) ;;
+  *:*) printf '%s\n' "$1" | sed -E 's#^([^@:/]*@)?([^:/]+):/?#https://\2/#' ;;
+  esac
+}
+
+# readable_anonymously <url> — git can list <url> with nothing of
+# the user's: no configuration, credential helper, .netrc or prompt.
+# Then anyone can, and the repository is public.
+readable_anonymously() {
+  ra_home=$(mktemp -d) || return 1
+  if (unset GIT_CONFIG_COUNT GIT_CONFIG_PARAMETERS GIT_SSH_COMMAND
+      HOME=$ra_home XDG_CONFIG_HOME=$ra_home GIT_CONFIG_NOSYSTEM=1 \
+      GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 \
+      GIT_ASKPASS=false SSH_ASKPASS=false \
+      git -c credential.helper= -c http.lowSpeedLimit=1 \
+        -c http.lowSpeedTime=20 ls-remote -- "$1" >/dev/null 2>&1); then
+    rm -rf "$ra_home"; return 0
+  fi
+  rm -rf "$ra_home"; return 1
+}
+
+# suggest_url — the address the question below offers for a new
+# workspace: hostwarden-workspace under the account gh is signed in
+# to, in the protocol gh clones with, or nothing.
+suggest_url() {
+  command -v gh >/dev/null 2>&1 || return 0
+  su_login=$(gh api user --jq .login 2>/dev/null) || return 0
+  [ -n "$su_login" ] || return 0
+  su_host=github.com
+  if [ "$(gh config get git_protocol -h "$su_host" 2>/dev/null)" = ssh ]; then
+    echo "git@$su_host:$su_login/hostwarden-workspace.git"
+  else
+    echo "https://$su_host/$su_login/hostwarden-workspace.git"
+  fi
+}
+
+# Asked in a terminal, of a new workspace only: a checkout that
+# already operates keeps what it has, and a script or a session
+# that runs init is asked nothing. What this leaves open, the first
+# session asks (rules/session-start.md → The workspace remote).
+if [ -z "$CLONE$REMOTE$LOCAL" ] && [ "$WAS" != operations ] \
+    && [ -t 0 ] && [ -t 1 ]; then
+  echo "Share the workspace through a private git remote? It will hold"
+  echo "hostnames, addresses and the layout of your network."
+  echo "  1) Join an existing workspace: clone it"
+  echo "  2) Publish this new one to a private, empty repository,"
+  echo "     created with gh on GitHub where it does not exist yet"
+  echo "  3) Keep it on this machine only"
+  echo "  4) Decide later: the first session asks again"
+  printf 'Choice [4]: '
+  read -r ans || ans=
+  case $ans in
+  1)
+    printf 'URL of the workspace: '
+    read -r CLONE || CLONE= ;;
+  2)
+    s=$(suggest_url)
+    printf 'URL of the repository%s: ' "${s:+ [$s]}"
+    read -r REMOTE || REMOTE=
+    REMOTE=${REMOTE:-$s}
+    CREATE=1 ;;
+  3) LOCAL=1 ;;
+  esac
+  case "$CLONE$REMOTE" in -*)
+    echo "hostwarden-init: a URL cannot start with a dash." >&2; exit 1 ;;
+  esac
+fi
+
 if [ -n "$CLONE" ]; then
   # The staging directory is ours only once this run made it. One
   # already there is not ignored by git, so it may well be the
@@ -94,19 +249,39 @@ if [ -n "$CLONE" ]; then
     exit 1
   fi
   # rmdir succeeds on an empty directory only.
+  REPLACE=""
   if [ -e memory ] && ! rmdir memory 2>/dev/null; then
-    echo "hostwarden-init: memory/ is not empty. --clone needs an" >&2
-    echo "  empty one; move the existing state aside first." >&2
-    exit 1
+    if pristine; then REPLACE=1
+    else
+      echo "hostwarden-init: memory/ already holds work. --clone needs an" >&2
+      echo "  empty one, or a new workspace nothing has been written to;" >&2
+      echo "  move the existing state aside first." >&2
+      exit 1
+    fi
   fi
   # The clone brings the workspace marker, so it only becomes
   # memory/ once it has passed the checks.
   hostwarden_git_batch
-  git clone --quiet -- "$CLONE" memory.clone
+  CLONE_ERR=$(mktemp)
+  if ! git clone --quiet -- "$CLONE" memory.clone 2>"$CLONE_ERR"; then
+    hostwarden_redact < "$CLONE_ERR" >&2
+    rm -f "$CLONE_ERR"
+    exit 1
+  fi
+  rm -f "$CLONE_ERR"
   if ! check_hooks memory.clone; then
     rm -rf memory.clone
     echo "  (nothing was kept; clone again after that)" >&2
     exit 1
+  fi
+  if [ -n "$REPLACE" ]; then
+    # The personal files are not in the clone: this machine's stay.
+    for f in $PERSONAL; do
+      if [ -f "memory/$f" ] && [ ! -e "memory.clone/$f" ]; then
+        cp -p "memory/$f" memory.clone/
+      fi
+    done
+    rm -rf memory
   fi
   mv memory.clone memory
   # DNS aliases are symlinks under memory/machines/. A clone that
@@ -118,8 +293,15 @@ if [ -n "$CLONE" ]; then
     echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links,"
     echo "  then clone again."
   fi
-  echo "hostwarden: keep this remote private — the workspace holds"
-  echo "  hostnames, addresses and the layout of your network."
+  a=$(anon_url "$(resolve_url "$CLONE")")
+  if [ -n "$a" ] && readable_anonymously "$a"; then
+    echo "hostwarden: WARNING — $(show "$CLONE") is public: anyone can read the"
+    echo "  hostnames, addresses and network layout it holds. Make it"
+    echo "  private now."
+  else
+    echo "hostwarden: keep this remote private — the workspace holds"
+    echo "  hostnames, addresses and the layout of your network."
+  fi
 fi
 
 # Every step only fills in what is missing, so running this on
@@ -191,4 +373,149 @@ if [ "$WAS" = operations ]; then
   echo "hostwarden: memory/ is already the workspace"
 else
   echo "hostwarden: memory/ is now the workspace — this checkout operates servers"
+fi
+
+# publish <url> — give the workspace <url> as its remote, commit it
+# and push it. Refused: a remote of another address already there,
+# a public repository, one that already holds commits (that is a
+# workspace to join, with --clone). A missing one is created private
+# where --create asks for it and gh can; otherwise the steps to
+# create it are printed, and it returns 3. Run again after a
+# failure, it picks up where it stopped.
+publish() {
+  url=$1
+  cur=$(git -C memory remote get-url origin 2>/dev/null) || cur=
+  if [ -n "$cur" ] && [ "$cur" != "$url" ]; then
+    echo "hostwarden-init: memory/ already syncs with $(show "$cur")." >&2
+    return 1
+  fi
+  # The hooks refuse a commit and a push unscanned once there is a
+  # remote; saying so first leaves nothing half done.
+  if ! command -v betterleaks >/dev/null 2>&1; then
+    echo "hostwarden-init: betterleaks is not installed, and nothing leaves" >&2
+    echo "  this machine unscanned. Install it" >&2
+    echo "  (https://github.com/betterleaks/betterleaks) and run this again." >&2
+    return 1
+  fi
+  hostwarden_git_batch memory
+
+  # gh knows the visibility of a GitHub repository its account can
+  # see. One it cannot see is absent or private to someone else, so
+  # never public, but neither is proven: git's own read decides
+  # whether it exists. Anywhere else, and wherever gh gave no
+  # answer, a read without any credential is the test: what anyone
+  # can list is public.
+  real=$(resolve_url "$url")
+  slug=$(github_slug "$real")
+  vis=
+  if [ -n "$slug" ] && command -v gh >/dev/null 2>&1 \
+      && gh auth status --hostname github.com >/dev/null 2>&1; then
+    if ! vis=$(gh repo view "$slug" --json visibility --jq .visibility \
+        2>"$ERRF"); then
+      if grep -q 'Could not resolve to a Repository' "$ERRF"; then
+        vis=unseen
+      else
+        vis=
+      fi
+    fi
+  fi
+  anon=$(anon_url "$real")
+  if [ "$vis" = PUBLIC ] || { [ -z "$vis" ] && [ -n "$anon" ] \
+      && readable_anonymously "$anon"; }; then
+    echo "hostwarden-init: $(show "$url") is public: anyone can read it, and the" >&2
+    echo "  workspace holds hostnames, addresses and the layout of your" >&2
+    echo "  network. Make it private or choose another, then run this again." >&2
+    return 1
+  fi
+  if [ "$vis" = INTERNAL ]; then
+    echo "hostwarden: $slug is internal: every member of its GitHub"
+    echo "  enterprise can read it."
+  fi
+
+  if [ -z "$cur" ]; then
+    # Only stdout lists refs: a redirect or a new host key is
+    # reported on stderr, which is kept for the failure message.
+    if refs=$(git ls-remote -- "$url" 2>"$ERRF"); then
+      if [ -n "$refs" ]; then
+        echo "hostwarden-init: $(show "$url") already holds commits. To join the" >&2
+        echo "  workspace in it, use --clone; to publish this one, give an" >&2
+        echo "  empty repository." >&2
+        return 1
+      fi
+    elif [ "$vis" = unseen ] && [ -n "$CREATE" ]; then
+      # gh refuses a name that exists after all, and says so.
+      if ! gh repo create "$slug" --private \
+          --description "Hostwarden workspace" >/dev/null 2>"$ERRF.gh"; then
+        echo "hostwarden-init: gh could not create $slug:" >&2
+        sed 's/^/  /' "$ERRF.gh" >&2
+        echo "  What git said when reading it:" >&2
+        hostwarden_redact < "$ERRF" | sed 's/^/    /' >&2
+        rm -f "$ERRF.gh"
+        return 1
+      fi
+      rm -f "$ERRF.gh"
+      echo "hostwarden: created $slug on GitHub, private"
+    elif [ -n "$vis" ] && [ "$vis" != unseen ]; then
+      echo "hostwarden-init: $slug exists, but git cannot reach it:" >&2
+      hostwarden_redact < "$ERRF" | sed 's/^/  /' >&2
+      return 1
+    else
+      echo "hostwarden-init: $(show "$url") does not exist, or git cannot" >&2
+      echo "  reach it. What git said:" >&2
+      hostwarden_redact < "$ERRF" | sed 's/^/    /' >&2
+      echo "  Where that names the cause — credentials, a host key, the" >&2
+      echo "  network — deal with it; where the repository is missing," >&2
+      echo "  create it private and empty — no README, licence or" >&2
+      echo "  .gitignore. Then run this again:" >&2
+      if [ -n "$slug" ]; then
+        echo "    gh repo create $slug --private" >&2
+        echo "  or https://github.com/new, Visibility: Private." >&2
+      else
+        echo "  in your git host's web interface, visibility private, or on" >&2
+        echo "  a server of your own: git init --bare <path>." >&2
+      fi
+      return 3
+    fi
+    git -C memory remote add origin "$url" || return 1
+  fi
+  sh "$SCRIPT_DIR/hostwarden-sync" commit "Start the shared workspace" \
+    || return 1
+  branch=$(git -C memory symbolic-ref --short HEAD) || return 1
+  if ! git -C memory push --quiet -u origin "$branch" 2>"$ERRF"; then
+    hostwarden_redact < "$ERRF" >&2
+    return 1
+  fi
+  echo "hostwarden: memory/ now syncs with $(show "$url")"
+}
+
+if [ -n "$REMOTE" ]; then
+  ERRF=$(mktemp)
+  rc=0
+  publish "$REMOTE" || rc=$?
+  rm -f "$ERRF"
+  [ "$rc" -eq 0 ] || exit "$rc"
+fi
+
+# Workspace remote: none, under # Preferences in the personal
+# user.md, is the answer that keeps init and the session start
+# from asking again.
+if [ -n "$LOCAL" ]; then
+  if [ -n "$(git -C memory remote)" ]; then
+    echo "hostwarden-init: memory/ already has a remote." >&2
+    exit 1
+  fi
+  U=memory/user.md
+  if grep -q '^Workspace remote:' "$U" 2>/dev/null; then
+    awk '/^Workspace remote:/ { print "Workspace remote: none"; next }
+      { print }' "$U" > "$U.tmp"
+  elif grep -q '^# Preferences[[:space:]]*$' "$U" 2>/dev/null; then
+    awk '{ print }
+      /^# Preferences[[:space:]]*$/ && !d { print ""; print "Workspace remote: none"; d = 1 }' \
+      "$U" > "$U.tmp"
+  else
+    { if [ -s "$U" ]; then cat "$U"; echo; fi
+      printf '# Preferences\n\nWorkspace remote: none\n'; } > "$U.tmp"
+  fi
+  mv "$U.tmp" "$U"
+  echo "hostwarden: the workspace stays on this machine (memory/user.md)"
 fi
