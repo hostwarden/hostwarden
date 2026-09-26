@@ -1,5 +1,5 @@
 # shellcheck shell=sh
-# resolve.sh — a name's IPv4 addresses the way
+# resolve.sh — a name's addresses, IPv4 and IPv6 alike, the way
 # rules/dns-aliases.md → Detection step 1 asks for them, and the
 # access lists read the way rules/access-control.md → Shared File
 # Format writes them, defined once for the scripts that check those
@@ -16,9 +16,13 @@
 #       answers; empty where none does. FreeBSD has a getent without
 #       glibc's ahostsv4 database, so a tool counts only once it has
 #       answered.
-#   hostwarden_resolve4 <name> [<tool>]
-#       prints every IPv4 address <tool>, else HOSTWARDEN_RESOLVER,
-#       gives <name>, one per line; nothing where there is no tool.
+#   hostwarden_resolve <name> [<tool>]
+#       prints every address, IPv4 and IPv6, <tool>, else
+#       HOSTWARDEN_RESOLVER, gives <name>, one per line; nothing
+#       where there is no tool. Does not tell a resolver failure
+#       apart from a genuine empty answer — every caller here
+#       already treats an empty result as caution, never as
+#       proof of absence.
 #   hostwarden_list_entries <file>
 #       prints the entries of an access list, each followed by the
 #       addresses it resolves to, on one line; nothing where the file
@@ -27,16 +31,20 @@
 #       true when one of the space-separated <names> is among the
 #       space-separated <entries>.
 
-hostwarden_resolve4() {
+hostwarden_resolve() {
   case ${2:-${HOSTWARDEN_RESOLVER:-}} in
-    getent) getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }' | sort -u ;;
+    getent) { getent ahostsv4 "$1" 2>/dev/null | awk '{ print $1 }'
+      getent ahostsv6 "$1" 2>/dev/null | awk '{ print $1 }' \
+        | grep -v '^::ffff:'; } | sort -u ;;
     dscacheutil) dscacheutil -q host -a name "$1" 2>/dev/null \
-      | awk '$1 == "ip_address:" { print $2 }' | sort -u ;;
+      | awk '$1 == "ip_address:" || $1 == "ipv6_address:" { print $2 }' \
+      | sort -u ;;
     python3) python3 -c 'import socket, sys
-for a in sorted({i[4][0] for i in socket.getaddrinfo(
-        sys.argv[1], None, socket.AF_INET)}):
+for a in sorted({i[4][0] for i in
+        socket.getaddrinfo(sys.argv[1], None)}):
     print(a)' "$1" 2>/dev/null ;;
-    dig) dig +short +time=2 +tries=1 A "$1" | grep -E '^[0-9.]+$' ;;
+    dig) dig +short +time=2 +tries=1 "$1" A "$1" AAAA 2>/dev/null \
+      | grep -E '^[0-9a-fA-F.:]+$' ;;
   esac
 }
 
@@ -49,7 +57,7 @@ hostwarden_resolver() {
   HOSTWARDEN_RESOLVER=
   for hr_t in $hr_try; do
     command -v "$hr_t" >/dev/null 2>&1 || continue
-    [ -n "$(hostwarden_resolve4 localhost "$hr_t")" ] \
+    [ -n "$(hostwarden_resolve localhost "$hr_t")" ] \
       && { HOSTWARDEN_RESOLVER=$hr_t; return 0; }
   done
   command -v dig >/dev/null 2>&1 && HOSTWARDEN_RESOLVER=dig
@@ -64,7 +72,7 @@ hostwarden_list_entries() {
   sed -e 's/#.*//' -e 's/^[[:space:]]*-[[:space:]]*//' "$1" \
     | while read -r hl_e _ || [ -n "$hl_e" ]; do
         [ -n "$hl_e" ] || continue
-        printf '%s %s ' "$hl_e" "$(hostwarden_resolve4 "$hl_e" | tr '\n' ' ')"
+        printf '%s %s ' "$hl_e" "$(hostwarden_resolve "$hl_e" | tr '\n' ' ')"
       done
 }
 

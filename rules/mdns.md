@@ -126,7 +126,11 @@ sides are unread.
 ## Comparing
 
 Compare the IPv4 addresses as in `rules/dns-aliases.md` →
-Detection step 1.
+Detection step 1. This file's own sources stay IPv4-only
+(`dns-sd -G v4`, `dig ... A`, `resolvectl query -4`),
+unlike Detection step 1's dual-stack collection: a
+`.local` name ssh reaches over an IPv6 address gets no
+mDNS-versus-DNS disambiguation here.
 
 - **Both sources answer and share no address: stop and tell the
   user**, with the name and each source's addresses, and ask

@@ -60,7 +60,11 @@ Before anything else, on the workstation:
   Detection step 1 does. Nothing yet is normal: it is added in The
   Order, step 1, by Hostwarden or the user as Outside decides. An
   address the host has is normal too. Any other address means the
-  name belongs to another machine: stop and tell the user.
+  name belongs to another machine: stop and tell the user. A
+  resolver-unreachable result (`rules/dns-aliases.md` → Detection
+  step 1) is the other machine's case too, not free: stop and tell
+  the user rather than rename onto a name an unreachable resolver
+  only looked free.
 
 ## Where Hostwarden Hands Over
 

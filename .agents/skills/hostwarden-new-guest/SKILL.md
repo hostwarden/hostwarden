@@ -112,24 +112,27 @@ entry means nothing answered.
 The settled name must not already belong to another machine, as
 far as the same direct lookup can tell: resolve it directly, the
 same system-resolver lookup step 6 below uses (`rules/dns-aliases.md`
-→ Detection step 1) — the IPv4 addresses it collects, the limit
-every check built on it carries — never `ssh -G`, which a name
-with no memory and no block yet has nothing of its own to answer
-through. Nothing yet is normal — the record, if any, is what step
-6 below writes once the guest exists — and so is a static guest's
-own settled address already answering there, staged by the user or
-left by an earlier attempt at this same name
-(the Address bullet already expects this: its DNS record is "the
-user's to add, said when the name does not resolve to the address
-yet"). A DHCP guest has no address of its own yet to compare
-against, so any address already returned there is unexpected. Any
-other address means the name belongs to someone else, the way
-`rules/host-rename.md` → The New Name → Where it points treats it
-for an existing host: stop and tell the user rather than go on to
-create a guest under a name another machine already answers to.
-After creation step 2 repeats this same lookup once the guest
-itself exists, as a backstop for a name claimed in the gap between
-this plan and the guest's actual first boot.
+→ Detection step 1) — every address it collects, IPv4 and IPv6
+alike — never `ssh -G`, which a name with no memory and no block
+yet has nothing of its own to answer through. Nothing yet is
+normal — the record, if any, is what step 6 below writes once the
+guest exists — and so is a static guest's own settled address
+already answering there, staged by the user or left by an earlier
+attempt at this same name (the Address bullet already expects
+this: its DNS record is "the user's to add, said when the name
+does not resolve to the address yet"). A DHCP guest has no address
+of its own yet to compare against, so any address already returned
+there is unexpected. Any other address means the name belongs to
+someone else, the way `rules/host-rename.md` → The New Name →
+Where it points treats it for an existing host: stop and tell the
+user rather than go on to create a guest under a name another
+machine already answers to. A resolver-unreachable result
+(`rules/dns-aliases.md` → Detection step 1) gets the same stop:
+tell the user rather than take an unreachable resolver for a free
+name. After creation step 2 repeats this same
+lookup once the guest itself exists, as a backstop for a name
+claimed in the gap between this plan and the guest's actual first
+boot.
 
 Say in one line each what is tight: memory against what running
 guests already hold, free space on the storage, CPUs. Creating the
@@ -211,14 +214,22 @@ guest has no such mechanism, the files are the user's to place
    The request's own check promised: the name could have been
    claimed by something else in the gap since then. An address the
    guest itself already has is normal — DHCP with
-   dynamic DNS registration can beat this step to it. Any other
-   address means the name was claimed in that gap: stop and tell
-   the user as The request's own check would have, rather than let
-   this block silently redirect every session that shares
-   `memory/ssh_hosts` to the new guest instead. This address is
-   Hostwarden's own, never the user's: gate writing it as
-   `rules/ssh-config.md` → A Self-Resolved Address says.
-   `same everywhere` adds a
+   dynamic DNS registration can beat this step to it — and that
+   covers a family step 1 above did not check for, such as a
+   SLAAC address on a dual-stack network: where the manager can
+   enter the guest, read the other family the same way step 1 read
+   the first, `ip -6 addr show scope global` beside its `ip -4`; a
+   DHCP guest under libvirt already has every family
+   `virsh domifaddr <domain> --source agent` reported, not only
+   the one used above. Only an address in neither is claimed in
+   that gap: stop and tell the user as The request's own check
+   would have, rather than let this block silently redirect every
+   session that shares `memory/ssh_hosts` to the new guest instead.
+   A resolver-unreachable result gets the same stop, for the same
+   reason The request's own check does not take one for nothing
+   yet. This address is Hostwarden's own, never the user's: gate
+   writing it as `rules/ssh-config.md` → A Self-Resolved Address
+   says. `same everywhere` adds a
    `Host <settled name>` block to `memory/ssh_hosts` with
    `HostName <that address>` and `HostKeyAlias <settled name>`
    (`rules/ssh-config.md` → Adding a Block, steps 1-3), so every
@@ -302,13 +313,14 @@ guest has no such mechanism, the files are the user's to place
    name at all — the user may already have added it, before or
    during this run. Either way, check whether the settled name
    already resolves to the guest's address and nothing else: the
-   workstation's own system resolver, asked directly —
-   `getent ahostsv4`, `dscacheutil -q host -a name`, or
-   `getaddrinfo`, the lookup `rules/dns-aliases.md` → Detection
-   step 1 makes once it already has a name to resolve, never
-   `ssh -G`, which a block step 2 may still have left would answer
-   with its own override rather than a real lookup. This is not the
-   overlap `rules/dns-aliases.md` → IP Verification accepts, which
+   workstation's own system resolver, asked directly for every
+   address it collects, IPv4 and IPv6 alike — `getent ahostsv4`
+   and `ahostsv6`, `dscacheutil -q host -a name`, or `getaddrinfo`,
+   the lookup `rules/dns-aliases.md` → Detection step 1 makes once
+   it already has a name to resolve, never `ssh -G`, which a block
+   step 2 may still have left would answer with its own override
+   rather than a real lookup. This is not the overlap
+   `rules/dns-aliases.md` → IP Verification accepts, which
    recognizes an already-known multi-homed host rather than
    checking a name against every other address it could still be
    claimed by. A name space that still carries a second, unrelated
@@ -319,14 +331,17 @@ guest has no such mechanism, the files are the user's to place
    that connection would fail host-key verification. Requiring
    every resolved address to be the guest's own, rather than merely
    one of them, closes that gap as far as the same direct lookup
-   reaches — the same limit The request's own check already
-   carries. Where it holds — Writing → Verify confirming it too, where
-   Hostwarden wrote the record — remove step 2's `Host` block from
-   `memory/ssh_hosts` and rerun `bin/hostwarden-ssh-config`, so a
-   later address change is caught again (`rules/dns-aliases.md` →
+   reaches — "the guest's own" meaning both families step 2's own
+   check reads them as, a SLAAC address on a dual-stack network
+   included, not only the one address the bridge targets. Where it
+   holds — Writing → Verify confirming it too,
+   where Hostwarden wrote the record — remove step 2's `Host` block
+   from `memory/ssh_hosts` and rerun `bin/hostwarden-ssh-config`, so
+   a later address change is caught again (`rules/dns-aliases.md` →
    IP Verification) instead of silently masked. Otherwise — nothing
-   resolves yet, or an address besides the guest's own is among the
-   results — leave an item in the guest's `todo.md`
+   resolves yet, a resolver-unreachable result, or an address
+   besides the guest's own is among the results — leave an item in
+   the guest's `todo.md`
    (`rules/machine-memory.md` → Session to-do list) to repeat that
    same direct resolver check later, and, only where step 2 wrote a
    block, remove it once the check passes.

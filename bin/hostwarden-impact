@@ -270,7 +270,7 @@ names_of() {
   printf '%s %s ' "$1" "$2"
   awk -F "$TAB" -v h="$1" '($1 == "K" || $1 == "A") && $2 == h { printf "%s ", $3 }
     $1 == "N" && $3 == h { printf "%s ", $2 }' "$IDX"
-  hostwarden_resolve4 "$2" | tr '\n' ' '
+  hostwarden_resolve "$2" | tr '\n' ' '
 }
 
 # hop_names <host> — each hop on the host's way in, what it resolves
@@ -280,7 +280,7 @@ hop_names() {
   for hop in $(awk -F "$TAB" -v h="$1" '$1 == "J" && $2 == h { print $3 }' "$IDX"); do
     memo="$TW/hop.$(printf '%s' "$hop" | cksum | cut -d' ' -f1)"
     [ -f "$memo" ] || printf '%s %s %s ' "$hop" \
-      "$(hostwarden_resolve4 "$hop" | tr '\n' ' ')" \
+      "$(hostwarden_resolve "$hop" | tr '\n' ' ')" \
       "$(awk -F "$TAB" -v k="$hop" '$1 == "K" && $3 == k { h[$2] = 1 }
         $1 == "N" { n[$3] = n[$3] " " $2 }
         END { for (x in h) printf "%s ", n[x] }' "$IDX")" >"$memo"
