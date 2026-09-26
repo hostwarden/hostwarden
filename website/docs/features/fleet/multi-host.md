@@ -29,9 +29,17 @@ the results rather than dumping them one after another:
   runs the full first-connection pipeline — blacklist, read-only
   list, host key, activity check — and returns a short answer; a
   local target skips those remote-only steps.
-- **Claude Code parallelizes it.** There each host gets its own
-  subagent; elsewhere the hosts run one after another in the
-  session.
+- **Most of it runs from the session itself.** A question runs on
+  all hosts at once, one call per round, and the next round can
+  build on what the last one returned. Housekeeping or a security
+  audit on up to four hosts, and a change of a few steps on a few
+  hosts, run there too: starting subagents would take longer.
+- **Subagents take the large work.** In Claude Code, housekeeping
+  or a security audit on more than four hosts runs in subagents of
+  four hosts each, and a larger change in one subagent per host;
+  elsewhere the session runs it too. `Multi-host: agents` under
+  `# Preferences` in `memory/user.md` sends every task to
+  subagents, for someone who keeps one long conversation.
 - **Identical answers print once.** Hostwarden prints identical
   answers once, with the hosts that gave them, so twenty hosts
   that agree take one line and the outlier stands out.

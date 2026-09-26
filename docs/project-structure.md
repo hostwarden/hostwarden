@@ -133,10 +133,9 @@ contrib/
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   agents/              — Subagent definitions
-    hostwarden-host-probe.md — Probes one host for the fleet
-                         audit and returns one row
-    hostwarden-host-task.md — Runs one task on one host when a
-                         request spans several
+    hostwarden-host-task.md — Runs a skill on a group of hosts,
+                         or a change on one, when a request spans
+                         several
     hostwarden-reviewer.md — Reviews a change to Hostwarden
                          for defects before a second reviewer does
     hostwarden-reviewer/classes.md — The reviewer's questions

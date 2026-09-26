@@ -19,8 +19,10 @@ echo "###meshvpn###"; <mesh VPN probe>
 EOS
 ```
 
-Then split the output on `###<key>###` markers to fill the
-comparison table. The accounts probe (section 9) is the one
+The heredoc shows the bundle's content; in the audit it reaches
+`sh -s` as `rules/multi-host.md` → Rounds of one call says, every
+host at once. Then split the output on `###<key>###` markers to
+fill the comparison table. The accounts probe (section 9) is the one
 exception: it runs in a second call of its own. The DNS probe
 (section 10) runs only on the hosts that section names, under a
 `###dns###` marker. The Naming row

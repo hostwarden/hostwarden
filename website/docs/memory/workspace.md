@@ -63,7 +63,10 @@ typically well under a megabyte, so a backup is one `tar` command
 - **`user.md`** — SSH usernames, the SSH ports you use instead of 22
   (`Alternative SSH ports:`), your language, your handle
   (`Operator:`), your full name for email signatures
-  (`Operator name:`), and `Coordinator: off` where you turned it off.
+  (`Operator name:`), `Coordinator: off` where you turned it off, and
+  `Multi-host: agents` where you want work on several hosts in
+  subagents
+  ([One task on many hosts](../features/fleet/multi-host.md)).
 - **`blacklist.md`, `readonly.md`** — the access lists
   ([Access control](../safety/access.md)).
 - **`operators.md`** — the handles in use, and which are inactive or

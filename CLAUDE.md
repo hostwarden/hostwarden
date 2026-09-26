@@ -88,12 +88,12 @@ tool reads. This file adds only what exists here and nowhere else.
 - **Skills are slash commands.** Every workflow is invocable
   directly: `/hostwarden-housekeeping`, `/hostwarden-security`,
   `/hostwarden-os-install`, and so on.
-- **Work on several hosts fans out.** `.claude/agents/` holds
-  `hostwarden-host-probe`, which the fleet-audit skill gives each
-  host, and `hostwarden-host-task`, which `rules/multi-host.md` gives
-  each host of any other task, so raw output stays out of this
-  conversation. Elsewhere the same work runs one host after
-  another.
+- **Work on several hosts fans out.** A read, the fleet audit
+  included, runs here, every host in one Bash call per round.
+  `.claude/agents/hostwarden-host-task` takes a skill on more than
+  four hosts, in groups of four, and a change too large to run here,
+  one host each (`rules/multi-host.md` → Dispatch). Elsewhere that
+  work runs here.
 - **Conventions for editing this repository** load from
   `.claude/rules/` when the matching files are read. They are about
   Hostwarden's own source, never about a managed host.

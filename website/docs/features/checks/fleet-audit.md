@@ -33,9 +33,9 @@ coverage.
 
 ## How it runs
 
-In Claude Code each host gets its own subagent and returns one
-comparison row, which keeps the raw output out of the
-conversation; elsewhere it probes one host after another. Each
+The session probes every host at once, one call per round, and
+builds the comparison from what they print; no subagent starts for
+it. Each
 guest stands right after the hypervisor its `Runs on:` line names,
 whether it has SSH of its own or is reached through that
 hypervisor; a VM in the cloud or on a host Hostwarden does not
