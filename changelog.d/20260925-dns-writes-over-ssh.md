@@ -10,7 +10,8 @@
   written one member at a time, and a hidden primary's secondaries
   are checked for a lagging serial afterward. Every write is backed
   up first and verified through the resolvers clients actually use,
-  not only the authoritative server. A new guest and a host rename
-  now write their DNS record set where a name space allows it. A
+  not only the authoritative server, and a lookup that failed there
+  is reported as a failure, never as a record removed. A new guest and a host
+  rename now write their DNS record set where a name space allows it. A
   zone managed as code, a DS at the registrar, and a DNSSEC key stay
   the user's to change.

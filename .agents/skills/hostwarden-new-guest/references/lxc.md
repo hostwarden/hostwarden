@@ -91,15 +91,19 @@ The wait is the last command, so its exit status is the call's:
 0 done, 2 recovered errors, 1 failed, 124 out of time, each judged
 as `SKILL.md` → After creation says before anything else happens.
 
-The host key and the limits the host enforces are read in a call
-of their own, because a line that removes a file and a line that
-names a key path deny each other when the guard reads them
-together (`AGENTS.md` → Critical Safety Rules):
+The host key, the limits the host enforces and, for a DHCP guest,
+its address are read in a call of their own, because a line that
+removes a file and a line that names a key path deny each other
+when the guard reads them together (`AGENTS.md` → Critical Safety
+Rules):
 
 ```bash
 lxc-attach -n web4 -- cat /etc/ssh/ssh_host_ed25519_key.pub
 lxc-info -n web4 -c lxc.cgroup2.memory.max
+lxc-attach -n web4 -- ip -4 addr show scope global
 ```
+
+The last line only where the address is DHCP.
 
 A container whose `cloud-init status` never leaves `not run` has
 the units disabled rather than only the marker file: read
@@ -148,7 +152,9 @@ them.
 ## After creation
 
 `SKILL.md` → After creation from step 2, with `lxc-attach` in
-place of `pct exec`. The guest's memory records
+place of `pct exec`: the address step 2 takes for a DHCP guest is
+the one the call above read, and the other family it reads goes
+through `lxc-attach` too. The guest's memory records
 `- Origin: LXC download image (<distribution> <release> cloud)`
 beside the baseline line, and `rules/system-containers.md` covers
 the container as a target from then on.

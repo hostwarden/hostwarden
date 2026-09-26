@@ -122,7 +122,16 @@ shared; solo has no other workstation to misdirect). As
 *"Is `<address>` reachable the same way from every workstation
 that shares this workspace, or only from this one?"*
 
-1. `same everywhere` — go on with Adding a Block as written.
+1. `same everywhere` — go on with Adding a Block as written. Where
+   `memory/ssh_hosts` already has a block for the name, the new
+   one goes above it as a block of its own, never merged into it:
+   ssh takes each keyword's first value, so the new `HostName` and
+   `HostKeyAlias` win while that block's `Port` and `ProxyJump`
+   still apply, and removing the new block later leaves the other
+   as it was. One that already sets a `HostName` to another
+   address, or a `HostKeyAlias` to another name, which returns
+   once the new block is removed, is a conflict: ask before
+   writing.
 2. `only this workstation` — skip the shared write; the address
    belongs in the user's own `~/.ssh/config` (The Files) if they
    want it there, since Hostwarden never writes that file.
