@@ -5,7 +5,8 @@ read-only. Group them into a single SSH invocation per host
 to minimise round-trips:
 
 ```bash
-ssh <standard options from AGENTS.md → SSH Options> USER@HOST '
+ssh <standard options from AGENTS.md → SSH Options> USER@HOST 'sh -s' <<'EOS'
+export LC_ALL=C
 <privilege prefix>
 echo "###ua###"; <ua probe>
 echo "###sshd###"; <sshd probe>
@@ -15,7 +16,7 @@ echo "###net###"; <network probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
 echo "###meshvpn###"; <mesh VPN probe>
-'
+EOS
 ```
 
 Then split the output on `###<key>###` markers to fill the

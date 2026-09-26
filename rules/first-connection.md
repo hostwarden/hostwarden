@@ -152,12 +152,14 @@ guest, bundled into one call per step
 
 ```bash
 ssh … root@pve1.example.com 'pct exec 105 -- sh -s' <<'EOS'
+export LC_ALL=C
 …
 EOS
 ```
 
 The heredoc needs stdin; for `qm guest exec`, bundle
-into one `sh -c '…'` argument instead.
+into one `sh -c 'export LC_ALL=C; …'` argument
+instead.
 
 ## Why it's mandatory
 

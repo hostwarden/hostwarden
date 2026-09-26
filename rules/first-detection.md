@@ -28,8 +28,8 @@ What counts as a first connection:
    ssh … <host> 'uname -s; ps -o comm= -p $$; uname -m;' \
      'echo @release; freebsd-version;' \
      'grep -E "^(ID|ID_LIKE|VARIANT_ID|VERSION_ID|PRETTY_NAME|OS_VERSION|OS_IS_BETA)=" /etc/os-release;' \
-     'sw_vers -productVersion; echo @hardware; df -h /;' \
-     'nproc; grep -c "^processor" /proc/cpuinfo; free -h;' \
+     'sw_vers -productVersion; echo @hardware; env LC_ALL=C df -h /;' \
+     'nproc; grep -c "^processor" /proc/cpuinfo; env LC_ALL=C free -h;' \
      'grep -m1 "model name" /proc/cpuinfo;' \
      'sysctl hw.model hw.ncpu hw.physmem;' \
      'sysctl hw.memsize; echo @appliance;' \
@@ -96,8 +96,11 @@ What counts as a first connection:
 
    Hardware comes from the lines after `@hardware`:
    the CPU count, the CPU model and `free` on Linux,
-   `sysctl` elsewhere. The CPU count is `nproc`'s, the
-   first number, which honours a container's CPU limit;
+   `sysctl` elsewhere. `df` and `free` run under
+   `env LC_ALL=C` (`rules/locale.md`): the login shell
+   may be csh, which takes no `VAR=value` prefix. The
+   CPU count is `nproc`'s, the first number, which
+   honours a container's CPU limit;
    the `processor` count after it stands in only where
    `nproc` is missing (OpenWrt). Record
    `Arch: <architecture>, <maker>` — `Arch: x86_64,

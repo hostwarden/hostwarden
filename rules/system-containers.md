@@ -30,7 +30,10 @@ their own:
   the build container of a baseline template, which never becomes
   a server (`hostwarden-new-guest`).
 
-Through the host's manager, as root inside:
+Through the host's manager, as root inside. Treat each as a new
+environment, where the command inside sets the locale again: the
+bundle it reads opens with `export LC_ALL=C`, or a single command
+takes `env LC_ALL=C` in front (`rules/locale.md`).
 
 - **Incus:** `incus list --all-projects`,
   `incus exec <ct> -- <cmd>`
@@ -55,9 +58,9 @@ Through the host's manager, as root inside:
   failed command passes for an answer:
 
   ```bash
-  qm guest exec 105 -- sh -c '…' \
+  qm guest exec 105 -- sh -c 'export LC_ALL=C; …' \
     | jq -e '.exitcode == 0' >/dev/null && \
-  qm guest exec 105 -- sh -c '…' | jq -r '."out-data"'
+  qm guest exec 105 -- sh -c 'export LC_ALL=C; …' | jq -r '."out-data"'
   ```
 
   Where a single call has to do, keep the two apart in it: run the

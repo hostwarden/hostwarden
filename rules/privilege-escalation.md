@@ -38,8 +38,8 @@ next command starts. A path after `=`, as in
 keeps each rule on one line: sudo wraps its listing
 at 80 columns, even inside a command, unless it
 writes into a pipe.
-`LC_ALL=C` keeps sudo's messages in English, as
-quoted below.
+`LC_ALL=C` (`rules/locale.md`) keeps sudo's messages
+in English, as quoted below.
 
 Where the loaded OS file's `## Privileges` section
 names a stand-in (below), its probe line goes into the

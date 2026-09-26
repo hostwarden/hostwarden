@@ -18,10 +18,12 @@ logins instead; see section 3.
 One call per logical step, not one per command:
 
     ssh … host 'sh -s' <<'EOS'
+    export LC_ALL=C
     cmd1
     cmd2
     EOS
 
+Its first line sets the locale (`rules/locale.md`).
 Where the loaded OS file names its own bundle — Windows,
 `rules/os/windows.md` → Reaching PowerShell — use that.
 

@@ -21,6 +21,7 @@ that also holds an interpreter, such as the `awk` of the other
 audit probes. It uses none itself. Linux and FreeBSD:
 
 ```bash
+export LC_ALL=C
 PATH="$PATH:/usr/local/sbin:/usr/sbin:/sbin"
 echo "@nss"
 NS=
