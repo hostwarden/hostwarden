@@ -489,4 +489,9 @@ reboot "a heredoc body behind a cat elsewhere on the line still runs" \
 reboot "a heredoc body cat writes is still read without the switch" \
   "$(printf 'ssh host sh -s <<EOF\ncat > /tmp/x <<EOS\nreboot\nEOS\nEOF')" yes
 
+
+# A command over several lines, and a pipe into the far shell.
+# shellcheck source=coord-lib/pipes.sh
+. "$REPO/tests/lib/coord-lib/pipes.sh"
+
 finish coord-lib
