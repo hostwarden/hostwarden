@@ -13,7 +13,7 @@ to route around.
 ## Find the operations checkout
 
 - **For a lab VM**, it is the test clone the VM was created for,
-  which `bin/hostwarden-lab list` names — never the main checkout.
+  which `scripts/lab.sh list` names — never the main checkout.
   A lab container needs no handoff: the session uses it directly.
 - **In a linked worktree**, it is the main checkout, if that is an
   operations install: the refusal and the session-start message

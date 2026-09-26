@@ -63,7 +63,7 @@ two skills collide, because each has its own directory.
 The only way two things can want the same name is a rule
 file and a skill called the same — `rules/os/` and a
 skill named `os` included.
-`.claude/hooks/instructions-test.sh` guards exactly that.
+`tests/instructions.sh` guards exactly that.
 
 A user who wants to know what can be overridden lists the
 shipped tree:

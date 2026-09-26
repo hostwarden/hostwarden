@@ -1,10 +1,10 @@
 # shellcheck shell=sh
-# corpus.sh — the instruction corpus, defined once.
+# tests/corpus.sh — the instruction corpus, defined once.
 #
 # Sourced, never executed, so it carries no shebang and tells
 # ShellCheck its dialect with the directive above instead.
 #
-# Sourced by guard-taboos-test.sh and instructions-test.sh.
+# Sourced by tests/hooks/guard-taboos.sh and tests/instructions.sh.
 # Both walk the same tree for different reasons: one runs every
 # fenced command block through the taboo guard, the other checks
 # structure and example identifiers. Two lists drifted apart the
@@ -46,7 +46,7 @@ corpus_files() {
   # rule out — so say so and return nothing rather than pretend.
   if ! git -C "$CORPUS_ROOT" rev-parse --git-dir >/dev/null 2>&1
   then
-    echo "corpus.sh: $CORPUS_ROOT is not a git checkout," \
+    echo "tests/corpus.sh: $CORPUS_ROOT is not a git checkout," \
       "so the instruction corpus cannot be listed" >&2
     return 1
   fi

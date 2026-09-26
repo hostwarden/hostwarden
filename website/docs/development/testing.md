@@ -29,16 +29,16 @@ next push, and `bin/hostwarden-update --unpin` makes it follow
 
 Trying a command needs no server at all when a container answers it:
 whether a flag exists in this release, what a package is called,
-what a config test prints. `bin/hostwarden-lab` runs one per family —
+what a config test prints. `scripts/lab.sh` runs one per family —
 debian, ubuntu, rhel (AlmaLinux), fedora, suse (openSUSE Leap),
 alpine — from the official image of the current stable release, with
 docker or podman (OrbStack brings docker on macOS;
 `HOSTWARDEN_LAB_ENGINE` picks one where both are installed):
 
 ```
-bin/hostwarden-lab exec debian -- apt-get -s install nginx
-bin/hostwarden-lab list
-bin/hostwarden-lab down
+scripts/lab.sh exec debian -- apt-get -s install nginx
+scripts/lab.sh list
+scripts/lab.sh down
 ```
 
 A lab container is neither a server nor local mode, so a development
@@ -56,8 +56,8 @@ The mode guard decides what a development session may do to the
 local container engine:
 
 - **Allowed:** reading, pulling, building, running and creating on
-  the local engine; `bin/hostwarden-lab exec` and
-  `bin/hostwarden-lab down`, which touch the lab's own containers only.
+  the local engine; `scripts/lab.sh exec` and
+  `scripts/lab.sh down`, which touch the lab's own containers only.
 - **Denied:** a run that asks for host access or publishes a port; a
   build that writes its result to this machine; another engine by
   `--context`, `--host` or `DOCKER_HOST`; `exec`, and every command
@@ -74,7 +74,7 @@ for FreeBSD or macOS. For the Linux cases, a **lab VM** is a test
 server of the test clone above:
 
 ```
-bin/hostwarden-lab vm up debian --ops ~/hostwarden-test
+scripts/lab.sh vm up debian --ops ~/hostwarden-test
 ```
 
 It uses OrbStack or Lima, whichever is installed, and refuses a
@@ -91,6 +91,6 @@ The development session never uses the VM — the mode guard denies
 question to a session in the test clone instead (see
 [Asking an operations session](index.md#asking-an-operations-session)).
 The guard also denies creating, starting, stopping, deleting or
-changing a VM directly: `bin/hostwarden-lab vm up` creates and starts
-one without your home mounted, and `bin/hostwarden-lab vm down`
+changing a VM directly: `scripts/lab.sh vm up` creates and starts
+one without your home mounted, and `scripts/lab.sh vm down`
 deletes the VMs that worktree created, and no other.

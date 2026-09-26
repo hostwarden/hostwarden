@@ -28,8 +28,8 @@ INPUT=$(cat)
 # jq or python3 is on it; a hook whose whole job is to speak up must
 # not fall silent where they are missing. A path carrying an escape
 # is one no case below matches anyway.
-# shellcheck source=json.sh
-. "$ROOT/.claude/hooks/json.sh"
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
 
 FILE=$(hook_field file_path '[^"]')
 [ -n "$FILE" ] || exit 0

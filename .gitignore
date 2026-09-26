@@ -21,7 +21,7 @@ HISTORY.md
 # there — settings.local.json, worktrees, locks, scheduled tasks, a
 # subagent's local memory — and a new one must not reach this public
 # repo before anyone notices. The reverse mistake, a new shared file
-# ignored, is loud: `git add` refuses it, and instructions-test.sh
+# ignored, is loud: `git add` refuses it, and tests/instructions.sh
 # fails when a tracked file matches these rules.
 #
 # settings.local.json above all: Claude Code appends an allow rule

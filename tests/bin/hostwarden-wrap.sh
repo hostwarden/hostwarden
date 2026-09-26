@@ -1,24 +1,21 @@
 #!/bin/sh
-# wrap-test.sh — fixture matrix for bin/hostwarden-wrap, the hook
-# that runs it, .claude/hooks/wrap-markdown.sh, and the rewrap in
-# bin/hostwarden-sync commit. CI runs it
-# through scripts/check.sh; an agent session leaves it to CI
-# (.claude/rules/pull-requests.md → Checks).
+# tests/bin/hostwarden-wrap.sh — fixture matrix for
+# bin/hostwarden-wrap, the hook that runs it,
+# .claude/hooks/wrap-markdown.sh, and the rewrap in
+# bin/hostwarden-sync commit. CI runs it through scripts/check.sh;
+# an agent session leaves it to CI (.claude/rules/pull-requests.md →
+# Checks).
 #
 # The reflow runs under every awk this machine has of the four it
 # has to work with — BWK awk, gawk, mawk and busybox — each put
 # first on PATH in turn, since the script calls awk by name.
 
-cd "$(dirname "$0")/.." || exit 2
+cd "$(dirname "$0")/../.." || exit 2
 ROOT=$(pwd -P)
 WRAP="$ROOT/bin/hostwarden-wrap"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-wrap-test.XXXXXX") || exit 2
-trap 'rm -rf "$TMP"' EXIT INT TERM
-
-ok()  { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+# shellcheck source=../helpers.sh
+. "$ROOT/tests/helpers.sh"
+test_tmp wrap
 
 # fixture <name> [<exit code>] -- stdin holds the input, a line
 # `=== want`, and the output wanted; without that line, the input
@@ -436,8 +433,8 @@ out=$(sh "$WRAP" "$R/same.md")
 checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/rules"
-  cp .claude/hooks/wrap-markdown.sh .claude/hooks/json.sh \
-    .claude/hooks/mode.sh "$c/.claude/hooks/"
+  cp .claude/hooks/wrap-markdown.sh "$c/.claude/hooks/"
+  cp lib/json.sh lib/mode.sh "$c/lib/"
   cp bin/hostwarden-wrap "$c/bin/"
   cp lib/markdown-blocks.awk "$c/lib/"
   printf '/memory/\n' > "$c/.gitignore"
@@ -535,5 +532,4 @@ got=$(git -C "$OPS/memory" show HEAD:machines/web2.example.com.md 2>/dev/null)
 [ -z "$(git -C "$OPS/memory" status --porcelain -- machines/web2.example.com.md)" ] \
   && ok || bad "hostwarden-sync commit left a change behind"
 
-echo "wrap tests: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish "wrap tests"

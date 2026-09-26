@@ -14,8 +14,8 @@
 # $GIT_SSH_COMMAND form; beyond that, the prose rule in AGENTS.md
 # is the whole protection.
 
-# shellcheck source=mode.sh
-. "${0%/*}/mode.sh"
+# shellcheck source=../../lib/mode.sh
+. "${0%/*}/../../lib/mode.sh"
 hostwarden_path_without_shim
 PATH=$HOSTWARDEN_PATH
 export PATH

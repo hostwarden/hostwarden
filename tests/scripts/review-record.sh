@@ -1,15 +1,14 @@
 #!/bin/sh
-# review-record-test.sh — fixture matrix for review-record.sh and
-# review-tier.sh. CI
-# runs it through scripts/check.sh; an agent session leaves it to
-# CI (.claude/rules/pull-requests.md → Checks).
+# tests/scripts/review-record.sh — fixture matrix for
+# scripts/review-record.sh and scripts/review-tier.sh. CI runs it
+# through scripts/check.sh; an agent session leaves it to CI
+# (.claude/rules/pull-requests.md → Checks).
+#
+# Runs from scripts/, where the two scripts it checks live.
 
-cd "$(dirname "$0")" || exit 2
-PASS=0
-FAIL=0
-
-ok()   { PASS=$((PASS + 1)); }
-bad()  { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+cd "$(dirname "$0")/../../scripts" || exit 2
+# shellcheck source=../helpers.sh
+. ../tests/helpers.sh
 
 A=1111111111111111111111111111111111111111
 B=2222222222222222222222222222222222222222
@@ -725,5 +724,4 @@ EOF
 BASE=${A%?}
 expect 2 "$A" "a short merge base" </dev/null
 
-echo "review record tests: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish "review record tests"

@@ -107,13 +107,13 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 
 - Before each commit, a pull request session runs the cheap
   checks, which take seconds: `sh scripts/check.sh --pre-commit`,
-  the secret scan of the staged changes and `instructions-test.sh`
+  the secret scan of the staged changes and `tests/instructions.sh`
   on exactly what is staged. A credential caught there never
   reaches the remote; a line over 80 columns, a pointer at a
   heading that is not there or a second word for an override fails
   there, not in CI.
 - Beyond that, it runs neither `scripts/check.sh` nor a test script
-  (`guard-taboos-test.sh`, `instructions-test.sh` on its own, …) on
+  (`tests/hooks/guard-taboos.sh`, `tests/instructions.sh` on its own, …) on
   the workstation. It pushes, waits with
   `gh pr checks <number> -R hostwarden/hostwarden --watch`, and on
   a failure reads
@@ -174,7 +174,7 @@ Its tier follows from the files the branch changes, both names of
 a renamed one included, and from nothing else.
 `sh scripts/review-tier.sh hostwarden/<base>...HEAD` prints it, and
 the files that made it full. Its `LIGHT` is the list below, and
-`review-record-test.sh` fails when the two differ.
+`tests/scripts/review-record.sh` fails when the two differ.
 
 - **Light** when every one of them is in `docs/`, `README.md`,
   `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `changelog.d/`

@@ -21,7 +21,9 @@ AGENTS.md              — The instruction set, read by every
                          AGENTS-aware tool
 CLAUDE.md              — Imports AGENTS.md, plus the handful of
                          things only Claude Code has
-bin/
+bin/                   — Commands an operator runs, or the
+                         instructions run for them; shipped,
+                         no extension, a stable interface
   hostwarden-update       — Update, pin, or check hostwarden version
   hostwarden-backup       — Back up / restore your memory/ tree
   hostwarden-init         — Set up (or join) the workspace
@@ -41,45 +43,69 @@ bin/
                          date (called automatically on update)
   hostwarden-doctor       — Check the workstation for the tools
                          Hostwarden runs locally
-  hostwarden-lab          — Disposable containers to try commands
-                         on during development, and lab VMs
-                         for a test clone
   hostwarden-wrap         — Rewrap Markdown at 80 characters, or
                          list the lines over it
-lib/
+lib/                   — Code bin/ and the hooks share; sourced,
+                         never run, shipped
+  mode.sh              — Development or operations, defined
+                         once for the hooks and bin/
+  json.sh              — The hook input read as text, and a
+                         deny or ask written, defined once
+                         for the hooks
+  hops.sh              — The jump hosts in front of a host,
+                         read from ssh -G
+  resolve.sh           — A name's IPv4 addresses for the
+                         access-list checks
+  follow.sh            — The release line a checkout follows,
+                         for bin/hostwarden-update and
+                         check-updates.sh
+  coord-lib.sh         — What presence.sh, impact.sh and
+                         bin/hostwarden-impact share
+  coord-tokenize.sh    — The awk tokenizer coord-lib.sh reads
+                         a command line with
   markdown-blocks.awk  — Markdown's blocks as CommonMark reads
                          them, for hostwarden-wrap and
                          review-record.sh
-scripts/
+scripts/               — Tools for developing Hostwarden itself;
+                         never needed to run it
   changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
                          at a release; checks its form in CI
-  changelog-release-test.sh — Fixture matrix for
-                         changelog-release.sh (run by
-                         scripts/check.sh)
   check.sh             — Everything CI checks, runnable locally
   codex-quota.sh       — What is left of the Codex usage limit,
                          read without spending any
   decisions.py         — Writes and checks docs/adr/'s index
                          (run by scripts/check.sh)
+  lab.sh               — Disposable containers to try commands
+                         on during development, and lab VMs
+                         for a test clone
   review-record.sh     — Whether a pull request body records
                          the second review of its head, and
                          the own review's tier
-  review-record-test.sh — Its fixture matrix and
-                         review-tier.sh's (run by
-                         scripts/check.sh)
   review-tier.sh       — Whether a change is light or full for
                          the reviews, from the files it touches
-  fleet-read-test.sh   — Fixture matrix for the fleet-read
-                         wrapper (run by scripts/check.sh)
-  fleet-run-test.sh    — Fixture matrix for
-                         bin/hostwarden-fleet-run (run by
-                         scripts/check.sh)
-  wrap-test.sh         — Fixture matrix for bin/hostwarden-wrap
-                         and its hook, under every awk there is
-                         (run by scripts/check.sh)
-  impact-test.sh       — Fixture matrix for
-                         bin/hostwarden-impact (run by
-                         scripts/check.sh)
+tests/                 — Every fixture matrix, laid out like the
+                         tree it checks; run by scripts/check.sh
+  helpers.sh           — The counters and the closing line
+                         every matrix shares
+  corpus.sh            — The instruction corpus the guard
+                         matrix and the layout checks walk
+  instructions.sh      — Structural checks on the instruction
+                         layer; its parts in instructions/
+  hooks/
+    guard-taboos.sh    — The taboo guard's matrix; its fixtures
+                         in guard-taboos/, one file per effect
+    guard-mode.sh      — The mode guard, mode.sh, session-mode.sh
+                         and scripts/lab.sh
+    coordination.sh    — presence.sh, impact.sh and
+                         hostwarden-impact's announce and wait
+  bin/                 — hostwarden-impact, -fleet-run, -map,
+                         -update (with the mirror and
+                         check-updates.sh) and -wrap (with its
+                         hook, under every awk there is)
+  lib/coord-lib.sh     — The tokenizer, called directly
+  scripts/             — changelog-release.sh, review-record.sh
+                         and review-tier.sh
+  templates/fleet-read.sh — The fleet-read wrapper
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
 mise.dev.toml          — Pinned versions of the tools check.sh
@@ -101,39 +127,22 @@ contrib/
                          for defects before a second reviewer does
   rules/               — Conventions for working on this repo,
                          loaded only when those files are read
-  hooks/
+  hooks/               — Hook entry points only, each registered
+                         in settings.json or called by one
     check-updates.sh   — Auto-check for repo updates and
                          auto-migrate on session start
-    follow.sh          — The release line a checkout follows,
-                         shared with bin/hostwarden-update
-    release-test.sh    — Dev-only fixture matrix for mirror,
-                         update and release lines (run by
-                         scripts/check.sh)
     guard-taboos.sh    — PreToolUse hook that blocks taboo
                          commands, and edits of SSH keys and
                          sshd_config, in every permission mode
-    guard-taboos-test.sh — Dev-only fixture matrix for the
-                         guard (run by scripts/check.sh)
+    guard-taboos.d/    — Its rules, one file per effect, sourced
+                         in the order guard-taboos.sh lists
     guard-settings.sh  — PreToolUse hook that keeps the
                          guard's off switch out of settings
                          files and its session records
-    mode.sh            — Development or operations, defined
-                         once for the hooks and bin/
-    hops.sh            — The jump hosts in front of a host,
-                         read from ssh -G, defined once for
-                         bin/
-    resolve.sh         — A name's IPv4 addresses for the
-                         access-list checks, defined once for
-                         bin/
-    json.sh            — The hook input read as text, and a
-                         deny or ask written, defined once
-                         for the hooks
     guard-mode.sh      — PreToolUse hook that holds a session
                          to its mode: no server from
                          development, no edit to shipped files
                          in operations
-    guard-mode-test.sh — Dev-only fixture matrix for the mode
-                         guard (run by scripts/check.sh)
     session-mode.sh    — SessionStart hook that announces the
                          mode, a linked worktree included, and
                          puts the shim on PATH in development
@@ -150,16 +159,18 @@ contrib/
     check-session.sh   — SessionStart hook that records and
                          reports a guard that is off, and
                          starts the coordinator in operations
+    presence.sh        — Pre- and PostToolUse hook that keeps
+                         the presence map in operations
+    impact.sh          — PreToolUse hook that denies a
+                         disruptive command aimed at a host
+                         another session works on until it is
+                         announced, in operations
     authoring-conventions.sh — PostToolUse hook that names the
                          authoring rules when an instruction
                          file or a bin/ script is edited
     wrap-markdown.sh   — PostToolUse hook that rewraps at 80
                          the .md a tool wrote, or git sees
                          changed after a command
-    corpus.sh          — The instruction corpus the two test
-                         matrices walk, defined once
-    instructions-test.sh — Dev-only structural checks on the
-                         instruction layer (run by scripts/check.sh)
   skills/              — Symlink to .agents/skills/, because
                          Claude Code searches only .claude/
 .agents/               — Cross-tool agent assets

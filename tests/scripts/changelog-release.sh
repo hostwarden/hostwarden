@@ -1,5 +1,5 @@
 #!/bin/sh
-# changelog-release-test.sh — dev-only fixture matrix for
+# tests/scripts/changelog-release.sh — dev-only fixture matrix for
 # scripts/changelog-release.sh, which checks the changelog
 # fragments and folds them into CHANGELOG.md at a release. CI runs
 # it through scripts/check.sh; an agent session leaves it to CI
@@ -7,14 +7,10 @@
 #
 # Everything runs in a throwaway repository under a temp directory.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-changelog-test.XXXXXX")
-trap 'rm -rf "$TMP"' EXIT INT TERM
-
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
+test_tmp changelog
 
 export GIT_AUTHOR_NAME=alice GIT_AUTHOR_EMAIL=alice@example.com
 export GIT_COMMITTER_NAME=alice GIT_COMMITTER_EMAIL=alice@example.com
@@ -133,5 +129,4 @@ printf '### Fixed\n\n- **After.** c.\n' > "$C/changelog.d/f.md"
 fold --check >/dev/null && ok || bad "--check failed after the tag"
 fold >/dev/null && bad "a fold wrote into a tagged release"
 
-echo "changelog: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish changelog

@@ -48,8 +48,8 @@ set -u
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$REPO_DIR" || exit 1
-# shellcheck source=../.claude/hooks/mode.sh
-. .claude/hooks/mode.sh
+# shellcheck source=../lib/mode.sh
+. lib/mode.sh
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
@@ -92,7 +92,7 @@ mkdir -p "$MAPS/sites" "$MAPS/clusters" "$MAPS/hosts" || die "cannot write $MAPS
 # Every stroke reaches 3:1 against both GitHub canvases (light
 # #ffffff, dark #0d1117): one neutral ink, #8a8a8a, computed to
 # 3.45:1 against white and 5.48:1 against #0d1117 — verified by
-# scripts/hostwarden-map-test.sh, not eyeballed. A finding's accent,
+# tests/bin/hostwarden-map.sh, not eyeballed. A finding's accent,
 # #93691f, is a second colour in the same qualifying band (4.91:1 and
 # 3.86:1) chosen apart from Hostwarden's Signal, which the brand
 # reserves for the logo's LED alone (hostwarden/brand; its README

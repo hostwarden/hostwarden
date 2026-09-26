@@ -20,8 +20,8 @@
 # shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
 case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
-# shellcheck source=json.sh
-. "$HERE/json.sh"
+# shellcheck source=../../lib/json.sh
+. "$HERE/../../lib/json.sh"
 
 CACHE="$HOME/.cache/hostwarden"
 SID=$(hook_session_id)
@@ -65,8 +65,8 @@ case "$(hook_field source '[A-Za-z0-9_-]')" in startup | resume | "") ;; *) exit
 # cd && pwd, no -P: the same string presence.sh and
 # bin/hostwarden-impact hash for the cache directory.
 ROOT=$(cd "$HERE/../.." 2>/dev/null && pwd) || exit 0
-# shellcheck source=mode.sh
-. "$HERE/mode.sh"
+# shellcheck source=../../lib/mode.sh
+. "$HERE/../../lib/mode.sh"
 hostwarden_mode "$ROOT"
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
 grep -Eqi '^[-*[:space:]]*Coordinator:[[:space:]]*off([[:space:]]|$)' \

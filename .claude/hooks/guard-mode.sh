@@ -7,7 +7,7 @@
 #   development, worktree — the tools in shim/ are refused: remote
 #     logins and copies, privilege tools, and the configuration
 #     tools that reach servers or a cloud on their own. That list
-#     is the one to extend; guard-mode-test.sh holds the prefilter
+#     is the one to extend; tests/hooks/guard-mode.sh holds the prefilter
 #     below and T and W to it. The shim does most of it
 #     (shim.sh): session-mode.sh puts it first on PATH, so the
 #     tools refuse wherever they are started from, rsync's own
@@ -27,7 +27,7 @@
 #     carries the shim for Bash only, so for Monitor this hook
 #     also denies a blocked tool named without a path, where the
 #     shim would have stood.
-#     Containers are allowed, as bin/hostwarden-lab starts them:
+#     Containers are allowed, as scripts/lab.sh starts them:
 #     docker, podman and nerdctl may read, pull, build, run and
 #     create on the local engine; --context, --host and their
 #     variables (DOCKER_HOST, CONTAINER_HOST) reach another one,
@@ -47,13 +47,13 @@
 #     reaches whatever container it names, a privileged one of
 #     another project included, and rm, stop, prune and the rest
 #     change containers the lab does not own. The lab's exec and
-#     down run inside bin/hostwarden-lab, where only its own label
+#     down run inside scripts/lab.sh, where only its own label
 #     is used. On Linux the engine runs as root; on macOS a bind
 #     mount reaches $HOME.
 #     A lab VM is a test server of an operations clone, so orb,
 #     orbctl, limactl and lima are denied where they run a command
 #     in one or copy to or from it. Reading their state passes.
-#     Creating one is denied: bin/hostwarden-lab vm up creates it
+#     Creating one is denied: scripts/lab.sh vm up creates it
 #     without this machine's files mounted, which orb and Lima do
 #     by default, and records it for vm down. Starting, stopping,
 #     deleting or changing a VM is denied, since it may not be the
@@ -108,15 +108,15 @@ ROOT=${0%/*}/../..
 # as sh leaves a failed . with status 1): exit 2 blocks it instead,
 # as in guard-taboos.sh and guard-settings.sh.
 for f in mode.sh json.sh; do
-  if [ ! -f "$ROOT/.claude/hooks/$f" ]; then
-    echo "hostwarden mode guard: $f is missing beside $0" >&2
+  if [ ! -f "$ROOT/lib/$f" ]; then
+    echo "hostwarden mode guard: $f is missing from $ROOT/lib" >&2
     exit 2
   fi
 done
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
-# shellcheck source=json.sh
-. "$ROOT/.claude/hooks/json.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
 hostwarden_mode "$ROOT"
 
 INPUT=$(cat)
@@ -632,33 +632,33 @@ case "$FOUND" in
 "engine "*)
   deny "${FOUND#engine } reaches past the container into this \
 machine. A development session runs containers without host \
-access; bin/hostwarden-lab up <family> starts one that way" ;;
+access; scripts/lab.sh up <family> starts one that way" ;;
 "remote "*)
   hostwarden_refusal "${FOUND#remote }, another container engine,"
   emit "$HOSTWARDEN_REFUSAL" ;;
 "vmnew "*)
-  deny "${FOUND#vmnew } creates a VM outside bin/hostwarden-lab vm up, \
+  deny "${FOUND#vmnew } creates a VM outside scripts/lab.sh vm up, \
 which creates it without this machine's files mounted and records \
-it, so vm down can delete it: bin/hostwarden-lab vm up <family> \
+it, so vm down can delete it: scripts/lab.sh vm up <family> \
 --ops <test clone>" ;;
 "vmchange "*)
   deny "${FOUND#vmchange } starts, stops, deletes or changes a VM that \
-may not be the lab's. bin/hostwarden-lab vm up starts the VMs this \
+may not be the lab's. scripts/lab.sh vm up starts the VMs this \
 worktree creates, and vm down deletes only those" ;;
 "change "*)
   deny "${FOUND#change } reaches or changes a container, image or \
 volume the lab may not own. A development session reads, pulls, \
-builds, runs and creates; bin/hostwarden-lab exec and down reach \
+builds, runs and creates; scripts/lab.sh exec and down reach \
 and remove only the lab's own containers" ;;
 "compose "*)
   deny "${FOUND#compose } starts what a file says, which this guard \
-cannot read; bin/hostwarden-lab up <family> starts a container \
+cannot read; scripts/lab.sh up <family> starts a container \
 without host access" ;;
 "vm "*)
   deny "${FOUND#vm } - a lab VM is a test server of the operations \
 clone it was created for, never used from a development session. \
 Next step: hand the question to a session in that clone, which \
-bin/hostwarden-lab list names; how: rules/server-check-handoff.md" ;;
+scripts/lab.sh list names; how: rules/server-check-handoff.md" ;;
 "deny "*) BLOCKED=${FOUND#deny } ;;
 *)
   # /etc/ssh is a directory, a path in a sentence names nothing,

@@ -1,6 +1,6 @@
 #!/bin/sh
-# coord-lib-test.sh — the tokenizer matrix for
-# .claude/hooks/coord-lib.sh's hostwarden_coord_dest,
+# tests/lib/coord-lib.sh — the tokenizer matrix for
+# lib/coord-lib.sh's hostwarden_coord_dest,
 # hostwarden_coord_is_reboot and hostwarden_coord_kind: every
 # bypass shape hostwarden/hostwarden#313 collected against the two
 # reverted hand-patches, plus the shapes found while building the
@@ -11,18 +11,17 @@
 # Calls the three functions directly — no fixture checkout, no
 # hooks, no jq: they are pure text-in, text-out, and this is the
 # fastest, most direct way to pin their behaviour down before
-# impact-test.sh and coordination-test.sh's own (indirect, through
+# tests/bin/hostwarden-impact.sh and tests/hooks/coordination.sh's own (indirect, through
 # the hooks) coverage runs on top of it.
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../helpers.sh
+. "$REPO/tests/helpers.sh"
 
-# shellcheck source=../.claude/hooks/coord-lib.sh
-. "$REPO/.claude/hooks/coord-lib.sh"
-
-ok() { PASS=$((PASS + 1)); }
-bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
+# shellcheck source=../../lib/coord-tokenize.sh
+. "$REPO/lib/coord-tokenize.sh"
+# shellcheck source=../../lib/coord-lib.sh
+. "$REPO/lib/coord-lib.sh"
 
 # reboot <desc> <command> <yes|no> — hostwarden_coord_is_reboot's
 # own verdict on <command>: exit 0 (a reboot) when <yes>, exit 1
@@ -485,5 +484,4 @@ EOS
 EOF
 )" "$(printf 'host1\tssh host1 uptime\nhost2\tssh host2 '"'"'sh -s'"'"' <<EOS;systemctl restart nginx;EOS')"
 
-echo "coord-lib: $PASS passed, $FAIL failed"
-[ "$FAIL" -eq 0 ]
+finish coord-lib

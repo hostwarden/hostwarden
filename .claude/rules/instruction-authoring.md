@@ -33,7 +33,7 @@ them is touched. Where hooks do not run, read it yourself before
 changing the product.
 
 The mechanical half is checked rather than remembered, by
-`instructions-test.sh`, before each commit and in CI
+`tests/instructions.sh`, before each commit and in CI
 (`pull-requests.md` → Checks).
 
 ## Where a new instruction belongs
@@ -84,7 +84,7 @@ disagreement on a live firewall.
 A platform (`rules/first-detection.md` → Platforms) gets a file in
 `rules/platform/` and a row in that section's marker table. It has
 no `Base:` line and a `## Housekeeping and Audits` section;
-`instructions-test.sh` holds its prefixed headings to the sections
+`tests/instructions.sh` holds its prefixed headings to the sections
 every family file has.
 
 A family file may have a `## Housekeeping and Audits` section too.
@@ -119,7 +119,7 @@ commit.
 
 One term per thing. What a user writes under `memory/custom-rules/`
 is an **override**, never a customization or a custom rule; the
-directory keeps its name. `instructions-test.sh` fails on the
+directory keeps its name. `tests/instructions.sh` fails on the
 retired words.
 
 ## Current state only

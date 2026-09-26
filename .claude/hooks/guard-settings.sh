@@ -55,12 +55,12 @@ esac
 case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
 # Without json.sh no deny can be written, and a hook that fails to
 # start lets the call through: exit 2 blocks it instead.
-if [ ! -f "$HERE/json.sh" ]; then
-  echo "hostwarden guard: json.sh is missing beside $0" >&2
+if [ ! -f "$HERE/../../lib/json.sh" ]; then
+  echo "hostwarden guard: json.sh is missing from $HERE/../../lib" >&2
   exit 2
 fi
-# shellcheck source=json.sh
-. "$HERE/json.sh"
+# shellcheck source=../../lib/json.sh
+. "$HERE/../../lib/json.sh"
 
 deny() {
   hook_deny "hostwarden guard: $V and its session records belong to \

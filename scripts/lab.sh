@@ -1,27 +1,27 @@
 #!/bin/sh
-# hostwarden-lab — disposable Linux systems to try a command on
+# lab.sh — disposable Linux systems to try a command on
 # while working on Hostwarden, instead of guessing its syntax.
 #
 # Usage:
-#   hostwarden-lab up <family>[:<tag>]
+#   lab.sh up <family>[:<tag>]
 #                                Start a container of that family,
 #                                for HOSTWARDEN_LAB_TTL seconds
 #                                (default 6h)
-#   hostwarden-lab exec <family> -- <command...>
+#   lab.sh exec <family> -- <command...>
 #                                Run a command in it, as root;
 #                                starts it first when it is not up
-#   hostwarden-lab down [<family>]
+#   lab.sh down [<family>]
 #                                Remove this checkout's containers,
 #                                or the one of that family
-#   hostwarden-lab list          This checkout's containers and VMs
-#   hostwarden-lab vm up <family> --ops <test clone> [--key <file.pub>]
+#   lab.sh list          This checkout's containers and VMs
+#   lab.sh vm up <family> --ops <test clone> [--key <file.pub>]
 #                                Create a full VM for what a
 #                                container cannot answer, and name
 #                                the test clone that reaches it
-#   hostwarden-lab vm down [<family>]
+#   lab.sh vm down [<family>]
 #                                Delete this checkout's VMs, or the
 #                                one of that family
-#   hostwarden-lab --help        Show this help
+#   lab.sh --help        Show this help
 #
 # Families: debian, ubuntu, rhel (AlmaLinux), fedora, suse
 # (openSUSE Leap), alpine. A container runs the official image
@@ -64,14 +64,14 @@ set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
-# shellcheck source=../.claude/hooks/mode.sh
-. "$REPO_DIR/.claude/hooks/mode.sh"
+# shellcheck source=../lib/mode.sh
+. "$REPO_DIR/lib/mode.sh"
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
     "$SCRIPT_DIR/${0##*/}"
 }
-die() { echo "hostwarden-lab: $*" >&2; exit 1; }
+die() { echo "lab.sh: $*" >&2; exit 1; }
 
 # The current stable release of each family, looked up on
 # 2026-09-22 (https://endoflife.date/api/<product>.json, the tags
@@ -392,7 +392,7 @@ $n is up: $host
   It is a test server of $OPS and nothing else's. A development
   session never uses it; it hands the question to a session there
   (rules/server-check-handoff.md), which runs the full pipeline.
-  Delete it with: bin/hostwarden-lab vm down $f
+  Delete it with: scripts/lab.sh vm down $f
 EOF
 }
 
@@ -418,13 +418,13 @@ vm_down() {
 }
 
 case "$1" in
-up) up "${2:?Usage: hostwarden-lab up <family>}" ;;
+up) up "${2:?Usage: lab.sh up <family>}" ;;
 exec)
-  f=${2:?Usage: hostwarden-lab exec <family> -- <command...>}
+  f=${2:?Usage: lab.sh exec <family> -- <command...>}
   family "$f"
   shift 2
   [ "${1:-}" = -- ] && shift
-  [ $# -gt 0 ] || die "Usage: hostwarden-lab exec <family> -- <command...>"
+  [ $# -gt 0 ] || die "Usage: lab.sh exec <family> -- <command...>"
   need_engine
   [ -n "$(ids "$f")" ] || up "$f" >&2
   exec "$ENGINE" exec -i "$(name "$f")" "$@"
@@ -446,7 +446,7 @@ vm)
   case "${2:-}" in
     up)
       shift 2
-      f=${1:?Usage: hostwarden-lab vm up <family> --ops <test clone>}
+      f=${1:?Usage: lab.sh vm up <family> --ops <test clone>}
       shift
       vm_up "$f" "$@"
       ;;

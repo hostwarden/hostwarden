@@ -79,7 +79,7 @@ case "${1:-}" in
     # git write-tree reads the index a commit hook is given.
     echo "== instruction layout of what is staged"
     staged=$(git write-tree) || exit 2
-    in_checkout HEAD "$staged" sh .claude/hooks/instructions-test.sh \
+    in_checkout HEAD "$staged" sh tests/instructions.sh \
       || rc=1
     exit $rc ;;
 esac
@@ -165,12 +165,15 @@ json_valid() {
   return $rc
 }
 
-# Every shell file the repository ships: the bin/ scripts, the
+# Every shell file the repository holds: the bin/ scripts, the
 # shim's stand-ins and the fleet-read wrapper carry no extension,
-# the hooks and this directory do.
+# the hooks, lib/, this directory and tests/ do. A pathspec's *
+# crosses directories, so guard-taboos.d/ and tests/'s own
+# directories are in.
 shell_files() {
   git ls-files 'bin/*' '.claude/hooks/*.sh' '.claude/hooks/shim/*' \
-    'scripts/*.sh' '.githooks/*' 'templates/fleet-read/*'
+    'lib/*.sh' 'scripts/*.sh' 'tests/*.sh' '.githooks/*' \
+    'templates/fleet-read/*'
 }
 
 sh_syntax() {
@@ -181,88 +184,91 @@ sh_syntax() {
   return $rc
 }
 
-# The matrix reads the hooks, settings.json, and the fenced blocks
-# of every .md but CHANGELOG.md (corpus.sh).
+# tests/helpers.sh is read by every matrix, so it opens them all.
+HELPERS='|^tests/helpers\.sh$'
+# The matrix reads the hooks, the libraries they source,
+# settings.json, and the fenced blocks of every .md but
+# CHANGELOG.md (tests/corpus.sh).
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
     | grep -v '^CHANGELOG\.md$' \
-    | grep -qE '\.md$|^\.claude/(hooks/|settings\.json$)'
+    | grep -qE "\\.md\$|^\\.claude/(hooks/|settings\\.json\$)|^lib/(mode|json)\\.sh\$|^tests/(hooks/guard-taboos|corpus)$HELPERS"
 then
   echo "== guard matrix: nothing it reads is pushed, skipped"
 else
-  step "guard matrix" sh .claude/hooks/guard-taboos-test.sh
+  step "guard matrix" sh tests/hooks/guard-taboos.sh
 fi
 # The mode and release matrices exercise the hooks and the bin/
 # scripts, in throwaway checkouts.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
-    | grep -qE '^\.claude/hooks/|^bin/|^templates/workspace/'
+    | grep -qE "^\\.claude/hooks/|^bin/|^lib/|^scripts/lab\\.sh\$|^templates/workspace/|^tests/(hooks/guard-mode|bin/hostwarden-update)\\.sh\$$HELPERS"
 then
   echo "== mode and release matrices: nothing they read is pushed, skipped"
 else
-  step "mode matrix" sh .claude/hooks/guard-mode-test.sh
-  step "release matrix" sh .claude/hooks/release-test.sh
+  step "mode matrix" sh tests/hooks/guard-mode.sh
+  step "release matrix" sh tests/bin/hostwarden-update.sh
 fi
-step "instruction layout" sh .claude/hooks/instructions-test.sh
+step "instruction layout" sh tests/instructions.sh
 step "decision records" python3 scripts/decisions.py --check
 step "changelog fragments" sh scripts/changelog-release.sh --check
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
-    | grep -q '^scripts/changelog-release'
+    | grep -qE "^(tests/)?scripts/changelog-release$HELPERS"
 then
   echo "== changelog matrix: nothing it reads is pushed, skipped"
 else
-  step "changelog matrix" sh scripts/changelog-release-test.sh
+  step "changelog matrix" sh tests/scripts/changelog-release.sh
 fi
 # The fleet matrices read the wrapper, the runner and what it calls.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)$|^\.claude/hooks/(mode|hops)\.sh$|^scripts/fleet-'
+    "^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)\$|^lib/(mode|hops|resolve)\\.sh\$|^tests/(templates/fleet-read|bin/hostwarden-fleet-run)\\.sh\$$HELPERS"
 then
   echo "== fleet matrices: nothing they read is pushed, skipped"
 else
-  step "fleet-read wrapper" sh scripts/fleet-read-test.sh
-  step "fleet run" sh scripts/fleet-run-test.sh
+  step "fleet-read wrapper" sh tests/templates/fleet-read.sh
+  step "fleet run" sh tests/bin/hostwarden-fleet-run.sh
 fi
-# The tokenizer matrix reads coord-lib.sh alone, directly — no
-# fixture checkout, no hooks.
+# The tokenizer matrix reads coord-lib.sh and coord-tokenize.sh
+# alone, directly — no fixture checkout, no hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^\.claude/hooks/coord-lib\.sh$|^scripts/coord-lib-test\.sh$'
+    "^lib/coord-(lib|tokenize)\\.sh\$|^tests/lib/coord-lib\\.sh\$$HELPERS"
 then
   echo "== coord-lib matrix: nothing it reads is pushed, skipped"
 else
-  step "coord-lib tokenizer" sh scripts/coord-lib-test.sh
+  step "coord-lib tokenizer" sh tests/lib/coord-lib.sh
 fi
 # The radius matrix reads the impact script and what it sources.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops|coord-lib)\.sh$|^scripts/impact-'
+    "^bin/hostwarden-impact\$|^lib/(mode|hops|coord-lib|coord-tokenize|resolve)\\.sh\$|^tests/bin/hostwarden-impact\\.sh\$$HELPERS"
 then
   echo "== impact matrix: nothing it reads is pushed, skipped"
 else
-  step "impact radius" sh scripts/impact-test.sh
+  step "impact radius" sh tests/bin/hostwarden-impact.sh
 fi
-# The map matrix reads hostwarden-map and the mode hook alone;
+# The map matrix reads hostwarden-map and lib/mode.sh alone;
 # hostwarden-sync only calls it, so a change there does not need
 # this to run.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^bin/hostwarden-map$|^\.claude/hooks/mode\.sh$|^scripts/hostwarden-map-'
+    "^bin/hostwarden-map\$|^lib/mode\\.sh\$|^tests/bin/hostwarden-map\\.sh\$$HELPERS"
 then
   echo "== map matrix: nothing it reads is pushed, skipped"
 else
-  step "infrastructure maps" sh scripts/hostwarden-map-test.sh
+  step "infrastructure maps" sh tests/bin/hostwarden-map.sh
 fi
 # The coordination matrix reads announce/wait/ack/done/status and
 # the presence and impact hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^bin/hostwarden-impact$|^\.claude/hooks/(mode|hops|coord-lib|json|presence|impact|session-mode)\.sh$|^scripts/coordination-'
+    "^bin/hostwarden-impact\$|^lib/(mode|hops|coord-lib|coord-tokenize|json|resolve)\\.sh\$|^\\.claude/hooks/(presence|impact|session-mode|check-session)\\.sh\$|^tests/hooks/coordination\\.sh\$$HELPERS"
 then
   echo "== coordination matrix: nothing it reads is pushed, skipped"
 else
-  step "coordination" sh scripts/coordination-test.sh
+  step "coordination" sh tests/hooks/coordination.sh
 fi
-step "review record" sh scripts/review-record-test.sh
+step "review record" sh tests/scripts/review-record.sh
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    '^bin/hostwarden-(wrap|sync)$|^lib/markdown-blocks\.awk$|^\.claude/hooks/(wrap-markdown|json|mode)\.sh$|^scripts/wrap-test\.sh$'
+    "^bin/hostwarden-(wrap|sync)\$|^lib/(markdown-blocks\\.awk|json\\.sh|mode\\.sh)\$|^\\.claude/hooks/wrap-markdown\\.sh\$|^tests/bin/hostwarden-wrap\\.sh\$$HELPERS"
 then
   echo "== markdown wrap matrix: nothing it reads is pushed, skipped"
 else
-  step "markdown wrap matrix" sh scripts/wrap-test.sh
+  step "markdown wrap matrix" sh tests/bin/hostwarden-wrap.sh
 fi
 website_build() (
   cd website && npm ci && npm run build

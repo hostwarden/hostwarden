@@ -45,15 +45,17 @@
 # path spelled differently here would read a different cache
 # directory than announce, wait, ack, done and status write to.
 ROOT=$(cd "${0%/*}/../.." 2>/dev/null && pwd) || exit 0
-for f in mode.sh json.sh coord-lib.sh; do
-  [ -f "$ROOT/.claude/hooks/$f" ] || exit 0
+for f in mode.sh json.sh coord-tokenize.sh coord-lib.sh; do
+  [ -f "$ROOT/lib/$f" ] || exit 0
 done
-# shellcheck source=mode.sh
-. "$ROOT/.claude/hooks/mode.sh"
-# shellcheck source=json.sh
-. "$ROOT/.claude/hooks/json.sh"
-# shellcheck source=coord-lib.sh
-. "$ROOT/.claude/hooks/coord-lib.sh"
+# shellcheck source=../../lib/mode.sh
+. "$ROOT/lib/mode.sh"
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
+# shellcheck source=../../lib/coord-tokenize.sh
+. "$ROOT/lib/coord-tokenize.sh"
+# shellcheck source=../../lib/coord-lib.sh
+. "$ROOT/lib/coord-lib.sh"
 
 hostwarden_mode "$ROOT"
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0

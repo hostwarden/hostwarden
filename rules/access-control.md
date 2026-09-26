@@ -57,7 +57,7 @@ of caution for anything ambiguous.
 
 `bin/hostwarden-impact` and `bin/hostwarden-fleet-run`
 run this same logic unattended, through
-`.claude/hooks/resolve.sh`, with no one to tell about
+`lib/resolve.sh`, with no one to tell about
 an ambiguous result and decide from there: a resolver
 that cannot be reached while either checks a host is
 treated as if that host matched, never as a clean

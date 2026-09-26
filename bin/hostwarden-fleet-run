@@ -40,12 +40,12 @@ set -u
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$REPO_DIR" || exit 1
-# shellcheck source=../.claude/hooks/mode.sh
-. .claude/hooks/mode.sh
-# shellcheck source=../.claude/hooks/hops.sh
-. .claude/hooks/hops.sh
-# shellcheck source=../.claude/hooks/resolve.sh
-. .claude/hooks/resolve.sh
+# shellcheck source=../lib/mode.sh
+. lib/mode.sh
+# shellcheck source=../lib/hops.sh
+. lib/hops.sh
+# shellcheck source=../lib/resolve.sh
+. lib/resolve.sh
 
 usage() {
   awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' \
@@ -305,7 +305,7 @@ blacklisted() {
   done
   bl_check_unresolved "$1" && return 0
   # The hops, each as <config>|<user>|<host>, and !|| where the path
-  # cannot be read (.claude/hooks/hops.sh).
+  # cannot be read (lib/hops.sh).
   hops=$(printf '%s\n' "$bl_g" | hostwarden_hops "$1" "${4--}")
   # A path that cannot be read counts as blacklisted, and so does a
   # chain longer than five hops: no one is here to answer for it. The

@@ -57,7 +57,7 @@ for Windows.
   A session-start hook says so whenever the skills are
   out of reach, because a session without them is
   otherwise silent about it;
-  `sh .claude/hooks/instructions-test.sh` reports the
+  `sh tests/instructions.sh` reports the
   state at any time.
 - **Workstation:** Linux, macOS or FreeBSD, and on
   Windows a WSL 2 distribution — see

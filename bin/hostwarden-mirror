@@ -49,8 +49,8 @@ if ! command -v git >/dev/null 2>&1; then
   exit 1
 fi
 
-# shellcheck source=../.claude/hooks/mode.sh
-. "$SCRIPT_DIR/../.claude/hooks/mode.sh"
+# shellcheck source=../lib/mode.sh
+. "$SCRIPT_DIR/../lib/mode.sh"
 hostwarden_mode "$SCRIPT_DIR/.."
 if [ "$HOSTWARDEN_MODE" = operations ]; then
   echo "hostwarden-mirror: this is an operations install. The" >&2
