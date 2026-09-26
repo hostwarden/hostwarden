@@ -404,6 +404,8 @@ lacks "$COLO" 'range_192_168_50_0_24 --- range_10_50_0_0_24' \
 
 # --- Cluster: a guest placed by "running on <short name>" -----------
 PROD="$MAPS/clusters/prod.md"
+has "$PROD" '# Cluster: prod (Proxmox VE)' \
+  "the title takes its kind from the heading's own parentheses, not from a sorted-in info row such as \"- HA:\""
 haspart "$PROD" 'subgraph m_pve1["pve1"]' "pve1's member subgraph uses cluster.md's short name"
 haspart "$PROD" 'g_101_web1("101 web1<br/>running")' "web1 draws as a VM, rounded"
 lacks "$PROD" 'subgraph unplaced[' \
