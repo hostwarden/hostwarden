@@ -48,10 +48,12 @@ match):
    listed hosts that a plain string match would
    miss.
 
-If nothing resolves, fall back to exact string
-matching and tell the user explicitly that the
-IP-level check could not be performed. Err on the
-side of caution for anything ambiguous.
+If nothing resolves — a resolver-unreachable result
+(`rules/dns-aliases.md` → Detection step 1) included —
+fall back to exact string matching and tell the user
+explicitly which of the two it was and that the
+IP-level check could not be performed. Err on the side
+of caution for anything ambiguous.
 
 On a first connection the user is chosen only after
 both checks. Run them as the `Default:` user of

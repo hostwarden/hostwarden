@@ -239,7 +239,7 @@ blacklisted() {
   [ "$2" -gt 0 ] || BL_SEEN=
   BL_WHY=blacklisted
   if [ "${4-}" = = ]; then
-    for x in "$1" $(mem_line "$1" IP) $(hostwarden_resolve4 "$1") \
+    for x in "$1" $(mem_line "$1" IP) $(hostwarden_resolve "$1") \
         $(aliases_of "$1"); do
       case " $BLACK " in *" $x "*) return 0 ;; esac
     done
@@ -253,7 +253,7 @@ blacklisted() {
     return 0
   fi
   for x in "$1" "$(printf '%s\n' "$bl_g" | sed -n 's/^hostname //p')" \
-      $(mem_line "$1" IP) $(hostwarden_resolve4 "$1") $(aliases_of "$1"); do
+      $(mem_line "$1" IP) $(hostwarden_resolve "$1") $(aliases_of "$1"); do
     [ -n "$x" ] || continue
     case " $BLACK " in *" $x "*) return 0 ;; esac
   done
@@ -501,7 +501,7 @@ run_host() {
   # workspace's known_hosts, which ssh checks itself.
   g=$(ssh -F "$SSHCFG" -G "root@$h" 2>/dev/null)
   ip=$(mem_line "$h" IP)
-  now=$(hostwarden_resolve4 "$(printf '%s\n' "$g" | sed -n 's/^hostname //p')" | tr '\n' ' ')
+  now=$(hostwarden_resolve "$(printf '%s\n' "$g" | sed -n 's/^hostname //p')" | tr '\n' ' ')
   port=$(printf '%s\n' "$g" | sed -n 's/^port //p')
   mport=$(mem_line "$h" 'SSH port')
   same=; case " $now" in *" $ip "*) same=1 ;; esac
