@@ -113,9 +113,14 @@ if [ "$EVENT" = PreToolUse ]; then
     -exec rm -rf {} + 2>/dev/null
 fi
 
+# Each host once per call, however many segments or lines reach it:
+# Pre writes one run marker per host, so Post removes one.
+SEEN=" "
 while IFS="$TAB" read -r d _; do
   [ -n "$d" ] || continue
   h=$(hostwarden_coord_canon "$IDX" "$d" "$ROOT")
+  case $SEEN in *" $h "*) continue ;; esac
+  SEEN="$SEEN$h "
   hostwarden_coord_beat "$PRES" "$SID+$h"
   if [ "$TOOL" = Bash ] && [ "$BG" != true ]; then
     RUNDIR="$PRES/$SID+$h+run"

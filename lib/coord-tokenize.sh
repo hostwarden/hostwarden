@@ -23,18 +23,17 @@
 #     splitter: s cut on an unquoted ;/&/|/(/)/{/}/`, with a
 #     backslash escaping the very next character everywhere but
 #     inside a single-quoted run, and an unquoted newline cut the
-#     same way only when the caller sets HC_NL_SEP first — never
-#     hostwarden_coord_dest's own top-level call, whose segment has
-#     to stay whole, embedded newline and all, for a heredoc body to
-#     still be there once hostwarden_coord_kind reads it in turn;
-#     always hc_expand's own calls, where a multi-line remote
-#     command — a heredoc's own body among them — is read the same
-#     one-command-per-line way `;` already is. An unquoted << that
-#     really opens a heredoc (hc_heredoc_span, matched the same
-#     loose way hc_heredocs matches one) is never split on either,
-#     whatever operator its own body carries, at every call — this
-#     is what keeps a heredoc's body part of hostwarden_coord_dest's
-#     own segment in the first place. An & right next to a < or >
+#     same way when the caller sets HC_NL_SEP first, as every
+#     caller does: a multi-line command, remote command or heredoc
+#     body is read the same one-command-per-line way `;` already
+#     is. HC_SEP[1..n] is the character that ended each segment,
+#     "" for the last, so a caller can tell a pipe from any other
+#     separator. An unquoted << that really opens a heredoc
+#     (hc_heredoc_span, matched the same loose way hc_heredocs
+#     matches one) is never split on either, whatever operator or
+#     newline its own body carries — this is what keeps a heredoc's
+#     body part of the segment that opens it, for
+#     hostwarden_coord_kind to read in turn. An & right next to a < or >
 #     (2>&1, >&2, bash's own &>file) duplicates or redirects a file
 #     descriptor and is never a separator there, only a bare & (a
 #     real background operator) is. RAW[1..n] keeps each
@@ -47,7 +46,8 @@
 #   hc_words(s, W) is the real word reader hc_segments never was: a
 #     single-quoted run is literal to its close; a double-quoted
 #     run is literal except a backslash escapes the very next
-#     character; a single quote inside a double-quoted run is an
+#     character the shell escapes there ($ ` " \ newline) and is kept
+#     before any other; a single quote inside a double-quoted run is an
 #     ordinary character, never a quote of its own — the very thing
 #     `sudo bash -c '…'` sent through an outer double-quoted ssh
 #     argument needs; and two quoted spans with nothing between
@@ -110,9 +110,10 @@ function base(w) { sub(/^.*\//, "", w); return w }
 
 # hc_heredoc_span(s, i) — s[i] is a < that opens <<[-]DELIM: the
 # number of characters, from i, a real heredoc there spans through
-# its own closing line, inclusive; 0 when no line below matches
-# DELIM on its own, so it never was one. DELIM matched the same
-# loose way hc_heredocs matches one.
+# its own closing line, the newline after it not included, since it
+# ends the command the heredoc belongs to; 0 when no line below
+# matches DELIM on its own, so it never was one. DELIM matched the
+# same loose way hc_heredocs matches one.
 function hc_heredoc_span(s, i,
     rest, mm, dd, ddash, nlpos, bodystart, brest, blen, p, nl2, lineend, line2, tline2) {
   rest = substr(s, i)
@@ -129,7 +130,7 @@ function hc_heredoc_span(s, i,
   blen = length(brest); p = 1
   while (p <= blen) {
     nl2 = index(substr(brest, p), "\n")
-    if (nl2 > 0) { lineend = p + nl2 - 1; line2 = substr(brest, p, nl2 - 1) }
+    if (nl2 > 0) { lineend = p + nl2 - 2; line2 = substr(brest, p, nl2 - 1) }
     else { lineend = blen; line2 = substr(brest, p) }
     tline2 = line2
     if (ddash) sub(/^\t+/, "", tline2)
@@ -176,11 +177,11 @@ function hc_segments(s, RAW,
       continue
     }
     if (index(";&|(){}`", c) > 0 || (c == "\n" && HC_NL_SEP)) {
-      RAW[n] = cur; n++; cur = ""; continue
+      RAW[n] = cur; HC_SEP[n] = c; n++; cur = ""; continue
     }
     cur = cur c
   }
-  RAW[n] = cur
+  RAW[n] = cur; HC_SEP[n] = ""
   return n
 }
 
@@ -275,9 +276,14 @@ function hc_words(s, W,
       else cur = cur c
       continue
     }
+    # In double quotes a backslash escapes only $ ` " \ and a
+    # newline; before any other character it stays, as the shell
+    # keeps it: the \n of a printf format reaches printf.
     if (qc == "\"") {
       if (c == "\"") qc = ""
-      else if (c == "\\" && i < slen) { i++; cur = cur substr(s, i, 1) }
+      else if (c == "\\" && i < slen && substr(s, i + 1, 1) ~ /[$`"\\\n]/) {
+        i++; cur = cur substr(s, i, 1)
+      }
       else cur = cur c
       continue
     }
@@ -506,6 +512,109 @@ function hc_classify(W, i, nw, depth,
     if (envphase && k <= nw) { hc_classify(W, k, nw, depth); return }
   }
   record_clause(W, i, nw)
+}
+
+# The pipeline feed hostwarden_coord_dest reads (coord-lib.sh): what
+# a printf or echo writes into a pipe, and whether the ssh it feeds
+# runs a shell that reads it.
+
+# hc_unesc(s) — s with a \n read as a newline and a \\ as one
+# backslash, as printf does in its format and in a %b argument.
+function hc_unesc(s,    out, i, ch) {
+  out = ""
+  for (i = 1; i <= length(s); i++) {
+    ch = substr(s, i, 1)
+    if (ch == "\\" && i < length(s)) {
+      i++; ch = substr(s, i, 1)
+      if (ch == "n") ch = "\n"
+      else if (ch != "\\") ch = "\\" ch
+    }
+    out = out ch
+  }
+  return out
+}
+
+# hc_feed(v, i0, nw) — what an upstream printf or echo at v[i0]
+# writes into a pipe: echo its operands joined by one blank,
+# escapes decoded (hc_unesc) unless -E is the last of -e and -E:
+# zsh, which may be the shell running it, decodes them without
+# -e, bash only with it, and reading one too many is the safe
+# side; printf its format, escapes decoded, with each conversion
+# taking the next argument as it stands, a %b one with its escapes
+# decoded, and the format reused while arguments are left (man
+# printf); "" for any other command, whose output cannot be read
+# here.
+function hc_feed(v, i0, nw,    c, k, out, fmt, i, ch, used, esc) {
+  c = base(v[i0]); out = ""
+  if (c == "echo") {
+    esc = 1
+    for (k = i0 + 1; k <= nw && v[k] ~ /^-[neE]+$/; k++) {
+      if (v[k] ~ /e[^E]*$/) esc = 1
+      else if (v[k] ~ /E/) esc = 0
+    }
+    if (k <= nw) out = joinw(v, k, nw)
+    if (esc) out = hc_unesc(out)
+  } else if (c == "printf") {
+    # bash -v assigns to a variable and writes nothing; -- ends
+    # the options.
+    k = i0 + 1
+    if (v[k] == "-v") return ""
+    if (v[k] == "--") k++
+    if (k > nw) return ""
+    fmt = v[k]; k++
+    fmt = hc_unesc(fmt)
+    do {
+      used = 0
+      for (i = 1; i <= length(fmt); i++) {
+        ch = substr(fmt, i, 1)
+        if (ch != "%") { out = out ch; continue }
+        if (substr(fmt, i + 1, 1) == "%") { out = out "%"; i++; continue }
+        if (!match(substr(fmt, i), /^%[-+ #0-9.]*[A-Za-z]/)) { out = out ch; continue }
+        if (k > nw) { i += RLENGTH - 1; continue }
+        out = out (substr(fmt, i + RLENGTH - 1, 1) == "b" ? hc_unesc(v[k]) : v[k])
+        k++
+        used = 1
+        i += RLENGTH - 1
+      }
+    } while (used && k <= nw)
+  } else return ""
+  return out "\n"
+}
+
+# hc_stdin_shell(v, j, nw) — true when the remote command in
+# v[j..nw] is a shell reading its commands from stdin: none at
+# all (the login shell), su without -c, or sh, bash and the like
+# with -s or with neither -c nor a script operand, past env with
+# its options and assignments and a plain VAR=value prefix.
+function hc_stdin_shell(v, j, nw,    R, nr, r, c) {
+  if (j > nw) return 1
+  nr = hc_words(joinw(v, j, nw), R)
+  r = 1
+  while (1) {
+    r = hc_skip_prefix(R, r, nr)
+    if (r > nr) return 1
+    if (R[r] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { r++; continue }
+    if (base(R[r]) != "env") break
+    for (r++; r <= nr && R[r] ~ /^-/; r++) {
+      if (R[r] ~ /^-S|^--split-string/) return 0
+      if (R[r] ~ /^(-u|--unset|-C|--chdir)$/) r++
+    }
+  }
+  c = base(R[r])
+  if (c == "su") {
+    for (r++; r <= nr; r++)
+      if (R[r] ~ /^-[A-Za-z]*c$/ || R[r] ~ /^--command/) return 0
+    return 1
+  }
+  if (c !~ /^(sh|bash|dash|ksh|zsh|ash)$/) return 0
+  for (r++; r <= nr; r++) {
+    if (R[r] ~ /^-[A-Za-z]*c/) return 0
+    if (R[r] ~ /^-[A-Za-z]*s/) return 1
+    if (R[r] ~ /^[-+]o$/) { r++; continue }
+    if (R[r] == "--") return r == nr
+    if (R[r] !~ /^[-+]/) return 0
+  }
+  return 1
 }
 
 function trig(c, w, nw,   i) {

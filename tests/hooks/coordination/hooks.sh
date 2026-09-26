@@ -101,6 +101,20 @@ hook presence.sh PostToolUse sessc Bash \
 [ ! -e "$PRES/sessc+web1.example.com+run" ] \
   && ok || bad "presence: the run entry is gone once both calls end"
 
+# One call that reaches a host on two lines holds one marker there,
+# and its Post removes one: a concurrent call's marker survives it.
+TWO_LINES=$(printf 'ssh -F memory/ssh_config root@web1.example.com uptime\nssh -F memory/ssh_config root@web1.example.com df -h')
+hook presence.sh PreToolUse sesse Bash \
+  'ssh -F memory/ssh_config root@web1.example.com apt-get upgrade' >/dev/null
+hook presence.sh PreToolUse sesse Bash "$TWO_LINES" >/dev/null
+MARKS=$(find "$PRES/sesse+web1.example.com+run" -mindepth 1 -maxdepth 1 | wc -l)
+[ "$MARKS" -eq 2 ] && ok \
+  || bad "presence: a call reaching a host on two lines adds one marker"
+hook presence.sh PostToolUse sesse Bash "$TWO_LINES" >/dev/null
+[ -n "$(find "$PRES/sesse+web1.example.com+run" -mindepth 1 -maxdepth 1 2>/dev/null)" ] \
+  && ok || bad "presence: a two-line call's Post leaves the other call's marker"
+rm -rf "$PRES/sesse+web1.example.com+run" 2>/dev/null
+
 # Post removes the oldest marker, not an arbitrary one: a call that
 # has held its marker open the longest is always the one trimmed
 # first, so it can never strand only a stale marker behind while
