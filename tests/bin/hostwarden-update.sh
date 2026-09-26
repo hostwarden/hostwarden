@@ -425,6 +425,35 @@ publish v2.6.0
 update >/dev/null && at v2.6.0 && ok \
   || bad "a key a verified release lists was not trusted"
 
+# The program git verifies with decides, not the ssh on PATH: one
+# that skips a valid-after line, as ssh-keygen before 8.7 does, is
+# refused, although the tag, whose key is listed without one, would
+# verify with it.
+cat > "$TMP/keygen-8.6" <<'EOF'
+#!/bin/sh
+f=
+for a; do
+  [ "$f" = -f ] && grep -q valid-after "$a" 2>/dev/null && exit 255
+  f=$a
+done
+exec ssh-keygen "$@"
+EOF
+chmod +x "$TMP/keygen-8.6"
+git -C "$P" config gpg.ssh.program "$TMP/keygen-8.6"
+change "an old ssh-keygen"
+git -C "$U" -c user.signingkey="$TMP/next-key" \
+  tag -a -m "Release v2.7.0" v2.7.0 main
+publish v2.7.0
+out=$(update) && bad "an ssh-keygen before 8.7 verified: $out"
+at v2.6.0 && ok || bad "an ssh-keygen before 8.7 moved the checkout"
+case "$out" in
+*"cannot verify"*"$TMP/keygen-8.6"*) ok ;;
+*) bad "the refusal did not name the program: $out" ;;
+esac
+git -C "$P" config --unset gpg.ssh.program
+update >/dev/null && at v2.7.0 && ok \
+  || bad "the default ssh-keygen did not verify v2.7.0"
+
 # A checkout on main that settles on its first line and meets a tag
 # that does not verify leaves main where it was.
 P="$TMP/prod1"

@@ -43,6 +43,9 @@
 #                                verify a release tag's signature
 #   hostwarden_follow_git_verifies, hostwarden_follow_ssh_verifies
 #                              — its two halves, each on its own
+#   hostwarden_follow_ssh_program
+#                              — prints the program git verifies an
+#                                SSH signature with
 
 # Outside a clone every git call fails, and the caller would blame
 # something else, a detached HEAD for one. Unpacked into some other
@@ -97,21 +100,61 @@ hostwarden_follow_default() {
   [ -z "$hd" ] || printf '%s\n' "${hd%%.*}"
 }
 
-# git verifies an SSH signature from 2.34 on. ssh-keygen finds the
+# git verifies an SSH signature from 2.34 on, by running
+# gpg.ssh.program, ssh-keygen unless set, for -Y find-principals
+# and -Y verify, never for anything else. That program finds the
 # signer from OpenSSH 8.2 on, but reads the valid-after and
 # valid-before a key rotation writes only from 8.7 on, and skips
-# such a line before. Older, a good tag reads as unsigned, or as
-# not verifying.
+# such a line before. Older, a good tag reads as unsigned, or as not
+# verifying. `ssh -V` names another binary, which can be newer than
+# the program or there without it, so the program itself is asked:
+# ssh-keygen, or the program where ssh-keygen cannot, signs a
+# throwaway message with a throwaway key, and the program finds and
+# verifies it against a line that carries valid-after. The date is
+# local time, and at or before the epoch in a zone east of UTC
+# ssh-keygen rejects it, hence 2000. A program that only signs, such
+# as a password manager's, is asked to make a key only where
+# ssh-keygen cannot.
 hostwarden_follow_git_verifies() {
   hv=$(git version 2>/dev/null) hv=${hv#git version }
   hostwarden_follow_at_least "$hv" 2 34
 }
-hostwarden_follow_ssh_verifies() {
-  hs=$(ssh -V 2>&1) hs=${hs#OpenSSH_}
-  hostwarden_follow_at_least "$hs" 8 7
+# A path, as git reads it: a leading ~ is the home directory.
+hostwarden_follow_ssh_program() {
+  git config --type=path gpg.ssh.program 2>/dev/null || echo ssh-keygen
 }
+hostwarden_follow_ssh_verifies() {
+  hp=$(hostwarden_follow_ssh_program)
+  hd=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-verify.XXXXXX") || return 1
+  echo probe > "$hd/msg"
+  for hg in ssh-keygen "$hp"; do
+    rm -f "$hd/key" "$hd/key.pub" "$hd/msg.sig"
+    "$hg" -q -t ed25519 -N '' -C probe -f "$hd/key" </dev/null \
+      >/dev/null 2>&1 &&
+      "$hg" -Y sign -n git -f "$hd/key" "$hd/msg" </dev/null \
+        >/dev/null 2>&1 && break
+  done
+  [ -s "$hd/msg.sig" ] && hk=$(cat "$hd/key.pub") &&
+    echo "probe valid-after=\"20000101\",namespaces=\"git\" $hk" \
+      > "$hd/signers" &&
+    [ "$("$hp" -Y find-principals -f "$hd/signers" -s "$hd/msg.sig" \
+      </dev/null 2>/dev/null)" = probe ] &&
+    "$hp" -Y verify -n git -I probe -f "$hd/signers" -s "$hd/msg.sig" \
+      < "$hd/msg" >/dev/null 2>&1
+  hr=$?
+  rm -rf "$hd"
+  return "$hr"
+}
+# Asked once per process: the probe makes a key, and an update can
+# verify several tags.
 hostwarden_follow_can_verify() {
-  hostwarden_follow_git_verifies && hostwarden_follow_ssh_verifies
+  if [ -z "${hcv:-}" ]; then
+    if hostwarden_follow_git_verifies && hostwarden_follow_ssh_verifies
+    then hcv=0
+    else hcv=1
+    fi
+  fi
+  return "$hcv"
 }
 
 # hostwarden_follow_at_least <version> <major> <minor>

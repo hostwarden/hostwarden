@@ -340,11 +340,14 @@ done
   || probe need "ssh connection sharing and Include (OpenSSH 7.3+)" ssh ssh_shares
 # An update checks out only a release tag it can verify
 # (bin/hostwarden-update); a development checkout verifies none.
-if [ -z "$DEV" ] && real_ssh; then
+# The program is the one git runs, by the checkout's own config.
+checkout_verifies() { (cd "$ROOT" && hostwarden_follow_ssh_verifies); }
+if [ -z "$DEV" ]; then
   probe need "release tag signatures in git (2.34+)" git \
     hostwarden_follow_git_verifies
-  probe need "release tag signatures in OpenSSH (8.7+)" ssh \
-    hostwarden_follow_ssh_verifies
+  probe need "release tag signatures in $(cd "$ROOT" &&
+    hostwarden_follow_ssh_program) (OpenSSH 8.7+)" ssh-keygen \
+    checkout_verifies
 fi
 probe need "symbolic links ($INSTALL_DOCS#symbolic-links)" "" links_work
 
