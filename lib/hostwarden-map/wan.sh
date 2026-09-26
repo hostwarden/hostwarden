@@ -19,7 +19,9 @@ esc_sh() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/"/\&quot;/g; s/</\&lt;/g; s/>
 # keeps as separate lines rather than merging). The row whose own
 # "from <hosts>" names <reporting host> wins first, then the row
 # whose site matches that host'"'"'s own Site:; only a genuinely
-# unambiguous single row resolves with no hint at all.
+# unambiguous single row resolves with no hint at all. A row whose
+# site is "not known" gives none: that is also what a host with no
+# Site: carries, and the two must never match as though one site.
 site_of_prefix() {
   sop_p=$1 sop_h=${2:-}
   awk -F '\t' -v p="$sop_p" -v h="$sop_h" -v hostfile="$HOSTS" '
@@ -32,8 +34,8 @@ site_of_prefix() {
       }
     }
     $1 == p {
-      n++; site[n] = $2; raw[n] = $6
-      if (first == "") first = $2
+      n++; site[n] = ($2 == "not known") ? "" : $2; raw[n] = $6
+      if (n == 1) first = site[n]
     }
     END {
       if (h != "") {
@@ -44,7 +46,7 @@ site_of_prefix() {
           m = raw[i]; sub(/.*from /, "", m); sub(/;.*/, "", m)
           if (match(m, "(^|, )" h "( |,|$)")) { print site[i]; exit }
         }
-        for (i = 1; i <= n; i++) if (site[i] == hsite) { print site[i]; exit }
+        for (i = 1; i <= n; i++) if (site[i] != "" && site[i] == hsite) { print site[i]; exit }
       }
       if (n <= 1) print first
     }

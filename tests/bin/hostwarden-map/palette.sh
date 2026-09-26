@@ -67,15 +67,9 @@ exists "$MAPS/sites/colo-fra.md" \
 # that exit and appends a second, stray zero, corrupting link_idx
 # and aborting the dashed-fallback loop after its first site -------
 R2="$TMP/repo2"
-mkdir -p "$R2/bin" "$R2/lib"
-cp "$REPO/bin/hostwarden-map" "$R2/bin/"
-cp "$REPO/lib/mode.sh" "$R2/lib/"
-cp -R "$REPO/lib/hostwarden-map" "$R2/lib/"
-cp "$REPO/VERSION" "$R2/VERSION"
-git -C "$R2" init --quiet
+checkout "$R2"
 M2="$R2/memory"
 mkdir -p "$M2/machines/a1.example.com" "$M2/machines/b1.example.com"
-: >"$M2/.hostwarden-workspace"
 cat >"$M2/topology.md" <<EOF
 ## Sites
 
