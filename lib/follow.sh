@@ -46,6 +46,9 @@
 #   hostwarden_follow_ssh_program
 #                              — prints the program git verifies an
 #                                SSH signature with
+#   hostwarden_follow_forward T
+#                              — true when checking tag T out is no
+#                                step back; sets WHY otherwise
 
 # Outside a clone every git call fails, and the caller would blame
 # something else, a detached HEAD for one. Unpacked into some other
@@ -162,4 +165,24 @@ hostwarden_follow_at_least() {
   hm=${1%%[!0-9]*} hn=${1#"$hm".} hn=${hn%%[!0-9]*}
   [ -n "$hm" ] && [ -n "$hn" ] || return 1
   [ "$hm" -gt "$2" ] || { [ "$hm" -eq "$2" ] && [ "$hn" -ge "$3" ]; }
+}
+
+# A mirror that withholds the newest tags would otherwise move a
+# line back to an older release, signed and verifying, and with it
+# the flaws its successors fixed. So the line only moves up: to a
+# version at least VERSION's, or to a descendant of HEAD, which is
+# how main's inherited 2.22.0 reaches 1.0.0. Going back is a --pin.
+# A VERSION that is no X.Y.Z compares with nothing.
+hostwarden_follow_forward() {
+  hf=$(cat VERSION 2>/dev/null) || hf=
+  printf '%s\n' "$hf" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+' || return 0
+  git merge-base --is-ancestor HEAD "$1^{commit}" 2>/dev/null && return 0
+  echo "${1#v} $hf" | awk '{ split($1, t, "."); split($2, v, ".")
+    for (i = 1; i <= 3; i++) if (t[i] + 0 != v[i] + 0)
+      exit t[i] + 0 < v[i] + 0 }' && return 0
+  # shellcheck disable=SC2034 # read by bin/hostwarden-update
+  WHY="it is older than $hf, this checkout's version, and no descendant
+  of it: does the mirror withhold newer releases? Go back to it on
+  purpose with 'hostwarden-update --pin $1'."
+  return 1
 }

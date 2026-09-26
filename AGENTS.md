@@ -424,8 +424,8 @@ Changing Hostwarden itself — `VERSION`, `CHANGELOG.md`, the
 workflows, a hook, or porting a change from Heinzel — follows
 `.claude/rules/`. Claude Code loads those files by path when a
 matching file is read; every other tool has to be pointed at them,
-which is what this paragraph does. Do not bump `VERSION`: a bump
-landing on `main` tags a release.
+which is what this paragraph does. Bump `VERSION` only to cut a
+release: a bump landing on `main` tags one.
 
 The guard hooks are a backstop, not a sandbox: a review finding about
 a construction built only to evade one is "not a bug: outside the

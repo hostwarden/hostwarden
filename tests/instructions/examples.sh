@@ -46,12 +46,15 @@ report "$(scan \
 # openssh.com is exempt only where it does what it does in this
 # corpus: suffix an algorithm name (umac-64-etm@openssh.com). A
 # local part with no hyphen names a person, and an address of
-# that shape at that domain is borrowed like any other.
+# that shape at that domain is borrowed like any other. The one
+# GitHub address is the release account's, which tag-release.yml
+# tags as.
 report "$(scan \
   | tag_i '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
   | grep -vE '@(.*\.)?example\.(com|net|org)$' \
   | grep -vE '@([a-z0-9-]+\.)*(test|invalid)$' \
-  | grep -vE ' [a-z0-9]+(-[a-z0-9]+)+@openssh\.com$')" \
+  | grep -vE ' [a-z0-9]+(-[a-z0-9]+)+@openssh\.com$' \
+  | grep -vE ' 334199026\+hostwarden-release@users\.noreply\.github\.com$')" \
   "an RFC 2606 example address"
 
 # SSH targets. A hostname a command connects to may well be real

@@ -39,6 +39,11 @@ lines above to a file outside the checkout and run:
 git -c gpg.ssh.allowedSignersFile=<that file> verify-tag vX.Y.Z
 ```
 
+GitHub shows each release tag as verified by the GitHub account
+hostwarden-release, which holds the key for that alone. That is a
+courtesy: `verify-tag` against the line on this page is the check
+that counts.
+
 Take the lines from this page, not from the checkout: a file in the
 checkout proves nothing about the tag that brought it. A key retired
 in the normal course stays listed, bounded with `valid-before`, so
@@ -96,7 +101,13 @@ The choice is kept in this checkout's own git config
 (`hostwarden.follow`), so each machine chooses its own. An update
 writes it only once, when a checkout that never chose settles on its
 line. The auto-update checks out the highest `vX.Y.Z` tag on the
-line; pre-releases do not count. Only the newest release gets fixes
+line; pre-releases do not count. A line only moves up: an update
+never checks out a release older than the version the checkout is
+on, unless that release descends from it, as 1.0.0 descends from the
+`main` that still carried Heinzel's 2.22.0. A mirror that withholds
+the newer releases therefore stops the update instead of taking the
+checkout back to an older release; the refusal names the `--pin`
+that goes back on purpose. Only the newest release gets fixes
 ([SECURITY.md](https://github.com/hostwarden/hostwarden/blob/main/SECURITY.md)):
 once a release outside the line is out, every update and `--check`
 say so, and name the line to follow next and where to read what it
