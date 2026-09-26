@@ -200,7 +200,7 @@ fi
 # The mode and release matrices exercise the hooks and the bin/
 # scripts, in throwaway checkouts.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
-    | grep -qE "^\\.claude/hooks/|^bin/|^lib/|^scripts/lab\\.sh\$|^templates/workspace/|^tests/(hooks/guard-mode|bin/hostwarden-update)\\.sh\$$HELPERS"
+    | grep -qE "^\\.claude/hooks/|^bin/|^lib/|^scripts/lab\\.sh\$|^templates/workspace/|^tests/(hooks/guard-mode(\\.sh\$|/)|bin/hostwarden-update\\.sh\$)$HELPERS"
 then
   echo "== mode and release matrices: nothing they read is pushed, skipped"
 else
@@ -219,7 +219,7 @@ else
 fi
 # The fleet matrices read the wrapper, the runner and what it calls.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)\$|^lib/(mode|hops|resolve)\\.sh\$|^tests/(templates/fleet-read|bin/hostwarden-fleet-run)\\.sh\$$HELPERS"
+    "^templates/fleet-read/|^bin/hostwarden-(fleet-run|sync)\$|^lib/hostwarden-fleet-run/|^lib/(mode|hops|resolve)\\.sh\$|^tests/(templates/fleet-read|bin/hostwarden-fleet-run)(\\.sh\$|/)$HELPERS"
 then
   echo "== fleet matrices: nothing they read is pushed, skipped"
 else
@@ -237,17 +237,17 @@ else
 fi
 # The radius matrix reads the impact script and what it sources.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-impact\$|^lib/(mode|hops|coord-lib|coord-tokenize|resolve)\\.sh\$|^tests/bin/hostwarden-impact\\.sh\$$HELPERS"
+    "^bin/hostwarden-impact\$|^lib/hostwarden-impact/|^lib/(mode|hops|coord-lib|coord-tokenize|resolve)\\.sh\$|^tests/bin/hostwarden-impact\\.sh\$$HELPERS"
 then
   echo "== impact matrix: nothing it reads is pushed, skipped"
 else
   step "impact radius" sh tests/bin/hostwarden-impact.sh
 fi
-# The map matrix reads hostwarden-map and lib/mode.sh alone;
+# The map matrix reads hostwarden-map, its parts and lib/mode.sh;
 # hostwarden-sync only calls it, so a change there does not need
 # this to run.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-map\$|^lib/mode\\.sh\$|^tests/bin/hostwarden-map\\.sh\$$HELPERS"
+    "^bin/hostwarden-map\$|^lib/hostwarden-map/|^lib/mode\\.sh\$|^tests/bin/hostwarden-map(\\.sh\$|/)$HELPERS"
 then
   echo "== map matrix: nothing it reads is pushed, skipped"
 else
@@ -256,7 +256,7 @@ fi
 # The coordination matrix reads announce/wait/ack/done/status and
 # the presence and impact hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-impact\$|^lib/(mode|hops|coord-lib|coord-tokenize|json|resolve)\\.sh\$|^\\.claude/hooks/(presence|impact|session-mode|check-session)\\.sh\$|^tests/hooks/coordination\\.sh\$$HELPERS"
+    "^bin/hostwarden-impact\$|^lib/hostwarden-impact/|^lib/(mode|hops|coord-lib|coord-tokenize|json|resolve)\\.sh\$|^\\.claude/hooks/(presence|impact|session-mode|check-session)\\.sh\$|^tests/hooks/coordination(\\.sh\$|/)$HELPERS"
 then
   echo "== coordination matrix: nothing it reads is pushed, skipped"
 else
@@ -264,7 +264,7 @@ else
 fi
 step "review record" sh tests/scripts/review-record.sh
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-(wrap|sync)\$|^lib/(markdown-blocks\\.awk|json\\.sh|mode\\.sh)\$|^\\.claude/hooks/wrap-markdown\\.sh\$|^tests/bin/hostwarden-wrap\\.sh\$$HELPERS"
+    "^bin/hostwarden-(wrap|sync)\$|^lib/(markdown-blocks\\.awk|json\\.sh|mode\\.sh)\$|^\\.claude/hooks/wrap-markdown\\.sh\$|^tests/bin/hostwarden-wrap(\\.sh\$|/)$HELPERS"
 then
   echo "== markdown wrap matrix: nothing it reads is pushed, skipped"
 else

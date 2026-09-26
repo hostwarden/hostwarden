@@ -200,7 +200,8 @@ change to `guard-taboos.d/` goes the same way.
 
 - `bin/` — commands an operator runs, or the instructions run for
   them. No extension: the name is the interface.
-- `lib/` — code `bin/` and the hooks share, sourced and never run.
+- `lib/` — code `bin/` and the hooks share, sourced and never run,
+  and in `lib/<script>/` the stages a large `bin/` script sources.
 - `.claude/hooks/` — the entry points `settings.json` registers, and
   what they call directly (`shim/`, `git-ssh.sh`, `guard-taboos.d/`).
 - `scripts/` — what developing Hostwarden needs and running it does
@@ -212,8 +213,9 @@ change to `guard-taboos.d/` goes the same way.
 
 A file past about 500 lines is split along its sections, into a
 directory its entry point sources in a fixed order, as
-`guard-taboos.d/` and `tests/hooks/guard-taboos/` are. What one part
-defines, the parts after it read.
+`guard-taboos.d/`, `lib/hostwarden-map/` and
+`tests/hooks/guard-taboos/` are. What one part defines, the parts
+after it read.
 
 ## Guard findings
 

@@ -66,6 +66,9 @@ lib/                   — Code bin/ and the hooks share; sourced,
   markdown-blocks.awk  — Markdown's blocks as CommonMark reads
                          them, for hostwarden-wrap and
                          review-record.sh
+  hostwarden-<name>/   — The stages of bin/hostwarden-<name>,
+                         which sources them in order: -impact,
+                         -map, -fleet-run, -heinzel-takeover
 scripts/               — Tools for developing Hostwarden itself;
                          never needed to run it
   changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
@@ -95,16 +98,21 @@ tests/                 — Every fixture matrix, laid out like the
     guard-taboos.sh    — The taboo guard's matrix; its fixtures
                          in guard-taboos/, one file per effect
     guard-mode.sh      — The mode guard, mode.sh, session-mode.sh
-                         and scripts/lab.sh
+                         and scripts/lab.sh; its parts in
+                         guard-mode/
     coordination.sh    — presence.sh, impact.sh and
-                         hostwarden-impact's announce and wait
+                         hostwarden-impact's announce and wait;
+                         its parts in coordination/
   bin/                 — hostwarden-impact, -fleet-run, -map,
                          -update (with the mirror and
                          check-updates.sh) and -wrap (with its
-                         hook, under every awk there is)
+                         hook, under every awk there is); the
+                         parts of -fleet-run, -map and -wrap in
+                         directories of those names
   lib/coord-lib.sh     — The tokenizer, called directly
   scripts/             — changelog-release.sh, review-record.sh
-                         and review-tier.sh
+                         and review-tier.sh; review-record's
+                         parts in review-record/
   templates/fleet-read.sh — The fleet-read wrapper
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
