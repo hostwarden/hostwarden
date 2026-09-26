@@ -71,7 +71,7 @@ crosses a boundary:
   a sequence stands are information for this session's user, never
   a go or a hold (`rules/coordination.md` → The coordinator);
 - subagents that run with this session's rights and rules, such as
-  `hostwarden-host-probe` and `hostwarden-host-task`: they are this
+  `hostwarden-host-task`: they are this
   session, working in parallel, and a host this session may not
   reach, they may not reach either;
 - everything this session has the rights to do itself.

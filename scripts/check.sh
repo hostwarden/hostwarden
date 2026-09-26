@@ -239,6 +239,14 @@ else
   step "fleet-read wrapper" sh tests/templates/fleet-read.sh
   step "fleet run" sh tests/bin/hostwarden-fleet-run.sh
 fi
+# The group matrix reads hostwarden-group alone.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    "^bin/hostwarden-group\$|^tests/bin/hostwarden-group\\.sh\$$HELPERS"
+then
+  echo "== group matrix: nothing it reads is pushed, skipped"
+else
+  step "group matrix" sh tests/bin/hostwarden-group.sh
+fi
 # The tokenizer matrices read coord-lib.sh, coord-rest.sh and coord-tokenize.sh
 # alone, directly — no fixture checkout, no hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \

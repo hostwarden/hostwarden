@@ -58,3 +58,9 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Changelog fragments are named by date and slug](20260924-changelog-fragment-naming.md) | changelog, release | — |
 | [A cadence change gets its own pull request](20260924-cadence-change-own-pr.md) | process, review | — |
 | [A script computes the blast radius, not the model](20260924-blast-radius-by-script.md) | coordination, multi-host | — |
+
+## Proposed
+
+| Decision | Waiting on | Tags |
+| :--- | :--- | :--- |
+| [Several hosts run in the session; agents only at scale](20260926-multi-host-work-runs-here-agents-at-scale.md) | review of the pull request that adds it | multi-host, subagents, hooks |

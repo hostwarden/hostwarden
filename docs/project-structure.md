@@ -45,6 +45,8 @@ bin/                   — Commands an operator runs, or the
                          Hostwarden runs locally
   hostwarden-wrap         — Rewrap Markdown at 80 characters, or
                          list the lines over it
+  hostwarden-group        — Print what several hosts returned,
+                         each answer once with its hosts
 lib/                   — Code bin/ and the hooks share; sourced,
                          never run, shipped
   mode.sh              — Development or operations, defined
@@ -109,7 +111,7 @@ tests/                 — Every fixture matrix, laid out like the
     coordination.sh    — presence.sh, impact.sh and
                          hostwarden-impact's announce and wait;
                          its parts in coordination/
-  bin/                 — hostwarden-impact, -fleet-run, -map,
+  bin/                 — hostwarden-impact, -fleet-run, -group, -map,
                          -update (with the mirror and
                          check-updates.sh) and -wrap (with its
                          hook, under every awk there is); the
@@ -133,10 +135,8 @@ contrib/
 .claude/               — Shared by Claude Code and OpenCode
   settings.json        — Project-level Claude Code settings
   agents/              — Subagent definitions
-    hostwarden-host-probe.md — Probes one host for the fleet
-                         audit and returns one row
-    hostwarden-host-task.md — Runs one task on one host when a
-                         request spans several
+    hostwarden-host-task.md — Runs a skill or a read on a group
+                         of hosts, as rules/multi-host.md sends
     hostwarden-reviewer.md — Reviews a change to Hostwarden
                          for defects before a second reviewer does
     hostwarden-reviewer/classes.md — The reviewer's questions
@@ -331,9 +331,9 @@ rules/                 — Upstream rule files (git-tracked)
                          hand
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
-  multi-host.md        — One task on several hosts: one
-                         subagent each, grouped answers,
-                         a canary for changes
+  multi-host.md        — One task on several hosts: rounds
+                         reaching every host at once, grouped
+                         answers, a canary for changes
   session-start.md     — Preferences and overrides to
                          load before the session does
                          anything else

@@ -29,9 +29,20 @@ the results rather than dumping them one after another:
   runs the full first-connection pipeline — blacklist, read-only
   list, host key, activity check — and returns a short answer; a
   local target skips those remote-only steps.
-- **Claude Code parallelizes it.** There each host gets its own
-  subagent; elsewhere the hosts run one after another in the
-  session.
+- **The session runs it on every host at once.** A question, a
+  change or the fleet audit reaches all hosts in one call per round,
+  and the next round can build on what the last one returned.
+  Starting a subagent per host would take longer and cost more.
+- **Subagents take large skills.** In Claude Code, housekeeping or a
+  security audit on more than four hosts runs in subagents of up to
+  four hosts each; on a session running a larger model than the
+  subagents, from two hosts on. `Multi-host: agents` under
+  `# Preferences` in `memory/user.md` sends every question and skill
+  to subagents, for someone who keeps one long conversation or runs
+  it on a costly model or effort.
+- **Nothing that needs your yes goes to a subagent.** A subagent
+  cannot tell that a relayed approval is yours, so changes run in
+  the session, and what a skill offers comes back to you there.
 - **Identical answers print once.** Hostwarden prints identical
   answers once, with the hosts that gave them, so twenty hosts
   that agree take one line and the outlier stands out.
@@ -52,8 +63,8 @@ spreads:
   every host and a proposed canary host; blacklisted, read-only
   and Windows hosts are left out.
 - **The canary goes first, alone.** Only when its result matches
-  what was expected do the others follow, in Claude Code all at
-  once apart from hosts that have to wait their turn.
+  what was expected do the others follow, all at once, one step per
+  round, apart from hosts that have to wait their turn.
 - **A surprise halts what has not started.** At the canary, the
   whole rollout stops; later, only the hosts still waiting stop.
 - **Each host gets its own record.** Every host the change reached
