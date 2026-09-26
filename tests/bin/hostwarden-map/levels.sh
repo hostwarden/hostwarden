@@ -167,7 +167,7 @@ n=$(grep -c 'g_301_onpve10(' "$PROD")
 # --- Hypervisor: a container guest, and its own click link ---------
 PVE3="$MAPS/hosts/pve3.example.com.md"
 haspart "$PVE3" 'g_201_app1[["201 app1<br/>running"]]' "app1, a container, draws as a subroutine shape"
-haspart "$PVE3" 'click g_201_app1 "../../machines/app1.example.com/memory.md"' \
+haspart "$PVE3" 'click g_201_app1 "../../machines/app1.example.com/memory.md" _top' \
   "app1's own memory is one click away, resolved through guests.md's → link"
 haspart "$PVE3" 'g_web_web[["web web<br/>running"]]' \
   "a jail is named, not numbered: its one token is both id and name, not the whole rest of the line"

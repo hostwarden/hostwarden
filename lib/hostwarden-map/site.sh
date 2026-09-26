@@ -169,5 +169,5 @@ guest_node() {
   gn_cls=host
   case $gn_kind in "not known") gn_cls=unknown ;; esac
   printf '%sclass %s %s\n' "$gn_ind" "$gn_nid" "$gn_cls"
-  [ -n "$gn_dir" ] && printf '%sclick %s "../../machines/%s/memory.md"\n' "$gn_ind" "$gn_nid" "$gn_dir"
+  [ -n "$gn_dir" ] && printf '%sclick %s "../../machines/%s/memory.md" _top\n' "$gn_ind" "$gn_nid" "$gn_dir"
 }

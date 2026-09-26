@@ -133,6 +133,8 @@ shape_of() {
 # one host'"'"'s shape, class and click line: shared by the WAN level
 # and a site'"'"'s ranges, which differ only in how many "../" reach
 # back to machines/ (<prefix>, "../machines" or "../../machines").
+# The link targets _top: Forgejo draws a diagram inside an iframe,
+# and a link without it opened the whole memory page in there.
 host_node() {
   hn_ind=$1 hn_h=$2 hn_k=$3 hn_a=$4 hn_st=$5 hn_prefix=$6 hn_fnd=${7:-0}
   hn_nid="h_$(id_sh "$hn_h")"
@@ -140,7 +142,7 @@ host_node() {
   printf '%s' "$hn_ind"
   shape_of "$hn_k" "$hn_nid" "$(esc_sh "$hn_h")<br/>$(esc_sh "$hn_fact" | cut -c1-26)"
   printf '%sclass %s %s\n' "$hn_ind" "$hn_nid" "$(class_of "$hn_k" "$hn_st" "$hn_fnd")"
-  printf '%sclick %s "%s/%s/memory.md"\n' "$hn_ind" "$hn_nid" "$hn_prefix" "$hn_h"
+  printf '%sclick %s "%s/%s/memory.md" _top\n' "$hn_ind" "$hn_nid" "$hn_prefix" "$hn_h"
 }
 
 # unplaced_of <candidates-file> <placed-file> -- every line of
