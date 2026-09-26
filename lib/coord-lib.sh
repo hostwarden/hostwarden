@@ -31,9 +31,15 @@
 #       same as `ssh host reboot` — impact.sh's whole check gates on
 #       this function finding a destination at all, so a form it
 #       cannot see past, unlike the other two, never reaches their
-#       own, deeper reading of the remote text either. It does not
-#       itself recurse into a wrapper's own remote or -c text for a
-#       destination nested there — but a heredoc's own body stays
+#       own, deeper reading of the remote text either. Each line of
+#       <command> is a command of its own, as after a `;`. It does
+#       not itself recurse into a wrapper's own remote or -c text
+#       for a destination nested there. An ssh whose far shell reads
+#       stdin (no remote command, or sh/bash/… without -c) fed by a
+#       pipeline gets the lines a printf or echo upstream writes
+#       appended to its segment field, each after a `;`, so
+#       hostwarden_coord_kind reads them as that host's commands the
+#       way it reads a heredoc body. A heredoc's own body stays
 #       part of the segment field whole, an operator its own body
 #       carries (`ssh host 'sh -s' <<EOS` with a body line `sleep 1
 #       && systemctl restart nginx`) never splitting this function
@@ -230,10 +236,78 @@ BEGIN {
 
 hostwarden_coord_dest() {
   printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK$HOSTWARDEN_COORD_DEST_AWK"'
-    BEGIN { RS = "\001" }
+    BEGIN { RS = "\001"; HC_NL_SEP = 1 }
+    # hc_feed(v, i0, nw) — what an upstream printf or echo at v[i0]
+    # writes into a pipe: echo its operands joined by one blank,
+    # printf its format with each conversion taking the next
+    # argument, reused while arguments are left (man printf), and a
+    # literal \n read as the newline it prints; "" for any other
+    # command, whose output cannot be read here.
+    function hc_feed(v, i0, nw,    c, k, out, fmt, i, ch, used) {
+      c = base(v[i0]); out = ""
+      if (c == "echo") {
+        for (k = i0 + 1; k <= nw && v[k] ~ /^-[neE]+$/; k++) ;
+        if (k <= nw) out = joinw(v, k, nw)
+      } else if (c == "printf") {
+        # bash -v assigns to a variable and writes nothing; -- ends
+        # the options.
+        k = i0 + 1
+        if (v[k] == "-v") return ""
+        if (v[k] == "--") k++
+        if (k > nw) return ""
+        fmt = v[k]; k++
+        do {
+          used = 0
+          for (i = 1; i <= length(fmt); i++) {
+            ch = substr(fmt, i, 1)
+            if (ch != "%") { out = out ch; continue }
+            if (substr(fmt, i + 1, 1) == "%") { out = out "%"; i++; continue }
+            if (!match(substr(fmt, i), /^%[-+ #0-9.]*[A-Za-z]/)) { out = out ch; continue }
+            out = out (k <= nw ? v[k++] : "")
+            used = 1
+            i += RLENGTH - 1
+          }
+        } while (used && k <= nw)
+      } else return ""
+      gsub(/\\n/, "\n", out)
+      return out "\n"
+    }
+    # hc_stdin_shell(v, j, nw) — true when the remote command in
+    # v[j..nw] is a shell reading its commands from stdin: none at
+    # all (the login shell), or sh, bash and the like, or su,
+    # without -c, past env with its options and assignments and a
+    # plain VAR=value prefix.
+    function hc_stdin_shell(v, j, nw,    R, nr, r, c) {
+      if (j > nw) return 1
+      nr = hc_words(joinw(v, j, nw), R)
+      r = 1
+      while (1) {
+        r = hc_skip_prefix(R, r, nr)
+        if (r > nr) return 1
+        if (R[r] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { r++; continue }
+        if (base(R[r]) != "env") break
+        for (r++; r <= nr && R[r] ~ /^-/; r++) {
+          if (R[r] ~ /^-S|^--split-string/) return 0
+          if (R[r] ~ /^(-u|--unset|-C|--chdir)$/) r++
+        }
+      }
+      c = base(R[r])
+      if (c !~ /^(sh|bash|dash|ksh|zsh|ash|su)$/) return 0
+      for (r++; r <= nr; r++)
+        if (R[r] ~ /^-[A-Za-z]*c$/ || R[r] ~ /^--command/) return 0
+      return 1
+    }
     {
       n = hc_segments($0, RAW)
+      for (si = 1; si <= n; si++) SEP[si] = HC_SEP[si]
+      feed = ""; piped = 0
       for (si = 1; si <= n; si++) {
+        # A line break right after a | continues the pipeline; an
+        # empty segment anywhere else (||, a blank line) ends it.
+        if (RAW[si] ~ /^[ \t\n]*$/) {
+          if (!(piped && SEP[si] == "\n")) { feed = ""; piped = 0 }
+          continue
+        }
         t = hc_clean(RAW[si])
         # A heredoc body, or any other embedded newline hc_clean
         # left alone, is turned into a ; before this is printed: a
@@ -245,11 +319,27 @@ hostwarden_coord_dest() {
         # survives the trip.
         gsub(/\n/, ";", t)
         nw = hc_words(t, v)
-        if (nw < 1) continue
-        i0 = hc_skip_prefix(v, 1, nw)
-        if (i0 > nw) continue
-        nd = hc_dest(v, i0, nw, D)
-        for (k = 1; k <= nd; k++) print D[k] "\t" t
+        nd = 0
+        if (nw >= 1) {
+          i0 = hc_skip_prefix(v, 1, nw)
+          if (i0 <= nw) nd = hc_dest(v, i0, nw, D)
+        }
+        # An ssh whose far shell reads its commands from stdin runs
+        # what the pipeline feeding it writes, the way it runs a
+        # heredoc body: those lines join its segment.
+        f = ""
+        if (nd == 1 && HC_AT > 0 && piped && feed != "" \
+            && hc_stdin_shell(v, HC_AT + 1, nw)) {
+          f = feed
+          gsub(/\n+/, ";", f)
+          sub(/;$/, "", f)
+          f = ";" f
+        }
+        for (k = 1; k <= nd; k++) print D[k] "\t" t f
+        if (SEP[si] == "|") {
+          if (nw >= 1 && i0 <= nw) feed = feed hc_feed(v, i0, nw)
+          piped = 1
+        } else { feed = ""; piped = 0 }
       }
     }'
 }

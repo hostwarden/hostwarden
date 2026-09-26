@@ -23,18 +23,17 @@
 #     splitter: s cut on an unquoted ;/&/|/(/)/{/}/`, with a
 #     backslash escaping the very next character everywhere but
 #     inside a single-quoted run, and an unquoted newline cut the
-#     same way only when the caller sets HC_NL_SEP first — never
-#     hostwarden_coord_dest's own top-level call, whose segment has
-#     to stay whole, embedded newline and all, for a heredoc body to
-#     still be there once hostwarden_coord_kind reads it in turn;
-#     always hc_expand's own calls, where a multi-line remote
-#     command — a heredoc's own body among them — is read the same
-#     one-command-per-line way `;` already is. An unquoted << that
-#     really opens a heredoc (hc_heredoc_span, matched the same
-#     loose way hc_heredocs matches one) is never split on either,
-#     whatever operator its own body carries, at every call — this
-#     is what keeps a heredoc's body part of hostwarden_coord_dest's
-#     own segment in the first place. An & right next to a < or >
+#     same way when the caller sets HC_NL_SEP first, as every
+#     caller does: a multi-line command, remote command or heredoc
+#     body is read the same one-command-per-line way `;` already
+#     is. HC_SEP[1..n] is the character that ended each segment,
+#     "" for the last, so a caller can tell a pipe from any other
+#     separator. An unquoted << that really opens a heredoc
+#     (hc_heredoc_span, matched the same loose way hc_heredocs
+#     matches one) is never split on either, whatever operator or
+#     newline its own body carries — this is what keeps a heredoc's
+#     body part of the segment that opens it, for
+#     hostwarden_coord_kind to read in turn. An & right next to a < or >
 #     (2>&1, >&2, bash's own &>file) duplicates or redirects a file
 #     descriptor and is never a separator there, only a bare & (a
 #     real background operator) is. RAW[1..n] keeps each
@@ -47,7 +46,8 @@
 #   hc_words(s, W) is the real word reader hc_segments never was: a
 #     single-quoted run is literal to its close; a double-quoted
 #     run is literal except a backslash escapes the very next
-#     character; a single quote inside a double-quoted run is an
+#     character the shell escapes there ($ ` " \ newline) and is kept
+#     before any other; a single quote inside a double-quoted run is an
 #     ordinary character, never a quote of its own — the very thing
 #     `sudo bash -c '…'` sent through an outer double-quoted ssh
 #     argument needs; and two quoted spans with nothing between
@@ -110,9 +110,10 @@ function base(w) { sub(/^.*\//, "", w); return w }
 
 # hc_heredoc_span(s, i) — s[i] is a < that opens <<[-]DELIM: the
 # number of characters, from i, a real heredoc there spans through
-# its own closing line, inclusive; 0 when no line below matches
-# DELIM on its own, so it never was one. DELIM matched the same
-# loose way hc_heredocs matches one.
+# its own closing line, the newline after it not included, since it
+# ends the command the heredoc belongs to; 0 when no line below
+# matches DELIM on its own, so it never was one. DELIM matched the
+# same loose way hc_heredocs matches one.
 function hc_heredoc_span(s, i,
     rest, mm, dd, ddash, nlpos, bodystart, brest, blen, p, nl2, lineend, line2, tline2) {
   rest = substr(s, i)
@@ -129,7 +130,7 @@ function hc_heredoc_span(s, i,
   blen = length(brest); p = 1
   while (p <= blen) {
     nl2 = index(substr(brest, p), "\n")
-    if (nl2 > 0) { lineend = p + nl2 - 1; line2 = substr(brest, p, nl2 - 1) }
+    if (nl2 > 0) { lineend = p + nl2 - 2; line2 = substr(brest, p, nl2 - 1) }
     else { lineend = blen; line2 = substr(brest, p) }
     tline2 = line2
     if (ddash) sub(/^\t+/, "", tline2)
@@ -176,11 +177,11 @@ function hc_segments(s, RAW,
       continue
     }
     if (index(";&|(){}`", c) > 0 || (c == "\n" && HC_NL_SEP)) {
-      RAW[n] = cur; n++; cur = ""; continue
+      RAW[n] = cur; HC_SEP[n] = c; n++; cur = ""; continue
     }
     cur = cur c
   }
-  RAW[n] = cur
+  RAW[n] = cur; HC_SEP[n] = ""
   return n
 }
 
@@ -275,9 +276,14 @@ function hc_words(s, W,
       else cur = cur c
       continue
     }
+    # In double quotes a backslash escapes only $ ` " \ and a
+    # newline; before any other character it stays, as the shell
+    # keeps it: the \n of a printf format reaches printf.
     if (qc == "\"") {
       if (c == "\"") qc = ""
-      else if (c == "\\" && i < slen) { i++; cur = cur substr(s, i, 1) }
+      else if (c == "\\" && i < slen && substr(s, i + 1, 1) ~ /[$`"\\\n]/) {
+        i++; cur = cur substr(s, i, 1)
+      }
       else cur = cur c
       continue
     }

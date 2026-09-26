@@ -95,6 +95,12 @@ export LC_ALL=C
 lsblk
 ssh db1.example.com wipefs -a /dev/sda
 EOF"
+# The line after a heredoc's closing line is a command of its own,
+# never part of the heredoc's segment.
+off_bash deny s-web1 $W "ssh $W sh -s <<'EOF'
+lsblk
+EOF
+mkfs.ext4 /dev/sda1"
 off_bash deny s-web1 $W "ssh $W '\$SUDO ssh db1.example.com wipefs -a /dev/sda'"
 off_bash deny s-web1 $W "ssh $W '/usr/bin/ssh db1.example.com mkfs.ext4 /dev/sda1'"
 off_bash pass s-local localhost 'sudo mkfs.ext4 /dev/sda1'
