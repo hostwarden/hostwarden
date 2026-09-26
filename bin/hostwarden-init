@@ -107,20 +107,52 @@ check_hooks() {
   done
 }
 
+# The personal files a clone never brings (templates/workspace/
+# .gitignore), which a clone in place of a new workspace carries
+# across from it.
+PERSONAL="user.md opencode.json blacklist.md readonly.md"
+
 # pristine — memory/ is a workspace nothing has been written to:
 # no commit, and no file but the ones init puts there, unchanged,
-# the ssh_config it writes and the personal user.md, which a clone
-# carries across. Only such a one makes way for a clone; anything
-# more is somebody's work.
+# the ssh_config it writes and the personal files. Only such a one
+# makes way for a clone; anything more is somebody's work.
 pristine() {
   [ -d memory/.git ] || return 1
   if git -C memory rev-parse -q --verify HEAD >/dev/null; then return 1; fi
   find memory -path memory/.git -prune -o ! -type d -print |
     while IFS= read -r f; do
-      case ${f#memory/} in ssh_config|user.md) continue ;; esac
+      case " ssh_config $PERSONAL " in *" ${f#memory/} "*) continue ;; esac
       cmp -s "$f" "templates/workspace/${f#memory/}" || echo "$f"
     done | grep -q . && return 1
   return 0
+}
+
+# show <url> — <url> fit to print: a user or token in it taken out
+# (rules/secrets.md), as bin/hostwarden-mirror does.
+show() { printf '%s\n' "$1" | sed -E 's#(://)[^/@]*@#\1#'; }
+
+# resolve_url <url> — the address git and ssh really reach for
+# <url>: git's insteadOf rewrites applied, and an ssh host alias
+# replaced by the HostName the user's ssh configuration gives it,
+# so a github-work alias is checked as github.com.
+resolve_url() {
+  ru=$(git ls-remote --get-url -- "$1" 2>/dev/null) || ru=$1
+  case $ru in
+  ssh://*) ru_host=$(printf '%s\n' "$ru" |
+      sed -E 's#^ssh://([^/@]*@)?([^/:]+).*#\2#') ;;
+  *://*|/*|./*|../*) printf '%s\n' "$ru"; return ;;
+  *:*) ru_host=$(printf '%s\n' "$ru" | sed -E 's#^([^@:/]*@)?([^:/]+):.*#\2#') ;;
+  *) printf '%s\n' "$ru"; return ;;
+  esac
+  ru_real=$(ssh -G -- "$ru_host" 2>/dev/null |
+    awk '$1 == "hostname" { print $2; exit }')
+  if [ -z "$ru_real" ] || [ "$ru_real" = "$ru_host" ]; then
+    printf '%s\n' "$ru"; return
+  fi
+  ru_esc=$(printf '%s' "$ru_host" | sed 's/[].[\*^$#]/\\&/g')
+  printf '%s\n' "$ru" | sed -E \
+    -e "s#^(ssh://([^/@]*@)?)$ru_esc([:/])#\\1$ru_real\\3#" \
+    -e "t" -e "s#^([^@:/]*@)?$ru_esc:#\\1$ru_real:#"
 }
 
 # github_slug <url> — owner/repo of a github.com URL, or nothing.
@@ -238,11 +270,12 @@ if [ -n "$CLONE" ]; then
     exit 1
   fi
   if [ -n "$REPLACE" ]; then
-    # user.md is personal, so the clone has none: this machine's
-    # answers stay.
-    if [ -f memory/user.md ] && [ ! -e memory.clone/user.md ]; then
-      cp -p memory/user.md memory.clone/
-    fi
+    # The personal files are not in the clone: this machine's stay.
+    for f in $PERSONAL; do
+      if [ -f "memory/$f" ] && [ ! -e "memory.clone/$f" ]; then
+        cp -p "memory/$f" memory.clone/
+      fi
+    done
     rm -rf memory
   fi
   mv memory.clone memory
@@ -255,9 +288,9 @@ if [ -n "$CLONE" ]; then
     echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links,"
     echo "  then clone again."
   fi
-  a=$(anon_url "$CLONE")
+  a=$(anon_url "$(resolve_url "$CLONE")")
   if [ -n "$a" ] && readable_anonymously "$a"; then
-    echo "hostwarden: WARNING — $CLONE is public: anyone can read the"
+    echo "hostwarden: WARNING — $(show "$CLONE") is public: anyone can read the"
     echo "  hostnames, addresses and network layout it holds. Make it"
     echo "  private now."
   else
@@ -348,7 +381,7 @@ publish() {
   url=$1
   cur=$(git -C memory remote get-url origin 2>/dev/null) || cur=
   if [ -n "$cur" ] && [ "$cur" != "$url" ]; then
-    echo "hostwarden-init: memory/ already syncs with $cur." >&2
+    echo "hostwarden-init: memory/ already syncs with $(show "$cur")." >&2
     return 1
   fi
   # The hooks refuse a commit and a push unscanned once there is a
@@ -364,17 +397,18 @@ publish() {
   # gh knows GitHub's answer, a repository that does not exist yet
   # included. Anywhere else, a read without any credential is the
   # test: what anyone can list is public.
-  slug=$(github_slug "$url")
+  real=$(resolve_url "$url")
+  slug=$(github_slug "$real")
   vis=
   if [ -n "$slug" ] && command -v gh >/dev/null 2>&1 \
       && gh auth status --hostname github.com >/dev/null 2>&1; then
     vis=$(gh repo view "$slug" --json visibility --jq .visibility \
       2>/dev/null) || vis=missing
   fi
-  anon=$(anon_url "$url")
+  anon=$(anon_url "$real")
   if [ "$vis" = PUBLIC ] || { [ -z "$vis" ] && [ -n "$anon" ] \
       && readable_anonymously "$anon"; }; then
-    echo "hostwarden-init: $url is public: anyone can read it, and the" >&2
+    echo "hostwarden-init: $(show "$url") is public: anyone can read it, and the" >&2
     echo "  workspace holds hostnames, addresses and the layout of your" >&2
     echo "  network. Make it private or choose another, then run this again." >&2
     return 1
@@ -385,9 +419,11 @@ publish() {
   fi
 
   if [ -z "$cur" ]; then
-    if [ "$vis" != missing ] && refs=$(git ls-remote -- "$url" 2>&1); then
+    # Only stdout lists refs: a redirect or a new host key is
+    # reported on stderr, which is kept for the failure message.
+    if [ "$vis" != missing ] && refs=$(git ls-remote -- "$url" 2>"$ERRF"); then
       if [ -n "$refs" ]; then
-        echo "hostwarden-init: $url already holds commits. To join the" >&2
+        echo "hostwarden-init: $(show "$url") already holds commits. To join the" >&2
         echo "  workspace in it, use --clone; to publish this one, give an" >&2
         echo "  empty repository." >&2
         return 1
@@ -398,12 +434,16 @@ publish() {
       echo "hostwarden: created $slug on GitHub, private"
     elif [ -n "$vis" ] && [ "$vis" != missing ]; then
       echo "hostwarden-init: $slug exists, but git cannot reach it:" >&2
-      printf '%s\n' "$refs" | sed 's/^/  /' >&2
+      show "$(cat "$ERRF")" | sed 's/^/  /' >&2
       return 1
     else
-      echo "hostwarden-init: $url does not exist, or git cannot reach it" >&2
-      echo "  with your credentials. Create it private and empty — no README," >&2
-      echo "  licence or .gitignore — then run this again:" >&2
+      echo "hostwarden-init: $(show "$url") does not exist, or git cannot" >&2
+      echo "  reach it with your credentials. What git said:" >&2
+      [ ! -s "$ERRF" ] || show "$(cat "$ERRF")" | sed 's/^/    /' >&2
+      echo "  Where that names the cause — credentials, a host key, the" >&2
+      echo "  network — deal with it; where the repository is missing," >&2
+      echo "  create it private and empty — no README, licence or" >&2
+      echo "  .gitignore. Then run this again:" >&2
       if [ -n "$slug" ]; then
         echo "    gh repo create $slug --private" >&2
         echo "  or https://github.com/new, Visibility: Private." >&2
@@ -419,11 +459,15 @@ publish() {
     || return 1
   branch=$(git -C memory symbolic-ref --short HEAD) || return 1
   git -C memory push --quiet -u origin "$branch" || return 1
-  echo "hostwarden: memory/ now syncs with $url"
+  echo "hostwarden: memory/ now syncs with $(show "$url")"
 }
 
 if [ -n "$REMOTE" ]; then
-  publish "$REMOTE" || exit $?
+  ERRF=$(mktemp)
+  rc=0
+  publish "$REMOTE" || rc=$?
+  rm -f "$ERRF"
+  [ "$rc" -eq 0 ] || exit "$rc"
 fi
 
 # Workspace remote: none, under # Preferences in the personal

@@ -67,11 +67,13 @@ sh "$P/bin/hostwarden-init" --local >/dev/null \
   && grep -q '^Language: German$' "$P/memory/user.md" && ok \
   || bad "init --local did not record Workspace remote: none once"
 # --clone takes the place of a workspace nothing was written to, and
-# keeps its personal user.md; one that holds work stays.
+# keeps its personal files; one that holds work stays.
+echo '{}' > "$P/memory/opencode.json"
 sh "$P/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null 2>&1 \
   && git -C "$P/memory" rev-parse -q --verify HEAD >/dev/null \
-  && grep -q '^Language: German$' "$P/memory/user.md" && ok \
-  || bad "init --clone did not replace a new workspace, user.md kept"
+  && grep -q '^Language: German$' "$P/memory/user.md" \
+  && [ -f "$P/memory/opencode.json" ] && ok \
+  || bad "init --clone did not replace a new workspace, personal files kept"
 mode_is operations "$P"
 Q=$(checkout used)
 sh "$Q/bin/hostwarden-init" >/dev/null
