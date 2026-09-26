@@ -207,9 +207,9 @@ SCHEMA='{"type":"object","required":["report","findings"],
 "quote":{"type":["string","null"]}}}}}}'
 
 hostwarden_resolver
-# Caches hostwarden_resolve_ok's answer for a name across every host
-# and hop this run checks, so one unreachable entry does not ask dig
-# again for each of them in turn.
+# Caches hostwarden_resolve_ok's failures for a name across every
+# host and hop this run checks, so one unreachable entry does not
+# wait out dig again for each of them in turn.
 # shellcheck disable=SC2034 # read by hostwarden_resolve_ok in resolve.sh
 HOSTWARDEN_RESOLVE_CACHE=$WORK/resolve-ok
 
