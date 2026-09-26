@@ -35,11 +35,17 @@
 #       <command> is a command of its own, as after a `;`. It does
 #       not itself recurse into a wrapper's own remote or -c text
 #       for a destination nested there. An ssh whose far shell reads
-#       stdin (hc_stdin_shell: no remote command, su, sh -s, …) fed by a
+#       stdin (hc_script_reads: anything but a command that keeps it
+#       as data, such as cat or a script file) fed by a
 #       pipeline gets the lines a printf or echo upstream writes (hc_feed)
 #       appended to its segment field, each after a `;`, so
 #       hostwarden_coord_kind reads them as that host's commands the
-#       way it reads a heredoc body. A heredoc's own body stays
+#       way it reads a heredoc body — never with `-n` or `-f`, or with
+#       its stdin redirected, where the pipe never reaches it. A
+#       heredoc body its command reads only as data (`ssh host 'cat >
+#       /tmp/notes' <<EOS`, hc_databodies), and with a quoted
+#       delimiter or nothing the shell expands, is dropped from the
+#       segment field, opener and closing line kept. Any other stays
 #       part of the segment field whole, an operator its own body
 #       carries (`ssh host 'sh -s' <<EOS` with a body line `sleep 1
 #       && systemctl restart nginx`) never splitting this function
@@ -163,21 +169,16 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 # its command at v[i0] (past hc_skip_prefix): the lowercased names
 # an ssh, sftp, scp or rsync there was given into D[1..n], n
 # returned. For ssh and sftp, HC_AT is the index of the destination
-# word, so a caller can read the remote command after it; 0 for
-# every other command. Shared by hostwarden_coord_dest and
+# word, and HC_REMOTE and HC_NOIN what hc_ssh_dest sets: where the
+# remote command starts, and whether -n or -f keeps stdin from it;
+# HC_AT is 0 for every other command. Shared by hostwarden_coord_dest and
 # hostwarden_coord_rest, appended to HOSTWARDEN_COORD_AWK.
 HOSTWARDEN_COORD_DEST_AWK='
 function hc_dest(v, i0, nw, D,    c, i, n, w, d) {
   n = 0; HC_AT = 0
   c = base(v[i0])
   if (c == "ssh" || c == "sftp") {
-    i = i0 + 1
-    while (i <= nw) {
-      w = v[i]
-      if (w == "--") { i++; break }
-      if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
-      break
-    }
+    i = hc_ssh_dest(v, i0, nw)
     if (i <= nw) {
       d = v[i]
       # [ssh://][user@]host[:port], a v6 address bare or as
@@ -236,7 +237,7 @@ BEGIN {
 
 hostwarden_coord_dest() {
   printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK$HOSTWARDEN_COORD_DEST_AWK"'
-    BEGIN { RS = "\001"; HC_NL_SEP = 1 }
+    BEGIN { RS = "\001"; HC_NL_SEP = 1; MAXDEPTH = 8 }
     {
       n = hc_segments($0, RAW)
       for (si = 1; si <= n; si++) SEP[si] = HC_SEP[si]
@@ -249,6 +250,10 @@ hostwarden_coord_dest() {
           continue
         }
         t = hc_clean(RAW[si])
+        inredir = HC_STDIN_REDIR
+        # A heredoc body its command only reads as data (cat > file,
+        # a script file) is dropped: the far side runs none of it.
+        if (index(t, "<<") > 0) t = hc_databodies(t)
         # A heredoc body, or any other embedded newline hc_clean
         # left alone, is turned into a ; before this is printed: a
         # caller reads one "<dest>\t<segment>" record per line, so
@@ -266,11 +271,12 @@ hostwarden_coord_dest() {
         }
         # An ssh whose far shell reads its commands from stdin runs
         # what the pipeline feeding it writes, the way it runs a
-        # heredoc body: those lines join its segment.
+        # heredoc body: those lines join its segment. With -n or -f,
+        # or its stdin redirected, the pipe never reaches it.
         f = ""
         if (nd == 1 && HC_AT > 0 && base(v[i0]) == "ssh" \
-            && piped && feed != "" \
-            && hc_stdin_shell(v, HC_AT + 1, nw)) {
+            && piped && feed != "" && !HC_NOIN && !inredir \
+            && (HC_REMOTE > nw || hc_script_reads(joinw(v, HC_REMOTE, nw), 1))) {
           f = feed
           gsub(/\n+/, ";", f)
           sub(/;$/, "", f)

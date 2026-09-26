@@ -108,23 +108,25 @@
 HOSTWARDEN_COORD_AWK='
 function base(w) { sub(/^.*\//, "", w); return w }
 
+# hc_is_shell(c) — true when command name c is a shell that reads
+# its commands from stdin when given no script: the Bourne family,
+# csh and tcsh (FreeBSD root), fish and the rest.
+function hc_is_shell(c) {
+  return c ~ /^(sh|bash|dash|ksh|ksh93|mksh|oksh|posh|yash|zsh|ash|rbash|csh|tcsh|fish)$/
+}
+
 # hc_heredoc_span(s, i) — s[i] is a < that opens <<[-]DELIM: the
 # number of characters, from i, a real heredoc there spans through
 # its own closing line, the newline after it not included, since it
 # ends the command the heredoc belongs to; 0 when no line below
-# matches DELIM on its own, so it never was one. DELIM matched the
-# same loose way hc_heredocs matches one.
+# matches DELIM on its own, so it never was one. DELIM read by
+# hc_opener, as hc_heredocs reads one.
 function hc_heredoc_span(s, i,
-    rest, mm, dd, ddash, nlpos, bodystart, brest, blen, p, nl2, lineend, line2, tline2) {
+    rest, dd, ddash, nlpos, bodystart, brest, blen, p, nl2, lineend, line2, tline2) {
   rest = substr(s, i)
-  if (!match(rest, "^<<-?[ \t]*[\047\"]?[A-Za-z_][A-Za-z0-9_]*")) return 0
-  mm = substr(rest, RSTART, RLENGTH)
-  dd = mm
-  sub(/^<<-?[ \t]*/, "", dd)
-  gsub("^[\047\"]|[\047\"]$", "", dd)
-  ddash = (mm ~ /^<<-/)
   nlpos = index(rest, "\n")
-  if (nlpos == 0) return 0
+  if (nlpos == 0 || !hc_opener(substr(rest, 1, nlpos - 1))) return 0
+  dd = HO_DELIM; ddash = HO_DASH
   bodystart = nlpos + 1
   brest = substr(rest, bodystart)
   blen = length(brest); p = 1
@@ -209,6 +211,10 @@ function hc_dropredir(s,
     # HC_REDIRS collects what is dropped, one "true <redirection>"
     # line each, for hostwarden_coord_rest; HC_REDIR_OPEN is set
     # where a target is not in this span, a quoted one.
+    # HC_STDIN_REDIR is set where stdin is redirected, a heredoc
+    # or here-string included, for hostwarden_coord_dest; hc_clean
+    # clears it first, so it speaks for one segment.
+    if (matched ~ /^0?</) HC_STDIN_REDIR = 1
     if (matched !~ /^<</) {
       HC_REDIRS = HC_REDIRS "true " matched "\n"
       if (matched ~ /[<>&][ \t]*$/) HC_REDIR_OPEN = 1
@@ -238,6 +244,7 @@ function hc_dropredir(s,
 function hc_clean(seg,
     out, i, c, qc, esc, slen, unq) {
   out = ""; unq = ""; qc = ""; esc = 0; slen = length(seg)
+  HC_STDIN_REDIR = 0
   for (i = 1; i <= slen; i++) {
     c = substr(seg, i, 1)
     if (esc) {
@@ -315,79 +322,343 @@ function joinw(w, i, n,    s, k) {
 # (the rules/ssh-connections.md own `sh -s` bundling idiom — `ssh …
 # host` then a quoted `sh -s`, then a quoted `<<EOS` heredoc marker
 # — a whole multi-line here document as one Bash tool call) read
-# out and each body handed to
-# hc_expand in its own right, one depth deeper, so `systemctl
-# restart nginx` inside it is read the same as it would be on an
-# ordinary command line. Returns s with each such span collapsed to
-# one space, for hc_segments to read what is left the usual way.
-# DELIM is matched loosely — an identifier-shaped word, quoted or
-# not, is enough, the exact quoting a real shell would need for it
-# is not read — over-matching (the safe direction) at worst treats
-# an ordinary "<<" mid-line (an arithmetic shift, a banner) as the
-# start of one: it either finds a real terminator line further down
-# (harmless: its body still gets read too) or none at all, and only
-# then is this read back as never having been a heredoc to begin
-# with — every line kept exactly as it was, not one of them lost,
-# since losing everything past a false match would be a far worse
-# fail-open than reading one construct wrong ever is. A <<< here-
-# string is never mistaken for one: it never has an identifier-
-# shaped word starting right at its own two <, only one line
-# further in.
+# out, and each body its command reads as commands (hc_body_cmds)
+# handed to hc_expand in its own right, one depth deeper, so
+# `systemctl restart nginx` inside it is read the same as it would
+# be on an ordinary command line. Returns s with each such span
+# collapsed to one space, for hc_segments to read what is left the
+# usual way. DELIM is matched loosely (hc_opener) — over-matching
+# (the safe direction) at worst treats an ordinary "<<" mid-line
+# (an arithmetic shift, a banner) as the start of one: it either
+# finds a real terminator line further down (harmless: its body
+# still gets read too) or none at all, and only then is this read
+# back as never having been a heredoc to begin with — every line
+# kept exactly as it was, not one of them lost, since losing
+# everything past a false match would be a far worse fail-open than
+# reading one construct wrong ever is.
 function hc_heredocs(s, depth,
-    LN, nlines, i, line, pos, m, dashed, delim, pre, post, body, tline, j, found, out, qc, own) {
-  # A single or double quote around DELIM, matched via a dynamic
-  # (string-built) regex throughout this function rather than a
-  # /.../ literal, since a literal quote character in the awk
-  # source here would close the single-quoted shell string
-  # HOSTWARDEN_COORD_AWK itself is written as.
-  qc = "[\047\"]"
+    LN, nlines, i, line, pre, post, body, j, k, out, q, qs, qb) {
   nlines = split(s, LN, "\n")
-  out = ""
+  out = ""; qs = ""
   for (i = 1; i <= nlines; i++) {
     line = LN[i]
-    pos = index(line, "<<")
-    if (pos > 0 && substr(line, pos, 3) != "<<<" \
-        && match(substr(line, pos), "^<<-?[ \t]*" qc "?[A-Za-z_][A-Za-z0-9_]*")) {
-      m = substr(line, pos, RLENGTH)
-      dashed = (m ~ /^<<-/)
-      delim = m
-      sub(/^<<-?[ \t]*/, "", delim)
-      gsub("^" qc "|" qc "$", "", delim)
-      pre = substr(line, 1, pos - 1)
-      post = substr(line, pos + RLENGTH)
-      gsub("^" qc "|" qc "$", "", post)
-      body = ""; found = 0
-      for (j = i + 1; j <= nlines; j++) {
-        tline = LN[j]
-        if (dashed) sub(/^\t+/, "", tline)
-        if (tline == delim) { found = 1; break }
-        body = body LN[j] "\n"
-      }
-      # No line below matches DELIM on its own: this was never a
-      # real heredoc (an ordinary << in the text, arithmetic or
-      # otherwise, with nothing to close it) — never assume it
-      # swallowed the rest of the command, which is what actually
-      # happened once and is a worse loss than misreading a single
-      # word ever is. Every line, this one included, is left
-      # exactly as it is, and the scan carries on from the next one
-      # as if this line had never matched at all.
-      if (found) {
-        # With HC_DATA_SKIP (hostwarden_coord_rest), a body that cat
-        # or tee owns, the command the << belongs to, piped nowhere,
-        # is data, not commands.
-        own = pre
-        sub(/^.*[;&|(]/, "", own)
-        if (!(HC_DATA_SKIP && own ~ /^[ \t]*((sudo|exec)[ \t]+)?(cat|tee)([ \t]|$)/ \
-            && post !~ /\|/))
-          hc_expand(body, depth + 1)
-        i = j
-        out = out pre " " post "\n"
-        continue
-      }
+    # No line below matches DELIM on its own: this was never a real
+    # heredoc (an ordinary << in the text, arithmetic or otherwise,
+    # with nothing to close it) — never assume it swallowed the rest
+    # of the command, which is what actually happened once and is a
+    # worse loss than misreading a single word ever is. Every line,
+    # this one included, is left exactly as it is, and the scan
+    # carries on from the next one as if this line had never matched
+    # at all.
+    if (hc_opener(line) && (j = hc_closer(LN, i, nlines)) > 0) {
+      pre = HO_PRE; post = HO_POST; q = HO_QUOTED
+      body = ""
+      for (k = i + 1; k < j; k++) body = body LN[k] "\n"
+      # As in hc_databodies: a heredoc in a double-quoted string.
+      HO_INDQ = (hc_qstate(pre, qs) == "\"")
+      qb = hc_qstate(line "\n", qs)
+      if (hc_body_cmds(pre, post, depth, body, q)) hc_expand(body, depth + 1)
+      qs = (qb == "") ? "" : hc_qstate(body LN[j] "\n", qb)
+      i = j
+      out = out pre " " post "\n"
+      continue
     }
+    qs = hc_qstate(line "\n", qs)
     out = out line "\n"
   }
   return out
+}
+
+# hc_opener(line) — true when line opens a heredoc: a << (never a
+# <<< here-string, which never has an identifier-shaped word right
+# at its own two <) and an identifier-shaped DELIM, quoted or not,
+# the exact quoting a real shell would need for it not read. Sets
+# HO_PRE, the text before the <<, HO_POST, the text after DELIM,
+# HO_DELIM, HO_DASH (<<-) and HO_QUOTED (DELIM quoted, the body
+# not expanded). A single or double quote around DELIM
+# is matched via a dynamic (string-built) regex rather than a /.../
+# literal, since a literal quote character in the awk source here
+# would close the single-quoted shell string HOSTWARDEN_COORD_AWK
+# itself is written as.
+function hc_opener(line,    pos, m, qc) {
+  qc = "[\047\"]"
+  pos = index(line, "<<")
+  if (pos == 0 || substr(line, pos, 3) == "<<<" \
+      || !match(substr(line, pos), "^<<-?[ \t]*" qc "?[A-Za-z_][A-Za-z0-9_]*"))
+    return 0
+  m = substr(line, pos, RLENGTH)
+  HO_DASH = (m ~ /^<<-/)
+  HO_QUOTED = (m ~ qc)
+  HO_DELIM = m
+  sub(/^<<-?[ \t]*/, "", HO_DELIM)
+  gsub("^" qc "|" qc "$", "", HO_DELIM)
+  HO_PRE = substr(line, 1, pos - 1)
+  HO_POST = substr(line, pos + RLENGTH)
+  gsub("^" qc "|" qc "$", "", HO_POST)
+  return 1
+}
+
+# hc_closer(LN, i, nlines, quoted) — the index of the line that
+# closes the heredoc hc_opener just read on LN[i], 0 where none does.
+# With quoted, a quote right after DELIM, the one that closes a
+# remote command string the heredoc sits in, still closes it.
+function hc_closer(LN, i, nlines, quoted,    j, tline) {
+  for (j = i + 1; j <= nlines; j++) {
+    tline = LN[j]
+    if (HO_DASH) sub(/^\t+/, "", tline)
+    if (quoted) sub("[\047\"]+$", "", tline)
+    if (tline == HO_DELIM) return j
+  }
+  return 0
+}
+
+# hc_body_cmds(pre, post, depth, body, quoted) — true when body, of
+# a heredoc opened after pre, with post after its delimiter, is read
+# as commands: piped on (post holds a |, not a ||, where a shell
+# may read it),
+# fed to a command that reads it so (hc_reads_cmds), or, its
+# delimiter not quoted, holding a $(, a backtick or a ${ cmd; }, a
+# command the shell runs while it expands the body, whoever reads
+# it. With
+# HC_DATA_SKIP (hostwarden_coord_rest), only a body that cat or tee
+# owns, the command the << belongs to, piped nowhere, is data: that
+# reader keeps a segment for the guard, and reading too much is its
+# safe side.
+# hc_expands(body, loose) — true when body holds a $(, a backtick
+# or a ${ cmd; } no backslash escapes, one the shell runs as it
+# expands an unquoted heredoc; with loose, escaped ones too: in a
+# double-quoted remote command string the local shell removes that
+# backslash before the far one expands the body.
+function hc_expands(body, loose,    i, c, n, esc) {
+  n = length(body); esc = 0
+  for (i = 1; i <= n; i++) {
+    c = substr(body, i, 1)
+    if (esc) { esc = 0; if (!loose) continue }
+    if (c == "\\") { esc = 1; continue }
+    if (c == "`") return 1
+    # $( runs a command; $(( is arithmetic, which runs none.
+    if (c == "$" && substr(body, i + 1, 1) == "(" \
+        && substr(body, i + 2, 1) != "(") return 1
+    if (c == "$" && substr(body, i + 1, 2) ~ /^\{[ \t\n|]/) return 1
+  }
+  return 0
+}
+
+# hc_qstate(text, q) — the quote text leaves open, "" for none, read
+# from state q on the same way hc_segments reads one; an unquoted #
+# that starts a word comments out the rest of its line.
+function hc_qstate(text, q,    i, c, n, esc) {
+  n = length(text); esc = 0
+  for (i = 1; i <= n; i++) {
+    c = substr(text, i, 1)
+    if (esc) { esc = 0; continue }
+    if (c == "\\" && q != "\047") { esc = 1; continue }
+    if (q != "") { if (c == q) q = ""; continue }
+    if (c == "#" && (i == 1 || substr(text, i - 1, 1) ~ /[ \t\n;&|(]/)) {
+      while (i < n && substr(text, i + 1, 1) != "\n") i++
+      continue
+    }
+    if (c == "\"" || c == "\047") q = c
+  }
+  return q
+}
+
+function hc_body_cmds(pre, post, depth, body, quoted,    own, loose) {
+  # HO_INDQ, set by hc_databodies, speaks for this one call.
+  loose = HO_INDQ; HO_INDQ = 0
+  # A pipe on, never a || (no pipe at all).
+  if (post ~ /(^|[^|])\|([^|]|$)/) return 1
+  if (HC_DATA_SKIP) {
+    own = pre
+    sub(/^.*[;&|(]/, "", own)
+    return own !~ /^[ \t]*((sudo|exec)[ \t]+)?(cat|tee)([ \t]|$)/
+  }
+  if (!quoted && hc_expands(body, loose)) return 1
+  return hc_reads_cmds(pre, depth)
+}
+
+# hc_reads_cmds(s, depth) — true when the last command of s, the
+# one a heredoc opened after s feeds, reads its stdin as commands
+# (hc_cmd_reads). An ssh host running `cat > /tmp/notes` or `sh
+# /tmp/check.sh` never runs what it is fed. Past MAXDEPTH, true.
+function hc_reads_cmds(s, depth,    SG, ns) {
+  if (depth > MAXDEPTH) return 1
+  ns = hc_segments(s, SG)
+  return hc_cmd_reads(SG[ns], depth)
+}
+
+# hc_script_reads(s, depth) — true when the command string s, an
+# ssh remote command or a -c script, reads its stdin as commands:
+# any of its commands does (hc_cmd_reads: `sh -s; echo rc`, `bash -s
+# | tee log`, `cat | sh`), or, after an earlier one, runs a script
+# file that one may have written (`cat > f && sh f`). `cat > f &&
+# chmod 600 f` runs nothing it is fed.
+function hc_script_reads(s, depth,    SG, ns, k, n1) {
+  if (depth > MAXDEPTH) return 1
+  ns = hc_segments(s, SG)
+  n1 = 0
+  for (k = 1; k <= ns; k++) {
+    if (SG[k] ~ /^[ \t\n]*$/) continue
+    HC_SCRIPTFILE = 0
+    if (hc_cmd_reads(SG[k], depth)) return 1
+    if (HC_SCRIPTFILE && n1 > 0) return 1
+    n1++
+  }
+  return n1 == 0
+}
+
+# hc_cmd_reads(seg, depth) — true when the one command seg reads its
+# stdin as commands: past a sudo and the like (hc_skip_prefix) and
+# VAR=value words, a shell reading stdin (hc_stdin_shell), a shell
+# or su whose -c script does, an ssh without -n or -f whose remote
+# command does (hc_script_reads), and any other command but one
+# that keeps it as data (hc_is_data), where a wrapper such as
+# timeout, flock or runuser -- that names a shell, su, ssh or such a
+# command further on is judged by that one. `cat > /tmp/notes`, `sh
+# /tmp/check.sh` or `uptime` never runs what it is fed.
+function hc_cmd_reads(seg, depth,    t, W, nw, sr, so) {
+  sr = HC_REDIRS; so = HC_REDIR_OPEN
+  t = hc_clean(seg)
+  HC_REDIRS = sr; HC_REDIR_OPEN = so
+  nw = hc_words(t, W)
+  return hc_wreads(W, 1, nw, depth)
+}
+
+# hc_wreads(W, i, nw, depth) — hc_cmd_reads on the words W[i..nw],
+# a wrapped command read on in place, its quoted words kept whole.
+function hc_wreads(W, i, nw, depth,    i2, k, c, b) {
+  if (depth > MAXDEPTH) return 1
+  i2 = 0
+  while (i != i2) {
+    i2 = i; i = hc_skip_prefix(W, i, nw)
+    if (i <= nw && W[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) i++
+  }
+  if (i > nw) return 1
+  c = base(W[i])
+  if (c == "ssh") {
+    hc_ssh_dest(W, i, nw)
+    if (HC_NOIN) return 0
+    if (HC_REMOTE > nw) return 1
+    return hc_script_reads(joinw(W, HC_REMOTE, nw), depth + 1)
+  }
+  if (hc_is_shell(c)) {
+    for (k = i + 1; k < nw; k++)
+      if (W[k] ~ /^-[A-Za-z]*c/) return hc_script_reads(W[k + 1], depth + 1)
+    return hc_stdin_shell(W, i, nw)
+  }
+  # runuser without -u is su (runuser --help).
+  if (c == "runuser") {
+    c = "su"
+    for (k = i + 1; k <= nw; k++)
+      if (W[k] ~ /^(-u|--user)/) c = "runuser"
+  }
+  if (c == "su") {
+    for (k = i + 1; k <= nw; k++) {
+      if (W[k] ~ /^--command=/) return hc_script_reads(substr(W[k], 11), depth + 1)
+      if (k < nw && (W[k] ~ /^-[A-Za-z]*c$/ || W[k] == "--command"))
+        return hc_script_reads(W[k + 1], depth + 1)
+    }
+    return 1
+  }
+  if (hc_is_data(c)) return 0
+  # Any other command may run what it reads (xargs, at, python3 -,
+  # unshare, jexec, …): read, unless a wrapper hands the rest of its
+  # words to a command judged in turn.
+  # A shell, su or ssh first: a container, jail or user may carry a
+  # data command name (jexec mail sh, runuser -u mail -- sh).
+  for (k = i + 1; k <= nw; k++) {
+    b = (W[k] ~ /^-/) ? "" : base(W[k])
+    if (hc_is_shell(b) || b ~ /^(su|ssh)$/)
+      return hc_wreads(W, k, nw, depth + 1)
+    # A command string (flock -c, env -S), judged as a script.
+    if (W[k] ~ /[ \t]/) return hc_script_reads(W[k], depth + 1)
+  }
+  # One that starts a shell of its own where it names no command
+  # (jexec(8), lxc-attach(1)) may take a jail or container named like
+  # a data command for its target: read.
+  if (c ~ /^(jexec|lxc-attach|chroot|nsenter|unshare|systemd-nspawn|pct|machinectl)$/ \
+      || c ~ /^(newgrp|runuser|incus|lxc|bastille|iocage|docker|podman)$/)
+    return 1
+  for (k = i + 1; k <= nw; k++)
+    if (W[k] !~ /^-/ && hc_is_data(base(W[k])))
+      return hc_wreads(W, k, nw, depth + 1)
+  return 1
+}
+
+# hc_is_data(c) — true when command c keeps what it reads on stdin
+# as data, a filter, a sink or an archive, or reads none: it never
+# runs it.
+function hc_is_data(c) {
+  return c ~ /^(cat|tee|dd|sponge|head|tail|wc|sort|uniq|grep|sed|tr|cut|jq|tac|nl|xxd|cmp|diff|patch)$/ \
+    || c ~ /^(base64|gzip|gunzip|zcat|xz|unxz|bzip2|bunzip2|zstd|unzstd|tar|cpio|gpg|openssl)$/ \
+    || c ~ /^(md5sum|sha1sum|sha256sum|logger|wall|mail|mailx|sendmail)$/ \
+    || c ~ /^(chmod|chown|chgrp|mkdir|rmdir|rm|mv|cp|ln|touch|install|sync|umask|sleep)$/ \
+    || c ~ /^(true|false|:|echo|printf|uptime|date|hostname|id|whoami|ls|cd|test|\[|systemctl)$/
+}
+
+# hc_databodies(s, q0) — s, read from quote state q0 on
+# (hc_qstate), without the body of each heredoc its command
+# does not read as commands (hc_body_cmds), its opener and closing
+# lines kept, and a kept body read the same way in turn: hc_heredocs
+# own choice, for a caller that prints s
+# rather than reading it (hostwarden_coord_dest), where a remote
+# command string is not read apart first, so a heredoc inside one
+# ends on its delimiter and the closing quote (hc_closer).
+function hc_databodies(s, q0,    LN, nlines, i, j, k, out, body, qs, qb) {
+  nlines = split(s, LN, "\n")
+  out = ""; qs = q0
+  for (i = 1; i <= nlines; i++) {
+    out = out (i > 1 ? "\n" : "") LN[i]
+    if (!hc_opener(LN[i]) || (j = hc_closer(LN, i, nlines, 1)) == 0) {
+      qs = hc_qstate(LN[i] "\n", qs)
+      continue
+    }
+    # A body in a double-quoted string loses its backslashes to the
+    # local shell before the far one expands it (hc_expands).
+    HO_INDQ = (hc_qstate(HO_PRE, qs) == "\"")
+    qb = hc_qstate(LN[i] "\n", qs)
+    body = LN[i + 1]
+    for (k = i + 2; k < j; k++) body = body "\n" LN[k]
+    if (j > i + 1 && hc_body_cmds(HO_PRE, HO_POST, 0, body, HO_QUOTED))
+      out = out "\n" hc_databodies(body, qb)
+    out = out "\n" LN[j]
+    # Only in an open string does the local shell read the body and
+    # closing line as its text; otherwise they are heredoc data.
+    qs = (qb == "") ? "" : hc_qstate((j > i + 1 ? body "\n" : "") LN[j] "\n", qb)
+    i = j
+  }
+  return out
+}
+
+# hc_ssh_dest(W, i, nw) — the index of the destination word of the
+# ssh or sftp at W[i], past its options (hc_ssh_opts), nw + 1 where
+# there is none. HC_REMOTE is the index of the first word of the
+# remote command, past the options ssh also reads right after the
+# destination (`ssh host -T sh -s`, `ssh host -- sh -s`).
+function hc_ssh_dest(W, i, nw,    j) {
+  HC_NOIN = 0
+  j = hc_ssh_opts(W, i + 1, nw)
+  HC_REMOTE = (j <= nw) ? hc_ssh_opts(W, j + 1, nw) : j
+  return j
+}
+
+# hc_ssh_opts(W, j, nw) — j, advanced past ssh options, an SSHVAL
+# one with its value word, and a -- that ends them. Sets HC_NOIN
+# where one gives ssh /dev/null for stdin: -n, or -f, which implies
+# it (man ssh), alone or in a cluster before a letter that takes a
+# value.
+function hc_ssh_opts(W, j, nw,    k, ch) {
+  while (j <= nw) {
+    if (W[j] == "--") return j + 1
+    if (W[j] !~ /^-/) break
+    for (k = 2; k <= length(W[j]); k++) {
+      ch = substr(W[j], k, 1)
+      if (ch == "n" || ch == "f") HC_NOIN = 1
+      if (("-" ch) ~ SSHVAL) break
+    }
+    if (W[j] ~ SSHVAL) j += 2; else j++
+  }
+  return j
 }
 
 function hc_expand(s, depth,    RAW2, nseg2, si2, cleaned2, W2, nw2, s2) {
@@ -466,14 +737,9 @@ function hc_classify(W, i, nw, depth,
     # HC_SSHN counts the ssh calls read, at every depth, for
     # hostwarden_coord_rest.
     HC_SSHN++
-    j = i + 1
-    while (j <= nw) {
-      if (W[j] == "--") { j++; break }
-      if (W[j] ~ /^-/) { if (W[j] ~ SSHVAL) j += 2; else j++; continue }
-      break
-    }
+    j = hc_ssh_dest(W, i, nw)
     if (j > nw) return
-    j++
+    j = HC_REMOTE
     if (j > nw) return
     if (depth + 1 > MAXDEPTH) { record_clause(W, j, nw); return }
     remote = joinw(W, j, nw)
@@ -606,13 +872,19 @@ function hc_stdin_shell(v, j, nw,    R, nr, r, c) {
       if (R[r] ~ /^-[A-Za-z]*c$/ || R[r] ~ /^--command/) return 0
     return 1
   }
-  if (c !~ /^(sh|bash|dash|ksh|zsh|ash)$/) return 0
+  if (!hc_is_shell(c)) return 0
   for (r++; r <= nr; r++) {
     if (R[r] ~ /^-[A-Za-z]*c/) return 0
     if (R[r] ~ /^-[A-Za-z]*s/) return 1
-    if (R[r] ~ /^[-+]o$/) { r++; continue }
-    if (R[r] == "--") return r == nr
-    if (R[r] !~ /^[-+]/) return 0
+    # An option with its value word: set -o and shopt -O, an rc
+    # file, fish -C.
+    if (R[r] ~ /^([-+][oO]|--rcfile|--init-file|--init-command)$/ \
+        || (c == "fish" && R[r] == "-C")) { r++; continue }
+    # A script that is stdin itself.
+    if (R[r] ~ /^\/(dev\/stdin|dev\/fd\/0|proc\/self\/fd\/0)$/) return 1
+    if (R[r] == "--") { if (r == nr) return 1; continue }
+    # A script file: HC_SCRIPTFILE says so, for hc_script_reads.
+    if (R[r] !~ /^[-+]/) { HC_SCRIPTFILE = 1; return 0 }
   }
   return 1
 }
