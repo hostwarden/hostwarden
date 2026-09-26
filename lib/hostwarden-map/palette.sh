@@ -70,6 +70,14 @@ id_sh() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_' '_'; }
 # themselves and only a name with a path separator in it is mangled.
 slug_sh() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '/' '_'; }
 
+# SITE_PROV -- the provenance a site's name carries last, "(user)",
+# "(user, <date>)" or "(not asked)" (rules/network-topology.md →
+# Sites), as an awk regex both readers of a site's name strip: the
+# ## Sites line in read.sh and a host's Site: in classify.sh. Only
+# these forms, so a name's own parentheses, "Main (North)", stay.
+# shellcheck disable=SC2034 # read in read.sh and classify.sh
+SITE_PROV=' [(](user|not asked)(, [0-9]{4}-[0-9]{2}-[0-9]{2})?[)]$'
+
 # date_max <a> <b> -- the later of two YYYY-MM-DD dates on stdout,
 # "not known" losing to any real date.
 date_max() {

@@ -5,16 +5,22 @@
 # shellcheck shell=sh disable=SC2034 # read by the parts after it
 
 # --- the checkout -------------------------------------------------
+# checkout <dir> -- an operations checkout at <dir> holding what
+# bin/hostwarden-map runs on, with an empty memory/machines/.
+checkout() {
+  mkdir -p "$1/bin" "$1/lib" "$1/memory/machines"
+  cp "$REPO/bin/hostwarden-map" "$1/bin/"
+  cp "$REPO/lib/mode.sh" "$1/lib/"
+  cp -R "$REPO/lib/hostwarden-map" "$1/lib/"
+  cp "$REPO/VERSION" "$1/VERSION"
+  git -C "$1" init --quiet
+  : >"$1/memory/.hostwarden-workspace"
+}
+
 R="$TMP/repo"
-mkdir -p "$R/bin" "$R/lib"
-cp "$REPO/bin/hostwarden-map" "$R/bin/"
-cp "$REPO/lib/mode.sh" "$R/lib/"
-cp -R "$REPO/lib/hostwarden-map" "$R/lib/"
-cp "$REPO/VERSION" "$R/VERSION"
-git -C "$R" init --quiet
+checkout "$R"
 M="$R/memory"
-mkdir -p "$M/machines" "$M/clusters/prod"
-: >"$M/.hostwarden-workspace"
+mkdir -p "$M/clusters/prod"
 
 # server <name> <lines> — a memory.md with the lines given, plus a
 # fresh Onboarded:/Housekeeping: pair unless the lines already carry

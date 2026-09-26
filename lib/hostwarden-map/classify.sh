@@ -28,7 +28,7 @@ for g in "$M"/machines/*/guests.md; do
 done
 
 if [ -s "$HOSTFIELDS" ]; then
-  awk -F '\t' -v hvfile="$HVSET" -v findingsfile="$FINDINGS" '
+  awk -F '\t' -v hvfile="$HVSET" -v findingsfile="$FINDINGS" -v prov="$SITE_PROV" '
     BEGIN {
       while ((getline h < hvfile) > 0) hv[h] = 1
       while ((getline fl < findingsfile) > 0) {
@@ -37,7 +37,7 @@ if [ -s "$HOSTFIELDS" ]; then
       }
     }
     { host[$1] = 1 }
-    $2 == "Site" { s = $3; sub(/ \(.*/, "", s); site[$1] = s }
+    $2 == "Site" { s = $3; sub(prov, "", s); sub(/[ \t]+$/, "", s); site[$1] = s }
     $2 == "Cluster" { c = $3; sub(/[ \t,].*/, "", c); cluster[$1] = c }
     $2 == "Appliance" { appl[$1] = $3 }
     $2 == "Role" { role[$1] = $3 }

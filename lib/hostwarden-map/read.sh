@@ -41,22 +41,39 @@ FINDINGS="$WORK/findings.tsv"
 : >"$SITES.us"; : >"$EDGES.us"; : >"$FINDINGS.us"
 
 if [ -f "$M/topology.md" ]; then
-  awk '
+  # A site is keyed by its name, the user's own word for the place
+  # (rules/network-topology.md → A site's code): what a host's
+  # "Site:" and a range's "site <name> ·" name, and what the site's
+  # map file is called. Name, description and date are read from the
+  # site's own line and its wrapped continuation, never from a
+  # sub-entry ("  - code: …") after them. The name ends where the
+  # description (" —") starts, or, with none, before the provenance
+  # ($SITE_PROV): "- muc (user, <date>)" keys as muc, "- Main (North)
+  # — …" as Main (North), as lib/hostwarden-map/classify.sh reads
+  # "Site:".
+  awk -v prov="$SITE_PROV" '
     function flush(   name, rest, date) {
-      if (raw == "" || section != "sites") return
-      name = raw; sub(/ —.*/, "", name)
-      rest = raw; sub(/^[^—]*— */, "", rest)
+      if (head == "" || section != "sites") return
+      name = head
+      if (match(name, / *—/)) name = substr(name, 1, RSTART - 1)
+      else sub(prov, "", name)
+      sub(/[ \t]+$/, "", name)
+      rest = substr(head, length(name) + 1); sub(/^[ \t]*(— *)?/, "", rest)
       date = "not known"
-      if (match(raw, /, [0-9]{4}-[0-9]{2}-[0-9]{2}\)$/)) {
-        date = substr(raw, RSTART + 2, RLENGTH - 3)
+      if (match(head, /, [0-9]{4}-[0-9]{2}-[0-9]{2}\)$/)) {
+        date = substr(head, RSTART + 2, RLENGTH - 3)
       }
-      print name "\t" rest "\t" date
-      raw = ""
+      if (name != "") print name "\t" rest "\t" date
+      head = ""
     }
     /^## Sites/ { flush(); section = "sites"; next }
     /^## / { flush(); section = ""; next }
-    section == "sites" && /^- / { flush(); raw = $0; sub(/^- /, "", raw); next }
-    section == "sites" && /^[ \t]+[^ \t]/ { v = $0; sub(/^[ \t]+/, "", v); raw = raw " " v; next }
+    section == "sites" && /^- / { flush(); head = $0; sub(/^- /, "", head); insub = 0; next }
+    section == "sites" && /^[ \t]+- / { insub = 1; next }
+    section == "sites" && /^[ \t]+[^ \t]/ {
+      if (!insub) { v = $0; sub(/^[ \t]+/, "", v); head = head " " v }
+      next
+    }
     { flush() }
     END { flush() }
   ' "$M/topology.md" >"$WORK/sites-raw.tsv" \
@@ -70,8 +87,9 @@ if [ -f "$M/topology.md" ]; then
       line = raw
       prefix = line; sub(/ .*/, "", prefix)
       site = "not known"
-      if (match(line, /site [A-Za-z0-9._-]+/)) {
-        site = substr(line, RSTART + 5, RLENGTH - 5)
+      if (match(line, / site [^ ]/)) {
+        site = substr(line, RSTART + 6); sub(/ ·.*/, "", site); sub(/ —.*/, "", site)
+        sub(/[ \t]+$/, "", site)
       } else if (match(line, /host-internal on [A-Za-z0-9._-]+/)) {
         m = substr(line, RSTART, RLENGTH); sub(/^host-internal on /, "", m)
         site = "host:" m
