@@ -14,7 +14,9 @@
 # Run it after bumping VERSION, smooth the wording of the new
 # section, and commit the three together: the bump, CHANGELOG.md
 # and the deleted fragments (.claude/rules/repo-release.md →
-# CHANGELOG.md). A `## Unreleased` section still in CHANGELOG.md
+# CHANGELOG.md). CHANGELOG.md holds only the release it ships with:
+# the new section replaces the previous release's, below the
+# file's fixed head. A `## Unreleased` section still in CHANGELOG.md
 # becomes the new section, and the fragments' entries follow it.
 # Run again after a rebase, it adds what merged since to the
 # section it wrote, as long as no tag names the release yet.
@@ -183,35 +185,42 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
   }
 ' $FRAGS > "$TMP/block"
 
-# The new section takes the place of `## Unreleased`, or goes
-# above the newest release; the entries end it, or end the section
-# a first fold of this release wrote.
+# The new section takes the place of `## Unreleased`, or of the
+# previous release, whose notes stay at its tag; the entries end
+# it, or end the section a first fold of this release wrote. What
+# follows that section is another release's, and goes.
 awk -v head="## $VERSION - $(date -u +%Y-%m-%d)" -v target="$TARGET" \
   -v blockf="$TMP/block" '
-  # block <more> — the entries, after a blank line; another one
-  # after them when more of the file follows.
-  function block(more,   l, any) {
+  # block — the entries, after a blank line.
+  function block(   l, any) {
     while ((getline l < blockf) > 0) {
       if (!any && !blank) print ""
       print l; any = 1
     }
     close(blockf)
-    if (any && more) print ""
   }
+  state == 2 { next }
   state == 0 && $0 == target {
     print (target == "## Unreleased" ? head : $0); state = 1; blank = 0
     next
   }
-  state == 0 && /^## / { print head; blank = 0; block(1); state = 2 }
-  state == 1 && /^## / { block(1); state = 2 }
+  state == 0 && /^## / { print head; blank = 0; block(); state = 2; next }
+  state == 1 && /^## / { block(); state = 2; next }
   { print; blank = !NF }
   END {
     if (state == 0) {
       if (NR && !blank) print ""
-      print head; blank = 0; block(0)
-    } else if (state == 1) block(0)
+      print head; blank = 0; block()
+    } else if (state == 1) block()
   }
-' CHANGELOG.md > "$TMP/CHANGELOG.md"
+' CHANGELOG.md > "$TMP/folded"
+# No blank line at the end, where a dropped section followed. Two
+# steps, not a pipe: set -e sees a failed read of CHANGELOG.md only
+# as the status of a command of its own.
+awk '
+  !NF { held = held "\n"; next }
+  { printf "%s%s\n", held, $0; held = "" }
+' "$TMP/folded" > "$TMP/CHANGELOG.md"
 cat "$TMP/CHANGELOG.md" > CHANGELOG.md
 
 N=$(printf '%s' "$FRAGS" | grep -c . || true)

@@ -79,7 +79,11 @@ records `main` for whoever tests it.
 
 ## CHANGELOG.md
 
-Keep-a-Changelog style, newest first.
+Keep-a-Changelog sections, and only the release the file ships
+with: below a fixed head, which says where earlier releases are,
+one `## X.Y.Z - YYYY-MM-DD` section. An earlier release's notes are
+the `CHANGELOG.md` at its tag, and its GitHub release links there
+(`docs/adr/20260926-changelog-holds-only-its-release.md`).
 
 **No pull request adds to `CHANGELOG.md` but the release's own**
 (→ At a release, below). Parallel pull requests that all append to
@@ -133,13 +137,15 @@ entries — it is none. A pull request that withdraws or changes
 something not released yet edits or deletes the entry that
 introduced it, in its fragment or under that `## Unreleased`,
 rather than adding one that takes it back. Once a release is cut
-its section is history and is never edited again.
+its section is history: never edited again, and kept at its tag
+when the next release replaces it.
 
 **At a release,** the pull request that bumps `VERSION` runs
 `sh scripts/changelog-release.sh`. It turns a `## Unreleased` left
-in `CHANGELOG.md` into the new version's section, or starts one
-above the newest release, adds every fragment's entries grouped by
-section, and deletes the fragments. Whoever cuts the release then
+in `CHANGELOG.md` into the new version's section, or puts one in
+place of the previous release's, below the fixed head, adds every
+fragment's entries grouped by section, and deletes the fragments. Whoever cuts
+the release then
 smooths the section — one entry for what several pull requests did
 to one thing, the most interesting first — and commits `VERSION`,
 `CHANGELOG.md` and the deleted fragments as one commit. What merges

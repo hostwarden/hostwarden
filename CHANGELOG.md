@@ -1,5 +1,9 @@
 # Changelog
 
+The notes of this release only. Earlier releases: the `CHANGELOG.md`
+at their tag, or
+[GitHub Releases](https://github.com/hostwarden/hostwarden/releases).
+
 ## 1.0.0 - 2026-09-26
 
 Hostwarden grew out of [Heinzel](https://github.com/wintermeyer/heinzel)

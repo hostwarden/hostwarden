@@ -13,6 +13,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [The updater trusts the release key of the checked-out version](20260926-release-key-from-the-checked-out-version.md) | release, signing, supply-chain | — |
 | [The guard's off switch names one host](20260926-off-switch-names-one-host.md) | guard, taboos | — |
 | [Records no release carries are edited, not superseded](20260926-edit-unreleased-records.md) | records, tooling | — |
+| [CHANGELOG.md holds only the release it ships with](20260926-changelog-holds-only-its-release.md) | release, tooling | — |
 | [A resolver outage fails the blacklist and read-only checks closed](20260926-blacklist-fails-closed-on-dns-outage.md) | access-control, resolver | — |
 | [A team is two active people, not a workspace remote](20260925-team-is-two-active-people.md) | coordination, workspace | — |
 | [A service name is a CNAME to its host's FQDN](20260925-service-name-is-a-cname.md) | dns | — |
