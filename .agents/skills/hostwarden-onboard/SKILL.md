@@ -136,7 +136,9 @@ checkout) and stop.
    claims), anything else the pipeline's rules offer to record — is
    asked once the measurement has run, in the order its rules give,
    so the answers
-   are in its memory before the next host starts. Once steps 3 to 5
+   are in its memory before the next host starts. In a run of several
+   hosts they wait for the run's close instead
+   (→ Several hosts: questions by site). Once steps 3 to 5
    have run through the host's own way in, the host gets
    `- Onboarded: <date>` in place of any `SSH: untested`; on a known
    host the date moves. The
@@ -217,6 +219,65 @@ checkout) and stop.
 `hostwarden-heinzel-takeover` runs this skill for the hosts it
 takes over from Heinzel; where it adds to a step, its step 9 says
 so.
+
+## Several hosts: questions by site
+
+In a run of several hosts, step 6's questions are asked once the
+last host has run step 5, and before step 7's report. The guests a
+hypervisor of the run registered and the run reached are among
+them. Each host's journal line, `Onboarded:`, changelog entry and
+commit still come at its own step 6, so a host is on record as soon
+as it is measured.
+
+A question whose answer is a fact about a place is asked once for
+every host it is open for at that place. The question names each of
+those hosts, so the answer is the user's for each: every host gets
+its own line, in the form and with the source and date its rule
+gives, as if it had been asked alone. An answer that names
+exceptions records the others and asks each exception alone;
+"differs per host" asks every host of the group alone. Where a
+rule's question has a fixed form, the group question keeps its
+options and puts the hosts in its first line:
+
+    web1.example.com, web2.example.com, db1.example.com (home):
+    How do you reach these machines when SSH is gone?
+
+In this order:
+
+1. **Sites.** A host whose memory has a `Site:` line keeps it, and a
+   guest's site is its host's. The others are asked as
+   `rules/network-topology.md` → The question → Several hosts at
+   once says. The uplink question comes with the first answer that
+   names a site where it is still open (`rules/network-topology.md`
+   → The uplink question).
+2. **Per site, one question each,** for the hosts of that site the
+   question is open for:
+   - what filters in front of the hosts (`rules/baseline.md` →
+     Filtering in front of the host), for those whose measurement
+     found a family unfiltered and whose memory has no
+     `Upstream firewall:` line. Each host's line names its own
+     addresses, from its profile, and a part of the answer that
+     names one host goes on that host's line alone. A host with a
+     public address on its own interface (the uplink's
+     `public on <host>, no NAT`) is asked alone for that family: a
+     router of the site does not stand in front of that address;
+   - how the machines are reached when SSH is gone
+     (`rules/management-controller.md` → Provider console), for the
+     bare-metal hosts where detection found no controller;
+   - whether a backup the hosts cannot see exists
+     (`.agents/skills/hostwarden-housekeeping/references/backup-presence.md`
+     → Severity), for those where step 4 found no mechanism and
+     memory holds no answer.
+3. **Container registries,** one question for the hosts whose images
+   come from the same registries, and each host's line lists the
+   ones the user trusts among its own.
+4. **Every other question,** host by host in the run's order.
+
+The answers are written into each host's memory and committed once,
+with every path they changed (`rules/changelog.md` → The
+Workspace). A run cut off before its close leaves those lines
+missing, and the rule that owns each asks at its next moment with a
+person present.
 
 ## The first own login
 

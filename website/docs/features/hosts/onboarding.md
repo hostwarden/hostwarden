@@ -65,9 +65,15 @@ piecemeal:
 It changes nothing on the server beyond one read-only line in its
 journal, and in the journal of each registered guest that has
 `logger`. Then it asks which gaps to take on first; a read-only
-host gets a report of the changes instead. Several hosts at once
-go hypervisors first. A host it already knows is probed in full
-again, and its memory is brought up to date.
+host gets a report of the changes instead. A host it already knows
+is probed in full again, and its memory is brought up to date.
+
+Several hosts at once go hypervisors first, and the questions wait
+until every host is probed. What belongs to a place — the site, its
+uplink, what filters in front of the hosts, how you reach a machine
+when SSH is gone, a backup the hosts cannot see — is asked once per
+site, naming the hosts it covers, and each host's memory records
+the answer. The rest is asked host by host.
 
 A guest that its hypervisor registered finishes its onboarding on
 its first own login, read-only, before whatever you asked for. The

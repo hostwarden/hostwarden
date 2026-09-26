@@ -73,8 +73,11 @@ every platform, whichever check reports it:
 
 - **No line.** An interactive session asks the user once what
   filters in front of the host and what it lets in per family,
-  and records the answer, `none` included. A scheduled run does
-  not ask and adds "no upstream firewall recorded" to the
+  and records the answer, `none` included. An onboarding of
+  several hosts asks once for the hosts of a site
+  (`hostwarden-onboard` → Several hosts: questions by site), and
+  each host's line still names its own addresses. A scheduled run
+  does not ask and adds "no upstream firewall recorded" to the
   finding.
 - **`none`.** The finding stands.
 - **A line.** Work out which ports still reach the host in that

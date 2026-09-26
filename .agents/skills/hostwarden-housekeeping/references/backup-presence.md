@@ -220,7 +220,10 @@ cron job, `syncoid`, `zrepl` with a remote target).
   include: "Provider-level snapshots (Hetzner, AWS,
   Proxmox, …) cannot be detected from inside the
   server — does one exist?" Then ask the user and
-  record the answer (below).
+  record the answer (below). An onboarding of
+  several hosts asks once for the hosts of a site
+  (`hostwarden-onboard` → Several hosts: questions
+  by site), and each host gets its own line.
 - **WARN** — a mechanism exists but shows no run
   evidence within the last 7 days. (Deliberately
   looser than the 25 h / 48 h thresholds in
