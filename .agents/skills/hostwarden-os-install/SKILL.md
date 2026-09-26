@@ -190,7 +190,45 @@ Nothing here writes to `memory/naming.md` beyond an `Exempt:` line
 where a typed name is kept off-scheme, and nothing here creates the
 target's directory: that is first connection's job, whichever
 connection to the target — rescue environment or new OS — turns
-out to be first (After, below).
+out to be first.
+
+**Bridge the name** of a remote target — local mode has no SSH
+connection to bridge and skips the remote-only steps (`AGENTS.md` →
+Local mode) — before that first connection, as
+`hostwarden-new-guest` → After creation step 2 does for a guest:
+DNS for a brand-new name often does not exist yet (`rules/dns.md`
+→ The proposal). Resolve the settled name directly, stop where it
+names another machine, and otherwise write a `Host <settled name>`
+block to `memory/ssh_hosts` with the target's address as `HostName`
+and the settled name as `HostKeyAlias` (`rules/ssh-config.md` →
+Adding a Block, steps 1-3). Every connection then goes, and is
+keyed, by the settled name, the first one included, so
+`rules/first-connection.md` step 6 creates
+`memory/machines/<settled name>/` directly. After retires the block
+once DNS takes over. What differs from a guest:
+
+- The address is the one the operator gave, which counts as
+  user-named under `rules/ssh-config.md` → A Self-Resolved Address.
+  One Hostwarden resolves itself, from a rescue environment's own
+  hostname or a DHCP lease's, goes through that section first.
+  Where it declines the shared block, say so, the way A Port the
+  User Names there does for a `localhost:2222` guest, and wait for
+  the user's own `~/.ssh/config` entry under the settled name
+  before connecting.
+- A new OS that comes up at an address other than the rescue
+  environment's gets it as the block's `HostName` the same way:
+  without asking where the operator gave it, through A
+  Self-Resolved Address first where Hostwarden found it. Its key
+  is the changed key Rules that still apply → `rules/host-keys.md`
+  covers, not the rescue environment's.
+- A rescue sshd on a port of its own
+  (`references/os-replacement-ssh-only.md`) is reached by the
+  settled name on that port, never on 22, where the old sshd still
+  answers: its `Port` goes into the block as `rules/ssh-config.md`
+  → A Port the User Names says, checked with `ssh -G` before the
+  first command there. Once the new OS's sshd answers, the `Port`
+  line goes back to that sshd's port, without asking whether it
+  moved: this run moved it.
 
 ## Which reference
 
@@ -245,7 +283,14 @@ remote command here, like everywhere else. Beyond that:
   is it. Read the new key through a session this run already
   trusts, such as the installer or rescue system that built the
   new root filesystem; where there is none, Getting a Key,
-  source 3 covers a host this run reinstalled.
+  source 3 covers a host this run reinstalled. Over SSH, a rescue
+  environment's key is never the new OS's, yet on one port both
+  are looked up by the same name: the settled one, through the
+  block's `HostKeyAlias` where Naming a target with no memory yet
+  wrote one. So going from one to the other is this same changed
+  key, and the lines to replace are that name's (Removing Names
+  there). A rescue sshd on a port of its own is looked up as
+  `[<settled name>]:<port>` instead; its lines go once it does.
 - `rules/machine-memory.md` — the host's memory file describes a
   machine that is about to stop existing. Capture the inventory
   before the wipe, and rewrite memory after.
@@ -268,34 +313,17 @@ it; see Naming a target with no memory yet for what that means. For
 a host that already had one, `references/os-replacement.md` →
 Memory Updates says why nothing needs restoring there instead.
 
-That first connection reaches the target by whatever identifier is
-actually reachable — the address the operator gave it at Naming a
-target with no memory yet, a rescue environment's own hostname, or
-DHCP's transient one — which the settled name need
-not match: DNS for a brand-new name often does not exist yet
-(`rules/dns.md` → The proposal). Where the two differ, the
-directory `rules/first-connection.md` created carries the
-connection's identifier, not the settled one. Reconcile them before
-reporting success, in this same session, by `rules/host-rename.md`
-→ Memory's mechanism in full: the directory move and its DNS-alias
-symlinks, the `Host` block `memory/ssh_hosts` needs to keep
-reaching the machine — gated by `rules/ssh-config.md` → A
-Self-Resolved Address where the connecting identifier is a rescue
-environment's hostname or DHCP's lease, never where it is the
-address the operator already gave at Naming a target with no
-memory yet, which counts as user-named there too — checked with
-`bin/hostwarden-ssh-config` where it is written, and
-`memory/known_hosts`'s lines for the settled name
-(`rules/host-keys.md` → DNS Aliases) — except keeping the
-connecting identifier itself as a lasting alias, which that section
-does for an old *hostname* someone might still reference: a bare
-address or a rescue environment's own throwaway name is dropped
-instead, never kept as an alias, once the settled name's `Host`
-block is written. Where the gate declines that block instead, do
-not drop the connecting identifier yet: say so, the way
-`rules/ssh-config.md` → A Port the User Names does for a
-`localhost:2222` guest, and wait for the user's own `~/.ssh/config`
-entry before reporting success — the settled name has nothing else
-to resolve by. Never leave the memory entry and the name the
-install actually gave the machine reachable under two different
-identifiers, or under neither.
+For a remote target's name Naming a target with no memory yet
+settled, check once the new OS answers whether the name resolves to
+the address the new OS answers on, not the rescue environment's,
+which that OS may not keep: the direct resolver check
+`hostwarden-new-guest` → After creation step 6 makes, never
+`ssh -G`. Where it does not, the DNS record set follows before
+reporting success, as that step does: `rules/dns.md` → The proposal
+for the settled name and the new OS's address, written as Writing
+there says where the name space's `memory/dns.md` line reads
+`Hostwarden: write`, the user's step otherwise. Where Bridge the
+name wrote a `Host` block, retire it as that step does: removed and
+`bin/hostwarden-ssh-config` rerun once the same check passes, a
+`todo.md` item where it does not yet. An entry the user wrote into
+their own `~/.ssh/config` instead is theirs to remove.

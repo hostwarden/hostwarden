@@ -19,7 +19,8 @@ A host's own A, AAAA and PTR records against its addresses stay with
 - **Housekeeping on a host with a `DNS server:` line:** the same
   read, which keeps its lines current, and the checks of Checks →
   Where they run.
-- **A proposal is due:** `hostwarden-new-guest` → Name, a rename
+- **A proposal is due:** `hostwarden-new-guest` → Name,
+  `hostwarden-os-install` → After for a name it settled, a rename
   (`rules/host-rename.md` → The Order), and a network-facing service
   the user asked to install that needs a name of its own. The record
   convention and The proposal below.
