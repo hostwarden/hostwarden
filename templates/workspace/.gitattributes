@@ -3,3 +3,9 @@
 # stopping at a conflict. memory.md and todo.md merge as usual:
 # a conflict there is a real disagreement about a host.
 /machines/*/changelog.log merge=union
+# Generated from the rest by bin/hostwarden-map on every commit. Where
+# two machines both redrew one, bin/hostwarden-sync pull keeps the
+# version pulled and the next commit redraws it; a README.md without
+# the generated first line merges as usual.
+/README.md merge=hostwarden-generated
+/maps/** merge=hostwarden-generated

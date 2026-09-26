@@ -143,12 +143,13 @@ share the machine; it never gets the fleet key.
 
 ## The workspace
 
-The fleet run writes only the changelog lines of the hosts it
-read, never `memory.md`: no `Last connected:`, no finding. Those
-belong to a session that works on a host. The changelog merges by
-union (`templates/workspace/.gitattributes`), so the operations
-host and the workstation never conflict over it, and nothing else
-of theirs meets.
+The fleet run writes only changelog lines, one per host it tried,
+never `memory.md`: no `Last connected:`, no finding. Those belong
+to a session that works on a host. A host it could not read gets
+its line too, marked "the host was not read". The changelog merges
+by union (`templates/workspace/.gitattributes`). Where both
+machines redrew the overview page or a map, `hostwarden-sync pull`
+keeps the version pulled and the next commit draws it again.
 
 It commits its own files by path, nothing another session left.
 When the pull at its start fails, it runs on what it has; the

@@ -32,7 +32,7 @@ FRESH=$(days_ago 5) STALE=$(days_ago 100)
 # The rest lives in tests/bin/hostwarden-map/, one file per stage,
 # sourced in this order into this shell: each reads what the ones
 # before it set.
-PARTS='fixture levels palette'
+PARTS='fixture levels overview palette'
 for part in $PARTS; do
   [ -f "$REPO/tests/bin/hostwarden-map/$part.sh" ] || {
     echo "hostwarden-map.sh: tests/bin/hostwarden-map/$part.sh is missing" >&2

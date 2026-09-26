@@ -222,6 +222,33 @@ flowchart TB
   access lists or `ssh_config`, and never draw your own workstation, so
   a shared workspace can share its maps.
 
+## The overview page
+
+With the maps, `bin/hostwarden-map` writes `memory/README.md`, the page
+GitHub and Forgejo show when the workspace opens and the one to read
+first. It counts and links, and never repeats a host's detail, in this
+order:
+
+- **Sites**, each with its map and its number of hosts.
+- **Services** and **critical hosts**.
+- **Open findings**: per host, the counts of its last housekeeping run
+  and security audit as its changelog records them, worst first, and
+  the network's topology findings.
+- **What expires within 90 days** and **backups without a tested
+  restore**.
+- **Not connected lately**: a host that fleet read reaches, its key
+  line present, is due every night and listed after 2 days without
+  contact, any other host after 90. Contact is the later of
+  `Last connected:` and the host's newest changelog entry; a fleet run
+  that could not read the host is not contact.
+
+Memory does not record services, critical hosts, expiry dates or
+restore tests yet, so each of those sections says so in one line and
+names the issue that adds the question for them.
+
+A `memory/README.md` you wrote yourself, without the generated-file
+marker on its first line, is left as it is.
+
 ## Drawing them
 
 ```
@@ -229,8 +256,8 @@ bin/hostwarden-map
 ```
 
 It runs locally, reads only the workspace, and writes only under
-`memory/maps/`. Run twice over the same memory on the same day, it
-writes the same bytes, so a map only changes in git when the
+`memory/maps/` and `memory/README.md`. Run twice over the same memory on the
+same day, it writes the same bytes, so a map only changes in git when the
 infrastructure did. Across days, a host crossing the 90-day line turns
 dashed — a map that never showed staleness would not be telling the
 truth either.

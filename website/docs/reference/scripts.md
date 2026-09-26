@@ -29,6 +29,7 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
 - **`hostwarden-heinzel-takeover`** — copies your state out of a
   Heinzel checkout ([Moving over from Heinzel](../running-it/heinzel.md)).
 - **`hostwarden-map`** — draws the Mermaid maps under `memory/maps/`
+  and the overview page `memory/README.md`
   ([Infrastructure maps](../memory/maps.md)).
 
 ## These run for you
