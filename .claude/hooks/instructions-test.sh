@@ -502,12 +502,27 @@ function ensure_slugs(p,   i, s, t, c, b) {
 # section the reader then cannot find, and nothing says so.
 #
 # Such a pointer wraps wherever the sentence does, often between
-# the arrow and the heading, and a comment or an echo line wraps
-# without the backslash the scan joins on. So every line that names
-# a file is read together with the next, minus the comment marker
-# or the echo that opens it. A separator marks the seam: a match
-# that does not cross it started on the next line, which is read
-# in its own turn.
+# the filename and the arrow, or between the arrow and the heading,
+# and a comment or an echo line wraps without the backslash the
+# scan joins on. So every line that names a file is read together
+# with the lines of its own paragraph that follow it, minus the
+# comment marker or the echo that opens each one -- a joined pointer
+# that names a quoted heading can run past the very next line, as
+# `.agents/skills/hostwarden-os-install/references/partition-staging.md`
+# does. A separator marks each seam.
+#
+# A seam can fall right where the pattern expects only blanks --
+# between a closing backtick and the arrow -- and a wrap there is
+# an arrow or a section sign starting the next line, never the
+# ASCII " - " spelling: that three-character run also opens a
+# Markdown list item, and a bullet that merely follows a paragraph
+# naming some other file is not a pointer at it. So crossing a seam
+# takes its own branch, arrow or section sign only, rather than
+# widening the blank class itself, which would let the same three
+# characters match a list item across the seam as if it were the
+# ASCII arrow. Once that branch has matched, the rest of the
+# pattern is `.*`, which does not care how many further seams the
+# rest of the paragraph holds.
 #
 # The heading has to be where the pointer text begins, not the
 # whole of it -- "Detection step 1" is a pointer at Detection, and
@@ -520,19 +535,29 @@ function ensure_slugs(p,   i, s, t, c, b) {
 # own directory. Someone else's README ("its README", "Heinzel's
 # README") is not ours.
 SEP=$(printf '\037')
-PTR_RE="(^|[^A-Za-z0-9_./<>-])(its |[A-Za-z]+'s )?\`?([A-Za-z0-9_./-]*[A-Za-z0-9_-]\\.md|README)\`?[[:blank:]]*(→|§| - ).*"
+PTR_RE="(^|[^A-Za-z0-9_./<>-])(its |[A-Za-z]+'s )?\`?([A-Za-z0-9_./-]*[A-Za-z0-9_-]\\.md|README)\`?[[:blank:]]*((${SEP}[[:blank:]]*)?(→|§)| - ).*"
 POINTERS=$(scan \
   | grep -vE "$HISTORY" \
   | awk -v sep="$SEP" '
-    { f = $1; t = substr($0, length($1) + 2) }
-    NR > 1 && (index(pt, ".md") || index(pt, "README")) {
-      n = (f == pf) ? t : ""
-      sub(/^[ \t]*(#+|\/\/)?[ \t]*((echo|printf)[ \t]+)?["\047]?/, "", n)
-      print pf " " pt sep " " n }
-    { pf = f; pt = t }
-    END { if (NR) print pf " " pt sep }' \
-  | tag "$PTR_RE" \
-  | grep "$SEP")
+    { line[NR] = $0 }
+    END {
+      for (i = 1; i <= NR; i++) {
+        c = index(line[i], ": "); f = substr(line[i], 1, c - 1)
+        t = substr(line[i], c + 2)
+        if (!(index(t, ".md") || index(t, "README"))) continue
+        joined = t
+        for (j = i + 1; j <= NR; j++) {
+          c2 = index(line[j], ": "); f2 = substr(line[j], 1, c2 - 1)
+          if (f2 != f) break
+          n = substr(line[j], c2 + 2)
+          if (n ~ /^[ \t]*$/) break
+          sub(/^[ \t]*(#+|\/\/)?[ \t]*((echo|printf)[ \t]+)?["\047]?/, "", n)
+          joined = joined sep " " n
+        }
+        print f ": " joined
+      }
+    }' \
+  | tag "$PTR_RE")
 NPTR=$(printf '%s\n' "$POINTERS" | grep -c . || true)
 if [ "$NPTR" -lt 10 ]; then
   bad "only $NPTR heading pointers found -- the search broke"
