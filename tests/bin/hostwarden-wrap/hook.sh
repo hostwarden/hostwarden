@@ -168,3 +168,15 @@ before=$(cat "$M/machines/old.example.com/heinzel-memory.md")
 got=$(git -C "$M" show HEAD:machines/old.example.com/heinzel-memory.md 2>/dev/null)
 [ "$got" = "$before" ] && ok \
   || bad "hostwarden-sync commit rewrapped heinzel-memory.md: $got"
+
+# A removal named beside it, one git rm took out of the index
+# already, goes in the same commit, and the Markdown still wrapped.
+git -C "$OPS/memory" rm --quiet machines/web2.example.com.md
+printf '%s\n' "$LONG" > "$OPS/memory/machines/web3.example.com.md"
+(cd "$OPS" && sh bin/hostwarden-sync commit "Rename" \
+  machines/web2.example.com.md machines/web3.example.com.md) \
+  || bad "hostwarden-sync commit with a removal failed"
+got=$(git -C "$OPS/memory" show HEAD:machines/web3.example.com.md 2>/dev/null)
+[ "$got" = "$(printf '%s\n%s' "${LONG% words}" words)" ] \
+  && ! git -C "$OPS/memory" cat-file -e HEAD:machines/web2.example.com.md 2>/dev/null \
+  && ok || bad "hostwarden-sync commit with a removal did not take both: $got"
