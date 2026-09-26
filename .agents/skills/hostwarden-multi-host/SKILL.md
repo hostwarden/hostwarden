@@ -4,7 +4,9 @@ argument-hint: "[all | hostname ...] <question, command or change>"
 description: Run one question, command or change on several managed
   servers at once and report the answers grouped, so hosts that agree
   print once and the outlier stands out. Each host runs the full
-  pipeline in its own subagent; a change asks once, names every host
+  pipeline, all hosts in one call per round; only a skill on many
+  hosts or a large change goes to subagents; a change asks once,
+  names every host
   and goes to a canary first. Use when the user names two or more
   servers, or all of them, for one task — "which kernel runs on web1,
   web2 and web3?", "check disk space on all servers", "is nginx
