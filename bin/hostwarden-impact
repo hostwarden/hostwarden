@@ -277,15 +277,18 @@ names_of() {
 
 # hop_names <host> — each hop on the host's way in, what it resolves
 # to and, where memory knows the hop, the names of its DNS-alias
-# directories; looked up once per hop however many hosts share it.
+# directories. The alias names come from the index, which does not
+# change during the call, and are looked up once per hop however
+# many hosts share it; what the hop resolves to is asked at every
+# check, since a clean miss from an earlier one proves nothing once
+# the resolver is down (lib/resolve.sh → hostwarden_resolve_ok).
 hop_names() {
   for hop in $(awk -F "$TAB" -v h="$1" '$1 == "J" && $2 == h { print $3 }' "$IDX"); do
     memo="$TW/hop.$(printf '%s' "$hop" | cksum | cut -d' ' -f1)"
-    [ -f "$memo" ] || printf '%s %s %s ' "$hop" \
-      "$(hostwarden_resolve_or_unresolved "$hop")" \
-      "$(awk -F "$TAB" -v k="$hop" '$1 == "K" && $3 == k { h[$2] = 1 }
+    [ -f "$memo" ] || awk -F "$TAB" -v k="$hop" '$1 == "K" && $3 == k { h[$2] = 1 }
         $1 == "N" { n[$3] = n[$3] " " $2 }
-        END { for (x in h) printf "%s ", n[x] }' "$IDX")" >"$memo"
+        END { for (x in h) printf "%s ", n[x] }' "$IDX" >"$memo"
+    printf '%s %s ' "$hop" "$(hostwarden_resolve_or_unresolved "$hop")"
     cat "$memo"
   done
 }
@@ -402,9 +405,9 @@ team_setup() {
   [ "${1:-}" = lists ] || return 0
   IDX=$HOSTWARDEN_CACHE/radius.idx
   hostwarden_resolver
-  # Caches hostwarden_resolve_ok's answer for a name across every
+  # Caches hostwarden_resolve_ok's failures for a name across every
   # radius host this team-telling call checks, so one unreachable
-  # entry does not ask dig again for each of them in turn.
+  # entry does not wait out dig again for each of them in turn.
   # shellcheck disable=SC2034 # read by hostwarden_resolve_ok in resolve.sh
   HOSTWARDEN_RESOLVE_CACHE=$TW
   RO=$(hostwarden_list_entries "$M/readonly.md")

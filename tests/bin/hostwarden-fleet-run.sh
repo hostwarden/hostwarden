@@ -207,9 +207,13 @@ EOF
 # query cleanly and drops the AAAA one silently, the way one of two
 # back-to-back UDP queries timing out looks — genuinely unreachable
 # either way, never a clean miss on one confirmed-good line alone.
+# flip1 answers cleanly the first time it is asked and fails every
+# time after: a resolver that goes down between the host selection
+# and the check right before the connection.
 cat >"$S/dig" <<'EOF'
 #!/bin/sh
 case " $* " in *' +short '*) exit 0 ;; esac
+flip=
 args=
 for a; do
   case $a in
@@ -226,10 +230,18 @@ while [ $# -ge 2 ]; do
     partial1.example.com)
       [ "$t" = A ] \
         && echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0' ;;
+    flip1.example.com)
+      flip=1
+      if [ -e "${0%/*}/flip1-asked" ]; then
+        echo ';; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 0'
+      else
+        echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0'
+      fi ;;
     *) echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0' ;;
   esac
   shift 2
 done
+[ -z "$flip" ] || : >"${0%/*}/flip1-asked"
 EOF
 # A resolvectl stand-in, so this runner's own systemd-resolved never
 # decides which path the check takes: one link routes
@@ -425,6 +437,22 @@ rc=$?
 run --no-judge --host down1.example.com
 rc=$?
 [ "$rc" = 1 ] && ok || bad "--no-judge on an unread host did not exit 1 (rc $rc)"
+
+# --- a resolver that goes down after a clean miss ----------------
+# A blacklist entry with no address, cleared at the host selection;
+# by the check right before the connection the resolver is down, and
+# that check fails closed rather than reusing the first answer.
+rm -f "$TMP"/collect-* "$S/flip1-asked"
+cp "$M/blacklist.md" "$TMP/blacklist.md"
+printf -- '- flip1.example.com\n' >>"$M/blacklist.md"
+run --dry-run --host web1.example.com
+has "$TMP/out" \
+  "WARN	web1.example.com	not read: blacklist unverifiable: resolver unreachable" \
+  "a clean miss from the host selection cleared the blacklist in an outage"
+[ -e "$TMP/collect-web1.example.com" ] \
+  && bad "a host was reached while a blacklist entry could not be checked" \
+  || ok
+cp "$TMP/blacklist.md" "$M/blacklist.md"
 
 # --- a dry run writes no ssh_config -------------------------------
 mv "$M/ssh_config" "$TMP/ssh_config.saved"

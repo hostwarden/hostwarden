@@ -53,12 +53,17 @@
 #       installed to tell the two apart in the first place — a
 #       missing tool, not a resolver problem, same distinction
 #       Detection step 1 draws. Where HOSTWARDEN_RESOLVE_CACHE names
-#       a writable directory, the answer for <name> is cached there
-#       for the rest of the process: a caller that checks the same
-#       host many times in one run (hostwarden-impact's blocked,
-#       called once per radius host; hostwarden-fleet-run's
-#       blacklisted, called once per hop as well as per host) does
-#       not re-ask dig for a name it has already settled.
+#       a writable directory, "unreachable" and "no-dig" for <name>
+#       are cached there for the rest of the process: a caller that
+#       checks the same host many times in one run
+#       (hostwarden-impact's blocked, called once per radius host;
+#       hostwarden-fleet-run's blacklisted, called once per hop as
+#       well as per host) does not wait out a dig timeout again for
+#       a name that already failed. A clean negative is never
+#       cached: the name can gain an address and the resolver go
+#       down later in the same run, and a gate that reused an "ok"
+#       from before would pass an empty lookup it can no longer
+#       clear (rules/access-control.md → Shared Lookup Logic).
 #   hostwarden_resolve_or_unresolved <name>
 #       hostwarden_resolve <name>, space-joined; where that comes
 #       back empty and hostwarden_resolve_ok <name> finds it
@@ -115,18 +120,16 @@ for a in sorted({i[4][0] for i in
 hostwarden_resolve_ok() {
   hr_c=''
   if [ -n "${HOSTWARDEN_RESOLVE_CACHE:-}" ]; then
-    hr_c="$HOSTWARDEN_RESOLVE_CACHE/ok.$(printf '%s' "$1" \
+    hr_c="$HOSTWARDEN_RESOLVE_CACHE/failed.$(printf '%s' "$1" \
       | cksum | cut -d' ' -f1)"
     if [ -f "$hr_c" ]; then
-      hr_v=$(cat "$hr_c")
-      [ "$hr_v" = ok ] && return 0
-      printf '%s' "$hr_v"
+      cat "$hr_c"
       return 1
     fi
   fi
   hr_v=$(hostwarden_resolve_ask "$1")
-  [ -z "$hr_c" ] || printf '%s' "$hr_v" >"$hr_c"
   [ "$hr_v" = ok ] && return 0
+  [ -z "$hr_c" ] || echo "$hr_v" >"$hr_c"
   echo "$hr_v"
   return 1
 }
