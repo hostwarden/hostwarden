@@ -8,9 +8,7 @@ description: The scripts Hostwarden ships, which ones you run yourself
 # Scripts in bin/
 
 Hostwarden is mostly instructions, but a few jobs are plain scripts in
-`bin/`. Each prints its usage with `--help`, except
-`hostwarden-migrate`, which takes no options: called with any, it
-still runs the migration.
+`bin/`. Each prints its usage with `--help`.
 
 ## You run these
 
