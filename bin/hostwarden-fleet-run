@@ -89,6 +89,8 @@ if [ -z "$DRY" ] && [ -z "${HOSTWARDEN_FLEET_RUN_FRESH:-}" ]; then
     sh .claude/hooks/check-updates.sh
     sh bin/hostwarden-sync pull
   } 2>&1)
+  # Whole in the timer's log; the report's notes carry its start.
+  printf '%s\n' "$HOSTWARDEN_FLEET_RUN_START" >&2
   export HOSTWARDEN_FLEET_RUN_START
   HOSTWARDEN_FLEET_RUN_FRESH=1 exec sh "$REPO_DIR/bin/hostwarden-fleet-run" "$@"
 fi

@@ -43,7 +43,8 @@ run_migration() {
 }
 
 # report <old version> <old HEAD> — what the update did, once it
-# is done.
+# is done: every release it brought, by lead clause
+# (lib/release-notes.sh).
 report() {
   NEW=$(current_version)
   if [ "$1" = "$NEW" ]; then
@@ -60,23 +61,10 @@ report() {
     echo "Its release notes: the $NEW section of CHANGELOG.md"
     return
   fi
-  show_changelog_section "$NEW"
+  hostwarden_release_notes "$2" "$NEW"
   if [ "${1%%.*}" != "${NEW%%.*}" ]; then
     echo ""
     echo "BREAKING CHANGES — read CHANGELOG.md"
-  fi
-}
-
-show_changelog_section() {
-  VER="$1"
-  # Match the version heading exactly ("## 2.8.0"
-  # must not also match "## 2.8.0-rc1"): compare
-  # the whole second field, not a prefix.
-  if [ -f CHANGELOG.md ]; then
-    awk -v ver="$VER" '
-      /^## / { if (insec) exit; insec = ($2 == ver); next }
-      insec && NF { print }
-    ' CHANGELOG.md
   fi
 }
 
@@ -93,18 +81,7 @@ notes() {
       changelog.d/*.md) echo; git show "$1:$f" ;;
       esac
     done
-  } | awk '
-    function flush(   i) {
-      if (buf != "" && (i = index(buf, "**")))
-        print sec "\t" substr(buf, 1, i - 1) "\t" buf
-      buf = ""
-    }
-    !NF { flush(); next }
-    /^#+ / { flush(); sec = $0; sub(/^#+ /, "", sec); next }
-    /^- \*\*/ { flush(); buf = substr($0, 5); next }
-    buf != "" { t = $0; sub(/^[ \t]+/, "", t); buf = buf " " t }
-    END { flush() }
-  '
+  } | hostwarden_notes_leads
 }
 
 # news <old HEAD> — how the entries no release has yet changed
@@ -154,6 +131,8 @@ fi
 . lib/follow.sh
 # shellcheck source=../lib/mode.sh
 . lib/mode.sh
+# shellcheck source=../lib/release-notes.sh
+. lib/release-notes.sh
 if ! hostwarden_clone_top; then
   echo "hostwarden-update: this is not a git clone (an archive" \
     "download?); clone the repository to get updates" >&2
@@ -225,8 +204,7 @@ verify_tag() {
     return 1
   fi
   cp "$SIGNERS" "$SIGNERS.chain"
-  for vt in $(git tag -l 'v*' --merged "$1" --no-merged HEAD \
-    --sort=v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'); do
+  for vt in $(hostwarden_follow_between "$1" HEAD); do
     [ "$vt" != "$1" ] && signed_by "$vt" "$SIGNERS.chain" &&
       git show "$vt:.github/release-signers" > "$SIGNERS.next" \
         2>/dev/null && mv "$SIGNERS.next" "$SIGNERS.chain" || :

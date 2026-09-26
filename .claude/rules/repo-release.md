@@ -101,9 +101,9 @@ indent by two spaces, and it is prose, without a code block.
 **One entry per change, written for someone who uses Hostwarden**
 — what it does for them now, not what the diff touched. A bold lead
 clause, then the detail in a sentence or two. The lead clause alone
-is what `bin/hostwarden-update` shows someone following `main` when
-the entry is new, changed or no longer listed, so it has to stand
-on its own.
+is what `bin/hostwarden-update` shows after an update, for each
+release it brought, and to someone following `main` when the entry
+is new, changed or no longer listed, so it has to stand on its own.
 
 **A change is user-visible** when someone running an operations
 checkout would notice it: what a session does, asks or reports, a

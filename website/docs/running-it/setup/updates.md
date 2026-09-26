@@ -76,7 +76,13 @@ the new key. A development checkout verifies nothing.
 
 On every session start in an operations checkout, a hook (Claude
 Code) moves to the newest release on the line — or, on `main`, runs
-`git pull` — and reports version changes. No action needed.
+`git pull` — and reports version changes: for every release between
+the old version and the new one, the lead clause of each entry, read
+from the `CHANGELOG.md` at that release's tag. The session shows
+that list and asks whether to go on before it does any server work;
+the full text is there on request. A run no one answers, such as
+`claude -p` or `bin/hostwarden-fleet-run`, asks nothing and goes on;
+the fleet run writes the list to the timer's log. No action needed.
 Auto-update is skipped in a development checkout, when pinned to a
 tag (see [below](#pinning-a-version)), when on a non-`main` branch,
 or when `HOSTWARDEN_NO_UPDATE=1` is set.
