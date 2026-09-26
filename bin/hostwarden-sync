@@ -12,7 +12,9 @@
 #                                (relative to the workspace or under
 #                                memory/), or every change when none
 #                                is named, its Markdown rewrapped at
-#                                80 (hostwarden-wrap --changed)
+#                                80 (hostwarden-wrap --changed),
+#                                but for the copies kept byte for
+#                                byte (lib/wrap-verbatim.sh)
 #   hostwarden-sync push         Send local commits to the remote
 #   hostwarden-sync --help       Show this help
 #

@@ -11,7 +11,7 @@ checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/rules"
   cp .claude/hooks/wrap-markdown.sh "$c/.claude/hooks/"
-  cp lib/json.sh lib/mode.sh "$c/lib/"
+  cp lib/json.sh lib/mode.sh lib/wrap-verbatim.sh "$c/lib/"
   cp bin/hostwarden-wrap "$c/bin/"
   cp lib/markdown-blocks.awk "$c/lib/"
   printf '/memory/\n' > "$c/.gitignore"
@@ -95,6 +95,56 @@ esac
 [ "$(wc -l < "$OPS/rules/shipped.md")" -eq 2 ] && ok \
   || bad "hook after a command rewrapped a shipped file in operations"
 
+# A workspace file whose bytes are a copy is neither rewrapped nor
+# listed, after an edit or a command: a master, what renders one,
+# evidence, Heinzel's memory, and whatever Heinzel left beside it
+# until the host's first connection (lib/wrap-verbatim.sh).
+M=$OPS/memory
+mkdir -p "$M/machines/old.example.com/configs" \
+  "$M/machines/web1.example.com/files/etc" \
+  "$M/machines/web1.example.com/src/motd/upstream" \
+  "$M/machines/web1.example.com/notes" \
+  "$M/fleet/needrestart/src/upstream" "$M/clusters/pve/files/etc"
+printf '# %s\n\n%s\n' "$LONG" "$LONG" \
+  > "$M/machines/old.example.com/heinzel-memory.md"
+for f in machines/old.example.com/heinzel-memory.md \
+    machines/old.example.com/README.md \
+    machines/old.example.com/configs/plan.md \
+    machines/web1.example.com/files/etc/motd.md \
+    machines/web1.example.com/src/motd/motd.md \
+    machines/web1.example.com/src/motd/upstream/README.md \
+    machines/web1.example.com/notes/export-2026-09-26.md \
+    fleet/needrestart/src/drop-in.md \
+    fleet/needrestart/src/upstream/README.md \
+    clusters/pve/files/etc/issue.md; do
+  hook "$OPS" "$M/$f" left "operations leaves $f"
+done
+hook "$OPS" "$M/machines/old.example.com/heinzel-inventory.md" wrapped \
+  "operations rewraps a file Hostwarden writes beside heinzel-memory.md"
+hook "$OPS" "$M/fleet/needrestart/README.md" wrapped \
+  "operations rewraps a fleet artifact's README"
+hook "$OPS" "$M/machines/web1.example.com/src/motd/README.md" wrapped \
+  "operations rewraps the README.md of a master's sources"
+mkdir -p "$DEV/machines/web1.example.com/files"
+hook "$DEV" "$DEV/machines/web1.example.com/files/a.md" wrapped \
+  "outside a workspace, a files/ path is no copy"
+out=$(bash_hook "$OPS")
+case $out in
+  *heinzel-memory*|*old.example.com/README*|*configs/plan*|*motd* \
+    | *notes/*|*drop-in*|*upstream*|*issue.md*)
+    bad "hook after a command touched a copy: $out" ;;
+  *) ok ;;
+esac
+[ "$(wc -l < "$M/machines/old.example.com/heinzel-memory.md")" -eq 3 ] \
+  && [ "$(wc -l < "$M/machines/old.example.com/README.md")" -eq 1 ] \
+  && ok || bad "hook after a command rewrapped a copy"
+printf '%s\n' "$LONG" > "$M/machines/old.example.com/todo.md"
+out=$(bash_hook "$OPS")
+case $out in
+  *'rewrapped memory/machines/old.example.com/todo.md at 80'*) ok ;;
+  *) bad "hook after a command left todo.md beside heinzel-memory.md: $out" ;;
+esac
+
 # --- hostwarden-sync commit --------------------------------------
 # Whatever wrote it, a workspace commit takes Markdown wrapped.
 cp bin/hostwarden-sync "$OPS/bin/"
@@ -108,3 +158,13 @@ got=$(git -C "$OPS/memory" show HEAD:machines/web2.example.com.md 2>/dev/null)
   || bad "hostwarden-sync commit took Markdown unwrapped: $got"
 [ -z "$(git -C "$OPS/memory" status --porcelain -- machines/web2.example.com.md)" ] \
   && ok || bad "hostwarden-sync commit left a change behind"
+
+# ... but never Heinzel's memory, which the takeover commits as it
+# came.
+before=$(cat "$M/machines/old.example.com/heinzel-memory.md")
+(cd "$OPS" && sh bin/hostwarden-sync commit "Take over" \
+  memory/machines/old.example.com/heinzel-memory.md) \
+  || bad "hostwarden-sync commit of heinzel-memory.md failed"
+got=$(git -C "$M" show HEAD:machines/old.example.com/heinzel-memory.md 2>/dev/null)
+[ "$got" = "$before" ] && ok \
+  || bad "hostwarden-sync commit rewrapped heinzel-memory.md: $got"

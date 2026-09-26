@@ -278,7 +278,7 @@ else
 fi
 step "review record" sh tests/scripts/review-record.sh
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-(wrap|sync)\$|^lib/(markdown-blocks\\.awk|json\\.sh|mode\\.sh)\$|^\\.claude/hooks/wrap-markdown\\.sh\$|^tests/bin/hostwarden-wrap(\\.sh\$|/)$HELPERS"
+    "^bin/hostwarden-(wrap|sync)\$|^lib/(markdown-blocks\\.awk|json\\.sh|mode\\.sh|wrap-verbatim\\.sh)\$|^\\.claude/hooks/wrap-markdown\\.sh\$|^tests/bin/hostwarden-wrap(\\.sh\$|/)$HELPERS"
 then
   echo "== markdown wrap matrix: nothing it reads is pushed, skipped"
 else

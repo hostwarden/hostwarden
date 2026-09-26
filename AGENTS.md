@@ -415,7 +415,10 @@ Where those blocks live, what wins, and what is never overridable:
 
 ## Writing in this repo
 
-Wrap every `.md` file at 80 characters, memory files included.
+Wrap every `.md` file at 80 characters, memory files included,
+except a copy kept byte for byte: a master under `files/`, the
+sources under `src/` but their `README.md`, a note, a host's
+`heinzel-memory.md` (`lib/wrap-verbatim.sh`).
 `sh bin/hostwarden-wrap <file>…` rewraps a file's paragraphs; run
 it after writing Markdown rather than rewrapping by hand.
 `bin/hostwarden-sync commit` rewraps what it commits.

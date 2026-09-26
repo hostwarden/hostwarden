@@ -48,7 +48,10 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
   an operations host, on a timer you set up
   ([An operations host](../running-it/team/operations-host.md)).
 - **`hostwarden-wrap`** — wraps Markdown at 80 columns, as every file
-  in Hostwarden and in the workspace is written.
+  in Hostwarden and in the workspace is written. A copy the workspace
+  keeps byte for byte stays as it is: a master under `files/`, the
+  sources under `src/` but their `README.md`, a note, a host's
+  `heinzel-memory.md`.
 
 ## For working on Hostwarden
 
