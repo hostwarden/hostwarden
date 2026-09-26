@@ -6,6 +6,8 @@ description: Probe one managed host for the fleet audit and return a
   one instance per host, never on its own.
 tools: Bash, Read
 model: inherit
+effort: medium
+maxTurns: 60
 permissionMode: default
 color: cyan
 ---

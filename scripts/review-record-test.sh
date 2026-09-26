@@ -111,6 +111,22 @@ Codex m e, local, $A: no findings, x
 squash, $C: from $A, tree unchanged
 EOF
 
+expect 0 "$C" "a stacked child's base and re-review notes" <<EOF
+## Review
+
+Codex m e, local, $A: no findings, x
+base under $A: $B
+rebase, $C: from $A, range-diff checked
+re-review skipped: base unchanged since $B
+EOF
+
+expect 1 "$C" "a re-review note appended to the rebase line" <<EOF
+## Review
+
+Codex m e, local, $A: no findings, x
+rebase, $C: from $A, range-diff checked, re-review skipped: base unchanged since $B
+EOF
+
 expect 1 "$C" "a rebase from a head nobody reviewed" <<EOF
 ## Review
 

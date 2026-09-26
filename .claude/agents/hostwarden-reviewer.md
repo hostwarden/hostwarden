@@ -8,7 +8,8 @@ description: Review a change to Hostwarden itself for defects before
   `.claude/rules/pull-requests.md` → Review says, never for a
   managed host.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
-model: sonnet
+model: opus
+effort: medium
 permissionMode: default
 color: purple
 ---

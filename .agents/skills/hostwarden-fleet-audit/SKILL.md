@@ -192,7 +192,14 @@ Layers).
    `blocked:` result carries no row, which is not a malformed
    one: put its decision to the user, then probe that host
    here as step 3 describes, or list it as skipped with the
-   reason if they decline.
+   reason if they decline. A probe stopped at its turn cap
+   comes back with Claude Code's note that the cap cut it
+   short, which is no `partial:` status and gets no column:
+   continue that agent once, with `SendMessage`, to finish
+   its row. One that still returns no
+   status is handled like a `blocked:` one, and where its
+   output shows the journal line was written, the probe here
+   leaves that line out.
 
 5. **Surface drift, then warnings.** After the tables, emit a
    short "Drift detected" section that lists each disagreement
