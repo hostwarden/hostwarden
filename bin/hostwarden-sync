@@ -11,7 +11,8 @@
 #                                (hostwarden-map), then commit PATHs
 #                                (relative to the workspace or under
 #                                memory/), or every change when none
-#                                is named, its Markdown rewrapped at
+#                                is named, a removed one as its
+#                                removal, its Markdown rewrapped at
 #                                80 (hostwarden-wrap --changed),
 #                                but for the copies kept byte for
 #                                byte (lib/wrap-verbatim.sh)
@@ -182,8 +183,29 @@ commit)
   # matters more than its line lengths.
   (cd memory && sh "$SCRIPT_DIR/hostwarden-wrap" --changed -- "$@") \
     >/dev/null 2>&1 || true
-  retry W add -- "$@"
-  W diff --cached --quiet -- "$@" && exit 0
+  # git add takes what the work tree or the index holds, a file
+  # removed from the work tree included. One git rm or git mv took
+  # out of the index already is a pathspec git add fails on; git
+  # commit, which commits the work tree's state of every path it is
+  # given, takes its removal. A path neither the index nor HEAD
+  # knows has nothing to commit and is said so; one that only a
+  # removed file staged and never committed held has nothing left
+  # once git add has taken it out of the index.
+  for p do
+    shift
+    if [ -e "memory/$p" ] || [ -L "memory/$p" ] \
+        || W ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then
+      retry W add --all -- "$p"
+      W ls-files --error-unmatch -- "$p" >/dev/null 2>&1 \
+        || W cat-file -e "HEAD:$p" 2>/dev/null || continue
+    elif ! W cat-file -e "HEAD:$p" 2>/dev/null; then
+      echo "hostwarden: $p is not in the workspace; not committed" >&2
+      continue
+    fi
+    set -- "$@" "$p"
+  done
+  [ "$#" -gt 0 ] || exit 0
+  W diff --quiet HEAD -- "$@" 2>/dev/null && exit 0
   retry W commit --quiet -m "$MSG" -- "$@"
   ;;
 push)

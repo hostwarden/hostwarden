@@ -184,6 +184,47 @@ git -C "$B/memory" log -1 --name-only --format= | grep -qx "$N" \
   && [ -n "$(git -C "$B/memory" status --porcelain -- "$MEM")" ] && ok \
   || bad "commit with a path took more than that path, or missed it"
 git -C "$B/memory" checkout --quiet -- "$MEM"
+# A removed path goes in the same commit as the rest, whether it is
+# gone from the work tree only, from the index too (git rm), or is
+# the old name of a git mv; a path never there is skipped, not fatal.
+D=machines/server2.example.com
+printf 'a\n' > "$B/memory/$D/rm.md"
+printf 'b\n' > "$B/memory/$D/git-rm.md"
+printf 'c\n' > "$B/memory/$D/old.md"
+sync_b commit "b: server2 files" "$D"
+# ...and one staged but never committed, since removed: its entry
+# leaves the index rather than stay behind as a change.
+printf 'd\n' > "$B/memory/$D/staged.md"
+git -C "$B/memory" add "$D/staged.md"
+rm "$B/memory/$D/staged.md"
+rm "$B/memory/$D/rm.md"
+git -C "$B/memory" rm --quiet "$D/git-rm.md"
+git -C "$B/memory" mv "$D/old.md" "$D/new.md"
+echo 'OS: FreeBSD 14.2' > "$B/memory/$N"
+echo 'Kernel: another session' > "$B/memory/$MEM"
+out=$(sync_b commit "b: server2 tidied" "$N" "$D/rm.md" "$D/git-rm.md" \
+  "$D/old.md" "$D/new.md" "$D/staged.md" "$D/never.md" 2>&1) \
+  || bad "commit failed on a removed path: $out"
+got=$(git -C "$B/memory" log -1 --name-status --no-renames --format= \
+  -- "$D" "$N" | sort | tr '\t\n' ' ')
+[ "$got" = "A $D/new.md D $D/git-rm.md D $D/old.md D $D/rm.md M $N " ] \
+  && [ -z "$(git -C "$B/memory" status --porcelain -- "$D")" ] \
+  && [ -n "$(git -C "$B/memory" status --porcelain -- "$MEM")" ] && ok \
+  || bad "commit did not take exactly the removals with the rest: $got"
+case "$out" in
+*"$D/never.md is not in the workspace"*) ok ;;
+*) bad "a path never in the workspace went unmentioned: $out" ;;
+esac
+# A whole directory removed by git rm -r.
+mkdir -p "$B/memory/$D/gone"
+printf 'x\n' > "$B/memory/$D/gone/a.md"
+sync_b commit "b: gone" "$D/gone"
+git -C "$B/memory" rm -r --quiet "$D/gone"
+sync_b commit "b: gone again" "$D/gone" \
+  && git -C "$B/memory" log -1 --name-status --format= | tr '\t' ' ' \
+    | grep -qx "D $D/gone/a.md" && ok \
+  || bad "commit of a directory git rm -r removed failed"
+git -C "$B/memory" checkout --quiet -- "$MEM"
 # Another session's git holding the index is waited out.
 echo 'OS: FreeBSD 14.1' > "$B/memory/$N"
 : > "$B/memory/.git/index.lock"
