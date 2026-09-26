@@ -63,4 +63,4 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Waiting on | Tags |
 | :--- | :--- | :--- |
-| [Several-host onboarding asks at the run's close, per site](20260926-onboarding-asks-by-site-at-run-close.md) | — | onboarding, questions, network |
+| [Several-host onboarding asks at the run's close, per site](20260926-onboarding-asks-by-site-at-run-close.md) | the review of hostwarden/hostwarden#474 | onboarding, questions, network |
