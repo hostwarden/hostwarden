@@ -54,7 +54,8 @@ tool reads. This file adds only what exists here and nowhere else.
   Where hooks do not run, `rules/session-start.md` says what to do
   instead.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
-  the SSH-user interview, the four-way restart question — uses it
+  the SSH-user interview, the four-way restart question, the
+  question after an update — uses it
   here. The ASCII fallback those rules give is for tools without it.
 - **Sessions on this machine can be reached.** When a host's session
   register names your own `user@workstation`

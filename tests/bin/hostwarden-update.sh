@@ -24,7 +24,8 @@ unset HOSTWARDEN_NO_UPDATE HEINZEL_NO_UPDATE CLAUDE_PROJECT_DIR \
 U="$TMP/upstream"
 mkdir -p "$U/bin" "$U/lib" "$U/.claude/hooks"
 cp "$REPO/bin/hostwarden-update" "$REPO/bin/hostwarden-mirror" "$U/bin/"
-cp "$REPO/lib/mode.sh" "$REPO/lib/follow.sh" "$U/lib/"
+cp "$REPO/lib/mode.sh" "$REPO/lib/follow.sh" "$REPO/lib/release-notes.sh" \
+  "$U/lib/"
 cp "$REPO/.claude/hooks/check-updates.sh" "$U/.claude/hooks/"
 printf 'memory/\n' > "$U/.gitignore"
 git -C "$U" init --quiet --initial-branch=main
@@ -43,7 +44,8 @@ git -C "$U" config tag.gpgSign true
 # release <version> — commit VERSION and tag it; "-" commits only.
 release() {
   echo "$1" > "$U/VERSION"
-  printf '# Changelog\n\n## %s\n\n- release %s\n' "$1" "$1" > "$U/CHANGELOG.md"
+  printf '# Changelog\n\n## %s\n\n### Added\n\n- **release %s.** Detail.\n' \
+    "$1" "$1" > "$U/CHANGELOG.md"
   git -C "$U" add -A
   git -C "$U" commit --quiet -m "release $1"
   [ "$1" = - ] || git -C "$U" tag -a -m "Release v$1" "v$1"
@@ -285,7 +287,7 @@ esac
 # The rest lives in tests/bin/hostwarden-update/, one file per stage,
 # sourced in this order into this shell: each reads what the ones
 # before it set.
-PARTS='default-line signatures'
+PARTS='default-line signatures release-notes'
 for part in $PARTS; do
   [ -f "$REPO/tests/bin/hostwarden-update/$part.sh" ] || {
     echo "hostwarden-update.sh: tests/bin/hostwarden-update/$part.sh" \

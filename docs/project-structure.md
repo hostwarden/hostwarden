@@ -59,6 +59,9 @@ lib/                   — Code bin/ and the hooks share; sourced,
   follow.sh            — The release line a checkout follows,
                          for bin/hostwarden-update and
                          check-updates.sh
+  release-notes.sh     — What an update brought: each release
+                         in between, by lead clause, for
+                         bin/hostwarden-update
   coord-lib.sh         — What presence.sh, impact.sh and
                          bin/hostwarden-impact share
   coord-tokenize.sh    — The awk tokenizer coord-lib.sh reads

@@ -86,6 +86,35 @@ with no `Notice:` line yet — *"Window: pve1 kernel update, tonight
 22:00–23:30."*, *"Notice overdue: pve1 kernel update, notify by
 2026-09-28, none sent."* Say nothing when there are none.
 
+## An update
+
+Where the session start reports that this checkout moved —
+`hostwarden updated: <old> -> <new>`, with the lead clause of each
+entry of every release in between, or `updated to <commit>` on
+`main`, with what is new there — show the user that list as it
+came, then ask *"Alles klar, weiter?"*, in the user's language,
+before any server work. Where the harness saved the session start's
+output to a file and shows only its start, read the file first: the
+list is shown whole. One `AskUserQuestion` in Claude Code, the ASCII
+fallback of `rules/ssh-user.md` → Interview format elsewhere, with
+three options:
+
+1. Go on.
+2. The full text, then ask again: the section of each release
+   named, from `git show vX.Y.Z:CHANGELOG.md`, or from HEAD's
+   `CHANGELOG.md` for one with no tag yet; on `main`, the entries
+   named, from the fragments in `changelog.d/` and `## Unreleased`
+   in `CHANGELOG.md`.
+3. Stop: no server work until the user says otherwise.
+
+A report that the update failed or was refused is said as it came,
+and asks nothing.
+
+A run no person answers — `claude -p`, `bin/hostwarden-fleet-run`,
+anything started from a timer — asks nothing and goes on. The list
+stays in its output; `bin/hostwarden-fleet-run` writes it whole to
+the timer's log, and the first lines of it into its report's notes.
+
 ## The operator handle
 
 Where `rules/ssh-user.md` → Operator requires the `Operator:` line

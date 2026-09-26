@@ -192,6 +192,6 @@ git clone --quiet "$TMP/m2.git" "$P" && mkdir "$P/memory"
 touch "$P/memory/.hostwarden-workspace"
 release 5.0.0 && git -C "$U" push --quiet "$TMP/m2.git" main v5.0.0
 out=$(hook)
-case "$out" in *BREAKING* | *"- release 5.0.0"*) bad "notes printed: $out" ;;
+case "$out" in *BREAKING* | *"release 5.0.0."*) bad "notes printed: $out" ;;
 *"9.9.0 -> 5.0.0"*"section of CHANGELOG"*) at v5.0.0 && ok || bad "$out" ;;
 *) bad "the move to a lower major was not reported: $out" ;; esac

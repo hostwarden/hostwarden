@@ -30,6 +30,11 @@
 #   hostwarden_follow_tag L    — prints the highest vX.Y.Z tag on
 #                                line L this clone knows, or
 #                                nothing
+#   hostwarden_follow_between H L [S]
+#                              — prints each vX.Y.Z tag commit H has
+#                                and commit L lacks, oldest first,
+#                                or in git's sort order S; an
+#                                empty range is no failure
 #   hostwarden_follow_default  — on main with no value: prints the
 #                                major of the newest release this
 #                                clone knows, when it is 1 or
@@ -92,6 +97,11 @@ hostwarden_follow_fetch() {
 hostwarden_follow_tag() {
   git tag -l "v$1.*" --sort=-v:refname |
     grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1
+}
+
+hostwarden_follow_between() {
+  git tag -l 'v*' --merged "$1" --no-merged "$2" \
+    --sort="${3:-v:refname}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || :
 }
 
 # A 0.x release is no line to settle on: main until 1.0.0.

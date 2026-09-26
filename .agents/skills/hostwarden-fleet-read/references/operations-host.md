@@ -76,8 +76,9 @@ the checkout. A run, in order:
 4. writes one read-only line to each host's journal through the
    wrapper and the same line to its changelog, commits those
    files, and pushes;
-5. sends one report for the fleet. Its notes carry what the update
-   and the pull at the start said, a bundle that does not verify
+5. sends one report for the fleet. Its notes carry the first lines
+   of what the update and the pull at the start said, which the
+   timer's log has whole, a bundle that does not verify
    or nears its date, and a push that did not go through.
 
 Its exit status is `2` when a CRITICAL is not explained by the
