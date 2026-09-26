@@ -417,11 +417,14 @@ fi
 # empty for "no memory"> -- the short name is what a cluster
 # guests.md'"'"'s own "running on <name>" names the member by
 # (rules/hypervisors.md), the directory what memory.md links to.
-# CLUSTERINFO: <cluster> TAB <raw line other than Members:>, the
-# heading'"'"'s own "(<appliance>)" first, where it names one.
+# CLUSTERKIND: <cluster> TAB <the heading's own "(<appliance>)">,
+# where it names one -- its own tag and file, never mixed with any
+# other "- " line before the row for a given cluster is picked
+# (LC_ALL=C sorts "- " before a capital letter, so a shared bag
+# sorted and picked by "first match" could return either).
 CLUSTERMEMBERS="$WORK/clustermembers.tsv"
-CLUSTERINFO="$WORK/clusterinfo.tsv"
-: >"$CLUSTERMEMBERS"; : >"$CLUSTERINFO"
+CLUSTERKIND="$WORK/clusterkind.tsv"
+: >"$CLUSTERMEMBERS"; : >"$CLUSTERKIND"
 set -- "$M"/clusters/*/cluster.md
 if [ -f "$1" ]; then
   awk '
@@ -441,19 +444,19 @@ if [ -f "$1" ]; then
     FNR == 1 {
       flushm(); c = FILENAME; sub(/\/cluster\.md$/, "", c); sub(/.*\//, "", c)
       if (match($0, /\([^)]+\)[ \t]*$/)) {
-        print "I\t" c "\t" substr($0, RSTART + 1, RLENGTH - 2)
+        print "K\t" c "\t" substr($0, RSTART + 1, RLENGTH - 2)
       }
       next
     }
     /^- Members:/ { flushm(); ms = $0; sub(/^- Members:/, "", ms); next }
     /^[ \t]+[^ \t]/ && ms != "" { ms = ms " " $0; next }
-    /^- / { flushm(); print "I\t" c "\t" $0; next }
+    /^- / { flushm(); next }
     { flushm() }
     END { flushm() }
   ' "$@" >"$WORK/cluster-raw.tsv" || die "a cluster.md could not be parsed"
   LC_ALL=C sort "$WORK/cluster-raw.tsv" >"$WORK/clusterraw.tsv"
   awk -F'\t' '$1 == "M" { print $2 "\t" $3 "\t" $4 }' "$WORK/clusterraw.tsv" >"$CLUSTERMEMBERS"
-  awk -F'\t' '$1 == "I" { print $2 "\t" $3 }' "$WORK/clusterraw.tsv" >"$CLUSTERINFO"
+  awk -F'\t' '$1 == "K" { print $2 "\t" $3 }' "$WORK/clusterraw.tsv" >"$CLUSTERKIND"
 fi
 
 # --- step 4: classify every host ------------------------------------
@@ -1196,7 +1199,7 @@ render_cluster() {
   } >"$ctable"
 
   cslug=$(slug_sh "$cl")
-  ci=$(awk -F '\t' -v c="$cl" '$1 == c { print $2; exit }' "$CLUSTERINFO")
+  ci=$(awk -F '\t' -v c="$cl" '$1 == c { print $2; exit }' "$CLUSTERKIND")
   write_map_file "$MAPS/clusters/$cslug.md" \
     "memory/clusters/$cl/cluster.md, its guests.md and its members' memory.md" \
     "Cluster: $cl${ci:+ ($ci)}" "[Index](../README.md) · [WAN](../wan.md)" \
