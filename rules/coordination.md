@@ -167,7 +167,10 @@ a destination held in a variable are not read for a destination and
 count as no destination — each line of a command is read as a
 command of its own, and a heredoc's own body, like the `printf` or
 `echo` a pipeline feeds into the far shell, is read for what it
-does (coord-lib.sh's `hostwarden_coord_kind`), just never for a
+does unless the far side only stores it (`cat`, `tee`), runs a
+script file instead or never gets it (`ssh -n`), and expands
+nothing in it (coord-lib.sh's `hostwarden_coord_kind`), just
+never for a
 destination nested inside it; what any other command pipes into
 the far shell is not read; a false match on the register or
 deregister snippet
