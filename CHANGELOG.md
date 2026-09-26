@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-09-26
 
 Hostwarden grew out of [Heinzel](https://github.com/wintermeyer/heinzel)
 by Stefan Wintermeyer and branched off at Heinzel 2.22.0. It continues
@@ -51,23 +51,33 @@ Heinzel 2.22.0. Heinzel's own release notes are in its repository.
   sections of the one below it. Detection still picks at most one
   family per host, and none for a distribution no family covers.
 - **Runs in the Claude desktop app.** The Code tab runs the same Claude
-  Code. `docs/ai-tools.md` says how to open the checkout (with the
-  worktree option off), where environment variables go and how to
-  schedule runs there.
+  Code. The documentation's AI tools page says how to open the checkout
+  (with the worktree option off), where environment variables go and
+  how to schedule runs there.
 - **On Windows, Hostwarden runs in WSL 2 only.** Git Bash, MSYS2,
   Cygwin, PowerShell and `cmd.exe` are not supported, and Claude
   Code's PowerShell tool is denied, because the guard cannot read what
-  it runs. `docs/install.md` → Windows walks through the setup.
+  it runs. The installation guide walks through the setup.
 - **`bin/hostwarden-doctor` says what your workstation is missing.** It
   also says which feature each missing tool switches off, and gives the
   install command for your package manager. It runs quietly at every
   session start and never installs anything. Under WSL it warns about a
   clone under `/mnt` and an SSH key WSL cannot reach. When servers
   behind a Windows VPN stop answering from WSL, the unreachable-host
-  check names WSL's network as the likely cause.
-- **The README is about getting started.** Everything deeper lives
-  under `docs/`, indexed by `docs/README.md`: installation, AI tools,
-  features, safety, automation, overrides, operations. `CONTRIBUTING.md`
+  check names WSL's network as the likely cause. When Claude Code runs
+  its commands in zsh or a Bash older than 4, which agents' commands
+  fail in, it names the Bash to set as `CLAUDE_CODE_SHELL`. In an
+  operations checkout it also recommends `shellcheck`.
+- **The README is about getting started.** Everything deeper is on the
+  [documentation site](https://hostwarden.github.io/docs), in sections
+  with their own navigation: Get started, Features, Memory, Safety,
+  Running it, Reference and Development, one short page per topic. It
+  shows what Hostwarden records with real examples: a first session from
+  start to finish, a host's memory files, the journal line, plans,
+  decisions and the maps. The Reference section lists example prompts,
+  skills, scripts, environment variables and a glossary, and a
+  recommendations page lists what Hostwarden recommends by default, why,
+  and the decision that settles it if you disagree. `CONTRIBUTING.md`
   and `SECURITY.md` are new.
 
 ### Safety
@@ -86,8 +96,12 @@ protection there.
   is started with `sh`: without bash, Heinzel's guard never started, and
   Claude Code let every command through without saying so. A guard whose
   helper file is missing blocks instead of passing.
-- **The guard can only be switched off before a session starts.**
-  `HOSTWARDEN_GUARD_DISABLE` counts only for a session that started
+- **The guard can only be switched off before a session starts, and
+  only toward one host.** `HOSTWARDEN_GUARD_DISABLE` names the host an
+  OS install writes its disks on, the hypervisor for a guest's disk, or
+  `localhost` for this machine. The guard stays on for every other host
+  and for any command whose destination it cannot read, and a value of
+  `1` is refused. The variable counts only for a session that started
   with it. A value that appears mid-session, for example through a
   settings file, changes nothing, and the agent cannot write the
   variable into a settings file. A session that starts with the guard
@@ -149,12 +163,12 @@ protection there.
   daemon's own `-f` file, `-p` or `-o Port=` and a socket unit's
   `ListenStream`, besides sshd's effective configuration, and keeps
   every one of those ports open.
-- **Probes withhold what can carry a secret.** Cron lines, hooks,
-  units, repository and configuration lines are read for their
-  structure only. `sudo -l` output is cut before the arguments.
-  Comments in firewall listings are masked. More things count as
-  secrets: CA signing keys, container environments and VPN
-  configurations.
+- **Probes withhold what can carry a secret.** Cron lines, hooks, units,
+  repository and configuration lines are read for their structure only.
+  `sudo -l` output is cut before the arguments. Comments in firewall
+  listings are masked, and of Pi-hole's custom dnsmasq lines only those
+  that decide its exposure are read. More things count as secrets: CA
+  signing keys, container environments and VPN configurations.
 - **No session crosses its limits through someone else.** What one
   session may not do or see — a blacklisted or read-only host, no root,
   a guard block, a development checkout — no other session, subagent,
@@ -187,12 +201,14 @@ protection there.
   checkout — in Claude Code directly, elsewhere through a command you
   run there — which runs the access lists and the full pipeline and
   answers.
-- **`bin/hostwarden-lab` lets development try commands.** Disposable
+- **`scripts/lab.sh` lets development try commands.** Disposable
   containers for Debian, Ubuntu, RHEL, Fedora, SUSE and Alpine answer
   "what does this command print here" without guessing. A lab VM (with
   OrbStack or Lima) covers systemd, the firewall and the kernel. It
   only runs from a development checkout, and a VM is driven from a
-  separate test clone whose blacklist is set.
+  separate test clone whose blacklist is set. A container removes
+  itself after `HOSTWARDEN_LAB_TTL` seconds, six hours by default, when
+  nobody ran `down`.
 
 ### Workspace, teams and updates
 
@@ -204,19 +220,22 @@ protection there.
   another session's uncommitted changes and never commits them along.
   Changes an ended session left behind are found and committed on
   their own after you say so.
-- **Teams share the workspace through a remote.** A private remote of
-  its own (`bin/hostwarden-init --clone <url>` to join one) keeps a
-  team, or one admin's several machines, in step. Heinzel's team mode,
-  which changed the repository's own `.gitignore`, is gone. `user.md`, the
-  blacklist and the read-only list stay personal; host memory, host
-  keys, decisions and deployed files are shared. Host changelogs from
-  two machines merge on their own. Every workspace commit is scanned
-  for secrets with betterleaks, which is required once the workspace
-  has a remote.
+- **A workspace with a remote is shared.** A private remote of its own
+  (`bin/hostwarden-init --clone <url>` to join one) keeps a team, or one
+  admin's several machines, in step; a team means two or more active
+  people. Heinzel's team mode, which changed the repository's own
+  `.gitignore`, is gone. `user.md`, the blacklist and the read-only list
+  stay personal; host memory, host keys, decisions and deployed files
+  are shared. Host changelogs from two machines merge on their own.
+  Every workspace commit is scanned for secrets with betterleaks, which
+  is required once the workspace has a remote.
 - **Teammates have handles.** The journal line on a server names the
   short `Operator:` handle from `memory/user.md`. In a team it is
   reserved once in the shared `memory/operators.md` so two people
-  cannot take the same one.
+  cannot take the same one. A handle marked `(inactive since <date>)`
+  stays reserved when someone stops: a session under it asks first,
+  and the nightly run refuses it. An operations host's handle is
+  marked `(operations host)` and counts toward no team.
 - **Sessions that change the same host see each other.** Before its
   first change, a session registers on the host itself in
   `/tmp/hostwarden/`, without root: who, from which workstation, doing
@@ -224,6 +243,45 @@ protection there.
   you decide. In Claude Code, a session on the same machine can be
   messaged directly. Read-only sessions register nothing. Windows hosts
   use journal markers instead.
+- **Ask what a reboot, restart or network change would hit.**
+  Hostwarden answers from memory without connecting anywhere: the
+  host's guests, the hosts behind it as a jump host, the hosts that
+  depend on a service it runs, and its cluster peers, each with its
+  role and services and the age of the records it relied on.
+  Onboarding and housekeeping record the NFS or SMB shares a host
+  mounts and the resolver it uses as a `Depends on:` line.
+- **A reboot, a firewall or network change, or a restart is announced
+  before it runs.** `bin/hostwarden-impact announce` works out what the
+  step reaches and names another session already on one of those hosts;
+  `wait`, `ack` and `done` close the loop. In Claude Code a hook denies
+  such a step while another live session is on its radius and it has not
+  been announced, and refuses a command inside another session's
+  announced step once, to inform rather than to hold it. In a team, the
+  announcement is also written onto each host it reaches, a register
+  entry and a journal line, so colleagues on other workstations see it
+  and a later connection can tell why a host rebooted.
+  `hostwarden-impact status` answers "why is SSH not responding?" from
+  what was announced, without connecting, and an unreachable host is
+  checked against it first.
+- **A coordinator keeps track of which session works where.** The
+  first session in an operations checkout starts it in the background
+  and says so. It asks a session what it is doing when it moves to
+  other hosts, passes an announced step on to the sessions changing
+  something on the hosts it reaches, keeps an order of steps across
+  sessions and warns about maintenance windows. It reaches no server
+  and decides nothing. `/hostwarden-coordinator` stops it and keeps it
+  off through `Coordinator: off` in `memory/user.md`, or starts it
+  again.
+- **Maintenance windows are planned ahead.** Hostwarden reads what a
+  reboot, restart, firewall or network step would hit, proposes a
+  window from pending updates and the notice each affected host needs,
+  and writes the plan to `memory/plans/` with its steps, hosts and
+  notify-by date; nothing runs until a later session is asked to run
+  it. Reboots and restarts a host schedules on its own are recorded as
+  well, so losing SSH in a known window reads as a known cause. Session
+  start names windows starting within a day and overdue notices, and
+  Hostwarden writes the notice for other admins as chat text or an
+  email.
 - **Standing decisions are recorded.** When you settle a standing
   choice with a reason, Hostwarden writes it down with who, when, why
   and what it covers: per host, per cluster or for a group of hosts
@@ -238,6 +296,36 @@ protection there.
   and overwrites neither side. Work that spans sessions gets a plan in
   `memory/plans/`, and scripts for your own machine go in
   `memory/tools/`.
+- **A script written for a host is POSIX `sh` unless it needs Bash.**
+  Where it needs Bash, a script a person starts uses
+  `#!/usr/bin/env bash`, and one that cron, launchd, systemd, root or
+  an SSH session starts names an absolute path, on a Mac the Homebrew
+  Bash rather than macOS's 3.2; a script root runs gets only a Bash
+  that root owns. Where `shellcheck` is installed, the script is linted
+  before it reaches a host.
+- **The workspace draws its own maps.** `bin/hostwarden-map` writes
+  Mermaid maps to `memory/maps/`, computed from memory alone: the sites
+  and the links between them, each site's ranges and hosts, each
+  cluster's members and guests, and each hypervisor outside a cluster.
+  Every map comes with a table of the full fields, links back into
+  memory and renders on GitHub and Forgejo without a build step. A
+  host with a recorded topology finding gets an amber border, and a
+  gap in memory draws as "not known", never as a guess.
+- **The workspace opens on an overview page.** The same script writes
+  `memory/README.md`: the sites with their maps, each host's open
+  findings from its last housekeeping run and security audit, and the
+  hosts not reached within their cadence, nightly under fleet read and
+  90 days otherwise. It counts and links rather than copying a host's
+  detail, and says in a line each what memory does not record yet. A
+  `memory/README.md` you wrote yourself is left alone.
+  `bin/hostwarden-sync commit` redraws the maps and the page before it
+  commits, so they always match the memory they came from.
+- **Markdown rewraps itself at 80 characters.** `bin/hostwarden-wrap`
+  rewraps a Markdown file's paragraphs and leaves headings, tables,
+  code, admonitions and a file marked as generated alone. In Claude
+  Code it runs after every edit, on `memory/` only in an operations
+  checkout, and `bin/hostwarden-sync commit` rewraps what it commits,
+  whichever tool wrote it.
 - **Your own skills travel with the workspace.** A skill in
   `memory/.claude/skills/` is shared like the rest of `memory/`.
 - **Overrides mirror the path of what they change.**
@@ -255,11 +343,25 @@ protection there.
   so. `--unpin` follows `main` instead, and after each pull names the
   changes that no release carries yet. The auto-update runs only in
   an operations checkout.
+- **Release tags are signed, and the updater checks them.** Every
+  release from v1.0.0 on is an annotated tag signed with Hostwarden's
+  release key, published with its fingerprint on the updates page, so
+  `git verify-tag` can check it; GitHub shows it as verified by
+  `hostwarden-release`, the account that holds the key. In an operations
+  checkout, `bin/hostwarden-update` checks each tag against the release
+  key of the version the checkout is on before moving to it; a tag that
+  does not verify stops the update, the checkout stays where it is, and
+  `--check` names the tag. A line also never steps back to an older
+  release, so a mirror that withholds newer tags stops the update
+  instead of rolling it back; going back is a `--pin`.
 - **Your own mirror of Hostwarden stays current unattended.**
   `bin/hostwarden-mirror` fast-forwards a mirror's `main` and its tags
   from a CI or cron job. It fails rather than overwrite commits the
-  mirror has of its own. `docs/operations.md` has job examples for
-  GitHub Actions and GitLab CI.
+  mirror has of its own. The documentation's mirror page has job
+  examples for GitHub Actions and GitLab CI, and says when your git
+  hosting's own pull mirror is enough: a plain copy needs no script,
+  `bin/hostwarden-mirror` is for a mirror production clones from.
+  Either way Actions stay off in the mirror.
 - **Backup and restore know the workspace.** `bin/hostwarden-backup`
   leaves the workspace's git history and generated files out. A
   restore refuses to run in a worktree, sets the workspace up with
@@ -289,12 +391,17 @@ protection there.
   connection, Hostwarden tries the ports you list as
   `Alternative SSH ports:` in `memory/user.md`, and 2222 where your
   known_hosts has a key for it, then asks. It never scans. Port
-  forwardings are never stored.
+  forwardings are never stored. In a shared workspace, an address
+  Hostwarden resolved itself, for a renamed host or an mDNS conflict,
+  goes in only once you confirm every workstation reaches it the same
+  way.
 - **Jump hosts go through the blacklist too.** Each hop of a
   `ProxyJump` or `ProxyCommand` is checked as the user it logs in as.
   A path Hostwarden cannot read is treated as a listed hop and asked
   about. When the chosen SSH user's configuration leads to another
-  endpoint, the access checks run again for it.
+  endpoint, the access checks run again for it. Where DNS does not
+  answer, a name counts as listed: the nightly run skips the host, and
+  `hostwarden-impact` registers no write on it.
 - **An SSH CA you already run is audited and used.** Hostwarden reads
   each host certificate's expiry and names, the user CA each server
   trusts, its principals and its revocation list, and the CA's issuing
@@ -314,7 +421,29 @@ protection there.
 - **Short names stay unambiguous.** Each server's FQDN is recorded,
   and a dotless name that matches several servers brings a question.
   For `.local` names, mDNS and DNS are both asked, and a disagreement
-  stops for you instead of being taken as an alias.
+  stops for you instead of being taken as an alias. Name checks ask for
+  IPv4 and IPv6 alike and tell a resolver that does not answer from a
+  name that does not exist, so a DNS outage is never read as a free
+  name or a moved server.
+- **Commands on a host answer in English, whatever its language.** Each
+  call sets `LC_ALL=C` first, in the command itself rather than
+  forwarded by SSH, so a translated label such as German `ufw`'s
+  `Voreinstellung:` no longer breaks a check without an error.
+- **A fleet naming scheme is detected, proposed and followed.** After a
+  few hosts are onboarded, Hostwarden recognises a shared hostname
+  pattern and asks you to confirm it, or proposes one on request, with
+  site codes from IATA or UN/LOCODE where you set none. A new guest or
+  a fresh install follows the confirmed scheme and is reached, keyed
+  and remembered by that name from its first connection, through a
+  temporary `memory/ssh_hosts` entry that goes once DNS answers.
+  Existing hosts are never renamed on their own; the fleet audit's
+  Naming row flags a name that no longer fits.
+- **Renaming a host.** On request, one host at a time, Hostwarden lists
+  what the old name reaches, sets the new hostname and `/etc/hosts`
+  with the family's own command, moves the host's memory to the new
+  name with the old one kept as an alias, and hands over what is yours:
+  DNS, a Proxmox VE cluster node, appliances, directory-joined hosts
+  and memberships keyed by the node name.
 - **Each host records its way back in.** A `Management:` line holds the
   BMC, Intel AMT, provider console or other path to use when SSH is
   gone. Housekeeping and the security audit settle it; a controller is
@@ -345,14 +474,21 @@ protection there.
 - **Onboarding a host is a skill.** `/hostwarden-onboard <host>`, or
   "onboard web1", runs the first connection now, read-only. It does the
   full probe, the network profile, and on a hypervisor the guest
-  inventory, then reports what the host lacks against the baseline. A
-  host already known is probed in full again.
+  inventory, then reports what the host lacks against the baseline. It
+  records everything a host's memory holds, from USB devices, disks,
+  passthrough and backup to the accounts and sudo model, container
+  registries and, with root, the management controller, so no
+  housekeeping run is needed right after it; the report ends with an
+  offer to schedule housekeeping. A host already known is probed in full
+  again. Memory carries `Onboarded:` and `Housekeeping:` dates, and an
+  answer that rests on a record older than 90 days says so.
 - **Several hosts at once.** A question, check or change that names
   several servers runs the full pipeline on each host, in Claude Code in
   one subagent per host (`/hostwarden-multi-host`). Hosts that agree print
   once, so the outlier stands out. A change is asked once for all hosts,
   runs on a canary first, and stops at the first surprise. Firewall,
-  network and login-shell changes still go one host at a time.
+  network and login-shell changes still go one host at a time, and hosts
+  behind the same jump host run in one sequence.
 - **The fleet audit, in Claude Code, gives each host its own subagent**
   and returns one comparison row per host, keeping the raw output out of
   the conversation; elsewhere it probes one host after another. It now
@@ -360,8 +496,11 @@ protection there.
   rules, SSH CA trust and, on Ubuntu, Pro, ESM and needrestart. It has
   Alpine, FreeBSD and macOS variants of its probes. A setting a family
   does not have reads `n/a`, not drift. Each guest is listed under its
-  hypervisor, and a difference you decided on is shown as decided. Windows
-  hosts are skipped.
+  hypervisor, and a difference you decided on is shown as decided. It
+  lists the hosts whose records are stale or that were never onboarded.
+  Each host's probe runs at medium effort and stops after 60 turns; one
+  that still has no result is put to you instead of getting a column.
+  Windows hosts are skipped.
 - **Housekeeping checks more.**
   - **Engines and services:** container engines (Docker, Podman,
     containerd), Home Assistant on an ordinary host, Pi-hole, AdGuard
@@ -410,6 +549,40 @@ protection there.
   runs, whether it is connected, and what would cut the host off. The
   full network profile runs when you ask, on onboarding, and when a
   failure points at the network (`rules/network.md`).
+- **Hostwarden records the networks its hosts share.** The network
+  profile feeds `memory/topology.md` with the IP ranges a host sits on,
+  each range's site, VLAN, DHCP state, DNS suffix and gateway, and the
+  routes between ranges, read-only and from the hosts alone. OPNsense,
+  pfSense and UniFi OS add their interfaces, VLANs, DHCP scopes, static
+  routes and WAN interfaces, read over the SSH login already in place
+  as allow-listed fields only. Each site records its uplinks: the
+  stack, static or dynamic IPv4, the delegated IPv6 prefix, and CGNAT
+  on your word. Onboarding asks which site a host is at, once per site
+  about its uplinks, and offers to onboard a gateway it does not know.
+  Exposing a service says first when CGNAT or DS-Lite rules out an IPv4
+  port forward, and a short name that resolves nowhere is offered under
+  the suffixes the ranges record.
+- **Hostwarden knows where the fleet's DNS names come from.** Onboarding
+  and housekeeping read the zones, views, forwards and local records of
+  a DNS server Hostwarden manages into `memory/dns.md`, one line per
+  name space with its source, DNSSEC state and who manages it. A new
+  guest and a renamed host get the exact record set they need: a
+  service name as a CNAME to its host, A and AAAA only where DNS
+  requires them, a private address in internal views only. Checks
+  report a DS that matches no key, resolvers of one set that answer
+  differently, a local record that shadows a forwarded zone, and a
+  private address in an external view.
+- **Hostwarden writes DNS records where you allow it.** A name space
+  needs `Hostwarden: write` in `memory/dns.md`, set only on your word,
+  and every write is still asked with the exact record set, backed up
+  first and verified through the resolvers clients use. BIND zones are
+  edited and checked or updated with `nsupdate -l`, PowerDNS and Knot
+  through their own tools, a provider's zone (Cloudflare, Hetzner, INWX,
+  a registrar) through its API with a token scoped to the zone where
+  the provider offers one, and the host overrides of OPNsense, pfSense
+  and UniFi OS through a write access you asked for. A resolver set is
+  written one member at a time. A zone managed as code, a DS at the
+  registrar and a DNSSEC key stay yours to change.
 - **Configuration management is respected.** Hostwarden detects
   Ansible, Puppet or OpenVox, Chef or Cinc, Salt, CFEngine and Rudder,
   and records Terraform or OpenTofu as the provisioner when you say a
@@ -550,8 +723,11 @@ protection there.
   `memory/machines/<host>/guests.md`, stopped ones and templates
   included. It asks once why stopped guests are off. Each running guest
   the hypervisor can enter gets memory of its own, read-only, and a
-  report says what was read, written and left out. Guests on TrueNAS,
-  Synology DSM, Unraid and ZimaOS are inventoried read-only.
+  report says what was read, written and left out. A registered guest
+  finishes its onboarding on its first own login: whatever you asked
+  for, it is recorded read-only first, and its baseline gaps follow the
+  task as one offer. Guests on TrueNAS, Synology DSM, Unraid and ZimaOS
+  are inventoried read-only.
 - **Clusters are inventoried once.** A Proxmox VE cluster, an XCP-ng
   pool and an Incus or LXD cluster live in `memory/clusters/<name>/`
   with their members, HA state and guests. A guest's `Runs on:` follows
@@ -571,14 +747,20 @@ protection there.
   your keys from the first boot; a password exists only if you ask, and
   the guest generates it. On Proxmox VE, containers come from a baseline
   template Hostwarden builds; housekeeping says when it is due for a
-  rebuild. For Unraid, ZimaOS and TrueNAS you get the web-UI steps
-  and a seed ISO; for XCP-ng, the user-data to paste into Xen
-  Orchestra.
+  rebuild. A new guest is checked against DNS, reached, keyed and
+  registered by its settled name from its first login, and onboarded as
+  it is created; its DNS records are written where the name space allows
+  it. A Fedora CoreOS or Flatcar guest on DHCP, which has no guest agent
+  to report its address, asks you for it, and the address is checked
+  before the first login. For Unraid, ZimaOS and TrueNAS you get the
+  web-UI steps and a seed ISO; for XCP-ng, the user-data to paste into
+  Xen Orchestra.
 - **OS installation is a gated skill.** `hostwarden-os-install` covers
   replacing an OS, dual-boot, EFI boot entries, cloud images and
   partition staging. Its destructive steps need an explicit request, a
-  verified backup and a session started with the guard off. Reading,
-  diagnosing and boot-entry changes work with the guard on.
+  verified backup and a session started with the guard off for that
+  host. Reading, diagnosing and boot-entry changes work with the guard
+  on.
 
 ### Moving over from Heinzel
 
@@ -592,7 +774,7 @@ protection there.
   names every link in the old `memory/`, reads through none below its
   top level, and copies a top-level one only after you agree. It then
   onboards each host read-only, unless you choose to only copy
-  (`docs/operations.md` → Moving over from Heinzel).
+  (the documentation's Moving over from Heinzel page).
 - **What Heinzel left on a host is found and offered.** Where Heinzel
   was in use, the first connection looks for its backups, scratch
   directories, scripts, units and scheduled jobs. It offers to take
@@ -614,6 +796,9 @@ protection there.
   only when asked for, or on a host that is recreated rather than
   repaired. `mail` or `mailx` alone no longer counts as a way to
   send: the message goes through `sendmail` or `msmtp`.
+- **Local mode files a workstation's memory under its own name.** It
+  reads the machine's short hostname in the shell, never through an SSH
+  connection to itself, instead of using the literal name `localhost`.
 - **The email skill loads in stages.** Each step reads its own part
   when it gets there, and each part has its own override.
 

@@ -19,11 +19,10 @@ description: Versioning, tagging, porting from Heinzel, where code
 
 ## VERSION
 
-The first Hostwarden release is **1.0.0**. Heinzel's numbering is
-not continued, and `VERSION` keeps the inherited 2.22.0 until that
-release is cut.
+Hostwarden's releases start at **1.0.0**; Heinzel's numbering is
+not continued.
 
-**Do not bump `VERSION` on the way there.** A bump landing on `main`
+**Bump `VERSION` only to cut a release.** A bump landing on `main`
 makes `.github/workflows/tag-release.yml` create and push a tag, so
 a bump is the release, not a step towards it.
 
@@ -43,7 +42,11 @@ key's line stays in both, bounded with
 `valid-before=<date>`, so every tag it signed still verifies. A
 bound holds against the tag's own date, which the signer picks, so
 a leaked key is removed from both instead: the tags it signed stop
-verifying, and a new release under the new key is the way forward
+verifying, and a new release under the new key is the way forward.
+The workflow tags as the GitHub account hostwarden-release, whose
+only key is the release key, as a signing key, so GitHub shows the
+tags as verified; a rotation replaces that key on the account when
+the secret changes, and a leaked one comes off the account at once
 (`docs/adr/20260926-release-tags-signed-with-dedicated-ssh-key.md`).
 `bin/hostwarden-update` verifies each tag against the file of the
 version a checkout is on, never the tag's own, and hands the file of

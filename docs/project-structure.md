@@ -107,8 +107,8 @@ tests/                 — Every fixture matrix, laid out like the
                          -update (with the mirror and
                          check-updates.sh) and -wrap (with its
                          hook, under every awk there is); the
-                         parts of -fleet-run, -map and -wrap in
-                         directories of those names
+                         parts of -fleet-run, -map, -update and
+                         -wrap in directories of those names
   lib/coord-lib.sh     — The tokenizer, called directly
   scripts/             — changelog-release.sh, review-record.sh
                          and review-tier.sh; review-record's

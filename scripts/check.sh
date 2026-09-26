@@ -213,7 +213,7 @@ fi
 # The mode and release matrices exercise the hooks and the bin/
 # scripts, in throwaway checkouts.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
-    | grep -qE "^\\.claude/hooks/|^bin/|^lib/|^scripts/lab\\.sh\$|^templates/workspace/|^tests/(hooks/guard-mode(\\.sh\$|/)|bin/hostwarden-update\\.sh\$)$HELPERS"
+    | grep -qE "^\\.claude/hooks/|^bin/|^lib/|^scripts/lab\\.sh\$|^templates/workspace/|^tests/(hooks/guard-mode(\\.sh\$|/)|bin/hostwarden-update(\\.sh\$|/))$HELPERS"
 then
   echo "== mode and release matrices: nothing they read is pushed, skipped"
 else

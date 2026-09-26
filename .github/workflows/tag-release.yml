@@ -49,8 +49,10 @@ jobs:
           key="$RUNNER_TEMP/release-signing-key"
           trap 'rm -f "$key"' EXIT
           (umask 077 && printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key")
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The account that owns the release key, so GitHub shows
+          # the tag as verified (docs/adr/20260926-release-tags-signed-with-dedicated-ssh-key.md).
+          git config user.name  "hostwarden-release"
+          git config user.email "334199026+hostwarden-release@users.noreply.github.com"
           git config gpg.format ssh
           git config user.signingkey "$key"
           git config gpg.ssh.allowedSignersFile "$PWD/.github/release-signers"
