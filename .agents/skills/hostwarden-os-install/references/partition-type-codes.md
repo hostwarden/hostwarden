@@ -10,7 +10,8 @@ filesystem.
 Reading a type code is a read. Changing one is a partition-table
 write, so the gate in `SKILL.md` § The gate holds first,
 including the operator having relaunched with
-`HOSTWARDEN_GUARD_DISABLE=1` set in the environment.
+`HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes run on in the
+environment.
 
 ## GPT Partition Type Codes
 

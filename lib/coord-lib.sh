@@ -1,7 +1,8 @@
 # shellcheck shell=sh
 # coord-lib.sh — the parts presence.sh, impact.sh and
 # bin/hostwarden-impact's announce/wait/ack/done/status share
-# (rules/coordination.md), defined once.
+# (rules/coordination.md), defined once, and the destination
+# reading the taboo guard's off switch shares with them.
 #
 # Sourced, never executed, so it carries no shebang and tells
 # ShellCheck its dialect with the directive above instead.
@@ -151,18 +152,85 @@ HOSTWARDEN_COORD_RUN_STALE_MIN=360
 # lives in coord-tokenize.sh, which the caller sources first.
 : "${HOSTWARDEN_COORD_AWK:?coord-lib.sh needs coord-tokenize.sh sourced first}"
 
-hostwarden_coord_dest() {
-  printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK"'
-    BEGIN {
-      RS = "\001"
-      # ssh/sftp short options that take a value of their own,
-      # unless it is attached to the option letter — the exact set
-      # lib/hops.sh reads an ssh command line for, kept in
-      # sync with it by hand: BbcDEeFIiJLlmOoPpQRSWw.
-      SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
-      SUCLASS = "uUgpCRrtThD"
-      SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
+# HOSTWARDEN_COORD_DEST_AWK — hc_dest(v, i0, nw, D), the
+# destinations of one segment whose words hc_words put in v[1..nw],
+# its command at v[i0] (past hc_skip_prefix): the lowercased names
+# an ssh, sftp, scp or rsync there was given into D[1..n], n
+# returned. For ssh and sftp, HC_AT is the index of the destination
+# word, so a caller can read the remote command after it; 0 for
+# every other command. Shared by hostwarden_coord_dest and
+# hostwarden_coord_rest, appended to HOSTWARDEN_COORD_AWK.
+HOSTWARDEN_COORD_DEST_AWK='
+function hc_dest(v, i0, nw, D,    c, i, n, w, d) {
+  n = 0; HC_AT = 0
+  c = base(v[i0])
+  if (c == "ssh" || c == "sftp") {
+    i = i0 + 1
+    while (i <= nw) {
+      w = v[i]
+      if (w == "--") { i++; break }
+      if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
+      break
     }
+    if (i <= nw) {
+      d = v[i]
+      # [ssh://][user@]host[:port], a v6 address bare or as
+      # [v6]:port, without the port — the same reading
+      # hops.sh gives the destination line ssh -G prints, in
+      # its own host() function.
+      sub(/^ssh:\/\//, "", d)
+      sub(/^[^@]*@/, "", d)
+      if (d ~ /^\[/) { sub(/^\[/, "", d); sub(/\].*/, "", d) }
+      else if (d !~ /:.*:/) sub(/:[^:]*$/, "", d)
+      if (d != "" && d !~ /[$`]/) { D[++n] = tolower(d); HC_AT = i }
+    }
+    return n
+  }
+  if (c == "scp" || c == "rsync") {
+    for (i = i0 + 1; i <= nw; i++) {
+      w = v[i]
+      if (w ~ /^-/) continue
+      d = ""
+      if (w ~ /^(rsync:\/\/)/) {
+        # rsync://[user@]host[:port]/path.
+        d = w
+        sub(/^rsync:\/\//, "", d); sub(/\/.*/, "", d)
+        sub(/^[^@]*@/, "", d)
+        if (d ~ /^\[/) { sub(/^\[/, "", d); sub(/\].*/, "", d) }
+        else sub(/:[0-9]+$/, "", d)
+      } else if (w ~ /^([A-Za-z0-9_.-]+@)?\[[0-9A-Fa-f:]+\]:/) {
+        # [user@][v6]:path — the bracket form a bare v6 host
+        # needs, since a path already has a colon of its own.
+        d = w
+        sub(/^[^@]*@/, "", d)
+        sub(/^\[/, "", d); sub(/\].*/, "", d)
+      } else if (w ~ /^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+:/ \
+          || w ~ /^[A-Za-z][A-Za-z0-9_.-]+:[^\\\/]/) {
+        # [user@]host:path, or host::module (an rsync daemon).
+        # A single letter before the colon is a Windows drive,
+        # never a host.
+        d = w
+        sub(/:.*/, "", d); sub(/^[^@]*@/, "", d)
+      }
+      if (d != "" && d !~ /[$`]/) D[++n] = tolower(d)
+    }
+  }
+  return n
+}
+BEGIN {
+  # ssh/sftp short options that take a value of their own,
+  # unless it is attached to the option letter — the exact set
+  # lib/hops.sh reads an ssh command line for, kept in
+  # sync with it by hand: BbcDEeFIiJLlmOoPpQRSWw.
+  SSHVAL = "^-[A-Za-z]*[BbcDEeFIiJLlmOoPpQRSWw]$"
+  SUCLASS = "uUgpCRrtThD"
+  SULONGVAL = "^--(user|group|host|chroot|close-from|command-timeout|prompt)$"
+}
+'
+
+hostwarden_coord_dest() {
+  printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK$HOSTWARDEN_COORD_DEST_AWK"'
+    BEGIN { RS = "\001" }
     {
       n = hc_segments($0, RAW)
       for (si = 1; si <= n; si++) {
@@ -180,58 +248,8 @@ hostwarden_coord_dest() {
         if (nw < 1) continue
         i0 = hc_skip_prefix(v, 1, nw)
         if (i0 > nw) continue
-        c = base(v[i0])
-        if (c == "ssh" || c == "sftp") {
-          i = i0 + 1
-          while (i <= nw) {
-            w = v[i]
-            if (w == "--") { i++; break }
-            if (w ~ /^-/) { if (w ~ SSHVAL) i += 2; else i++; continue }
-            break
-          }
-          if (i <= nw) {
-            d = v[i]
-            # [ssh://][user@]host[:port], a v6 address bare or as
-            # [v6]:port, without the port — the same reading
-            # hops.sh gives the destination line ssh -G prints, in
-            # its own host() function.
-            sub(/^ssh:\/\//, "", d)
-            sub(/^[^@]*@/, "", d)
-            if (d ~ /^\[/) { sub(/^\[/, "", d); sub(/\].*/, "", d) }
-            else if (d !~ /:.*:/) sub(/:[^:]*$/, "", d)
-            if (d != "" && d !~ /[$`]/) print tolower(d) "\t" t
-          }
-          continue
-        }
-        if (c == "scp" || c == "rsync") {
-          for (i = i0 + 1; i <= nw; i++) {
-            w = v[i]
-            if (w ~ /^-/) continue
-            d = ""
-            if (w ~ /^(rsync:\/\/)/) {
-              # rsync://[user@]host[:port]/path.
-              d = w
-              sub(/^rsync:\/\//, "", d); sub(/\/.*/, "", d)
-              sub(/^[^@]*@/, "", d)
-              if (d ~ /^\[/) { sub(/^\[/, "", d); sub(/\].*/, "", d) }
-              else sub(/:[0-9]+$/, "", d)
-            } else if (w ~ /^([A-Za-z0-9_.-]+@)?\[[0-9A-Fa-f:]+\]:/) {
-              # [user@][v6]:path — the bracket form a bare v6 host
-              # needs, since a path already has a colon of its own.
-              d = w
-              sub(/^[^@]*@/, "", d)
-              sub(/^\[/, "", d); sub(/\].*/, "", d)
-            } else if (w ~ /^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+:/ \
-                || w ~ /^[A-Za-z][A-Za-z0-9_.-]+:[^\\\/]/) {
-              # [user@]host:path, or host::module (an rsync daemon).
-              # A single letter before the colon is a Windows drive,
-              # never a host.
-              d = w
-              sub(/:.*/, "", d); sub(/^[^@]*@/, "", d)
-            }
-            if (d != "" && d !~ /[$`]/) print tolower(d) "\t" t
-          }
-        }
+        nd = hc_dest(v, i0, nw, D)
+        for (k = 1; k <= nd; k++) print D[k] "\t" t
       }
     }'
 }

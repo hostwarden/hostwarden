@@ -484,4 +484,9 @@ EOS
 EOF
 )" "$(printf 'host1\tssh host1 uptime\nhost2\tssh host2 '"'"'sh -s'"'"' <<EOS;systemctl restart nginx;EOS')"
 
+reboot "a heredoc body behind a cat elsewhere on the line still runs" \
+  "$(printf 'ssh host "uptime; cat /etc/motd; sh -s" <<EOS\nreboot\nEOS')" yes
+reboot "a heredoc body cat writes is still read without the switch" \
+  "$(printf 'ssh host sh -s <<EOF\ncat > /tmp/x <<EOS\nreboot\nEOS\nEOF')" yes
+
 finish coord-lib

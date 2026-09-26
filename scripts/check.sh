@@ -204,7 +204,7 @@ HELPERS='|^tests/helpers\.sh$'
 # CHANGELOG.md (tests/corpus.sh).
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \
     | grep -v '^CHANGELOG\.md$' \
-    | grep -qE "\\.md\$|^\\.claude/(hooks/|settings\\.json\$)|^lib/(mode|json)\\.sh\$|^tests/(hooks/guard-taboos|corpus)$HELPERS"
+    | grep -qE "\\.md\$|^\\.claude/(hooks/|settings\\.json\$)|^lib/(mode|json|coord-tokenize|coord-lib|coord-rest)\\.sh\$|^tests/(hooks/guard-taboos|corpus)$HELPERS"
 then
   echo "== guard matrix: nothing it reads is pushed, skipped"
 else
@@ -239,14 +239,15 @@ else
   step "fleet-read wrapper" sh tests/templates/fleet-read.sh
   step "fleet run" sh tests/bin/hostwarden-fleet-run.sh
 fi
-# The tokenizer matrix reads coord-lib.sh and coord-tokenize.sh
+# The tokenizer matrices read coord-lib.sh, coord-rest.sh and coord-tokenize.sh
 # alone, directly — no fixture checkout, no hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^lib/coord-(lib|tokenize)\\.sh\$|^tests/lib/coord-lib\\.sh\$$HELPERS"
+    "^lib/coord-(lib|tokenize|rest)\\.sh\$|^tests/lib/coord-(lib|rest)\\.sh\$$HELPERS"
 then
   echo "== coord-lib matrix: nothing it reads is pushed, skipped"
 else
   step "coord-lib tokenizer" sh tests/lib/coord-lib.sh
+  step "coord-rest" sh tests/lib/coord-rest.sh
 fi
 # The radius matrix reads the impact script and what it sources.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \

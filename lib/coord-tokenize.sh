@@ -205,6 +205,13 @@ function hc_dropredir(s,
     if (!match(s, /[0-9]*&?[<>]+&?[ \t]*[^ \t<>]*/)) { out = out s; s = ""; break }
     out = out substr(s, 1, RSTART - 1)
     matched = substr(s, RSTART, RLENGTH)
+    # HC_REDIRS collects what is dropped, one "true <redirection>"
+    # line each, for hostwarden_coord_rest; HC_REDIR_OPEN is set
+    # where a target is not in this span, a quoted one.
+    if (matched !~ /^<</) {
+      HC_REDIRS = HC_REDIRS "true " matched "\n"
+      if (matched ~ /[<>&][ \t]*$/) HC_REDIR_OPEN = 1
+    }
     out = out (matched ~ /^<</ ? matched : " ")
     s = substr(s, RSTART + RLENGTH)
   }
@@ -321,7 +328,7 @@ function joinw(w, i, n,    s, k) {
 # shaped word starting right at its own two <, only one line
 # further in.
 function hc_heredocs(s, depth,
-    LN, nlines, i, line, pos, m, dashed, delim, pre, post, body, tline, j, found, out, qc) {
+    LN, nlines, i, line, pos, m, dashed, delim, pre, post, body, tline, j, found, out, qc, own) {
   # A single or double quote around DELIM, matched via a dynamic
   # (string-built) regex throughout this function rather than a
   # /.../ literal, since a literal quote character in the awk
@@ -359,7 +366,14 @@ function hc_heredocs(s, depth,
       # exactly as it is, and the scan carries on from the next one
       # as if this line had never matched at all.
       if (found) {
-        hc_expand(body, depth + 1)
+        # With HC_DATA_SKIP (hostwarden_coord_rest), a body that cat
+        # or tee owns, the command the << belongs to, piped nowhere,
+        # is data, not commands.
+        own = pre
+        sub(/^.*[;&|(]/, "", own)
+        if (!(HC_DATA_SKIP && own ~ /^[ \t]*((sudo|exec)[ \t]+)?(cat|tee)([ \t]|$)/ \
+            && post !~ /\|/))
+          hc_expand(body, depth + 1)
         i = j
         out = out pre " " post "\n"
         continue
@@ -443,6 +457,9 @@ function hc_classify(W, i, nw, depth,
   if (depth > MAXDEPTH) { record_clause(W, i, nw); return }
   c = base(W[i])
   if (c == "ssh" || c == "sftp") {
+    # HC_SSHN counts the ssh calls read, at every depth, for
+    # hostwarden_coord_rest.
+    HC_SSHN++
     j = i + 1
     while (j <= nw) {
       if (W[j] == "--") { j++; break }

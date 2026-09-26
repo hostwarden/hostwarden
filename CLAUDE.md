@@ -17,9 +17,10 @@ tool reads. This file adds only what exists here and nowhere else.
   reaches a human. The `PowerShell`
   tool, whose commands it cannot read, is denied outright. It
   applies to subagents too. Elsewhere the prose rules in `AGENTS.md`
-  are the entire safety layer. The off switch counts only for a
-  session that started with it; `guard-settings.sh` keeps it out
-  of settings files.
+  are the entire safety layer. The off switch names one host, or
+  `localhost`, and opens the guard only toward it; it counts only
+  for a session that started with it, and `guard-settings.sh`
+  keeps it out of settings files.
 - **The mode is announced and enforced.** A SessionStart hook
   names the mode `AGENTS.md` → Development or Operations
   describes, and `.claude/hooks/guard-mode.sh` holds the session to

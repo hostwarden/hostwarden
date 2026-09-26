@@ -27,22 +27,124 @@ expect() {
 }
 V=HOSTWARDEN_GUARD_DISABLE
 
-# --- operator override: set at launch, and recorded then ---------
-# The variable switches the guard off only for a session whose start
-# check-session.sh recorded; a value that arrives mid-session finds
-# no record. HOME is a scratch directory, so the tester's own records
-# never decide a fixture.
+# --- operator override: one host, set at launch, recorded then ---
+# The variable names one host, or localhost, and switches the guard
+# off only toward it, and only for a session whose start
+# check-session.sh recorded with that host; a value that arrives or
+# changes mid-session finds no record of itself. HOME is a scratch
+# directory, so the tester's own records never decide a fixture.
 GHOME=$(mktemp -d)
 mkdir -p "$GHOME/.cache/hostwarden"
-: > "$GHOME/.cache/hostwarden/guard-off-s-recorded"
-override_out() {
-  printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"mkfs.ext4 /dev/sda1"}}' "$1" \
-    | env HOME="$GHOME" "$V=1" sh "$HOOK"
+echo web1.example.com > "$GHOME/.cache/hostwarden/guard-off-s-web1"
+echo localhost > "$GHOME/.cache/hostwarden/guard-off-s-local"
+off_case() {
+  # off_case <expect> <session> <value> <label> <json>
+  E=$1 S=$2 X=$3 L=$4
+  OUT=$(printf '%s' "$5" | jq -c --arg s "$S" '. + {session_id: $s}' \
+    | env HOME="$GHOME" "$V=$X" sh "$HOOK")
+  if denied "$OUT"; then GOT=deny; else GOT=pass; fi
+  expect "off switch [$E, got $GOT]: $L" [ "$GOT" = "$E" ]
 }
-expect "the override did not disable the guard for a recorded session" \
-  [ -z "$(override_out s-recorded)" ]
-expect "the override disabled the guard without a record (mid-session)" \
-  denied "$(override_out s-unrecorded)"
+off_bash() {
+  # off_bash <expect> <session> <value> <command>
+  off_case "$1" "$2" "$3" "$4" "$(json_for "$4")"
+}
+W=web1.example.com
+off_bash pass s-web1 $W "ssh root@$W mkfs.ext4 /dev/sda1"
+off_bash pass s-web1 WEB1.Example.com. "ssh -p 2222 $W sgdisk -Z /dev/sda"
+off_bash pass s-web1 $W "xz -dc img.xz | ssh $W 'dd of=/dev/sda bs=4M'"
+off_bash pass s-web1 $W "sudo ssh -F '/a b/ssh_config' $W wipefs -a /dev/sda"
+off_bash pass s-web1 $W "ssh $W sh -s <<'EOF'
+sgdisk -Z /dev/sda
+mkfs.ext4 /dev/sda1
+EOF"
+off_bash deny s-web1 $W 'ssh db1.example.com mkfs.ext4 /dev/sda1'
+off_bash deny s-web1 $W 'mkfs.ext4 /dev/sda1'
+off_bash deny s-web1 $W "ssh $W true; mkfs.ext4 /dev/sda1"
+off_bash deny s-web1 $W "ssh $W 'dd if=/dev/sda' > /dev/sdb"
+off_bash deny s-web1 $W "ssh $W 'ssh db1.example.com mkfs.ext4 /dev/sda1'"
+off_bash deny s-web1 $W "ssh $W true && ssh db1.example.com wipefs -a /dev/sda"
+off_bash deny s-web1 $W 'H=web1.example.com; ssh $H mkfs.ext4 /dev/sda1'
+off_bash deny s-web1 $W "scp /tmp/img.raw $W:/dev/sda"
+off_bash deny s-web1 1 "ssh $W mkfs.ext4 /dev/sda1"
+off_bash deny s-web1 db1.example.com 'ssh db1.example.com mkfs.ext4 /dev/sda1'
+off_bash deny s-unrecorded $W "ssh $W mkfs.ext4 /dev/sda1"
+off_case pass s-web1 $W 'Monitor toward the host' \
+  "$(json_for "ssh $W mkfs.ext4 /dev/sda1" Monitor)"
+off_case deny s-web1 $W 'a key edit stays guarded' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/etc/ssh/sshd_config","content":"x"}}'
+off_bash pass s-local localhost 'mkfs.ext4 /dev/sda1'
+off_bash pass s-local localhost 'xz -dc img.xz | dd of=/dev/disk4 bs=4m'
+off_bash deny s-local localhost 'ssh localhost wipefs -a /dev/sda'
+off_bash deny s-local localhost 'ssh -p 2222 root@127.0.0.1 wipefs -a /dev/vda'
+off_bash deny s-local localhost 'ssh db1.example.com mkfs.ext4 /dev/sda1'
+off_bash deny s-local localhost \
+  'mkfs.ext4 /dev/sda1; ssh db1.example.com wipefs -a /dev/sda'
+off_bash deny s-local localhost 'scp /tmp/img.raw db1.example.com:/dev/sda'
+off_bash deny s-web1 $W "ssh $W 'dd if=/dev/sda' > \"/dev/sdb\""
+off_bash pass s-web1 $W "ssh $W 'sh -s' <<'EOF'
+echo b > /proc/sysrq-trigger
+EOF"
+off_bash pass s-web1 $W "ssh $W 'mkdir -p /mnt/etc/ssh; chmod 600 /mnt/root/.ssh/authorized_keys'"
+off_bash deny s-web1 $W "ssh $W 'timeout 9 ssh db1.example.com wipefs -a /dev/sda'"
+off_bash deny s-web1 $W \
+  "ssh $W 'ansible db1.example.com -m parted -a device=/dev/sda'"
+off_bash deny s-web1 $W "ssh $W 'pct exec 105 -- sgdisk -Z /dev/sda'"
+off_bash deny s-web1 $W "ssh $W sh -s <<'EOF'
+export LC_ALL=C
+lsblk
+ssh db1.example.com wipefs -a /dev/sda
+EOF"
+off_bash deny s-web1 $W "ssh $W '\$SUDO ssh db1.example.com wipefs -a /dev/sda'"
+off_bash deny s-web1 $W "ssh $W '/usr/bin/ssh db1.example.com mkfs.ext4 /dev/sda1'"
+off_bash pass s-local localhost 'sudo mkfs.ext4 /dev/sda1'
+off_bash pass s-local 127.0.0.1 'mkfs.ext4 /dev/sda1'
+off_bash pass s-local ::1 'mkfs.ext4 /dev/sda1'
+off_bash deny s-local localhost 'timeout 60 ssh db1.example.com wipefs -a /dev/sda'
+off_bash deny s-local localhost 'systemctl -H db1.example.com poweroff'
+off_bash deny s-local localhost 'pvesh create /nodes/db1/status --command shutdown'
+off_bash deny s-web1 $W "ssh $W 'pvesh create /nodes/db1/status --command shutdown'"
+off_bash deny s-web1 $W "ssh $W 'systemctl -H db1.example.com poweroff'"
+off_bash deny s-local localhost "sh -c 'ssh db1.example.com mkfs.ext4 /dev/sda1'"
+off_bash deny s-local localhost \
+  'ansible db1.example.com -m command -a "wipefs -a /dev/sda"'
+# A guest behind a forwarded port owns the name localhost in the
+# radius index; the off switch never resolves localhost through it.
+OFF_WS=$(cd "$(dirname "$HOOK")/../.." && pwd)
+OFF_CS=$(printf %s "$OFF_WS" | cksum | cut -d' ' -f1)
+mkdir -p "$GHOME/.cache/hostwarden/ws-$OFF_CS"
+printf 'K\tvm1\tlocalhost\n' > "$GHOME/.cache/hostwarden/ws-$OFF_CS/radius.idx"
+off_bash deny s-local localhost 'ssh vm1 wipefs -a /dev/vda'
+echo vm1 > "$GHOME/.cache/hostwarden/guard-off-s-vm1"
+off_bash deny s-vm1 vm1 'ssh localhost mkfs.ext4 /dev/sda1'
+off_bash pass s-vm1 vm1 'ssh vm1 wipefs -a /dev/vda'
+off_case pass s-local localhost 'an edit in local mode' \
+  '{"tool_name":"Write","tool_input":{"file_path":"/etc/ssh/sshd_config","content":"x"}}'
+
+# check-session.sh records the host it is given, normalised, and
+# refuses a value that names none.
+CS="$CLAUDE_DIR/hooks/check-session.sh"
+cs_run() {
+  # cs_run <session> <value> — the SessionStart output.
+  printf '{"session_id":"%s","source":"startup"}' "$1" \
+    | env HOME="$GHOME" "$V=$2" sh "$CS"
+}
+OUT=$(cs_run s-new Web1.Example.COM.)
+expect "check-session did not record the host" \
+  [ "$(cat "$GHOME/.cache/hostwarden/guard-off-s-new")" = "$W" ]
+case "$OUT" in *"OFF toward $W"*) PASS=$((PASS + 1)) ;;
+*) FAIL=$((FAIL + 1)); echo "FAIL: check-session did not name the host" ;;
+esac
+for X in 1 0 '' 'web1.example.com db1.example.com' 'a,b' '-x'; do
+  OUT=$(cs_run s-bad "$X")
+  expect "check-session recorded '$X'" \
+    [ ! -e "$GHOME/.cache/hostwarden/guard-off-s-bad" ]
+  if [ -n "$X" ]; then
+    case "$OUT" in *"names no single host"*) PASS=$((PASS + 1)) ;;
+    *) FAIL=$((FAIL + 1)); echo "FAIL: check-session took '$X' silently" ;;
+    esac
+  fi
+done
 rm -rf "$GHOME"
 
 # --- settings files and records: guard-settings.sh ---------------

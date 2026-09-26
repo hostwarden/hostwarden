@@ -27,7 +27,10 @@ if [ -z "${GUARD_OPS:-}" ]; then
     mkdir -p "$GUARD_TREES/$t/.claude/hooks" "$GUARD_TREES/$t/lib"
     cp "$CLAUDE_DIR/hooks/guard-taboos.sh" "$GUARD_TREES/$t/.claude/hooks/"
     cp -R "$CLAUDE_DIR/hooks/guard-taboos.d" "$GUARD_TREES/$t/.claude/hooks/"
-    cp "$REPO/lib/mode.sh" "$REPO/lib/json.sh" "$GUARD_TREES/$t/lib/"
+    cp "$REPO/lib/mode.sh" "$REPO/lib/json.sh" \
+      "$REPO/lib/coord-tokenize.sh" "$REPO/lib/coord-lib.sh" \
+      "$REPO/lib/coord-rest.sh" \
+      "$GUARD_TREES/$t/lib/"
   done
   mkdir -p "$GUARD_TREES/ops/.git" "$GUARD_TREES/ops/memory"
   : > "$GUARD_TREES/ops/memory/.hostwarden-workspace"

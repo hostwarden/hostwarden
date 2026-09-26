@@ -18,10 +18,14 @@ the Claude desktop app, put them into the `env` key of
   update of an operations checkout
   ([Updates and versioning](../running-it/setup/updates.md)).
   `HEINZEL_NO_UPDATE=1` is honoured as well.
-- **`HOSTWARDEN_GUARD_DISABLE=1`** — switches the taboo guard off, for
-  the disk steps of an OS install and nothing else. It counts only for
-  a session that started with it, and Hostwarden cannot set it for
-  you: you add it yourself, and remove it after the install
+- **`HOSTWARDEN_GUARD_DISABLE=<host>`** — switches the taboo guard off
+  toward one host, for the disk steps of an OS install on it and
+  nothing else: the name Hostwarden reaches the host the disk writes
+  run on by (the hypervisor, for a guest's disk), or `localhost` for
+  this machine. The guard stays on for every other
+  host; `1` or a list is refused. It counts only for a session that
+  started with it, and Hostwarden cannot set it for you: you add it
+  yourself, and remove it after the install
   ([Hard guardrails](../safety/guardrails.md)).
 
 ## Scripts

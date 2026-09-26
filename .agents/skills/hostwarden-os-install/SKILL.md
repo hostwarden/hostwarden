@@ -102,19 +102,28 @@ four have to hold:
    offer a snapshot first.
 3. **A backup exists and was verified**, not merely claimed. See
    `rules/backups.md`.
-4. **The taboo guard is off for this session.** The shipped
-   PreToolUse hook blocks `mkfs`, every partition-table writer and
-   `dd` onto a raw device — exactly what these workflows run by
-   design. The operator relaunches with `HOSTWARDEN_GUARD_DISABLE=1`
-   in the environment; an inline assignment on the command line
-   does not work and is itself blocked. Ask them to unset it again
-   when the work is done. In the Claude Code desktop app there is
-   no shell to export it from: the operator adds it to the `env`
-   of `.claude/settings.local.json` by hand and starts a new
-   session, which then opens with a note that the guard is off
-   (website/docs/getting-started/ai-tools.md → Claude Code Desktop).
-   Set mid-session it has no effect, and writing it there yourself
-   is blocked.
+4. **The taboo guard is off toward this machine for this
+   session.** The shipped PreToolUse hook blocks `mkfs`, every
+   partition-table writer and `dd` onto a raw device — exactly what
+   these workflows run by design. The operator relaunches with
+   `HOSTWARDEN_GUARD_DISABLE` in the environment, set to the one
+   host whose disks the work writes: the name this session's `ssh`
+   commands reach it by, as `memory/machines/` has it, or
+   `localhost` for this machine's own disks. For a guest whose disk
+   is written from its hypervisor, that is the hypervisor. `1` or a
+   list is refused. The guard stays on for every other host, for a
+   command whose destination it cannot read, and, with a hostname,
+   for everything run on the workstation, its redirections included:
+   write the destination plainly in each command, never through a
+   variable. An inline assignment on the command line does not work
+   and is itself blocked. Ask them to unset it again when the work
+   is done. In the Claude Code desktop app there is no shell to
+   export it from: the operator adds it to the `env` of
+   `.claude/settings.local.json` by hand and starts a new session,
+   which then opens with a note naming the host the guard is off
+   toward (website/docs/getting-started/ai-tools.md → Claude Code
+   Desktop). Set or changed mid-session it has no effect, and
+   writing it there yourself is blocked.
 
 Being blocked by the guard before step 4 is the expected outcome.
 Never rephrase a command to get past it.

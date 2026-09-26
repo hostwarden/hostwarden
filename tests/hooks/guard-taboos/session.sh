@@ -15,7 +15,7 @@ CSREPO=$(mktemp -d)
 for d in main wt rel sep sub; do
   mkdir -p "$CSREPO/$d/.claude/hooks" "$CSREPO/$d/lib"
   cp "$CSESSION" "$CSREPO/$d/.claude/hooks/"
-  cp "$REPO/lib/json.sh" "$CSREPO/$d/lib/"
+  cp "$REPO/lib/json.sh" "$REPO/lib/mode.sh" "$CSREPO/$d/lib/"
 done
 for w in wt rel; do
   mkdir -p "$CSREPO/main/.git/worktrees/$w"
@@ -56,15 +56,15 @@ expect "check-session.sh announced a worktree session-mode.sh owns" \
 # compaction, and taken away once the variable is gone.
 REC="$CSREPO/home/.cache/hostwarden/guard-off-s1"
 expect "check-session.sh did not report the guard as off" \
-  contains "$(session_out main "$V=1" '{"session_id":"s1","source":"startup"}')" \
+  contains "$(session_out main "$V=web1.example.com" '{"session_id":"s1","source":"startup"}')" \
   "taboo guard is OFF"
 expect "check-session.sh made no record at startup" [ -e "$REC" ]
 rm -f "$REC"
 expect "check-session.sh did not say a mid-session value stays inert" \
-  contains "$(session_out main "$V=1" '{"session_id":"s1","source":"compact"}')" \
+  contains "$(session_out main "$V=web1.example.com" '{"session_id":"s1","source":"compact"}')" \
   "guard stays ON"
 expect "check-session.sh made a record at a compaction" [ ! -e "$REC" ]
-session_out main "$V=1" '{"session_id":"s1","source":"startup"}' >/dev/null
+session_out main "$V=web1.example.com" '{"session_id":"s1","source":"startup"}' >/dev/null
 session_out main "" '{"session_id":"s1","source":"clear"}' >/dev/null
 expect "check-session.sh kept a record once the variable was gone" \
   [ ! -e "$REC" ]

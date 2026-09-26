@@ -137,7 +137,8 @@ harm. The next step is always one of these, in this order:
    `btrfs replace start`), one approved command at a time.
 4. **Hand the repair to the user.** Name the command and what it
    can destroy. The user runs it at a console, or relaunches with
-   the guard off, as the `hostwarden-os-install` skill describes.
+   the guard off toward that host, as the `hostwarden-os-install`
+   skill describes.
    Hostwarden never restarts its own session without the guard.
 
 On an appliance, the vendor's storage manager does all of this

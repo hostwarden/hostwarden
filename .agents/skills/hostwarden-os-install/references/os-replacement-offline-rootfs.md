@@ -7,8 +7,8 @@ OS. Two ways to populate it, whichever the surrounding workflow
 needs.
 
 Blocks fenced `guard-off` below run only once the operator
-relaunched with `HOSTWARDEN_GUARD_DISABLE=1` in the
-environment — `SKILL.md` § The gate, step 4.
+relaunched with `HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes run
+on in the environment — `SKILL.md` § The gate, step 4.
 
 ## QEMU as a Cross-OS Chroot Alternative
 

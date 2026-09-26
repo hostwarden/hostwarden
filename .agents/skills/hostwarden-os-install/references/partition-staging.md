@@ -54,8 +54,8 @@ table:
    `newfs` and `gpart` writes, which the taboo
    guard blocks. The gate in `SKILL.md` § The gate
    holds first, including the operator having
-   relaunched with `HOSTWARDEN_GUARD_DISABLE=1` set
-   in the environment.
+   relaunched with `HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes
+   run on in the environment.
 
 ### RAM Check
 
