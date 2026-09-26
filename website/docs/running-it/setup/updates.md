@@ -55,8 +55,12 @@ trusted from there on, even where the update skips that release. A
 tag that does not verify, or carries another release's name, is
 refused: the update says so and stops, and the checkout stays where
 it is, `main` included. `--check` names such a tag too. Verifying
-needs git 2.34 and OpenSSH 8.7 or later, which
-`bin/hostwarden-doctor` checks. After a refusal, compare the
+needs git 2.34 or later, and an `ssh-keygen` from OpenSSH 8.7 or
+later as the program git verifies with: `gpg.ssh.program` in git's
+configuration, `ssh-keygen` on the `PATH` unless set. What `ssh -V`
+reports does not count, since that can be another binary.
+`bin/hostwarden-doctor` checks both, the program by having it verify
+a signature of its own. After a refusal, compare the
 checkout's `.github/release-signers` with the lines above. Where
 they differ, as after a leaked key was replaced, check the tag by
 hand with the lines from this page, as above, and only once it

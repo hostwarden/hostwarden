@@ -215,7 +215,8 @@ verify_tag() {
   fi
   if ! hostwarden_follow_can_verify; then
     WHY="this machine cannot verify a signature: that needs git 2.34
-  and OpenSSH 8.7 or later (bin/hostwarden-doctor)"
+  or later, and an ssh-keygen from OpenSSH 8.7 or later as
+  $(hostwarden_follow_ssh_program) (bin/hostwarden-doctor)"
     return 1
   fi
   cp "$SIGNERS" "$SIGNERS.chain"
