@@ -17,6 +17,7 @@ import argparse
 import os
 import posixpath
 import re
+import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
@@ -430,7 +431,7 @@ def collect_rules(repo, decisions):
         if "Source:" not in text and not in_rules_dir:
             continue
         rule = Rule(path, repo, text, in_rules_dir)
-        # One of Hostwarden's two changes to this file: its `.claude/rules/`
+        # One of Hostwarden's three changes to this file: its `.claude/rules/`
         # holds conventions for changing the repository, most of them with no
         # record behind them, so a file there is a rule only when it cites
         # one, as everywhere else. docs/adr/20260924-cite-only-rules.md says
@@ -745,6 +746,139 @@ def check_supersede_chains(records, by_id):
             current = following
 
 
+# Hostwarden's third change to this file: a record no finished release
+# carries is edited in place, and one a release carries changes only in the
+# two fields a supersede sets and in `waiting-on`, which settling a released
+# proposed record empties. docs/adr/20260926-edit-unreleased-records.md
+# says why.
+RELEASE_TAG_RE = re.compile(r"^v\d+\.\d+\.\d+$")
+MUTABLE_FIELDS = ("status", "superseded-by", "waiting-on")
+
+
+def git(repo, *arguments):
+    return subprocess.run(
+        ["git", "-C", str(repo), *arguments], capture_output=True, check=True
+    ).stdout
+
+
+def released_records(repo, decisions_rel):
+    """{path: {blob: tag}} for every record in a finished release behind HEAD,
+    each blob named by the oldest release that has it, the newest last.
+
+    Empty outside a git checkout or without release tags: a clone that has
+    none cannot tell released from unreleased, and every record then counts
+    as unreleased.
+    """
+    try:
+        tags = git(repo, "tag", "--merged", "HEAD", "--list", "v*").decode().split()
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    released = {}
+    releases = [tag for tag in tags if RELEASE_TAG_RE.match(tag)]
+    # Oldest first, so each blob is named by the release that shipped it.
+    releases.sort(key=lambda tag: tuple(int(part) for part in tag[1:].split(".")))
+    for tag in releases:
+        listing = git(repo, "ls-tree", "-r", "-z", tag + "^{commit}", "--", decisions_rel)
+        for entry in listing.split(b"\0"):
+            if not entry:
+                continue
+            meta, path = entry.split(b"\t", 1)
+            path = path.decode()
+            if path.endswith(".md") and posixpath.basename(path) != "README.md":
+                blobs = released.setdefault(path, {})
+                blob = meta.split()[2].decode()
+                # Moved to the end, keeping its first tag: the last key is
+                # the newest release's version.
+                blobs[blob] = blobs.pop(blob, tag)
+    return released
+
+
+def mutable_field(line):
+    match = KEY_RE.match(line)
+    return bool(match) and match.group(1) in MUTABLE_FIELDS
+
+
+def without_mutable_fields(text):
+    """The record's lines without the fields a released record may change.
+
+    A record whose frontmatter does not parse is compared whole; the identity
+    check already reports it.
+    """
+    front, _ = split_frontmatter(text)
+    lines = text.split("\n")
+    if front is None:
+        return lines
+    return [line for line in front if not mutable_field(line)] + lines[len(front) + 2 :]
+
+
+# What a released record's status may become. Anything else would take a
+# decision out of force, or put one back, without a record saying so.
+RELEASED_STATUS_MOVES = {
+    ("proposed", "accepted"),
+    ("proposed", "rejected"),
+    ("accepted", "superseded"),
+}
+
+
+def released_field_moves(front, record):
+    """Why the three fields a released record may change moved wrongly, if so."""
+    status = scalar(front, "status")
+    moved = status != record.status
+    if moved and (status, record.status) not in RELEASED_STATUS_MOVES:
+        return f"its status went from {status} to {record.status}"
+    superseded_by = scalar(front, "superseded-by")
+    if superseded_by and superseded_by != record.superseded_by:
+        return f"its superseded-by no longer names {superseded_by}"
+    if moved and record.waiting_on:
+        return f"it became {record.status} and still names a waiting-on"
+    if not moved and record.waiting_on != scalar(front, "waiting-on"):
+        return f"its waiting-on changed while it stayed {record.status}"
+    return ""
+
+
+def check_released(records, repo, decisions):
+    """A released record is superseded, never edited, moved or deleted."""
+    decisions_rel = decisions.relative_to(repo).as_posix()
+    current = {record.where: record for record in records}
+    for path, blobs in sorted(released_records(repo, decisions_rel).items()):
+        record = current.get(path)
+        if record is None:
+            fail(
+                path,
+                f"is in release {next(iter(blobs.values()))} and is gone; a released "
+                "record stays where it is, superseded if it no longer holds",
+            )
+            continue
+        now = without_mutable_fields(record.text)
+        newest = next(reversed(list(blobs)))
+        for blob, tag in blobs.items():
+            # `read` translates line endings as text mode does; the blob is raw.
+            then = git(repo, "cat-file", "blob", blob).decode("utf-8")
+            then = then.replace("\r\n", "\n").replace("\r", "\n")
+            if without_mutable_fields(then) != now:
+                fail(
+                    record.where,
+                    f"differs from release {tag} in more than "
+                    f"{', '.join(MUTABLE_FIELDS)}; a released record is "
+                    "superseded by a new one, not edited",
+                )
+                break
+            # Only the newest release's fields are where the record moves from:
+            # proposed in one release and accepted in the next may still be
+            # superseded, which proposed alone may not.
+            if blob != newest:
+                continue
+            front, _ = split_frontmatter(then)
+            wrong = released_field_moves(front or [], record)
+            if wrong:
+                fail(
+                    record.where,
+                    f"{wrong} since release {tag}; a released record is "
+                    "settled from proposed, or superseded, and nothing else",
+                )
+                break
+
+
 def imports_agents_md(text):
     """Whether this CLAUDE.md hands Claude Code the AGENTS.md beside it.
 
@@ -1046,6 +1180,7 @@ def check(records, rules, repo, decisions):
     check_supersede(records, by_id)
     check_rule_fields(records, repo)
     check_supersede_chains(records, by_id)
+    check_released(records, repo, decisions)
     check_paired_rules(rules, repo)
     check_backlinks(records, rules, repo)
     check_glob_scope(records, rules, decisions.relative_to(repo).as_posix())
@@ -1074,8 +1209,8 @@ def render_index(records):
         (
             "One line per record. Read this before deciding something new, so "
             "a fresh decision does not quietly contradict a standing one. "
-            "Records are never rewritten: a decision that stops holding is "
-            "superseded and moves to *History*."
+            "A released record is never rewritten: a decision that stops "
+            "holding is superseded and moves to *History*."
         ),
         "",
     ]
@@ -1154,7 +1289,7 @@ def main():
     parser.add_argument(
         "--root",
         # Hostwarden keeps its records in docs/adr/, the second of its
-        # changes to this file (docs/adr/20260924-cite-only-rules.md).
+        # three changes to this file (docs/adr/20260924-cite-only-rules.md).
         default="docs/adr",
         help="the decisions directory (default: docs/adr)",
     )

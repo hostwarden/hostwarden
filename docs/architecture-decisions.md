@@ -2,14 +2,15 @@
 
 Why Hostwarden is built the way it is: one record per decision, in
 [docs/adr/](adr/README.md). A record says why, once, on a date, and
-is never rewritten. What holds now is in the instruction files,
-which change whenever a decision does.
+once a release carries it, it is never rewritten. What holds now is in the
+instruction files, which change whenever a decision does.
 
 The format is Workoho's decision-records skill (plugin `wkho-code`),
 copied here so that no contributor needs the plugin: this page, the
-templates below and `scripts/decisions.py`, with the two changes
-[20260924-cite-only-rules](adr/20260924-cite-only-rules.md)
-explains.
+templates below and `scripts/decisions.py`, with the three changes
+[20260924-cite-only-rules](adr/20260924-cite-only-rules.md) and
+[20260926-edit-unreleased-records](adr/20260926-edit-unreleased-records.md)
+explain.
 
 ## What is a record, and what is not
 
@@ -52,7 +53,8 @@ its Context says when and where it was taken.
 ## The record
 
 `docs/adr/YYYYMMDD-slug.md`, one decision per file, named by the
-day it is written. Not a sequence number: two sessions working in
+day it is first written, a date it keeps through an edit
+(→ Superseding). Not a sequence number: two sessions working in
 parallel would hand out the same one.
 
 Its frontmatter is the template's below: `id` equals the file
@@ -62,7 +64,9 @@ name, and `status` is `proposed`, `accepted`, `rejected` or
 - **The title names the decision, not the topic.** "Windows Server
   as the only target", not "Windows support". Ten words at most.
 - **Write what was true then, not what is true now.** A dated
-  record whose context was quietly updated is worth nothing.
+  record whose context was quietly updated is worth nothing. The
+  one edit allowed, to a record no release carries yet, is not
+  quiet (→ Superseding).
 - **Under a page.** A context that needs three pages is two
   decisions.
 
@@ -119,6 +123,25 @@ request: the new record with `supersedes:` set, those two fields,
 the governing file rewritten, and the index regenerated. Its
 context says what changed since. There is no `deprecated`: a
 decision dropped without replacement gets a new record saying so.
+
+That holds once a finished release carries the record: a `vX.Y.Z`
+tag reachable from `HEAD`, a pre-release not counted. Until then
+the record is edited in place, in the pull request that changes the
+decision. It keeps its file name and `id`, so links to it hold; its
+context is written for the day of the edit, and says so. The
+version it gives up becomes a considered option that lost, or a
+sentence in a short record's context, so the proposal does not come
+back.
+
+A released record that was still `proposed` is settled the same
+way it would have been before: `status` becomes `accepted` or
+`rejected`, and `waiting-on` is emptied. Those are the only moves a
+released record's fields make, besides the supersede: an `accepted`
+one never becomes `rejected`, which would take it out of force with
+no record saying why. `scripts/decisions.py
+--check` fails on a released record that differs from its release
+in more than `status`, `superseded-by` and `waiting-on`, or is
+gone.
 
 ## The index
 
