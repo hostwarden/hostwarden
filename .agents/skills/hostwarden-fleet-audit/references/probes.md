@@ -1,11 +1,12 @@
 # Fleet Audit Probes
 
 The probe commands run on each audited host. All are
-read-only. Group them into a single SSH invocation per host
-to minimise round-trips:
+read-only. The hosts of one family that log in as the same user
+and run the same categories share one bundle, which reaches all of
+them at once as `rules/multi-host.md` → Rounds of one call says;
+the audit-trail line names that user:
 
-```bash
-ssh <standard options from AGENTS.md → SSH Options> USER@HOST 'sh -s' <<'EOS'
+```sh
 export LC_ALL=C
 <privilege prefix>
 echo "###ua###"; <ua probe>
@@ -16,10 +17,10 @@ echo "###net###"; <network probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
 echo "###meshvpn###"; <mesh VPN probe>
-EOS
 ```
 
-Then split the output on `###<key>###` markers to fill the
+`bin/hostwarden-group` splits the output on the `###<key>###`
+markers, each section once per distinct answer, to fill the
 comparison table. The accounts probe (section 9) is the one
 exception: it runs in a second call of its own. The DNS probe
 (section 10) runs only on the hosts that section names, under a
@@ -880,10 +881,13 @@ audit's (`.agents/skills/hostwarden-security/references/vpn-ssh.md`
 ## 9. Accounts and sudo
 
 The probe is `rules/accounts-probe.md` → Probe, as written there,
-the macOS part included, in an SSH call of its own after the
-bundle, opened with the same privilege prefix: it names a key
-path, and the bundle's `awk` beside it would have the taboo guard
-deny both. The audit-trail line stays in the bundle. FreeBSD and
+the macOS part included, in a Bash call of its own beside the
+bundle's, in the same round, opened with the same privilege
+prefix: it names a key path, and the bundle's `awk` beside it
+would have the taboo guard deny both. Its files take the round's
+suffix and an `a`, `<host>.<n>a` and `<host>.<n>a.err`, and are
+read with `bin/hostwarden-group <dir> .<n>a`, so the two calls
+never write to one file. FreeBSD and
 Alpine run the probe unchanged.
 
 Row keys:

@@ -230,8 +230,8 @@ refuse a read whose error the probe sends to
 `/dev/null`. Decide from its result, with memory's
 `except (refused)` entries, as a later listing is
 read under Refused at run time. Write the line only
-where the flow may write memory; a fleet audit's
-probe agent does not. This probe serves the rerun
+where the flow may write memory; a fleet audit does
+not. This probe serves the rerun
 alone and never leads to the root SSH fallback.
 
 Then send again, together in one call, each section

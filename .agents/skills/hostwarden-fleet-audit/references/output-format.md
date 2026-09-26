@@ -205,8 +205,8 @@ claims the first. The Warnings section below still gets rendered.
 
 ## Warnings
 
-Every `warnings:` line the probes returned, grouped by host.
-These judge one host against the criteria in
+Every criterion a host meets that `references/probes.md` judges
+on one host alone, grouped by host. These judge one host against the criteria in
 `references/probes.md`, not against the other hosts, so a fleet
 that agrees on a bad value produces no drift and every warning:
 
@@ -222,7 +222,7 @@ that agrees on a bad value produces no drift and every warning:
   the unit flushes ufw's rules on start.
 ```
 
-If no probe returned a warning, say so in one line rather than
+If no host meets such a criterion, say so in one line rather than
 dropping the heading — an absent section reads as an oversight,
 and the reader cannot tell it from one nobody rendered:
 

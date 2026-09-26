@@ -5,13 +5,13 @@ work: a question ("which kernel runs on web1, web2 and web3?"), a
 script, a change rolled out to a group, or housekeeping or a
 security audit on several hosts. "All servers" names every host
 Hostwarden knows. The `hostwarden-multi-host` skill starts this by
-name; the fleet audit has a skill and a subagent of its own and
-takes only → Order from here.
+name; the fleet audit has a skill of its own and takes → Rounds of
+one call and → Order from here.
 
 Each host gets the whole pipeline (`rules/first-connection.md`), as
-it would one at a time. Where the tool can, each host runs in an
-agent of its own, which keeps its raw output out of this
-conversation and returns a short answer.
+it would one at a time. The work runs here, every host at once in
+one call per round; agents take a skill on many hosts, and a read
+only where the user asks for them (→ Dispatch).
 
 ## Targets
 
@@ -31,14 +31,14 @@ conversation and returns a short answer.
    agents on one machine would share this session's register entry
    and never see each other.
 3. **Sort out, from files here, before anything connects.** A host
-   on the blacklist (`rules/access-control.md`) gets no agent: list
-   it as skipped. For a change, so does a host on the read-only
+   on the blacklist (`rules/access-control.md`) is not reached:
+   list it as skipped. For a change, so does a host on the read-only
    list, and one whose `OS:` line names a family whose file makes
    every host read-only, such as Windows (`rules/os/windows.md`) —
    unless the change is one that file allows after the user's yes
    and the host is not on the read-only list as well.
-   This is a first cut from files alone; each agent runs the full
-   checks again, jump hosts included.
+   This is a first cut from files alone; each host's pipeline runs
+   the full checks again, jump hosts included.
 4. **First connections here.** A host gets its first connection in
    this session, one host at a time, before any agent starts, when
    it has no `memory/machines/<host>/` yet or no SSH user in
@@ -87,34 +87,186 @@ one task on several hosts: run them host by host
 
 ## Dispatch
 
-In Claude Code, dispatch one `hostwarden-host-task` per host, all in
-one message so they run at once. Elsewhere, run the same task here,
-one host after another, with the standard options from `AGENTS.md`
-→ SSH Options.
+- **A `read` and a `change`** run here, in rounds (→ Rounds of one
+  call).
+- **A `skill`** runs here, in rounds, on up to four hosts. On more,
+  it runs in agents (→ Agents).
+- **A `change` that can cut SSH** — the firewall, the network, a
+  login shell — runs one host after another (→ Changes on several
+  hosts).
 
-Never give one agent two hosts, never two agents the same host, and
-never an agent a host this session may not reach itself
-(`rules/borrowed-rights.md`). A key agent that confirms each use
-asks once per host, all at once at the start.
+Where the tool has no agents, a `skill` runs here in rounds
+whatever the number of hosts.
+
+An agent pays for its start, and for a read of the rules of tens of
+thousands of tokens, only where each host needs a long run of
+reading and judging of its own, which agents side by side get
+through faster than one session: a skill's report. A read or a
+change gains nothing from one, since a round reaches every host at
+once, and an agent would start again for every follow-up and know
+nothing of the round before. This conversation serves this one
+request, so what the hosts return may fill it.
+
+An agent never gets work that waits for the user's yes: a yes the
+prompt relays is none for it (`rules/borrowed-rights.md`), so it
+would start, stop at the question and hand the work back. A change
+runs here for that reason too, and a step a skill offers comes back
+from its agent as a notice that runs here once the user agrees.
+
+The session cannot see its own effort, but it knows its model from
+its system prompt, and the agents' is the one
+`.claude/agents/hostwarden-host-task.md` names. Where the session
+runs on a larger model than that, a `skill` goes to agents from two
+hosts on.
+
+A `Multi-host: agents` line under `# Preferences` in
+`memory/user.md` sends every `read` and `skill` to agents whatever
+its size, grouped as → Agents says; the fleet audit stays here,
+since one comparison holds every host. A user who keeps one long
+conversation, or runs it on a costly model or effort, sets it.
+
+### Rounds of one call
+
+Each round is one Bash call that reaches every host at once, and a
+later round builds on what the last one returned. A host this form
+cannot take runs at the same step outside the round's call, one
+after another, as it would alone: a `Mode: via` guest, one with an `SSH:
+untested` line, the local machine, Windows, and the hosts of each `group` and
+`unreadable` line that `bin/hostwarden-impact radius --jumps`
+prints (→ Order).
+
+1. **The file steps, here.** For each host, what
+   `rules/first-connection.md` reads from files or resolves by name:
+   the IP verification (`rules/dns-aliases.md` → IP Verification),
+   one local call for every host, then its memory and decisions,
+   and the family file once for each family among them.
+2. **The first calls, in the first round.** Each host's first call
+   as `rules/os-detection.md` → On subsequent connections shapes it,
+   without stdin as that file says, every host at once: each
+   host's stdout into `<dir>/<host>.1`, its stderr into
+   `<dir>/<host>.1.err`, in a directory made with `mktemp -d` for
+   this run:
+
+   ```bash
+   D=$(mktemp -d)
+   (ssh -F "<checkout>/memory/ssh_config" <user>@web1.example.com '<first call>' </dev/null >"$D/web1.example.com.1" 2>"$D/web1.example.com.1.err"; printf '\nexit %s\n' "$?" >>"$D/web1.example.com.1") &
+   (ssh -F "<checkout>/memory/ssh_config" <user>@web2.example.com '<first call>' </dev/null >"$D/web2.example.com.1" 2>"$D/web2.example.com.1.err"; printf '\nexit %s\n' "$?" >>"$D/web2.example.com.1") &
+   wait
+   echo "$D"
+   ```
+
+   The first line of the stdout file is the one that file decides
+   on; a login banner, ssh's own messages and a shell's not-found
+   error are in the stderr file, which that file reads as well. No
+   bundle is fed to this call. The call prints the directory, which
+   no later call remembers: every later round writes into it as
+   `D=<dir>`, and step 4 reads it.
+3. **The bundles, one round each.** The first bundle carries what
+   `rules/activity-check.md` → What rides in this call adds for each
+   host, and nothing of the task: what it finds decides the rest of
+   the pipeline and whether the host goes on
+   (`rules/first-connection.md`, steps 7 to 10). The task starts in
+   the next round, after what the pipeline still owes that host,
+   such as the Heinzel legacy check the activity check turned on. A
+   read's answer goes under a marker of its own,
+   `echo "###task###"`, and every later one under its marker. A
+   `change` registers first (→ On each host, step 2), in the round
+   after the check, and runs its first step the round after that.
+   The last round carries the journal line, as the last line of its
+   bundle. A bundle that only reads and is the same for every host
+   of a family is written once, into a variable, and fed to each
+   host; any other is written under each host's own line, as a
+   heredoc:
+
+   ```bash
+   D=<dir>
+   B=$(cat <<'EOS'
+   export LC_ALL=C
+   <commands>
+   EOS
+   )
+   (printf '%s\n' "$B" | ssh -F "<checkout>/memory/ssh_config" <user>@web1.example.com 'sh -s' >"$D/web1.example.com.2" 2>"$D/web1.example.com.2.err"; printf '\nexit %s\n' "$?" >>"$D/web1.example.com.2") &
+   (printf '%s\n' "$B" | ssh -F "<checkout>/memory/ssh_config" <user>@web2.example.com 'sh -s' >"$D/web2.example.com.2" 2>"$D/web2.example.com.2.err"; printf '\nexit %s\n' "$?" >>"$D/web2.example.com.2") &
+   wait
+   ```
+
+   ```bash
+   D=<dir>
+   (ssh -F "<checkout>/memory/ssh_config" <user>@web1.example.com 'sh -s' <<'EOS' >"$D/web1.example.com.3" 2>"$D/web1.example.com.3.err"; printf '\nexit %s\n' "$?" >>"$D/web1.example.com.3") &
+   export LC_ALL=C
+   <step>
+   EOS
+   (ssh -F "<checkout>/memory/ssh_config" <user>@web2.example.com 'sh -s' <<'EOS' >"$D/web2.example.com.3" 2>"$D/web2.example.com.3.err"; printf '\nexit %s\n' "$?" >>"$D/web2.example.com.3") &
+   export LC_ALL=C
+   <step>
+   EOS
+   wait
+   ```
+
+4. **After each round,** read it in one call,
+   `bin/hostwarden-group <dir> .<round>`: each answer once, with the
+   hosts that gave it, then what the hosts wrote to stderr, and on
+   lines of their own a failed exit status, a host with no output,
+   and one cut off before the round finished it. Decide the next
+   round from it, or stop.
+
+Every round keeps stderr in a file of its own, `<host>.<n>.err`,
+so that no error line lands inside a section or ahead of a first
+line; `bin/hostwarden-group` prints it on its own. Every host is
+written out as it is named, and every remote command stands in the
+command text: no loop, no `xargs`, no destination in
+a variable, no script file. The coordination hooks read a round
+host by host only in that form, and the impact check reads what a
+step does only in the heredoc under its host's line
+(`rules/coordination.md` → Presence map, Limits); the taboo guard
+judges only what it can read in the command. A call refused once
+because one of its hosts lies inside another session's impact runs
+again as it stands.
+
+**Each host goes on or stops on its own.** A pipeline step that
+says to stop or ask stops that host before its task; a `change`
+host stops at its first result that differs from the expected one
+(→ On each host). It leaves the rounds, and the others go on. Once
+the round is through, put what needs the user to them, then run
+that host alone or list it as skipped.
+
+**After the last round,** each host reached gets what the pipeline
+writes (`rules/first-connection.md`), and the answers merge as →
+Merging the answers says.
+
+### Agents
+
+In Claude Code, dispatch `hostwarden-host-task`, all agents in one
+message so they run at once, and share the hosts out evenly: 5 hosts
+are two agents of 3 and 2, never 4 and 1. At most four hosts go to
+one agent, since each brings a whole report into it, and it runs
+them in rounds as above. The hosts of one `group` line of → Order
+go to one agent whole, whatever their number, and it runs them one
+after another.
+
+Never give two agents the same host, and never an agent a host this
+session may not reach itself (`rules/borrowed-rights.md`). A key
+agent that confirms each use asks once per host, all at once at the
+start.
 
 Each task prompt stands on its own, because the agent sees nothing
 of this conversation:
 
-- the host as named, its SSH user, and the lines of its `memory.md`
-  that say how it is reached: `Mode:`, `Runs on:`, `Reached as:`,
-  `SSH port:`. For the local machine, that it runs in local mode
-  and has no SSH user;
+- each host as named, its SSH user, and the lines of its
+  `memory.md` that say how it is reached: `Mode:`, `Runs on:`,
+  `Reached as:`, `SSH port:`. For the local machine, that it runs
+  in local mode and has no SSH user;
 - the mode, and for `skill` which one;
 - the task, the commands you expect it to take if you know them,
   and the answer's shape;
 - the journal line with its prefix filled in
   (`rules/changelog.md` → Entry format);
+- which of its hosts run one after another rather than in a round,
+  and in what order: the hosts of a `group` line and an
+  `unreadable` host of → Order, a `Mode: via` guest with the host
+  its `Runs on:` names;
 - everything the user restricted the run to. "Without sudo" or
-  "only nginx" reaches the agent only if the prompt says so;
-- for a change: the approved steps and the expected result of each,
-  that the user approved exactly these on this host, and this
-  session's register token, `<user>@<workstation>` and task words
-  (`rules/parallel-sessions.md`).
+  "only nginx" reaches the agent only if the prompt says so.
 
 ### Order
 
@@ -176,17 +328,18 @@ unreachable: web4.example.com — connection timed out
   finding, print it once under their names.
 - A change ends with one line per host it reached.
 
-An agent writes only under its own `memory/machines/<host>/`. What a
-rule would have it write to a shared file — a row in
+An agent writes only under `memory/machines/<host>/` of its own
+hosts. What a rule would have it write to a shared file — a row in
 `memory/network.md`, a master under `memory/clusters/` — comes back
 under `shared:`, and this session writes it, one host after another.
 
-Every agent returns the paths it wrote under `memory/` and commits
-none of them. The workspace commit is this session's, one per host,
-as `rules/parallel-sessions.md` → The workspace says, read before it
-included, and with exactly the paths that host's agent returned. A
-host that returned none gets no commit: `bin/hostwarden-sync commit`
-without paths commits every change in the workspace. What this
+Every agent returns, for each of its hosts, the paths it wrote under
+`memory/`, and commits none of them. The workspace commit is this
+session's, one per host, as `rules/parallel-sessions.md` → The
+workspace says, read before it included, and with exactly the paths
+an agent returned for that host, or this session wrote for it. A
+host with none gets no commit: `bin/hostwarden-sync commit` without
+paths commits every change in the workspace. What this
 session wrote itself — shared files, a plan — is its own commit.
 Then one push as `rules/changelog.md` → The Workspace says.
 
@@ -213,8 +366,8 @@ and the guard and the taboos hold on every one of them.
    is in the question.
 
    A change that can cut SSH — the firewall, the network, a login
-   shell — goes through all of this, but no agent runs it: each host
-   runs here, one after another, as `rules/ssh-safety-net.md` says,
+   shell — goes through all of this, but never in rounds: each host
+   runs alone, one after another, as `rules/ssh-safety-net.md` says,
    since that file reads each host's way in and sshd ports and puts
    what it finds to the user.
 2. **Ask once.** One question names every host the change will
@@ -227,22 +380,21 @@ and the guard and the taboos hold on every one of them.
 3. **Write the rollout down** as a plan (`rules/machine-memory.md` →
    Plans that outlive a session): the steps, their expected
    results, and each host as `not started`, `started`, `done` or
-   `stopped`. A host is `started` before its agent is dispatched,
+   `stopped`. A host is `started` before its first step runs,
    so a run cut off mid-way leaves the truth behind; a later session
    reads a `started` host's journal and `changelog.log` before it
    runs anything there. The `Plan:` lines go into the hosts'
-   `memory.md` now, while no agent runs. Plan and lines are deleted
+   `memory.md` now, before the first round. Plan and lines are deleted
    once every host is done, or when the user drops the rest.
-4. **The canary alone.** Dispatch it and compare what it returns
-   with the expected results from step 1. Anything else is a
-   surprise.
-5. **Then the rest**, as → Dispatch and → Order say. Where agents
-   run them, they start together, apart from the hosts → Order puts
-   in sequence, so the canary is what catches a surprise before the
-   others start.
-6. **After a surprise** — at the canary, or among the rest a
-   `stopped:`, `partial:` or `blocked:` host or an agent that
-   returned no status — no host that has not started yet starts.
+4. **The canary alone.** Run its steps, one round each, and compare
+   what each returns with the expected results from step 1.
+   Anything else is a surprise.
+5. **Then the rest**, in rounds, one step each (→ Rounds of one
+   call), apart from the hosts → Order puts in sequence, so the
+   canary is what catches a surprise before the others start.
+6. **After a surprise** — at the canary, or among the rest a host
+   that stopped, ran part of a step or waits for a decision — no
+   host that has not started yet starts.
    Report what ran where, and wait for the user.
 
 ### On each host

@@ -30,11 +30,10 @@ session-start hooks are Claude Code's too: elsewhere
 the session runs `bin/hostwarden-doctor` itself at the
 start and passes on what it reports. In a checkout for
 working on Hostwarden it checks the tools that work
-needs instead. The per-host
-subagents of the fleet audit and of a task on several
-servers are Claude Code's: elsewhere the same work walks
-the hosts in turn, and only the time and the context it
-takes differ.
+needs instead. The subagents that take housekeeping or a
+security audit on more than four servers are Claude Code's:
+elsewhere the session runs that work itself, and only the
+time and the context it takes differ.
 
 OpenCode note: `OPENCODE_DISABLE_CLAUDE_CODE=1` turns
 off every `.claude` fallback, and Hostwarden still works

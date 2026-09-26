@@ -1,0 +1,196 @@
+#!/bin/sh
+# hostwarden-group — print what several hosts returned, each answer
+# once, with the hosts that gave it.
+#
+# Usage:
+#   hostwarden-group <dir> [<suffix>]   Group <dir>/<host><suffix>
+#   hostwarden-group --help             Show this help
+#
+# Reads one file per host, as a round of rules/multi-host.md →
+# Rounds of one call leaves them: the host is the file's name less
+# <suffix>. A line `###<key>###` opens a section; what comes before
+# the first one is the section with no key. A last line `exit <n>`,
+# which the round appends after a newline of its own, is the host's
+# exit status, and that newline is dropped with it. For each
+# section, in the order the files first name them, the hosts whose
+# text is the same byte for byte share one block, the largest group
+# first and the hosts without the section last:
+#
+#   == sshd
+#   web1.example.com, web2.example.com:
+#     permitrootlogin no
+#   db1.example.com:
+#     permitrootlogin prohibit-password
+#
+# A host without the section is listed under `(missing)`, one with
+# an empty section under `(empty)`. After the sections, a host that
+# finished and printed nothing is on a line `no output: <host>…`,
+# one whose file has no exit line, cut off before the round
+# finished it, on a line `unfinished: <host>…`, and each status
+# other than 0 on a line `exit <n>: <host>…`. Output with no marker
+# at all prints without a header.
+#
+# What a host wrote to stderr, `<host><suffix>.err` beside its file,
+# is a section of its own, `(stderr)`, after the others, listing
+# only the hosts that wrote any: a login banner, an error, why a
+# connection failed. Nothing is read beyond the files, and nothing
+# is judged: which difference matters is the session's to say.
+set -e
+
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
+}
+
+case ${1-} in
+  -h | --help) usage; exit 0 ;;
+  '' | -*) usage >&2; exit 2 ;;
+esac
+DIR=$1 SUFFIX=${2-}
+[ -d "$DIR" ] || { echo "${0##*/}: $DIR is not a directory" >&2; exit 1; }
+
+# One argument per file, as awk reads them; a host name is data, so
+# the list never passes through word splitting.
+set --
+for f in "$DIR"/*"$SUFFIX"; do
+  case $f in *"$SUFFIX".err) continue ;; esac
+  [ -f "$f" ] && set -- "$@" "$f"
+done
+[ $# -gt 0 ] || { echo "${0##*/}: no file matches $DIR/*$SUFFIX" >&2; exit 1; }
+# Each host's stderr after all the answers, where it has any.
+for f in "$DIR"/*"$SUFFIX".err; do
+  [ -s "$f" ] && set -- "$@" "$f"
+done
+
+awk -v suffix="$SUFFIX" '
+  function is_err(f) {
+    return substr(f, length(f) - length(suffix) - 3) == suffix ".err"
+  }
+  function name_of(f) {
+    sub(/.*\//, "", f)
+    if (is_err(f)) f = substr(f, 1, length(f) - 4)
+    if (suffix != "") f = substr(f, 1, length(f) - length(suffix))
+    return f
+  }
+  BEGIN {
+    # Every file is a host, an empty one included, which awk never
+    # opens a record for.
+    for (i = 1; i < ARGC; i++)
+      if (!is_err(ARGV[i])) hosts[++nhosts] = name_of(ARGV[i])
+  }
+  function flush() {
+    if (host == "") return
+    # The round appends the exit status after a newline of its own;
+    # neither is part of the section they follow.
+    if (last ~ /^exit [0-9]+$/) {
+      sub(/[^\n]*\n$/, "", text)
+      if (text == "\n") text = ""
+      else sub(/\n\n$/, "\n", text)
+      code[host] = substr(last, 6)
+    }
+    keep(key, text)
+  }
+  function keep(k, t) {
+    if (k == "" && t == "") return
+    if (!(k in seen)) { seen[k] = 1; order[++nkeys] = k }
+    body[host, k] = t
+    output[host] = 1
+  }
+  FNR == 1 {
+    flush()
+    host = name_of(FILENAME)
+    key = ""; text = ""; last = ""
+    err = is_err(FILENAME)
+    if (err) host = ""
+  }
+  err { stderr[name_of(FILENAME)] = stderr[name_of(FILENAME)] $0 "\n"; next }
+  /^###[^#]+###$/ {
+    keep(key, text)
+    key = substr($0, 4, length($0) - 6); text = ""; last = ""
+    next
+  }
+  { text = text $0 "\n"; last = $0 }
+  END {
+    flush()
+    for (x in stderr) anyerr = 1
+    for (k = 1; k <= nkeys; k++) {
+      name = order[k]
+      # Output without any marker is one answer and needs no header,
+      # unless a stderr section follows it.
+      if (!(nkeys == 1 && name == "" && !anyerr))
+        print (name == "" ? "== (no marker)" : "== " name)
+      # Group the hosts by their text, remembering first appearance.
+      ng = 0
+      for (h = 1; h <= nhosts; h++) {
+        if (!(hosts[h] in output)) continue
+        t = ((hosts[h], name) in body) ? body[hosts[h], name] : "\001missing"
+        if (t == "") t = "\001empty"
+        if (!(t in gi)) { gi[t] = ++ng; gt[ng] = t; gh[ng] = ""; gn[ng] = 0 }
+        g = gi[t]
+        gh[g] = gh[g] (gn[g] ? ", " : "") hosts[h]
+        gn[g]++
+      }
+      # Largest group first, the hosts without the section last;
+      # equal ones keep the order they came in.
+      for (i = 1; i <= ng; i++) {
+        idx[i] = i
+        rank[i] = gt[i] == "\001missing" ? -1 : gn[i]
+      }
+      for (i = 2; i <= ng; i++) {
+        v = idx[i]
+        for (j = i - 1; j >= 1 && rank[idx[j]] < rank[v]; j--)
+          idx[j + 1] = idx[j]
+        idx[j + 1] = v
+      }
+      for (i = 1; i <= ng; i++) {
+        g = idx[i]
+        print gh[g] ":"
+        if (gt[g] == "\001missing") print "  (missing)"
+        else if (gt[g] == "\001empty") print "  (empty)"
+        else {
+          n = split(gt[g], L, "\n")
+          for (l = 1; l < n; l++) print (L[l] == "" ? "" : "  " L[l])
+        }
+      }
+      for (t in gi) delete gi[t]
+    }
+    # stderr: only the hosts that wrote any, grouped the same way.
+    ng = 0
+    for (h = 1; h <= nhosts; h++) {
+      if (!(hosts[h] in stderr)) continue
+      t = stderr[hosts[h]]
+      if (!(t in ei)) { ei[t] = ++ng; et[ng] = t; eh[ng] = ""; en[ng] = 0 }
+      g = ei[t]
+      eh[g] = eh[g] (en[g] ? ", " : "") hosts[h]
+      en[g]++
+    }
+    if (ng) print "== (stderr)"
+    for (done = 0; done < ng; done++) {
+      # The largest group left, the first met among equals.
+      b = 0
+      for (i = 1; i <= ng; i++)
+        if (!(i in shown) && (!b || en[i] > en[b])) b = i
+      shown[b] = 1
+      print eh[b] ":"
+      n = split(et[b], L, "\n")
+      for (l = 1; l < n; l++) print (L[l] == "" ? "" : "  " L[l])
+    }
+    none = ""
+    for (h = 1; h <= nhosts; h++)
+      if (!(hosts[h] in output) && hosts[h] in code)
+        none = none (none == "" ? "" : ", ") hosts[h]
+    if (none != "") print "no output: " none
+    cut = ""
+    for (h = 1; h <= nhosts; h++)
+      if (!(hosts[h] in code)) cut = cut (cut == "" ? "" : ", ") hosts[h]
+    if (cut != "") print "unfinished: " cut
+    # Exit statuses other than 0, each once, in the order met.
+    nc = 0
+    for (h = 1; h <= nhosts; h++) {
+      c = code[hosts[h]]
+      if (c == "" || c == "0") continue
+      if (!(c in cl)) { cord[++nc] = c; cl[c] = "" }
+      cl[c] = cl[c] (cl[c] == "" ? "" : ", ") hosts[h]
+    }
+    for (i = 1; i <= nc; i++) print "exit " cord[i] ": " cl[cord[i]]
+  }
+' "$@"

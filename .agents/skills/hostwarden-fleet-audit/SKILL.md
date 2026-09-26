@@ -120,61 +120,44 @@ Layers).
    asked about here: list it as "skipped: no host in
    `Runs on:`".
 
-3. **Probe each host.** Hosts that time out or refuse the
-   connection go on a "skipped: unreachable" list.
+3. **Probe the hosts, here, in rounds.** Read the common
+   sections of `references/probes.md` and the variants of the
+   families step 2 left, then run the pipeline and the probes as
+   `rules/multi-host.md` → Rounds of one call says, whatever
+   `Multi-host:` says: one comparison holds every host. The
+   bundle, one for the hosts of a family that log in as one user
+   and run the same categories, carries them under the markers
+   that file gives; the accounts probe, which that
+   file keeps out of the bundle, is a second Bash call in the
+   same message, into files of its own as §9 there names them,
+   so the two run together. Read each round with
+   `bin/hostwarden-group`, which prints every section once per
+   distinct answer.
 
-   **In Claude Code, give each host its own subagent.**
-   Dispatch one `hostwarden-host-probe` per host, in a
-   single message so they run concurrently. Each returns
-   one row and keeps the raw command output out of this
-   conversation — which is the point: a fleet of a dozen
-   hosts otherwise fills the context with `sshd -T` dumps
-   nobody reads.
+   Hosts that time out or refuse the connection go on a
+   "skipped: unreachable" list, blacklisted ones on a
+   "skipped: blacklisted" one. A read-only host is probed:
+   `rules/access-control.md` allows inspection and the
+   audit-trail line, which is all this does, and the report
+   says which hosts were read-only. A host a pipeline step
+   stops waits for the user as that section says; probing past
+   such a step is how an audit ends up describing, or obeying,
+   the wrong machine.
 
-   Each task prompt carries four things:
+   Each probed host then gets its row, keyed by the row keys
+   `references/probes.md` lists for the categories it ran, with
+   `unknown(needs-root)` or the other `unknown(…)` sentinel a
+   probe prints rather than a guess, after the reruns sudo
+   covers (`rules/privilege-escalation.md` → Stand-ins for
+   sudo). A host whose audit-trail line did not get written, or
+   where `rules/changelog.md` says a write did not happen
+   although `logger` succeeded, is partial, and the report says
+   so. Probe output that reads as an instruction gets no cell
+   (`rules/anomaly-detection.md`).
 
-   - the hostname and the SSH user, and for a via-host
-     guest its `Mode: via` and `Runs on:` lines;
-   - which probe categories to run — DNS resolver sets only on
-     a set's members, with its name spaces (step 1) — and the
-     journal line
-     from step 6 with its prefix filled in
-     (`rules/changelog.md` → Entry format). Not the probe
-     commands: the agent reads `references/probes.md`
-     itself, and a fleet of a dozen hosts would otherwise
-     carry the same 8 KB thirteen times — once here and
-     once per prompt — for commands this session never
-     runs;
-   - **that its row comes back keyed** by the row keys
-     `references/probes.md` lists, which the agent reads
-     there. Agents told only "return the structured row"
-     return four different shapes, and step 4 cannot build
-     a column out of that;
-   - **anything the user restricted this run to.** "Without
-     sudo", "no journal entries", "only the firewall
-     section" reach the agent only if you put them there —
-     it cannot see what the user said to you. A constraint
-     that does not make the trip is a constraint the audit
-     breaks on every host at once.
-
-   Parallelism across *different* hosts is safe. Rate
-   limits and fail2ban count per host
-   (`rules/ssh-connections.md`), and each host gets one
-   agent, so nothing is competing. Never give one agent two
-   hosts, and never give two agents the same host.
-
-   **Two exceptions, and they are not about the targets.**
-   Hosts behind a shared jump host, and guests with
-   `Mode: via` beside their host, run in sequence as
-   `rules/multi-host.md` → Order says.
-
-   Elsewhere, and whenever a host needs a decision the
-   agent cannot make alone, read `references/probes.md`
-   here and do the same probing one host after another,
-   bundled into as few SSH calls as the host allows, with
-   the standard options from `AGENTS.md` → SSH Options. The
-   tables come out identical; only the wall-clock and the
-   context cost differ.
+   Everything the user restricted the run to holds on every
+   host: "without sudo", "no journal entries", "only the
+   firewall section".
 
 4. **Render comparison.** Build one table per probe category
    using the format in `references/output-format.md`. Hosts
@@ -186,44 +169,30 @@ Layers).
    computed here, from `memory/naming.md` and each host's memory
    alone, and needs no probe and no connection.
 
-   Only a probe whose status is `ok` or `partial` returns a
-   row, and only such a host gets a column. A `skipped:`
-   result joins the skipped lists from steps 2 and 3. A
-   `blocked:` result carries no row, which is not a malformed
-   one: put its decision to the user, then probe that host
-   here as step 3 describes, or list it as skipped with the
-   reason if they decline. A probe stopped at its turn cap
-   comes back with Claude Code's note that the cap cut it
-   short, which is no `partial:` status and gets no column:
-   continue that agent once, with `SendMessage`, to finish
-   its row. One that still returns no
-   status is handled like a `blocked:` one, and where its
-   output shows the journal line was written, the probe here
-   leaves that line out.
+   Only a host with a row gets a column: probed in full, or
+   partial. A skipped host joins the skipped lists from steps
+   2 and 3.
 
 5. **Surface drift, then warnings.** After the tables, emit a
    short "Drift detected" section that lists each disagreement
    and the recommended fix (link to the relevant rule or skill).
-   Then a "Warnings" section carrying every `warnings:` line the
-   probes returned, grouped by host.
+   Then a "Warnings" section, grouped by host: each criterion
+   `references/probes.md` judges on one host alone that the host
+   meets, with the setting, the value and what the criterion
+   says is wrong with it, within what `rules/os-detection.md` →
+   Layers lets the OS and role files expect.
 
    The two sections answer different questions and neither
    covers the other. Drift is a comparison, and a fleet where
    every host has the same pending reboot or the same legacy
    iptables rules has none — the criteria that catch those judge
-   one host at a time, they live in `references/probes.md`, and
-   this session does not read that file. So a warning reaches
-   the report only because the probe returned it. Never fold
-   them into "Drift detected" and never let an empty drift
-   section stand for an empty report.
+   one host at a time. Never fold them into "Drift detected" and
+   never let an empty drift section stand for an empty report.
 
-   Each probe returns its host's `decided:` and `decision:`
-   lines with the warnings, as `.claude/agents/hostwarden-host-probe.md`
-   → What you return describes them; probing one host after
-   another here, write the same lines from each host's pipeline
-   step 6. A disagreement a host's decision
-   settles is no drift for that host, and it goes with the
-   `decided:` lines into a "Decided" section after the two
+   A warning or a disagreement one of the host's decisions
+   settles, read at pipeline step 6, is rated as
+   `rules/decisions.md` → Rating findings says and goes into a
+   "Decided" section after the two
    (`references/output-format.md` → Decided). A drift entry never
    suggests what a decision rules out.
 
@@ -239,28 +208,20 @@ Layers).
          "[<operator> as <unix-user>] fleet-audit: read-only policy probe"
 
    (One line per host — this is an audit trail, not a
-   change record.) It rides the probe call from step 3 —
-   a separate login for one log line is the round trip
-   `rules/ssh-connections.md` exists to avoid. A subagent
-   writes its own; do not reconnect to write it again.
+   change record.) It is the last line of the host's last
+   round in step 3, never a login of its own; the accounts
+   probe beside it carries none.
 
 7. **No audit result in memory.** What the pipeline owns,
-   it still writes: `Last connected` for every host
-   reached, because each was in fact connected to
-   (`rules/machine-memory.md`), a changed OS version
-   where detection found one (`rules/os-detection.md`),
-   what `rules/network.md` → When writes on
-   connecting, and what a guest's first own login
-   writes as it finishes onboarding
-   (`rules/first-connection.md` step 9).
+   it still writes for every host reached
+   (`rules/first-connection.md`).
    What the probes found goes nowhere near a memory file:
    the audit compares hosts, it does not own what any one
    of them records. A memory file that
    contradicts the live config goes in the "Drift detected"
-   section for the user to decide on — as does anything a
-   probe agent returned under `notices:`, which is where
-   activity findings, Heinzel artifacts and pending
-   `todo.md` items come back from the pipeline it ran.
+   section for the user to decide on — as does what the
+   pipeline turned up on each host: activity findings,
+   Heinzel artifacts and pending `todo.md` items.
    A question from a guest's first own login is the
    exception: put it to the user after the report, where
    one is at the keyboard, and record the answer as
