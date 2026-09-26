@@ -29,11 +29,12 @@ render them with no build step; any Mermaid viewer does too.
 | `maps/clusters/<name>.md`  | a cluster's members and guests            |
 | `maps/hosts/<host>.md`     | a hypervisor outside a cluster, its guests|
 
-Every node links back to the host's `memory.md` in the workspace. The
-examples below are the real output for a small fictional workspace —
-two sites, a firewall, a NAS, a standalone Proxmox VE host and a
-two-node cluster — with those links left out, since the memory they
-point to is not part of this site.
+Every node links back to the host's `memory.md` in the workspace, and
+the link opens it in the whole window, not in the frame a forge such as
+Forgejo draws the diagram in. The examples below are the real output
+for a small fictional workspace — two sites, a firewall, a NAS, a
+standalone Proxmox VE host and a two-node cluster — with those links
+left out, since the memory they point to is not part of this site.
 
 ## WAN
 
