@@ -153,6 +153,8 @@ contrib/
                          to its mode: no server from
                          development, no edit to shipped files
                          in operations
+    guard-mode.d/      — Its stages, and scan.awk, the reader
+                         of a development session's commands
     session-mode.sh    — SessionStart hook that announces the
                          mode, a linked worktree included, and
                          puts the shim on PATH in development
