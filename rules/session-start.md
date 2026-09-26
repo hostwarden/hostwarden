@@ -115,6 +115,44 @@ anything started from a timer — asks nothing and goes on. The list
 stays in its output; `bin/hostwarden-fleet-run` writes it whole to
 the timer's log, and the first lines of it into its report's notes.
 
+## The workspace remote
+
+Where `git -C memory remote` prints nothing and `memory/user.md`
+has no `Workspace remote:` line, ask once the reads are in, before
+the operator handle and any server work, in one question of its
+own and in the interview format of `rules/ssh-user.md`:
+*"Share the workspace through a private git remote? It holds
+hostnames, addresses and the layout of your network."* Four
+options:
+
+1. **A new private repository.** Ask for its URL next, offering
+   `<login>/hostwarden-workspace` on GitHub where
+   `gh api user --jq .login` names a login, as the SSH or HTTPS
+   URL `gh config get git_protocol -h github.com` says gh uses, and
+   `Other…`. Then run `bin/hostwarden-init --remote <url> --create`.
+2. **An existing workspace**, offered only where
+   `git -C memory rev-parse -q --verify HEAD` finds no commit. Ask
+   for its URL, then run `bin/hostwarden-init --clone <url>`, and
+   afterwards → What to load again: the workspace is another one
+   now.
+3. **This machine only.** `bin/hostwarden-init --local` records
+   `Workspace remote: none`, and nothing asks again.
+4. **Not now.** Nothing is recorded; the next session asks again.
+
+What the script refuses is said as it came, and not worked around:
+a public repository, one that already holds commits (a workspace
+to join, which a workspace with commits of its own cannot do
+without merging by hand, the user's job), a workspace that already
+holds work where `--clone` needs a new one. Exit 3 means the
+repository does not exist and was not created: pass on the steps
+it printed, and once the user says it exists, run the same command
+again; it picks up where it stopped.
+
+Option 1 is this session's yes to the first push
+(`rules/changelog.md` → The Workspace). With a remote in place,
+→ The operator handle follows. A run no person answers asks
+nothing here and goes on.
+
 ## The operator handle
 
 Where `rules/ssh-user.md` → Operator requires the `Operator:` line
