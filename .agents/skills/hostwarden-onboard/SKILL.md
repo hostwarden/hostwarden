@@ -115,6 +115,11 @@ checkout) and stop.
      → Probe, read as the security audit's
      `.agents/skills/hostwarden-security/references/containers.md`
      → Registries says. Which registries to trust joins step 6.
+   - `Upstream firewall:` — where step 4 found a family the host does
+     not filter and memory has no such line, the ports the host
+     listens on, which `rules/baseline.md` → Filtering in front of
+     the host starts from, read with step 4's calls. Its question
+     joins step 6, and the weighing waits for the answer.
    - `memory/topology.md` and `Dynamic routing:` — where step 3
      wrote a full network profile, `rules/network-topology.md` →
      Folding a profile. On an appliance whose file has a
@@ -129,8 +134,11 @@ checkout) and stop.
    host's `Site:` (`rules/network-topology.md` → The question,
    whose answer rewrites the site field of the ranges step 5
    already folded, in the same edit, as → Pruning and staleness
-   requires) and, at the first onboarding at that site, its uplink
-   (`rules/network-topology.md` → The uplink question), the ones
+   requires) and its site's uplink where it is still open, whether
+   the `Site:` line is new or was there
+   (`rules/network-topology.md` → The uplink question), what
+   filters in front of the host (`rules/baseline.md` → Filtering in
+   front of the host), the ones
    its references ask once (a UPS and what it
    powers, a serial adapter's far end, a reserved device no guest
    claims), anything else the pipeline's rules offer to record — is
@@ -138,7 +146,11 @@ checkout) and stop.
    so the answers
    are in its memory before the next host starts. In a run of several
    hosts they wait for the run's close instead
-   (→ Several hosts: questions by site). Once steps 3 to 5
+   (→ Several hosts: questions by site). An answer that settles
+   part of step 4's measurement — a backup the host cannot see, a
+   filter in front of it — is weighed as its rule says, and where
+   that closes a gap, the host's `Baseline check:` line, its report
+   line and the gaps step 7 offers lose it. Once steps 3 to 5
    have run through the host's own way in, the host gets
    `- Onboarded: <date>` in place of any `SSH: untested`; on a known
    host the date moves. The
@@ -248,9 +260,10 @@ In this order:
    names a site keeps it. The hosts the site question is open for
    are asked as
    `rules/network-topology.md` → The question → Several hosts at
-   once says. The uplink question comes with the first answer that
-   names a site where it is still open (`rules/network-topology.md`
-   → The uplink question).
+   once says. The uplink question comes once for each site of the
+   run where it is still open (`rules/network-topology.md` → The
+   uplink question): with the first answer that names the site, or,
+   for a site its hosts already name, before step 2.
 2. **Per site, one question each,** for the hosts of that site the
    question is open for. A host with no site to group by —
    `Site: unknown`, a workstation, a guest whose host has none — is

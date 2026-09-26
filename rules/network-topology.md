@@ -472,14 +472,12 @@ not known; the user's word stands until the user changes it.
 
 ### The uplink question
 
-- **When:** in onboarding's step 6 (`hostwarden-onboard`),
-  together with `Site:` — in a run of several hosts once per site,
-  with the first answer that names it — at the first onboarding at
-  a site with a
-  person present — where the site's entry has no field from the
-  user yet — and never where The question above is never asked: a
-  run with nobody at the keyboard records what sources 1 and 2
-  show.
+- **When:** in onboarding's step 6 (`hostwarden-onboard`), with
+  `Site:` or after it, in a run of several hosts once per site,
+  with a person present, wherever the site's entry has no field
+  from the user yet, whether the host's `Site:` line is new or was
+  there — and never where The question above is never asked: a run
+  with nobody at the keyboard records what sources 1 and 2 show.
 - **What:** what sources 1 to 3 found, then whether the IPv4
   address is static or dynamic, whose NAT sits upstream — none, a
   router of the user's, or the provider's — and, where the site has
