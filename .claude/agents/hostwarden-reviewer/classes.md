@@ -20,19 +20,27 @@ before one is added.
    `ssh host cmd`, sibling tools of the same job, other key types,
    states, drivers, middleware front ends, search roots, both
    address families, every manager the file supports elsewhere
-   (classic LXC beside Incus), and each variant of a write method
+   (classic LXC beside Incus), each variant of a write method
    that keeps its state somewhere else (a journal, a database, an
-   API backend).
+   API backend), and every tool that opens its own connections
+   (ansible, salt, parallel, pssh, a guest manager), read at every
+   depth of a command line, not only the ssh family at the top.
 2. A lookup, preflight, shortcut or substitution that decides a
-   later step: does it resolve by the same name, along the same
-   path and for every address family that step uses — each file
-   `ssh -G` lists, each include, the server split DNS, a routing
-   domain or a scoped resolver picks, aliases, jump hosts, other
-   users' endpoints, AAAA as well as A, the view a fixed source
-   address matches? Can an input it does not compare, such as a
-   Host or Match block, still change the result, and does an
-   address used in place of a name skip the name's own routing (a
-   jump host, a port)? When one side of a comparison is widened,
+   later step, or a report of what an action would do (`--check`,
+   a notice): does it resolve by the same name, along the same
+   path, by the condition the action itself decides by rather than
+   a simpler one that agrees in the usual case (a tag's name where
+   the action checks its signature), and for every address family
+   that step uses — each file `ssh -G` lists, each include, the
+   server split DNS, a routing domain or a scoped resolver picks,
+   aliases, jump hosts, other users' endpoints, AAAA as well as A,
+   the view a fixed source address matches? Can an input it does
+   not compare still change the result, such as a Host or Match
+   block? Where it lists the values it judges, does the list hold
+   every value the guarded step overrides or reads, not only those
+   the prompting finding named (HostKeyAlias beside HostName and
+   Port)? Does an address used in place of a name skip the name's
+   own routing (a jump host, a port)? When one side of a comparison is widened,
    such as to a second address family, is every side?
 3. A value from an effective-configuration dump (`sshd -T`): can a
    `Match` block change it per account, address or group, and is it
@@ -78,7 +86,9 @@ before one is added.
    takes another, do the two cover disjoint cases; and when a gate
    is wired into a new call site, can the site's value arise each
    way the gate tells apart (named by the user, chosen by
-   Hostwarden)?
+   Hostwarden)? Does an exemption for commands whose arguments are
+   data leave in one that takes an option pointing it at another
+   machine (`systemctl -H`)?
 10. Several fact types, entry forms or models in one store: does
     every consumer read each type that bears on its question, each
     documented entry form of a memory line (name → dir, name with no
@@ -183,10 +193,12 @@ before one is added.
    escalation — land on a defined branch of every step?
 4. A script now run on its own that another script only called: does
    the new call get the `PATH`, environment (`MISE_ENV`) and working
-   directory the caller set up? Does a setting a call makes (a
-   locale) reach each command in it that crosses into a new
-   environment — every one `rules/locale.md` → Where it is set
-   names, and `jexec` for a FreeBSD jail?
+   directory the caller set up? A hook that starts sourcing a
+   library or changes the value it accepts: does every fixture tree
+   that copies the hook copy the library and set the new value?
+   Does a setting a call makes (a locale) reach each command in it
+   that crosses into a new environment — every one `rules/locale.md` → Where it
+   is set names, and `jexec` for a FreeBSD jail?
 5. A loop that reuses one scratch file or variable: is it emptied
    before each item, an item with no output included?
 6. A hand-off that says another flow records the answer: does that
@@ -219,7 +231,10 @@ before one is added.
    or a new condition on a definition the same file states (a
    priority level): does it keep the rule's exceptions and
    carve-outs, and the definition's own cases, without widening or
-   narrowing them?
+   narrowing them? A field exempted from a comparison, such as an
+   immutability check, is held to the moves the rule names, not any
+   value; a field the rule empties on a transition is checked for
+   its value after it, not only for a change.
 2. "Every connection" or "each host" through a fixed pipeline, or a
    step in a skill that assumes SSH: does local mode skip any of the
    steps (`AGENTS.md`, `rules/first-connection.md`), in every
@@ -275,6 +290,10 @@ before one is added.
 5. A GitHub write action (reopen, edit, set a link) made a hard
    prerequisite: does a contributor working from a fork have the
    permission, or is there a fallback?
+6. A capability check that reads one tool's version: is that the
+   binary the feature invokes (git's `gpg.ssh.program`, ssh-keygen
+   unless set), or a sibling from the same package (`ssh -V`) that
+   can differ on `PATH`?
 
 ## 6. A tool that does not work as written
 
@@ -298,6 +317,10 @@ before one is added.
 7. An "add" shown as the way to change a value: where the target
    can already hold one, does it append beside it rather than
    replace it?
+8. An output compared literally with another value: run the
+   command and read the exact bytes of one line — leading and
+   trailing whitespace, blank fields — not only whether the right
+   field appears.
 
 ## 7. A literal where a recorded value belongs
 
@@ -308,7 +331,11 @@ before one is added.
    the caller passes?
 3. A new `Host` block or connection for an endpoint (a rescue
    system, a bridge): does it carry the port that endpoint's sshd
-   listens on, or the one a reference set up for it?
+   listens on, or the one a reference set up for it? Where a step
+   overrides only some keywords of a configuration merged from
+   several sources (`ssh_config`, includes, patterns), what do the
+   untouched keywords still inherit, during the override and after
+   it is removed?
 4. A whole block removed to retire one of its lines: does it also
    carry settings that must stay?
 
@@ -316,7 +343,8 @@ before one is added.
 
 1. A key that decides two things are one (a name, an address, a
    destination): does another rule already say which extra field, a
-   port or a verified key, it needs?
+   port or a verified key, it needs, and are both sides normalised
+   the same way (case, a final dot), not only the one read at start?
 2. A token or line that grants a pass (a skip, an approval, a review
    line): is it bound to this head or this pull request, and is the
    evidence it relies on bound to the exact object its fields name?
@@ -391,8 +419,11 @@ before one is added.
    or undecodable answer turn into a confident "none"?
 2. A `while read` loop over a user-edited file: does it keep a last
    line with no trailing newline (`|| [ -n "$var" ]`)?
-3. A remote command's status hidden by a trailer (`…; true`): does
-   a failed action inside it still reach the caller?
+3. A status hidden by what runs after it — a remote command's
+   trailer (`…; true`), an EXIT trap added under `set -e`: does a
+   failed action still reach the caller, on each failing path the
+   script has (`${x:?}`, `set -u`), under macOS `/bin/sh` (bash
+   3.2) as well?
 4. An empty answer that has several causes — no record, a server
    failure, a timeout, a neighbour entry that is FAILED or
    INCOMPLETE: does each get its own meaning, so silence is never
