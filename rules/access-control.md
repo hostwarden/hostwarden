@@ -55,6 +55,28 @@ explicitly which of the two it was and that the
 IP-level check could not be performed. Err on the side
 of caution for anything ambiguous.
 
+`bin/hostwarden-impact` and `bin/hostwarden-fleet-run`
+run this same logic unattended, through
+`.claude/hooks/resolve.sh`, with no one to tell about
+an ambiguous result and decide from there: a resolver
+that cannot be reached while either checks a host is
+treated as if that host matched, never as a clean
+miss. `hostwarden-fleet-run` skips the host, the same
+outcome an actual match gets, since it is the one gate
+before the unattended connection fleet read makes.
+`hostwarden-impact` treats the team-telling call the
+same way for the blacklist; for the read-only list, an
+unresolvable entry defaults every host it checks that
+session to read-only, the safe direction, rather than
+to registering a write the list might actually forbid.
+An entry of either list that cannot be resolved has no
+addresses to compare against, so it leaves every host
+of that run unverifiable, not only the one it names: a
+host that did not match it by name could still be it by
+address. A name that genuinely resolves to nothing is
+not such an entry; a missing `dig` makes every
+name-only entry one.
+
 On a first connection the user is chosen only after
 both checks. Run them as the `Default:` user of
 `memory/user.md`, or, where it has none yet, with

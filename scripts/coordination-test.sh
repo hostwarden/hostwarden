@@ -102,6 +102,39 @@ echo "port \${p:-22}"
 exit 0
 EOF
 chmod +x "$TMP/bin/ssh"
+# A dig stand-in for the blacklist/read-only resolver-outage
+# disambiguation (.claude/hooks/resolve.sh's hostwarden_resolve_ok):
+# one header line per query it is asked (the real dig's own shape,
+# one per record type), NOERROR for every name but the ones a test
+# below names, so the rest of this file's hosts still clear on a
+# clean, deterministic miss regardless of whether this machine can
+# reach the internet.
+cat >"$TMP/bin/dig" <<'EOF'
+#!/bin/sh
+case " $* " in *' +short '*) exit 0 ;; esac
+args=
+for a; do
+  case $a in
+    +*) ;;
+    *) args="$args $a" ;;
+  esac
+done
+set -- $args
+while [ $# -ge 2 ]; do
+  n=$1
+  case $n in
+    unreachable-*.example.com)
+      echo ';; ->>HEADER<<- opcode: QUERY, status: SERVFAIL, id: 0' ;;
+    *) echo ';; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 0' ;;
+  esac
+  shift 2
+done
+EOF
+chmod +x "$TMP/bin/dig"
+# No routing domain here: this runner's own systemd-resolved never
+# decides which path the check takes.
+printf '#!/bin/sh\nexit 1\n' >"$TMP/bin/resolvectl"
+chmod +x "$TMP/bin/resolvectl"
 export PATH="$TMP/bin:$PATH"
 
 run() { sh "$R/bin/hostwarden-impact" "$@"; }
@@ -745,6 +778,44 @@ hasi "$TMP/out" "no entry: web1.example.com (blacklisted" \
   "announce: a blacklist's last line without a newline still counts"
 run 'done' "$(head -n1 "$TMP/out")"
 rm -f "$M/blacklist.md"
+
+# A blacklist.md entry the resolver could not check leaves every
+# host unverifiable, not a clean miss (rules/access-control.md →
+# Server Blacklist): "no entry", the same outcome as an actual
+# match, since a team-telling call is a connection like any other.
+printf -- '- unreachable-bl.example.com\n' >"$M/blacklist.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" "no entry: pve1.example.com (blacklist unverifiable: resolver unreachable)" \
+  "announce: an unresolvable blacklist.md entry does not pass a host through"
+hasi "$TMP/out" "no entry: web1.example.com (blacklist unverifiable: resolver unreachable)" \
+  "announce: an unresolvable blacklist.md entry does not pass a guest through"
+lacks "$TMP/sshcalls" "== alice@pve1.example.com" \
+  "announce: no call reaches a host the blacklist could not verify"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/blacklist.md"
+# done's cleanup names the outage too, never "blacklisted now".
+run announce pve1.example.com reboot >"$TMP/out"
+TID=$(head -n1 "$TMP/out")
+printf -- '- unreachable-bl.example.com\n' >"$M/blacklist.md"
+run 'done' "$TID" >"$TMP/out"
+hasi "$TMP/out" "entry left: web1.example.com (blacklist unverifiable: resolver unreachable;" \
+  "done: a resolver outage is reported as one, not as a blacklist match"
+rm -f "$M/blacklist.md"
+
+# The same for readonly.md: an entry the resolver could not check
+# defaults every host to the safe direction, read-only, rather than
+# to registering a write it might not be allowed.
+printf -- '- unreachable-ro.example.com\n' >"$M/readonly.md"
+: >"$TMP/sshcalls"
+run announce pve1.example.com reboot >"$TMP/out"
+hasi "$TMP/out" \
+  "journal only: web1.example.com (read-only status unverifiable: resolver unreachable)" \
+  "announce: an unresolvable readonly.md entry does not default to registering"
+lacks "$TMP/sshcalls" 'mkdir "$N"' \
+  "announce: no register entry while readonly.md is unverifiable"
+run 'done' "$(head -n1 "$TMP/out")"
+rm -f "$M/readonly.md"
 
 # A host without a key in memory/known_hosts is never called.
 printf 'pve1.example.com %s\n' "$KEY" >"$M/known_hosts"
