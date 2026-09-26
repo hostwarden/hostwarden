@@ -56,6 +56,16 @@ fails "init --remote published into a repository with commits" \
   || bad "a refused init --remote left its remote behind"
 sh "$P/bin/hostwarden-init" --remote "$TMP/missing.git" >/dev/null 2>&1
 [ $? -eq 3 ] && ok || bad "init --remote to a missing repository did not exit 3"
+# Of a URL only the scheme and host are printed: a token can sit in
+# the user info, the path or the query. The @ is added at run time,
+# so the test file holds no credential-shaped URL.
+AT=@
+out=$(sh "$P/bin/hostwarden-init" --remote \
+  "https://alice:s3cret${AT}git.invalid/ops/s3cret.git?t=s3cret" 2>&1)
+case "$out" in
+*s3cret*) bad "init --remote printed a credential: $out" ;;
+*) ok ;;
+esac
 fails "init took --create without --remote" sh "$P/bin/hostwarden-init" --create
 fails "init took --local beside --remote" \
   sh "$P/bin/hostwarden-init" --local --remote "$TMP/remote.git"

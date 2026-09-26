@@ -127,9 +127,8 @@ pristine() {
   return 0
 }
 
-# show <url> — <url> fit to print: a user or token in it taken out
-# (rules/secrets.md), as bin/hostwarden-mirror does.
-show() { printf '%s\n' "$1" | sed -E 's#(://)[^/@]*@#\1#'; }
+# show <url> — <url> fit to print (hostwarden_redact).
+show() { printf '%s\n' "$1" | hostwarden_redact; }
 
 # resolve_url <url> — the address git and ssh really reach for
 # <url>: git's insteadOf rewrites applied, and an ssh host alias
@@ -263,7 +262,13 @@ if [ -n "$CLONE" ]; then
   # The clone brings the workspace marker, so it only becomes
   # memory/ once it has passed the checks.
   hostwarden_git_batch
-  git clone --quiet -- "$CLONE" memory.clone
+  CLONE_ERR=$(mktemp)
+  if ! git clone --quiet -- "$CLONE" memory.clone 2>"$CLONE_ERR"; then
+    hostwarden_redact < "$CLONE_ERR" >&2
+    rm -f "$CLONE_ERR"
+    exit 1
+  fi
+  rm -f "$CLONE_ERR"
   if ! check_hooks memory.clone; then
     rm -rf memory.clone
     echo "  (nothing was kept; clone again after that)" >&2
@@ -394,16 +399,25 @@ publish() {
   fi
   hostwarden_git_batch memory
 
-  # gh knows GitHub's answer, a repository that does not exist yet
-  # included. Anywhere else, a read without any credential is the
-  # test: what anyone can list is public.
+  # gh knows the visibility of a GitHub repository its account can
+  # see. One it cannot see is absent or private to someone else, so
+  # never public, but neither is proven: git's own read decides
+  # whether it exists. Anywhere else, and wherever gh gave no
+  # answer, a read without any credential is the test: what anyone
+  # can list is public.
   real=$(resolve_url "$url")
   slug=$(github_slug "$real")
   vis=
   if [ -n "$slug" ] && command -v gh >/dev/null 2>&1 \
       && gh auth status --hostname github.com >/dev/null 2>&1; then
-    vis=$(gh repo view "$slug" --json visibility --jq .visibility \
-      2>/dev/null) || vis=missing
+    if ! vis=$(gh repo view "$slug" --json visibility --jq .visibility \
+        2>"$ERRF"); then
+      if grep -q 'Could not resolve to a Repository' "$ERRF"; then
+        vis=unseen
+      else
+        vis=
+      fi
+    fi
   fi
   anon=$(anon_url "$real")
   if [ "$vis" = PUBLIC ] || { [ -z "$vis" ] && [ -n "$anon" ] \
@@ -421,25 +435,34 @@ publish() {
   if [ -z "$cur" ]; then
     # Only stdout lists refs: a redirect or a new host key is
     # reported on stderr, which is kept for the failure message.
-    if [ "$vis" != missing ] && refs=$(git ls-remote -- "$url" 2>"$ERRF"); then
+    if refs=$(git ls-remote -- "$url" 2>"$ERRF"); then
       if [ -n "$refs" ]; then
         echo "hostwarden-init: $(show "$url") already holds commits. To join the" >&2
         echo "  workspace in it, use --clone; to publish this one, give an" >&2
         echo "  empty repository." >&2
         return 1
       fi
-    elif [ "$vis" = missing ] && [ -n "$CREATE" ]; then
-      gh repo create "$slug" --private \
-        --description "Hostwarden workspace" >/dev/null || return 1
+    elif [ "$vis" = unseen ] && [ -n "$CREATE" ]; then
+      # gh refuses a name that exists after all, and says so.
+      if ! gh repo create "$slug" --private \
+          --description "Hostwarden workspace" >/dev/null 2>"$ERRF.gh"; then
+        echo "hostwarden-init: gh could not create $slug:" >&2
+        sed 's/^/  /' "$ERRF.gh" >&2
+        echo "  What git said when reading it:" >&2
+        hostwarden_redact < "$ERRF" | sed 's/^/    /' >&2
+        rm -f "$ERRF.gh"
+        return 1
+      fi
+      rm -f "$ERRF.gh"
       echo "hostwarden: created $slug on GitHub, private"
-    elif [ -n "$vis" ] && [ "$vis" != missing ]; then
+    elif [ -n "$vis" ] && [ "$vis" != unseen ]; then
       echo "hostwarden-init: $slug exists, but git cannot reach it:" >&2
-      show "$(cat "$ERRF")" | sed 's/^/  /' >&2
+      hostwarden_redact < "$ERRF" | sed 's/^/  /' >&2
       return 1
     else
       echo "hostwarden-init: $(show "$url") does not exist, or git cannot" >&2
-      echo "  reach it with your credentials. What git said:" >&2
-      [ ! -s "$ERRF" ] || show "$(cat "$ERRF")" | sed 's/^/    /' >&2
+      echo "  reach it. What git said:" >&2
+      hostwarden_redact < "$ERRF" | sed 's/^/    /' >&2
       echo "  Where that names the cause — credentials, a host key, the" >&2
       echo "  network — deal with it; where the repository is missing," >&2
       echo "  create it private and empty — no README, licence or" >&2
@@ -458,7 +481,10 @@ publish() {
   sh "$SCRIPT_DIR/hostwarden-sync" commit "Start the shared workspace" \
     || return 1
   branch=$(git -C memory symbolic-ref --short HEAD) || return 1
-  git -C memory push --quiet -u origin "$branch" || return 1
+  if ! git -C memory push --quiet -u origin "$branch" 2>"$ERRF"; then
+    hostwarden_redact < "$ERRF" >&2
+    return 1
+  fi
   echo "hostwarden: memory/ now syncs with $(show "$url")"
 }
 
