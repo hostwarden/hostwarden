@@ -112,7 +112,7 @@ moving it is a decision for whoever planned that epic:
 
 Work in a development checkout: a clone of Hostwarden, or of your
 fork, without `bin/hostwarden-init`
-([the Operations and development section](https://hostwarden.github.io/docs/running-it/operations#operations-and-development)).
+([Working on Hostwarden](https://hostwarden.github.io/docs/development)).
 One git worktree per branch keeps parallel sessions apart;
 [docs/project-structure.md](docs/project-structure.md) says where
 things live.
@@ -160,7 +160,7 @@ To try a command on a Linux family instead of guessing its
 syntax, install docker or podman (OrbStack provides docker on
 macOS); `bin/hostwarden-lab` runs disposable containers with it.
 What only a full VM can answer goes to a test clone
-([the Operations and development section](https://hostwarden.github.io/docs/running-it/operations#operations-and-development)).
+([Testing a change](https://hostwarden.github.io/docs/development/testing)).
 
 An agent session opens, watches and hands over its pull request
 with the [GitHub CLI](https://cli.github.com), `gh`, signed in

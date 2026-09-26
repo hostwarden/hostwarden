@@ -38,6 +38,9 @@ const config = {
 
   onBrokenLinks: 'throw',
   markdown: {
+    // The infrastructure maps bin/hostwarden-map writes are Mermaid;
+    // the Memory section shows real ones.
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
@@ -89,12 +92,15 @@ const config = {
           srcDark: 'img/hostwarden-lockup-invers.svg',
         },
         items: [
-          {
-            type: 'docSidebar',
-            sidebarId: 'docsSidebar',
-            position: 'left',
-            label: 'Docs',
-          },
+          {type: 'docSidebar', sidebarId: 'start', position: 'left', label: 'Get started'},
+          {type: 'docSidebar', sidebarId: 'features', position: 'left', label: 'Features'},
+          {type: 'docSidebar', sidebarId: 'memory', position: 'left', label: 'Memory'},
+          {type: 'docSidebar', sidebarId: 'safety', position: 'left', label: 'Safety'},
+          {type: 'docSidebar', sidebarId: 'running', position: 'left', label: 'Running it'},
+          {type: 'docSidebar', sidebarId: 'reference', position: 'left', label: 'Reference'},
+          // Working on Hostwarden itself, kept apart from the admin
+          // sections on the left.
+          {type: 'docSidebar', sidebarId: 'development', position: 'right', label: 'Development'},
           {
             type: 'docsVersionDropdown',
             position: 'right',
@@ -110,12 +116,20 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Using Hostwarden',
             items: [
-              {
-                label: 'Introduction',
-                to: '/',
-              },
+              {label: 'Get started', to: '/'},
+              {label: 'Features', to: '/features'},
+              {label: 'Memory and maps', to: '/memory'},
+              {label: 'Safety', to: '/safety'},
+            ],
+          },
+          {
+            title: 'Operating it',
+            items: [
+              {label: 'Running Hostwarden', to: '/running-it'},
+              {label: 'Reference', to: '/reference'},
+              {label: 'Working on Hostwarden', to: '/development'},
             ],
           },
           {
@@ -137,6 +151,9 @@ const config = {
         // the project were its own legal entity.
         copyright: `Copyright © ${new Date().getFullYear()} Julian Pawlowski.`,
       },
+      mermaid: {
+        theme: {light: 'neutral', dark: 'dark'},
+      },
       prism: {
         theme: prismThemes.oneLight,
         darkTheme: prismThemes.oneDark,
@@ -144,6 +161,7 @@ const config = {
     }),
 
   themes: [
+    '@docusaurus/theme-mermaid',
     [
       '@easyops-cn/docusaurus-search-local',
       /** @type {import('@easyops-cn/docusaurus-search-local').PluginOptions} */
