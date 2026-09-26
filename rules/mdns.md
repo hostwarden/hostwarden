@@ -18,10 +18,14 @@ the system resolver would reach DNS for it before mDNS.
 On macOS, where mDNSResponder always runs, the resolver that
 `scutil --dns` lists for the longest domain the name ends in
 answers for DNS, and `dig` asks the primary one where none does.
+The name and each domain are compared lowercased and without a
+final dot, as DNS compares them, so `NAS.corp.local.` still finds
+the `corp.local` resolver rather than the primary one.
 `dns-sd` never exits on its own, so it gets two seconds:
 
 ```
 set -- $(scutil --dns | awk -v n='<name>' '
+  BEGIN { n = tolower(n); sub(/\.$/, "", n) }
   function pick() {
     if (a != "" && d != "" && length(d) > b &&
         (n == d || substr(n, length(n) - length(d)) == "." d)) {
@@ -29,7 +33,7 @@ set -- $(scutil --dns | awk -v n='<name>' '
     d = a = p = "" }
   /^DNS configuration \(for scoped/ { pick(); exit }
   /^resolver/ { pick() }
-  $1 == "domain" { d = $3; sub(/\.$/, "", d) }
+  $1 == "domain" { d = tolower($3); sub(/\.$/, "", d) }
   $1 == "nameserver[0]" { a = $3 }
   $1 == "port" { p = $3 }
   END { pick(); print s }')
@@ -106,9 +110,11 @@ proof of unicast DNS.
 A source is unread, not silent, when its tool is missing (exit
 127), when `dig` fails (`dns-exit` not 0), and under
 `== dns unread`. Of `resolvectl`'s failures, some are answers.
-For both sources, `'<name>' does not have any RR of the requested
-type` is an answer with no IPv4 address. For DNS:
-`Name '<name>' not found`, DNS answering with nothing, and
+Match them on the words around the name, never on the name,
+which `resolvectl` may spell otherwise than it was typed. For both
+sources, `' does not have any RR of the requested type` is an
+answer with no IPv4 address. For DNS: `Name '…' not found`, DNS
+answering with nothing, and
 `No appropriate name servers or networks for name found`,
 this workstation having no DNS server for the name because no
 routing domain covers it. For mDNS, which has no negative answer:

@@ -115,10 +115,13 @@ symlink):
    the system-resolver preference above exists to
    avoid — and a name that would fail there can still
    answer at the unrelated default servers `dig` asks on
-   its own. On macOS, pick it the way `rules/mdns.md` →
+   its own. The name and each domain compare
+   lowercased and without a final dot, as DNS compares
+   them. On macOS, pick it the way `rules/mdns.md` →
    Asking Each Source does for its own DNS side:
    ```
    set -- $(scutil --dns | awk -v n='<hostname>' '
+     BEGIN { n = tolower(n); sub(/\.$/, "", n) }
      function pick() {
        if (a != "" && d != "" && length(d) > b &&
            (n == d || substr(n, length(n) - length(d)) == "." d)) {
@@ -126,7 +129,7 @@ symlink):
        d = a = p = "" }
      /^DNS configuration \(for scoped/ { pick(); exit }
      /^resolver/ { pick() }
-     $1 == "domain" { d = $3; sub(/\.$/, "", d) }
+     $1 == "domain" { d = tolower($3); sub(/\.$/, "", d) }
      $1 == "nameserver[0]" { a = $3 }
      $1 == "port" { p = $3 }
      END { pick(); print s }')
@@ -139,23 +142,36 @@ symlink):
      2>&1 | awk '/status:/ { sub(/,/, "", $6); print $6 }' \
      | sort -u
    ```
-   On Linux, `resolvectl domain` names a routing domain
-   per link; where one covers this name, ask through it
-   instead of trusting a verdict `dig`'s own servers gave
-   for the wrong zone:
+   On Linux, `resolvectl domain` names the routing
+   domains per link; where one covers this name,
+   compared the same way and `~.` covering every name,
+   ask through resolved instead of trusting a verdict
+   `dig`'s own servers gave for the wrong zone:
+   ```
+   resolvectl domain 2>/dev/null | awk -v n='<hostname>' '
+     BEGIN { n = tolower(n); sub(/\.$/, "", n) }
+     { sub(/^[^:]*:[[:space:]]*/, "")
+       for (i = 1; i <= NF; i++) {
+         d = tolower($i); sub(/^~/, "", d); sub(/\.$/, "", d)
+         if (d == "" || n == d ||
+             substr(n, length(n) - length(d)) == "." d) f = 1
+       } }
+     END { exit !f }'
+   ```
+   and where it exits 0:
    ```
    resolvectl query --synthesize=no --cache=no <hostname>
    ```
    read the way `rules/mdns.md` → Asking Each Source
-   already reads its DNS side: `'<hostname>' does not
-   have any RR of the requested type`, `Name '<hostname>'
-   not found` and `No appropriate name servers or
-   networks for name found` are all answers, a genuine
-   negative; any other failure, a timeout included, is a
-   resolver-unreachable result instead. Elsewhere on
-   Linux, and on FreeBSD, which has neither concept, the
-   `dig` command above with nothing picked already asks
-   the servers the system resolver would.
+   already reads its DNS side, by the words around the
+   name: `' does not have any RR of the requested type`,
+   `Name '…' not found` and `No appropriate name servers
+   or networks for name found` are all answers, a
+   genuine negative; any other failure, a timeout
+   included, is a resolver-unreachable result instead.
+   Elsewhere on Linux, and on FreeBSD, which has neither
+   concept, the `dig` command above with nothing picked
+   already asks the servers the system resolver would.
 
    `NOERROR` and `NXDOMAIN` alone mean the name
    genuinely resolves to nothing: go on below.
