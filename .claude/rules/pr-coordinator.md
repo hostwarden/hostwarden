@@ -19,6 +19,13 @@ mechanically checked the way the review record is — a coordinating
 session runs outside any one pull request's own checks — so it
 stays prose, read and followed, never a script.
 
+A session carrying one of the watched pull requests reports a
+material change the next time it checks in on its own pull request,
+rather than waiting to be asked (`pull-requests.md` → Telling the
+coordinator). The polling below only rechecks mergeability for the
+one pull request about to be merged; it is no substitute for that
+report, and nothing else watches for a change in between.
+
 ## Verifying readiness
 
 A pull request's own cached fields are not proof that it is ready to
