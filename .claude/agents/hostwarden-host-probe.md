@@ -5,8 +5,8 @@ description: Probe one managed host for the fleet audit and return a
   the host's journal. Invoked by the hostwarden-fleet-audit skill,
   one instance per host, never on its own.
 tools: Bash, Read
-model: inherit
-effort: medium
+model: opus
+effort: low
 maxTurns: 60
 permissionMode: default
 color: cyan
