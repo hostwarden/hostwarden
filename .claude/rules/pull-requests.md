@@ -160,12 +160,12 @@ foreign `main` would put other commits into the review.
 It runs on every pull request, in a context of its own, never in
 the session that wrote the change. In Claude Code that is the
 `hostwarden-reviewer` subagent; elsewhere, a fresh session whose
-instructions are that file's body. In Claude Code it runs on Sonnet
-whatever model wrote the change, for the reason the second review
-pins its model (→ Codex); the session passes no `model` when it
-dispatches it, since that would win over the file's. Should the
-reviewer's issue (→ Sharpening the reviewer) show the own review
-missing more than before, the pin is the first thing to revisit. A
+instructions are that file's body. In Claude Code it runs on Opus
+at medium effort whatever model wrote the change, for the reason
+the second review pins its model (→ Codex); the session passes no
+`model` when it dispatches it, since that would win over the
+file's. Should the reviewer's issue (→ Sharpening the reviewer) show the own
+review missing more than before, the pin is the first thing to revisit. A
 tool that picks the model per session, such as OpenCode, may run it
 on another family than the author's, and the own review then brings
 a second family's view as well.
@@ -314,8 +314,9 @@ Passes, here and on a fix commit, run like this:
   missing environment, an option the CLI rejects — goes to whoever
   merges with the reviewer's own message.
 - Stacked pull requests are each reviewed against their own base,
-  so their rounds run in parallel; each lifts its draft as
-  → Lifting the draft says.
+  so their rounds run in parallel, and the child records the base
+  commit under each head reviewed (→ Lifting the draft); each
+  lifts its draft as → Lifting the draft says.
 
 ### The review record
 
@@ -563,12 +564,49 @@ agent can do is done:
 - a stacked pull request's base is merged, and it has been
   retargeted and rebased onto `hostwarden/main` (→ After a merge,
   → Updating a branch): until then it stays a draft, since its
-  base can still change under it. The own review then runs once
-  more, fresh and at the pull request's tier, on the rebased branch
-  against `hostwarden/main`, since its reviews never saw the base's
-  final state. Its findings take the level of the child's last
-  round, that of rounds 1 and 2 where it had none (→ Rounds): fixed
-  in a fix commit where that level fixes them, deferred otherwise.
+  base can still change under it. Whether the own review runs once
+  more depends on whether the base's own change moved after the
+  child's last review. `<base head>` is the last commit of the base
+  under the child's head that review ran on — a run line's SHA, not
+  a rebase, squash or fix line's — which the child's session
+  records whenever a review of the child runs, as a line of its own
+  under `## Review`:
+
+      base under <child sha>: <base sha>
+
+  both SHAs in full, `<base sha>` read as
+  `git merge-base <child sha> hostwarden/<base>`, never as the
+  base's tip, which can already carry a fix the child does not.
+  A head a fix line names keeps the `base under` line of the head
+  it came from, since a fix commit does not move a branch off its
+  base; a rebase or squash line does, and is not followed back.
+  `<merge>` is the base's squash commit on `main`, and `<from>` the
+  commit the base's own change starts from under `<base head>`:
+  `git merge-base hostwarden/main <base head>` where the base sat
+  on `main`, and where it sat on another pull request in turn, the
+  last commit of that one under `<base head>`, from the base's own
+  `base under` line. Compare the first column of what these print:
+
+      git diff-tree -p <from> <base head> | git patch-id --verbatim
+      git diff-tree -p <merge>^ <merge> | git patch-id --verbatim
+
+  Both non-empty and equal, the child's reviews already saw the
+  base's final state: the rebase is recorded as → Merge-ready says,
+  and below it, on a line of its own,
+  `re-review skipped: base unchanged since <base head>`, the SHA in
+  full. The review record check reads neither of these lines;
+  appended to the rebase line, the note would break it. Otherwise —
+  an ID that differs or is empty, or no `base under` line for the
+  child's last reviewed head or, on a longer stack, for the
+  base's — the own review runs once more, fresh and at the pull
+  request's tier, on the rebased branch against `hostwarden/main`,
+  its prompt naming `<base head>` and `<merge>`: what it looks for
+  is where the child's change meets what the base changed after
+  the child's last review. Its findings take the level of the
+  child's last round, that of rounds 1 and 2 where it
+  had none (→ Rounds): fixed in a fix commit where that level fixes
+  them, deferred otherwise. The rebase alone requests no second
+  review (→ Merge-ready); only such a fix commit can make one due.
 
 The lift is `gh pr ready <n> -R hostwarden/hostwarden`.
 
