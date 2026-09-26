@@ -21,7 +21,10 @@ claude
 ```
 
 `bin/hostwarden-init` turns `memory/` into the workspace, which makes
-this checkout the one that administers your servers. The session opens
+this checkout the one that administers your servers. In a terminal it
+asks whether to share the workspace through a private git remote
+([A shared workspace](../running-it/team/shared-workspace.md)); where
+you leave that for later, the first session asks. The session opens
 with one line:
 
 ```

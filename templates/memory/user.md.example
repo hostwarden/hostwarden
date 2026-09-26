@@ -13,6 +13,9 @@ first use rather than filling it in silently (`rules/ssh-user.md`
   only.
 - `Greeting: <text>` — the default close; override with your own
   (e.g. `Greeting: Viele Grüße\nHostwarden`).
+- `Workspace remote: none` — the workspace stays on this
+  machine, and no session asks about a remote
+  (`rules/session-start.md` → The workspace remote).
 - `Notice email: <address>` — the address a maintenance-window
   IT notice defaults to (`rules/maintenance-windows.md` →
   Telling IT).

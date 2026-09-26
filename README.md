@@ -84,7 +84,10 @@ is missing and the command to install it.
    `bin/hostwarden-init` turns `memory/` into the
    workspace — a git repository of its own that holds
    everything Hostwarden learns about your servers —
-   and so makes this an **operations checkout**.
+   and so makes this an **operations checkout**. It
+   asks whether to share the workspace through a
+   private git remote, a new one or a team's existing
+   one; the first session asks where you leave that open.
    Without it, the checkout is for developing
    Hostwarden and reaches no server (see
    [Working on Hostwarden](https://hostwarden.github.io/docs/development)).
