@@ -167,8 +167,13 @@ key only when that is 0.
 ### A VM that reads Ignition
 
 Fedora CoreOS and Flatcar read an Ignition config: one `qm set`
-changes, named in `references/ignition.md` → Proxmox VE, and
-everything else above is unchanged.
+changes, named in `references/ignition.md` → Proxmox VE; Creating
+it above is otherwise unchanged. Waiting for the first boot above
+is not: neither image runs a guest agent or cloud-init
+(`references/ignition.md` → What the baseline means here, its
+Guest Agent bullet), so `qm guest cmd ping` never answers and that
+call would only wait out its own timeout for nothing. Go straight
+to `references/ignition.md` → After creation instead.
 
 ## A VM from an installer ISO
 

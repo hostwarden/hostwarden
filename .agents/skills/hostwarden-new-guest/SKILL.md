@@ -219,8 +219,10 @@ guest has no such mechanism, the files are the user's to place
    `memory/known_hosts` (`rules/host-keys.md` → Getting a Key,
    source 1), with a read of its own into the cache file, never
    copied from the output above, then log in as usual. Where the
-   manager cannot read the key — libvirt, or a host that keeps
-   guests to its UI (below) — the first login records it instead,
+   manager cannot read the key — libvirt, a Proxmox VE Ignition
+   guest (`references/proxmox.md` → A VM that reads Ignition, no
+   guest agent to read it through), or a host that keeps guests to
+   its UI (below) — the first login records it instead,
    the way source 3 there says for a guest this run created with
    no session inside it to read the key through. Only where the
    guest has no cloud-init at all — Ignition (Fedora CoreOS,
@@ -322,11 +324,48 @@ file from a second ISO instead
 and the guest still comes up on the baseline. Only a UI that can
 attach no second ISO at all leaves the installer's own questions
 and a password the user types: say so, and go on only if the user
-wants that. Once the guest answers on SSH, go on at After creation
-step 2 with its address — static as planned, or DHCP as the user
+wants that. The address is static as planned, or DHCP as the user
 reports it, since this run has no session inside the guest to read
-it from itself — so it still ends up reached and known by its
-settled name rather than that address.
+it from itself. The guest answering SSH is not proof by itself:
+every admin guest can share one key (Admin keys above), so it only
+proves the address accepts the key, not that it is this guest.
+Check a reported address first, the same way a static one is
+checked before creation (The request above): no `IP:` line in
+memory and no entry in any `guests.md` already names it, and it is
+not on the blacklist (`rules/access-control.md` → Server
+Blacklist) — a match refuses the connection outright, never asking
+for an override, the same as any other target. A match on the
+read-only list is not that: `rules/access-control.md`'s read-only
+mode is for a target the user named on purpose, not this — it
+means the address belongs to another machine instead, the same as
+a memory match below. The guest's own MAC is usually known too —
+libvirt picks one at
+creation (`references/libvirt.md` → Creating it), Proxmox VE's own
+`grep '^net0:' /etc/pve/qemu-server/<vmid>.conf` names whatever it
+auto-picked, and a UI's own host has the same read its appliance
+file already uses for Inventory, where that file records one for
+this guest — a TrueNAS `virt.instance` can come back `mac unknown`
+(`rules/appliance/truenas.md` → Virtual Machines and Containers) —
+never the user's own reading of the page the address came from,
+which only catches a typo between the two fields, not a wrong page
+throughout. Where it is known, check it too: `ping -c 2 -W 1
+<address>` then `ip neigh show <address>` for the `lladdr`.
+`REACHABLE`, `STALE`, `DELAY`, `PROBE`, `PERMANENT` or `NOARP` is a
+known MAC there, the same split rules/network-probe.md's own
+`gw4`/`gw6` neighbor read already makes; `FAILED`,
+`INCOMPLETE`, no `lladdr` or an empty entry is not — that confirms
+nothing either way, on a routed subnet or any host whose ARP or ND
+cache never populates for that address, and is never read as a
+match with nothing to mismatch against. A known MAC that is not the
+guest's own counts the same as a memory or read-only-list match:
+stop and ask the user to recheck the address rather than trust it.
+Nothing to check
+it against — no MAC known, or nothing back from `ip neigh` — leaves
+only the memory check above, so say so once it matters: the address
+is unverified beyond it, not confirmed. Once it is clear, go on at
+After
+creation step 2 with it, so the guest still ends up reached and
+known by its settled name rather than that address.
 
 ## References
 
