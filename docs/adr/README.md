@@ -11,6 +11,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Same-session fallback for a declined self-resolved address](20260926-same-session-fallback-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [Release tags are signed with a dedicated SSH key](20260926-release-tags-signed-with-dedicated-ssh-key.md) | release, signing, supply-chain | — |
 | [The updater trusts the release key of the checked-out version](20260926-release-key-from-the-checked-out-version.md) | release, signing, supply-chain | — |
+| [Several-host onboarding asks at the run's close, per site](20260926-onboarding-asks-by-site-at-run-close.md) | onboarding, questions, network | — |
 | [The guard's off switch names one host](20260926-off-switch-names-one-host.md) | guard, taboos | — |
 | [Records no release carries are edited, not superseded](20260926-edit-unreleased-records.md) | records, tooling | — |
 | [CHANGELOG.md holds only the release it ships with](20260926-changelog-holds-only-its-release.md) | release, tooling | — |
@@ -58,9 +59,3 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Changelog fragments are named by date and slug](20260924-changelog-fragment-naming.md) | changelog, release | — |
 | [A cadence change gets its own pull request](20260924-cadence-change-own-pr.md) | process, review | — |
 | [A script computes the blast radius, not the model](20260924-blast-radius-by-script.md) | coordination, multi-host | — |
-
-## Proposed
-
-| Decision | Waiting on | Tags |
-| :--- | :--- | :--- |
-| [Several-host onboarding asks at the run's close, per site](20260926-onboarding-asks-by-site-at-run-close.md) | the review of hostwarden/hostwarden#474 | onboarding, questions, network |

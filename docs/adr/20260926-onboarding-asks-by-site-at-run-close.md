@@ -1,7 +1,7 @@
 ---
 id: 20260926-onboarding-asks-by-site-at-run-close
-status: proposed
-waiting-on: the review of hostwarden/hostwarden#474
+status: accepted
+waiting-on:
 tags: [onboarding, questions, network]
 ---
 
