@@ -713,9 +713,8 @@ LC_ALL=C apt-cache policy intel-microcode amd64-microcode \
 ```
 
 Expected: `intel-microcode` on Intel, `amd64-microcode` on
-AMD. `LC_ALL=C` keeps the labels English: apt translates
-`Installed:` and `Candidate:` wherever the host has a locale
-for them. `apt-cache` answers from the local lists alone, so a
+AMD. `LC_ALL=C` keeps the labels English (`rules/locale.md`).
+`apt-cache` answers from the local lists alone, so a
 `Candidate: (none)` on Debian says the package is in no list
 this host has, not yet why. Read the configured components
 before naming one — the usual cause is that the component

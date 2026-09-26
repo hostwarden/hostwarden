@@ -419,6 +419,7 @@ one line (*"Registering 7 guests of pve1.example.com through
 
    ```bash
    ssh … root@pve1.example.com 'sh -s' <<'EOS'
+   export LC_ALL=C
    n=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
    P=$(cat <<'EOP'
    …
@@ -426,7 +427,7 @@ one line (*"Registering 7 guests of pve1.example.com through
    )
    for id in 105 106 107; do
      printf '@guest %s %s\n' "$n" "$id"
-     timeout 60 pct exec "$id" -- sh -c "$P" </dev/null
+     timeout 60 pct exec "$id" -- env LC_ALL=C sh -c "$P" </dev/null
      printf '\n@exit %s %s\n' "$n" "$?"
    done
    EOS

@@ -91,6 +91,9 @@ alone, then the user's own configuration (`rules/ssh-config.md` →
 The Files). Where ssh cannot open it, run that script and repeat
 the call.
 
+Run every command on a host with `LC_ALL=C`, set at the top of the
+call, never forwarded by SSH: `rules/locale.md`.
+
 Access tests and the single retry after a hanging call need a fresh
 login instead, and connection sharing has limits worth knowing
 before a firewall counts you out: `rules/ssh-connections.md`.
