@@ -211,18 +211,35 @@ level (→ Rounds), in passes as below. The own review's line gains
 added the file. Running the reviewers is the author's step.
 
 1. `/simplify`, for reuse and clarity.
-2. `hostwarden-reviewer` on the branch against `hostwarden/<base>`,
-   the prompt naming the tier and each reviewer's focus
-   (`.claude/agents/hostwarden-reviewer.md` → Your task). In the
-   full tier the session merges what the two return: a defect both
-   report at the same place is one finding, and that both found it
-   counts as confidence. The reviewer with focus `consistency` is
-   also told to check the changelog entry against `repo-release.md`
-   → CHANGELOG.md, there when the change is user-visible, and the
-   decision record against `docs/architecture-decisions.md` → When
-   a pull request needs one, there when that section asks for one;
-   each only then. The findings already name their class and siblings: fix
-   them all, in the full tier in passes as below.
+2. `hostwarden-reviewer` on the branch
+   (`.claude/agents/hostwarden-reviewer.md` → Your task), the
+   prompt giving:
+   - the merge base, `git merge-base hostwarden/<base> HEAD`, and
+     the head, both SHAs in full;
+   - the tier's output from `scripts/review-tier.sh` above, as it
+     printed it;
+   - each reviewer's focus;
+   - to the reviewer with focus `consistency`, as claims to check
+     against the diff: the changelog fragment's path, there when
+     the change is user-visible (`repo-release.md` →
+     CHANGELOG.md), the decision record's, there when
+     `docs/architecture-decisions.md` → When a pull request needs
+     one asks for one, and the commit subjects,
+     `git log --format=%s <merge base>..HEAD`.
+
+   Nothing else of the session's view goes in, beyond the two
+   SHAs a stacked re-review adds (→ Lifting the draft): not the
+   pull request body, not why the change was made, not what it expects to be
+   found. In the full tier the session merges what the two return:
+   a defect both report at the same place is one finding, and that
+   both found it counts as confidence. Each P0 or P1 that only one
+   reports goes to the other as a check, continued — all of one reviewer's in
+   one message, both at once — to confirm or to refute with the
+   `path:line` that handles its case. The findings already
+   name their class and siblings: fix them all, in the full tier in
+   passes as below, except one the session refutes the same way,
+   with a line the reviewer did not cite that handles the case; it
+   is answered "not a bug" with that `path:line`.
 3. Push. The pull request stays a draft; the second review
    follows where it is required.
 
@@ -232,8 +249,10 @@ Of the results, only the deferred list below and one line under
     Own review: full (bin/example, …), 2 focused, 1 fix pass, 3 findings
 
 `1 pass` in the light tier, at most three paths that decided the
-tier, and `1 finding` or `no findings` where that fits. The review
-record check holds its tier to the files (→ The review record).
+tier, `1 finding` or `no findings` where that fits, and
+`, <k> not a bug` after the count where step 2 answered any so.
+The review record check holds its tier to the files (→ The review
+record).
 
 Passes, here and on a fix commit, run like this:
 
@@ -520,8 +539,18 @@ it to moves each line into the sharpening issue afterward, and
 checks the count there too. At three unchecked lines, it proposes
 to the person a pull request that
 sharpens the reviewer and closes the issue, as a task chip where the
-tool has them. A new class is the exception; a question added to an
-existing one is the rule.
+tool has them.
+
+That pull request works each line into
+`.claude/agents/hostwarden-reviewer/classes.md` by widening the
+class's closest question to take the case in, or by merging two
+questions to make room; it adds a question only where none comes
+close, within the cap that file sets. Before a question is
+widened or merged away, each case it named is checked against the
+new wording, so no earlier miss loses its coverage. The general
+questions in `.claude/agents/hostwarden-reviewer.md` change only
+where a class's definition does not reach the miss, and a new
+class is the last resort.
 
 ## Lifting the draft
 

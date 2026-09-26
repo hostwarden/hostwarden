@@ -125,6 +125,8 @@ contrib/
                          request spans several
     hostwarden-reviewer.md — Reviews a change to Hostwarden
                          for defects before a second reviewer does
+    hostwarden-reviewer/classes.md — The reviewer's questions
+                         from past misses, per class
   rules/               — Conventions for working on this repo,
                          loaded only when those files are read
   hooks/               — Hook entry points only, each registered
