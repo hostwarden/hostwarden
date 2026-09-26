@@ -1,10 +1,28 @@
 ---
 sidebar_position: 2
-description: Keeping a private mirror of Hostwarden current with
-  upstream, and gating production on it.
+description: A copy of Hostwarden on your own git hosting, and a
+  mirror that gates what production gets.
 ---
 
 # Your own mirror
+
+## A copy, or a gate
+
+A mirror that is only a copy — a public one on your own git hosting,
+say — needs no script. The pull mirror built into Forgejo and Gitea
+copies branches and tags on an interval of its own, with nothing
+between upstream and the copy; GitLab has one in Premium and
+Ultimate. Forgejo sets one up only on a repository it creates for
+it, not on one that exists already. Turn
+Actions off in it: Forgejo, like GitHub, would otherwise run the
+workflows Hostwarden ships, since it reads `.github/workflows/`
+where a repository has no `.forgejo/workflows/`.
+
+`bin/hostwarden-mirror` is for a mirror production clones from. It
+moves only when its job runs, so the job is the gate, and it never
+overwrites what the mirror has of its own.
+
+## The mirror job
 
 `bin/hostwarden-mirror` fast-forwards the mirror's `main` to
 upstream's and pushes every tag it lacks. It needs git and nothing
@@ -19,8 +37,7 @@ so the token never lands on a command line. Run the job from a
 repository other than the mirror, whose `main` has to stay
 upstream's. Give the token write access to the mirror's contents —
 on GitHub also to its workflows, since Hostwarden ships some — and
-turn Actions off in a GitHub mirror, which would otherwise run
-Hostwarden's own.
+turn Actions off in the mirror, as above.
 
 <details>
 <summary>GitHub Actions (also Gitea and Forgejo Actions)</summary>
