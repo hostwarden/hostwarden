@@ -85,6 +85,8 @@ rest "a shell body behind a cat elsewhere on the line is read" \
 rest "a config file written by a heredoc is data" \
   "$(printf 'ssh %s sh -s <<EOF\ncat > /mnt/etc/ssh/rescue.conf <<EOS\nSubsystem sftp /usr/libexec/sftp-server\nEOS\nEOF' $W)" \
   $W 0 ''
+rest "the line after a heredoc's closing line is its own command" \
+  "$(printf 'ssh %s sh -s <<EOF\nlsblk\nEOF\nmake install' $W)" $W 0 'make install'
 rest "the named host's own Proxmox node is no hop" \
   "ssh $W 'pvesh get /nodes/web1/status'" $W 0 ''
 rest "a package or a service named like a tool is no hop" \

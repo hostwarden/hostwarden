@@ -489,4 +489,54 @@ reboot "a heredoc body behind a cat elsewhere on the line still runs" \
 reboot "a heredoc body cat writes is still read without the switch" \
   "$(printf 'ssh host sh -s <<EOF\ncat > /tmp/x <<EOS\nreboot\nEOS\nEOF')" yes
 
+# A newline ends a command at the top level too, so every line's
+# own ssh is found, each with its own segment: one line's reboot is
+# never charged to the host another line reaches.
+dest "a destination on each line" \
+  "$(printf 'ssh web1 uname\nssh web2 uname')" \
+  "$(printf 'web1\tssh web1 uname\nweb2\tssh web2 uname')"
+destkind "a reboot on the second line is the second host's" \
+  "$(printf 'ssh web1 uptime\nssh web2 reboot')" 'reboot'
+dest "a reboot on the second line is not the first line's" \
+  "$(printf 'ssh web1 uptime\nssh web2 reboot')" \
+  "$(printf 'web1\tssh web1 uptime\nweb2\tssh web2 reboot')"
+dest "a line continued by a backslash stays one command" \
+  "$(printf 'ssh web1 \\\n  uptime')" \
+  "$(printf 'web1\tssh web1 \;  uptime')"
+dest "a quoted newline stays inside its segment" \
+  "$(printf "ssh web1 'uptime\nuname'")" \
+  "$(printf "web1\tssh web1 'uptime;uname'")"
+dest "the line after a heredoc's closing line is read on its own" \
+  "$(printf 'ssh h1 uptime; ssh h2 sh -s <<EOS\nsystemctl reboot\nEOS\nssh h3 uname')" \
+  "$(printf 'h1\tssh h1 uptime\nh2\tssh h2 sh -s <<EOS;systemctl reboot;EOS\nh3\tssh h3 uname')"
+destkind "the host after a heredoc is not charged with its body" \
+  "$(printf 'ssh h2 sh -s <<EOS\nsystemctl restart nginx\nEOS\nssh h3 uname')" \
+  'restart:nginx'
+
+# A pipeline feeding a remote shell on stdin runs what it writes
+# there, the way a heredoc body does: a printf or echo upstream is
+# read as that shell's commands.
+destkind "printf piped into a remote sh -s" \
+  "printf '%s\n' 'export LC_ALL=C' 'systemctl reboot' | ssh web2 'sh -s'" \
+  'reboot'
+dest "printf piped into a remote sh -s joins its segment" \
+  "printf '%s\n' 'export LC_ALL=C' 'systemctl reboot' | ssh web2 'sh -s'" \
+  "$(printf "web2\tssh web2 'sh -s';%%s;export LC_ALL=C;systemctl reboot")"
+destkind "echo piped into a remote login shell" \
+  "echo 'systemctl restart nginx' | ssh web2" 'restart:nginx'
+destkind "an escaped newline in a printf format" \
+  "printf 'uptime\nsudo reboot\n' | sudo ssh -F cfg root@web2 bash" 'reboot'
+destkind "a pipeline continued on the next line" \
+  "$(printf "echo reboot |\n  ssh web2 sh")" 'reboot'
+destkind "every printf of a longer pipeline is read" \
+  "printf 'reboot\n' | tr a-z a-z | ssh web2 sh" 'reboot'
+destkind "a remote command other than a shell reads no feed" \
+  "echo reboot | ssh web2 'cat > /tmp/notes'" ''
+destkind "a remote sh -c reads no feed" \
+  "echo reboot | ssh web2 sh -c uptime" ''
+destkind "|| is no pipe" "echo reboot || ssh web2 sh" ''
+destkind "a ; ends the feed" "echo reboot; true | ssh web2 sh" ''
+destkind "an unreadable upstream adds nothing" \
+  "cat script.sh | ssh web2 sh" ''
+
 finish coord-lib

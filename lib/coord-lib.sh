@@ -31,9 +31,15 @@
 #       same as `ssh host reboot` — impact.sh's whole check gates on
 #       this function finding a destination at all, so a form it
 #       cannot see past, unlike the other two, never reaches their
-#       own, deeper reading of the remote text either. It does not
-#       itself recurse into a wrapper's own remote or -c text for a
-#       destination nested there — but a heredoc's own body stays
+#       own, deeper reading of the remote text either. Each line of
+#       <command> is a command of its own, as after a `;`. It does
+#       not itself recurse into a wrapper's own remote or -c text
+#       for a destination nested there. An ssh whose far shell reads
+#       stdin (no remote command, or sh/bash/… without -c) fed by a
+#       pipeline gets the lines a printf or echo upstream writes
+#       appended to its segment field, each after a `;`, so
+#       hostwarden_coord_kind reads them as that host's commands the
+#       way it reads a heredoc body. A heredoc's own body stays
 #       part of the segment field whole, an operator its own body
 #       carries (`ssh host 'sh -s' <<EOS` with a body line `sleep 1
 #       && systemctl restart nginx`) never splitting this function
@@ -230,10 +236,46 @@ BEGIN {
 
 hostwarden_coord_dest() {
   printf '%s' "$1" | awk "$HOSTWARDEN_COORD_AWK$HOSTWARDEN_COORD_DEST_AWK"'
-    BEGIN { RS = "\001" }
+    BEGIN { RS = "\001"; HC_NL_SEP = 1 }
+    # hc_feed(v, i0, nw) — the lines an upstream printf or echo at
+    # v[i0] writes into a pipe, one command each, a literal \n in
+    # an argument read as the newline it prints; "" for any other
+    # command, whose output cannot be read here.
+    function hc_feed(v, i0, nw,    c, k, w, out) {
+      c = base(v[i0]); out = ""
+      if (c != "printf" && c != "echo") return ""
+      for (k = i0 + 1; k <= nw; k++) {
+        w = v[k]
+        if (c == "echo" && out == "" && w ~ /^-[neE]+$/) continue
+        gsub(/\\n/, "\n", w)
+        out = out w "\n"
+      }
+      return out
+    }
+    # hc_stdin_shell(v, j, nw) — true when the remote command in
+    # v[j..nw] is a shell reading its commands from stdin: none at
+    # all (the login shell), or sh, bash and the like without -c.
+    function hc_stdin_shell(v, j, nw,    R, nr, r, c) {
+      if (j > nw) return 1
+      nr = hc_words(joinw(v, j, nw), R)
+      r = hc_skip_prefix(R, 1, nr)
+      if (r > nr) return 1
+      c = base(R[r])
+      if (c !~ /^(sh|bash|dash|ksh|zsh|ash)$/) return 0
+      for (r++; r <= nr; r++) if (R[r] == "-c") return 0
+      return 1
+    }
     {
       n = hc_segments($0, RAW)
+      for (si = 1; si <= n; si++) SEP[si] = HC_SEP[si]
+      feed = ""; piped = 0
       for (si = 1; si <= n; si++) {
+        # A line break right after a | continues the pipeline; an
+        # empty segment anywhere else (||, a blank line) ends it.
+        if (RAW[si] ~ /^[ \t\n]*$/) {
+          if (!(piped && SEP[si] == "\n")) { feed = ""; piped = 0 }
+          continue
+        }
         t = hc_clean(RAW[si])
         # A heredoc body, or any other embedded newline hc_clean
         # left alone, is turned into a ; before this is printed: a
@@ -245,11 +287,27 @@ hostwarden_coord_dest() {
         # survives the trip.
         gsub(/\n/, ";", t)
         nw = hc_words(t, v)
-        if (nw < 1) continue
-        i0 = hc_skip_prefix(v, 1, nw)
-        if (i0 > nw) continue
-        nd = hc_dest(v, i0, nw, D)
-        for (k = 1; k <= nd; k++) print D[k] "\t" t
+        nd = 0
+        if (nw >= 1) {
+          i0 = hc_skip_prefix(v, 1, nw)
+          if (i0 <= nw) nd = hc_dest(v, i0, nw, D)
+        }
+        # An ssh whose far shell reads its commands from stdin runs
+        # what the pipeline feeding it writes, the way it runs a
+        # heredoc body: those lines join its segment.
+        f = ""
+        if (nd == 1 && HC_AT > 0 && piped && feed != "" \
+            && hc_stdin_shell(v, HC_AT + 1, nw)) {
+          f = feed
+          gsub(/\n+/, ";", f)
+          sub(/;$/, "", f)
+          f = ";" f
+        }
+        for (k = 1; k <= nd; k++) print D[k] "\t" t f
+        if (SEP[si] == "|") {
+          if (nw >= 1 && i0 <= nw) feed = feed hc_feed(v, i0, nw)
+          piped = 1
+        } else { feed = ""; piped = 0 }
       }
     }'
 }

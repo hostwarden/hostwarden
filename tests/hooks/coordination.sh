@@ -142,7 +142,8 @@ run() { sh "$R/bin/hostwarden-impact" "$@"; }
 # does, and leaves its stdout in $TMP/hookout.
 hook() {
   hs=$1 he=$2 hsid=$3 htool=$4 hcmd=$5 hbg=${6:-false}
-  hcmd_j=$(printf '%s' "$hcmd" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  hcmd_j=$(printf '%s' "$hcmd" | sed 's/\\/\\\\/g; s/"/\\"/g' \
+    | awk 'NR > 1 { printf "\\n" } { printf "%s", $0 }')
   printf '{"hook_event_name":"%s","session_id":"%s","tool_name":"%s","tool_input":{"command":"%s","run_in_background":%s},"cwd":"%s"}' \
     "$he" "$hsid" "$htool" "$hcmd_j" "$hbg" "$R" \
     | (cd "$R" && sh "$R/.claude/hooks/$hs") >"$TMP/hookout" 2>"$TMP/hookerr"

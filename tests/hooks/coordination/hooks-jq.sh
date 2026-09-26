@@ -126,6 +126,22 @@ MQEOF
   hasi "$TMP/hookout" 'pve1.example.com reboot' \
     "impact.sh: the second call's own destination is named"
 
+  # A newline ends a command as ; does: the second line's own ssh
+  # is checked too.
+  hook impact.sh PreToolUse mine Bash \
+    "$(printf 'ssh -F memory/ssh_config root@lone.example.com uptime\nssh -F memory/ssh_config root@pve1.example.com reboot')" \
+    >/dev/null
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: an ssh call on a second line is checked"
+
+  # A printf piped into the far shell runs there, as a heredoc
+  # body does.
+  hook impact.sh PreToolUse mine Bash \
+    "printf '%s\\n' 'export LC_ALL=C' 'systemctl reboot' | ssh -F memory/ssh_config root@pve1.example.com 'sh -s'" \
+    >/dev/null
+  hasi "$TMP/hookout" 'pve1.example.com reboot' \
+    "impact.sh: a reboot piped into the far shell is checked"
+
   # A harmless call's own destination is never charged with another
   # call's disruption kind: web1 has a live session (other3) and
   # would be wrongly denied as a reboot target under a single,
