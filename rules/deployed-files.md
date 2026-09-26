@@ -193,6 +193,38 @@ of its file; a multi-line one needs a file of its own. Such a
 deployed file is marked `secret-inline` in `deployed.md`: its hash
 on the host differs from the master's by design.
 
+## Shell scripts
+
+A shell script, a master or a workstation tool, is written for
+`#!/bin/sh` and POSIX, which every Linux, FreeBSD and macOS host
+runs alike. Bash only where the script needs what POSIX lacks, and
+then its shebang is:
+
+- `#!/usr/bin/env bash` for a script a person starts from their own
+  login shell. FreeBSD keeps Bash in `/usr/local/bin`, and on a Mac
+  with Homebrew's Bash that shell finds it before `/bin/bash`, which
+  is 3.2.
+- an absolute path for every other script: one cron, launchd or a
+  systemd unit starts, one root runs, and one a session starts over
+  SSH. Those start with a `PATH` of their own, where `env` finds
+  macOS's Bash 3.2 and on FreeBSD often none; under root, a writable
+  directory early in `PATH` would decide which Bash runs. The path
+  is the one `command -v bash` prints on the host, and on a Mac the
+  Homebrew Bash, looked up in both prefixes as `rules/os/macos.md` →
+  Package Manager says, never through `command -v` over SSH.
+
+A script root runs gets only a Bash that root owns and that no other
+user can replace. Resolve the path first, with `realpath`, since a
+link's own owner says nothing about its target; then `ls -ld` shows
+root as the owner of the resolved file and of every directory above
+it, none of them writable by group or others. The shebang carries
+that resolved path, never a link to it. A Bash from a user's
+own install, Homebrew's prefix on a Mac or a mise or other version
+manager's directory, fails that: its user could replace it and so
+run code as root. A script stays POSIX `sh` where the host has no
+Bash 4 or newer, or root runs it and no Bash passes. Installing a
+Bash is a change of its own, asked for first.
+
 ## Deploying
 
 A deploy is a change like any other: asked for, registered
@@ -200,10 +232,10 @@ A deploy is a change like any other: asked for, registered
 
 1. **Write the master first**, under `files/` at the path it will
    have on the host. A file rendered from `src/` is rendered
-   there, and the output is the master. A shell script master is
-   linted with `shellcheck` first, where `bin/hostwarden-doctor`
-   reports it installed; a finding is fixed before the file is
-   written.
+   there, and the output is the master. A shell script master
+   follows → Shell scripts and is linted with `shellcheck` first,
+   where `bin/hostwarden-doctor` reports it installed; a finding
+   is fixed before the file is written.
 2. **Check what the host has at that path.** With a `deployed.md`
    line for it, run the Drift probe below for that path. Any
    finding but "as deployed" or "master changed, not deployed"
@@ -340,9 +372,9 @@ rollout, a key distribution, a wrapper around an appliance's API.
 It is never deployed. It opens with a comment saying what it does,
 which hosts it reaches and how it is run, and it reads its secrets
 from `~/hostwarden-keys/` (`rules/secrets.md` → API Credentials on
-the Workstation) and holds none. It is linted with `shellcheck`
-first, where `bin/hostwarden-doctor` reports it installed; a
-finding is fixed before it is run.
+the Workstation) and holds none. It follows → Shell scripts and is
+linted with `shellcheck` first, where `bin/hostwarden-doctor` reports it
+installed; a finding is fixed before it is run.
 
 Running one against a host is running its commands there. Read it
 first, run it only against hosts that passed the pipeline

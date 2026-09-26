@@ -58,6 +58,31 @@ hook, the session-start hooks, the subagents. Keep both.
 claude
 ```
 
+Claude Code runs the agent's commands in your login
+shell, and the agent writes them for Bash. On a Mac
+that shell is zsh, where a glob that matches nothing
+aborts the command and an unquoted variable is not
+split, so commands fail and get written again. Point
+Claude Code at a Bash 4 or newer instead, and keep zsh
+for yourself:
+
+```json
+{ "env": { "CLAUDE_CODE_SHELL": "/opt/homebrew/bin/bash" } }
+```
+
+in `~/.claude/settings.json`, after
+`brew install bash`. On an Intel Mac the path is
+`/usr/local/bin/bash`. Claude Code ignores a path
+that does not exist and stays on zsh, so use the one
+`bin/hostwarden-doctor` prints. macOS's own
+`/bin/bash` is 3.2 and lacks what agents use from
+Bash 4 on, such as `mapfile` and `declare -A`. That
+Bash does not read your zsh files: put what your
+`PATH` needs into `~/.bash_profile`, such as the
+`brew shellenv` line your `~/.zprofile` has.
+`bin/hostwarden-doctor` reports a zsh or an old Bash
+as the agent's shell, and the path to set.
+
 ## Claude Code Desktop
 
 The Code tab of the Claude desktop app (macOS,

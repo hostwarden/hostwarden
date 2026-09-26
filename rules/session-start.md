@@ -64,7 +64,10 @@ Take its output as the limits of this session: a feature it lists
 as not available is not attempted — say so when the user asks for
 it, and give the install command it printed. Never install a
 missing tool on the workstation yourself; it is the user's machine,
-not a managed host.
+not a managed host. Its `agent shell` line goes to the user once, at the
+start, with the setting it names. The user changes that setting, never
+the session: the settings file is theirs, and the new shell reaches
+only a session started after the change.
 
 ## What to say
 

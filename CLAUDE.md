@@ -42,7 +42,8 @@ tool reads. This file adds only what exists here and nowhere else.
     shared SSH connections keep their sockets;
   - run `bin/hostwarden-doctor --quiet`, whose output, if any,
     names the workstation tools that are missing — in a
-    development checkout, the ones working on Hostwarden needs;
+    development checkout, the ones working on Hostwarden needs —
+    and a shell for Claude Code that is not a Bash 4 or newer;
   - reported a linked worktree or a guard that is off, if either
     applies;
   - in an operations checkout, started the coordinator in the
