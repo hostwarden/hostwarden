@@ -15,9 +15,11 @@
 # 2 on a usage error.
 
 # A directory ends in `/` and holds everything below it, a new
-# file included; any other entry is one file. The rule file itself
-# is never light, so a change to the review is reviewed in full.
-LIGHT='docs/ README.md CONTRIBUTING.md SECURITY.md CHANGELOG.md changelog.d/ .claude/rules/'
+# file included; an entry with a `*` is a pattern, whose `*` crosses
+# `/` as a case pattern's does; any other entry is one file. The
+# rule file itself is never light, so a change to the review is
+# reviewed in full.
+LIGHT='docs/ website/docs/*.md README.md CONTRIBUTING.md SECURITY.md CHANGELOG.md changelog.d/ .claude/rules/'
 NEVER=.claude/rules/pull-requests.md
 
 usage() {
@@ -27,11 +29,15 @@ usage() {
 case $# in 1 | 2) ;; *) usage ;; esac
 for a; do case $a in '' | -*) usage ;; esac; done
 
+# The patterns in LIGHT are for `case`, never for the file system.
+set -f
 light() {
   [ "$1" != "$NEVER" ] || return 1
   for l in $LIGHT; do
+    # shellcheck disable=SC2254 # a pattern entry is matched as one
     case $l in
       */) case $1 in "$l"*) return 0 ;; esac ;;
+      *\**) case $1 in $l) return 0 ;; esac ;;
       "$1") return 0 ;;
     esac
   done

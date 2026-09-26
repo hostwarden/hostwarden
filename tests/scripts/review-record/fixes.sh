@@ -17,8 +17,9 @@ script=$(sed -nE "s/^LIGHT='(.*)'$/\\1/p" review-tier.sh | tr ' ' '\n' | sort)
 # A fix line is judged by what its commit touches, so these run in
 # a repository of their own: $L1 a head the round ran on, then fixes
 # of it that touch docs/ alone ($L2), a script ($F2), a script moved
-# into docs/ ($M2), this rule file ($P2), and a non-ASCII name in
-# docs/ ($U2).
+# into docs/ ($M2), this rule file ($P2), a non-ASCII name in
+# docs/ ($U2), a page of the site ($W2), a sidebar file beside it
+# ($J2) and the site's build ($B2).
 IN=$(mktemp -d "${TMPDIR:-/tmp}/hostwarden-review-record-test.XXXXXX") \
   || exit 2
 trap 'rm -rf "$IN"' EXIT INT TERM
@@ -43,6 +44,11 @@ F2=$(fixof full sh -c 'echo z >>scripts/x.sh')
 M2=$(fixof moved git mv scripts/y.sh docs/y.md)
 P2=$(fixof rules sh -c 'echo r >.claude/rules/pull-requests.md')
 U2=$(fixof umlaut sh -c 'echo u >docs/ümlaut.md')
+# A checkout drops a directory it empties, so each fix makes its own.
+W2=$(fixof page sh -c 'mkdir -p website/docs/a && echo w >website/docs/a/w.md')
+J2=$(fixof sidebar sh -c \
+  'mkdir -p website/docs/a && echo {} >website/docs/a/_category_.json')
+B2=$(fixof build sh -c 'mkdir -p website && echo {} >website/package.json')
 
 tier() { (cd "$IN" && sh "$HERE/review-tier.sh" "$@" 2>/dev/null | head -1); }
 [ "$(tier "$L1" "$L2")" = light ] && ok || bad "a docs change is light"
@@ -52,6 +58,10 @@ tier() { (cd "$IN" && sh "$HERE/review-tier.sh" "$@" 2>/dev/null | head -1); }
   && ok || bad "pull-requests.md is full"
 [ "$(tier "$L1..$L2")" = light ] && ok || bad "a range alone"
 [ "$(tier "$L1" "$U2")" = light ] && ok || bad "a non-ASCII name in docs"
+[ "$(tier "$L1" "$W2")" = light ] && ok || bad "a page of the site is light"
+[ "$(tier "$L1" "$J2")" = full ] \
+  && ok || bad "a file beside the site's pages is full"
+[ "$(tier "$L1" "$B2")" = full ] && ok || bad "the site's build is full"
 (cd "$IN" && sh "$HERE/review-tier.sh" -p "$L1" >/dev/null 2>&1)
 [ $? -eq 2 ] && ok || bad "an option is a usage error"
 
