@@ -290,7 +290,7 @@ fi
 #
 # What is not checked: a relative pointer in a file outside
 # `.agents/skills/`. In `rules/overrides.md` and
-# website/docs/running-it/overrides.md that shape appears in a
+# website/docs/running-it/tailoring/overrides.md that shape appears in a
 # table *describing* the mirror scheme, and no pattern separates
 # an example of a path from a use of one. Those two files
 # document; they do not route.
@@ -396,7 +396,7 @@ report "$(scan \
 # one by name rather than by path, which a rename breaks without
 # a trace. A script in bin/ is neither and counts as existing, and
 # so does hostwarden-workspace, the repository name
-# website/docs/running-it/operations.md recommends for the
+# website/docs/running-it/team/shared-workspace.md recommends for the
 # workspace remote.
 report "$(scan \
   | grep -vE "$HISTORY" \

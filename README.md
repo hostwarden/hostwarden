@@ -26,7 +26,7 @@ explains each one, and waits for your approval before
 running it. It backs up configs, dry-runs where a tool
 can, and remembers every server it has worked on. Not
 sure yet? Ask it to
-[plan](https://hostwarden.github.io/docs/getting-started/features#plan-mode) first: nothing
+[plan](https://hostwarden.github.io/docs/features/changes/plan-mode) first: nothing
 changes until you say go.
 
 Hostwarden continues
@@ -38,7 +38,7 @@ organization `hostwarden`, because GitHub offers the
 merge queue to a public repository only when an
 organization owns it.
 Coming from Heinzel? See
-[Moving over from Heinzel](https://hostwarden.github.io/docs/running-it/operations#moving-over-from-heinzel).
+[Moving over from Heinzel](https://hostwarden.github.io/docs/running-it/heinzel).
 
 ## Screencast: Debug and fix some webserver problems
 
@@ -87,12 +87,12 @@ is missing and the command to install it.
    and so makes this an **operations checkout**.
    Without it, the checkout is for developing
    Hostwarden and reaches no server (see
-   [Operations and development](https://hostwarden.github.io/docs/running-it/operations#operations-and-development)).
+   [Working on Hostwarden](https://hostwarden.github.io/docs/development)).
    Once a release exists, the operations checkout
    follows its major line and moves to each new
    release on it; `bin/hostwarden-update --unpin`
    follows `main` instead (see
-   [Updates and versioning](https://hostwarden.github.io/docs/running-it/operations#updates-and-versioning)).
+   [Updates and versioning](https://hostwarden.github.io/docs/running-it/setup/updates)).
 2. **Describe what you need in plain English**
    ```
    ❯ Install postgresql on server1.example.com
@@ -121,7 +121,7 @@ the first command: the blacklist and read-only lists,
 the host key, OS detection, the machine's memory and
 what happened on it since the last session. Local mode
 skips the remote-only steps. Example prompts for
-everything below: [the Features page](https://hostwarden.github.io/docs/getting-started/features).
+everything below: [the Features page](https://hostwarden.github.io/docs/features).
 
 - **Asks, backs up, and can undo a lockout.**
   Destructive commands, firewall and network changes,
@@ -131,7 +131,7 @@ everything below: [the Features page](https://hostwarden.github.io/docs/getting-
   tables, disk erases, storage repair, sshd's
   configuration and keys, power-off — are hard-blocked
   in Claude Code, and are instructions elsewhere.
-  [Safety and guardrails](https://hostwarden.github.io/docs/running-it/safety)
+  [Safety and guardrails](https://hostwarden.github.io/docs/safety)
 - **Remembers, and shares with your team.** Each
   server's OS, services, quirks and open work live in
   `memory/`, a git repository of its own. Every change
@@ -141,21 +141,21 @@ everything below: [the Features page](https://hostwarden.github.io/docs/getting-
   private remote — host memory, host keys, decisions,
   the masters of deployed files — and sessions that
   change the same host see each other.
-  [A shared workspace](https://hostwarden.github.io/docs/running-it/operations#a-shared-workspace)
+  [A shared workspace](https://hostwarden.github.io/docs/running-it/team/shared-workspace)
 - **Holds every server to a written baseline.** A
   default-deny firewall, security updates, time sync,
   key-only remote access, storage maintenance, a backup
   and more. Onboarding reports what a host lacks,
   read-only; bringing it up to the baseline goes one
   asked step at a time.
-  [Server baseline](https://hostwarden.github.io/docs/getting-started/features#server-baseline)
+  [Server baseline](https://hostwarden.github.io/docs/features/checks/baseline)
 - **Works on many hosts at once.** One question,
   check or change on several servers prints identical
   answers once, so the outlier stands out. A change is
   asked once, runs on a canary first and stops at the
   first surprise. The fleet audit compares policies
   across your servers and shows where they drift.
-  [Several servers](https://hostwarden.github.io/docs/getting-started/features#several-servers)
+  [Several servers](https://hostwarden.github.io/docs/features/fleet/multi-host)
 - **Knows your hypervisors and their guests.** On
   Proxmox VE, XCP-ng, libvirt, Incus, LXD, LXC,
   vm-bhyve, Hyper-V, VirtualBox and FreeBSD jails it
@@ -164,27 +164,27 @@ everything below: [the Features page](https://hostwarden.github.io/docs/getting-
   LXD and classic LXC, new VMs and containers start
   from an official image with the baseline at first
   boot.
-  [Guests and hypervisors](https://hostwarden.github.io/docs/getting-started/features#guests-and-hypervisors)
+  [Guests and hypervisors](https://hostwarden.github.io/docs/features/guests/hypervisors)
 - **Respects appliances.** Fifteen of them —
   Proxmox VE, TrueNAS, OPNsense, Synology DSM, UniFi
   OS, Home Assistant OS, OpenWrt and more — get rules
   of their own for the updater, the firewall and the
   settings their web UI owns.
-  [Appliances](https://hostwarden.github.io/docs/getting-started/features#appliances)
+  [Appliances](https://hostwarden.github.io/docs/features/systems/appliances)
 - **Checks host keys without a manual login,** and
   uses an SSH CA you already run wherever it sets up
-  trust. [SSH access](https://hostwarden.github.io/docs/getting-started/features#ssh-access)
+  trust. [SSH access](https://hostwarden.github.io/docs/features/ssh/host-keys)
 - **Works alongside Ansible, Puppet or Chef.**
   Hostwarden needs none of them and never pushes for
   one; where a tool manages a host, a change goes into
   that tool's code instead.
-  [Configuration management](https://hostwarden.github.io/docs/getting-started/features#configuration-management)
+  [Configuration management](https://hostwarden.github.io/docs/features/changes/config-management)
 - **Runs the nightly check unattended.** An operations
   host reads your servers through a bundle of
   read-only checks you signed, and mails the report.
   Its key can run that bundle and write one journal
   line, nothing else.
-  [An operations host](https://hostwarden.github.io/docs/running-it/operations#an-operations-host)
+  [An operations host](https://hostwarden.github.io/docs/running-it/team/operations-host)
 
 ## Supported AI Tools
 
@@ -193,7 +193,7 @@ Cursor read the same `AGENTS.md` instructions, and
 OpenCode also runs it on local models through Ollama.
 What differs per tool: [Supported AI tools](https://hostwarden.github.io/docs/getting-started/ai-tools).
 One-shot commands, auto mode and scheduled runs:
-[Automation and scripting](https://hostwarden.github.io/docs/running-it/automation).
+[Automation and scripting](https://hostwarden.github.io/docs/running-it/unattended/automation).
 
 ## Supported Distributions
 
@@ -211,7 +211,7 @@ Fifteen appliances get a file of their own on top of
 that family, a platform file covers WSL, and a Mac, a
 WSL instance or the machine Hostwarden runs on is held
 to a workstation's expectations rather than a
-server's: [Systems it knows](https://hostwarden.github.io/docs/getting-started/features#systems-it-knows).
+server's: [Systems it knows](https://hostwarden.github.io/docs/features/systems/overview).
 Other distributions work too — Hostwarden applies
 general best practices and tells you which OS it
 detected.
@@ -228,7 +228,7 @@ but an LLM can still hallucinate, misread intent or
 produce a command with side effects nobody intended.
 Who it is for, and why a disciplined AI with a human
 reviewing it is still worth it:
-[Risks and responsibilities](https://hostwarden.github.io/docs/running-it/safety#risks-and-responsibilities).
+[Risks and responsibilities](https://hostwarden.github.io/docs/safety).
 
 ## Documentation
 

@@ -111,7 +111,7 @@ behaviour changes both in the same commit. The page says what to
 do and where; how the agent resolves the unclear cases stays in
 the rule, and the rule never sends the agent to the page.
 
-`website/docs/running-it/recommendations.md` is the same kind of
+`website/docs/running-it/tailoring/recommendations.md` is the same kind of
 page for what a rule or skill recommends rather than requires: one
 line per recommendation. A pull request that adds, changes or
 removes a recommendation changes its line there in the same

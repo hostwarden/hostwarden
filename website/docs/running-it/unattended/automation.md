@@ -1,16 +1,18 @@
 ---
-sidebar_position: 3
+sidebar_position: 1
+description: Running Hostwarden from the command line, and fewer
+  approval prompts for batch work with Claude Code's auto mode.
 ---
 
-# Automation and scripting
+# Scripting and auto mode
 
-Running Hostwarden without sitting at the prompt: one-shot
-commands, fewer approval prompts, and scheduled runs.
+Running Hostwarden without sitting at the prompt: one-shot commands
+and fewer approval prompts.
 
 ## Command line interface
 
-You can script Hostwarden from the command line without
-entering the interactive UI.
+You can script Hostwarden from the command line without entering the
+interactive UI.
 
 ### Claude Code
 
@@ -92,8 +94,8 @@ Useful flags for scripting:
 - `-f file.txt` — attach files to the prompt
 - `-c` — continue the previous session
 
-For repeated calls without startup overhead, use the
-headless server:
+For repeated calls without startup overhead, use the headless
+server:
 
 ```bash
 opencode serve
@@ -101,88 +103,50 @@ opencode run --attach http://localhost:4096 \
   "Check disk usage on web1.example.com"
 ```
 
-## Fewer prompts: auto mode (Claude Code)
+## Auto mode
 
-By default Claude Code asks for your approval before
-every tool call — every SSH command, every file read,
-every write. That's the safest setting and the right
-one when you're learning. But for batch work it gets
-impractical: you can't sit and approve 200 prompts
+By default Claude Code asks for your approval before every tool
+call — every SSH command, every file read, every write. That's the
+safest setting and the right one when you're learning. But for batch
+work it gets impractical: you can't sit and approve 200 prompts
 during an unattended upgrade.
 
-For that, use **auto mode**
-(`--permission-mode auto`). Instead of asking you
-about everything, a background safety check reviews
-each action: routine commands run without a prompt,
-risky ones still stop and ask. Press Shift+Tab in the
-interactive UI to cycle modes, or pass the flag for
-scripted use:
+For that, use **auto mode** (`--permission-mode auto`). Instead of
+asking you about everything, a background safety check reviews each
+action: routine commands run without a prompt, risky ones still stop
+and ask. Press Shift+Tab in the interactive UI to cycle modes, or
+pass the flag for scripted use:
 
 ```bash
 claude --permission-mode auto \
   -p "Run housekeeping on server1.example.com"
 ```
 
-(Auto mode is a newer Claude Code feature — on
-Team/Enterprise plans an admin may need to enable
-it. See the
+(Auto mode is a newer Claude Code feature — on Team/Enterprise plans
+an admin may need to enable it. See the
 [permission modes docs](https://code.claude.com/docs/en/permission-modes)
 for details and alternatives.)
 
-For locked-down scripting and CI, the strictest
-option is an explicit allowlist:
-`--permission-mode dontAsk` combined with
+For locked-down scripting and CI, the strictest option is an
+explicit allowlist: `--permission-mode dontAsk` combined with
 `--allowedTools` or `permissions.allow` rules in
-`.claude/settings.json` — only pre-approved commands
-run, everything else is denied.
+`.claude/settings.json` — only pre-approved commands run, everything
+else is denied.
 
-The old `--dangerously-skip-permissions` flag still
-exists, but the name says it all: it removes *all*
-review with no safety check in its place — including
-any protection against malicious text in server
-output. If you use it at all, use it only in
-disposable environments (dev VMs, containers), never
-on production servers.
+The old `--dangerously-skip-permissions` flag still exists, but the
+name says it all: it removes *all* review with no safety check in
+its place — including any protection against malicious text in
+server output. If you use it at all, use it only in disposable
+environments (dev VMs, containers), never on production servers.
 
 **When to stay with the default ask-everything mode:**
 
 - First time working on a production server
 - When you don't trust Hostwarden or don't understand it
-- Any time you want to understand what's happening
-  step by step
+- Any time you want to understand what's happening step by step
 
-Whatever mode you pick, Hostwarden's own safety rules
-still apply — Hostwarden still backs up configs, tests
-before applying, asks before destructive actions, and
-follows least privilege. Permission modes only change
-how often *you* are asked, not the built-in
+Whatever mode you pick, Hostwarden's own safety rules still apply —
+Hostwarden still backs up configs, tests before applying, asks
+before destructive actions, and follows least privilege. Permission
+modes only change how often *you* are asked, not the built-in
 guardrails.
-
-## Scheduled housekeeping
-
-Auto mode makes recurring, unattended health checks
-practical — a nightly housekeeping run that emails
-you the report:
-
-```
-17 6 * * * cd /path/to/hostwarden && flock -n \
-  /tmp/hostwarden-cron-server1.lock timeout 30m \
-  /abs/path/to/claude --permission-mode auto \
-  -p "Run housekeeping on server1.example.com and \
-email me the report" >> ~/hostwarden-cron.log 2>&1
-```
-
-This runs on your workstation. An always-on machine
-that should do it for the whole fleet while the
-workstation sleeps is an operations host instead, with
-its own least-privilege access
-([Running Hostwarden in production](operations.md#an-operations-host)).
-
-Two rules: run the exact prompt **interactively
-once** first, so the email recipient, sending path,
-and other one-time questions are answered and stored
-in memory (unattended runs can't answer pickers) —
-and **never use `--dangerously-skip-permissions` in
-cron**. Details, systemd-timer variant, and cron
-pitfalls:
-`.agents/skills/hostwarden-housekeeping/references/scheduled.md`.
