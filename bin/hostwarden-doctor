@@ -181,7 +181,7 @@ hint() {
 # in its install hint. Features get one hint line each. A tool
 # mise.dev.toml pins goes to MISE_T instead: no package manager
 # has it under that name, mise does.
-NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT='' WSLM=''
+NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT='' WSLM='' SHM=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
 
 miss() {
@@ -196,6 +196,9 @@ miss() {
   $2: $(hint "$3")" ;;
     # A WSL setting: the third argument is the fix, not a package.
     wsl) WSLM="$WSLM
+  $2: $3" ;;
+    # The agent's shell: the third argument is the fix too.
+    shell) SHM="$SHM
   $2: $3" ;;
   esac
 }
@@ -399,6 +402,9 @@ memory/ssh_config (OpenSSH 8.5+)" ssh ssh_khc
 writing it" shellcheck has shellcheck
 fi
 
+# shellcheck source=../lib/hostwarden-doctor/agent-shell.sh
+. "$ROOT/lib/hostwarden-doctor/agent-shell.sh"
+
 # Running inside WSL: what
 # website/docs/getting-started/install.md → Windows asks for.
 if [ -n "$WSL" ]; then
@@ -434,7 +440,10 @@ fi
 if [ -n "$WSLM" ]; then
   echo "hostwarden: WSL setup, recommended ($INSTALL_DOCS#windows):$WSLM"
 fi
-if [ -z "$QUIET$NEED$WANT$FEAT$WSLM" ]; then
+if [ -n "$SHM" ]; then
+  echo "hostwarden: agent shell, recommended:$SHM"
+fi
+if [ -z "$QUIET$NEED$WANT$FEAT$WSLM$SHM" ]; then
   echo "Everything Hostwarden runs locally is here."
 fi
 
