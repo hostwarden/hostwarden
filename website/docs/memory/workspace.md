@@ -15,6 +15,7 @@ are replaced on every update; the workspace is never touched by one.
 
 ```
 memory/
+├── README.md             generated overview, read it first
 ├── user.md               your SSH users, language, handle   personal
 ├── blacklist.md          hosts never to connect to          personal
 ├── readonly.md           hosts to inspect, never change     personal
@@ -94,6 +95,9 @@ typically well under a megabyte, so a backup is one `tar` command
   gateways and the routes between them. The maps are drawn from it.
 - **`dns.md`** — the fleet's DNS name spaces.
 - **`maps/`** — [Infrastructure maps](maps.md), generated.
+- **`README.md`** — the overview page, generated with the maps: sites,
+  open findings, hosts not reached lately
+  ([The overview page](maps.md#the-overview-page)).
 
 ### What you decided and planned
 

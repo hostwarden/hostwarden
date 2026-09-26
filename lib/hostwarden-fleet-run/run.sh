@@ -149,7 +149,13 @@ run_host() {
     && fleet_ssh "$h" 30 log <"$d/summary" >/dev/null 2>&1
   {
     printf '[%s] [%s as root] read-only: %s\n' "$NOW" "$NAME" "$(cat "$d/summary")"
-    printf '  Detail: fleet read from %s, bundle %s.\n' "$NAME" "$b"
+    if [ -e "$d/read" ]; then
+      printf '  Detail: fleet read from %s, bundle %s.\n' "$NAME" "$b"
+    else
+      # bin/hostwarden-map reads this line: an entry that reached
+      # nothing is neither contact nor a housekeeping run.
+      printf '  Detail: fleet read from %s, bundle %s; the host was not read.\n' "$NAME" "$b"
+    fi
   } >>"$M/machines/$h/changelog.log"
 }
 

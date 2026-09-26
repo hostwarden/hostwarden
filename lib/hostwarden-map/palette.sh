@@ -110,6 +110,17 @@ epoch_of() {
 # over every host, and TODAY never moves within a single run.
 TODAY_EPOCH=$(epoch_of "$TODAY") || TODAY_EPOCH=0
 
+# days_since <YYYY-MM-DD> -- whole days from <date> to TODAY on
+# stdout; fails on a date epoch_of cannot parse. Rounded, not
+# floored: BSD date fills the time of day from the clock, so two
+# dates read a moment apart are not whole days apart, and a DST
+# change moves one by an hour.
+days_since() {
+  hwm_ds_e=$(epoch_of "$1") || return 1
+  [ -n "$hwm_ds_e" ] || return 1
+  echo $(( (TODAY_EPOCH - hwm_ds_e + 43200) / 86400 ))
+}
+
 # is_stale <date> -- exit 0 when <date> is older than 90 days before
 # TODAY (rules/machine-memory.md → Onboarded and stale lines), 1 for
 # "not known" or a date this cannot parse: a gap is not staleness.
@@ -119,7 +130,6 @@ TODAY_EPOCH=$(epoch_of "$TODAY") || TODAY_EPOCH=0
 # exact bug this comment is here to stop someone reintroducing.
 is_stale() {
   case $1 in '' | 'not known') return 1 ;; esac
-  hwm_stale_d=$(epoch_of "$1") || return 1
-  [ -n "$hwm_stale_d" ] || return 1
-  [ $(( (TODAY_EPOCH - hwm_stale_d) / 86400 )) -gt 90 ]
+  hwm_stale_d=$(days_since "$1") || return 1
+  [ "$hwm_stale_d" -gt 90 ]
 }

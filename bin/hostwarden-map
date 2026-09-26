@@ -1,10 +1,12 @@
 #!/bin/sh
-# hostwarden-map — draw the infrastructure as Mermaid maps, computed
-# from memory alone (rules/network-topology.md, rules/machine-memory.md,
+# hostwarden-map — draw the infrastructure as Mermaid maps, and the
+# workspace's overview page, computed from memory alone
+# (rules/network-topology.md, rules/machine-memory.md,
 # rules/hypervisors.md), never drawn or edited by hand.
 #
 # Usage:
-#   hostwarden-map          Write every level under memory/maps/
+#   hostwarden-map          Write every level under memory/maps/,
+#                           and memory/README.md
 #   hostwarden-map --help   Show this help
 #
 # Four levels, each a Markdown file with a Mermaid diagram first and
@@ -17,10 +19,18 @@
 #                                     outside a cluster
 #   memory/maps/README.md            the index, one line per map
 #
+# memory/README.md is the workspace's entry point: the sites, the
+# open findings of each host's last housekeeping run and security
+# audit, the hosts not reached within their cadence, and one line
+# for each section whose facts no rule records yet. It counts and
+# links, never repeating a host's detail. One a person wrote, without
+# this script's first line, is left as it is.
+#
 # Local and read-only: it reads memory/topology.md,
 # memory/machines/*/memory.md, memory/machines/*/guests.md and
-# memory/clusters/*/{cluster,guests}.md, and writes only under
-# memory/maps/. It never reads memory/user.md, memory/blacklist.md,
+# memory/clusters/*/{cluster,guests}.md, and each drawn host's
+# changelog.log, and writes only under memory/maps/ and
+# memory/README.md. It never reads memory/user.md, memory/blacklist.md,
 # memory/readonly.md or memory/ssh_config — those are personal,
 # never shared, and the maps are (rules/machine-memory.md → Personal
 # versus shared). A `Role: workstation` host, and localhost and
@@ -91,7 +101,7 @@ mkdir -p "$MAPS/sites" "$MAPS/clusters" "$MAPS/hosts" || die "cannot write $MAPS
 # The rest lives in lib/hostwarden-map/, one file per stage, sourced
 # in this order into this shell: each reads what the ones before it
 # set.
-PARTS='palette read classify wan site cluster-host'
+PARTS='palette read classify wan site cluster-host overview'
 for part in $PARTS; do
   [ -f "$REPO_DIR/lib/hostwarden-map/$part.sh" ] || {
     echo "${0##*/}: lib/hostwarden-map/$part.sh is missing" >&2
