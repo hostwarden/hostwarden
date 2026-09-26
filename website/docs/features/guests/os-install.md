@@ -18,8 +18,9 @@ on a live system. Reading and diagnosing always work.
 :::warning
 Before any write to a disk, four things must hold: your explicit
 request, your understanding of what is lost, a verified backup,
-and a session started with the guard switched off
-(`HOSTWARDEN_GUARD_DISABLE=1`, Claude Code).
+and a session started with the guard switched off toward the
+one host the disk writes run on, the hypervisor for a guest's disk
+(`HOSTWARDEN_GUARD_DISABLE` set to its name, Claude Code).
 :::
 
 It never writes to an appliance on its vendor's hardware or to a

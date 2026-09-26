@@ -138,6 +138,38 @@ hostwarden_cache_dir() {
   HOSTWARDEN_CACHE=$HOME/.cache/hostwarden/ws-$HOSTWARDEN_CHECKOUT_ID
 }
 
+# hostwarden_off_host <value> — the one host the taboo guard's off
+# switch names, lowercased and without a final dot, a loopback
+# address as localhost, on stdout; exit
+# 1 and nothing for a value that names none: empty, a bare number
+# such as 1, a list, anything but a hostname, `localhost` or an
+# address. check-session.sh records it, guard-taboos.d/off.sh
+# compares against the record (hostwarden_off_recorded).
+hostwarden_off_host() {
+  hoh=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  hoh=${hoh%.}
+  case $hoh in 127.0.0.1 | ::1) hoh=localhost ;; esac
+  case $hoh in '' | *[!a-z0-9.:_-]* | [.:_-]*) return 1 ;; esac
+  case $hoh in *[!0-9]*) printf '%s\n' "$hoh" ;; *) return 1 ;; esac
+}
+
+# hostwarden_off_record <session> — the file where check-session.sh
+# records the host a session started with.
+hostwarden_off_record() {
+  printf '%s\n' "$HOME/.cache/hostwarden/guard-off-$1"
+}
+
+# hostwarden_off_recorded <session> <value> — the host <value>
+# names, where the session's record holds that same host; exit 1
+# and nothing otherwise.
+hostwarden_off_recorded() {
+  [ -n "$1" ] || return 1
+  hor=$(hostwarden_off_host "$2") || return 1
+  [ "$hor" = "$(cat "$(hostwarden_off_record "$1")" 2>/dev/null)" ] ||
+    return 1
+  printf '%s\n' "$hor"
+}
+
 # Connection sharing and keepalives (rules/ssh-connections.md → Why
 # these values), written once: bin/hostwarden-ssh-config turns them
 # into memory/ssh_config, hostwarden_git_batch into -o options, and

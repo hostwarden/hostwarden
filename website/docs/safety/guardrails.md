@@ -75,8 +75,13 @@ tool up — `man`, `--help` — costs nothing either.
 ## The exception
 
 Legitimate exceptions — OS installation and replacement — need the
-operator to export `HOSTWARDEN_GUARD_DISABLE=1` before launching the
-session. In the desktop app, that variable goes into
+operator to export `HOSTWARDEN_GUARD_DISABLE` before launching the
+session, set to the one host the disk writes run on — for a guest whose
+disk is written from its hypervisor, the hypervisor — or to
+`localhost` for this machine. The guard stays off toward that host only: a
+command aimed at any other host, or one whose destination it cannot
+read, is judged as usual. A value of `1` or a list of hosts is
+refused. In the desktop app, that variable goes into
 `.claude/settings.local.json`
 ([Claude Code Desktop](../getting-started/ai-tools.md#claude-code-desktop)).
 

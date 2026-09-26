@@ -192,13 +192,15 @@
 #
 # Override for legitimate flows (the hostwarden-os-install skill
 # runs mkfs/sgdisk by design): the OPERATOR sets
-# HOSTWARDEN_GUARD_DISABLE=1 in the environment BEFORE launching
-# the session. An inline assignment inside a proposed command
-# does not count and is itself blocked, so the model cannot
+# HOSTWARDEN_GUARD_DISABLE to the one host the work is for, or to
+# localhost, in the environment BEFORE launching the session. The
+# guard stays on for everything not aimed at that host
+# (guard-taboos.d/off.sh). An inline assignment inside a proposed
+# command does not count and is itself blocked, so the model cannot
 # disarm the guard. Nor can a value that reaches the environment
 # mid-session through a reloaded settings file: the variable counts
 # only when check-session.sh recorded at SessionStart that this
-# session started with it (~/.cache/hostwarden/guard-off-<id>).
+# session started with that host (~/.cache/hostwarden/guard-off-<id>).
 
 # shellcheck disable=SC2034 # read by the modules and json.sh
 INPUT=$(cat)
@@ -211,7 +213,7 @@ LIBDIR=$HOOKDIR/../../lib
 # reads HAS_KEY, SEGS or DISK as an earlier one left them. A new
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
-GUARD_MODULES='edit command first-boot scope power disks storage ssh
+GUARD_MODULES='reach off edit command first-boot scope power disks storage ssh
 config-mgmt interpreters guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer
@@ -231,14 +233,6 @@ done
 # shellcheck source=../../lib/json.sh
 . "$LIBDIR/json.sh"
 
-# Operator-level override: inherited at launch, and recorded then.
-if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
-  SID=$(hook_session_id)
-  if [ -n "$SID" ] && [ -e "$HOME/.cache/hostwarden/guard-off-$SID" ]; then
-    exit 0
-  fi
-fi
-
 decide() {
   # decide <deny|ask> <reason> -- the JSON decision on stdout, then
   # done (json.sh).
@@ -248,7 +242,7 @@ decide() {
 deny() {
   # A taboo: blocks in all permission modes.
   decide deny "$1 (AGENTS.md - Critical Safety Rules). \
-${GUARD_SCOPE_NOTE:-}Blocked in all permission modes. Explain this to \
+${GUARD_SCOPE_NOTE:-}${GUARD_OFF_NOTE:-}Blocked in all permission modes. Explain this to \
 the user, and never reach the same effect another way - not by \
 rephrasing, re-quoting or switching tools. A command that only \
 carries the word as text and runs none of it is not evading anything \

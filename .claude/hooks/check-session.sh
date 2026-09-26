@@ -5,43 +5,59 @@
 # runs, in one line. Silent otherwise. (A linked worktree is
 # announced by session-mode.sh, with the rest of the mode.)
 #
-# The taboo guard switched off. Only a session that STARTS with
-#    HOSTWARDEN_GUARD_DISABLE=1 — from the shell, or a settings file
-#    the operator edited before starting it — gets it: this hook
-#    records that in ~/.cache/hostwarden/guard-off-<session_id>, and
-#    guard-taboos.sh honours the variable only where the record
-#    exists. A value that arrives mid-session, through a settings
-#    file reloaded while it runs, finds no record and changes
-#    nothing. Only `startup` and `resume` start a process with a
-#    fresh environment; `clear` and `compact` run inside the old one
-#    and may only take a record away. The notice at every start is
-#    also how the operator sees that the setting took effect.
+# The taboo guard switched off toward one host. Only a session
+#    that STARTS with HOSTWARDEN_GUARD_DISABLE naming one host, or
+#    localhost — from the shell, or a settings file the operator
+#    edited before starting it — gets it: this hook records the host
+#    in ~/.cache/hostwarden/guard-off-<session_id>, and
+#    guard-taboos.d/off.sh honours the variable only where the
+#    record holds the host it names. A value that names no single
+#    host, such as `1` or a list, is refused and recorded nowhere. A
+#    value that arrives or changes mid-session, through a settings
+#    file reloaded while it runs, finds no record of itself and
+#    changes nothing. Only `startup` and `resume` start a process
+#    with a fresh environment; `clear` and `compact` run inside the
+#    old one and may only take a record away. The notice at every
+#    start is also how the operator sees that the setting took
+#    effect.
 
 # shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
 case $0 in */*) HERE=${0%/*} ;; *) HERE=. ;; esac
 # shellcheck source=../../lib/json.sh
 . "$HERE/../../lib/json.sh"
+# shellcheck source=../../lib/mode.sh
+. "$HERE/../../lib/mode.sh"
 
 CACHE="$HOME/.cache/hostwarden"
 SID=$(hook_session_id)
-REC="$CACHE/guard-off-$SID"
-if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ] && [ -n "$SID" ]; then
+REC=$(hostwarden_off_record "$SID")
+OFF=""
+if [ -n "${HOSTWARDEN_GUARD_DISABLE:-}" ] &&
+  ! OFF=$(hostwarden_off_host "$HOSTWARDEN_GUARD_DISABLE"); then
+  echo "hostwarden: HOSTWARDEN_GUARD_DISABLE names no single host, so"
+  echo "  the taboo guard stays ON. Tell the user: the operator sets it"
+  echo "  to the one host the work is for, or to localhost, and starts"
+  echo "  a new session."
+fi
+if [ -n "$OFF" ] && [ -n "$SID" ]; then
   case "$(hook_field source '[A-Za-z0-9_-]')" in
     startup|resume|"")
       # shellcheck disable=SC2174 # 0700 is for $CACHE alone
-      mkdir -p -m 700 "$CACHE" && : > "$REC" ;;
+      mkdir -p -m 700 "$CACHE" && printf '%s\n' "$OFF" > "$REC" ;;
   esac
 fi
 if [ -n "$SID" ] && [ -e "$REC" ]; then
-  if [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
-    echo "hostwarden: the taboo guard is OFF for this session. Say so in"
-    echo "  your first reply; unless this session is for the disk steps of"
-    echo "  an OS install, ask the user to remove it and start a new one."
+  if hostwarden_off_recorded "$SID" "${HOSTWARDEN_GUARD_DISABLE:-}" \
+    >/dev/null; then
+    echo "hostwarden: the taboo guard is OFF toward $OFF for this session"
+    echo "  and on for everything else. Say so in your first reply; unless"
+    echo "  this session is for the disk steps of an OS install on $OFF,"
+    echo "  ask the user to remove it and start a new one."
   else
     rm -f "$REC"
   fi
-elif [ "${HOSTWARDEN_GUARD_DISABLE:-}" = "1" ]; then
+elif [ -n "$OFF" ]; then
   echo "hostwarden: HOSTWARDEN_GUARD_DISABLE is set, but this session"
   echo "  did not start with it, so the taboo guard stays ON. Tell the"
   echo "  user: the operator sets it and then starts a new session."
@@ -65,8 +81,6 @@ case "$(hook_field source '[A-Za-z0-9_-]')" in startup | resume | "") ;; *) exit
 # cd && pwd, no -P: the same string presence.sh and
 # bin/hostwarden-impact hash for the cache directory.
 ROOT=$(cd "$HERE/../.." 2>/dev/null && pwd) || exit 0
-# shellcheck source=../../lib/mode.sh
-. "$HERE/../../lib/mode.sh"
 hostwarden_mode "$ROOT"
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
 grep -Eqi '^[-*[:space:]]*Coordinator:[[:space:]]*off([[:space:]]|$)' \

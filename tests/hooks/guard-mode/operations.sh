@@ -4,9 +4,11 @@
 # one shell every part shares; never run on its own.
 # shellcheck shell=sh disable=SC2034 # read by the parts after it
 
-# The taboo guard's off switch does not reach the mode guard.
+# The taboo guard's off switch does not reach the mode guard, not
+# even when it names the very host the command goes to.
 out=$(bash_json '/usr/bin/ssh server1.example.com true' \
-  | HOSTWARDEN_GUARD_DISABLE=1 sh "$DEV/.claude/hooks/guard-mode.sh")
+  | HOSTWARDEN_GUARD_DISABLE=server1.example.com \
+    sh "$DEV/.claude/hooks/guard-mode.sh")
 case "$out" in
 *'"permissionDecision":"deny"'*) ok ;;
 *) bad "HOSTWARDEN_GUARD_DISABLE switched the mode guard off" ;;

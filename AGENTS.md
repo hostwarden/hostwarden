@@ -177,8 +177,8 @@ user when it will visibly slow the answer.
   same effect by rephrasing, re-quoting or another tool. Legitimate
   exceptions — OS installation and replacement, the
   `hostwarden-os-install` skill — need the operator to export the
-  guard-disable variable named in that skill before launching the
-  session.
+  guard-disable variable named in that skill, set to the one host the
+  disk writes run on, before launching the session.
   When *writing* a probe, remember the guard scans the whole command
   string and cannot tell a taboo word used as data from an
   invocation. So write patterns that never spell one from the start,

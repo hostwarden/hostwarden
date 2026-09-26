@@ -11,8 +11,8 @@ of `sshd_config`, host keys or `authorized_keys`
 inside an offline image. Before the first of them,
 the gate in `SKILL.md` § The gate holds, including
 the operator having relaunched with
-`HOSTWARDEN_GUARD_DISABLE=1` set in the environment.
-The console fix in §5 is for the user to type.
+`HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes run on in the
+environment. The console fix in §5 is for the user to type.
 
 ## Common Issues
 

@@ -8,7 +8,8 @@ the disk it came from.
 Step 4 below writes an image over a whole disk, and nothing
 here is a read: `SKILL.md` § The gate holds first, including
 the operator having relaunched with
-`HOSTWARDEN_GUARD_DISABLE=1` in the environment.
+`HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes run on in the
+environment.
 
 ## SSH-Only Cross-OS via mfsBSD
 

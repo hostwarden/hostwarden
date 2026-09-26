@@ -100,10 +100,15 @@ session:
 **Switching the taboo guard off works the same way,
 by hand.** For the disk steps of an OS install (the
 `hostwarden-os-install` skill), add
-`"HOSTWARDEN_GUARD_DISABLE": "1"` to that `env` in
-your editor and start a new session. It opens with a
-note that the guard is off — that note is how you
-know the setting took effect. Remove the line and
+`"HOSTWARDEN_GUARD_DISABLE": "web1.example.com"` to that
+`env` in your editor, with the name of the one host
+the disk writes run on (for a guest whose disk is
+written from its hypervisor, the hypervisor), or
+`localhost` for this machine,
+and start a new session. It opens with a note that
+the guard is off toward that host — that note is how
+you know the setting took effect. The guard stays on
+for every other host, and a value of `1` is refused. Remove the line and
 start another session when the work is done; the
 file outlasts the session, and so would a guard that
 is off. Set in the middle of a session, it does

@@ -219,8 +219,8 @@ Two fence markers change that:
 - ```` ```bash operator ```` — the user types this at a console;
   Hostwarden never runs it.
 - ```` ```bash guard-off ```` — Hostwarden runs it only after the
-  operator relaunched with `HOSTWARDEN_GUARD_DISABLE=1`, and the
-  file must say so.
+  operator relaunched with `HOSTWARDEN_GUARD_DISABLE` set to the host the disk
+  writes run on, and the file must say so.
 
 How to write a probe that the guard does not mistake for an
 invocation is in `AGENTS.md` → Critical Safety Rules, where it
