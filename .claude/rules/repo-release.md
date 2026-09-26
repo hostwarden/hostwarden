@@ -30,6 +30,16 @@ Tags are never created by hand. Commit the bump, with the
 changelog folded (→ CHANGELOG.md), push, and let the workflow tag
 it.
 
+Once the tag is pushed and verified, the workflow creates its GitHub
+release, titled `Hostwarden X.Y.Z`. Its notes are one line,
+`Release notes:` and a Markdown link whose text is the file's name,
+an arrow and the version, to the version's section of
+`CHANGELOG.md` at the tag, whose anchor it takes from the heading
+there, so the notes live in one place; it carries no assets (→ CI).
+A re-run skips a tag or a release that exists and creates a missing
+release as long as `CHANGELOG.md` at the tag has the version's
+section; without one, the tag gets no release.
+
 The workflow signs every tag with the release key, an SSH key held
 only in the repository secret `RELEASE_SIGNING_KEY`, and verifies
 it against `.github/release-signers` before pushing; without the

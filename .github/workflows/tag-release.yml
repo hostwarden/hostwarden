@@ -10,8 +10,8 @@ permissions: {}
 jobs:
   tag:
     runs-on: ubuntu-latest
-    # Pushing the tag is the only write, and this job is the only
-    # one that needs it.
+    # Pushing the tag and creating its release are the only writes,
+    # and this job is the only one that needs them.
     permissions:
       contents: write
     steps:
@@ -37,6 +37,7 @@ jobs:
       # (.claude/rules/repo-release.md → VERSION). A failure here
       # leaves no tag; re-run the job once the secret is right.
       - name: Create, verify and push signed tag
+        id: tag
         if: steps.check.outputs.exists == 'false'
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
@@ -64,6 +65,47 @@ jobs:
           fi
           git push origin "$TAG"
 
+      # The release carries no notes of its own and no assets — the
+      # repository's releases are immutable
+      # (.claude/rules/repo-release.md → CI) — only a link to the
+      # version's section of CHANGELOG.md at the tag. The heading is
+      # read from that file, not rebuilt from today's date, and turned
+      # into the anchor GitHub gives it: `## 1.0.0 - 2026-09-26` is
+      # `#100---2026-09-26`. Runs whether or not this attempt pushed
+      # the tag, and skips a release that exists, so a re-run creates
+      # what an earlier attempt left out.
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+          TAG: v${{ steps.v.outputs.version }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists"
+            exit 0
+          fi
+          if ! git -c gpg.ssh.allowedSignersFile="$PWD/.github/release-signers" \
+            verify-tag "$TAG"; then
+            echo "::error::$TAG does not verify against .github/release-signers; no release created"
+            exit 1
+          fi
+          esc=$(printf '%s' "$VERSION" | sed 's/\./\\./g')
+          head=$(git show "$TAG:CHANGELOG.md" |
+            grep -m 1 -E "^## \[?$esc\]?( |$)" || true)
+          if [ -z "$head" ]; then
+            echo "::error::CHANGELOG.md at $TAG has no section for $VERSION"
+            exit 1
+          fi
+          # The link text is the file, an arrow and the version, as
+          # v1.0.0's notes have it.
+          file=CHANGELOG.md
+          anchor=$(printf '%s\n' "${head#'## '}" |
+            tr '[:upper:]' '[:lower:]' |
+            sed -e 's/[^a-z0-9 _-]//g' -e 's/ /-/g')
+          gh release create "$TAG" --verify-tag \
+            --title "Hostwarden $VERSION" \
+            --notes "Release notes: [$file → $VERSION]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$TAG/$file#$anchor)"
+
       # Cuts a new Docusaurus doc version for the major line, if
       # this release started one — website/ has no versioned_docs/
       # of its own to update (docusaurus.config.js → docs, and
@@ -72,8 +114,10 @@ jobs:
       # dispatch's own failure (dispatch-docs exits 1 on anything
       # but a 404) has to be retryable by re-running the failed
       # job, which finds the tag already there and would otherwise
-      # skip this step too, losing the release event for good.
+      # skip this step too, losing the release event for good. A
+      # failed release step above does not hold it back either.
       - name: Dispatch release-cut
+        if: ${{ !cancelled() && steps.tag.outcome != 'failure' }}
         uses: ./.github/actions/dispatch-docs
         with:
           token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
