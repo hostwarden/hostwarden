@@ -52,7 +52,10 @@ Than One Server before step 1.
    key up in `memory/known_hosts`, and get it first
    where it is missing: `rules/host-keys.md`. A new
    host whose first call fails without an answer from
-   sshd: `rules/ssh-config.md` → Finding the Port.
+   sshd: `rules/ssh-config.md` → Finding the Port. A
+   host whose memory has `SSH login: password` gets
+   its password checked before that call
+   (`rules/ssh-passwords.md` → Every Connection).
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Machine memory file.** Create on first
    connection, read on every subsequent connection.

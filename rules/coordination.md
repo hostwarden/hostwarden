@@ -335,7 +335,7 @@ with memory, an SSH user and
 a key in `memory/known_hosts`. Never a host on `memory/blacklist.md`
 or with a hop on it on its way in, one whose way in cannot be read,
 one registered but never connected, a `Mode: via` guest, the local
-machine or a Windows host. Nor one the resolver could not check
+machine, a Windows host or a DrayOS router. Nor one the resolver could not check
 against the blacklist at all, treated the same as a match
 (`rules/access-control.md` → Server Blacklist). A read-only host
 (`rules/access-control.md` → Read-Only Servers) gets the journal line

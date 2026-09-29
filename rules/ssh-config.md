@@ -13,11 +13,15 @@ stands for `<checkout>` in the commands below.
   `bin/hostwarden-sync pull` and so at every session start. Never
   edited and never committed: it names this machine's paths. Its
   order is its precedence, since ssh keeps the first value it
-  finds: the host blocks of `memory/ssh_hosts`, then `Match all`
-  with the standard options, then the user's `~/.ssh/config` and
+  finds: the host blocks of `memory/ssh_hosts`, then a
+  `Match` block that sets nothing and, for the hosts
+  whose block has `BatchMode no`, tells `bin/hostwarden-askpass`
+  which target each call logs in to (`rules/ssh-passwords.md`),
+  then `Match all` with the standard
+  options, then the user's `~/.ssh/config` and
   `/etc/ssh/ssh_config`.
 - **`memory/ssh_hosts`:** host blocks in ssh_config syntax,
-  limited to five keywords. Shared in a shared workspace
+  limited to a few keywords. Shared in a shared workspace
   (`rules/machine-memory.md` → Personal versus shared).
 - **`~/.ssh/config`:** the user's own. It still applies to every
   call, for what the two above leave open. Hostwarden never
@@ -38,6 +42,20 @@ line. A comment takes a line of its own:
   or `none`.
 - **`HostKeyAlias`:** the name the host's key is looked up by in
   `memory/known_hosts`.
+- **For a host that takes only a password**
+  (`rules/ssh-passwords.md`), and with only these values:
+  `BatchMode no`, `PubkeyAuthentication no`,
+  `NumberOfPasswordPrompts 1`, and `PreferredAuthentications` with
+  `password` or `keyboard-interactive`, one of them.
+- **For a device whose SSH server offers only old algorithms:**
+  `KexAlgorithms`, `HostKeyAlgorithms`, `Ciphers` and `MACs`, each
+  only as a list that starts with `+`, which adds the named
+  algorithms to ssh's own and removes none. Add one only after a
+  call failed with `no matching key exchange method`, `host key
+  type`, `cipher` or `MAC` found, with the exact name ssh listed as
+  the server's offer, and after telling the user that the device
+  runs weak cryptography and should get a firmware that does not:
+  `+diffie-hellman-group14-sha1`.
 
 ```
 Host db1 db1.example.com
@@ -51,7 +69,8 @@ Nothing else passes `bin/hostwarden-ssh-config`: no `User`, no
 `ProxyCommand` or any other keyword, and no value with a quote, a
 `%` token, a `$` or a leading `-`. In a shared workspace, anyone who
 can push to it writes this file, and ssh_config can run commands
-on every workstation that shares it; the five keywords cannot.
+on every workstation that shares it; these keywords cannot, and
+none of them makes ssh accept a host key it did not verify.
 
 - **The SSH user stays in `memory/user.md`** (`rules/ssh-user.md`):
   it is personal, and the call names it as `user@host`, which wins

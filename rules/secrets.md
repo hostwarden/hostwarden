@@ -42,6 +42,12 @@ keys, weak permissions) is the job of the
   ZeroTier's `identity.secret`), proxy URLs with
   credentials. Grep only named keys with an
   anchored pattern.
+- SSH passwords and the tokens that open a password
+  manager, on this workstation: what
+  `bin/hostwarden-password` stores and
+  `bin/hostwarden-askpass` hands to ssh, and every
+  entry of a password manager. Never read one, only
+  check that it is there (`rules/ssh-passwords.md`)
 
 When in doubt, treat it as a secret.
 

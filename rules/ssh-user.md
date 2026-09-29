@@ -18,6 +18,9 @@ under `# SSH Ports` an optional
 `Alternative SSH ports: 52222, 2222` line: the ports
 the user runs sshd on instead of 22, in the order
 `rules/ssh-config.md` → Finding the Port tries them.
+Under `# SSH Passwords`, one line per login of a host
+that takes no key says where its password comes from,
+never the password itself (`rules/ssh-passwords.md`).
 
 ## Interview format
 

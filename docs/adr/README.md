@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [SSH passwords reach ssh through an askpass helper only](20260927-ssh-passwords-through-askpass-helper.md) | ssh, secrets, appliances | — |
 | [Same-session fallback for a declined self-resolved address](20260926-same-session-fallback-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [Release tags are signed with a dedicated SSH key](20260926-release-tags-signed-with-dedicated-ssh-key.md) | release, signing, supply-chain | — |
 | [The updater trusts the release key of the checked-out version](20260926-release-key-from-the-checked-out-version.md) | release, signing, supply-chain | — |
