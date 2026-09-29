@@ -56,6 +56,11 @@ unset CLAUDE_ENV_FILE GIT_SSH_COMMAND GIT_SSH HOSTWARDEN_GIT_SSH_COMMAND
 PATH=$(printf %s "$PATH" | tr : '\n' | grep -v '/\.claude/hooks/shim$' |
   paste -sd: -)
 export PATH
+# The developer's own record of an operations clone
+# (hostwarden_operations_recorded) would change what the next step
+# names, so the cases read one of their own.
+XDG_CONFIG_HOME="$TMP/config"
+export XDG_CONFIG_HOME
 
 # fails <message> <command...> — the command must fail.
 fails() { m=$1; shift; if "$@" >/dev/null 2>&1; then bad "$m"; else ok; fi; }

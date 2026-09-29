@@ -37,6 +37,15 @@
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
 #                             three answers, and HOSTWARDEN_MAIN to
 #                             the main checkout of a worktree
+#   hostwarden_is_operations <root>
+#                           — true where <root> is an operations
+#                             checkout; sets nothing
+#   hostwarden_operations_recorded
+#                           — sets HOSTWARDEN_OPERATIONS to the
+#                             operations clone the developer
+#                             recorded, or to nothing, and
+#                             HOSTWARDEN_OPERATIONS_FILE to the
+#                             file that records it
 #   hostwarden_next_step    — sets HOSTWARDEN_NEXT_STEP to where
 #                             server work goes from development, so
 #                             the session start and every refusal
@@ -91,20 +100,59 @@ hostwarden_mode() {
       esac
       HOSTWARDEN_MODE=worktree
     fi
-  elif [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]; then
-    # A clone, not an archive copy: operations needs updates.
+  elif hostwarden_is_operations "$1"; then
     HOSTWARDEN_MODE=operations
   else
     HOSTWARDEN_MODE=development
   fi
 }
 
+# True where <root> is the main checkout of a clone with a
+# workspace. A clone, not an archive copy: operations needs
+# updates. Sets nothing, so it can judge a second directory
+# without touching the caller's mode.
+hostwarden_is_operations() {
+  [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]
+}
+
+# A development checkout that is no worktree of the operations
+# clone cannot find that clone from its own files, so the developer
+# records it once, as one line holding its absolute path, in a file
+# in their home: no checkout carries it, and every development
+# session on the machine reads the same one. A record that names
+# anything but an operations checkout counts as none, so a clone
+# that moved is asked for again rather than named wrongly.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_operations_recorded() {
+  HOSTWARDEN_OPERATIONS=
+  hor_dir=${XDG_CONFIG_HOME:-$HOME/.config}/hostwarden
+  HOSTWARDEN_OPERATIONS_FILE=$hor_dir/operations-checkout
+  [ -f "$HOSTWARDEN_OPERATIONS_FILE" ] || return 0
+  hor_path=
+  read -r hor_path < "$HOSTWARDEN_OPERATIONS_FILE" || :
+  case $hor_path in /*) ;; *) return 0 ;; esac
+  if hostwarden_is_operations "$hor_path"; then
+    HOSTWARDEN_OPERATIONS=$hor_path
+  fi
+}
+
 # A refusal that only stops leaves the developer to find the way
 # to a live answer alone, so the session start and every refusal
-# name the next step. Expects hostwarden_mode to have run.
+# name the next step. Expects hostwarden_mode to have run. A
+# worktree names its main checkout, unless that has no workspace
+# and a recorded operations clone does.
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_next_step() {
-  if [ "$HOSTWARDEN_MODE" = worktree ]; then
+  HOSTWARDEN_OPERATIONS=
+  if [ "$HOSTWARDEN_MODE" != worktree ] \
+    || ! hostwarden_is_operations "$HOSTWARDEN_MAIN"; then
+    hostwarden_operations_recorded
+  fi
+  if [ -n "$HOSTWARDEN_OPERATIONS" ]; then
+    HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
+$HOSTWARDEN_OPERATIONS, the operations clone recorded in \
+$HOSTWARDEN_OPERATIONS_FILE"
+  elif [ "$HOSTWARDEN_MODE" = worktree ]; then
     HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
 the main checkout, $HOSTWARDEN_MAIN, if that is an operations install"
   else
