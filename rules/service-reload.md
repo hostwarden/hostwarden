@@ -30,13 +30,19 @@ it wins over this file.
 
 Prefer reload whenever the service supports it.
 
-Before a restart — never a reload, which drops nothing —
+Before a restart — never a reload, which drops nothing; a host
+this session is creating has no radius
+(`rules/coordination.md` → Blast radius) —
 `bin/hostwarden-impact announce <host> restart:<unit>` and wait,
 as `rules/coordination.md` → Announce, wait, go says, whichever
 answer below sends it ahead. `impact.sh` denies it mechanically
 where another live session is on the radius and this session has
 not; announcing first means the approval question below already
 carries that answer instead of a second round-trip.
+
+The first start of a firewall, network or SSH-path unit on a host in
+service is announced the same way, as `network`; `impact.sh` does
+not see a `start`, so this sentence is the only guard.
 
 ## Default Behavior
 
