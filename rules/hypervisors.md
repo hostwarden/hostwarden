@@ -39,7 +39,9 @@ replaced it.
 Per guest, record: ID, name, kind (VM, container or jail), state,
 whether it starts with the host, whether the hypervisor marks it
 as a template, its MAC addresses, a VM's UUID where Linking
-below names a source for it, and what the host passed to it —
+below names a source for it, whether a community script built it
+(`rules/community-scripts.md` → A guest built by one), and what
+the host passed to it —
 the passthrough inventory of the housekeeping skill
 (`references/passthrough.md`) reads those lines. On a host with more than one
 manager, an ID or a name is unique only within its manager: each
@@ -75,7 +77,8 @@ applies (`rules/first-detection.md` → Hypervisors). Elsewhere:
 - **Incus / LXD:** the listing from `rules/system-containers.md`
   → Reaching It, with `--format json`: it carries each
   instance's project, its `expanded_config` the
-  `volatile.<nic>.hwaddr` and `boot.autostart`, and its
+  `volatile.<nic>.hwaddr`, `boot.autostart` and
+  `user.community-scripts`, and its
   `expanded_devices` what the host passed to it — a profile's
   included in each. Record the project with the name
   (`prod/web`); every later command carries it. A member of a
@@ -234,8 +237,8 @@ of its own (Registering Guests below).
   192.0.2.21. mac bc:24:11:00:01:01,
   uuid 6f1c2a3e-0000-4000-8000-000000000101
   → web1.example.com
-- 102 db1 (container): running, autostart. 192.0.2.22.
-  mac bc:24:11:00:01:02 → probably db1.example.com
+- 102 db1 (container): running, autostart, community script.
+  192.0.2.22. mac bc:24:11:00:01:02 → probably db1.example.com
 - 110 mail-old (VM): stopped. Retired, keep until 2026-12-31
   (user, 2026-09-22). mac bc:24:11:00:01:10
 - 9000 debian13-tpl (VM): template (hypervisor).
@@ -415,6 +418,10 @@ one line (*"Registering 7 guests of pve1.example.com through
    configuration-management probe and the FQDN
    (`rules/dns-aliases.md` → The FQDN), and the Heinzel check
    where it applies. What they find is recorded as they say.
+   For a guest whose entry says `community script`,
+   `rules/community-scripts.md` → A guest built by one gives the
+   line step 4 writes; a container's probe rides in the activity
+   check's call.
 
    A step whose probe is the same for several guests of one
    manager runs for all of them in one call to the host: a loop
@@ -482,7 +489,8 @@ one line (*"Registering 7 guests of pve1.example.com through
    keys nor a matching `IP:`, ask the user before writing
    anything.
 4. Write `memory.md` as `rules/machine-memory.md` says, with
-   `Runs on:`, `Guest identity:` and
+   `Runs on:`, `Guest identity:`, for a guest step 2 found
+   marked its `Community script:`, and
    `- SSH: untested (registered through pve1.example.com)`. Its
    first own connection adds the SSH user and the DNS check, and
    finishes its onboarding (`rules/first-connection.md` step 9),
@@ -645,6 +653,11 @@ running jail matched by name and address together (the jail
 bullet above). A name alone never links: templates are cloned
 with their name, and a retired guest and its successor often
 share one.
+
+**Either way,** a linked guest whose entry says `community script`
+and whose memory has no `Community script:` line gets one, in the
+connection that makes the link or the next one to either side that
+finds it so: `rules/community-scripts.md` → A guest built by one.
 
 ## Changes Between Connections
 

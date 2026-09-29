@@ -55,6 +55,10 @@ Then settle every parameter before the first change, in one
 question with defaults filled in (`AskUserQuestion` where it
 exists):
 
+- **What it is for:** where the user has named the application
+  the guest will run, `rules/community-scripts.md` → When, then
+  For a new guest, which adds an option to this question and
+  leaves the defaults below as they are.
 - **Kind:** VM or container. A container shares the host's
   kernel; a VM is the default for anything that needs its own
   kernel, a firewall of its own at kernel level, or Docker

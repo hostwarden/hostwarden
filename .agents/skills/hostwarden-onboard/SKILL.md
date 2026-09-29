@@ -93,6 +93,9 @@ checkout) and stop.
      on a host with guests, up to its Memory.
    - `Depends on:` — the probe of `rules/coordination.md` →
      Dependencies, and the entries it finds.
+   - `Community script:` — for a guest its host's `guests.md`
+     marks, as `rules/community-scripts.md` → A guest built by
+     one says.
    - `Auto restarts:` — on Linux, the probe of
      `rules/maintenance-windows.md` → Automatic restarts.
    - **The disks** in `storage.md` — `rules/storage-inventory.md` →

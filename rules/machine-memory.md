@@ -204,6 +204,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Upstream firewall:`     | `baseline.md`               | user's answer    |
 | `Container runtime:`     | `service-class-check.md`    | runtime found    |
 | `Container: privileged`  | `system-containers.md`      | container found  |
+| `Community script:`      | `community-scripts.md`      | script found     |
 | `Cluster:`               | `hypervisors.md`            | member found     |
 | `Runs on:`               | `hypervisors.md`            | guest linked     |
 | `Guest identity:`        | `hypervisors.md`            | guest linked     |
