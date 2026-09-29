@@ -211,26 +211,39 @@ fi
 # target's own: mkdir is atomic everywhere, and the second caller
 # waits for the first. A holder needs 60 seconds at most, a
 # manager's two reads at 30 each, so the wait is 100 and a lock is
-# stale after three minutes, left by a process that died. Only
-# whoever holds the takeover lock, itself made by mkdir, removes a
-# stale one and looks at it first: two callers that both found the
-# same stale lock would otherwise each remove it, the second
-# removing the new lock the first had just made.
+# stale when its owner, whose process ID it holds, is gone, or after
+# three minutes. A signal ends the helper through the trap below and
+# a kill -9 leaves the lock for the first check. Only whoever holds
+# the takeover lock, itself made by mkdir, removes a stale one and
+# looks at it first: two callers that both found the same stale lock
+# would otherwise each remove it, the second removing the new lock
+# the first had just made.
 COUNT=$NOTES/count-$(printf %s "$TARGET" | cksum | cut -d' ' -f1)
 LOCK=$COUNT.lock
 WAITED=0
 until mkdir "$LOCK" 2>/dev/null; do
   if mkdir "$LOCK.take" 2>/dev/null; then
-    find "$LOCK" -maxdepth 0 -mmin +3 -exec rmdir {} + 2>/dev/null
+    OWNER=$(cat "$LOCK/pid" 2>/dev/null)
+    if [ -n "$OWNER" ] && ! kill -0 "$OWNER" 2>/dev/null; then
+      rm -rf "$LOCK"
+    else
+      find "$LOCK" -maxdepth 0 -mmin +3 -exec rm -rf {} + 2>/dev/null
+    fi
     rmdir "$LOCK.take" 2>/dev/null
   else
     find "$LOCK.take" -maxdepth 0 -mmin +1 -exec rmdir {} + 2>/dev/null
   fi
-  [ "$WAITED" -lt 100 ] || refuse "another login to $TARGET holds the count"
+  [ "$WAITED" -lt 100 ] ||
+    refuse "$TARGET's count is locked by a login that has not finished" \
+      "or died within the last three minutes; try again then"
   sleep 1
   WAITED=$((WAITED + 1))
 done
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+printf '%s\n' "$$" > "$LOCK/pid"
+# dash runs the EXIT trap on no signal, so each one ends the helper
+# through it: the lock goes with it.
+trap 'rm -rf "$LOCK"' EXIT
+trap 'exit 143' HUP INT TERM
 NOW=$(date +%s)
 RECENT=0
 if [ -f "$COUNT" ]; then

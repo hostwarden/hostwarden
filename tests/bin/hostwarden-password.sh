@@ -369,6 +369,12 @@ out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
 has "$out" "p w!" "a stale lock was not taken over"
 [ -d "$CNT/count-$CF.lock" ] && bad "the lock was not released" || ok
 rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
+# A lock whose owner is gone is taken over at once, however new.
+mkdir "$CNT/count-$CF.lock"
+echo 999999 > "$CNT/count-$CF.lock/pid"
+out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
+has "$out" "p w!" "a lock of a dead owner was not taken over"
+rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
 # ...and by six callers at once, of which only one may take it: three
 # passwords again, never more.
 mkdir "$CNT/count-$CF.lock"
