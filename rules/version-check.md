@@ -48,8 +48,10 @@ software is touched.
   in `memory.md` that was installed outside the
   distro package manager (e.g. Ollama,
   node_exporter, mise itself), or that a
-  `Community script:` line names
-  (`rules/community-scripts.md`).
+  `Community script:` line names, unless the
+  line says `version by package`, which is Tier 3
+  (`rules/community-scripts.md` → The installed
+  version).
 
 ### Tier 2 — Check When Touched
 
@@ -82,8 +84,18 @@ Node.js Current).
 
 1. **Read `memory.md`** for the server. Identify
    all installed software with version numbers.
+   An item memory names without one is read from
+   the host: by the probe of its service check
+   (`.agents/skills/hostwarden-housekeeping/references/service-checks.md`),
+   by the rule that owns its line
+   (`rules/machine-memory.md` → Who writes which
+   line), or, with neither, by the software's own
+   documented version command (`ollama --version`).
+   Where none of these gives one, or the read
+   fails, the item is `UNKNOWN`.
 2. **Web search** for the current stable version
-   of each item being checked. Use official
+   of each item being checked, but for one that
+   is `UNKNOWN`. Use official
    project sites or release pages. Search once per
    piece of software per session, and reuse that
    result and its source URL for every host that
@@ -97,6 +109,11 @@ Node.js Current).
    - `UPGRADE` — a new major version is available.
    - `EOL` — the installed version has reached
      end of life.
+   - `UNKNOWN` — no installed version could be
+     read, or what was read is no version, a tag
+     such as `latest` or a commit hash. Nothing is
+     compared, and the item is never reported as
+     `UP TO DATE`.
 
 ## Nudge Rules
 
@@ -110,10 +127,14 @@ Node.js Current).
 - `CRITICAL` — installed version is EOL or has
   known security vulnerabilities. Always mention.
 
+`UNKNOWN` is `INFO`, with the reason the version
+could not be read.
+
 ### Cooldown
 
 Do not repeat the same nudge within **14 days**
-unless the available version has changed. Track
+unless the available version has changed, or for
+an `UNKNOWN` its reason. Track
 the last check date in machine memory (see below).
 
 ### Inline Nudge Format
@@ -155,6 +176,7 @@ the "System" section:
 
 Ollama       0.18.2   -> 0.20.0 available   WARN
 PostgreSQL   17.1     -> 17.3 available      INFO
+Vaultwarden  UNKNOWN  guest not running      INFO
 node_export  1.9.0    UP TO DATE
 Node.js      22.19.0  -> 24.1.0 LTS avail.  WARN
 Debian       13       UP TO DATE
@@ -167,6 +189,8 @@ Debian       13       UP TO DATE
   version (if different), and severity.
 - Items that are up to date show `UP TO DATE`
   with no severity tag.
+- An item classified `UNKNOWN` shows that in
+  the version's place, then the reason.
 - Sort: CRITICAL first, then WARN, then INFO,
   then UP TO DATE.
 
@@ -210,7 +234,8 @@ After a version check, update the server's
 - last-version-check: 2026-03-22 — Ollama
   0.18.2 (0.20.0 avail), PG 17.1 (17.3 avail),
   node_exporter 1.9.0 (current), Node 22.19.0
-  (24.1.0 LTS avail), Debian 13 (current)
+  (24.1.0 LTS avail), Debian 13 (current),
+  Vaultwarden (unknown: guest not running)
 ```
 
 Replace the previous `last-version-check` line
@@ -225,5 +250,5 @@ Log the version check per `rules/changelog.md`:
 ```bash
 logger -t hostwarden \
   "[<operator> as <unix-user>] Version check: 2 updates available \
-(Ollama, Node.js), 0 EOL"
+(Ollama, Node.js), 0 EOL, 1 unknown (Vaultwarden)"
 ```
