@@ -208,16 +208,25 @@ fi
 # Three a quarter hour, per target. Two logins at once would both
 # read the count before either wrote it, so the count is read, the
 # password fetched and the count written under a lock of the
-# target's own: mkdir is atomic everywhere, the second caller waits
-# for the first, and a lock older than two minutes, left by a
-# process that died, is taken over. The wait outlasts a manager's
-# 30 seconds.
+# target's own: mkdir is atomic everywhere, and the second caller
+# waits for the first. A holder needs 60 seconds at most, a
+# manager's two reads at 30 each, so the wait is 100 and a lock is
+# stale after three minutes, left by a process that died. Only
+# whoever holds the takeover lock, itself made by mkdir, removes a
+# stale one and looks at it first: two callers that both found the
+# same stale lock would otherwise each remove it, the second
+# removing the new lock the first had just made.
 COUNT=$NOTES/count-$(printf %s "$TARGET" | cksum | cut -d' ' -f1)
 LOCK=$COUNT.lock
 WAITED=0
 until mkdir "$LOCK" 2>/dev/null; do
-  find "$LOCK" -maxdepth 0 -mmin +2 -exec rmdir {} + 2>/dev/null
-  [ "$WAITED" -lt 45 ] || refuse "another login to $TARGET holds the count"
+  if mkdir "$LOCK.take" 2>/dev/null; then
+    find "$LOCK" -maxdepth 0 -mmin +3 -exec rmdir {} + 2>/dev/null
+    rmdir "$LOCK.take" 2>/dev/null
+  else
+    find "$LOCK.take" -maxdepth 0 -mmin +1 -exec rmdir {} + 2>/dev/null
+  fi
+  [ "$WAITED" -lt 100 ] || refuse "another login to $TARGET holds the count"
   sleep 1
   WAITED=$((WAITED + 1))
 done

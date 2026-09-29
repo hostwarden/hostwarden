@@ -369,6 +369,19 @@ out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
 has "$out" "p w!" "a stale lock was not taken over"
 [ -d "$CNT/count-$CF.lock" ] && bad "the lock was not released" || ok
 rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
+# ...and by six callers at once, of which only one may take it: three
+# passwords again, never more.
+mkdir "$CNT/count-$CF.lock"
+touch -t 200001010000 "$CNT/count-$CF.lock"
+for i in 1 2 3 4 5 6; do
+  ask "alice@192.0.2.1's password: " $F alice@rtr1 > "$TMP/par.$i" &
+done
+wait
+GOT=$(cat "$TMP"/par.* | grep -c 'p w!')
+[ "$GOT" -eq 3 ] && ok || bad "six callers over a stale lock got $GOT passwords, not 3"
+rm -f "$TMP"/par.*
+[ -d "$CNT/count-$CF.lock.take" ] && bad "the takeover lock was left" || ok
+rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
 
 # The limit ends the CLI itself, not only the shell around it.
 T0=$(date +%s)
