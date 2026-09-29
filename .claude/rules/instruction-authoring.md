@@ -27,7 +27,7 @@ conventions into every sysadmin session, which is the cost the
 layout exists to remove.
 
 An *edit* carries no such ambiguity, so that is the trigger for
-those two: `.claude/hooks/authoring-conventions.sh`, a PostToolUse
+those two: `.claude/hooks/aid/authoring-conventions.sh`, a PostToolUse
 hook on `Edit|Write`, names this file once per session when one of
 them is touched. Where hooks do not run, read it yourself before
 changing the product.

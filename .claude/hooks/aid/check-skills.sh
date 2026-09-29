@@ -21,7 +21,7 @@
 # links).
 set -e
 
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 cd "$ROOT"
 
 # This script ships beside the skill tree, so a tree that is

@@ -139,7 +139,7 @@ result; no output means it is fine:
 git config core.symlinks true
 rm .claude/skills
 git checkout -- .claude/skills
-sh .claude/hooks/check-skills.sh
+sh .claude/hooks/aid/check-skills.sh
 ```
 
 An archive download (ZIP) cannot be repaired this way,

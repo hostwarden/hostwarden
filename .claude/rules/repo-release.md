@@ -251,7 +251,11 @@ change to `guard-taboos.d/` or `guard-mode.d/` goes the same way.
   and in `lib/<script>/` the stages a large `bin/` script sources.
 - `.claude/hooks/` — the entry points `settings.json` registers, and
   what they call directly (`shim/`, `git-ssh.sh`, `guard-taboos.d/`,
-  `guard-mode.d/`).
+  `guard-mode.d/`). A hook that tells the session
+  something and decides nothing
+  goes to `.claude/hooks/aid/`, which the list of critical files
+  leaves out (`pull-requests.md` → The critical reviewer); any
+  other file here is critical from the day it is added.
 - `scripts/` — what developing Hostwarden needs and running it does
   not: CI, releases, reviews, `lab.sh`.
 - `tests/` — every matrix, at the path of what it checks:
