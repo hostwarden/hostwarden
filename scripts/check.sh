@@ -268,7 +268,7 @@ fi
 # The password matrices read the two scripts, the library they
 # share, the ssh_config writer and lib/mode.sh.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-(password|askpass|ssh-config)\$|^lib/(passwords|mode)\\.sh\$|^tests/bin/hostwarden-(password|ssh-config)\\.sh\$$HELPERS"
+    "^bin/hostwarden-(password|askpass|ssh-config)\$|^lib/(passwords\\.sh|passwords/|mode\\.sh)|^tests/bin/hostwarden-(password|ssh-config)\\.sh\$$HELPERS"
 then
   echo "== password matrices: nothing they read is pushed, skipped"
 else

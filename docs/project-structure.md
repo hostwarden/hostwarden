@@ -59,8 +59,10 @@ lib/                   — Code bin/ and the hooks share; sourced,
                          deny or ask written, defined once
                          for the hooks
   passwords.sh         — Where a password comes from: the local
-                         stores and the password managers, for
-                         hostwarden-password and -askpass
+                         stores and the sources, for
+                         hostwarden-password and -askpass; the
+                         managers and the login methods a host
+                         offers in passwords/
   hops.sh              — The jump hosts in front of a host,
                          read from ssh -G
   resolve.sh           — A name's IPv4 addresses for the

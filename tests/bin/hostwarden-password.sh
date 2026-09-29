@@ -23,6 +23,7 @@ mkdir -p "$OPS/bin" "$OPS/lib" "$OPS/memory" "$OPS/.git" "$TMP/home" \
   "$TMP/fake" "$TMP/sshbin"
 cp "$REPO/bin/hostwarden-password" "$REPO/bin/hostwarden-askpass" "$OPS/bin/"
 cp "$REPO/lib/passwords.sh" "$REPO/lib/mode.sh" "$OPS/lib/"
+cp -R "$REPO/lib/passwords" "$OPS/lib/"
 : > "$OPS/memory/.hostwarden-workspace"
 : > "$OPS/memory/ssh_config"
 printf '# SSH Users\n\nDefault: alice\n' > "$OPS/memory/user.md"
