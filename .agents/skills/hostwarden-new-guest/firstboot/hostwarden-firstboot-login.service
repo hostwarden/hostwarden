@@ -1,0 +1,15 @@
+[Unit]
+Description=Hostwarden first boot: the login, before sshd first starts
+DefaultDependencies=no
+After=local-fs.target
+Before=ssh.service ssh.socket sshd.service sshd.socket
+ConditionPathExists=!/var/lib/hostwarden/login.done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/lib/hostwarden/firstboot/login.sh
+
+[Install]
+RequiredBy=ssh.service sshd.service
+WantedBy=multi-user.target

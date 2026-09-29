@@ -2,8 +2,8 @@
 
 A new guest gets `rules/baseline.md` through cloud-init at its
 first boot: nothing is baked into a VM image, so nothing in it
-goes stale. The Proxmox VE baseline template carries the
-container version and applies it at each container's first boot
+goes stale. The Proxmox VE baseline template reads no cloud-init: it has the
+baseline baked in and two first-boot units for the login and the first upgrade
 (`references/proxmox-template.md`).
 
 Source for the keys below:
@@ -303,9 +303,9 @@ Each file `0644` and owned by root, which `write_files` does by
 default. The CA's public key only: its signing key never comes
 near a rendering (`rules/secrets.md`).
 
-A container made from the Proxmox VE baseline template shares the
-template's file and has no copy of its own, so it starts without
-the CA trust; the baseline measurement after creation lists it,
+A container made from the Proxmox VE baseline template has no
+user-data of its own to add to, so it starts without the CA trust; the baseline
+measurement after creation lists it,
 and the user adds the lines. So does a guest whose first-boot
 files the user places by hand (`references/image-prep.md`).
 
@@ -328,14 +328,15 @@ not to its logs; the user reads it in the hypervisor's console and
 must change it at the first login (`expire`). Never a `text` or
 `hash` password in the file, and never `--cipassword` or
 `pct create --password`: both put the password where others read
-it. A container made from the Proxmox VE baseline template shares
-its file, so there the user sets the password themselves, in
+it. A container made from the Proxmox VE baseline template has no
+user-data, so there the user sets the password themselves, in
 `pct enter <vmid>` with `passwd alice`.
 
 SSH with that password needs `PasswordAuthentication yes` in the
 drop-in instead, and only if the user wants it too. A container
 from the Proxmox VE baseline template cannot have it: its drop-in
-is the template's, and a running sshd is never changed. There the
+is the template's, placed at its first boot, and a running sshd is
+never changed. There the
 password is for the console, or the guest becomes a VM. SKILL.md
 → After creation step 5 records either choice.
 
@@ -343,8 +344,7 @@ password is for the console, or the guest becomes a VM. SKILL.md
 
 Validate every new version before it is written, from a copy under
 `/run`, on a host this session already reaches that has cloud-init:
-the hypervisor, a guest made from a cloud image, or the Proxmox VE
-build container, which installs it anyway:
+the hypervisor, or a guest made from a cloud image:
 
 ```bash
 cloud-init schema -c /run/hostwarden-user-data.yaml --annotate
@@ -378,11 +378,10 @@ datasource:
   `instance-id` is the guest's and belongs to the copy, not to the
   numbered file.
 - Where the manager owns the guest's network, hostname and
-  `/etc/hosts` — a Proxmox VE or an LXC container — add
+  `/etc/hosts` — an LXC container — add
   `network: {config: disabled}`, `preserve_hostname: true` and
   `manage_etc_hosts: false`, so cloud-init leaves them alone.
 - Which file puts it there differs:
-  `references/proxmox-template.md` for the container template,
   `references/answer-files.md` for an installer,
   `references/lxc.md` for a container's root filesystem,
   `references/image-prep.md` for a disk image.

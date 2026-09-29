@@ -21,8 +21,15 @@ signature, and gets the baseline as cloud-init user-data at its
 first boot, so there is no golden image to go stale. The rendered
 user-data is kept, numbered, in `memory/baseline/`, and each guest
 records the version it got. On Proxmox VE, containers come from a
-baseline template Hostwarden builds from the official container
-template; housekeeping says when it is due for a rebuild.
+baseline template Hostwarden builds from the official container template you
+choose, whichever distribution Hostwarden has a baseline for (Debian, Ubuntu,
+the RHEL family from release 9 but not Fedora, openSUSE, Alpine), with the
+baseline baked in and no cloud-init: a small
+first-boot service, systemd or OpenRC, places the SSH login and runs the first
+upgrade, so a container starts lean. Housekeeping says when the template is
+due for a rebuild, and that every node holds the same archive.
+A template you built yourself, or took over from Heinzel, is
+measured against the baseline and adopted instead of rebuilt.
 
 ## Guests without cloud-init
 
