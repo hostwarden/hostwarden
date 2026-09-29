@@ -9,8 +9,8 @@
 # property of the tree the hook finds its root from.
 checkout() {
   c="$TMP/$1"
-  mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/rules"
-  cp .claude/hooks/wrap-markdown.sh "$c/.claude/hooks/"
+  mkdir -p "$c/.claude/hooks/aid" "$c/bin" "$c/lib" "$c/rules"
+  cp .claude/hooks/aid/wrap-markdown.sh "$c/.claude/hooks/aid/"
   cp lib/json.sh lib/mode.sh lib/wrap-verbatim.sh "$c/lib/"
   cp bin/hostwarden-wrap "$c/bin/"
   cp lib/markdown-blocks.awk "$c/lib/"
@@ -37,7 +37,7 @@ hook() {
   [ -e "$file" ] || printf '%s\n' "$LONG" > "$file"
   before=$(cat "$file")
   out=$(printf '{"session_id":"t","tool_name":"Edit","tool_input":{"file_path":"%s"}}' \
-    "$file" | sh "$c/.claude/hooks/wrap-markdown.sh")
+    "$file" | sh "$c/.claude/hooks/aid/wrap-markdown.sh")
   if [ "$(cat "$file")" != "$before" ]; then got=wrapped; else got=left; fi
   if [ "$got" != "$3" ]; then
     bad "hook: $4 ($got)"
@@ -62,13 +62,13 @@ hook "$OPS" "$OPS/memory/linked/shipped.md" left \
   "operations leaves a shipped file behind a directory link"
 printf '# %s\n' "$LONG" > "$DEV/head.md"
 out=$(printf '{"tool_input":{"file_path":"%s"}}' "$DEV/head.md" \
-  | sh "$DEV/.claude/hooks/wrap-markdown.sh")
+  | sh "$DEV/.claude/hooks/aid/wrap-markdown.sh")
 case $out in
   *'Still over 80'*'head.md:1 (85)'*) ok ;;
   *) bad "hook: a heading over 80 is not named: $out" ;;
 esac
 out=$(printf '{"tool_input":{"file_path":"%s"}}' "$DEV/rules/shipped.md" \
-  | sh "$DEV/.claude/hooks/wrap-markdown.sh")
+  | sh "$DEV/.claude/hooks/aid/wrap-markdown.sh")
 [ -z "$out" ] && ok || bad "hook: a file that fits gets a message: $out"
 
 # After a shell command, which names no file: what git sees as
@@ -76,7 +76,7 @@ out=$(printf '{"tool_input":{"file_path":"%s"}}' "$DEV/rules/shipped.md" \
 # alone in operations.
 bash_hook() {
   printf '{"tool_name":"Bash","tool_input":{"command":"true"}}' \
-    | sh "$1/.claude/hooks/wrap-markdown.sh"
+    | sh "$1/.claude/hooks/aid/wrap-markdown.sh"
 }
 mkdir "$DEV/docs"
 printf '%s\n' "$LONG" > "$DEV/docs/shell.md"

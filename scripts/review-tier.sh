@@ -32,13 +32,14 @@ NEVER=.claude/rules/pull-requests.md
 # secret or weakens the review itself: a reviewer of their own reads
 # them. None of them is light, so a change with one is full.
 # tests/scripts/review-record.sh fails on a lib/ file that a
-# script on the list names and the list lacks.
+# script on the list names and the list lacks. AID is what the list
+# would hold and does not: the hooks that help and guard nothing.
+AID=.claude/hooks/aid/
 CRITICAL='
 .claude/hooks/
 .claude/settings.json
 lib/mode.sh
 lib/json.sh
-lib/wrap-verbatim.sh
 lib/coord-lib.sh
 lib/coord-rest.sh
 lib/coord-tokenize.sh
@@ -133,7 +134,7 @@ listed() {
 light() { [ "$1" != "$NEVER" ] && listed "$LIGHT" "$1"; }
 # A name git still quotes cannot be held to the list, so it counts.
 critical() {
-  case $1 in '"'*) return 0 ;; esac
+  case $1 in '"'*) return 0 ;; "$AID"*) return 1 ;; esac
   listed "$CRITICAL" "$1"
 }
 

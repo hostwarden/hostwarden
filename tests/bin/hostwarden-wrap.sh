@@ -1,7 +1,7 @@
 #!/bin/sh
 # tests/bin/hostwarden-wrap.sh — fixture matrix for
 # bin/hostwarden-wrap, the hook that runs it,
-# .claude/hooks/wrap-markdown.sh, and the rewrap in
+# .claude/hooks/aid/wrap-markdown.sh, and the rewrap in
 # bin/hostwarden-sync commit. CI runs it through scripts/check.sh;
 # an agent session leaves it to CI (.claude/rules/pull-requests.md →
 # Checks).

@@ -26,13 +26,13 @@
 # rewrapped, or a line in one is still over 80 and not a
 # paragraph's.
 
-ROOT=$(cd "${0%/*}/../.." && pwd -P)
+ROOT=$(cd "${0%/*}/../../.." && pwd -P)
 
 # shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
-# shellcheck source=../../lib/json.sh
+# shellcheck source=../../../lib/json.sh
 . "$ROOT/lib/json.sh"
-# shellcheck source=../../lib/mode.sh
+# shellcheck source=../../../lib/mode.sh
 . "$ROOT/lib/mode.sh"
 hostwarden_mode "$ROOT"
 
@@ -62,7 +62,7 @@ if [ -n "$FILE" ]; then
     git -C "$ROOT" check-ignore -q -- "$REL" 2>/dev/null || exit 0
     case $REL in
       memory/*)
-        # shellcheck source=../../lib/wrap-verbatim.sh
+        # shellcheck source=../../../lib/wrap-verbatim.sh
         . "$ROOT/lib/wrap-verbatim.sh"
         ! wrap_verbatim "$ROOT/memory" "${REL#memory/}" || exit 0 ;;
     esac

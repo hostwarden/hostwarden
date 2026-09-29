@@ -91,6 +91,10 @@ critical() {
 [ "$(critical "$L1" "$H2")" = .claude/hooks/shim/ssh ] \
   && ok || bad "a shim is critical, the page beside it is not"
 [ -z "$(critical "$L1" "$F2")" ] && ok || bad "a script is not critical"
+A2=$(fixof aid sh -c \
+  'mkdir -p .claude/hooks/aid && echo a >.claude/hooks/aid/x.sh')
+[ -z "$(critical "$L1" "$A2")" ] && ok || bad "an aid hook is not critical"
+[ "$(tier "$L1" "$A2")" = full ] && ok || bad "an aid hook is full"
 # One file per entry of the critical list, in one commit: each is
 # critical, and each is among the files that make the change full.
 # shellcheck disable=SC2016,SC2086 # the inner shell's; an entry a word

@@ -25,7 +25,7 @@
           },
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-skills.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/check-skills.sh\"",
             "timeout": 5
           },
           {
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/dev-tools.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/dev-tools.sh\"",
             "timeout": 90
           }
         ]
@@ -119,7 +119,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/authoring-conventions.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/authoring-conventions.sh\"",
             "timeout": 5
           }
         ]
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/wrap-markdown.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/wrap-markdown.sh\"",
             "timeout": 10
           }
         ]

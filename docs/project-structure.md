@@ -175,16 +175,11 @@ contrib/
     session-mode.sh    — SessionStart hook that announces the
                          mode, a linked worktree included, and
                          puts the shim on PATH in development
-    dev-tools.sh       — SessionStart hook that installs the
-                         checks' tools (mise.dev.toml) in a
-                         Claude Code cloud development session
     shim.sh, shim/     — Stand-ins for ssh, sudo and the other
                          tools that reach a server, in a
                          development session
     git-ssh.sh         — GIT_SSH_COMMAND in development, so
                          git push reaches the real ssh
-    check-skills.sh    — SessionStart hook that reports a
-                         .claude/skills link that is not one
     check-session.sh   — SessionStart hook that records and
                          reports a guard that is off, and
                          starts the coordinator in operations
@@ -194,10 +189,18 @@ contrib/
                          disruptive command aimed at a host
                          another session works on until it is
                          announced, in operations
-    authoring-conventions.sh — PostToolUse hook that names the
-                         authoring rules when an instruction
+    aid/               — Hooks that help and guard nothing, so
+                         a change to one is not critical
+                         (scripts/review-tier.sh)
+      dev-tools.sh     — SessionStart hook that installs the
+                         checks' tools (mise.dev.toml) in a
+                         Claude Code cloud development session
+      check-skills.sh  — SessionStart hook that reports a
+                         .claude/skills link that is not one
+      authoring-conventions.sh — PostToolUse hook that names
+                         the authoring rules when an instruction
                          file or a bin/ script is edited
-    wrap-markdown.sh   — PostToolUse hook that rewraps at 80
+      wrap-markdown.sh — PostToolUse hook that rewraps at 80
                          the .md a tool wrote, or git sees
                          changed after a command
   skills/              — Symlink to .agents/skills/, because

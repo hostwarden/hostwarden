@@ -19,7 +19,7 @@
 # saying; saying it after every Edit call is noise, and noise is
 # what gets instructions ignored.
 
-ROOT=$(cd "${0%/*}/../.." && pwd)
+ROOT=$(cd "${0%/*}/../../.." && pwd)
 
 # shellcheck disable=SC2034 # read by hook_field in json.sh
 INPUT=$(cat)
@@ -28,7 +28,7 @@ INPUT=$(cat)
 # jq or python3 is on it; a hook whose whole job is to speak up must
 # not fall silent where they are missing. A path carrying an escape
 # is one no case below matches anyway.
-# shellcheck source=../../lib/json.sh
+# shellcheck source=../../../lib/json.sh
 . "$ROOT/lib/json.sh"
 
 FILE=$(hook_field file_path '[^"]')

@@ -77,7 +77,7 @@ tool reads. This file adds only what exists here and nowhere else.
   inside another session's active impact (`rules/coordination.md`
   → The hooks). Neither reaches the taboo guard's disable
   variable, and both run only where `mode.sh` reports operations.
-- **Markdown wraps itself.** `.claude/hooks/wrap-markdown.sh`, a
+- **Markdown wraps itself.** `.claude/hooks/aid/wrap-markdown.sh`, a
   PostToolUse hook, runs `bin/hostwarden-wrap` on each `.md` an
   edit tool writes, and after a shell command on each `.md` git
   sees as changed or new: the checkout's in development, those in

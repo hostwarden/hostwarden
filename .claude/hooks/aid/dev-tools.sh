@@ -18,8 +18,8 @@
 
 [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] || exit 0
 
-ROOT="$(cd "${0%/*}/../.." && pwd -P)"
-# shellcheck source=../../lib/mode.sh
+ROOT="$(cd "${0%/*}/../../.." && pwd -P)"
+# shellcheck source=../../../lib/mode.sh
 . "$ROOT/lib/mode.sh"
 cd "$ROOT" || exit 0
 
