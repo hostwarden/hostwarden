@@ -33,13 +33,15 @@ NEVER=.claude/rules/pull-requests.md
 # them. None of them is light, so a change with one is full.
 # tests/scripts/review-record.sh fails on a lib/ file that a
 # script on the list names and the list lacks. AID is what the list
-# would hold and does not: the hooks that help and guard nothing.
+# would hold and does not: the hooks that tell the session
+# something and decide nothing.
 AID=.claude/hooks/aid/
 CRITICAL='
 .claude/hooks/
 .claude/settings.json
 lib/mode.sh
 lib/json.sh
+lib/wrap-verbatim.sh
 lib/coord-lib.sh
 lib/coord-rest.sh
 lib/coord-tokenize.sh

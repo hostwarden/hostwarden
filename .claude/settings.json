@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/dev-tools.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/dev-tools.sh\"",
             "timeout": 90
           }
         ]
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/aid/wrap-markdown.sh\"",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/wrap-markdown.sh\"",
             "timeout": 10
           }
         ]

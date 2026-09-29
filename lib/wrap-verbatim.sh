@@ -1,7 +1,7 @@
 # shellcheck shell=sh
 # wrap-verbatim.sh — the workspace's Markdown whose bytes are a copy,
 # which neither bin/hostwarden-wrap --changed nor
-# .claude/hooks/aid/wrap-markdown.sh rewraps or lists. Sourced, never
+# .claude/hooks/wrap-markdown.sh rewraps or lists. Sourced, never
 # run.
 #
 #   machines|fleet|clusters/<name>/files/…  a master: exactly the

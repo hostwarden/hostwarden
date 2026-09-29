@@ -189,20 +189,21 @@ contrib/
                          disruptive command aimed at a host
                          another session works on until it is
                          announced, in operations
-    aid/               — Hooks that help and guard nothing, so
-                         a change to one is not critical
-                         (scripts/review-tier.sh)
-      dev-tools.sh     — SessionStart hook that installs the
+    dev-tools.sh       — SessionStart hook that installs the
                          checks' tools (mise.dev.toml) in a
                          Claude Code cloud development session
+    wrap-markdown.sh   — PostToolUse hook that rewraps at 80
+                         the .md a tool wrote, or git sees
+                         changed after a command
+    aid/               — Hooks that tell the session something
+                         and decide nothing, so a change to one
+                         is not critical
+                         (scripts/review-tier.sh)
       check-skills.sh  — SessionStart hook that reports a
                          .claude/skills link that is not one
       authoring-conventions.sh — PostToolUse hook that names
                          the authoring rules when an instruction
                          file or a bin/ script is edited
-      wrap-markdown.sh — PostToolUse hook that rewraps at 80
-                         the .md a tool wrote, or git sees
-                         changed after a command
   skills/              — Symlink to .agents/skills/, because
                          Claude Code searches only .claude/
 .agents/               — Cross-tool agent assets
