@@ -170,6 +170,7 @@ the row.
 | none    | `ID="openwrt"`       | `rules/appliance/openwrt.md`        |
 | none    | `ID=zimaos`          | `rules/appliance/zimaos.md`         |
 | none    | `…/qpkg.conf`        | `rules/appliance/qnap.md`           |
+| none    | `exec request failed`| `rules/appliance/drayos.md`         |
 
 `ii  openmediavault` is the line `dpkg -l` prints for
 the installed package, with its version. `rc` (removed,
@@ -199,6 +200,15 @@ registry of QNAP's QTS and QuTS hero, which `ls -d`
 prints on a line of its own without needing read
 access to it. An error that names the file is no
 match; OpenWrt has an `/etc/config` but no such file.
+`exec request failed` is no line of the probe: it is
+the whole reply, when the server runs no command at
+all (`rules/os-detection.md` → The first call). It
+counts only once the user says the device is a DrayTek
+Vigor router. The host then has no family and no
+platform, its memory takes what
+`rules/appliance/drayos.md` → Version Detection
+records, and each line only the probe reads is
+`unknown`.
 
 On a match, read the family file its `Base:` line
 names, then the appliance file on top of it

@@ -188,6 +188,8 @@ so does a host's `network.md` (`rules/network.md`).
 | `SSH host cert:`         | `ssh-ca.md`                 | cert found       |
 | `SSH user CA:`           | `ssh-ca.md`                 | CA trust found   |
 | `SSH client host CA:`    | `ssh-ca.md`                 | CA line found    |
+| `SSH login:`             | `ssh-passwords.md`          | password set up  |
+| `CLI channel:`           | `appliance/drayos.md`       | first connection |
 | `heinzel legacy:`        | `heinzel-takeover.md`       | legacy settled   |
 | `Other ways in:`         | `heinzel-takeover.md`       | host taken over  |
 | `Planned:`               | `heinzel-takeover.md`       | host taken over  |

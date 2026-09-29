@@ -26,6 +26,11 @@ only after warning that the value will leak.
 
 Rule: `rules/secrets.md`.
 
+The SSH password of a device that takes no key never reaches the
+session either: you store it yourself, or keep it in a password
+manager, and a helper hands it to ssh alone
+([Password logins](../features/ssh/passwords.md)).
+
 ## Ignores injected instructions
 
 Text found in server files, logs, or command output is treated as

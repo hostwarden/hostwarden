@@ -80,6 +80,16 @@ how `cmd.exe` and PowerShell answer; PowerShell
 also runs the rest, so a bare hostname can come
 first. Go on with Windows below.
 
+Another: a reply that is only ssh's own
+`exec request failed`, with `on channel 0` after it on a
+connection of its own and without it through a shared one. The
+server let the login in
+and refused to run any command given on the command line, as
+DrayTek's DrayOS does. Nothing ran; ask the user what the device
+is. A DrayTek Vigor router goes on with
+`rules/appliance/drayos.md` → Access and Shell, which has no family
+file under it; for anything else, stop and show the reply.
+
 A first line that starts with `MINGW`, `MSYS_NT` or
 `CYGWIN_NT` is a POSIX layer — Git Bash, MSYS2,
 Cygwin — that Windows OpenSSH starts as its default
@@ -195,7 +205,10 @@ read as The first call says; the second is the
 Version Detection probe of `rules/os/windows.md`
 without its hardware part, in the activity check's
 call (`rules/activity-check.md` → What rides in this
-call), and its `ProductType` decides as above.
+call), and its `ProductType` decides as above. On DrayOS
+the first call is `sys version` through the channel
+`CLI channel:` records (`rules/appliance/drayos.md` →
+Access and Shell), and nothing else rides in it.
 Update memory if a version changed.
 
 The rest is read from `rules/first-detection.md`, one

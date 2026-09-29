@@ -155,7 +155,7 @@ check_mode() {
 
 # The fixtures, one file per effect, in this order. Each queues its
 # checks with check or check_mode; a few judge the hook directly.
-for part in block guests first-boot storage ssh-keys windows pass instruction-blocks pass-ssh sshd heredoc override edit session development; do
+for part in block guests first-boot storage ssh-keys windows pass instruction-blocks pass-ssh sshd heredoc override edit session development passwords; do
   # shellcheck source=/dev/null
   . "$REPO/tests/hooks/guard-taboos/$part.sh"
 done

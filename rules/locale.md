@@ -38,6 +38,9 @@ not reach, and whose text follows the system's display language.
 Read object properties, SIDs and numbers there, never display text
 (`rules/os/windows.md` → Common Pitfalls).
 
+DrayOS is the other: it has no shell to set a variable in, and its
+command line answers in English (`rules/appliance/drayos.md`).
+
 ## Why these values
 
 - **`LC_ALL`, not `LANG`.** `LANG` is only the fallback: an

@@ -45,6 +45,25 @@ A decision, for one host or a group, settles any of these
   sent directly from such an address.
   [A host's network](../../features/hosts/network.md)
 
+## Password logins
+
+For a device that takes no SSH key
+([Password logins](../../features/ssh/passwords.md)):
+
+- **A key wherever the host takes one** — Hostwarden sets up a
+  password login only for a device that leaves no other way.
+- **The password on this machine rather than in a password
+  manager** — only Hostwarden's own passwords are in reach. A
+  manager is used only through an identity that sees nothing but
+  Hostwarden's entries, which is a requirement, not a
+  recommendation.
+- **A firmware without old SSH algorithms** — Hostwarden adds a
+  weak key exchange, host key type or cipher for one host only, and
+  says so each time.
+- **No management of a DrayTek router from the internet** — the
+  web UI facing the WAN is how DrayTek's recent vulnerabilities are
+  reached. [Appliances](../../features/systems/appliances.md)
+
 ## Guests
 
 - **SSH keys from the first boot, a password only on request** —

@@ -5,7 +5,8 @@
 # it also puts the shim (shim.sh) in front of the tools that reach
 # a server. In operations it also gives every later Bash call this
 # session's own id, for presence.sh and bin/hostwarden-impact
-# (rules/coordination.md → Presence map).
+# (rules/coordination.md → Presence map), and ssh the program that
+# answers a password prompt (rules/ssh-passwords.md).
 
 ROOT="$(cd "${0%/*}/../.." && pwd -P)"
 # shellcheck source=../../lib/mode.sh
@@ -64,6 +65,18 @@ operations)
      && ! grep -qF 'export HOSTWARDEN_SESSION=' "$CLAUDE_ENV_FILE" 2>/dev/null
   then
     echo "export HOSTWARDEN_SESSION=$(q "$SID")" >> "$CLAUDE_ENV_FILE"
+  fi
+  # A host that takes only a password gets it from
+  # bin/hostwarden-askpass, which ssh runs with no terminal only
+  # when told to (rules/ssh-passwords.md). Every other host keeps
+  # BatchMode=yes from memory/ssh_config, which never asks it.
+  if [ -n "${CLAUDE_ENV_FILE:-}" ] \
+     && ! grep -qF 'export SSH_ASKPASS_REQUIRE=' "$CLAUDE_ENV_FILE" 2>/dev/null
+  then
+    {
+      echo "export SSH_ASKPASS=$(q "$ROOT/bin/hostwarden-askpass")"
+      echo "export SSH_ASKPASS_REQUIRE=force"
+    } >> "$CLAUDE_ENV_FILE"
   fi
   exit 0
   ;;

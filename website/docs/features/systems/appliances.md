@@ -29,6 +29,7 @@ replaces what the family file would get wrong.
 | OpenWrt           | —       | `rules/appliance/openwrt.md`        |
 | ZimaOS            | —       | `rules/appliance/zimaos.md`         |
 | QNAP QTS, hero    | —       | `rules/appliance/qnap.md`           |
+| DrayTek DrayOS    | —       | `rules/appliance/drayos.md`         |
 
 Each file says how the appliance updates, where its settings live
 — mostly in its web UI or its own tools — which firewall it runs
@@ -39,9 +40,14 @@ and where it logs.
   before changing anything. UniFi OS works read-only there.
 - **TrueNAS CORE is covered far enough to report it as end of
   life.**
+- **DrayTek Vigor routers on DrayOS 3.x and 4.x** are reached with
+  a password ([Password logins](../ssh/passwords.md)) and have no
+  shell: Hostwarden reads their command line, reports, and changes
+  nothing you did not ask for, one confirmed command at a time.
+  DrayOS 5 and the Linux-based Vigor models are not covered.
 - **The fleet audit compares an appliance only with its own kind.**
 - **Some appliances run on their vendor's hardware.** Synology DSM,
-  QNAP, UGOS Pro and UniFi OS do, and `hostwarden-os-install` never
+  QNAP, UGOS Pro, UniFi OS and DrayOS do, and `hostwarden-os-install` never
   writes to it.
 
 ## Appliance APIs

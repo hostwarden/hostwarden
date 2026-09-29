@@ -118,6 +118,9 @@ tell_one() {
   case $(host_value "$h" 'Distro family' | tr '[:upper:]' '[:lower:]') in
     windows*) echo "no entry: $h (Windows: no sh to write with)"; return ;;
   esac
+  case $(host_value "$h" Appliance | tr '[:upper:]' '[:lower:]') in
+    drayos*) echo "no entry: $h (DrayOS: no sh to write with)"; return ;;
+  esac
   case $(host_value "$h" SSH) in
     untested*) echo "no entry: $h (never connected)"; return ;;
   esac

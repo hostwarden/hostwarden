@@ -25,7 +25,8 @@ One call per logical step, not one per command:
 
 Its first line sets the locale (`rules/locale.md`).
 Where the loaded OS file names its own bundle — Windows,
-`rules/os/windows.md` → Reaching PowerShell — use that.
+`rules/os/windows.md` → Reaching PowerShell, and DrayOS,
+`rules/appliance/drayos.md` → Access and Shell — use that.
 
 `sh -s` also decides what a pattern with no match
 does. `sh` keeps it as it is. zsh, macOS's login

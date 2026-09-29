@@ -34,10 +34,22 @@
 # (ProxyCommand, LocalCommand, Match exec, KnownHostsCommand) and
 # pull in other files (Include). Only Host, HostName, Port,
 # ProxyJump and HostKeyAlias pass, each with a value that cannot
-# carry a token, a variable, a quote or an option. One line that
+# carry a token, a variable, a quote or an option, and for a host
+# that takes only a password the few keywords that let one through
+# (rules/ssh-passwords.md): BatchMode and PubkeyAuthentication set
+# to no, NumberOfPasswordPrompts to 1, PreferredAuthentications to
+# password or keyboard-interactive, one, since ssh counts the
+# prompts of each apart, and KexAlgorithms,
+# HostKeyAlgorithms, Ciphers and MACs only as a "+" list, which adds
+# an old algorithm to ssh's own and takes none away. One line that
 # fails keeps every host block out, not only its own: half a file
 # would send a host to the wrong port, or past its jump host.
 # Parts 2 and 3 are written either way.
+#
+# After part 3 stands one Match block that sets nothing, for the
+# hosts that take a password: its exec tells bin/hostwarden-askpass
+# which user, HostName and Port the ssh process logs in to, so a
+# password goes to the target it was stored for and no other.
 set -e
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -86,11 +98,33 @@ check() {
     BEGIN {
       kw["hostname"] = "HostName"; kw["port"] = "Port"
       kw["proxyjump"] = "ProxyJump"; kw["hostkeyalias"] = "HostKeyAlias"
+      # A host that takes only a password (rules/ssh-passwords.md).
+      kw["batchmode"] = "BatchMode"
+      kw["pubkeyauthentication"] = "PubkeyAuthentication"
+      kw["numberofpasswordprompts"] = "NumberOfPasswordPrompts"
+      kw["preferredauthentications"] = "PreferredAuthentications"
+      kw["kexalgorithms"] = "KexAlgorithms"
+      kw["hostkeyalgorithms"] = "HostKeyAlgorithms"
+      kw["ciphers"] = "Ciphers"; kw["macs"] = "MACs"
     }
     function bad(why) {
       printf "hostwarden: memory/ssh_hosts line %d: %s\n", NR, why \
         > "/dev/stderr"
       failed = 1
+    }
+    # BatchMode no lets ssh ask the helper, and on its own would let it
+    # try password and keyboard-interactive, or prompt again, in one
+    # call: a device that locks an account counts each. It stands only
+    # with the other three lines, in the same block.
+    function endblock() {
+      if (bm && !(pk && np && pa)) {
+        printf "hostwarden: memory/ssh_hosts line %d: BatchMode no needs " \
+          "PubkeyAuthentication no, NumberOfPasswordPrompts 1 and " \
+          "PreferredAuthentications in the same block " \
+          "(rules/ssh-passwords.md)\n", bm > "/dev/stderr"
+        failed = 1
+      }
+      bm = pk = np = pa = 0
     }
     # A host name or user name, never starting with "-".
     function label(v) { return v ~ /^[A-Za-z0-9_.][A-Za-z0-9_.-]*$/ }
@@ -122,13 +156,14 @@ check() {
             next
           }
         if (NF < 2) { bad("Host without a name"); next }
+        endblock()
         in_host = 1
         $1 = "Host"
         out[++n] = $0
         next
       }
       if (!(k in kw)) {
-        bad("\"" $1 "\" is not one of Host, HostName, Port, ProxyJump, HostKeyAlias")
+        bad("\"" $1 "\" is not a keyword memory/ssh_hosts takes (rules/ssh-config.md)")
         next
       }
       if (!in_host) { bad("\"" $1 "\" before the first Host line"); next }
@@ -137,6 +172,13 @@ check() {
       if (k == "hostname") ok = name(v)
       else if (k == "port") ok = port(v)
       else if (k == "hostkeyalias") ok = name(v) || v ~ /^\[[A-Za-z0-9_.:-]+\]:[0-9]+$/
+      else if (k == "batchmode" || k == "pubkeyauthentication") ok = v == "no"
+      else if (k == "numberofpasswordprompts") ok = v == "1"
+      else if (k == "preferredauthentications")
+        ok = v == "password" || v == "keyboard-interactive"
+      else if (k == "kexalgorithms" || k == "hostkeyalgorithms" \
+               || k == "ciphers" || k == "macs")
+        ok = v ~ /^\+[a-z0-9@.-]+(,[a-z0-9@.-]+)*$/
       else {
         ok = 1
         if (v != "none") {
@@ -145,9 +187,14 @@ check() {
         }
       }
       if (!ok) { bad("\"" v "\" is not a valid " $1 " value"); next }
+      if (k == "batchmode") bm = NR
+      else if (k == "pubkeyauthentication") pk = 1
+      else if (k == "numberofpasswordprompts") np = 1
+      else if (k == "preferredauthentications") pa = 1
       out[++n] = "  " kw[k] " " v
     }
     END {
+      endblock()
       if (failed) exit 1
       for (i = 1; i <= n; i++) print out[i]
     }
@@ -171,6 +218,38 @@ elif [ -f memory/ssh_hosts ]; then
     FAILED=1
   fi
 fi
+
+# The note for bin/hostwarden-askpass, for the hosts whose block
+# lets ssh ask for a password (BatchMode no) and no other: every ssh
+# call to them runs it, and a call to any other host never asks.
+# They are matched by the name the call gave, originalhost, since
+# host would be the HostName. The block stands last, after the user's
+# own files, so %h and %p are the HostName and Port ssh connects
+# with, wherever they were set; never `Match final`, which would
+# parse the whole file a second time for every host, the password
+# hosts' or not. A path with a single quote cannot be quoted for the
+# shell that runs it; the file then goes without the block, and a
+# password login cannot work. The shell execs the helper, so the
+# helper's parent is ssh itself.
+ASKPASS_NOTE=''
+PWHOSTS=$(printf '%s\n' "$HOSTS" | awk '
+  # A pattern with ! excludes a host from its own block only, which
+  # says nothing of any other block: it is left out here, and a note
+  # for a host that takes no password is harmless.
+  $1 == "Host" {
+    h = ""
+    for (i = 2; i <= NF; i++)
+      if ($i !~ /^!/) h = h (h == "" ? "" : ",") $i
+    next
+  }
+  $1 == "BatchMode" && $2 == "no" && h != "" { l = l (l == "" ? "" : ",") h }
+  END { print l }')
+case "$REPO_DIR" in
+  *\'*) ;;
+  *)
+    AP=$(printf '%s' "$REPO_DIR/bin/hostwarden-askpass" | sed 's/%/%%/g')
+    [ -n "$PWHOSTS" ] && ASKPASS_NOTE="exec '$AP' --note %n %r %h %p" ;;
+esac
 
 # ControlPath needs the directory before the first call.
 # shellcheck disable=SC2174
@@ -219,6 +298,15 @@ EOF
   Include ~/.ssh/config
   Include /etc/ssh/ssh_config
 EOF
+  # Last, after the user's own files: %h and %p are then the HostName
+  # and Port ssh connects with, wherever they were set, which is what
+  # ssh -G shows bin/hostwarden-password.
+  if [ -n "$ASKPASS_NOTE" ]; then
+    echo
+    echo "# Which target each ssh process logs in to, for"
+    echo "# bin/hostwarden-askpass (rules/ssh-passwords.md). Sets nothing."
+    printf 'Match originalhost %s exec "%s"\n' "$PWHOSTS" "$ASKPASS_NOTE"
+  fi
 } > "$TMP"
 # Unchanged, the file keeps its date.
 if ! cmp -s "$TMP" memory/ssh_config; then

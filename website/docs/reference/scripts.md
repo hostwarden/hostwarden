@@ -33,6 +33,10 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
 - **`hostwarden-map`** — draws the Mermaid maps under `memory/maps/`
   and the overview page `memory/README.md`
   ([Infrastructure maps](../memory/maps.md)).
+- **`hostwarden-password`** — stores the SSH password of a host that
+  takes no key on this machine, or links it to a 1Password or
+  Bitwarden item, and checks or forgets it; never prints one
+  ([Password logins](../features/ssh/passwords.md)).
 
 ## These run for you
 
@@ -41,6 +45,9 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
   `hostwarden-update` run it, and it is safe to run by hand.
 - **`hostwarden-ssh-config`** — writes `memory/ssh_config`, the file
   every SSH call passes; the session start runs it.
+- **`hostwarden-askpass`** — hands ssh the password of a host that
+  takes no key, and nobody else; ssh runs it
+  ([Password logins](../features/ssh/passwords.md)).
 - **`hostwarden-sync`** — pulls the workspace at session start and
   commits what a session wrote; its `commit` also redraws the maps.
 - **`hostwarden-impact`** — works out what a disruptive step on a host
