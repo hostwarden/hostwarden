@@ -93,7 +93,8 @@ scripts/               — Tools for developing Hostwarden itself;
                          the second review of its head, and
                          the own review's tier
   review-tier.sh       — Whether a change is light or full for
-                         the reviews, from the files it touches
+                         the reviews, and which of its files
+                         are critical, from the files it touches
 tests/                 — Every fixture matrix, laid out like the
                          tree it checks; run by scripts/check.sh
   helpers.sh           — The counters and the closing line
