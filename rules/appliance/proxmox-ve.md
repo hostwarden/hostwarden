@@ -272,6 +272,7 @@ Source for everything below unless noted: the admin guide,
     echo "@conf $f"
     sed -n '/^\[/q; /^name:/p; /^hostname:/p; /^template:/p;
       /^net[0-9]*:/p; /^smbios1:/p; /^onboot:/p; /^agent:/p;
+      /^tags:/p;
       /^hostpci[0-9]*:/p; /^usb[0-9]*:/p; /^dev[0-9]*:/p;
       /^mp[0-9]*:/p; /^virtiofs[0-9]*:/p; /^lxc\.mount\.entry:/p;
       /^lxc\.cgroup2\.devices\.allow:/p' "$f"
@@ -337,6 +338,8 @@ Source for everything below unless noted: the admin guide,
   (`src/PVE/LXC/Setup.pm` in `pve-container`).
 - **Node status:** only ever `pvesh get /nodes/<node>/status`; a
   `create` (POST) on that path reboots or shuts down the node.
+- **Community scripts:** the inventory's `tags:` line, and the
+  scripts themselves: `rules/community-scripts.md`.
 - **Baseline template:** the archive new containers are created
   from (`hostwarden-new-guest`), one line per distribution release
   in the node's memory, with the baseline version and the `pveam`
@@ -435,6 +438,10 @@ Source for everything below unless noted: the admin guide,
   keeps its node empty (Quorum, HA and Reboots). Record the
   result as the cluster's `HA:` line.
 - A missing backup job for running guests is a finding.
+- `/usr/local/bin/pve-remove-nag.sh` on the node is **INFO**: the
+  post-install script of community-scripts.org ran here and
+  patched the subscription notice out of the web UI
+  (`rules/community-scripts.md` → Never running one). Leave it.
 - The passthrough lines the inventory above collects are read by
   `.agents/skills/hostwarden-housekeeping/references/passthrough.md`,
   which also holds the host's own side.

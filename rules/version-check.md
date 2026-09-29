@@ -47,7 +47,9 @@ software is touched.
 - **Manually installed services:** Software listed
   in `memory.md` that was installed outside the
   distro package manager (e.g. Ollama,
-  node_exporter, mise itself).
+  node_exporter, mise itself), or that a
+  `Community script:` line names
+  (`rules/community-scripts.md`).
 
 ### Tier 2 — Check When Touched
 

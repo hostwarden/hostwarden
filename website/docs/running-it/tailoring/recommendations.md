@@ -65,6 +65,11 @@ decision to keep Hostwarden from asking again
   — a current version, per user, instead of whatever the distro
   froze at release.
   [Language runtimes and deploy users](../../features/changes/runtimes.md)
+- **A community script read as a recipe, on Proxmox VE and Incus**
+  — what an application needs is already written down at
+  community-scripts.org; Hostwarden offers to read it, and installs
+  by its own rules.
+  [rules/community-scripts.md](https://github.com/hostwarden/hostwarden/blob/main/rules/community-scripts.md)
 - **Long-running services under the host's service manager, not
   `nohup` or `screen`** — systemd, or rc on FreeBSD, handles
   restarts, logging and boot ordering for free.

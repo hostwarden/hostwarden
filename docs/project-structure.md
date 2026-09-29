@@ -364,6 +364,8 @@ rules/                 — Upstream rule files (git-tracked)
                          starting services
   service-class-check.md — One web server / database /
                          MTA per host unless approved
+  community-scripts.md — Scripts of community-scripts.org on
+                         Proxmox VE and Incus: read, never run
   containers.md        — Docker, Podman and containerd:
                          find, read and change a container
   secrets.md           — Secrets hygiene: never print

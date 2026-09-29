@@ -304,6 +304,10 @@ trigger — not a request from the user.
   `rules/port-check.md`
 - Installing a package → `rules/service-class-check.md`, for a
   second web server, database or MTA the host already has
+- Installing an application the distribution does not package,
+  on a Proxmox VE or Incus host or in a guest of one, or changing
+  the software of a guest with a `Community script:` line →
+  `rules/community-scripts.md`
 - Installing, removing or reconfiguring a network-facing service →
   `rules/firewall-changes.md`
 - Any firewall, network or login-shell change that can cut
