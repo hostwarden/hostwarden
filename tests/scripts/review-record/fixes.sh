@@ -14,6 +14,10 @@ script=$(sed -nE "s/^LIGHT='(.*)'$/\\1/p" review-tier.sh | tr ' ' '\n' | sort)
 [ -n "$rule" ] && [ "$rule" = "$script" ] \
   && ok || bad "the light list differs between the rule and review-tier.sh"
 
+# The critical list, an entry a line.
+script=$(awk '/^CRITICAL=.$/ { on = 1; next } on && /^.$/ { exit } on' \
+  review-tier.sh)
+
 # A fix line is judged by what its commit touches, so these run in
 # a repository of their own: $L1 a head the round ran on, then fixes
 # of it that touch docs/ alone ($L2), a script ($F2), a script moved
@@ -43,6 +47,8 @@ L2=$(fixof light sh -c 'echo b >>docs/a.md')
 F2=$(fixof full sh -c 'echo z >>scripts/x.sh')
 M2=$(fixof moved git mv scripts/y.sh docs/y.md)
 P2=$(fixof rules sh -c 'echo r >.claude/rules/pull-requests.md')
+H2=$(fixof hook sh -c 'mkdir -p .claude/hooks/shim && echo s >.claude/hooks/shim/ssh;
+  echo b >>docs/a.md')
 U2=$(fixof umlaut sh -c 'echo u >docs/ümlaut.md')
 # A checkout drops a directory it empties, so each fix makes its own.
 W2=$(fixof page sh -c 'mkdir -p website/docs/a && echo w >website/docs/a/w.md')
@@ -62,6 +68,24 @@ tier() { (cd "$IN" && sh "$HERE/review-tier.sh" "$@" 2>/dev/null | head -1); }
 [ "$(tier "$L1" "$J2")" = full ] \
   && ok || bad "a file beside the site's pages is full"
 [ "$(tier "$L1" "$B2")" = full ] && ok || bad "the site's build is full"
+critical() {
+  (cd "$IN" && sh "$HERE/review-tier.sh" --critical "$@" 2>/dev/null)
+}
+[ "$(critical "$L1" "$H2")" = .claude/hooks/shim/ssh ] \
+  && ok || bad "a shim is critical, the page beside it is not"
+[ -z "$(critical "$L1" "$F2")" ] && ok || bad "a script is not critical"
+# One file per entry of the critical list, in one commit: each is
+# critical, and each is among the files that make the change full.
+# shellcheck disable=SC2016,SC2086 # the inner shell's; an entry a word
+K2=$(fixof critical sh -c 'for c; do
+    case $c in */) c=${c}x ;; *\*) c=${c%\*}-x.md ;; esac
+    mkdir -p "$(dirname "$c")" && echo c >"$c" || exit 1
+  done' sh $script)
+n=$(printf '%s\n' "$script" | grep -c .)
+[ "$(critical "$L1" "$K2" | grep -c .)" -eq "$n" ] \
+  && ok || bad "a file of each critical entry is critical"
+[ "$(cd "$IN" && sh "$HERE/review-tier.sh" "$L1" "$K2" | grep -c .)" \
+  -eq $((n + 1)) ] && ok || bad "no critical entry is light"
 (cd "$IN" && sh "$HERE/review-tier.sh" -p "$L1" >/dev/null 2>&1)
 [ $? -eq 2 ] && ok || bad "an option is a usage error"
 

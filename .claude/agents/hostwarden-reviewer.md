@@ -9,7 +9,7 @@ description: Review a change to Hostwarden itself for defects before
   `.claude/rules/pull-requests.md` → Review says, never for a
   managed host.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
-model: opus
+model: sonnet
 effort: medium
 permissionMode: default
 color: purple
@@ -46,7 +46,11 @@ The prompt names one of three jobs.
   - `consistency` — classes 4, 7, 8, 10, 12, 15 and 16: what the
     change must agree with, what it claims, what it leaves behind;
   - `commands` — classes 1, 2, 3, 5, 6, 9, 11, 13 and 14: what a
-    command, probe or parser does, reads and concludes.
+    command, probe or parser does, reads and concludes;
+  - `critical` — every class, for the hunks in the files the prompt
+    names and for nothing else in the range: the files where a
+    defect lets a taboo through, cuts SSH, leaks a secret or
+    weakens the review.
 
   A defect outside your focus that you come across is still a
   finding; you only do not search for one. With a fix range, the
@@ -68,8 +72,10 @@ The prompt names one of three jobs.
   other place in the repository where the same defect sits: every
   sibling form, file, OS family and path. The author fixes them
   all in one commit.
-- **Check** — continued after a review, you are given findings the
-  other focus reported and you did not. For each, read its cited
+- **Check** — continued after a review, you are given findings
+  another reviewer reported and you did not; with focus `critical`,
+  the prompt may give such findings from the start, to check before
+  you review. For each, read its cited
   lines and the file that would handle its case, as → Before you
   return says, and confirm it or refute it with the line that
   handles the case.
@@ -77,7 +83,8 @@ The prompt names one of three jobs.
 ## How you work
 
 1. Read the diff, `git diff <base> <head>`, or `git show` for one
-   commit. Then read each changed file in full, not only the hunks.
+   commit. Then read each changed file in full, not only the hunks;
+   with focus `critical`, each named file.
 2. Read what the change must agree with: `AGENTS.md`, the
    `.claude/rules/` file whose `paths` match what changed, and
    `.claude/rules/instruction-authoring.md` for any instruction
@@ -90,6 +97,8 @@ The prompt names one of three jobs.
    - `commands`: the OS, platform and appliance files the changed
      commands run on, and every other place the same command, probe
      or parser appears — `rg` for its name and the options it uses.
+   - `critical`: both bullets above, for what the hunks in the
+     named files touch.
    - A sweep, a fix range, and each finding the prompt gives: both
      bullets above, for what the findings and the fix's hunks touch.
      A continued reviewer reads only what it has not read yet.
@@ -106,13 +115,14 @@ The prompt names one of three jobs.
    produces it, and each answer or state it creates to the step
    that consumes it — every consumer, in every file the search
    found, not only the one the change was written for.
-4. With focus `commands`, in a sweep, in a fix range and for each
-   finding the prompt gives, check commands against the tool, never
+4. With focus `commands` or `critical`, in a sweep, in a fix range
+   and for each finding the prompt gives, check commands against the tool, never
    against memory: `--help` and `man` here,
    `scripts/lab.sh exec <family> -- <command>` for a Linux
    family, upstream documentation for the rest. Cite what you
    checked.
-5. Go through your focus's classes for every hunk, every class in a
+5. Go through your focus's classes for every hunk, with focus
+   `critical` every hunk in the named files, every class in a
    sweep, a fix range and a finding the prompt gives. In the light
    tier, each command the changed lines add or alter goes through
    step 4 and the `commands` classes as well. For a sweep, a fix
@@ -305,7 +315,9 @@ For each:
   blocked.
 - **P3** — a repository convention broken, no wrong outcome.
 
-When there is nothing, return exactly `No findings.` In a sweep,
+When there is nothing, return exactly `No findings.` Where the
+prompt gave findings to check beside a review, their lines come
+first, as a check returns them. In a sweep,
 return one block per finding given: its class, then every sibling
 as `<path>:<line> — <what is missing there>`, or `none`. In a
 check, return one line per finding given: `<title>: confirmed`, or

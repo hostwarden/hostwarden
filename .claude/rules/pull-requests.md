@@ -160,12 +160,14 @@ foreign `main` would put other commits into the review.
 It runs on every pull request, in a context of its own, never in
 the session that wrote the change. In Claude Code that is the
 `hostwarden-reviewer` subagent; elsewhere, a fresh session whose
-instructions are that file's body. In Claude Code it runs on Opus
+instructions are that file's body. In Claude Code it runs on Sonnet
 at medium effort whatever model wrote the change, for the reason
-the second review pins its model (→ Codex); the session passes no
-`model` when it dispatches it, since that would win over the
-file's. Should the reviewer's issue (→ Sharpening the reviewer) show the own
-review missing more than before, the pin is the first thing to revisit. A
+the second review pins its model (→ Codex), and what calls for
+more goes to a reviewer on Opus (→ The critical reviewer). The
+session passes no `model` when it dispatches any other, since that
+would win over the file's. Should the reviewer's issue
+(→ Sharpening the reviewer) show the own review missing more than
+before, the two pins are the first thing to revisit. A
 tool that picks the model per session, such as OpenCode, may run it
 on another family than the author's, and the own review then brings
 a second family's view as well.
@@ -240,7 +242,8 @@ added the file. Running the reviewers is the author's step.
    found. In the full tier the session merges what the two return:
    a defect both report at the same place is one finding, and that
    both found it counts as confidence. Each P0 or P1 that only one
-   reports goes to the other as a check, continued — all of one reviewer's in
+   reports, and that → The critical reviewer does not send on,
+   goes to the other as a check, continued — all of one reviewer's in
    one message, both at once — to confirm or to refute with the
    `path:line` that handles its case. The findings already
    name their class and siblings: fix them all, in the full tier in
@@ -256,7 +259,8 @@ Of the results, only the deferred list below and one line under
     Own review: full (bin/example, …), 2 focused, 1 fix pass, 3 findings
 
 `1 pass` in the light tier, at most three paths that decided the
-tier, `1 finding` or `no findings` where that fits, and
+tier, `, 1 critical` after the focused where the critical reviewer
+read a file, `1 finding` or `no findings` where that fits, and
 `, <k> not a bug` after the count where step 2 answered any so.
 The review record check holds its tier to the files (→ The review
 record).
@@ -271,6 +275,46 @@ Passes, here and on a fix commit, run like this:
 - What is still open after that is listed under
   `## Deferred review findings` as the own review's; a P0 or P1
   among it goes to whoever merges, with one line on its impact.
+
+### The critical reviewer
+
+The critical reviewer is `hostwarden-reviewer` on Opus at medium
+effort: in Claude Code the same subagent, dispatched with
+`model: opus`; elsewhere, a fresh session on the strongest model
+the tool offers. Opus is spent only where it is called for, which
+shows before the review or during it.
+
+- **Before the review, by the files.** The critical files are the
+  ones `CRITICAL` in `scripts/review-tier.sh` lists, guard hooks,
+  safety rules, skills and scripts that handle disks, hosts or
+  keys, and the review's own files among them.
+  `sh scripts/review-tier.sh --critical hostwarden/<base>...HEAD`
+  prints the ones the branch changes. Where it prints any, the
+  critical reviewer starts together with the two focused ones, its
+  prompt giving what theirs gives, focus `critical`, and the files
+  printed; where it prints none, no critical reviewer starts. The
+  focused reviewers read the whole range all the same. A push
+  that turns a light pull request full and a fix commit are read
+  the same way, `--critical` given the range the reviewers then
+  get: a file it prints that the critical reviewer has not read
+  goes to it, continued where one runs.
+- **During the review, by a finding.** A P0 or P1 that a focused
+  reviewer reports, or a round of the second review finds, in a
+  file the critical reviewer has not read, sends that file to it,
+  with the finding: every such file of one review or round in one
+  message, to the critical reviewer continued where one runs, and
+  to a fresh one otherwise, its prompt then giving the two SHAs,
+  the tier's output and focus `critical` as well. It checks each
+  finding, confirmed or refuted with the `path:line` that handles
+  its case, and reviews the range's hunks in those
+  files. The own review's other reviewers are not started again.
+
+A file the critical reviewer has read stays its own for the rest of
+the pull request: a sweep of a finding in it and the passes on a
+fix that touches it are the critical reviewer's. What it reports
+merges with the focused reviewers' findings as step 2 of → The own
+review says, and a P0 or P1 only it reports goes as a check to the
+focused reviewer whose focus holds the finding's class.
 
 ### The second review
 
@@ -504,8 +548,9 @@ A second-review finding names one case; the defect is usually a
 class. Fixing only the case named is what brings the same finding
 back in the next round.
 
-1. Give the findings to `hostwarden-reviewer` as a sweep. It names
-   each one's class and every sibling in the repository.
+1. Give the findings to `hostwarden-reviewer` as a sweep
+   (→ The critical reviewer). It names each one's class and every
+   sibling in the repository.
 2. Fix the finding and its siblings in one commit. A broken claim
    follows `instruction-authoring.md` → Claims.
 3. Before pushing, give the commit's range to the reviewer that
@@ -536,9 +581,10 @@ answered "not a bug" or the own review had already reported it, as
 far as the session knows.
 Before the session lifts the draft, it adds each missed finding to
 the one open issue titled "Sharpen hostwarden-reviewer": a checklist
-line with the pull request's number and its own review's tier, the
-finding's title, its class from the answer, and the question that
-class lacked. It opens that issue when none is open. A session
+line with the pull request's number and its own review's tier,
+`critical` after the tier where the critical reviewer had read the
+finding's file, the finding's title, its class from the answer, and the question
+that class lacked. It opens that issue when none is open. A session
 without write access to that issue's body writes the same checklist
 line into the pull request body instead, under a heading of its
 own, `## Sharpening the reviewer`; the session whoever merges hands
