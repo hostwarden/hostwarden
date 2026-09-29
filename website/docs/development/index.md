@@ -49,6 +49,13 @@ and reads the answer. That session runs the access lists and the
 full first-connection pipeline as always, a one-line question
 included. Details: `rules/server-check-handoff.md`.
 
+In a worktree of your operations checkout the agent knows where that
+is. In any other development checkout it asks you once and offers to
+record the answer in `~/.config/hostwarden/operations-checkout`, one
+line holding the clone's absolute path; every development session on
+the machine then names it at its start. You can write the file
+yourself as well.
+
 ## Contributing
 
 The contribution workflow — how to open a pull request, what review

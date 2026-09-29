@@ -64,8 +64,10 @@ tool reads. This file adds only what exists here and nowhere else.
   lists the sessions here and `SendMessage` reaches them; the
   coordinator is `hostwarden coordinator`. With none
   in the operations checkout, the one command is
-  `claude "<question>"`, run there — never a task chip, which starts
-  in a new worktree.
+  `claude "<question>"`, run there. A `spawn_task` chip starts in a
+  new worktree of the directory it is given, a development session,
+  so it is no way there; the rule's one-click offer waits for a
+  tool that starts in the checkout itself.
 - **Coordination runs in operations checkouts.**
   `.claude/hooks/presence.sh`, a PreToolUse and PostToolUse hook on
   `Bash` and `Monitor`, keeps the local presence map
