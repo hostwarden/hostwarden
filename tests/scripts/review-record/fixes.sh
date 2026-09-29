@@ -18,6 +18,23 @@ script=$(sed -nE "s/^LIGHT='(.*)'$/\\1/p" review-tier.sh | tr ' ' '\n' | sort)
 script=$(awk '/^CRITICAL=.$/ { on = 1; next } on && /^.$/ { exit } on' \
   review-tier.sh)
 
+# A lib/ file that a file on the critical list names, by its path
+# or through a variable that holds the directory, is on the list.
+# The files are the working tree's, tracked or new; a Markdown file
+# names many it does not run, and is not read.
+all=$(cd .. && git ls-files -co --exclude-standard \
+  | sh scripts/review-tier.sh --critical --names 2>/dev/null)
+LIBREF='(lib|\$[{]?[A-Za-z_]+[}]?)/[a-z][a-z0-9.-]*\.(sh|awk)'
+open=$(cd .. && printf '%s\n' "$all" | grep -v '\.md$' \
+  | while IFS= read -r f; do
+    [ ! -f "$f" ] || grep -ohE "$LIBREF" "$f"
+  done | sed 's#.*/#lib/#' | sort -u | while IFS= read -r l; do
+    [ -f "$l" ] || continue
+    printf '%s\n' "$all" | grep -qxF "$l" || printf ' %s' "$l"
+  done)
+[ -n "$all" ] && [ -z "$open" ] \
+  && ok || bad "a critical file names, and the critical list lacks,$open"
+
 # A fix line is judged by what its commit touches, so these run in
 # a repository of their own: $L1 a head the round ran on, then fixes
 # of it that touch docs/ alone ($L2), a script ($F2), a script moved
@@ -86,6 +103,9 @@ n=$(printf '%s\n' "$script" | grep -c .)
   && ok || bad "a file of each critical entry is critical"
 [ "$(cd "$IN" && sh "$HERE/review-tier.sh" "$L1" "$K2" | grep -c .)" \
   -eq $((n + 1)) ] && ok || bad "no critical entry is light"
+(cd "$IN" && sh "$HERE/review-tier.sh" --critical --names "$L1" \
+  </dev/null >/dev/null 2>&1)
+[ $? -eq 2 ] && ok || bad "an argument after --names is a usage error"
 (cd "$IN" && sh "$HERE/review-tier.sh" -p "$L1" >/dev/null 2>&1)
 [ $? -eq 2 ] && ok || bad "an option is a usage error"
 
