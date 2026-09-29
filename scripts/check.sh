@@ -265,6 +265,16 @@ then
 else
   step "impact radius" sh tests/bin/hostwarden-impact.sh
 fi
+# The password matrices read the two scripts, the library they
+# share, the ssh_config writer and lib/mode.sh.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    "^bin/hostwarden-(password|askpass|ssh-config)\$|^lib/(passwords\\.sh|passwords/|mode\\.sh)|^tests/bin/hostwarden-(password|ssh-config)(\\.sh\$|/)$HELPERS"
+then
+  echo "== password matrices: nothing they read is pushed, skipped"
+else
+  step "passwords" sh tests/bin/hostwarden-password.sh
+  step "ssh-config" sh tests/bin/hostwarden-ssh-config.sh
+fi
 # The map matrix reads hostwarden-map, its parts and lib/mode.sh;
 # hostwarden-sync only calls it, so a change there does not need
 # this to run.

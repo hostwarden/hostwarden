@@ -1,0 +1,269 @@
+#!/bin/sh
+# hostwarden-askpass — the program ssh asks for the password of a
+# host that takes no key, in an operations checkout
+# (rules/ssh-passwords.md). It prints the password to ssh and to
+# nobody else.
+#
+# Usage (ssh runs it; a person or a session never does):
+#   hostwarden-askpass <prompt>
+#                   ssh asks for a password (SSH_ASKPASS, with
+#                   SSH_ASKPASS_REQUIRE=force)
+#   hostwarden-askpass --note <name> <user> <host> <port>
+#                   memory/ssh_config's `Match … exec` tells it
+#                   which target the ssh process it runs under
+#                   logs in to, before any prompt; always exits 1
+#   hostwarden-askpass --help
+#
+# The prompt names at best a user and a host, and keyboard-interactive
+# logins may name neither, so the target comes from ssh itself: in
+# memory/ssh_config's Match block, after the host blocks, %r, %h and
+# %p are the user, and the HostName and Port memory/ssh_hosts gives. The note is kept per ssh process, under its
+# process ID and start time, so a process ID the system reuses never
+# finds another process's note.
+#
+# It answers only
+#   - a password prompt, never a passphrase, a host key question, a
+#     new password or a one-time code;
+#   - a target that offers no key login, as bin/hostwarden-password
+#     check found within 30 days: where a key or a certificate works,
+#     a password is never the way in;
+#   - an ssh process that is its parent, started with this
+#     checkout's memory/ssh_config and without an option that
+#     changes how the host key is checked or how the connection is
+#     made, so the password never reaches a host whose key was not
+#     verified;
+#   - three times per target in 15 minutes, counted by reservation
+#     so that logins at once cannot pass it together: a wrong
+#     password is tried once per call, and a device that locks its
+#     account after a few failures does so on its own count.
+#
+# A refusal from a prompt on also ends the ssh process: told only
+# that its askpass failed, ssh would send an empty password.
+#
+# Exit status: 0 with the password on stdout, 1 otherwise, with
+# the reason on stderr, which ssh shows.
+
+case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
+ROOT=$(cd "$ROOT" && pwd -P) || exit 1
+# shellcheck source=../lib/mode.sh
+. "$ROOT/lib/mode.sh"
+# shellcheck disable=SC2034 # read by lib/passwords.sh
+PW_ROOT=$ROOT
+# shellcheck source=../lib/passwords.sh
+. "$ROOT/lib/passwords.sh"
+
+say() { echo "hostwarden-askpass: $*" >&2; }
+
+hostwarden_cache_dir "$ROOT"
+NOTES=$HOSTWARDEN_CACHE/askpass
+
+# proc_start <pid> — when the process started, as the system says it.
+proc_start() {
+  if [ -r "/proc/$1/stat" ]; then
+    # Field 22, counted after the command name, which may hold spaces.
+    sed 's/^.*) //' "/proc/$1/stat" 2>/dev/null | cut -d' ' -f20
+  else
+    ps -o lstart= -p "$1" 2>/dev/null
+  fi
+}
+
+proc_name() {
+  if [ -r "/proc/$1/comm" ]; then
+    cat "/proc/$1/comm"
+  else
+    ps -o comm= -p "$1" 2>/dev/null
+  fi | sed 's#.*/##'
+}
+
+proc_args() {
+  if [ -r "/proc/$1/cmdline" ]; then
+    tr '\000' ' ' < "/proc/$1/cmdline"
+  else
+    ps -ww -o args= -p "$1" 2>/dev/null
+  fi
+}
+
+proc_parent() {
+  if [ -r "/proc/$1/stat" ]; then
+    sed 's/^.*) //' "/proc/$1/stat" 2>/dev/null | cut -d' ' -f2
+  else
+    ps -o ppid= -p "$1" 2>/dev/null | tr -d ' '
+  fi
+}
+
+# The ssh process this runs under: the parent, or for the note, the
+# parent's parent where a shell did not exec the Match command.
+ssh_pid() {
+  sp=$PPID
+  [ "$(proc_name "$sp")" = ssh ] && { echo "$sp"; return 0; }
+  [ "${1:-}" = note ] || return 1
+  sp=$(proc_parent "$sp")
+  [ -n "$sp" ] && [ "$(proc_name "$sp")" = ssh ] && echo "$sp"
+}
+
+case ${1:-} in
+  -h|--help)
+    awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
+    exit 0 ;;
+  --note)
+    [ $# -eq 5 ] || exit 1
+    PID=$(ssh_pid note) || exit 1
+    START=$(proc_start "$PID")
+    [ -n "$START" ] || exit 1
+    (
+      umask 077
+      mkdir -p "$NOTES" &&
+        printf '%s\n%s\n%s\n%s\n%s\n' "$START" "$2" "$3" "$4" "$5" \
+          > "$NOTES/$PID.$$" &&
+        mv "$NOTES/$PID.$$" "$NOTES/$PID"
+    ) 2>/dev/null
+    exit 1 ;;
+esac
+
+[ $# -eq 1 ] || { say "ssh passes exactly one prompt"; exit 1; }
+PID=$(ssh_pid) || { say "answers ssh only"; exit 1; }
+
+# refuse <reason…> — ends the ssh process as well. Told only that
+# its askpass failed, ssh would send an empty password, which the
+# host counts as a failed login like a wrong one.
+refuse() {
+  say "$@"
+  kill -TERM "$PID" 2>/dev/null
+  exit 1
+}
+
+# A password prompt and nothing else. ssh prompts `user@host's
+# password: ` and, for keyboard-interactive, `(user@host) ` before
+# the server's own text. The user and host are taken off first: a
+# host called encoder1 is no one-time code.
+PROMPT=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' |
+  sed -e 's/[[:space:]]*$//' -e "s/^[^ ]*@[^ ]*'s password:\$/password:/" \
+    -e 's/^([^ )]*@[^ )]*) //')
+case $PROMPT in
+  *passphrase*|*yes/no*|*fingerprint*|*verification*|*one-time*|*otp*|\
+  *token*|*pin:*|*code*|*new\ password*|*retype*|*again*|*confirm*|\
+  *old\ password*|*current\ password*)
+    refuse "answers a password prompt only, not: $1" ;;
+  *password*:|*password) ;;
+  *) refuse "answers a password prompt only, not: $1" ;;
+esac
+
+# What ssh processes long gone left behind: their notes, named by
+# process ID, and old counts. The methods-* answers stay; they hold
+# for 30 days (bin/hostwarden-password check).
+find "$NOTES" -type f \( -name '[0-9]*' -o -name 'count-*' \) -mmin +120 \
+  -exec rm -f {} + 2>/dev/null
+NOTE=$NOTES/$PID
+if [ ! -f "$NOTE" ]; then
+  refuse "ssh was not started with this checkout's memory/ssh_config"
+fi
+{ read -r N_START; read -r N_NAME; read -r N_USER; read -r N_HOST
+  read -r N_PORT; } < "$NOTE"
+if [ "$N_START" != "$(proc_start "$PID")" ]; then
+  refuse "the note for this ssh process is stale"
+fi
+
+# Only a call with Hostwarden's own options: a host key checked
+# against memory/known_hosts, and the connection ssh makes itself.
+ARGS=$(proc_args "$PID")
+# The -F file is compared by the checkout it lies in, resolved, so a
+# path written through a symbolic link still counts. ps joins the
+# arguments with spaces, so the path runs from the first -F to the
+# first memory/ssh_config after it, spaces in it included. A remote
+# command may hold line breaks: the lines are read as one.
+FILE=$(printf '%s\n' "$ARGS" | tr '\n' ' ' | awk '{
+  if (!match($0, /(^| )-F ?/)) exit
+  r = substr($0, RSTART + RLENGTH)
+  if ((j = index(r, "/memory/ssh_config")))
+    print substr(r, 1, j + length("/memory/ssh_config") - 1) }')
+case $FILE in
+  */memory/ssh_config)
+    [ "$(cd "${FILE%/memory/ssh_config}" 2>/dev/null && pwd -P)" = "$ROOT" ] ||
+      refuse "ssh was not started with -F $ROOT/memory/ssh_config" ;;
+  *) refuse "ssh was not started with -F $ROOT/memory/ssh_config" ;;
+esac
+# ps joins the arguments with spaces, the remote command's among
+# them, so only an -o option is looked for, not a bare word.
+if printf '%s\n' "$ARGS" | grep -Eiq \
+  '(^| )-o ?(stricthostkeychecking|userknownhostsfile|globalknownhostsfile|knownhostscommand|proxycommand|proxyusefdpass)'
+then
+  refuse "ssh was started with an option that changes how the host key" \
+    "is checked or the connection is made; no password for it"
+fi
+
+TARGET=$(pw_target "$N_USER" "$N_HOST" "$N_PORT")
+
+# Only a host that takes no key, as bin/hostwarden-password check
+# found within 30 days.
+if ! pw_keyless "$TARGET"; then
+  if grep -qs publickey "$(pw_methods_file "$TARGET")"; then
+    refuse "$TARGET offers key logins: it takes a key or a certificate," \
+      "never a password (rules/ssh-passwords.md)"
+  fi
+  refuse "no answer within 30 days that $TARGET takes a password and" \
+    "no key: run" \
+    "bin/hostwarden-password check $N_USER@$N_NAME"
+fi
+
+# Three a quarter hour, per target, counted by reservation: a login
+# appends one line to the target's count file, which O_APPEND makes
+# atomic, and only then counts the live lines up to its own, in file
+# order. It goes on when its rank is three or less. Logins at once
+# cannot pass the limit together, since each sees every one that
+# reserved before it and only those; none waits for another, so no
+# lock is left behind by a process that dies. A login that ends
+# without handing the password to ssh cancels its line, by the trap
+# below on every exit and signal but kill -9; one that dies so keeps
+# its line, which counts as a password given, for the quarter hour.
+COUNT=$NOTES/count-$(printf %s "$TARGET" | cksum | cut -d' ' -f1)
+NOW=$(date +%s)
+RES=$$-$NOW
+HANDED=
+# dash runs the EXIT trap on no signal, so each one ends the helper
+# through it.
+trap '[ -n "$HANDED" ] || printf "C %s\n" "$RES" >> "$COUNT" 2>/dev/null' EXIT
+trap 'exit 143' HUP INT TERM
+printf 'R %s %s\n' "$NOW" "$RES" >> "$COUNT"
+RANK=$(awk -v now="$NOW" -v id="$RES" '
+  $1 == "C" { c[$2] = 1; next }
+  { n++; ts[n] = $2; ids[n] = $3 }
+  END {
+    for (i = 1; i <= n; i++) {
+      if (ts[i] > now - 900 && !(ids[i] in c)) r++
+      if (ids[i] == id) { print r; exit }
+    }
+    print 999
+  }' "$COUNT")
+if [ "${RANK:-999}" -gt 3 ]; then
+  refuse "three passwords for $TARGET in 15 minutes; no fourth. A login" \
+    "that keeps failing needs the user: rules/ssh-passwords.md"
+fi
+
+SOURCE=$(pw_source "$N_USER" "$N_NAME" "$N_HOST") || SOURCE=local
+if ! pw_valid_source "$SOURCE"; then
+  refuse "memory/user.md names no valid source for $N_USER@$N_NAME"
+fi
+case $SOURCE in
+  local*)
+    B=$(pw_local_backend "$SOURCE")
+    if ! pw_local_has "$B" ssh "$TARGET"; then
+      refuse "no password for $TARGET in this machine's $B store. The" \
+        "user runs: bin/hostwarden-password set $N_USER@$N_NAME"
+    fi
+    PW=$(pw_local_get "$B" ssh "$TARGET") ||
+      refuse "the $B store did not answer for $TARGET" ;;
+  *)
+    # The identity is checked at every login, not only when linked:
+    # a service account that has since been given a second vault, or
+    # a profile that is gone, is no longer Hostwarden's own.
+    pw_manager_scoped "$SOURCE" ||
+      refuse "${SOURCE%% *} no longer goes through an identity that" \
+        "sees Hostwarden's entries alone; bin/hostwarden-password check"
+    PW=$(pw_manager_get "$SOURCE" "$TARGET") ||
+      refuse "${SOURCE%% *} gave no password for $TARGET" ;;
+esac
+# An empty answer is no password: ssh would send it as one. Only a
+# password that goes to ssh keeps its line.
+[ -n "$PW" ] || refuse "the source gave an empty password for $TARGET"
+HANDED=1
+printf '%s\n' "$PW"

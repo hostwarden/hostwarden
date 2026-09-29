@@ -224,7 +224,17 @@ c.md" | sh "$OPS/.claude/hooks/guard-mode.sh" \
 E5="$TMP/ops.env"
 : > "$E5"
 session "$OPS" "$E5" -u GIT_SSH_COMMAND PATH=/usr/bin:/bin
-[ -s "$E5" ] && bad "session-mode wrote to the env file in operations" || ok
+# Operations writes only what ssh needs for a password login
+# (rules/ssh-passwords.md): no shim, no wrapper.
+if grep -qv '^export SSH_ASKPASS' "$E5"; then
+  bad "session-mode wrote more than SSH_ASKPASS to the env file in operations"
+else
+  ok
+fi
+grep -qx 'export SSH_ASKPASS_REQUIRE=force' "$E5" && ok ||
+  bad "session-mode gave ssh no askpass program in operations"
+grep -qF "hostwarden-askpass" "$E5" && ok ||
+  bad "session-mode named another askpass program in operations"
 # Started from inside a development session, operations drops the
 # inherited shim and wrapper again, and gives back what the user set.
 E9="$TMP/ops-nested.env"

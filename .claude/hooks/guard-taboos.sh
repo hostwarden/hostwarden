@@ -53,6 +53,11 @@
 #   - an SSH key, a key store, sshd_config or dropbear's config
 #     as the target of Edit, Write, MultiEdit or NotebookEdit,
 #     which reach this machine's files without any shell
+#   - reading a stored SSH password or a password manager's secret
+#     on this workstation (security -w, secret-tool lookup, op read,
+#     rbw get, bws secret get, bw get, the file store's key), sshpass,
+#     and an SSH_ASKPASS other than bin/hostwarden-askpass
+#     (rules/ssh-passwords.md)
 #
 # ASKED, not denied -- the user confirms the exact command in a
 # permission prompt (see "The ask tier" below the scope for the
@@ -213,7 +218,7 @@ LIBDIR=$HOOKDIR/../../lib
 # reads HAS_KEY, SEGS or DISK as an earlier one left them. A new
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
-GUARD_MODULES='reach off edit command first-boot scope power disks storage ssh
+GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh
 config-mgmt interpreters guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer

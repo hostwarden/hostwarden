@@ -31,6 +31,10 @@ bin/                   — Commands an operator runs, or the
                             its remote
   hostwarden-ssh-config   — Write memory/ssh_config, the file
                             every SSH call passes with -F
+  hostwarden-password     — Store, link, check or forget the SSH
+                            password of a host that takes no key
+  hostwarden-askpass      — Hand ssh that password, and nobody
+                            else (SSH_ASKPASS)
   hostwarden-fleet-run    — An operations host's nightly
                             housekeeping through fleet read
   hostwarden-impact       — What a reboot, restart or network
@@ -54,6 +58,11 @@ lib/                   — Code bin/ and the hooks share; sourced,
   json.sh              — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks
+  passwords.sh         — Where a password comes from: the local
+                         stores and the sources, for
+                         hostwarden-password and -askpass; the
+                         managers and the login methods a host
+                         offers in passwords/
   hops.sh              — The jump hosts in front of a host,
                          read from ssh -G
   resolve.sh           — A name's IPv4 addresses for the
@@ -113,6 +122,7 @@ tests/                 — Every fixture matrix, laid out like the
                          hostwarden-impact's announce and wait;
                          its parts in coordination/
   bin/                 — hostwarden-impact, -fleet-run, -group, -map,
+                         -password (with -askpass), -ssh-config,
                          -update (with the mirror and
                          check-updates.sh) and -wrap (with its
                          hook, under every awk there is); the
@@ -259,6 +269,8 @@ rules/                 — Upstream rule files (git-tracked)
     openwrt.md         — OpenWrt (no base)
     qnap.md            — QNAP QTS and QuTS hero (no base)
     zimaos.md          — ZimaOS (no base)
+    drayos.md          — DrayTek Vigor routers on DrayOS 3.x and
+                         4.x (no base)
   busybox.md           — Busybox applets and flags on Alpine
                          and OpenWrt
   firewalld.md         — firewalld commands and safety net
@@ -310,6 +322,8 @@ rules/                 — Upstream rule files (git-tracked)
                          list, using it everywhere
   ssh-ca-issuing.md    — What a CA hands out, per product;
                          a login that fails on the principal
+  ssh-passwords.md     — A host that takes no key: its password
+                         from this machine or a password manager
   ssh-config.md        — memory/ssh_hosts: other ports,
                          addresses, jump hosts; finding
                          a new host's port; port

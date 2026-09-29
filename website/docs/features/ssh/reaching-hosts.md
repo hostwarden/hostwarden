@@ -26,8 +26,10 @@ Host db1 db1.example.com
 ```
 
 Only `Host`, `HostName`, `Port`, `ProxyJump` and `HostKeyAlias` are
-accepted, with plain values. In a team the file is shared, and
-those five cannot run a command on a teammate's machine; a file
+accepted, with plain values, and for a device that takes only a
+password or offers only old algorithms a few more
+([Password logins](passwords.md)). In a team the file is shared,
+and none of these can run a command on a teammate's machine; a file
 with any other line or value is left out whole until it is fixed.
 SSH usernames stay in `memory/user.md`, which is personal.
 

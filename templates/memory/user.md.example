@@ -36,3 +36,11 @@ Optional. `Alternative SSH ports: 52222, 2222` — the ports you
 run sshd on instead of 22, tried in this order when port 22 of a
 new host refuses the connection (`rules/ssh-config.md` → Finding
 the Port).
+
+# SSH Passwords
+
+Only for a host that takes no SSH key. `bin/hostwarden-password`
+writes a line per login, `- admin@rtr1.example.com: local keychain`
+or `- admin@rtr1.example.com: 1password op://Hostwarden/rtr1/password`,
+saying where the password comes from, never the password itself
+(`rules/ssh-passwords.md`).

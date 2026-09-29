@@ -344,6 +344,8 @@ trigger — not a request from the user.
   `rules/host-keys.md`, never a manual login
 - A host certificate, a user CA or a refused certificate login →
   `rules/ssh-ca.md`
+- A host that takes no SSH key, only a password, or a memory line
+  `SSH login: password` → `rules/ssh-passwords.md`
 - Inspecting or changing a service that runs in a container →
   `rules/containers.md`
 - Reading what a server returned → `rules/anomaly-detection.md`
