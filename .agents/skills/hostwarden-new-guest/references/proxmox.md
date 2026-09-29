@@ -256,9 +256,14 @@ says.
 ## A container from the baseline template
 
 Where the node has no `Baseline template:` line for the
-distribution and release, or the one it has is due for a rebuild
-(`rules/appliance/proxmox-ve.md` → Guests), build it first
-(`references/proxmox-template.md`), and say so in the plan.
+distribution and release and holds a container archive that is not
+a `pveam` template, offer `references/adopt-template.md` first.
+Otherwise, where it has no such line or the one it has is due for a
+rebuild (`rules/appliance/proxmox-ve.md` → Guests), build the
+template first (`references/proxmox-template.md`), and say so in
+the plan. An
+archive whose `sha256sum` on the node differs from the one the line
+records is copied again first.
 
 ```bash
 pct create <vmid> local:vztmpl/<archive> --hostname web2.example.com \
@@ -268,15 +273,56 @@ pct create <vmid> local:vztmpl/<archive> --hostname web2.example.com \
   --onboot 1
 ```
 
-Then, in one call:
+Then, on a systemd family, in one call:
 
 ```bash
 pct start <vmid> &&
-  timeout 570 pct exec <vmid> -- cloud-init status --wait --long &&
-  pct exec <vmid> -- cat /etc/ssh/ssh_host_ed25519_key.pub
+  timeout 570 pct exec <vmid> -- systemctl is-system-running --wait
+pct exec <vmid> -- systemctl show -p Result -p ActiveState \
+  -p ConditionResult hostwarden-firstboot-login.service \
+  hostwarden-firstboot-upgrade.service
+pct exec <vmid> -- cat /etc/hostwarden-baseline
+pct exec <vmid> -- cat /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
-Chained, so the call's exit status is the first step that failed.
+The two first-boot units hold the boot until they are done, so
+`is-system-running --wait` returns then; `degraded` names a failed
+unit. Judge the container by the units, not by that word alone:
+both must read `Result=success` and `ActiveState=active`, and
+`/etc/hostwarden-baseline` must name the template's rendering. A
+unit with `ConditionResult=no` on a container this run just created
+did not run, and the container has no login: report it and leave
+the container as it is (`SKILL.md` → After creation).
+
+On Alpine, OpenRC has no such hold. The wait is for the upgrade
+unit's marker, and the login unit's status says whether the login
+was placed:
+
+```bash
+pct start <vmid> &&
+  timeout 570 pct exec <vmid> -- sh -c \
+    'until [ -e /var/lib/hostwarden/upgrade.done ]; do sleep 5; done'
+pct exec <vmid> -- rc-service hostwarden-firstboot-login status
+pct exec <vmid> -- cat /etc/hostwarden-baseline
+pct exec <vmid> -- cat /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+A wait that ran out with the login unit `crashed` or `stopped`
+means no login, and is reported like the systemd case.
+
+A `/var/lib/hostwarden/reboot-required` file means the first
+upgrade wants a reboot, which is the user's to allow.
+
+Which wait applies follows the line's rendering: `-bake-` the units, `-ct-`
+(built the cloud-init way) `cloud-init status --wait --long` in place of the
+unit reads, `adopted` none of ours. A container from an
+adopted archive (`references/adopt-template.md`) has no first-boot
+unit and no `/etc/hostwarden-baseline`: it waits with the first
+line alone where it runs systemd, and for nothing on OpenRC, reads
+the key, and leaves the rest to the baseline measurement. A repeat
+of a wait is that wait alone, never `pct start` again; units still
+`activating` after the systemd wait, which a slow first upgrade
+causes, get one repeat, then are reported.
 
 - `<archive>` is the one the `Baseline template:` line names.
   Never the plain `pveam` template: it carries no baseline.

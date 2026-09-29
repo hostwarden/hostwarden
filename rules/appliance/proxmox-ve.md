@@ -342,17 +342,31 @@ Source for everything below unless noted: the admin guide,
   scripts themselves: `rules/community-scripts.md`.
 - **Baseline template:** the archive new containers are created
   from (`hostwarden-new-guest`), one line per distribution release
-  in the node's memory, with the baseline version and the `pveam`
-  template it was built from:
+  in the node's memory, with the baseline rendering, the `pveam`
+  template it was built from and the archive's checksum:
 
   ```
   - Baseline template: local:vztmpl/<file>
-    (debian-ct-3 from <pveam template>, built 2026-09-22)
+    (debian-bake-4 from <pveam template>, built 2026-09-22,
+    sha256 <sum>)
   ```
 
-  It is due for a rebuild once it is older than 30 days, or a
-  newer `memory/baseline/<family>-ct-<n>.yaml` of its family
-  exists (`rules/baseline.md` → Rendered Versions).
+  The rendering is `<family>-bake-<n>` for the family file of the template's
+  distribution (`debian`, `rhel`, `suse`, `alpine`). One that was not built by
+  Hostwarden and was measured against the baseline says `adopted`, its
+  distribution, release and init instead of a rendering, and `sshd behind
+  ssh.socket` where it is
+  (`.agents/skills/hostwarden-new-guest/references/adopt-template.md`).
+
+  A line naming a `-ct-` rendering was built the cloud-init way by an earlier
+  release and has no checksum: it is due for a rebuild at once, and its
+  containers wait for cloud-init. A built one is due for a rebuild once it is
+  older than 30 days, or
+  a newer `memory/baseline/<family>-bake-<n>/` of its family exists
+  (`rules/baseline.md` → Rendered Versions). An
+  adopted one never is. Every node that creates containers from it
+  holds the same archive: the checksum is read on each node and is
+  one value.
 
 ## Replace: Networking
 
@@ -446,8 +460,10 @@ Source for everything below unless noted: the admin guide,
   `.agents/skills/hostwarden-housekeeping/references/passthrough.md`,
   which also holds the host's own side.
 - A `Baseline template:` line (Guests): its archive missing from
-  `pveam list local` is **WARN**, containers cannot be created
-  from it; one due for a rebuild is **INFO**.
+  `pveam list local`, or with a `sha256sum` other than the recorded
+  one, is **WARN**, containers cannot be created from it; one due
+  for a rebuild, or an adopted one whose measurement lists a miss,
+  is **INFO**.
 - Fleet audit: compare Proxmox VE nodes only with each other. Show
   `pve-firewall` in the firewall rows; a missing
   `unattended-upgrades` is not drift.

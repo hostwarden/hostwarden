@@ -241,6 +241,16 @@ rendering of their own beside it, `<family>-ign-<n>.bu`, with
 `<family>` as `fcos` or `flatcar`. It is numbered by the same
 rule: the baseline's content decides `<n>`.
 
+The Proxmox VE container template reads no cloud-init either. Its rendering is a
+directory,
+`<family>-bake-<n>/`, with `<family>` as the family file's name, holding what
+the build used: the settings, the
+admin keys, the SSH login, and the shipped first-boot units and
+scripts of `hostwarden-new-guest`. It is numbered by the same rule,
+over the whole directory. A template built by someone else and
+measured against this file is adopted, not rendered, and takes no
+number (`.agents/skills/hostwarden-new-guest/references/adopt-template.md`).
+
 Everything else that cannot be handed the file at boot carries one
 instead of restating it — an installer's answer file, a seed in a
 container's root filesystem or in a disk image. A carrier is not a

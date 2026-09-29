@@ -9,7 +9,11 @@ and <https://linuxcontainers.org/lxc/documentation/>.
 LXC hands a container no configuration of its own: there is no
 `cloud-init.user-data` key and no cloud-init drive. The baseline
 reaches the container through a seed written into its root
-filesystem before it is started for the first time. Once
+filesystem before it is started for the first time. A baked
+template with first-boot units, as Proxmox VE has one
+(`references/proxmox-template.md`), is not offered here: the download
+image is signed by its server and needs no template to build,
+copy and keep identical, and the seed costs one file. Once
 `lxc-start` has run, that door is closed: the container is a
 server, and nothing in this file applies to it any more.
 

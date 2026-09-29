@@ -74,7 +74,10 @@ checkout) and stop.
    login (→ The first own login). A Proxmox VE node without a
    `Baseline template:` line (`rules/appliance/proxmox-ve.md` →
    Guests) has that on its report line: a container created there
-   starts without the baseline.
+   starts without the baseline. Where the node holds a
+   container archive Hostwarden did not build, the measurement of
+   `.agents/skills/hostwarden-new-guest/references/adopt-template.md` is offered
+   first, and its result is the line.
 
 5. **What else memory holds.** The lines that otherwise only
    housekeeping or the security audit would write, each from the
