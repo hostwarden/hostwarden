@@ -206,7 +206,9 @@ guest has no such mechanism, the files are the user's to place
    created. Classic LXC enters it with `lxc-attach` and reads the
    key and the address in a second call right after the wait
    (`references/lxc.md`). A call that ends before the signal — out of time, or
-   cut by the reboot `package_reboot_if_required` may cause — is
+   cut by the reboot `package_reboot_if_required` may cause, which
+   needs no announcement: a guest this run is creating has no radius,
+   `rules/coordination.md` → Blast radius — is
    run once more, then reported; where `qm guest exec` answered
    with only a pid, the repeat reads that pid instead of starting
    the wait again (`references/proxmox.md` → Waiting for the first
