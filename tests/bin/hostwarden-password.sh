@@ -442,6 +442,14 @@ HOSTWARDEN_PASSWORD_STORE=keychain sh "$PWD_CMD" remove alice@rtr1 \
   >/dev/null 2>&1
 lib 'pw_local_has file ssh alice@192.0.2.1:22' &&
   bad "remove kept a password stored before the link" || ok
+# A Mac without security cannot ask its keychain; any other system
+# has none.
+lib 'uname() { echo Darwin; }; pw_has() { return 1; }
+  pw_local_probe keychain ssh alice@192.0.2.1:22'
+[ $? -eq 2 ] && ok || bad "a Mac without security was called an empty keychain"
+lib 'uname() { echo Linux; }; pw_has() { return 1; }
+  pw_local_probe keychain ssh alice@192.0.2.1:22'
+[ $? -eq 1 ] && ok || bad "a system without a keychain was called unreachable"
 # A store that cannot be asked is not an empty one: nothing is
 # forgotten and the line stays.
 lib 'printf %s old | pw_local_put file ssh alice@192.0.2.1:22

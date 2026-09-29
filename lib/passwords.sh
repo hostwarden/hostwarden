@@ -161,7 +161,12 @@ pw_local_has() {
 pw_local_probe() {
   case $1 in
     keychain)
-      pw_has security || return 1
+      # Without security a Mac's keychain cannot be asked, and its
+      # password may be there; any other system has no keychain.
+      if ! pw_has security; then
+        [ "$(uname -s)" = Darwin ] && return 2
+        return 1
+      fi
       security find-generic-password -s "$(pw_service "$2")" -a "$3" \
         >/dev/null 2>&1
       case $? in 0) return 0 ;; 44) return 1 ;; *) return 2 ;; esac ;;
