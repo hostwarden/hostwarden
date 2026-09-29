@@ -9,4 +9,6 @@
   itself follow Hostwarden's own rules. It never runs a script or a
   guest's `update` command, and says why when asked to. The guest
   inventory marks a guest a script built, which gets a
-  `Community script:` line in memory.
+  `Community script:` line in memory, and where the
+  script's engine keeps the installed version in the guest, every
+  version check reads it there.
