@@ -109,6 +109,13 @@ case \$3 in
   *) echo '{"key":"somewhere-else","value":"x"}' ;;
 esac
 EOF
+# security find-generic-password, for a keychain that holds nothing:
+# 44 is "no such item"; 36 while TMP/sec-down exists, a locked one.
+cat > "$TMP/fake/security" <<EOF
+#!/bin/sh
+[ ! -f "$TMP/sec-down" ] || exit 36
+exit 44
+EOF
 chmod +x "$TMP/fake/"*
 PATH=$TMP/fake:$PATH
 export PATH
@@ -160,6 +167,21 @@ for s in 'local foo' 'local secret-service' 'rbw My Router' '1password op://V/I'
 done
 [ "$(lib 'pw_target alice RTR1.Example.com 2222')" = \
   "alice@rtr1.example.com:2222" ] && ok || bad "pw_target"
+
+# --- the file store's key is created once -------------------------
+# Two first runs at once each generate a key; the second must find
+# the first's, never replace it.
+KEY0=$HOME/.config/hostwarden/password-key
+rm -f "$KEY0"
+for _ in 1 2 3 4 5 6; do lib 'pw_file_key' & done
+wait
+[ -s "$KEY0" ] && ok || bad "no key after concurrent first runs"
+SUM0=$(cksum < "$KEY0")
+for _ in 1 2 3 4; do lib 'pw_file_key' & done
+wait
+[ "$(cksum < "$KEY0")" = "$SUM0" ] && ok || bad "a second run replaced the key"
+ls "$KEY0".* >/dev/null 2>&1 && bad "a temporary key was left behind" || ok
+rm -f "$KEY0"
 
 # --- the file store -----------------------------------------------
 lib 'printf "%s" "p w!" | pw_local_put file ssh alice@192.0.2.1:22'
@@ -327,6 +349,26 @@ else
 fi
 lib 'pw_unrecord alice@rtr1'
 
+# Logins at once cannot pass the third answer together: six at the
+# same moment for one target get three passwords.
+rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
+for i in 1 2 3 4 5 6; do
+  ask "alice@192.0.2.1's password: " $F alice@rtr1 > "$TMP/par.$i" &
+done
+wait
+GOT=$(cat "$TMP"/par.* | grep -c 'p w!')
+[ "$GOT" -eq 3 ] && ok || bad "six logins at once got $GOT passwords, not 3"
+rm -f "$TMP"/par.* "$HOME"/.cache/hostwarden/*/askpass/count-*
+# A lock a dead process left behind is taken over after two minutes.
+CNT=$(ls -d "$HOME"/.cache/hostwarden/*/askpass 2>/dev/null | head -n 1)
+CF=$(printf %s 'alice@192.0.2.1:22' | cksum | cut -d' ' -f1)
+mkdir "$CNT/count-$CF.lock"
+touch -t 200001010000 "$CNT/count-$CF.lock"
+out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
+has "$out" "p w!" "a stale lock was not taken over"
+[ -d "$CNT/count-$CF.lock" ] && bad "the lock was not released" || ok
+rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
+
 # The limit ends the CLI itself, not only the shell around it.
 T0=$(date +%s)
 lib 'pw_limit 2 pw_op read op://V/slow/hostwarden' >/dev/null 2>&1
@@ -394,6 +436,22 @@ HOSTWARDEN_PASSWORD_STORE=keychain sh "$PWD_CMD" remove alice@rtr1 \
   >/dev/null 2>&1
 lib 'pw_local_has file ssh alice@192.0.2.1:22' &&
   bad "remove kept a password stored before the link" || ok
+# A store that cannot be asked is not an empty one: nothing is
+# forgotten and the line stays.
+lib 'printf %s old | pw_local_put file ssh alice@192.0.2.1:22
+  pw_record alice@rtr1 "local file"'
+: > "$TMP/sec-down"
+out=$(HOSTWARDEN_PASSWORD_STORE=keychain sh "$PWD_CMD" remove alice@rtr1 2>&1)
+has "$out" "could not be checked" "remove called an unreachable keychain empty"
+grep -q '^- alice@rtr1' "$OPS/memory/user.md" && ok ||
+  bad "remove dropped the line although the keychain could not be checked"
+lib 'pw_local_has file ssh alice@192.0.2.1:22' && ok ||
+  bad "remove deleted the file store's password before it was sure"
+rm -f "$TMP/sec-down"
+HOSTWARDEN_PASSWORD_STORE=keychain sh "$PWD_CMD" remove alice@rtr1 \
+  >/dev/null 2>&1
+lib 'pw_local_has file ssh alice@192.0.2.1:22' &&
+  bad "remove kept the password once the keychain answered" || ok
 out=$(sh "$REPO/bin/hostwarden-password" check alice@rtr1 2>&1)
 has "$out" "only an operations checkout" "ran outside an operations checkout"
 

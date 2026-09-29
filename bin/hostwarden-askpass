@@ -32,9 +32,10 @@
 #     changes how the host key is checked or how the connection is
 #     made, so the password never reaches a host whose key was not
 #     verified;
-#   - three times per target in 15 minutes: a wrong password is
-#     tried once per call, and a device that locks its account after
-#     a few failures does so on its own count.
+#   - three times per target in 15 minutes, counted under a lock
+#     per target so that logins at once cannot pass it together: a
+#     wrong password is tried once per call, and a device that locks
+#     its account after a few failures does so on its own count.
 #
 # A refusal from a prompt on also ends the ssh process: told only
 # that its askpass failed, ssh would send an empty password.
@@ -204,8 +205,23 @@ if ! pw_keyless "$TARGET"; then
     "bin/hostwarden-password check $N_USER@$N_NAME"
 fi
 
-# Three a quarter hour, per target.
+# Three a quarter hour, per target. Two logins at once would both
+# read the count before either wrote it, so the count is read, the
+# password fetched and the count written under a lock of the
+# target's own: mkdir is atomic everywhere, the second caller waits
+# for the first, and a lock older than two minutes, left by a
+# process that died, is taken over. The wait outlasts a manager's
+# 30 seconds.
 COUNT=$NOTES/count-$(printf %s "$TARGET" | cksum | cut -d' ' -f1)
+LOCK=$COUNT.lock
+WAITED=0
+until mkdir "$LOCK" 2>/dev/null; do
+  find "$LOCK" -maxdepth 0 -mmin +2 -exec rmdir {} + 2>/dev/null
+  [ "$WAITED" -lt 45 ] || refuse "another login to $TARGET holds the count"
+  sleep 1
+  WAITED=$((WAITED + 1))
+done
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 NOW=$(date +%s)
 RECENT=0
 if [ -f "$COUNT" ]; then

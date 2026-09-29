@@ -286,6 +286,8 @@ not a failed login.
 
 `bin/hostwarden-password remove <user>@<host>` deletes the stored
 password, where this machine holds one, whatever the line names,
-and the line in `memory/user.md`; a password manager's entry stays. Once the
-host takes a key, remove the four lines from its block in
-`memory/ssh_hosts` and its `SSH login:` line.
+and the line in `memory/user.md`; a password manager's entry stays.
+A store it cannot ask, a locked keychain say, is not an empty one:
+it forgets nothing, keeps the line and names the store; the user
+unlocks it and runs the command again. Once the host takes a key, remove the
+four lines from its block in `memory/ssh_hosts` and its `SSH login:` line.

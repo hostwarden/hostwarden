@@ -61,6 +61,8 @@
 #                        — true when the store holds that secret;
 #                          <kind> is ssh or token
 #   pw_local_get <backend> <kind> <key>
+#   pw_local_probe <backend> <kind> <key>
+#                        — 0 held, 1 not held, 2 store not reachable
 #   pw_local_put <backend> <kind> <key>
 #                        — stores stdin; the keychain prompts itself
 #   pw_local_del <backend> <kind> <key>
@@ -125,13 +127,19 @@ pw_file() {
     { read -r h _; echo "$PW_FILE_DIR/$h"; }
 }
 
+# The key is created exclusively: two first runs at once each make
+# one, and ln keeps the first and fails for the second, which then
+# uses the winner's. A plain mv would replace it, and what the
+# first run encrypted could no longer be read.
 pw_file_key() {
   [ -s "$PW_FILE_KEY" ] && return 0
   (
     umask 077
     mkdir -p "${PW_FILE_KEY%/*}" &&
       openssl rand -hex 32 > "$PW_FILE_KEY.$$" &&
-      mv "$PW_FILE_KEY.$$" "$PW_FILE_KEY"
+      { ln "$PW_FILE_KEY.$$" "$PW_FILE_KEY" 2>/dev/null || :; }
+    rm -f "$PW_FILE_KEY.$$"
+    [ -s "$PW_FILE_KEY" ]
   )
 }
 
@@ -140,6 +148,23 @@ pw_local_has() {
     keychain)
       security find-generic-password -s "$(pw_service "$2")" -a "$3" \
         >/dev/null 2>&1 ;;
+    file) [ -f "$(pw_file "$2" "$3")" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+# pw_local_probe <backend> <kind> <key> — 0 when the store holds it,
+# 1 when it does not, 2 when the store could not be asked: a keychain
+# that is locked or unreachable answers with a status of its own, and
+# only 44 means no such item. A store this machine does not have holds
+# nothing.
+pw_local_probe() {
+  case $1 in
+    keychain)
+      pw_has security || return 1
+      security find-generic-password -s "$(pw_service "$2")" -a "$3" \
+        >/dev/null 2>&1
+      case $? in 0) return 0 ;; 44) return 1 ;; *) return 2 ;; esac ;;
     file) [ -f "$(pw_file "$2" "$3")" ] ;;
     *) return 1 ;;
   esac
