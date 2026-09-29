@@ -8,13 +8,16 @@
 # here alone.
 #
 #   sh scripts/review-tier.sh [--critical] <old> [<new>]
+#   sh scripts/review-tier.sh --critical --names < <file names>
 #
 # What `git diff` takes: a range such as `hostwarden/main...HEAD`
 # alone, or two commits, whose trees it compares. Prints `light`,
 # or `full` and then each file that made it full, one a line. A
 # rename counts both its names, so moving a script into docs/ is
 # full. With `--critical` it prints the critical files instead, one
-# a line, and nothing where there is none. Exits 0 with the tier or
+# a line, and nothing where there is none; with `--names` after it,
+# of the file names on its input, one a line, and no commit is read.
+# Exits 0 with the tier or
 # the files, 1 when git cannot read the commits, 2 on a usage error.
 
 # A directory ends in `/` and holds everything below it, a new
@@ -28,11 +31,14 @@ NEVER=.claude/rules/pull-requests.md
 # The files where a defect lets a taboo through, cuts SSH, leaks a
 # secret or weakens the review itself: a reviewer of their own reads
 # them. None of them is light, so a change with one is full.
+# tests/scripts/review-record.sh fails on a lib/ file that a
+# script on the list names and the list lacks.
 CRITICAL='
 .claude/hooks/
 .claude/settings.json
 lib/mode.sh
 lib/json.sh
+lib/wrap-verbatim.sh
 lib/coord-lib.sh
 lib/coord-rest.sh
 lib/coord-tokenize.sh
@@ -47,6 +53,7 @@ rules/first-connection.md
 rules/host-rename.md
 rules/ssh-ca.md
 rules/ssh-config.md
+rules/ssh-connections.md
 rules/ssh-ca-issuing.md
 rules/system-containers.md
 rules/anomaly-detection.md
@@ -73,9 +80,15 @@ bin/hostwarden-heinzel-takeover
 lib/hostwarden-heinzel-takeover/
 bin/hostwarden-impact
 lib/hostwarden-impact/
+bin/hostwarden-askpass
+bin/hostwarden-password
+lib/passwords.sh
+lib/passwords/
+rules/ssh-passwords.md
 bin/hostwarden-ssh-config
 bin/hostwarden-update
 lib/follow.sh
+lib/release-notes.sh
 .github/release-signers
 .github/workflows/tag-release.yml
 .github/workflows/review-record.yml
@@ -90,10 +103,15 @@ tests/scripts/review-record*
 
 usage() {
   echo "usage: sh scripts/review-tier.sh [--critical] <old> [<new>]" >&2
+  echo "       sh scripts/review-tier.sh --critical --names" >&2
   exit 2
 }
 want=tier
 case ${1-} in --critical) want=critical; shift ;; esac
+names=
+case $want${1-} in
+  critical--names) names=1; [ $# -eq 1 ] || usage; set -- HEAD ;;
+esac
 case $# in 1 | 2) ;; *) usage ;; esac
 for a; do case $a in '' | -*) usage ;; esac; done
 
@@ -122,8 +140,12 @@ critical() {
 # Only the names are read: no blob, no diff driver, no textconv.
 # A name git still quotes — one with a quote, a backslash or a
 # control character — starts with `"` and so counts as full.
-files=$(git -c core.quotePath=false diff --no-ext-diff --no-textconv \
-  --no-renames --name-only "$@" --) || exit 1
+if [ -n "$names" ]; then
+  files=$(cat)
+else
+  files=$(git -c core.quotePath=false diff --no-ext-diff --no-textconv \
+    --no-renames --name-only "$@" --) || exit 1
+fi
 
 full=
 while IFS= read -r f; do
