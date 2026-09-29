@@ -18,8 +18,17 @@ to route around.
 - **In a linked worktree**, it is the main checkout, if that is an
   operations install: the refusal and the session-start message
   name its path, and `memory/.hostwarden-workspace` exists there.
-- **Otherwise**, ask the developer where their operations clone
-  is, once, and keep the answer for the session.
+- **Otherwise**, it is the clone the developer recorded: the
+  refusal and the session-start message name it and the file that
+  records it, `~/.config/hostwarden/operations-checkout`, or the
+  same file under `$XDG_CONFIG_HOME` where that is set.
+- **Where neither names one**, ask the developer where their
+  operations clone is, once, and keep the answer for the session.
+  Check that `memory/.hostwarden-workspace` exists there. Then
+  offer to record it: the file holds the clone's absolute path as
+  its one line, and writing it is a change outside the checkout
+  that the developer approves. A record that no longer names an
+  operations checkout counts as none, so the question comes again.
 
 When there is none, say so and stop: server work needs an
 operations clone, set up once with `bin/hostwarden-init`. Offer
@@ -41,12 +50,18 @@ Then, in this order:
 
 1. **A session is already running in that checkout:** send it
    the question, where the tool can message another session.
-2. **None is:** give the developer one command that starts one
-   there with the question as its first prompt, and they run it
-   in their terminal. Where the tool can start a session in
-   another directory on one click, offer that instead — but only
-   if it starts in the checkout itself: a session in a worktree of
-   it is a development session and refuses the same way.
+2. **None is:** where the tool can offer a session in another
+   directory that the developer starts with one click — a task
+   chip, a suggested session — offer that, with the operations
+   checkout as its directory and the question as its first
+   prompt. It counts only if the session starts in the checkout
+   itself: one in a worktree of it is a development session and
+   refuses the same way. Where the tool's own description says it
+   starts in a worktree, or says nothing either way, it does not
+   count.
+3. **Neither:** give the developer one command that starts a
+   session there with the question as its first prompt, and they
+   run it in their terminal.
 
 The operations session answers under its own rules. A change on
 the server is its user's to approve there; this session asks for
@@ -67,7 +82,8 @@ came from when you use it.
   the access lists and the pipeline. Every such question goes
   through the operations session.
 - Start a session in the operations checkout yourself: that is
-  the developer's click or command.
+  the developer's click or command. A tool that starts one
+  without either is not used for this.
 - Ask the operations session for a change, or relay to it a
   question from another session that lacks the host's access
   (`rules/borrowed-rights.md`).
