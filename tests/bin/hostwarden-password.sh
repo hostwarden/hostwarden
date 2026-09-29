@@ -360,33 +360,19 @@ wait
 GOT=$(cat "$TMP"/par.* | grep -c 'p w!')
 [ "$GOT" -eq 3 ] && ok || bad "six logins at once got $GOT passwords, not 3"
 rm -f "$TMP"/par.* "$HOME"/.cache/hostwarden/*/askpass/count-*
-# A lock a dead process left behind is taken over after two minutes.
+# A login that ends without a password cancels its line: three
+# refusals before the password was read cost nothing (further up),
+# and a killed one keeps its line, counted as given.
 CNT=$(ls -d "$HOME"/.cache/hostwarden/*/askpass 2>/dev/null | head -n 1)
 CF=$(printf %s 'alice@192.0.2.1:22' | cksum | cut -d' ' -f1)
-mkdir "$CNT/count-$CF.lock"
-touch -t 200001010000 "$CNT/count-$CF.lock"
+printf 'R %s dead-1\nR %s dead-2\nR %s dead-3\n' "$(date +%s)" "$(date +%s)" \
+  "$(date +%s)" > "$CNT/count-$CF"
 out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
-has "$out" "p w!" "a stale lock was not taken over"
-[ -d "$CNT/count-$CF.lock" ] && bad "the lock was not released" || ok
-rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
-# A lock whose owner is gone is taken over at once, however new.
-mkdir "$CNT/count-$CF.lock"
-echo 999999 > "$CNT/count-$CF.lock/pid"
+lacks "$out" "p w!" "three live reservations left a fourth login through"
+printf 'R %s dead-1\nR %s dead-2\nR %s dead-3\nC dead-2\n' "$(date +%s)" \
+  "$(date +%s)" "$(date +%s)" > "$CNT/count-$CF"
 out=$(ask "alice@192.0.2.1's password: " $F alice@rtr1)
-has "$out" "p w!" "a lock of a dead owner was not taken over"
-rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
-# ...and by six callers at once, of which only one may take it: three
-# passwords again, never more.
-mkdir "$CNT/count-$CF.lock"
-touch -t 200001010000 "$CNT/count-$CF.lock"
-for i in 1 2 3 4 5 6; do
-  ask "alice@192.0.2.1's password: " $F alice@rtr1 > "$TMP/par.$i" &
-done
-wait
-GOT=$(cat "$TMP"/par.* | grep -c 'p w!')
-[ "$GOT" -eq 3 ] && ok || bad "six callers over a stale lock got $GOT passwords, not 3"
-rm -f "$TMP"/par.*
-[ -d "$CNT/count-$CF.lock.take" ] && bad "the takeover lock was left" || ok
+has "$out" "p w!" "a cancelled reservation did not free its place"
 rm -f "$HOME"/.cache/hostwarden/*/askpass/count-*
 
 # The limit ends the CLI itself, not only the shell around it.

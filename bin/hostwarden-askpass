@@ -32,10 +32,10 @@
 #     changes how the host key is checked or how the connection is
 #     made, so the password never reaches a host whose key was not
 #     verified;
-#   - three times per target in 15 minutes, counted under a lock
-#     per target so that logins at once cannot pass it together: a
-#     wrong password is tried once per call, and a device that locks
-#     its account after a few failures does so on its own count.
+#   - three times per target in 15 minutes, counted by reservation
+#     so that logins at once cannot pass it together: a wrong
+#     password is tried once per call, and a device that locks its
+#     account after a few failures does so on its own count.
 #
 # A refusal from a prompt on also ends the ssh process: told only
 # that its askpass failed, ssh would send an empty password.
@@ -205,53 +205,36 @@ if ! pw_keyless "$TARGET"; then
     "bin/hostwarden-password check $N_USER@$N_NAME"
 fi
 
-# Three a quarter hour, per target. Two logins at once would both
-# read the count before either wrote it, so the count is read, the
-# password fetched and the count written under a lock of the
-# target's own: mkdir is atomic everywhere, and the second caller
-# waits for the first. A holder needs 60 seconds at most, a
-# manager's two reads at 30 each, so the wait is 100 and a lock is
-# stale when its owner, whose process ID it holds, is gone, or after
-# three minutes. A signal ends the helper through the trap below and
-# a kill -9 leaves the lock for the first check. Only whoever holds
-# the takeover lock, itself made by mkdir, removes a stale one and
-# looks at it first: two callers that both found the same stale lock
-# would otherwise each remove it, the second removing the new lock
-# the first had just made.
+# Three a quarter hour, per target, counted by reservation: a login
+# appends one line to the target's count file, which O_APPEND makes
+# atomic, and only then counts the live lines up to its own, in file
+# order. It goes on when its rank is three or less. Logins at once
+# cannot pass the limit together, since each sees every one that
+# reserved before it and only those; none waits for another, so no
+# lock is left behind by a process that dies. A login that ends
+# without handing the password to ssh cancels its line, by the trap
+# below on every exit and signal but kill -9; one that dies so keeps
+# its line, which counts as a password given, for the quarter hour.
 COUNT=$NOTES/count-$(printf %s "$TARGET" | cksum | cut -d' ' -f1)
-LOCK=$COUNT.lock
-WAITED=0
-until mkdir "$LOCK" 2>/dev/null; do
-  if mkdir "$LOCK.take" 2>/dev/null; then
-    OWNER=$(cat "$LOCK/pid" 2>/dev/null)
-    if [ -n "$OWNER" ] && ! kill -0 "$OWNER" 2>/dev/null; then
-      rm -rf "$LOCK"
-    else
-      find "$LOCK" -maxdepth 0 -mmin +3 -exec rm -rf {} + 2>/dev/null
-    fi
-    rmdir "$LOCK.take" 2>/dev/null
-  else
-    find "$LOCK.take" -maxdepth 0 -mmin +1 -exec rmdir {} + 2>/dev/null
-  fi
-  [ "$WAITED" -lt 100 ] ||
-    refuse "$TARGET's count is locked by a login that has not finished" \
-      "or died within the last three minutes; try again then"
-  sleep 1
-  WAITED=$((WAITED + 1))
-done
-printf '%s\n' "$$" > "$LOCK/pid"
-# dash runs the EXIT trap on no signal, so each one ends the helper
-# through it: the lock goes with it.
-trap 'rm -rf "$LOCK"' EXIT
-trap 'exit 143' HUP INT TERM
 NOW=$(date +%s)
-RECENT=0
-if [ -f "$COUNT" ]; then
-  awk -v now="$NOW" '$1 > now - 900' "$COUNT" > "$COUNT.$$" &&
-    mv "$COUNT.$$" "$COUNT"
-  RECENT=$(wc -l < "$COUNT" | tr -d ' ')
-fi
-if [ "$RECENT" -ge 3 ]; then
+RES=$$-$NOW
+HANDED=
+# dash runs the EXIT trap on no signal, so each one ends the helper
+# through it.
+trap '[ -n "$HANDED" ] || printf "C %s\n" "$RES" >> "$COUNT" 2>/dev/null' EXIT
+trap 'exit 143' HUP INT TERM
+printf 'R %s %s\n' "$NOW" "$RES" >> "$COUNT"
+RANK=$(awk -v now="$NOW" -v id="$RES" '
+  $1 == "C" { c[$2] = 1; next }
+  { n++; ts[n] = $2; ids[n] = $3 }
+  END {
+    for (i = 1; i <= n; i++) {
+      if (ts[i] > now - 900 && !(ids[i] in c)) r++
+      if (ids[i] == id) { print r; exit }
+    }
+    print 999
+  }' "$COUNT")
+if [ "${RANK:-999}" -gt 3 ]; then
   refuse "three passwords for $TARGET in 15 minutes; no fourth. A login" \
     "that keeps failing needs the user: rules/ssh-passwords.md"
 fi
@@ -274,7 +257,7 @@ case $SOURCE in
       refuse "${SOURCE%% *} gave no password for $TARGET" ;;
 esac
 # An empty answer is no password: ssh would send it as one. Only a
-# password that goes to ssh counts toward the three.
+# password that goes to ssh keeps its line.
 [ -n "$PW" ] || refuse "the source gave an empty password for $TARGET"
-echo "$NOW" >> "$COUNT"
+HANDED=1
 printf '%s\n' "$PW"
