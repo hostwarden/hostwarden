@@ -37,6 +37,9 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
   takes no key on this machine, or links it to a 1Password or
   Bitwarden item, and checks or forgets it; never prints one
   ([Password logins](../features/ssh/passwords.md)).
+- **`hostwarden-agent`** — shows which local SSH agent signatures use,
+  checks that it is available, or runs one command with it
+  ([Choose your local SSH agent](../running-it/tailoring/ssh-agent.md)).
 
 ## These run for you
 
@@ -45,9 +48,6 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
   `hostwarden-update` run it, and it is safe to run by hand.
 - **`hostwarden-ssh-config`** — writes `memory/ssh_config`, the file
   every SSH call passes; the session start runs it.
-- **`hostwarden-agent`** — resolves your local SSH agent for signatures
-  ([Choose your local SSH agent](../running-it/tailoring/ssh-agent.md));
-  `hostwarden-sync` runs it for you.
 - **`hostwarden-askpass`** — hands ssh the password of a host that
   takes no key, and nobody else; ssh runs it
   ([Password logins](../features/ssh/passwords.md)).

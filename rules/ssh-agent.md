@@ -114,8 +114,9 @@ bin/hostwarden-agent --host git.example.com --exec git commit -S
 commands only; a command that also authenticates to a remote, such as
 `git pull`, would hand it the signing agent too.
 
-For a workspace, `bin/hostwarden-sync commit` and `pull` apply the default
-resolver when `gpg.format=ssh` and `commit.gpgsign=true`. They set
+For a workspace, `bin/hostwarden-sync commit`, and `pull` where its rebase
+replays local commits, apply the default resolver when `gpg.format=ssh` and
+`commit.gpgsign=true`. They set
 `SSH_AUTH_SOCK` for the commit and for the rebase that replays local commits,
 and for nothing else: the fetch keeps its original environment and the
 remote's own `IdentityAgent`. The signing key, program and default-key command
@@ -136,9 +137,9 @@ If automatic `ssh -G` discovery fails, workspace signing says so and passes an
 empty socket to the signer. Private keys and independent custom signers still
 work; signatures that need an agent fail without inheriting another one. Save
 an accessible socket or restore configuration access to retry them. A
-malformed saved choice or unsupported path stays fatal, and so does a failed
-resolution in the generic wrapper, whose command may need the agent for
-transport.
+malformed saved choice or unsupported path stays fatal to the commit and to
+such a rebase, and so does a failed resolution in the generic wrapper, whose
+command may need the agent for transport.
 
 ## OpenPGP and X.509 signatures
 
