@@ -55,8 +55,15 @@ passes 'Host web1.example.com' '  IdentityAgent SSH_AUTH_SOCK'
 printf 'SSH agent socket: none\n' > "$OPS/memory/user.md"
 passes 'Host web1.example.com' '  IdentityAgent "none"'
 printf 'SSH agent socket: /one\nSSH agent socket: /two\n' > "$OPS/memory/user.md"
+# A bad choice is reported, and the file is still written without it.
 out=$(gen 'Host web1.example.com')
-case $out in *rc=0) bad 'duplicate agent selection accepted' ;; *) ok ;; esac
+case $out in
+  *'one nonempty SSH agent socket'*rc=0)
+    grep -q '^Host web1.example.com' "$OPS/memory/ssh_config" &&
+      ! grep -q 'IdentityAgent' "$OPS/memory/ssh_config" && ok ||
+      bad 'duplicate agent selection: file wrong' ;;
+  *) bad "duplicate agent selection: $out" ;;
+esac
 rm "$OPS/memory/user.md"
 
 passes 'Host rtr1
