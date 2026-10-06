@@ -12,7 +12,7 @@ hw_agent_saved() {
   [ -f "$HW_AGENT_ROOT/memory/user.md" ] || return 0
   HW_AGENT_SAVED=$(awk '
     /^SSH agent socket:/ {
-      n++; sub(/^SSH agent socket:[ \t]*/, ""); value=$0
+      n++; sub(/^SSH agent socket:[ \t]*/, ""); sub(/[ \t]+$/, ""); value=$0
     }
     END { if (n > 1 || (n == 1 && value == "")) exit 1; print value }
   ' "$HW_AGENT_ROOT/memory/user.md") || {

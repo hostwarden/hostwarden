@@ -79,9 +79,10 @@ The optional, case-sensitive, unindented line in personal `memory/user.md` is:
 SSH agent socket: ~/Library/Application Support/example/agent.sock
 ```
 
-Exactly one line is allowed. Its value is the whole remainder after the colon
-and leading spaces; spaces inside the path are literal, without quotes or shell
-escaping. Use an absolute path or `~/` for this user's home, `SSH_AUTH_SOCK` for
+Exactly one line is allowed. Its value is the remainder after the colon, without
+leading or trailing blanks; spaces inside the path are literal, without quotes
+or shell escaping. Use an absolute path or `~/` for this user's home,
+`SSH_AUTH_SOCK` for
 an explicitly inherited socket, or `none` to disable the agent. Omission means
 automatic selection. Duplicate or empty fields fail. Other tilde forms, token
 expansion, variables, backslashes, quotes, carriage returns and newlines are
@@ -118,7 +119,9 @@ value, so each SSH process reads its current environment rather than a socket
 captured when the configuration was generated. Automatic mode leaves their
 host-specific
 choices intact. The generator does not require a running agent: a temporarily
-locked app must not prevent configuration generation.
+locked app must not prevent configuration generation, and an invalid saved
+choice is reported while the file is still written, without an `IdentityAgent`
+line.
 
 ## Signatures and failures
 
