@@ -81,10 +81,8 @@ export HW_AGENT_ROOT=$REPO_DIR
 # and leave IdentityAgent to the user's own blocks.
 if hw_agent_saved; then
   HW_AGENT_SOCKET=$HW_AGENT_SAVED
-  case "$HW_AGENT_SAVED" in
-    SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') ;; # stays dynamic, even when unset here
-    *) hw_agent_path || HW_AGENT_SAVED= ;;
-  esac
+  # An inherited socket stays dynamic, even when unset here.
+  hw_agent_dynamic "$HW_AGENT_SAVED" || hw_agent_path || HW_AGENT_SAVED=
 else
   HW_AGENT_SAVED=
 fi
@@ -290,10 +288,11 @@ trap 'rm -f "$TMP"' EXIT
   echo "# The standard options (AGENTS.md → SSH Options)."
   echo "Match all"
   if [ -n "$HW_AGENT_SAVED" ]; then
-    case "$HW_AGENT_SAVED" in
-      SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') echo '  IdentityAgent SSH_AUTH_SOCK' ;;
-      *) printf '  IdentityAgent "%s"\n' "${HW_AGENT_SOCKET:-none}" ;;
-    esac
+    if hw_agent_dynamic "$HW_AGENT_SAVED"; then
+      echo '  IdentityAgent SSH_AUTH_SOCK'
+    else
+      printf '  IdentityAgent "%s"\n' "${HW_AGENT_SOCKET:-none}"
+    fi
   fi
   for o in $HOSTWARDEN_SSH_OPTIONS; do
     case $o in

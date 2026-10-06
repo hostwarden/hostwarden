@@ -10,7 +10,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 HW_AGENT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 # shellcheck source=../lib/ssh-agent.sh
 . "$HW_AGENT_ROOT/lib/ssh-agent.sh"
-HOST=hostwarden-agent.invalid
+HOST=$HW_AGENT_NEUTRAL_HOST
 if [ "${1:-}" = --host ]; then
   HOST=${2:?--host needs a host}; shift 2
 fi

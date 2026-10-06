@@ -3,6 +3,13 @@
 # Callers set HW_AGENT_ROOT; --host selects the SSH configuration context.
 # No host means the neutral hostwarden-agent.invalid, not a guessed server.
 hw_agent_error() { echo "hostwarden: $*" >&2; return 1; }
+HW_AGENT_NEUTRAL_HOST=hostwarden-agent.invalid
+
+# The inherited socket, named in a saved choice or by IdentityAgent.
+hw_agent_dynamic() {
+  case "$1" in SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') return 0 ;; esac
+  return 1
+}
 
 hw_agent_saved() {
   HW_AGENT_SAVED=
@@ -22,10 +29,12 @@ hw_agent_saved() {
 }
 
 hw_agent_path() {
+  if hw_agent_dynamic "$HW_AGENT_SOCKET"; then
+    HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-}
+  fi
   # shellcheck disable=SC2088 # match a literal tilde; expand it explicitly
   case "$HW_AGENT_SOCKET" in
     none|'') HW_AGENT_SOCKET=; return 0 ;;
-    SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-} ;;
     '~/'*) HW_AGENT_SOCKET=$HOME/${HW_AGENT_SOCKET#\~/} ;;
   esac
   case "$HW_AGENT_SOCKET" in
@@ -45,10 +54,11 @@ hw_agent_resolve() {
   hw_agent_saved || return 1
   HW_AGENT_SOCKET=$HW_AGENT_SAVED
   if [ -z "$HW_AGENT_SOCKET" ]; then
-    case "${1:-hostwarden-agent.invalid}" in
+    HW_AGENT_HOST=${1:-$HW_AGENT_NEUTRAL_HOST}
+    case "$HW_AGENT_HOST" in
       -*|'') hw_agent_error 'invalid agent configuration host'; return 1 ;;
     esac
-    HW_AGENT_CONFIG=$(LC_ALL=C ssh -G "${1:-hostwarden-agent.invalid}") \
+    HW_AGENT_CONFIG=$(LC_ALL=C ssh -G "$HW_AGENT_HOST") \
       || {
         HW_AGENT_QUERY_FAILED=1
         hw_agent_error 'cannot evaluate local SSH configuration'; return 1;

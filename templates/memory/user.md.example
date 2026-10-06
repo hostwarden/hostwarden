@@ -19,6 +19,12 @@ first use rather than filling it in silently (`rules/ssh-user.md`
 - `Notice email: <address>` — the address a maintenance-window
   IT notice defaults to (`rules/maintenance-windows.md` →
   Telling IT).
+- `SSH agent socket: <path>` — the local SSH agent for signatures
+  and SSH: an absolute path, `~/…`, `SSH_AUTH_SOCK` or `none`
+  (`rules/ssh-agent.md`).
+- `Git signing setup: existing|configured|later` — written once by
+  the signing interview, so it is not asked again
+  (`rules/ssh-agent.md` → Optional signing setup).
 
 # SSH Users
 

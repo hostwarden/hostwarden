@@ -32,8 +32,6 @@ bin/                   — Commands an operator runs, or the
   hostwarden-ssh-config   — Write memory/ssh_config, the file
                             every SSH call passes with -F
   hostwarden-agent        — Resolve a personal local SSH agent
-  hostwarden-ssh-sign     — Internal signer adapter that keeps
-                            authentication and signing agents separate
   hostwarden-password     — Store, link, check or forget the SSH
                             password of a host that takes no key
   hostwarden-askpass      — Hand ssh that password, and nobody
@@ -60,6 +58,10 @@ lib/                   — Code bin/ and the hooks share; sourced,
                          remote (operations in a VM apart from
                          the workstation), defined once for the
                          hooks and bin/
+  ssh-agent.sh         — The personal local SSH agent: the saved
+                         choice and the effective IdentityAgent,
+                         for hostwarden-agent, -sync and
+                         -ssh-config
   json.sh              — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks

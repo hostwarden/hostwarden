@@ -8,8 +8,7 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 mkdir -p "$TMP/ops space/bin" "$TMP/ops space/lib" "$TMP/ops space/memory" "$TMP/tools"
 cp bin/hostwarden-agent "$TMP/ops space/bin/"
 cp lib/ssh-agent.sh lib/mode.sh "$TMP/ops space/lib/"
-cp bin/hostwarden-sync bin/hostwarden-ssh-config bin/hostwarden-ssh-sign \
-  "$TMP/ops space/bin/"
+cp bin/hostwarden-sync bin/hostwarden-ssh-config "$TMP/ops space/bin/"
 HW_AGENT_ROOT="$TMP/ops space"
 export HW_AGENT_ROOT
 . "$REPO/lib/ssh-agent.sh"
@@ -49,6 +48,8 @@ want=$MOCK_AGENT; expect
 want=/host-specific.sock; expect --host git.example.com
 printf 'SSH agent socket: ~/agent with spaces.sock\n' > "$HW_AGENT_ROOT/memory/user.md"
 want=$HOME/'agent with spaces.sock'; expect --host git.example.com
+printf 'SSH agent socket: /trimmed.sock \t\n' > "$HW_AGENT_ROOT/memory/user.md"
+want=/trimmed.sock; expect
 printf 'SSH agent socket: none\n' > "$HW_AGENT_ROOT/memory/user.md"
 want=; expect
 printf 'SSH agent socket: SSH_AUTH_SOCK\n' > "$HW_AGENT_ROOT/memory/user.md"
@@ -74,11 +75,8 @@ sh "$TMP/ops space/bin/hostwarden-agent" --check 2>/dev/null && bad missing || o
 # A real Unix socket proves the file-type check; mock only the agent protocol.
 EXPECTED_SOCKET=$TMP/'agent socket'
 export EXPECTED_SOCKET
-python3 - "$EXPECTED_SOCKET" <<'PY'
-import socket, sys
-s = socket.socket(socket.AF_UNIX)
-s.bind(sys.argv[1])
-PY
+TEST_AGENT_PID=$(ssh-agent -a "$EXPECTED_SOCKET" |
+  sed -n 's/^SSH_AGENT_PID=\([0-9]*\);.*/\1/p')
 MOCK_AGENT=$EXPECTED_SOCKET
 sh "$TMP/ops space/bin/hostwarden-agent" --check && ok || bad ready
 # Preserve the command's argv, socket and exit status; never evaluate output.
@@ -89,6 +87,7 @@ MOCK_ADD_RC=1; export MOCK_ADD_RC
 sh "$TMP/ops space/bin/hostwarden-agent" --check 2>/dev/null && bad locked || ok
 MOCK_ADD_RC=2
 sh "$TMP/ops space/bin/hostwarden-agent" --check 2>/dev/null && bad unavailable || ok
+[ -z "$TEST_AGENT_PID" ] || kill "$TEST_AGENT_PID"
 # Exercise ssh-keygen through Git with a real disposable agent and key.
 (
   eval "$(ssh-agent -s)" >/dev/null
