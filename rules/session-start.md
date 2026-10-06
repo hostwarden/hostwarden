@@ -10,6 +10,15 @@ It runs in an operations checkout. A development checkout —
 `AGENTS.md` → Development or Operations — follows Workstation tools
 alone and asks nothing.
 
+## Local SSH agent
+
+Read `rules/ssh-agent.md` before Git signatures or diagnosing agent access.
+Claude Code, Codex and other tools follow the same resolver; each command
+needs its own environment because shell exports do not persist between tools.
+Before the first workspace commit in an interactive session, follow
+`rules/ssh-agent.md` → Optional signing setup. It detects existing signatures
+and offers optional setup once; unattended sessions retain their Git settings.
+
 ## What to load
 
 Run `bin/hostwarden-sync pull` first. It brings a workspace
@@ -226,7 +235,9 @@ coordinator.
 
 ## What not to ask
 
-**Do not improvise setup questions.** If `memory/user.md` has no
+**Do not improvise setup questions.** Workspace Git signatures follow
+`rules/ssh-agent.md` → Optional signing setup before the first workspace commit.
+If `memory/user.md` has no
 `Default:` line *and* the session is about to reach a machine,
 follow the three-option interview in `rules/ssh-user.md` exactly,
 one question at a time.

@@ -11,7 +11,7 @@ checkout() {
   c="$TMP/$1"
   mkdir -p "$c/.claude/hooks" "$c/bin" "$c/lib" "$c/rules"
   cp .claude/hooks/wrap-markdown.sh "$c/.claude/hooks/"
-  cp lib/json.sh lib/mode.sh lib/wrap-verbatim.sh "$c/lib/"
+  cp lib/ssh-agent.sh lib/json.sh lib/mode.sh lib/wrap-verbatim.sh "$c/lib/"
   cp bin/hostwarden-wrap "$c/bin/"
   cp lib/markdown-blocks.awk "$c/lib/"
   printf '/memory/\n' > "$c/.gitignore"

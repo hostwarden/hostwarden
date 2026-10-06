@@ -10,7 +10,7 @@ H="$R/.agents/skills/hostwarden-housekeeping/references"
 mkdir -p "$R/bin" "$R/lib" "$R/.claude/hooks" "$H"
 cp "$REPO/bin/hostwarden-fleet-run" "$REPO/bin/hostwarden-sync" \
   "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
-cp "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/resolve.sh" \
+cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/resolve.sh" \
   "$R/lib/"
 cp -R "$REPO/lib/hostwarden-fleet-run" "$R/lib/"
 printf 'Report format marker\n' >"$H/report-format.md"

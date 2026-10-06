@@ -1,0 +1,32 @@
+#!/bin/sh
+# hostwarden-agent — resolve the local SSH agent without changing user settings.
+# Usage: hostwarden-agent [--host HOST] --socket|--check|--exec COMMAND [ARG...]
+# --socket prints the selected path (empty means disabled).
+# --check checks the socket and whether the agent lists identities.
+# --exec runs COMMAND with SSH_AUTH_SOCK set, preserving arguments.
+# Without --host, only the configuration for hostwarden-agent.invalid is used.
+set -e
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+HW_AGENT_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
+# shellcheck source=../lib/ssh-agent.sh
+. "$HW_AGENT_ROOT/lib/ssh-agent.sh"
+HOST=hostwarden-agent.invalid
+if [ "${1:-}" = --host ]; then
+  HOST=${2:?--host needs a host}; shift 2
+fi
+case "${1:-}" in
+  --socket|--check|--exec) ACTION=$1; shift ;;
+  -h|--help) sed -n '2,7s/^# //p' "$0"; exit 0 ;;
+  *) echo 'hostwarden: use --socket, --check or --exec (see --help)' >&2; exit 2 ;;
+esac
+if [ "$ACTION" != --exec ] && [ $# -ne 0 ]; then exit 2; fi
+hw_agent_resolve "$HOST"
+case "$ACTION" in
+  --socket) printf '%s\n' "$HW_AGENT_SOCKET" ;;
+  --check) hw_agent_ready ;;
+  --exec)
+    [ $# -gt 0 ] || exit 2
+    SSH_AUTH_SOCK=$HW_AGENT_SOCKET
+    export SSH_AUTH_SOCK
+    exec "$@" ;;
+esac

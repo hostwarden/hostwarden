@@ -15,7 +15,7 @@ TMP=$(cd "$TMP" && pwd -P)
 OPS=$TMP/ops
 mkdir -p "$OPS/bin" "$OPS/lib" "$OPS/memory" "$OPS/.git" "$TMP/home"
 cp "$REPO/bin/hostwarden-ssh-config" "$OPS/bin/"
-cp "$REPO/lib/mode.sh" "$OPS/lib/"
+cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/mode.sh" "$OPS/lib/"
 : > "$OPS/memory/.hostwarden-workspace"
 git -C "$OPS/memory" init -q
 HOME=$TMP/home
@@ -45,6 +45,19 @@ refused() {
          bad "host blocks written despite: $1" || ok ;;
   esac
 }
+
+printf 'SSH agent socket: ~/agent with spaces.sock\n' > "$OPS/memory/user.md"
+passes 'Host web1.example.com' "  IdentityAgent \"$HOME/agent with spaces.sock\""
+printf 'SSH agent socket: SSH_AUTH_SOCK\n' > "$OPS/memory/user.md"
+passes 'Host web1.example.com' '  IdentityAgent SSH_AUTH_SOCK'
+printf 'SSH agent socket: $SSH_AUTH_SOCK\n' > "$OPS/memory/user.md"
+passes 'Host web1.example.com' '  IdentityAgent SSH_AUTH_SOCK'
+printf 'SSH agent socket: none\n' > "$OPS/memory/user.md"
+passes 'Host web1.example.com' '  IdentityAgent "none"'
+printf 'SSH agent socket: /one\nSSH agent socket: /two\n' > "$OPS/memory/user.md"
+out=$(gen 'Host web1.example.com')
+case $out in *rc=0) bad 'duplicate agent selection accepted' ;; *) ok ;; esac
+rm "$OPS/memory/user.md"
 
 passes 'Host rtr1
   HostName 192.0.2.1

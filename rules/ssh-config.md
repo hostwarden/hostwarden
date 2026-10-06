@@ -77,8 +77,10 @@ none of them makes ssh accept a host key it did not verify.
 - **The SSH user stays in `memory/user.md`** (`rules/ssh-user.md`):
   it is personal, and the call names it as `user@host`, which wins
   over any `User` line.
-- **A key file, an agent, a host only this user reaches** stay in
-  the user's `~/.ssh/config`.
+- **A key file and a host only this user reaches** stay in the user's
+  `~/.ssh/config`. A personal agent choice belongs in `memory/user.md`
+  (`rules/ssh-agent.md`); without one, the user's SSH configuration chooses
+  the agent for each host.
 
 One line that fails keeps every host block out of
 `memory/ssh_config`, the good ones too, and the script names each

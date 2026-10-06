@@ -77,7 +77,7 @@ checkout() {
   cp "$HOOKS/guard-mode.sh" "$HOOKS/session-mode.sh" "$HOOKS/shim.sh" \
     "$HOOKS/git-ssh.sh" "$c/.claude/hooks/"
   cp -R "$HOOKS/shim" "$HOOKS/guard-mode.d" "$c/.claude/hooks/"
-  cp "$REPO/lib/mode.sh" "$REPO/lib/json.sh" "$c/lib/"
+  cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/mode.sh" "$REPO/lib/json.sh" "$c/lib/"
   cp -R "$REPO/lib/hostwarden-init" "$c/lib/"
   cp "$REPO/bin/hostwarden-init" "$REPO/bin/hostwarden-sync" \
     "$REPO/bin/hostwarden-ssh-config" "$REPO/bin/hostwarden-backup" \

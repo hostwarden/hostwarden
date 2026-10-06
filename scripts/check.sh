@@ -220,6 +220,7 @@ else
   step "mode matrix" sh tests/hooks/guard-mode.sh
   step "release matrix" sh tests/bin/hostwarden-update.sh
 fi
+step "local SSH agent" sh tests/bin/hostwarden-agent.sh
 step "instruction layout" sh tests/instructions.sh
 step "decision records" python3 scripts/decisions.py --check
 step "changelog fragments" sh scripts/changelog-release.sh --check
