@@ -59,11 +59,11 @@ jobs:
 
       # The awks bin/hostwarden-wrap has to work with, which
       # tests/bin/hostwarden-wrap.sh runs it under.
-      - name: Install awks
+      - name: Install test dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends \
-            gawk mawk original-awk busybox
+            gawk mawk original-awk busybox gnupg
 
       # Add checks to scripts/check.sh, not here. A draft gets what a
       # push of its commits onto the base gets: every check but the

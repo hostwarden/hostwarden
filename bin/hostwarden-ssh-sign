@@ -1,0 +1,12 @@
+#!/bin/sh
+# Internal Git signing adapter, configured per command by hostwarden-sync.
+# Preserve the original program and argv; isolate its agent from transport.
+set -e
+SSH_AUTH_SOCK=${HOSTWARDEN_SIGNING_SOCKET?missing signing socket context}
+export SSH_AUTH_SOCK
+if [ "${1:-}" = --default-key ]; then
+  shift
+  [ "$#" -gt 0 ] || exit 2
+  exec "$@"
+fi
+exec "${HOSTWARDEN_SIGNING_PROGRAM:?missing signing program context}" "$@"

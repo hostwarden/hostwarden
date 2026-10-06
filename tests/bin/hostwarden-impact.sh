@@ -33,7 +33,7 @@ mkdir -p "$TMP/repo/bin" "$TMP/repo/lib"
 R=$(cd "$TMP/repo" && pwd)
 cp "$REPO/bin/hostwarden-impact" "$REPO/bin/hostwarden-ssh-config" "$R/bin/"
 cp -R "$REPO/lib/hostwarden-impact" "$R/lib/"
-cp "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/coord-tokenize.sh" \
+cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/mode.sh" "$REPO/lib/hops.sh" "$REPO/lib/coord-tokenize.sh" \
   "$REPO/lib/coord-lib.sh" "$REPO/lib/resolve.sh" "$R/lib/"
 git -C "$R" init --quiet
 M="$R/memory"

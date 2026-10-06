@@ -343,6 +343,7 @@ trigger — not a request from the user.
   `rules/server-check-handoff.md`
 - The user settles a standing choice with a reason →
   `rules/decisions.md`
+- A local SSH agent or Git signature is needed → `rules/ssh-agent.md`
 - A secret is anywhere near the command → `rules/secrets.md`
 - `Host key verification failed`, or a host key that changed →
   `rules/host-keys.md`, never a manual login
