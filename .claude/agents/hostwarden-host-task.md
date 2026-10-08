@@ -32,6 +32,14 @@ one after another do so, in its order, never in a round.
    - **Blacklisted** — return `skipped:`, touch nothing.
    - **Read-only** — carry on: `rules/access-control.md` allows
      inspection and the journal line.
+   - **Protected paths** (`rules/access-control.md` → Protected
+     Paths) — the host's lists hold for you; read the block in
+     `memory/custom-rules/all.md` yourself, since no session start
+     ran for you. A step that touches a `readonly` path it
+     reaches, as that section defines both, is skipped, the glob
+     named under `partial:`, and the rest runs; one that touches a
+     `confirm` path is a question you cannot ask: return `blocked:`
+     with the command.
    - **A step that says to stop and ask** — that host stops before
      its task: return `blocked:` with what the step found.
 2. Do the task on every host that goes on.

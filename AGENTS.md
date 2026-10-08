@@ -297,6 +297,9 @@ trigger — not a request from the user.
 - Writing a file of your own onto a host, changing or removing
   one, or running a script from `memory/tools/` against a host →
   `rules/deployed-files.md`
+- Writing, deleting, moving or re-permissioning any path on a
+  host, through whatever tool → `rules/access-control.md` →
+  Protected Paths, for the user's `readonly` and `confirm` globs
 - Installing or upgrading any software →
   `rules/version-check.md`, for the stable version to install.
   A request that names no version still needs the lookup

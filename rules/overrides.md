@@ -81,6 +81,12 @@ writes it, and the usual prefixed headings under each:
     # hostwarden-security/ssh
     ## Remove: Weak algorithm check
 
+A subject's file may define a block that is read as
+data rather than as text added to the shipped file, and
+that file says how: `## Protected Paths` under
+`# access-control` is one
+(`rules/access-control.md` → Protected Paths).
+
 A prefixed heading that sits outside any `H1` names no
 shipped file, so there is nothing to resolve it against —
 `## Replace: Backup retention` alone could mean the backups
