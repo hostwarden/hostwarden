@@ -144,6 +144,26 @@ Ask first: both are privilege changes.
   sudo older than 1.9.3 refuses to run at all with an error
   anywhere in it; confirm with `sudo -l -U <user>`, filtered as
   `rules/accounts-probe.md` → The Sudo Model says.
+  For a login that must stay out of a path — Hostwarden's own
+  under `hostwarden-enforce-readonly` — each command on a
+  `NOPASSWD` line answers three questions first, and a yes to any
+  keeps it off the line: can it write a path given on its command
+  line, with any arguments (`cp`, `tee`, `sed -i`, `chmod`, an
+  editor)? Can it run another program (a shell, a pager,
+  `find -exec`, `rsync --rsh`, a language runtime)? Does it make
+  something else write a protected path — a package manager, a
+  restart whose unit rewrites a file there? A yes to the first two
+  is root with every path (`rules/privilege-escalation.md` → Mixed
+  Mode), a yes to the third is the write by another name, and no
+  wildcard in the rule makes either safe, since sudo's `*` matches
+  across arguments; nor does a rule with fixed arguments help,
+  since `rules/privilege-escalation.md` → Mixed Mode never counts
+  one. So a line names a command alone, and the command has to
+  hold with any argument: `/usr/bin/lsattr` does, `/bin/systemctl`
+  does not, because `status` opens a pager and `restart` writes. A deploy
+  user's restart line is a different account under a different
+  rule, `.agents/skills/hostwarden-deploy-user/references/harden.md`
+  → Restricted Sudo.
 
 ## Team Accounts
 

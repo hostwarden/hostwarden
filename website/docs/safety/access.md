@@ -113,6 +113,11 @@ a requirement and lift none: the Critical Safety Rules hold on a
 the explicit request a taboo needs. When a list blocks a step, Hostwarden
 names the list and the glob and carries on with the rest. This is
 a rule the agent follows, not a mechanical guard: the taboo guard
-sees a remote path only as text inside an SSH command.
+sees a remote path only as text inside an SSH command. When you
+want the host itself to keep a `readonly` glob, ask for it:
+[Enforcing read-only paths](../features/changes/enforced-paths.md)
+sets an immutable flag, a read-only dataset or subvolume, or a
+login of Hostwarden's own without the write bit, one per glob,
+and never on its own.
 
 Rule: `rules/access-control.md` → Protected Paths.

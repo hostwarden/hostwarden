@@ -60,6 +60,7 @@ rules/ssh-safety-net.md
 rules/storage.md
 .agents/skills/hostwarden-baseline/
 .agents/skills/hostwarden-deploy-user/
+.agents/skills/hostwarden-enforce-readonly/
 .agents/skills/hostwarden-fleet-read/
 .agents/skills/hostwarden-heinzel-takeover/
 .agents/skills/hostwarden-new-guest/

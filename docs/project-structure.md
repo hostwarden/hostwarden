@@ -237,6 +237,9 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
+    hostwarden-enforce-readonly/ — Make the host keep a
+                         readonly glob: flag, property or
+                         own login (SKILL.md + references/)
     hostwarden-fleet-read/    — An operations host and its
                          least-privilege access: a forced
                          command that runs operator-signed

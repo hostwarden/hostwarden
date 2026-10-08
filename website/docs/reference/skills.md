@@ -42,6 +42,10 @@ description.
 - **hostwarden-deploy-user** (`/hostwarden-deploy-user`) — Set up,
   audit or remove a dedicated account for automated deployments with
   restricted shell and sudo.
+- **hostwarden-enforce-readonly** (`/hostwarden-enforce-readonly`) —
+  Make the host keep a `readonly` glob: an immutable flag, a
+  read-only dataset or subvolume, or a Hostwarden login without the
+  write bit; only when asked.
 - **hostwarden-email** (`/hostwarden-email`) — Send an email about a
   managed server with ad-hoc text and file attachments.
 - **hostwarden-heinzel-takeover** (`/hostwarden-heinzel-takeover`) —

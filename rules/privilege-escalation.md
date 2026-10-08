@@ -292,6 +292,13 @@ needed. On later connections, read `Root SSH:` from
 machine memory instead of probing again: a refused
 root login can count toward a fail2ban ban
 (`rules/ssh-connections.md` → Avoid failed logins).
+On a host whose memory has an
+`Enforced readonly: account` line the fallback is
+never used, neither probed nor taken from a
+`Root SSH: available` line an earlier login left:
+the login is kept out of the protected paths on
+purpose, root would reach them all, and what sudo
+does not cover is deferred (Unprivileged Mode).
 
 ## Unprivileged Mode
 

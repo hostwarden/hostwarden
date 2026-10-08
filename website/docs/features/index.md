@@ -62,6 +62,8 @@ the agent as instructions.
   installs language runtimes and sets up restricted CI/CD accounts.
 - [Email reports](changes/email.md) — sends ad-hoc text or files
   about a managed server by email.
+- [Enforcing read-only paths](changes/enforced-paths.md) — makes
+  the host itself keep a readonly path, when you ask.
 
 ## Many servers
 

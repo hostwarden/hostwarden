@@ -295,7 +295,15 @@ path as source or destination, `chmod`, `chown`, `touch` — and
 every command of → Writes a command does not name. Reading,
 listing and `stat` never count. Judging that is this session's
 work alone: the taboo guard sees a remote path only as text
-inside the SSH command string and enforces nothing here.
+inside the SSH command string and enforces nothing here, unless
+the user has asked `hostwarden-enforce-readonly` to make the host
+keep a glob; the host's `Enforced readonly:` lines say which. A
+change that only makes a matched path harder to write — an
+immutable flag, a read-only dataset or subvolume, a read ACL for
+Hostwarden's own login — is not a write the list denies, and
+takes the ask its own rule gives it; clearing or widening one is
+a write like any other. A write that fails on such a path is the
+enforcement at work, never a fault to work around.
 
 **Writes a command does not name** are established before it
 runs, on a host with any list in force: a package install,
@@ -334,7 +342,8 @@ installed, a maintainer script that cannot be read — counts as
 touching every matched path it could reach, and the user is told
 so.
 
-- **`readonly`** — read, list and stat are allowed; everything
+- **`readonly`** — read, list and stat are allowed, and a change
+  that only makes the path harder to write (above); everything
   else is denied, with no override in the session: the user takes
   the glob out of the list first. A denied step is a deferred
   modification, reported as → Read-Only Servers says.

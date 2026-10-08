@@ -64,6 +64,10 @@ host, which the user approves command by command:
   `start`. A filtered balance
   such as `-dusage=50` moves only the chunks it selects and runs
   without a question
+- A tree taken away from everything that writes it, or given
+  back: `zfs set readonly=on` or `off`, `zfs inherit readonly`,
+  and `btrfs property set … ro true` or `false`; the guard does
+  not know these, so the ask is this rule's alone
 - Scrubs, `zpool scrub` and `btrfs scrub start` or `resume`: they
   rewrite damaged blocks from a copy whose checksum verifies, which
   is self-healing and not a guess, but they load every disk for

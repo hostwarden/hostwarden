@@ -235,6 +235,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Deploy user:`           | `hostwarden-deploy-user`    | account set up   |
 | `Deploy target:`         | `hostwarden-deploy-user`    | account set up   |
 | `Deploy sudo:`           | `hostwarden-deploy-user`    | account set up   |
+| `Enforced readonly:`     | `hostwarden-enforce-readonly` | glob enforced  |
 | `Fleet read:`            | `hostwarden-fleet-read`     | set up, checked  |
 | `Origin:`                | `hostwarden-new-guest`      | guest created    |
 | `Origin:`                | `hostwarden-os-install`     | OS installed     |

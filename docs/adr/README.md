@@ -66,4 +66,5 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Waiting on | Tags |
 | :--- | :--- | :--- |
+| [Protected paths are enforced on the host, on request](20261008-readonly-paths-enforced-on-host-on-request.md) | review of the pull request that adds the skill | access-control, guard, accounts, storage |
 | [Several hosts run in the session; agents only at scale](20260926-multi-host-work-runs-here-agents-at-scale.md) | review of the pull request that adds it | multi-host, subagents, hooks |

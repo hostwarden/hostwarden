@@ -156,7 +156,11 @@ replaces the `- <hostname>:` entry. A user who keeps the recorded
 name gets the offer to record that as a decision
 (`rules/decisions.md` → Writing one). Once one is recorded, the
 question is not asked again (`rules/decisions.md` → Rating
-findings).
+findings). A host whose memory has an `Enforced readonly:
+account` line fits by that line where the recorded login is the
+account it names, and the question is not asked; a workstation
+whose entry is another login is asked as usual, with that account
+offered as an option.
 
 ## User Language
 
