@@ -32,13 +32,48 @@ done
 [ -n "$HOSTS" ] || die "no host has 'Fleet read: $NAME (…, key line present, …)'"
 
 # Each bundle the hosts need is verified once, against the
-# workspace's signers file, before any host gets it.
+# workspace's signers file, before any host gets it. The wrapper is
+# the authority on what it runs and refuses the rest; the limits it
+# holds a request to are checked here as well, once per bundle, so
+# that a bundle every host would refuse costs no connection and the
+# report says why: $WORK/refused/<bundle> holds the reason
+# (templates/fleet-read/fleet-read).
 for b in $(cat "$WORK"/hosts/*/bundle | sort -u); do
   if [ -f "$FR/src/$b.sh.sig" ] \
       && ssh-keygen -Y verify -f "$SIGNERS" -I fleet-read -n fleet-read \
         -s "$FR/src/$b.sh.sig" <"$FR/src/$b.sh" >/dev/null 2>&1; then
     : >"$WORK/verified/$b"
+  else
+    continue
   fi
+  until_=$(sed -n 's/^# valid-until: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)$/\1/p' \
+    "$FR/src/$b.sh" | head -n 1)
+  if [ -z "$until_" ]; then
+    echo "has no valid-until line" >"$WORK/refused/$b"; continue
+  fi
+  if [ "$(date -u +%Y%m%d)" -gt "$(echo "$until_" | tr -d -)" ]; then
+    echo "expired on $until_" >"$WORK/refused/$b"; continue
+  fi
+  if [ "$(cat "$FR/src/$b.sh.sig" "$FR/src/$b.sh" | wc -c | tr -d ' ')" -gt 262144 ]; then
+    echo "and its signature are larger than 262144 bytes" >"$WORK/refused/$b"
+    continue
+  fi
+  # A run by section names only sections the bundle's SECTIONS='…'
+  # line carries, so a typo costs no connection per host and a
+  # bundle built before the line existed is named as such.
+  [ -n "$SECTIONS" ] || continue
+  have=$(sed -n "s/^SECTIONS='\([a-z0-9_ ]*\)'\$/\1/p" "$FR/src/$b.sh" 2>/dev/null \
+    | head -n 1)
+  if [ -z "$have" ]; then
+    echo "names no sections; a run by section needs a bundle built with a SECTIONS= line" \
+      >"$WORK/refused/$b"
+    continue
+  fi
+  lack=
+  for s in $SECTIONS; do
+    case " $have " in *" $s "*) ;; *) lack="$lack $s" ;; esac
+  done
+  [ -z "$lack" ] || echo "has no section$lack" >"$WORK/refused/$b"
 done
 
 # fleet_ssh <host> <seconds> <verb> — the one request the key
@@ -151,6 +186,13 @@ findings: one per problem, nothing for what is fine.
   Never make a quote up. A mere observation in memory.md ("X is
   off") is not an approval. The class never changes the severity.
 skipped: checks that do not apply here or could not run.
+EOF
+    [ -z "$SECTIONS" ] || cat <<EOF
+
+This run asked for the sections$SECTIONS of the bundle, and the
+bundle added its floors; no other section ran, at the caller's
+choice. Judge what ran. A check whose section was not asked for is
+neither a finding nor skipped: leave it out.
 EOF
     for s in report-format.md $srcs; do
       case $s in *[!A-Za-z0-9._-]*) continue ;; esac

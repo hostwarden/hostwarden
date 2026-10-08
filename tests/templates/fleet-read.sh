@@ -46,10 +46,11 @@ sign() {
   rm -f "$3.sig"
   ssh-keygen -q -Y sign -f "$TMP/$1" -n "$2" "$3" >/dev/null 2>&1
 }
-# collect <input> — the wrapper as sshd starts it for collect.
+# collect <input> [<suffix>] — the wrapper as sshd starts it for
+# collect, <suffix> the section names appended to the verb.
 collect() {
   rm -f "$TMP/ran"
-  SSH_ORIGINAL_COMMAND=collect sh "$TMP/fleet-read" ops1 <"$1" \
+  SSH_ORIGINAL_COMMAND="collect${2:-}" sh "$TMP/fleet-read" ops1 <"$1" \
     >"$TMP/out" 2>"$TMP/err"
 }
 input() { cat "$1.sig" "$1" >"$TMP/in"; }
@@ -113,6 +114,68 @@ input "$B"
 collect "$TMP/in"
 after=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'tmp.*' 2>/dev/null | wc -l)
 [ "$before" = "$after" ] && ok || bad "collect left its temporary directory"
+
+# --- collect by section ---------------------------------------
+# A bundle laid out as references/bundle.md says: one SECTIONS line
+# that the dispatcher runs from and the wrapper reads, one function
+# per section, the chosen ones run in the line's order, the floors
+# last.
+S="$TMP/work/s.sh"
+cat >"$S" <<EOF
+#!/bin/sh
+# valid-until: 2999-12-31
+SECTIONS='alpha beta_2'
+sec() { printf '\n### %s\n' "\$1"; }
+sec_alpha() { sec alpha; echo ran-alpha; touch '$TMP/ran'; }
+sec_beta_2() { sec beta; echo ran-beta; touch '$TMP/ran'; }
+sec_floors() { sec floors; echo ran-floors; }
+WANT=\${*:-\$SECTIONS}
+for s in \$SECTIONS; do
+  case " \$WANT " in *" \$s "*) "sec_\$s" ;; esac
+done
+sec_floors
+exit 0
+EOF
+sign good fleet-read "$S" && input "$S"
+ran() { grep -o 'ran-[a-z]*' "$TMP/out" | tr '\n' ' '; }
+collect "$TMP/in"
+rc=$?
+[ "$rc" = 0 ] && [ "$(ran)" = 'ran-alpha ran-beta ran-floors ' ] && ok \
+  || bad "collect without names ran '$(ran)' (rc $rc)"
+collect "$TMP/in" ' beta_2'
+rc=$?
+[ "$rc" = 0 ] && [ "$(ran)" = 'ran-beta ran-floors ' ] && ok \
+  || bad "collect beta_2 ran '$(ran)' (rc $rc)"
+collect "$TMP/in" ' beta_2 alpha'
+[ "$(ran)" = 'ran-alpha ran-beta ran-floors ' ] && ok \
+  || bad "two names did not run in the bundle's order: '$(ran)'"
+collect "$TMP/in" '  beta_2  '
+[ "$(ran)" = 'ran-beta ran-floors ' ] && ok \
+  || bad "extra blanks around a name changed the run: '$(ran)'"
+collect "$TMP/in" ' gamma'; refused "a name the bundle does not carry"
+grep -q "no section 'gamma'" "$TMP/err" && ok \
+  || bad "the missing section was not named: $(cat "$TMP/err")"
+collect "$TMP/in" ' alpha gamma'; refused "one bad name among good ones"
+collect "$TMP/in" ' Alpha'; refused "an uppercase name"
+collect "$TMP/in" ' alpha;id'; refused "a name with a shell character"
+collect "$TMP/in" ' al*pha'; refused "a name with a glob character"
+collect "$TMP/in" ' beta-2'; refused "a name with a hyphen"
+collect "$TMP/in" ' -x'; refused "a name that starts with a hyphen"
+collect "$TMP/in" ' _a'; refused "a name that starts with an underscore"
+collect "$TMP/in" ' 1a'; refused "a name that starts with a digit"
+collect "$TMP/in" ' alpha
+beta_2'; refused "a name on a second line"
+collect "$TMP/in" " $(printf 'a%.0s' $(seq 41))"
+refused "a name over 40 characters"
+collect "$TMP/in" " $(printf 'alpha %.0s' $(seq 33))"
+refused "more than 32 names"
+collect "$TMP/in" 'alpha'; refused "a verb run into a name"
+# The plain bundle above has no SECTIONS line: a name is refused
+# even where the dispatcher would have ignored it.
+input "$B"
+collect "$TMP/in" ' alpha'; refused "a name on a bundle without a sections line"
+grep -q 'no sections line' "$TMP/err" && ok \
+  || bad "the missing sections line was not named: $(cat "$TMP/err")"
 
 # --- the command line -----------------------------------------
 input "$B"

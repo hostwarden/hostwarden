@@ -53,7 +53,7 @@ WORK=$(mktemp -d) || die "no temporary directory"
 trap 'rm -rf "$WORK"' EXIT
 trap 'exit 1' HUP INT TERM
 mkdir "$WORK/judge-cwd" "$WORK/hosts" "$WORK/running" "$WORK/verified" \
-  "$WORK/resolve-ok"
+  "$WORK/refused" "$WORK/resolve-ok"
 
 # When each finding was first seen. A dry run reads it where it
 # exists and creates nothing: no directory, no lock.

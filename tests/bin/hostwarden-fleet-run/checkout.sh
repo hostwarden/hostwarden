@@ -46,6 +46,7 @@ cat >"$FR/src/linux.sh" <<'EOF'
 # fleet-read bundle: linux
 # valid-until: 2999-12-31
 # sources: baseline-linux.md
+SECTIONS='meta disk'
 echo placeholder
 EOF
 sign() {

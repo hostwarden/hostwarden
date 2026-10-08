@@ -11,9 +11,15 @@ for h in $HOSTS; do
   [ -e "$WORK/hosts/$h/read" ] || UNREAD=$((UNREAD + 1))
 done
 
+# A run by section says so first: its report covers one area, and
+# the hosts' other checks are neither fine nor skipped.
+[ -z "$SECTIONS" ] \
+  || note "a run by section: sections$SECTIONS of each bundle and its floors, nothing else"
+
 if [ -z "$JUDGE" ]; then
   for h in $HOSTS; do
-    printf '\n=== %s (bundle %s)\n' "$h" "$(cat "$WORK/hosts/$h/bundle")"
+    printf '\n=== %s (bundle %s%s)\n' "$h" "$(cat "$WORK/hosts/$h/bundle")" \
+      "${SECTIONS:+, sections$SECTIONS}"
     cat "$WORK/hosts/$h/raw" 2>/dev/null
     jq -r '.findings[] | "\(.severity) \(.text)"' "$WORK/hosts/$h/result.json"
   done

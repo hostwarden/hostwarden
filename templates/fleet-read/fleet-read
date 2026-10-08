@@ -11,27 +11,36 @@
 #
 # The key then reaches exactly two verbs, sent as the SSH command:
 #
-#   collect  stdin: an armored SSH signature, directly followed by
+#   collect [<section>…]
+#            stdin: an armored SSH signature, directly followed by
 #            the bundle it signs. The bundle runs as this account
 #            only when a key in $SIGNERS signed it for the namespace
 #            $NS and its "# valid-until: YYYY-MM-DD" line is not
 #            past. It runs from a private copy: the file that was
-#            verified is the file that runs.
+#            verified is the file that runs. Section names, at most
+#            32, each a word of lowercase letters, digits and
+#            underscores, pass to the bundle as its arguments, and
+#            only names its
+#            SECTIONS='…' line carries are passed: the signed bundle
+#            decides what each name runs, this file never picks
+#            lines out of it. A name the line does not carry, or a
+#            bundle without the line, refuses the whole request
+#            before anything runs.
 #   log      stdin: one line. It goes to the journal under the tag
 #            hostwarden, behind a prefix this file sets:
 #            "[<name> as <user>] read-only: <line>".
 #
 # Anything else is refused before anything runs. No shell, no
-# other command, no argument to either verb.
+# other command, no argument to log.
 #
 # Why a signature and not a list of allowed commands: the checks a
 # host needs change with every housekeeping reference, and a list
 # that could carry them would carry a shell. The signature moves
 # the decision to the operator, whose signing key never lies on the
 # operations host. Whoever takes that host over can replay a bundle
-# the operator signed, until its date, and write read-only journal
-# lines. Nothing else. Why not unsigned input: then this key would
-# be root on every host that carries it.
+# the operator signed, until its date, whole or by its sections,
+# and write read-only journal lines. Nothing else. Why not unsigned
+# input: then this key would be root on every host that carries it.
 
 set -eu
 umask 077
@@ -56,7 +65,22 @@ esac
 [ "${#NAME}" -le 64 ] || fail "bad name in the key's command"
 
 case ${SSH_ORIGINAL_COMMAND:-} in
-collect)
+collect | 'collect '*)
+  # The section names, split on blanks once every character has
+  # been checked: nothing a shell would expand or a bundle would
+  # misread gets as far as the split.
+  WANT=${SSH_ORIGINAL_COMMAND#collect}
+  # Counted, not tested for emptiness: a newline is one of the
+  # characters to refuse, and command substitution would drop it.
+  [ "$(printf '%s' "$WANT" | LC_ALL=C tr -d 'a-z0-9_ ' | wc -c)" -eq 0 ] \
+    || fail "a section name is lowercase letters, digits and underscores"
+  # shellcheck disable=SC2086 # the split is the point
+  set -- $WANT
+  [ "$#" -le 32 ] || fail "more than 32 section names"
+  for s; do
+    case $s in [a-z]*) ;; *) fail "a section name starts with a letter" ;; esac
+    [ "${#s}" -le 40 ] || fail "section name longer than 40 characters"
+  done
   [ -r "$SIGNERS" ] || fail "no $SIGNERS"
   DIR=$(mktemp -d) || fail "no temporary directory"
   trap 'rm -rf "$DIR"' EXIT
@@ -82,9 +106,25 @@ collect)
   [ -n "$UNTIL" ] || fail "bundle has no valid-until line"
   [ "$(date -u +%Y%m%d)" -le "$(echo "$UNTIL" | tr -d -)" ] \
     || fail "bundle expired on $UNTIL"
+  if [ "$#" -gt 0 ]; then
+    # The names the signed bundle offers: its SECTIONS='…' line,
+    # the one list its dispatcher runs from. A name it does not
+    # carry stops the run here, so a typo reads nothing at all
+    # rather than everything.
+    HAVE=$(sed -n "s/^SECTIONS='\([a-z0-9_ ]*\)'\$/\1/p" "$DIR/bundle" \
+      | head -n 1)
+    [ -n "$HAVE" ] \
+      || fail "bundle has no sections line; collect takes no names for it"
+    for s; do
+      case " $HAVE " in
+        *" $s "*) ;;
+        *) fail "no section '$s' in the bundle" ;;
+      esac
+    done
+  fi
   cd /
   # set -e passes the bundle's exit status on; the trap cleans up.
-  sh "$DIR/bundle" </dev/null
+  sh "$DIR/bundle" "$@" </dev/null
   ;;
 log)
   LINE=$(head -c 1024 | head -n 1 | LC_ALL=C tr -cd '[:print:]' \
