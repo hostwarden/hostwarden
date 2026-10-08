@@ -168,9 +168,11 @@ if [ "$NCHECKS" -gt 0 ]; then
   # starts one: four fields per fixture from here on.
   # Without jq the fourth is a dash and the child falls back to
   # json_for. Not an empty field: BSD xargs drops those. printf
-  # repeats its format, so one takes a hundred fixtures.
+  # repeats its format, so one takes a hundred fixtures. The
+  # triples come from range: jq 1.8 has no _nwise.
   if command -v jq >/dev/null 2>&1; then
-    jq -Rsj '([0] | implode) as $nul | split($nul)[:-1] | _nwise(3)
+    jq -Rsj '([0] | implode) as $nul | split($nul)[:-1]
+      | range(0; length; 3) as $i | .[$i:$i+3]
       | (.[0], .[1], .[2],
          if .[1] == "JSON" then .[2]
          else {tool_name: .[1], tool_input: {command: .[2]}} | tojson
