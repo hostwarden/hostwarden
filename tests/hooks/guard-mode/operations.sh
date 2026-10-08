@@ -55,6 +55,22 @@ rm "$OPS"/memory/l*
 mkdir -p "$OPS/memory/machines/web1.example.com"
 ln -s web1.example.com "$OPS/memory/machines/www.example.com"
 edit pass "$OPS" "$OPS/memory/machines/www.example.com/memory.md"
+# Remote, an operations checkout in a VM apart from the workstation:
+# shipped files stay read-only, memory/ stays writable, and ssh is
+# refused. Read only on Linux, where mode.sh can see the sign.
+if [ -r /proc/sys/kernel/osrelease ]; then
+  remote() {
+    out=$(printf '%s' "$3" | CLAUDE_CODE_REMOTE=true \
+      sh "$2/.claude/hooks/guard-mode.sh")
+    case "$out" in *'"permissionDecision":"deny"'*) got=deny ;; *) got=pass ;; esac
+    if [ "$got" = "$1" ]; then ok; else bad "[$1, got $got] in remote: $3"; fi
+  }
+  remote deny "$OPS" "$(edit_json "$OPS/rules/backups.md")"
+  remote deny "$OPS" "$(write_json "$OPS/rules/new-rule.md")"
+  remote pass "$OPS" "$(edit_json "$OPS/memory/user.md")"
+  remote deny "$OPS" "$(bash_json '/usr/bin/ssh root@server1.example.com uptime')"
+  remote pass "$OPS" "$(bash_json 'git status')"
+fi
 
 # Without jq the guard reads what it can with sed and refuses
 # what it cannot, never the other way round. A PATH that holds

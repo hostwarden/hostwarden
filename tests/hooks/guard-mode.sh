@@ -109,6 +109,20 @@ mode_is() {
 mode_is development "$DEV"
 mode_is operations "$OPS"
 mode_is worktree "$WT"
+# A VM apart from the workstation takes operations away and grants
+# nothing: on Linux, where the sign can be read, the operations
+# checkout reads remote; a Mac has no /proc and never does; and a
+# development checkout stays development either way.
+if [ -r /proc/sys/kernel/osrelease ]; then
+  CLAUDE_CODE_REMOTE=true mode_is remote "$OPS"
+else
+  CLAUDE_CODE_REMOTE=true mode_is operations "$OPS"
+fi
+# Only the value the web sets counts, as in dev-tools.sh.
+CLAUDE_CODE_REMOTE=false mode_is operations "$OPS"
+CLAUDE_CODE_REMOTE=1 mode_is operations "$OPS"
+CLAUDE_CODE_REMOTE=true mode_is development "$DEV"
+CLAUDE_CODE_REMOTE=true mode_is worktree "$WT"
 # An archive copy, not a clone: never operations, even with a
 # workspace in it, and init refuses to make one.
 ARC="$TMP/archive"

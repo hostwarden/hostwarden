@@ -52,7 +52,8 @@ fi
 # shellcheck source=../lib/mode.sh
 . "$SCRIPT_DIR/../lib/mode.sh"
 hostwarden_mode "$SCRIPT_DIR/.."
-if [ "$HOSTWARDEN_MODE" = operations ]; then
+# remote is an operations install in a VM apart from the workstation.
+if [ "$HOSTWARDEN_MODE" = operations ] || [ "$HOSTWARDEN_MODE" = remote ]; then
   echo "hostwarden-mirror: this is an operations install. The" >&2
   echo "  mirror is kept current by a CI or cron job of its own," >&2
   echo "  from a plain clone of Hostwarden." >&2

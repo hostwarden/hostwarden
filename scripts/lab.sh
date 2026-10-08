@@ -109,8 +109,11 @@ case "${1:-}" in
   up|exec|down|list|vm) ;;
   *) usage >&2; exit 2 ;;
 esac
-[ "$HOSTWARDEN_MODE" != operations ] || die "this checkout operates \
-servers; the lab belongs to a development checkout."
+# remote is an operations checkout in a VM apart from the workstation.
+case "$HOSTWARDEN_MODE" in
+operations | remote) die "this checkout operates servers; the lab \
+belongs to a development checkout." ;;
+esac
 
 # Whose containers these are: the checkout's directory name, a
 # worktree's own, cut short enough for a host name, and a checksum

@@ -52,7 +52,9 @@ Hostwarden session looks the same.
 ### Prerequisites
 
 - An AI coding assistant: Claude Code, OpenCode, or
-  the Claude desktop app's Code tab
+  the Claude desktop app's Code tab. Not Claude
+  Cowork, whose shell runs in a VM without your SSH
+  keys and without Hostwarden's hooks
 - jq
 - Key-based SSH access to the target, without a
   password or passphrase prompt
@@ -194,6 +196,8 @@ everything below: [the Features page](https://hostwarden.github.io/docs/features
 Hostwarden targets Claude Code; OpenCode, Codex and
 Cursor read the same `AGENTS.md` instructions, and
 OpenCode also runs it on local models through Ollama.
+Claude Cowork is not supported: a session there reaches
+no server and points you to Claude Code.
 What differs per tool: [Supported AI tools](https://hostwarden.github.io/docs/getting-started/ai-tools).
 One-shot commands, auto mode and scheduled runs:
 [Automation and scripting](https://hostwarden.github.io/docs/running-it/unattended/automation).

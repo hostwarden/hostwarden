@@ -4,7 +4,17 @@
 # run on its own.
 # shellcheck shell=sh disable=SC2034 # read by the modules after it
 
-if [ "$HOSTWARDEN_MODE" = operations ]; then
+# remote is an operations checkout in a VM apart from the
+# workstation (mode.sh): its shipped files are read-only as well.
+# A shell call there is not this module's: it goes on to
+# development.sh, which refuses the tools that reach a server.
+GUARD_OPS=''
+case "$HOSTWARDEN_MODE:$TOOL" in
+operations:*) GUARD_OPS=1 ;;
+remote:Edit | remote:Write | remote:MultiEdit | remote:NotebookEdit)
+  GUARD_OPS=1 ;;
+esac
+if [ -n "$GUARD_OPS" ]; then
   # --- Operations: the shipped files are read-only ----------
   case "$TOOL" in
   Edit|Write|MultiEdit|NotebookEdit) ;;

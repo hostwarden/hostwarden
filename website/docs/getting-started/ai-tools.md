@@ -164,6 +164,43 @@ makes that independent of how the app starts.
 On Windows, run the session in WSL 2, as described
 under [Windows](install.md#windows).
 
+## Claude Cowork
+
+Claude Cowork — a chat in the desktop app with a folder
+connected, which the app may offer as the default — is
+not supported for server work, and a Hostwarden
+operations session started there says so and stops.
+The same holds for Claude Code on the web. Two things
+are missing.
+
+**The shell runs in a VM, not on your machine.** Cowork
+executes commands in a Linux virtual machine of its
+own, which has neither your `~/.ssh` nor your SSH
+agent, so there is no key to reach a server with. That
+VM protects your machine from the code the agent
+writes; it protects no server from the agent, which is
+where Hostwarden's risk lies.
+
+**In Cowork, no hook runs.** Cowork does not read
+`.claude/settings.json`, so the taboo guard, the mode
+guard, the session start and the coordination hooks
+never fire — the layer that makes a Hostwarden session
+more than a prompt. What is left is the session's own
+reading of `AGENTS.md` and `bin/hostwarden-doctor`,
+which it runs first and which prints the one line
+naming the VM and the way out. On the web the hooks do
+run, and the mode guard refuses server commands there
+as it does in a development checkout.
+
+The way out is the same checkout, opened in the Code
+tab ([Claude Code Desktop](#claude-code-desktop)) or in
+a terminal. Password-manager integrations built for
+Cowork, such as 1Password's browser sign-in, fill web
+logins and carry no SSH key, so they change nothing
+here. Working on Hostwarden's own source in such a VM
+is fine, in a development checkout: that job reaches
+no server anyway.
+
 ## OpenCode with Ollama
 
 [OpenCode](https://opencode.ai) is an open-source

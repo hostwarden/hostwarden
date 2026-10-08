@@ -17,6 +17,7 @@ for Windows.
   or [OpenCode](https://opencode.ai) — or the Claude
   desktop app's Code tab, set up as described in
   [Claude Code Desktop](ai-tools.md#claude-code-desktop).
+  Not [Claude Cowork](ai-tools.md#claude-cowork).
 - **[jq](https://jqlang.org)** for Claude Code's
   guard hooks. Without it they cannot read what a
   tool call does, and the mode guard refuses

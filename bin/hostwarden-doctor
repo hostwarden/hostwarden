@@ -15,8 +15,12 @@
 #   hostwarden-doctor --help    Show this help
 #
 # Checks the machine the AI tool runs on, never a managed host.
-# Prints install commands; never runs them.
-# Exit status: 1 when something required is missing, else 0.
+# Prints install commands; never runs them. In an operations
+# checkout whose shell runs in a VM apart from the workstation
+# (Claude Cowork, Claude Code on the web) it prints one line naming
+# the way out instead, and goes on only with --dev.
+# Exit status: 1 when something required is missing, or without
+# --dev in such a VM, else 0.
 # --quiet prints only what is missing and, without --dev, always
 # exits 0.
 
@@ -63,10 +67,25 @@ INSTALL_DOCS=https://hostwarden.github.io/docs/getting-started/install
 # Hostwarden needs. Only the hook: a full report run by hand in a
 # fresh clone, before bin/hostwarden-init, is for someone installing
 # Hostwarden to run it.
-if [ -n "$HOOK" ]; then
-  hostwarden_mode "$ROOT"
-  [ "$HOSTWARDEN_MODE" = operations ] || DEV=1
+hostwarden_mode "$ROOT"
+# An operations checkout in a VM apart from the workstation (remote
+# in lib/mode.sh) has no key to reach a server with, so there is
+# nothing of operations to probe for: the one line names the way
+# out, and it is the line a session without hooks reads, since
+# Cowork fires none. It ends there, the hook with 0 and a run by
+# hand with 1: the checkout stays read-only and runs no checks, so
+# the tools --dev lists are not missing from it. Only --dev, asked
+# for, goes on.
+if [ "$HOSTWARDEN_MODE" = remote ] && [ -z "$DEV" ]; then
+  hostwarden_why
+  hostwarden_next_step
+  echo "hostwarden: $HOSTWARDEN_WHY: no server is reached from here," \
+    "and memory/ is left as it is. Next step: $HOSTWARDEN_NEXT_STEP" \
+    "(AGENTS.md - Development or Operations)."
+  [ -n "$HOOK" ] && exit 0
+  exit 1
 fi
+[ -z "$HOOK" ] || [ "$HOSTWARDEN_MODE" = operations ] || DEV=1
 MISE_TOOLS=''
 if [ -f "$ROOT/mise.dev.toml" ]; then
   while IFS= read -r l; do

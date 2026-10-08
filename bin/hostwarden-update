@@ -153,7 +153,10 @@ trust_head() {
     > "$SIGNERS" 2>/dev/null || : > "$SIGNERS"
 }
 SIGNERS=
-if [ "$HOSTWARDEN_MODE" = operations ]; then
+# An operations checkout in a VM apart from the workstation (remote)
+# reaches no server, but it is still an operations install, and an
+# update there is verified like any other.
+if [ "$HOSTWARDEN_MODE" = operations ] || [ "$HOSTWARDEN_MODE" = remote ]; then
   SIGNERS=$(mktemp "${TMPDIR:-/tmp}/hostwarden-signers.XXXXXX")
   trap 'rm -f "$SIGNERS" "$SIGNERS.chain" "$SIGNERS.next"' EXIT
   trap 'exit 1' INT TERM
@@ -275,7 +278,9 @@ on_tag() { at_tag "$1" && ! git symbolic-ref -q HEAD >/dev/null; }
 # chose settles on, or nothing. A development checkout stays where
 # its developer put it.
 settle_line() {
-  [ "$HOSTWARDEN_MODE" != operations ] || hostwarden_follow_default
+  case "$HOSTWARDEN_MODE" in
+  operations | remote) hostwarden_follow_default ;;
+  esac
 }
 
 # line_notice <line> — says so when the newest release is on

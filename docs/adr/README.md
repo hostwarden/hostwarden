@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [A VM apart from the workstation is its own mode](20261008-cowork-is-no-operations-harness.md) | guard, harness, safety | — |
 | [Own review on Sonnet; Opus where files or findings call](20260929-reviewer-model-follows-the-files.md) | review, tooling | — |
 | [SSH passwords reach ssh through an askpass helper only](20260927-ssh-passwords-through-askpass-helper.md) | ssh, secrets, appliances | — |
 | [Same-session fallback for a declined self-resolved address](20260926-same-session-fallback-self-resolved-address.md) | ssh-config, shared-workspace | — |

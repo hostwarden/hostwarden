@@ -13,11 +13,22 @@
 # a fork is a development checkout for the same reason the
 # maintainer's is, because neither has a workspace.
 #
-# Three answers:
+# Four answers:
 #
 #   operations   main checkout of a git clone, with a workspace.
 #                Servers may be reached; Hostwarden's own files
 #                are read-only.
+#   remote       an operations checkout whose shell runs in a VM
+#                apart from the workstation: Claude Cowork, or
+#                Claude Code on the web. No SSH key or agent is
+#                there to reach a server with, so no server is
+#                reached, and memory/ is left as it is. The sign
+#                is CLAUDE_CODE_REMOTE=true beside a Linux kernel,
+#                observed in a Cowork session and the value
+#                dev-tools.sh already reads for the web; it only
+#                ever takes operations away, never grants it, so
+#                a stray value fails closed
+#                (docs/adr/20261008-cowork-is-no-operations-harness.md).
 #   development  main checkout without a workspace. Hostwarden's
 #                files may change; no server is reached, not even
 #                this machine.
@@ -35,16 +46,19 @@
 #
 # Expects nothing. Defines:
 #   hostwarden_mode <root>  — sets HOSTWARDEN_MODE to one of the
-#                             three answers, and HOSTWARDEN_MAIN to
+#                             four answers, and HOSTWARDEN_MAIN to
 #                             the main checkout of a worktree
 #   hostwarden_next_step    — sets HOSTWARDEN_NEXT_STEP to where
-#                             server work goes from development, so
-#                             the session start and every refusal
-#                             name the same way
+#                             server work goes from a mode that
+#                             reaches none, so the session start
+#                             and every refusal name the same way
+#   hostwarden_why          — sets HOSTWARDEN_WHY to why this mode
+#                             reaches no server, for the refusal
+#                             and bin/hostwarden-doctor
 #   hostwarden_refusal <tool>
 #                           — sets HOSTWARDEN_REFUSAL to why <tool>
-#                             is refused in development, so the
-#                             guard and the shim say the same
+#                             is refused outside operations, so
+#                             the guard and the shim say the same
 #   hostwarden_git_batch [<repo>]
 #                           — sets up git to reach <repo>'s remote
 #                             (none: a clone's) without ever prompting
@@ -94,6 +108,13 @@ hostwarden_mode() {
   elif [ -d "$1/.git" ] && [ -f "$1/memory/.hostwarden-workspace" ]; then
     # A clone, not an archive copy: operations needs updates.
     HOSTWARDEN_MODE=operations
+    # The value dev-tools.sh reads, so the two never disagree, and
+    # the kernel as a file test, since every hook reads this: a
+    # Mac has no /proc, so an export left over there never counts.
+    if [ "${CLAUDE_CODE_REMOTE:-}" = true ] && [ -r /proc/sys/kernel/osrelease ]
+    then
+      HOSTWARDEN_MODE=remote
+    fi
   else
     HOSTWARDEN_MODE=development
   fi
@@ -104,32 +125,47 @@ hostwarden_mode() {
 # name the next step. Expects hostwarden_mode to have run.
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_next_step() {
-  if [ "$HOSTWARDEN_MODE" = worktree ]; then
+  case "$HOSTWARDEN_MODE" in
+  remote)
+    HOSTWARDEN_NEXT_STEP="open the same checkout in Claude Code on \
+the workstation, in the terminal or the desktop app's Code tab"
+    return ;;
+  worktree)
     HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
-the main checkout, $HOSTWARDEN_MAIN, if that is an operations install"
-  else
+the main checkout, $HOSTWARDEN_MAIN, if that is an operations install" ;;
+  *)
     HOSTWARDEN_NEXT_STEP="hand the check to an operations session in \
-a separate clone, set up once with bin/hostwarden-init"
-  fi
+a separate clone, set up once with bin/hostwarden-init" ;;
+  esac
   HOSTWARDEN_NEXT_STEP="$HOSTWARDEN_NEXT_STEP; how: \
 rules/server-check-handoff.md"
 }
 
 # shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_why() {
+  case "$HOSTWARDEN_MODE" in
+  remote)
+    HOSTWARDEN_WHY="this shell runs in a VM apart from the workstation \
+(Claude Cowork, Claude Code on the web), without its SSH keys and \
+agent" ;;
+  worktree)
+    HOSTWARDEN_WHY="this session runs in a linked git worktree. A \
+worktree never carries memory/, so the access lists and the machine \
+memory are missing here" ;;
+  *)
+    HOSTWARDEN_WHY="this checkout develops Hostwarden (memory/ holds \
+no workspace)" ;;
+  esac
+}
+
+# shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_refusal() {
-  if [ "$HOSTWARDEN_MODE" = worktree ]; then
-    hr_why="this session runs in a linked git worktree. A worktree \
-never carries memory/, so the access lists and the machine memory are \
-missing here"
-  else
-    hr_why="this checkout develops Hostwarden (memory/ holds no \
-workspace)"
-  fi
+  hostwarden_why
   hostwarden_next_step
   HOSTWARDEN_REFUSAL="hostwarden mode guard: $1 reaches a server or \
 administers this machine, and \
-$hr_why. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - Development \
-or Operations)."
+$HOSTWARDEN_WHY. Next step: $HOSTWARDEN_NEXT_STEP (AGENTS.md - \
+Development or Operations)."
 }
 
 # A checkout's own name on this machine, the checksum of its

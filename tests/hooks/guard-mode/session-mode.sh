@@ -29,6 +29,22 @@ case "$(sh "$OPS/.claude/hooks/session-mode.sh")" in
 *lab.sh*) bad "session-mode named the lab in operations" ;;
 *) ok ;;
 esac
+# Remote: the way out is Claude Code on the workstation, and no lab.
+if [ -r /proc/sys/kernel/osrelease ]; then
+  out=$(CLAUDE_CODE_REMOTE=true sh "$OPS/.claude/hooks/session-mode.sh" 2>&1)
+  case "$out" in
+  *"VM apart from the workstation"*) ok ;;
+  *) bad "session-mode in remote does not name the VM: $out" ;;
+  esac
+  case "$out" in
+  *"Claude Code on the workstation"*) ok ;;
+  *) bad "session-mode in remote does not name the way out: $out" ;;
+  esac
+  case "$out" in
+  *lab.sh*) bad "session-mode named the lab in remote" ;;
+  *) ok ;;
+  esac
+fi
 out=$(unset CLAUDE_ENV_FILE; sh "$DEV/.claude/hooks/session-mode.sh")
 case "$out" in
 *"no CLAUDE_ENV_FILE"*) ok ;;

@@ -63,6 +63,9 @@ if [ -n "$CREATE" ] && [ -z "$REMOTE" ]; then usage >&2; exit 1; fi
 
 hostwarden_mode "$REPO_DIR"
 WAS=$HOSTWARDEN_MODE
+# remote is an operations checkout in a VM apart from the
+# workstation: it already has its workspace, and asks nothing.
+[ "$WAS" != remote ] || WAS=operations
 if [ "$WAS" = worktree ]; then
   echo "hostwarden-init: this is a linked git worktree, which never" >&2
   echo "  carries memory/. Run this in the main checkout." >&2
