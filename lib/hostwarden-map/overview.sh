@@ -258,5 +258,5 @@ fi
 if [ -f "$OVERVIEW" ] && [ "$(head -n 1 "$OVERVIEW")" != "$OV_MARK" ]; then
   echo "hostwarden-map: $OVERVIEW was written by hand; the overview was not written" >&2
 else
-  cp "$WORK/overview.md" "$OVERVIEW" || die "cannot write $OVERVIEW"
+  publish_map "$OVERVIEW" <"$WORK/overview.md" || :
 fi

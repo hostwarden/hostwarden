@@ -286,6 +286,14 @@ then
 else
   step "infrastructure maps" sh tests/bin/hostwarden-map.sh
 fi
+# The sync matrix reads hostwarden-sync and the mode library.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    "^bin/hostwarden-sync\$|^lib/mode\\.sh\$|^tests/bin/hostwarden-sync\\.sh\$$HELPERS"
+then
+  echo "== sync matrix: nothing it reads is pushed, skipped"
+else
+  step "sync commit" sh tests/bin/hostwarden-sync.sh
+fi
 # The coordination matrix reads announce/wait/ack/done/status and
 # the presence and impact hooks.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
