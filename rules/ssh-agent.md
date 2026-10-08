@@ -53,8 +53,7 @@ configuration: Git's effective configuration stays authoritative. Keep it
 personal and unsynchronized. Ask again only when the user requests a change,
 then repeat the format choice and touch only the workspace's Git
 configuration. Unattended sessions ask nothing and keep the existing
-configuration; development sessions have no interview. Enabled signatures must
-still succeed before a commit is accepted.
+configuration; development sessions have no interview.
 
 ## Personal format
 

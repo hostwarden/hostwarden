@@ -48,9 +48,8 @@ hw_agent_path() {
   esac
 }
 
-# shellcheck disable=SC2034 # query status is read by hostwarden-sync
+# Status 2: the SSH configuration could not be queried; 1: any other failure.
 hw_agent_resolve() {
-  HW_AGENT_QUERY_FAILED=0
   hw_agent_saved || return 1
   HW_AGENT_SOCKET=$HW_AGENT_SAVED
   if [ -z "$HW_AGENT_SOCKET" ]; then
@@ -59,10 +58,7 @@ hw_agent_resolve() {
       -*|'') hw_agent_error 'invalid agent configuration host'; return 1 ;;
     esac
     HW_AGENT_CONFIG=$(LC_ALL=C ssh -G "$HW_AGENT_HOST") \
-      || {
-        HW_AGENT_QUERY_FAILED=1
-        hw_agent_error 'cannot evaluate local SSH configuration'; return 1;
-      }
+      || { hw_agent_error 'cannot evaluate local SSH configuration'; return 2; }
     HW_AGENT_SOCKET=$(printf '%s\n' "$HW_AGENT_CONFIG" |
       sed -n 's/^identityagent //p')
     [ -n "$HW_AGENT_SOCKET" ] || HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-}

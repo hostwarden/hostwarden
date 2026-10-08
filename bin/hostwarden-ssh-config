@@ -79,12 +79,17 @@ export HW_AGENT_ROOT=$REPO_DIR
 . "$REPO_DIR/lib/ssh-agent.sh"
 # A bad choice must not keep the host blocks out of the file: report it
 # and leave IdentityAgent to the user's own blocks.
-if hw_agent_saved; then
-  HW_AGENT_SOCKET=$HW_AGENT_SAVED
-  # An inherited socket stays dynamic, even when unset here.
-  hw_agent_dynamic "$HW_AGENT_SAVED" || hw_agent_path || HW_AGENT_SAVED=
-else
-  HW_AGENT_SAVED=
+AGENT_LINE=
+if hw_agent_saved && [ -n "$HW_AGENT_SAVED" ]; then
+  if hw_agent_dynamic "$HW_AGENT_SAVED"; then
+    # An inherited socket stays dynamic, even when unset here.
+    AGENT_LINE='  IdentityAgent SSH_AUTH_SOCK'
+  else
+    HW_AGENT_SOCKET=$HW_AGENT_SAVED
+    if hw_agent_path; then
+      AGENT_LINE=$(printf '  IdentityAgent "%s"' "${HW_AGENT_SOCKET:-none}")
+    fi
+  fi
 fi
 
 # The path goes into the file quoted. A quote, a $ or a line break
@@ -287,13 +292,7 @@ trap 'rm -f "$TMP"' EXIT
   echo
   echo "# The standard options (AGENTS.md → SSH Options)."
   echo "Match all"
-  if [ -n "$HW_AGENT_SAVED" ]; then
-    if hw_agent_dynamic "$HW_AGENT_SAVED"; then
-      echo '  IdentityAgent SSH_AUTH_SOCK'
-    else
-      printf '  IdentityAgent "%s"\n' "${HW_AGENT_SOCKET:-none}"
-    fi
-  fi
+  [ -z "$AGENT_LINE" ] || echo "$AGENT_LINE"
   for o in $HOSTWARDEN_SSH_OPTIONS; do
     case $o in
       ControlPath=*) o="ControlPath=~/.cache/hostwarden/ssh-$ID-%C" ;;
