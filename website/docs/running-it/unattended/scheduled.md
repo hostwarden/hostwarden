@@ -20,7 +20,11 @@ email me the report" >> ~/hostwarden-cron.log 2>&1
 This runs on your workstation. An always-on machine that should do
 it for the whole fleet while the workstation sleeps is an operations
 host instead, with its own least-privilege access
-([An operations host](../team/operations-host.md)).
+([An operations host](../team/operations-host.md)). Fleet read is
+the one part of Hostwarden's access control the host enforces; a
+read-only list a session is asked to follow is no substitute for it
+on a machine nobody watches
+([Which protection for which need](../../safety/access.md#which-protection-for-which-need)).
 
 Two rules: run the exact prompt **interactively once** first, so the
 email recipient, sending path, and other one-time questions are
