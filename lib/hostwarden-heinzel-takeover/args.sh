@@ -74,8 +74,15 @@ cd "$REPO_DIR"
 . lib/mode.sh
 hostwarden_mode "$REPO_DIR"
 if [ "$HOSTWARDEN_MODE" != operations ] && [ -z "$LIST" ]; then
-  echo "error: this is not an operations checkout — run the takeover in one" >&2
-  echo "  (the main checkout of a worktree, or bin/hostwarden-init)" >&2
+  if [ "$HOSTWARDEN_MODE" = remote ]; then
+    hostwarden_why
+    hostwarden_next_step
+    echo "error: $HOSTWARDEN_WHY, so no host can be onboarded from" >&2
+    echo "  here. Next step: $HOSTWARDEN_NEXT_STEP." >&2
+  else
+    echo "error: this is not an operations checkout — run the takeover in one" >&2
+    echo "  (the main checkout of a worktree, or bin/hostwarden-init)" >&2
+  fi
   exit 1
 fi
 

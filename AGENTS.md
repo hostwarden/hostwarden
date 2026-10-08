@@ -36,6 +36,23 @@ which before anything else, from the files, never from the remote:
   container from `scripts/lab.sh` is neither a server nor local
   mode: try a command there rather than guess its syntax.
 
+Operations runs where this machine's SSH keys and agent are:
+Claude Code in the terminal, the desktop app's Code tab or an IDE,
+and the other tools `README.md` names. **Claude Cowork is not
+that**, and neither is Claude Code on the web: their shell runs in
+a Linux VM apart from the workstation, without those keys. An
+operations checkout opened there is a fourth case, **remote**: the
+sign is `CLAUDE_CODE_REMOTE=true` while `uname -s` says `Linux`,
+and `bin/hostwarden-doctor` reads it. No server is reached,
+`memory/` is left as it is and Hostwarden's own files stay
+read-only; the one answer is the way out, the same checkout opened
+in Claude Code on the workstation. On the web
+the hooks run and the mode guard refuses as in development; in
+Cowork no hook fires, so the doctor's line and this paragraph are
+the whole of it. A development checkout or a worktree in such a VM
+is development as above; the operations checkout never becomes
+one.
+
 ## How It Works
 
 The user provides a server hostname and optionally a user. SSH

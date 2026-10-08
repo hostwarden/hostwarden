@@ -56,8 +56,10 @@ bin/                   — Commands an operator runs, or the
                          each answer once with its hosts
 lib/                   — Code bin/ and the hooks share; sourced,
                          never run, shipped
-  mode.sh              — Development or operations, defined
-                         once for the hooks and bin/
+  mode.sh              — Development, operations, a worktree or
+                         remote (operations in a VM apart from
+                         the workstation), defined once for the
+                         hooks and bin/
   json.sh              — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks

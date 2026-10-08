@@ -35,6 +35,9 @@ INPUT=$(cat)
 # shellcheck source=../../lib/mode.sh
 . "$ROOT/lib/mode.sh"
 hostwarden_mode "$ROOT"
+# remote is an operations checkout in a VM apart from the
+# workstation: its shipped files are never rewrapped either.
+[ "$HOSTWARDEN_MODE" != remote ] || HOSTWARDEN_MODE=operations
 
 # wrap <dir> <prefix> <args...> -- the command in <dir>, its names
 # relative to it; <prefix> makes them relative to the checkout.

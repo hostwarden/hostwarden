@@ -4,8 +4,8 @@
 #
 # Holds a session to the mode mode.sh determines:
 #
-#   development, worktree — the tools in shim/ are refused: remote
-#     logins and copies, privilege tools, and the configuration
+#   development, worktree, remote — the tools in shim/ are refused:
+#     remote logins and copies, privilege tools, and the configuration
 #     tools that reach servers or a cloud on their own. That list
 #     is the one to extend; tests/hooks/guard-mode.sh holds the
 #     prefilter below and T and W in guard-mode.d/scan.awk to it.
@@ -60,7 +60,7 @@
 #     deleting or changing a VM is denied, since it may not be the
 #     lab's: vm up starts the VMs it creates, and vm down deletes
 #     only those. A bare orb start starts OrbStack itself and passes.
-#   operations — Edit and Write are denied on any path inside
+#   operations, remote — Edit and Write are denied on any path inside
 #     the checkout that git does not ignore, so memory/ and the
 #     user's own files (.claude/settings.local.json) stay
 #     writable. A local commit on main would also stop the
@@ -167,7 +167,10 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
     *) exit 0 ;;
     esac
     ;;
-  *) exit 0 ;;
+  # An edit in remote — an operations checkout in a VM apart from
+  # the workstation — is operations.sh's to judge; elsewhere it
+  # passes here.
+  *) [ "$HOSTWARDEN_MODE" = remote ] || exit 0 ;;
   esac
 else
   # Operations restricts edits only, so a Bash or Monitor call ends

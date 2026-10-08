@@ -1,10 +1,12 @@
 #!/bin/sh
 # session-mode.sh — SessionStart hook: announce the mode
 # (mode.sh) that guard-mode.sh enforces, so the session starts
-# in it instead of finding out from a denied call. In development
-# it also puts the shim (shim.sh) in front of the tools that reach
-# a server. In operations it also gives every later Bash call this
-# session's own id, for presence.sh and bin/hostwarden-impact
+# in it instead of finding out from a denied call. In development,
+# a worktree and remote — an operations checkout in a VM apart from
+# the workstation — it also puts the shim (shim.sh) in front of the
+# tools that reach a server. In operations it also gives every
+# later Bash call this session's own id, for presence.sh and
+# bin/hostwarden-impact
 # (rules/coordination.md → Presence map), and ssh the program that
 # answers a password prompt (rules/ssh-passwords.md).
 
@@ -80,6 +82,13 @@ operations)
   fi
   exit 0
   ;;
+remote)
+  hostwarden_why
+  echo "hostwarden: operations checkout, but $HOSTWARDEN_WHY."
+  echo "  No server is reached from here, memory/ is left as it is,"
+  echo "  and Hostwarden's own files stay read-only as in any"
+  echo "  operations checkout."
+  ;;
 worktree)
   echo "hostwarden: linked worktree — development mode. This session"
   echo "  changes Hostwarden itself and reaches no server: a worktree"
@@ -93,15 +102,20 @@ worktree)
   ;;
 esac
 hostwarden_next_step
-echo "  A question only a live server answers: $HOSTWARDEN_NEXT_STEP."
-# Operations never gets here: it has servers to try a command on.
-echo "  To try a command instead of guessing its syntax:"
-echo "  scripts/lab.sh exec <family> -- <command> runs it in a"
-echo "  disposable container (debian, ubuntu, rhel, fedora, suse,"
-echo "  alpine), neither a server nor local mode. A container cannot"
-echo "  answer for systemd services, the firewall, kernel parameters,"
-echo "  a reboot, the SSH pipeline, FreeBSD or macOS; for the Linux"
-echo "  ones, scripts/lab.sh vm up gives a test clone a VM."
+if [ "$HOSTWARDEN_MODE" = remote ]; then
+  echo "  Next step: $HOSTWARDEN_NEXT_STEP."
+else
+  echo "  A question only a live server answers: $HOSTWARDEN_NEXT_STEP."
+  # Operations never gets here: it has servers to try a command on.
+  # Remote has no container engine of its own to offer.
+  echo "  To try a command instead of guessing its syntax:"
+  echo "  scripts/lab.sh exec <family> -- <command> runs it in a"
+  echo "  disposable container (debian, ubuntu, rhel, fedora, suse,"
+  echo "  alpine), neither a server nor local mode. A container cannot"
+  echo "  answer for systemd services, the firewall, kernel parameters,"
+  echo "  a reboot, the SSH pipeline, FreeBSD or macOS; for the Linux"
+  echo "  ones, scripts/lab.sh vm up gives a test clone a VM."
+fi
 
 # The shim (shim.sh) goes first on the PATH of every later Bash
 # call, subagents' included: Claude Code sources $CLAUDE_ENV_FILE

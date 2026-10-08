@@ -69,7 +69,9 @@ stops `sh scripts/check.sh --pre-commit`, which comes before every
 commit, so say so at once; the other tools only the full run needs,
 which CI does.
 
-Take its output as the limits of this session: a feature it lists
+Take its output as the limits of this session. A line naming a VM
+apart from the workstation ends the server work before it starts
+(`AGENTS.md` → Development or Operations). A feature it lists
 as not available is not attempted — say so when the user asks for
 it, and give the install command it printed. Never install a
 missing tool on the workstation yourself; it is the user's machine,
