@@ -51,6 +51,11 @@ keys, weak permissions) is the job of the
 
 When in doubt, treat it as a secret.
 
+The other direction — a path that may be read but
+never changed, or only after a word from the user —
+is the user's `readonly` and `confirm` lists:
+`rules/access-control.md` → Protected Paths.
+
 ## Inspect via Metadata, Never Content
 
 Existence, ownership, permissions, and size are
