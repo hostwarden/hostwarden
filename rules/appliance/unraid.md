@@ -107,6 +107,12 @@ repositories on GitHub where the docs are silent.
   line.
 - `rules/backups.md` applies to `/boot/config`. The backup directory
   is `/boot/config/hostwarden-backups/`.
+- **A flash boot device is vfat, mounted with `fmask=0177`: every
+  file on it is mode 0600.** Observed on Unraid 7.3.2, not
+  documented by Unraid. That mode is what SSH expects of the private
+  keys under `/boot/config/ssh/`, and `/boot` is the one place
+  outside `/mnt` that survives a reboot. The mask is vfat's; an
+  internal boot pool is ZFS (see Version Detection).
 - **Secrets on the boot device** (`rules/secrets.md`):
   `config/shadow`, `config/passwd`, `config/smbpasswd`, the
   WireGuard keys under `config/wireguard/`, the API keys under
@@ -307,6 +313,32 @@ security audit reads from files.
   the installed plugins before any OS update.
 - Safe Mode, a boot option, starts the OS with every plugin
   disabled; it is the user's step when a plugin breaks the system.
+- **Two plugins run from a copy of their settings in `/tmp`, not
+  from the file on the boot device.** Observed on Unraid 7.3.2 with
+  the plugin versions of September 2026; Unraid documents none of
+  it. The copy is made from the boot device when the plugin starts,
+  so an edit to the boot copy over SSH changes nothing until the
+  next reboot, and the web UI, which writes both, is where the
+  setting is changed (see Configuration):
+  - **User Scripts** reads `/tmp/user.scripts/schedule.json`, which
+    `startSchedule.php` refreshes from
+    `/boot/config/plugins/user.scripts/schedule.json` only when the
+    `/tmp` copy is missing. A custom cron expression needs
+    `customSchedule.cron` written and `/usr/local/sbin/update_cron`
+    run as well; the web UI does all three. The named frequencies,
+    hourly, daily, weekly and monthly, do not run at the time the
+    web UI shows: shims in `/etc/cron.hourly/`, `cron.daily/`,
+    `cron.weekly/` and `cron.monthly/` run them at the stock
+    Slackware `run-parts` times, hourly at :47, daily at 04:40,
+    weekly on Sunday at 04:30, monthly on the 1st at 04:20. A
+    script that has not run yet may simply be waiting for that slot.
+  - **Unassigned Devices** reads and writes
+    `/tmp/unassigned.devices/config/unassigned.devices.cfg`. A
+    setting such as `automount="yes"` put into the boot copy alone is
+    ignored until the reboot, unless copied to the `/tmp` path too.
+  - `update_cron` regenerates `/etc/cron.d/root` from every plugin's
+    `*.cron` file, so a hand edit there is lost at its next run, as
+    it is at the next boot anyway.
 
 ## Docker and VMs
 
