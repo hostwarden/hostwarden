@@ -114,3 +114,49 @@ a rule the agent follows, not a mechanical guard: the taboo guard
 sees a remote path only as text inside an SSH command.
 
 Rule: `rules/access-control.md` → Protected Paths.
+
+## Which protection for which need
+
+Four protections keep a session off a host, or off part of one:
+the blacklist, the read-only list and the protected paths above,
+and [fleet read](../features/fleet/fleet-read.md). They are of two
+kinds, and the choice between them is the choice between a rule and
+a guarantee.
+
+- **The host enforces** fleet read: a forced command in root's
+  `authorized_keys` runs only the bundle of read-only checks the
+  operator signed, whatever the session on the other end asks for
+  (`hostwarden-fleet-read` skill,
+  [An operations host](../running-it/team/operations-host.md)).
+- **The agent follows** the read-only list and the protected paths.
+  The read-only list and a `readonly` path have no override in the
+  session, and a `confirm` path runs only after you typed the word;
+  all three bind every subagent the session starts, which has no
+  more rights than the session (`rules/borrowed-rights.md`) — but
+  nothing on the host checks them. The blacklist sits between the
+  two: the agent checks it before every connection, and
+  `bin/hostwarden-impact` and `bin/hostwarden-fleet-run` check it
+  mechanically through `lib/resolve.sh`, so an unattended run never
+  reaches a listed host either.
+
+Pick by what the session is for:
+
+- **Unattended** — fleet read. A nightly run, an operations host:
+  give it a key that can do nothing else, not a list it is asked to
+  respect. It runs only the checks in the signed bundle, so a
+  diagnosis that needs a command of its own, or a Windows host,
+  which gets no fleet read, takes an interactive session on the
+  read-only list instead.
+- **Interactive, on a host that is writable** — the read-only list
+  for a host that stays untouched this session, diagnosis included,
+  protected paths for the single paths that do. They keep a session
+  that may write from writing where you said not to, and a step
+  they block comes back as a deferred modification in the report.
+- **A hard guarantee for one path** — only the host itself gives
+  one: an SSH user without write permission to it and narrow sudo
+  rules for the rest, `chattr +i` on the file, a read-only ZFS or
+  Btrfs dataset. Hostwarden then works in unprivileged mode for
+  that path and reports what it could not do, instead of promising
+  not to.
+
+Rules: `rules/access-control.md`, `rules/borrowed-rights.md`.
