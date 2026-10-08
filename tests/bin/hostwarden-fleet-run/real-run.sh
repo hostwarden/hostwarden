@@ -74,10 +74,56 @@ mv "$TMP/ssh_config.saved" "$M/ssh_config"
 (unset HOSTWARDEN_FLEET_RUN_FRESH; run --dry-run --host web1.example.com)
 lacks "$TMP/out" "at the start" "a dry run ran the update and the pull"
 
+# --- a run by section ---------------------------------------------
+# The verb carries the names, the judge and the report are told, and
+# nothing is logged, written or remembered: a run by section is a
+# dry run whatever else was asked.
+rm -f "$TMP"/collect-* "$TMP"/verb-* "$TMP/logs"
+lines=$(wc -l <"$M/machines/web1.example.com/changelog.log")
+cp "$XDG_STATE_HOME/hostwarden/fleet-run/findings.json" "$TMP/findings.before"
+run --section disk --section meta --host web1.example.com
+rc=$?
+[ "$rc" = 2 ] && ok || bad "a run by section did not exit 2 (rc $rc): $(cat "$TMP/err")"
+[ "$(cat "$TMP/verb-web1.example.com" 2>/dev/null)" = 'collect disk meta' ] && ok \
+  || bad "the verb sent was '$(cat "$TMP/verb-web1.example.com" 2>/dev/null)'"
+has "$TMP/out" "a run by section: sections disk meta of each bundle" \
+  "the report does not say which sections ran"
+has "$TMP/prompt" "asked for the sections disk meta" \
+  "the judge was not told which sections ran"
+has "$TMP/out" "CRITICAL	web1.example.com	/var at 97% — since 2026-01-01 [floor]" \
+  "a run by section lost the floors"
+[ -e "$TMP/logs" ] && bad "a run by section logged on a host" || ok
+[ "$(wc -l <"$M/machines/web1.example.com/changelog.log")" = "$lines" ] && ok \
+  || bad "a run by section wrote a changelog line"
+cmp -s "$TMP/findings.before" "$XDG_STATE_HOME/hostwarden/fleet-run/findings.json" \
+  && ok || bad "a run by section rewrote the first-seen dates"
+run --no-judge --section disk --host web1.example.com
+has "$TMP/out" "=== web1.example.com (bundle linux, sections disk)" \
+  "--no-judge does not name the sections"
+rm -f "$TMP"/collect-*
+run --section nope --section disk --host web1.example.com
+has "$TMP/out" "WARN	web1.example.com	bundle 'linux' has no section nope" \
+  "a section the bundle lacks was not named"
+[ -e "$TMP/collect-web1.example.com" ] \
+  && bad "a host was reached for a section its bundle lacks" || ok
+# A bundle without a sections line runs only whole.
+cp "$FR/src/linux.sh" "$TMP/linux.sh.saved"
+grep -v '^SECTIONS=' "$TMP/linux.sh.saved" >"$FR/src/linux.sh"
+sign "$FR/src/linux.sh"
+run --section disk --host web1.example.com
+has "$TMP/out" "bundle 'linux' names no sections" \
+  "a bundle without a sections line was asked for one"
+[ -e "$TMP/collect-web1.example.com" ] \
+  && bad "a host was reached with a bundle that names no sections" || ok
+cp "$TMP/linux.sh.saved" "$FR/src/linux.sh"
+sign "$FR/src/linux.sh"
+
 # --- an argument not known here runs no update --------------------
 # A stand-in update that leaves a mark, removed again after.
 printf '#!/bin/sh\n: >"%s/updated"\n' "$TMP" >"$R/.claude/hooks/check-updates.sh"
-for args in --dry-runn '--hots web1.example.com' --host '--host --dry-run'; do
+for args in --dry-runn '--hots web1.example.com' --host '--host --dry-run' \
+    --section '--section Disk' '--section disk;id' '--section -x' \
+    '--section back-up' "$(printf -- '--section a%.0s ' $(seq 33))"; do
   # shellcheck disable=SC2086 # split on purpose: one case, many words
   (unset HOSTWARDEN_FLEET_RUN_FRESH; run $args)
   rc=$?
@@ -100,6 +146,29 @@ rc=$?
 grep -q 'the mail was not accepted' "$TMP/err" && ok \
   || bad "a refused mail was not named"
 has "$TMP/out" "# Fleet housekeeping:" "a refused mail's report was lost"
+
+# --- a bundle the wrapper would refuse is not sent ---------------
+# The wrapper's limits, checked once per bundle before a connection:
+# an expired date, no date, a pair over 262144 bytes.
+refused_bundle() {
+  rm -f "$TMP"/collect-*
+  sign "$FR/src/linux.sh"
+  run --dry-run --host web1.example.com
+  has "$TMP/out" "WARN	web1.example.com	bundle 'linux' $1" "$2 was not named"
+  [ -e "$TMP/collect-web1.example.com" ] && bad "$2 was sent" || ok
+}
+cp "$FR/src/linux.sh" "$TMP/linux.sh.saved"
+sed 's/^# valid-until: .*/# valid-until: 2000-01-01/' "$TMP/linux.sh.saved" \
+  >"$FR/src/linux.sh"
+refused_bundle "expired on 2000-01-01" "an expired bundle"
+grep -v '^# valid-until:' "$TMP/linux.sh.saved" >"$FR/src/linux.sh"
+refused_bundle "has no valid-until line" "a bundle without a date"
+{ cat "$TMP/linux.sh.saved"; head -c 262144 /dev/zero | tr '\0' '#'; } \
+  >"$FR/src/linux.sh"
+refused_bundle "and its signature are larger than 262144 bytes" \
+  "a bundle over the wrapper's size limit"
+cp "$TMP/linux.sh.saved" "$FR/src/linux.sh"
+sign "$FR/src/linux.sh"
 
 # --- a bundle that no longer verifies -----------------------------
 rm -f "$TMP"/collect-*

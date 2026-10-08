@@ -52,5 +52,19 @@ one line per server, commits those changelog lines and pushes, and
 mails the report. Its exit status is 2 when a CRITICAL is not
 explained by the server's memory.
 
+## One area, every host
+
+`bin/hostwarden-fleet-run --section disk --section cert` asks each
+host for just those sections of its signed bundle, up to 32 of them,
+plus the floors
+the bundle rates itself, and prints the report. It is always a dry
+run: nothing is logged on a host, written to the workspace or
+remembered as first seen, because a read of one area must not pass
+for a full housekeeping run. The section keys are the words on the
+bundle's `SECTIONS=` line, and a key a host's bundle does not
+carry leaves that host unread, with the key named, rather than
+reading everything. A bundle built without that line runs only
+whole; ask for a rebuild in the current layout to use this.
+
 Anything else you run on that machine — a mailbox triage, a bot — is
 yours, not Hostwarden's, and never gets the fleet key.

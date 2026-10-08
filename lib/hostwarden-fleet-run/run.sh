@@ -52,15 +52,20 @@ run_host() {
   elif [ -z "$b" ] || [ ! -e "$WORK/verified/$b" ]; then
     finding "$d/floors.jsonl" WARN fleet-read-bundle \
       "bundle '${b:-?}' is missing or does not verify against the workspace's signers"
+  elif [ -s "$WORK/refused/$b" ]; then
+    finding "$d/floors.jsonl" WARN fleet-read-bundle \
+      "bundle '$b' $(cat "$WORK/refused/$b")"
   elif still_blacklisted "$h"; then
     finding "$d/floors.jsonl" WARN unreachable "not read: $BL_WHY"
   else
     # A read counts only when the connection, the wrapper and the
     # bundle all ended well and the bundle's last section, the
     # floors, arrived: partial output would pass for a full check.
+    # The verb carries the chosen sections, none for the whole
+    # bundle; the floors come either way.
     rc=0
     cat "$FR/src/$b.sh.sig" "$FR/src/$b.sh" \
-      | fleet_ssh "$h" 300 collect >"$d/raw" 2>"$d/err" || rc=$?
+      | fleet_ssh "$h" 300 "collect$SECTIONS" >"$d/raw" 2>"$d/err" || rc=$?
     if [ "$rc" -eq 0 ] && grep -qx '### floors' "$d/raw"; then
       : >"$d/read"
       floors "$d/raw" "$d/floors.jsonl"

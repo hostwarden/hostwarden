@@ -12,6 +12,9 @@
 #   hostwarden-fleet-run --no-judge   Collect only and print what
 #                                     each host returned
 #   hostwarden-fleet-run --host H     Only host H (repeatable)
+#   hostwarden-fleet-run --section S  Only section S of each bundle
+#                                     (repeatable, up to 32), and
+#                                     its floors; a dry run
 #   hostwarden-fleet-run --help       Show this help
 #
 # Runs in an operations checkout on the operations host, from a
@@ -31,6 +34,17 @@
 # or in a decision that applies to it (rules/decisions.md), and
 # being known never lowers its severity: it only keeps it from
 # raising the alarm.
+#
+# --section asks each host's wrapper for the named sections of its
+# signed bundle, and the bundle adds its floors: a diagnosis of one
+# area across the fleet that reads nothing else. The wrapper refuses
+# a name the bundle's SECTIONS='…' line does not carry, and so does
+# this script before connecting, as it does the wrapper's other
+# limits: a name's form, at most 32 names, a bundle's date and size.
+# A partial read is always a dry run:
+# a journal line, a changelog line or a first-seen date from a run
+# that looked at one area would pass for a housekeeping run that
+# looked at all of them.
 #
 # Exit status: 0 no alarm, 2 a CRITICAL that memory does not
 # explain, 1 the run itself failed, a host was not read or not
@@ -58,6 +72,7 @@ usage() {
 DRY=
 JUDGE=1
 ONLY=
+SECTIONS=
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case $1 in
@@ -67,6 +82,17 @@ parse_args() {
       --host)
         case ${2:-} in '' | -* | *[[:space:]]*) usage >&2; exit 1 ;; esac
         ONLY="$ONLY $2"; shift ;;
+      --section)
+        # The wrapper's own rule for a name, so a run never sends one
+        # it would refuse: a word of lowercase letters, digits and
+        # underscores that starts with a letter (templates/fleet-read).
+        case ${2:-} in [a-z]*) ;; *) usage >&2; exit 1 ;; esac
+        [ "${#2}" -le 40 ] \
+          && [ "$(printf '%s' "$2" | LC_ALL=C tr -d 'a-z0-9_' | wc -c)" -eq 0 ] \
+          || { usage >&2; exit 1; }
+        SECTIONS="$SECTIONS $2"; DRY=1; shift
+        # The wrapper counts every name sent, a repeated one twice.
+        [ "$(echo "$SECTIONS" | wc -w)" -le 32 ] || { usage >&2; exit 1; } ;;
       *) usage >&2; exit 1 ;;
     esac
     shift

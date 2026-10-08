@@ -95,6 +95,18 @@ issue (`rules/decisions.md` → Rating findings): the report lists it
 under "Decided", with "revisit due" once the decision's `Revisit:`
 date has passed, and it raises no alarm.
 
+**One area across the fleet.** `--section <key>`, repeatable up to
+32 names, sends each host `collect <key>…` instead of `collect`: the wrapper
+runs only those sections of the signed bundle and its floors
+(`references/bundle.md` → Layout). It is always a dry run, whatever
+else is asked — a partial read writes no journal line, no changelog
+line and no first-seen date, since each would pass for a full
+housekeeping run — and the judge and the report are told which
+sections ran. A key the host's bundle does not list on its
+`SECTIONS='…'` line leaves that host "not read" with the missing
+key named, before any connection; a bundle without the line runs
+only whole.
+
 ```ini
 # /etc/systemd/system/hostwarden-fleet-run.service
 [Unit]

@@ -28,6 +28,10 @@ bundle's header and say which of these holds:
   Hostwarden update changed a check. Show the log, and rebuild when
   the user agrees.
 - **Its date is near.** Less than 30 days to `valid-until`.
+- **It names no sections.** A bundle without a `SECTIONS=` line
+  runs only whole; `collect <section>…` and
+  `bin/hostwarden-fleet-run --section` refuse it. Rebuild it in the
+  layout below when the user wants a run by section.
 - **A host needs one that does not exist** — a new kind of host
   with a `Fleet read:` line.
 
@@ -79,21 +83,37 @@ export LC_ALL=C
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 SUDO=""
+# The sections, by key, in the order they run. The wrapper reads
+# this line; the dispatcher at the end runs from it.
+SECTIONS='meta disk'
 sec() { printf '\n### %s\n' "$1"; }
 
-sec 'meta'
-hostname; date -u +%Y-%m-%dT%H:%M:%SZ; uname -r
-cat /etc/os-release
+sec_meta() {
+  sec 'meta'
+  hostname; date -u +%Y-%m-%dT%H:%M:%SZ; uname -r
+  cat /etc/os-release
+}
 
-sec 'baseline-linux.md: Disk Usage'
-df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
+sec_disk() {
+  sec 'baseline-linux.md: Disk Usage'
+  df -h -x tmpfs -x devtmpfs -x overlay -x squashfs
+}
 
-sec 'floors'
-df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | awk 'NR > 1 {
-  p = $5; sub(/%/, "", p); p += 0
-  if (p > 95) print "CRITICAL disk-full", $6, "at", p "%"
-  else if (p > 85) print "WARN disk-high", $6, "at", p "%" }'
+sec_floors() {
+  sec 'floors'
+  df -P -x tmpfs -x devtmpfs -x overlay -x squashfs | awk 'NR > 1 {
+    p = $5; sub(/%/, "", p); p += 0
+    if (p > 95) print "CRITICAL disk-full", $6, "at", p "%"
+    else if (p > 85) print "WARN disk-high", $6, "at", p "%" }'
+}
 
+# The chosen sections in SECTIONS' order, all of them when none was
+# named, then the floors.
+WANT=${*:-$SECTIONS}
+for s in $SECTIONS; do
+  case " $WANT " in *" $s "*) "sec_$s" ;; esac
+done
+sec_floors
 exit 0
 ```
 
@@ -101,9 +121,29 @@ exit 0
   less. It bounds how long a signed bundle can be replayed.
 - `built-from` is `git rev-parse --short HEAD` of this checkout and
   its `VERSION`, which is what the rebuild check compares.
-- Every section opens with `sec`, naming the reference and its
-  heading exactly, so whoever reads the output can find the
-  thresholds that apply.
+- `SECTIONS='…'` lists every section but the floors, by its key: a
+  word of lowercase letters, digits and underscores that starts
+  with a letter, such as `disk`, `cert`, `backup_presence` — never
+  a hyphen, since the key is part of a function name and `dash`
+  refuses `sec_backup-presence`. The line is exactly that shape,
+  single quotes and all, at the start of a line: it is the one
+  list. The wrapper checks a `collect <section>…` request against
+  it, `bin/hostwarden-fleet-run --section` as well, and the
+  dispatcher runs from the same variable, so a key on the line is a
+  key that runs. A bundle without the line runs only whole.
+- Each section is a function `sec_<key>`. It opens with `sec`,
+  naming the reference and its heading exactly, so whoever reads
+  the output can find the thresholds that apply. The dispatcher at
+  the end runs the chosen sections in the line's order, the floors
+  after them, and ends with `exit 0`, so a run by section is whole
+  in the same way as a full one: the wrapper never picks lines out
+  of the bundle, the signed bundle itself decides what each name
+  runs.
+- `sec_floors` runs its own commands and reads nothing a section
+  function set — no variable, no file — because in a run by section
+  the other functions did not run. A floor computed from a
+  section's leftovers prints nothing when that section was not
+  named, and a CRITICAL goes missing.
 
 The last section is `floors`: one line per finding that no verdict
 may lower, as `<SEVERITY> <code> <text>`. The fleet run adds each
@@ -133,7 +173,9 @@ the output printed, such as a log excerpt. It is also how the fleet
 run knows the output is whole: a run counts as read only when the
 section arrived and the bundle ended with the `exit 0` that is its
 last line. Whatever fails on the way — a lost connection, a check
-the wrapper cut short — leaves the host "not read".
+the wrapper cut short — leaves the host "not read". The floors run
+whole in a run by section too, whichever sections were named, so
+no choice of sections hides a CRITICAL the bundle can rate itself.
 
 The bundle and its signature together must stay under 256 KiB, the
 wrapper's input limit.
@@ -144,7 +186,9 @@ Run the unsigned bundle once as root on one host of its kind, in
 this session, as an ordinary read-only probe
 (`rules/ssh-connections.md` → Bundle commands). Every section must
 appear, the run should take seconds, not minutes, and the output
-must hold no secret. Fix the bundle, not the output.
+must hold no secret. Then once more with one key after `sh -s`, as
+`sh -s disk`: only that section and the floors appear, the floors
+whole. Fix the bundle, not the output.
 
 ## Show it, and hand it over
 

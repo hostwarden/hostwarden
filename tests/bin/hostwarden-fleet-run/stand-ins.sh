@@ -34,8 +34,9 @@ case " \$* " in *" -G "*)
 esac
 for a; do host=\$verb; verb=\$a; done
 host=\${host#root@}
+printf '%s\\n' "\$verb" >"$TMP/verb-\$host"
 case \$verb in
-collect)
+collect*)
   cat >"$TMP/collect-\$host"
   case \$host in
   down1.*) echo "ssh: connect to host \$host port 22: Connection refused" >&2

@@ -30,7 +30,13 @@ requests:
 
 - **collect** — run a bundle of read-only checks, but only one the
   operator signed for the namespace `fleet-read` and whose
-  `# valid-until:` date has not passed;
+  `# valid-until:` date has not passed. `collect <section>…`, up to
+  32 names, runs only the named sections of that bundle and its
+  floors, for a
+  diagnosis of one area: the names must be on the bundle's
+  `SECTIONS='…'` line, one that is not refuses the whole request,
+  and the signed bundle itself decides what each name runs
+  (`references/bundle.md` → Layout);
 - **log** — write one line to the journal, under the tag
   `hostwarden` and a prefix the wrapper sets:
   `[<name> as root] read-only: <line>`.
