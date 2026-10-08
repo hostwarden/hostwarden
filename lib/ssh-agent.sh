@@ -3,6 +3,13 @@
 # Callers set HW_AGENT_ROOT; --host selects the SSH configuration context.
 # No host means the neutral hostwarden-agent.invalid, not a guessed server.
 hw_agent_error() { echo "hostwarden: $*" >&2; return 1; }
+HW_AGENT_NEUTRAL_HOST=hostwarden-agent.invalid
+
+# The inherited socket, named in a saved choice or by IdentityAgent.
+hw_agent_dynamic() {
+  case "$1" in SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') return 0 ;; esac
+  return 1
+}
 
 hw_agent_saved() {
   HW_AGENT_SAVED=
@@ -12,7 +19,7 @@ hw_agent_saved() {
   [ -f "$HW_AGENT_ROOT/memory/user.md" ] || return 0
   HW_AGENT_SAVED=$(awk '
     /^SSH agent socket:/ {
-      n++; sub(/^SSH agent socket:[ \t]*/, ""); value=$0
+      n++; sub(/^SSH agent socket:[ \t]*/, ""); sub(/[ \t]+$/, ""); value=$0
     }
     END { if (n > 1 || (n == 1 && value == "")) exit 1; print value }
   ' "$HW_AGENT_ROOT/memory/user.md") || {
@@ -22,10 +29,12 @@ hw_agent_saved() {
 }
 
 hw_agent_path() {
+  if hw_agent_dynamic "$HW_AGENT_SOCKET"; then
+    HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-}
+  fi
   # shellcheck disable=SC2088 # match a literal tilde; expand it explicitly
   case "$HW_AGENT_SOCKET" in
     none|'') HW_AGENT_SOCKET=; return 0 ;;
-    SSH_AUTH_SOCK|'$SSH_AUTH_SOCK') HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-} ;;
     '~/'*) HW_AGENT_SOCKET=$HOME/${HW_AGENT_SOCKET#\~/} ;;
   esac
   case "$HW_AGENT_SOCKET" in
@@ -39,20 +48,17 @@ hw_agent_path() {
   esac
 }
 
-# shellcheck disable=SC2034 # query status is read by hostwarden-sync
+# Status 2: the SSH configuration could not be queried; 1: any other failure.
 hw_agent_resolve() {
-  HW_AGENT_QUERY_FAILED=0
   hw_agent_saved || return 1
   HW_AGENT_SOCKET=$HW_AGENT_SAVED
   if [ -z "$HW_AGENT_SOCKET" ]; then
-    case "${1:-hostwarden-agent.invalid}" in
+    HW_AGENT_HOST=${1:-$HW_AGENT_NEUTRAL_HOST}
+    case "$HW_AGENT_HOST" in
       -*|'') hw_agent_error 'invalid agent configuration host'; return 1 ;;
     esac
-    HW_AGENT_CONFIG=$(LC_ALL=C ssh -G "${1:-hostwarden-agent.invalid}") \
-      || {
-        HW_AGENT_QUERY_FAILED=1
-        hw_agent_error 'cannot evaluate local SSH configuration'; return 1;
-      }
+    HW_AGENT_CONFIG=$(LC_ALL=C ssh -G "$HW_AGENT_HOST") \
+      || { hw_agent_error 'cannot evaluate local SSH configuration'; return 2; }
     HW_AGENT_SOCKET=$(printf '%s\n' "$HW_AGENT_CONFIG" |
       sed -n 's/^identityagent //p')
     [ -n "$HW_AGENT_SOCKET" ] || HW_AGENT_SOCKET=${SSH_AUTH_SOCK:-}

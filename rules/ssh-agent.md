@@ -1,43 +1,32 @@
 # Local SSH agent
 
 In an operations checkout, use `bin/hostwarden-agent` to resolve the local
-agent before an SSH Git signature. This applies to Claude Code, Codex,
-OpenCode and other agents. Never assume
-that the inherited `SSH_AUTH_SOCK` selects the agent SSH uses: `IdentityAgent`
-can override it. Do not change global Git, SSH, shell, launchd or app settings.
+agent before an SSH Git signature, whichever tool runs the session. Never
+assume that the inherited `SSH_AUTH_SOCK` selects the agent SSH uses:
+`IdentityAgent` can override it. Do not change global Git, SSH, shell, launchd
+or app settings. Never disable signatures, extract a private key, change an
+app's policy or Pinentry mode, or switch agents or formats to get past a
+failure.
 
-## Client compatibility
+Each command needs its own environment, since shell exports do not persist
+between tool calls; the wrapper below sets it for one command. A sandbox can
+block reading SSH configuration or connecting to a Unix socket, and setting a
+variable grants neither. Report a denied query or socket and do not change
+sandbox permissions.
 
-Claude Code keeps its existing SessionStart hooks and SSH behavior. Without a
-saved choice, generated configuration still includes the user's SSH files and
-leaves their host-specific `IdentityAgent` settings intact. The signing wrapper
-exports the selected socket only for the command it runs; it does not change
-Claude Code's environment globally.
-
-Codex and OpenCode use the same resolver. `SSH_AUTH_SOCK` is the bridge to Git's
-SSH signing program in every client, even when SSH itself uses `IdentityAgent`.
-A sandbox can restrict reading SSH configuration or connecting to a Unix
-socket; setting the variable does not grant either permission. A saved absolute
-socket avoids the configuration query, but the socket must still be accessible.
-Report a denied query or socket access; do not change sandbox permissions or
-fall back to another agent silently. The generic wrapper requires successful
-resolution. Workspace signing handles an automatic query failure as described
-under Signatures and failures.
-
-Development checkouts have no personal workspace memory. Claude Code's
-development SSH shim also blocks `ssh -G`. Keep existing Git signing settings
-and environment there; do not require automatic resolution through this wrapper
-or bypass the shim. The workspace generator and sync signing integration apply
-only in operations mode.
+Development checkouts have no personal workspace memory, and Claude Code's
+development SSH shim blocks `ssh -G`. There the existing Git signing settings
+and environment stay as they are. The workspace generator and the sync
+integration apply only in operations mode.
 
 ## Optional signing setup
 
 In an interactive operations session, before the first workspace commit, check
 the effective `commit.gpgsign`, `gpg.format` and `user.signingkey` with
-`git -C "<checkout>/memory" config`. An omitted format means OpenPGP. Existing
-SSH default-key commands and custom signers count as an existing setup too;
-do not assume that an absent key identifier means signing is unavailable.
-Describe only the format and whether signing is enabled, never key material.
+`git -C "<checkout>/memory" config`. An omitted format means OpenPGP. An SSH
+default-key command or a custom signer counts as an existing setup too, so an
+absent key identifier does not mean signing is unavailable. Describe only the
+format and whether signing is enabled, never key material.
 
 Where personal `memory/user.md` has no `Git signing setup:` line, ask once:
 *"Use your existing Git signatures for this workspace, set up signatures, or
@@ -47,29 +36,24 @@ leave the current settings as they are? Signing is optional."* Offer:
    Keep its format, key, program and enabled state. Record
    `Git signing setup: existing` only after the user chooses it.
 2. **Set up or change signatures.** Ask which format: SSH, OpenPGP/GPG, X.509,
-   or explicitly no signatures. Confirm the selected key identifier or public
-   key path when needed, reusing the existing signer where possible. Explain
-   any missing agent or Pinentry setup before applying the choice. User consent
+   or explicitly no signatures. Confirm the key identifier or public key path
+   when needed, reusing the existing signer where possible. Explain any
+   missing agent or Pinentry setup before applying the choice. Consent
    authorizes only workspace-local Git configuration: set `gpg.format`,
    `user.signingkey` when selected, and `commit.gpgsign=true` with
-   `git -C "<checkout>/memory" config --local`. For an explicit choice of no
-   signatures, set only `commit.gpgsign=false`; retain keys and programs.
-   Record `Git signing setup: configured` after successful configuration.
+   `git -C "<checkout>/memory" config --local`. For no signatures, set only
+   `commit.gpgsign=false`; keys and programs stay. Record
+   `Git signing setup: configured` after it succeeded.
 3. **Not now.** Leave all Git settings untouched and record
-   `Git signing setup: later`. Existing signatures continue to be used; this
-   option does not disable them. With signing already off, work remains
-   unsigned. Revisit only when the user requests it.
+   `Git signing setup: later`. Enabled signatures keep signing, and unsigned
+   work stays unsigned.
 
-The marker records the interview, not a second source of signing configuration.
-Effective Git configuration remains authoritative and can change outside
-Hostwarden. Keep the marker personal and unsynchronized. Never ask again merely
-because the format or key changed. If the user requests a change, repeat the
-format choice and update only the workspace's Git configuration.
-
-Unattended sessions ask nothing and retain the existing configuration. Missing
-or deferred setup does not prevent server work or enable signing automatically.
-Enabled signatures must still succeed before a commit is accepted; never turn
-them off to get past a failure. Development sessions have no setup interview.
+The marker records the interview and is no second source of signing
+configuration: Git's effective configuration stays authoritative. Keep it
+personal and unsynchronized. Ask again only when the user requests a change,
+then repeat the format choice and touch only the workspace's Git
+configuration. Unattended sessions ask nothing and keep the existing
+configuration; development sessions have no interview.
 
 ## Personal format
 
@@ -79,115 +63,92 @@ The optional, case-sensitive, unindented line in personal `memory/user.md` is:
 SSH agent socket: ~/Library/Application Support/example/agent.sock
 ```
 
-Exactly one line is allowed. Its value is the whole remainder after the colon
-and leading spaces; spaces inside the path are literal, without quotes or shell
-escaping. Use an absolute path or `~/` for this user's home, `SSH_AUTH_SOCK` for
-an explicitly inherited socket, or `none` to disable the agent. Omission means
-automatic selection. Duplicate or empty fields fail. Other tilde forms, token
-expansion, variables, backslashes, quotes, carriage returns and newlines are
-unsupported; write the expanded absolute path instead. Nothing is evaluated as
-shell code. `memory/user.md` is already excluded from workspace synchronization;
-never commit it or copy a personal socket into shared `memory/ssh_hosts`.
+Exactly one nonempty line is allowed. Its value is the remainder after the
+colon without leading or trailing blanks; spaces inside the path are literal,
+without quotes or escaping. Use an absolute path, `~/` for this user's home,
+`SSH_AUTH_SOCK` for the inherited socket, or `none` to disable the agent.
+Omission means automatic selection. Anything else, including other tilde
+forms, variables, quotes, backslashes and line breaks, is rejected: write the
+expanded absolute path. Nothing is evaluated as shell code. Never commit the
+file or copy a personal socket into shared `memory/ssh_hosts`.
 
 Ask for a choice only when automatic selection cannot identify the needed
-agent. Save a choice only when the user selects it; never persist a detected
-path silently. No app name is required, including for Bitwarden.
+agent, and save it only when the user selects it; never persist a detected
+path silently. No app name is required, Bitwarden included.
 
 ## Precedence
 
 1. A saved `SSH agent socket:` overrides SSH configuration for every host and
-   the inherited environment. `none` disables it without falling back.
-2. Without a saved line, `ssh -G HOST` determines the effective `IdentityAgent`
-   using OpenSSH's own Host, Match, Include and first-value rules. This
-   evaluates
-   local configuration only; trusted `Match exec` commands can run locally.
-3. If no `IdentityAgent` is set, use inherited `SSH_AUTH_SOCK`. An explicit
-   `IdentityAgent none` disables it. `IdentityAgent SSH_AUTH_SOCK` uses the
-   inherited value explicitly.
+   the inherited environment. `none` disables the agent without a fallback.
+2. Without one, `ssh -G HOST` gives the effective `IdentityAgent` by OpenSSH's
+   own Host, Match, Include and first-value rules. It evaluates local
+   configuration only, and trusted `Match exec` commands can run locally.
+3. With no `IdentityAgent`, the inherited `SSH_AUTH_SOCK` is used.
+   `IdentityAgent none` disables it, and `IdentityAgent SSH_AUTH_SOCK` names
+   it explicitly.
 
-`bin/hostwarden-agent --host git.example.com --socket` inspects a particular SSH
-context, including aliases and host-specific settings. Supply the same host
-alias as the Git SSH remote when its configuration matters. Without `--host`,
-resolution uses `hostwarden-agent.invalid`: wildcard defaults apply, and a
-host-specific agent is never promoted to a global default. For an HTTPS Git
-remote there is no SSH host context; use that default or a saved choice.
+`bin/hostwarden-agent --host git.example.com --socket` inspects one SSH
+context, aliases and host-specific settings included; give the host alias of
+the Git SSH remote when its configuration matters. Without `--host`, the
+neutral `hostwarden-agent.invalid` applies: wildcard defaults count, and a
+host-specific agent never becomes a global default. An HTTPS remote has no SSH
+host context, so it uses that default or a saved choice.
 
 `bin/hostwarden-ssh-config` writes a saved choice as a quoted `IdentityAgent`
-before including the user's files. A saved `SSH_AUTH_SOCK` stays that symbolic
-value, so each SSH process reads its current environment rather than a socket
-captured when the configuration was generated. Automatic mode leaves their
-host-specific
-choices intact. The generator does not require a running agent: a temporarily
-locked app must not prevent configuration generation.
+before including the user's files; a saved `SSH_AUTH_SOCK` stays symbolic, so
+each SSH process reads its current environment. Automatic mode leaves the
+user's host-specific choices intact. The generator needs no running agent, and
+an invalid saved choice is reported while the file is still written, without
+an `IdentityAgent` line.
 
 ## Signatures and failures
 
-Run signing commands through the resolver, with arguments quoted normally:
+Run signing commands through the resolver, arguments quoted normally:
 
 ```sh
 bin/hostwarden-agent --host git.example.com --exec git commit -S
 ```
 
-For a workspace, `bin/hostwarden-sync commit` and `pull` (rebased signatures)
-apply the default resolver when
-`gpg.format=ssh` and `commit.gpgsign=true`. It changes only the signing
-program's `SSH_AUTH_SOCK`, preserving the signing key and program. Fetch
-authentication keeps its original environment and host-specific SSH settings;
-the socket override applies only inside the signing program. Git's signing
-program
-checks availability when it needs an agent; private signing keys and custom
-signers can work without one. A workspace needing a
-host-specific signing agent must save its personal choice or use the wrapper
-with its host for direct Git commands.
+`--exec` changes the environment of the whole command, so use it for signing
+commands only; a command that also authenticates to a remote, such as
+`git pull`, would hand it the signing agent too.
 
-`--exec` deliberately changes the environment of the whole command. Use it for
-signing commands such as `git commit`; do not wrap `git pull` or another command
-that also authenticates to a remote when transport and signing use different
-agents. Use `hostwarden-sync pull` for workspace rebases, which isolates the
-signer's socket from fetch authentication.
+For a workspace, `bin/hostwarden-sync commit`, and `pull` where its rebase
+replays local commits, apply the default resolver when `gpg.format=ssh` and
+`commit.gpgsign=true`. They set
+`SSH_AUTH_SOCK` for the commit and for the rebase that replays local commits,
+and for nothing else: the fetch keeps its original environment and the
+remote's own `IdentityAgent`. The signing key, program and default-key command
+are Git's own and see the selected socket. A workspace needing a host-specific
+signing agent saves its personal choice, or uses the wrapper with that host
+for direct Git commands.
 
-Git's `gpg.ssh.defaultKeyCommand`, when configured instead of `user.signingkey`,
-also runs with the selected signing socket. Its command and a custom
-`gpg.ssh.program` are preserved through per-command adapters, never written back
-to Git configuration.
+`--check` requires a Unix socket and a successful `ssh-add -l`, with keys and
+fingerprints suppressed; use it to diagnose availability. `--exec` and the
+workspace signing do not require an agent, since private signing keys and
+custom signers may not need one. A missing, stale, inaccessible, empty or
+locked agent fails the signatures that need it, with the signer's diagnostics
+and without switching agents. Ask the user to start or unlock it and retry.
+Listing identities does not prove that signing succeeds: an app can still ask
+for consent or refuse a key.
 
-If automatic `ssh -G` discovery fails, workspace signing reports the failure
-and passes an empty socket only to the signing program and key command. Private
-keys or independent custom signers can still work; signatures requiring an
-agent fail without inheriting another one. Save an accessible socket or restore
-configuration access before retrying agent-based signing. A malformed saved
-choice or an unsupported resolved path remains fatal. The generic `--exec`
-wrapper stays strict because its command may also need an agent for transport.
-
-`--check` requires a Unix socket and a successful `ssh-add -l`; keys and
-fingerprints are suppressed. Use it to diagnose agent availability. `--exec`
-passes the selected socket to the command without requiring an agent: private
-signing keys and custom programs may not need one. A missing, stale,
-inaccessible, empty or locked agent fails signatures that require it, with the
-signing program's diagnostics and without switching agents. Ask the user to
-start
-or unlock it, then retry. Listing identities does not prove that signing will
-succeed: an app can require consent or refuse a key's signature. Keep the Git
-failure visible and preserve signing requirements; never disable signatures,
-extract a private key, or alter the app's policy to make the command succeed.
+If automatic `ssh -G` discovery fails, workspace signing says so and passes an
+empty socket to the signer. Private keys and independent custom signers still
+work; signatures that need an agent fail without inheriting another one. Save
+an accessible socket or restore configuration access to retry them. A
+malformed saved choice or unsupported path stays fatal to the commit and to
+such a rebase, and so does a failed resolution in the generic wrapper, whose
+command may need the agent for transport.
 
 ## OpenPGP and X.509 signatures
 
-The personal SSH socket does not choose Git's signature format. Only explicit
-`gpg.format=ssh` with `commit.gpgsign=true` activates workspace signing
-adapters.
-An omitted format uses Git's OpenPGP default; explicit `openpgp` and `x509` keep
-their existing programs, keys and signing behavior. Unsigned commands do not
-resolve a signing agent. Do not use the SSH wrapper for GPG signatures.
-
-Keep GnuPG's environment, including `GNUPGHOME` and `GPG_TTY`, and its agent and
-Pinentry configuration. Its normal agent socket is not an SSH agent socket;
-only an agent's separate SSH interface belongs in `SSH agent socket:`. A broken
-SSH selection must not block an OpenPGP or X.509 signature. For a missing key,
-locked GPG agent or unavailable Pinentry, report the signer's diagnostics and
-ask the user to unlock or complete their existing setup. Never change Pinentry
-mode, extract a private key, disable signatures or switch formats silently.
+Only `gpg.format=ssh` with `commit.gpgsign=true` resolves an agent. An omitted
+format, `openpgp`, `x509` and unsigned commits keep their programs, keys,
+`GNUPGHOME`, `GPG_TTY`, GnuPG agent and Pinentry, and a broken SSH selection
+never blocks them. GnuPG's ordinary agent socket is no SSH agent socket. For a
+missing key, a locked GPG agent or unavailable Pinentry, report the signer's
+diagnostics and ask the user to complete their existing setup.
 
 OpenSSH's supported forms are documented in
-[ssh_config](https://man.openbsd.org/ssh_config); Hostwarden accepts the literal
-path subset above so the same selection can be passed to `ssh-keygen`.
+[ssh_config](https://man.openbsd.org/ssh_config); Hostwarden accepts the
+literal path subset above so one selection can also reach `ssh-keygen`.
