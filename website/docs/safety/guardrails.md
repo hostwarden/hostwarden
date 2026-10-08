@@ -46,6 +46,11 @@ them mechanically.
   rewrites the boot configuration; `Stop-Computer`, `shutdown /s`,
   `/p`, `/h` and `wsl --shutdown`/`--terminate` halt.
   `C:\ProgramData\ssh` holds sshd's config and host keys there.
+- **A redirect onto a computed target** — `> $(command -v vim)`, the
+  same with backticks, and an arrow in echo text onto any expansion
+  or lookup, `echo editor -> $(readlink -f $E)`: to the shell the
+  arrow is a redirect, and the next word names the file it
+  truncates. A plain `> "$VAR"` stays allowed.
 - **Configuration tools** — the same effects through a configuration
   tool count too: no playbook, `ansible-pull` or `ansible-console`
   (applying your Ansible code is your step), no ad-hoc `ansible`

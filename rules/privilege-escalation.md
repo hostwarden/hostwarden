@@ -76,6 +76,19 @@ succeeds for a rule that lets `true` alone run.
 On subsequent connections, check machine memory for
 the sudo flag.
 
+A check that only reads takes the least privilege
+its data needs. Run it without `sudo` where every
+file and column it reads is open to the user: a
+slip in it then hits "Permission denied" instead of
+a system file (`rules/verify-before-reporting.md` →
+Empty output from a check that must print is a
+finding). Where root is needed for the data itself
+— the process column of `ss -p`, another user's
+journal, `/var/log/auth.log` — keep `sudo`: such a
+read does not fail, it shows less. A probe that
+works out `$SUDO` (below) keeps it for the whole
+bundle.
+
 ## Mixed Mode
 
 The listing gives the user's rules one per line, as

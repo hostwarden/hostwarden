@@ -32,6 +32,10 @@
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
+#   - a redirect onto a $( ) or ` ` lookup, or an arrow (->) in
+#     echo text onto any expansion or lookup: the target is
+#     whatever the lookup returns, and nobody saw it before it
+#     ran
 #   - deleting, moving or re-permissioning sshd's revocation
 #     list (RevokedKeys) under any .../etc/ssh, directly or
 #     through a language runtime: sshd then refuses every
@@ -188,7 +192,10 @@
 #          (wsl --unregister and Stop-Computer need no admin), and
 #          on a machine running systemd every power-off rule,
 #          because logind lets the user at the seat power off
-#          without root.
+#          without root. The rule against a redirect onto a
+#          computed target is left out as well: what it would
+#          protect there is this user's own file, and this
+#          repository's fixtures spell the shape all day.
 #
 # The local scope exists because this repository names taboos all
 # day: its rules, tests, commit messages and PR titles are about
@@ -219,7 +226,7 @@ LIBDIR=$HOOKDIR/../../lib
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
 GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh
-config-mgmt interpreters guests'
+config-mgmt interpreters redirect guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer
 # rules than it claims. A hook that fails to start lets the call
