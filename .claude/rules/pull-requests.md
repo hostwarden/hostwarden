@@ -219,7 +219,13 @@ level (→ Rounds), in passes as below. The own review's line gains
 `, full from round <n>`, or `, full from <sha>` with the head that
 added the file. Running the reviewers is the author's step.
 
-1. `/simplify`, for reuse and clarity.
+1. `/simplify`, for reuse and clarity, on every branch, whatever
+   it changes. A branch of instruction text or Markdown runs it
+   too: "it is only prose" skips nothing. A rule that says one
+   thing twice, a case bolted onto the wrong sentence, a clause
+   another file already carries cost the model that acts on them
+   what duplicated code costs a program, and the reviewers below
+   read the tightened text, not the draft.
 2. `hostwarden-reviewer` on the branch
    (`.claude/agents/hostwarden-reviewer.md` → Your task), the
    prompt giving:
