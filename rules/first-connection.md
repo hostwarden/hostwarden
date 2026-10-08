@@ -71,7 +71,11 @@ Than One Server before step 1.
    one read). Most hosts have none, and their absence
    is never worth a line. Where one applies, read
    `rules/decisions.md` before proposing anything or
-   rating a finding. A first connection
+   rating a finding. Read the host's `rules.md` in
+   that same read, beside `memory.md`, a missing
+   one silently; its `## Protected Paths` block
+   holds from here on (`rules/access-control.md` →
+   Protected Paths). A first connection
    is one to a host with no `memory.md` yet; where
    its directory holds `heinzel-memory.md`, read
    `rules/heinzel-takeover.md` → Heinzel's memory.

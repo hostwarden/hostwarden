@@ -60,6 +60,21 @@ not applicable there.
 
 Record which one in machine memory.
 
+**Inspecting a package before it runs** (`rules/access-control.md`
+→ Protected Paths): `pkg fetch -o <dir> <package>` downloads the
+package file for the read; the install that follows is
+`pkg install <package>` by name, in the same bundle and with no
+`pkg update` between the two, so it takes the build that was
+read, and its dependencies with it, which `pkg add` on the file
+would not. `pkg info -l -F <file>` lists its files; its
+`pre-install`, `post-install`, `pre-deinstall` and `post-deinstall`
+scripts are in the manifest inside the file, read with
+`pkg info --raw -F <file>` where that option exists on the host's
+`pkg` (`pkg info --help`). The installed version's scripts, which
+an upgrade or removal runs, come from `pkg info --raw <package>`.
+Where the host's `pkg` offers no such read, the writes cannot be
+established.
+
 ## Version Detection
 
 - `freebsd-version` — base system version

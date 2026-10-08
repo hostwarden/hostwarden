@@ -38,6 +38,11 @@ where another live session is on the radius and this session has
 not; announcing first means the approval question below already
 carries that answer instead of a second round-trip.
 
+On a host with protected paths, a reload or restart, of a
+container as much as of a service, is checked first as
+`rules/access-control.md` → Protected Paths says; a `readonly`
+path it rewrites denies it whatever the table below says.
+
 ## Default Behavior
 
 | Action                         | Default                              |

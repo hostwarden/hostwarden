@@ -19,6 +19,15 @@ era), check its support status via web search — it
 is likely past EOL, which is itself a **CRITICAL**
 finding. See `rules/version-check.md`.
 
+**Inspecting a package before it runs** (`rules/access-control.md`
+→ Protected Paths): `dnf install --downloadonly <package>` puts it
+in the cache for the install to reuse. From that `.rpm`,
+`rpm -qlp` lists the files and
+`rpm -qp --scripts --triggers --filetriggers` prints the new
+version's scriptlets; `rpm -q --scripts --triggers <package>`
+prints the installed version's, which an upgrade or removal runs.
+Both print only what exists: no output is no script.
+
 ## Version Detection
 
 - `/etc/redhat-release` — distro and version string

@@ -63,6 +63,19 @@ https://manpages.ubuntu.com/manpages/noble/man1/needrestart.1.html,
 https://documentation.ubuntu.com/release-notes/24.04/,
 https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts/44671
 
+**Inspecting a package before it runs** (`rules/access-control.md`
+→ Protected Paths): `apt-get install -d <package>` downloads it
+into `/var/cache/apt/archives/` for the install to reuse. From that
+`.deb`, `dpkg-deb -c` lists the files and `dpkg-deb -e <deb> <dir>`
+extracts the control files into a scratch directory, where the
+new version's `preinst`, `postinst` and `triggers` are read; a
+file the extract does not leave is a script the package does not
+ship. The installed version's `prerm` and `postrm`, which an
+upgrade or removal runs, are at the paths
+`dpkg-query --control-path <package> prerm` prints, under a
+`<package>:<arch>` name for a multi-arch package; it prints nothing
+where there is no script.
+
 ## Stable Branch Only
 
 **Always install packages from the stable branch.**

@@ -33,6 +33,12 @@ Rules for macOS (Apple Silicon and Intel).
 - List installed: `brew list`
 - Check for issues: `brew doctor`
 
+**Inspecting a package before it runs** (`rules/access-control.md`
+→ Protected Paths): Homebrew shows neither a file list nor the
+install steps of a formula or cask before it runs. On a machine
+with a protected-paths list, a Homebrew step counts as one whose
+writes cannot be established.
+
 ## Version Detection
 
 - macOS version: `sw_vers -productVersion`

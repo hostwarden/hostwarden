@@ -73,6 +73,11 @@ Keep 90 days.
 ## Remove: Weak algorithm check
 ```
 
+One block in that file is a list of its own rather than an override
+of a section: `## Protected Paths` under `# access-control`, the
+paths Hostwarden may read but not change on that host. See
+[Access control](../../safety/access.md#protected-paths).
+
 ## Writing one
 
 Each section's heading says what it does to the section of the same

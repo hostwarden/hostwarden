@@ -36,7 +36,13 @@ only where the user asks for them (→ Dispatch).
    list, and one whose `OS:` line names a family whose file makes
    every host read-only, such as Windows (`rules/os/windows.md`) —
    unless the change is one that file allows after the user's yes
-   and the host is not on the read-only list as well.
+   and the host is not on the read-only list as well. A change
+   whose steps name a host's `readonly` path
+   (`rules/access-control.md` → Protected Paths) skips that host
+   too, listed with the glob; the writes a step does not name are
+   judged on the host (→ On each host, step 3). A `confirm` path is asked
+   for its `CONFIRM` per host and command after the one yes
+   (→ Changes on several hosts, step 2).
    This is a first cut from files alone; each host's pipeline runs
    the full checks again, jump hosts included.
 4. **First connections here.** A host gets its first connection in
@@ -139,8 +145,8 @@ prints (→ Order).
 1. **The file steps, here.** For each host, what
    `rules/first-connection.md` reads from files or resolves by name:
    the IP verification (`rules/dns-aliases.md` → IP Verification),
-   one local call for every host, then its memory and decisions,
-   and the family file once for each family among them.
+   one local call for every host, then its memory, decisions and
+   `rules.md`, and the family file once for each family among them.
 2. **The first calls, in the first round.** Each host's first call
    as `rules/os-detection.md` → On subsequent connections shapes it,
    without stdin as that file says, every host at once: each
@@ -246,7 +252,9 @@ go to one agent whole, whatever their number, and it runs them one
 after another.
 
 Never give two agents the same host, and never an agent a host this
-session may not reach itself (`rules/borrowed-rights.md`). A key
+session may not reach itself (`rules/borrowed-rights.md`). A
+`confirm` path an agent cannot ask about comes back as
+`blocked:`. A key
 agent that confirms each use asks once per host, all at once at the
 start.
 
@@ -377,7 +385,10 @@ and the guard and the taboos hold on every one of them.
    staging role, the fewest services, not a hypervisor and not a
    host others depend on — and let the user pick another, drop
    hosts, or stop. The yes covers those hosts, that change and this
-   run. A host added later is a new question.
+   run. A host added later is a new question. It does not cover a
+   `confirm` path: each host is asked again before each step of
+   its own that touches one, with that host's exact command
+   (`rules/access-control.md` → Protected Paths).
 3. **Write the rollout down** as a plan (`rules/machine-memory.md` →
    Plans that outlive a session): the steps, their expected
    results, and each host as `not started`, `started`, `done` or
@@ -415,8 +426,10 @@ and the guard and the taboos hold on every one of them.
    `rules/parallel-sessions.md` → Hosts without a register take the
    place of registering here and deregistering in step 6.
 3. Run the steps in order, the backups in them first, reloads as
-   `rules/service-reload.md` says. After each step, compare the
-   result with the expected one.
+   `rules/service-reload.md` says, and on a host with protected
+   paths a step whose writes are not on its line judged first as
+   `rules/access-control.md` → Protected Paths says. After each
+   step, compare the result with the expected one.
 4. **The first result that differs stops the host.** Run no further
    step, repair nothing, and undo nothing the approval does not
    name. Record what ran — a journal line that names the step it

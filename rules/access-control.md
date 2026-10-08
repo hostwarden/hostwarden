@@ -2,6 +2,9 @@
 
 Rules for the server blacklist and read-only server
 list. Both use the same file format and lookup logic.
+The user's own lists of paths on a host that stay
+untouched, or need a word before they are touched, are
+under → Protected Paths.
 
 ## Shared File Format
 
@@ -220,3 +223,144 @@ Precedence). The OS file may name single changes as
 exceptions; they are then the only thing the Blocked
 list above lets through, and a host listed in
 `memory/readonly.md` gets none of them.
+
+## Protected Paths
+
+The two lists above cover a whole host. A path on a host that
+is otherwise writable is protected by the user's own two lists,
+in the host's override file `memory/machines/<hostname>/rules.md`
+under the subject `# access-control` (`rules/overrides.md` →
+Where an override goes), and in `memory/custom-rules/all.md` for
+every host. Where both files have the block, the lists add up,
+and where they disagree about one path, the host's file decides,
+as for any override (`rules/overrides.md` → Precedence):
+
+    # access-control
+    ## Protected Paths
+    ### readonly
+    - /var/www/app/data/**
+    - /etc/postgresql/**
+    ### confirm
+    - /var/lib/docker/volumes/**
+    - /etc/fstab
+
+In `all.md` the block starts at `## Protected Paths`, since that
+file names no subject. One glob per line, as a `- ` list item. A
+list that is not there is empty, and so is the block in a file
+that has none, which is the normal case and never worth a line.
+
+**When to read:** with the host's memory, step 6 of
+`rules/first-connection.md`, in local mode too; the `all.md`
+block is in force from the session-start preflight on. The lists
+hold for every command this session runs on that host, and for
+every agent it starts for the host (`rules/multi-host.md` →
+Agents).
+
+**Globs** start with `/` and match absolute paths in the file
+system of the host whose file they are in. `*` matches any run
+of characters inside one path component and never `/`; `**`
+matches any number of components, none included, so
+`/srv/app/**` covers `/srv/app` itself and everything under it,
+and `/**/*.sqlite` every such file at any depth. A glob without
+a wildcard names one path.
+
+A command is matched by every path it reaches, not only the one
+it names: a relative path as the absolute one it resolves to
+from the working directory; a symlink or a bind mount as the
+path behind it; a shell wildcard as each path it expands to; and
+a directory above a matched path whenever the command takes the
+tree with it — `rm -r`, `chown -R`, `chmod -R`, `find … -delete`,
+`mv` or `rsync` of the directory, a deploy onto it. So with
+`/var/www/app/data/**` on a list, `rm -rf /var/www/app` and
+`chown -R www-data: /var/www` reach it and are judged by it. A
+command that names an object rather than a path — a container
+engine's volume, a ZFS dataset or a Btrfs subvolume, a mount —
+reaches the object's mount point and everything under it: with
+`/var/lib/docker/volumes/**` on a list, removing a volume, or a
+compose project with its volumes, is judged by it. A guest
+reached through its hypervisor (`rules/first-connection.md` →
+Via-host mode) keeps its own lists for what runs inside it, and
+a command on the hypervisor that writes into the guest —
+`pct push`, `incus file push`, a container engine's copy into a
+container, a write under the guest's root file system — is
+judged by the guest's lists too, by the path inside the guest,
+beside the hypervisor's own. Where step 6 has not read that
+guest's file this session, read its block before the command.
+
+**What counts as touching a path:** every command that writes,
+creates, deletes, moves, renames, links, truncates or changes the
+mode, owner or attributes of a matched path, whatever the tool —
+an editor, `tee`, a redirect, `sed -i`, `rsync`, `mv` with the
+path as source or destination, `chmod`, `chown`, `touch` — and
+every command of → Writes a command does not name. Reading,
+listing and `stat` never count. Judging that is this session's
+work alone: the taboo guard sees a remote path only as text
+inside the SSH command string and enforces nothing here.
+
+**Writes a command does not name** are established before it
+runs, on a host with any list in force: a package install,
+upgrade or removal, an OS release upgrade, a service reload or
+restart, a container's start, restart or recreate, whose
+entrypoint runs again, and an image pull one follows, a
+config-management or community-script run, a script from
+`memory/tools/`, and a job the session sets up — unattended
+upgrades, a timer, a cron job — which counts as the commands it
+will run. For a package, the file list and every maintainer
+script and trigger the operation runs, of both versions, the
+installed one's removal scripts included; the commands per
+family, and how a script the package does not ship shows, are
+in `rules/os/<family>.md` → Package Manager, and they run in one
+bundle per package step, whose install takes the build that was
+read: from the cache where the family's install reuses it, by
+name from the same index otherwise. A script that names a
+matched path, or hands
+its writes to a helper — `ucf`, `update-alternatives`,
+`systemd-tmpfiles`, a trigger of another package that the new
+files fire — counts as writing there. For a service, the files
+its configuration and unit write; for a container, every
+writable mount it will run with, bind mount and named volume
+alike, from the compose or Quadlet definition for a new or
+recreated one and from the `Mounts` format of
+`rules/containers.md` → List and Inspect for a running one,
+never the image's data directory alone; for a system container
+or VM started on its
+hypervisor, the host paths its mount points and disk devices map
+in (`rules/system-containers.md` → Snapshots: `mp0:`, `source=`,
+a nullfs mount), judged by the hypervisor's lists; for a script,
+its text. A command whose writes cannot be established — a
+release upgrade, a playbook, an updater that fetches what it
+runs, a package the family's tools cannot inspect before it is
+installed, a maintainer script that cannot be read — counts as
+touching every matched path it could reach, and the user is told
+so.
+
+- **`readonly`** — read, list and stat are allowed; everything
+  else is denied, with no override in the session: the user takes
+  the glob out of the list first. A denied step is a deferred
+  modification, reported as → Read-Only Servers says.
+- **`confirm`** — anything, but only after the exact command, as
+  it will run, has been shown and the user has answered with the
+  literal word `CONFIRM`. A yes, an "ok", or the approval the
+  ask-before list already takes for the step, is not enough, and
+  one `CONFIRM` covers that one command once. With
+  `AskUserQuestion`, the question shows the command and offers
+  only to cancel or to skip the step, so the word has to be typed
+  as the free-text answer; without the tool, print the command in
+  a code block and the line `Reply CONFIRM to run it.`, and treat
+  any other reply as no.
+
+**Precedence:** the blacklist and the read-only list win over
+both lists. Where globs of both lists in one file match a path,
+the more specific glob decides: the one whose text before its
+first wildcard is longer, so `readonly` `/etc/postgresql/**`
+holds under `confirm` `/etc/**`; at equal length the longer
+glob, so `readonly` `/etc/*.conf` holds under `confirm`
+`/etc/**`; and the same glob on both lists makes a `confirm`
+path. The lists add a requirement and lift
+none: the absolute taboos, the ask-before list and every other
+Critical Safety Rule of `AGENTS.md` hold on a `confirm` path as
+on any other, a typed `CONFIRM` is a second word on top of them
+and never the explicit request a taboo needs, and a glob over
+sshd's configuration, an SSH key or a disk device changes
+nothing. On a blocked attempt, say which list and which glob
+blocked it, and carry on with the rest of the task.

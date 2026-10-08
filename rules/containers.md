@@ -223,7 +223,11 @@ container's name is unique only per engine and owner, so a
 
 - `restart`, `stop` and `start`, a recreate (`docker compose up -d`,
   a Quadlet unit's restart), and a pull that a recreate follows are
-  **restarts**: ask.
+  **restarts**: ask. On a host with protected paths, each of them
+  is checked first as `rules/access-control.md` → Protected Paths
+  says for a container, with the `Mounts` format of → List and
+  Inspect in the same round trip as → Find What Defines the
+  Container.
 - A reload signal (`docker kill -s HUP`) counts as a **reload** only
   when the service's config test inside passed.
 - `pull` on its own changes no running container, but it is an

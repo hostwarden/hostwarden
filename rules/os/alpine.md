@@ -47,6 +47,23 @@ During installation only main is enabled. Enabling community is a
 change to `/etc/apk/repositories`: back the file up first
 (`rules/backups.md`).
 
+**Inspecting a package before it runs** (`rules/access-control.md`
+→ Protected Paths): `apk fetch <package>` downloads the `.apk`
+into the working directory for the read; the install that
+follows is `apk add <package>` by name, in the same bundle and
+with no `apk update` between the two, so it takes the build that
+was read. Never `apk add ./<file>.apk`: that pins the package to
+that build in `/etc/apk/world` and stops its updates.
+`tar -tzf` on the file lists the files and
+the scripts it ships, `.pre-install`, `.post-install`,
+`.pre-upgrade`, `.post-upgrade`, `.pre-deinstall` and
+`.post-deinstall`, and `tar -xzOf <apk> .post-install` prints one;
+a name the listing lacks is a script the package does not ship.
+The installed version's scripts, which an upgrade or removal
+runs, are in `/lib/apk/db/scripts.tar.gz` under
+`<package>-<version>.X1<hash>.<script>`; `tar -tzf` on it lists
+them.
+
 ## Stable Branch Only
 
 **Always install packages from the stable `vX.Y` branch the host
