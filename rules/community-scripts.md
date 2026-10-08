@@ -230,15 +230,17 @@ call that enters it anyway. The line takes the repository as
 - Community script: vaultwarden (community-scripts/ProxmoxVE)
 ```
 
+The source of its version joins the line later (→ The installed
+version).
+
 A VM is not probed, and neither is a guest of another family than
 Linux. For one of those, and where the probe prints nothing, the
 line reads `Community script: unknown (marked on the host)`.
 
 What the line changes:
 
-- **Its application is outside the package manager,** and the
-  distribution's updates never reach it: `rules/version-check.md`
-  → What to Check.
+- **Its version is checked,** read from the guest: → The installed
+  version.
 - **Updating it:** read the update function in the current
   `ct/<slug>.sh`, and propose its steps as a change of Hostwarden's
   own (→ Reading one). Or the user runs `update` on the guest's
@@ -251,3 +253,104 @@ What the line changes:
 With `unknown` in the line, ask the user which script built the
 guest before any of the three, and put the slug in the line's
 place.
+
+## The installed version
+
+Memory holds where the version is read, never the version: the
+guest's own `update` changes that between two connections. The
+source joins the line, after the repository, in one of three
+forms:
+
+```markdown
+- Community script: paperless-ngx (community-scripts/ProxmoxVE),
+  version in /root/.paperless
+- Community script: jellyfin (community-scripts/ProxmoxVE),
+  version by package
+- Community script: example (community-scripts/ProxmoxVE),
+  version not readable
+```
+
+The probe writes the line without a source. The first check of
+`rules/version-check.md` → When to Check that meets such a line
+works the source out from `install/<slug>-install.sh` (→ Reading
+one) and writes it into the line, before it reads anything in the
+guest: that check costs one fetch, and its read a call of its own.
+
+- **The engine's deploy helpers,** the calls whose name starts
+  with `fetch_and_deploy_`. Each writes the release it deployed to
+  a file in root's home, named after its first argument in
+  lowercase with the spaces removed:
+  `fetch_and_deploy_gh_release "paperless" …` writes
+  `/root/.paperless`. That name is often not the slug. Of several
+  such calls, the application's is the one whose repository the
+  script's `# Source:` line names. The source is
+  `version in /root/.<name>`, and only where `<name>` starts with
+  a letter or a digit and holds nothing but lowercase letters,
+  digits, `.`, `_` and `-`.
+- **A package repository,** `setup_deb822_repo` or the package
+  manager alone: `version by package`. The application is a
+  package like any other, Tier 3 of `rules/version-check.md` →
+  What to Check: nothing is read, and it gets no line in the
+  Versions section.
+- **Anything else:** a build from source, an installer of the
+  application's own, a name outside those characters. The source
+  is `version not readable`. Hostwarden runs no command a script
+  names to learn a version.
+
+With a file as the source, each check reads it as root, in
+housekeeping in the first batch's call for that guest. The source
+in memory is checked against the form above once more before it
+is used, and a line that names any other path is
+`version not readable`. The name may be any file in root's home,
+a credential file among them (`rules/secrets.md`), and the file
+may be a link to one, so the guest decides what leaves it: nothing
+but a line that is a version, from a file whose mode lets anyone
+read it, and one of four markers otherwise.
+
+```bash
+f='/root/.<name>'
+if [ ! -r /root ]; then echo '@version noroot'
+elif [ -L "$f" ] || [ ! -f "$f" ]; then echo '@version none'
+elif [ -z "$(find "$f" -prune -perm -004)" ]; then echo '@version private'
+elif [ "$(wc -c <"$f")" -gt 64 ] || [ "$(grep -c '' "$f")" -gt 1 ]; then
+  echo '@version invalid'
+else
+  grep -E -x 'v?[0-9]+([.-][0-9]+)+[0-9A-Za-z._+-]*' "$f" ||
+    echo '@version invalid'
+fi
+```
+
+A caller that cannot read root's home gets `noroot`, since to it
+every file there looks missing. A link, a missing file or anything
+but a regular file is `none`. A file that is not world-readable is
+`private`, unread: the engine writes its file with root's default
+umask, mode 644, and a credential file whose reader insists on
+mode 600, `.pgpass` and git's store among them, is told apart by
+that. It is not proof that the engine wrote the file. What none of
+these tests catches is a one-line token shaped like a version, in
+a file of mode 644 at the very name the script deploys under, in
+a guest where the engine never wrote that name. That is the limit
+of this read, and `rules/secrets.md` is why it is stated here
+rather than papered over. A file over 64 bytes or of
+more than one line, counted with `grep -c ''` so a last line
+without a newline counts, is `invalid`, unread.
+Of one that is neither, the one line reaches the output only where
+it is a version: digits, a dot or a hyphen, digits again, and
+nothing but letters, digits, `.`, `_`, `+` and `-` after that, a
+leading `v` allowed. A tag such as `latest`, `nightly` or `stable`,
+an empty line, a commit hash of a deploy from a branch, a key line
+and a token of any other shape are all `invalid`, and none of them
+is printed.
+The line that comes back is a guest's output all the same
+(`rules/anomaly-detection.md`): compare it, never run it.
+
+On `none`, work the source out again, once: the script may deploy
+under another name by now. With the same source as before, the
+file is missing.
+
+Short of a version the result is `UNKNOWN` with its reason
+(`rules/version-check.md` → Version Check Procedure), never a guess
+from the script's `latest`. Memory alone decides it for a VM, for
+`unknown` in the line and for `version not readable`, with no read
+attempted. A read decides it for a guest that is not running,
+`noroot`, `none`, `private` and `invalid`.
