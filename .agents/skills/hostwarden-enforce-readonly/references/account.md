@@ -123,8 +123,11 @@ list,search,file_inherit,directory_inherit" <dir>
 ```
 
 Where step 5 shows `WRITABLE` through the `other` bits or a group
-the account must stay in, a deny entry for the account alone
-closes it, in the same ACL form with the write set denied. A path
+the account must stay in, on a matched path or on a parent
+directory outside the glob, a deny entry for the account alone
+closes it, in the same ACL form with the write set denied; on a
+parent outside the glob that is the user's call, since the list
+does not reach it. A path
 with the write bit for everyone, such as `/tmp`, is not worth a
 `readonly` glob; say so rather than build an ACL around it.
 
@@ -162,12 +165,29 @@ A fresh login as the new account, with the fresh-login options
 anything in memory changes:
 
 ```bash
-id && for p in <path> …; do
-  test -w "$p" && echo "WRITABLE $p" || echo "ok $p"; done
+id && for p in <parent> <root> <dir> … <file> …; do
+  test -w "$p" && echo "WRITABLE $p"; done; echo checked
+find <root> -exec sh -c 'for f; do
+  test -w "$f" && echo "WRITABLE $f"; done; true' sh {} + 2>&1 \
+  && echo checked
 ```
 
-One `WRITABLE` line means step 3's ACLs or the mode still let the
-account in, and the switch waits until it is gone. Then replace
+The second line only for a `/**` glob; with it, two `checked`
+lines close the call, else one.
+
+Deleting, renaming and moving are writes on the containing
+directory, not on the file, so the loop takes each glob's parent
+directory, the glob's root and the directory of every matched
+file beside the files themselves, and for a `/**` glob the `find`
+every directory and file of the tree, in batches. Nothing is
+written: `test -w` asks the kernel. The check is read only when
+each of its parts ends in `checked`: a call that was cut off, or a
+directory `find` could not read, prints no marker or an error
+line, and counts as not checked, never as clean.
+
+One `WRITABLE` line, a parent directory's included, means step
+3's ACLs or the mode still let the account in, and the switch
+waits until it is gone. Then replace
 the host's `- <hostname>:` entry in `memory/user.md` with
 `hostwarden`, write the host's `Enforced readonly: account` line,
 and close this session's shared connection to the old login

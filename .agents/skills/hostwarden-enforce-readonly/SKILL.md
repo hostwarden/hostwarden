@@ -114,7 +114,10 @@ host's entry in `memory/user.md`: `id hostwarden` and
 `sudo -n -l -U hostwarden` through the filter of
 `rules/privilege-escalation.md` → Sudo. The account enforces a
 glob only for a workstation whose `memory/user.md` names it for
-the host; where this one still logs in as another user, say so.
+the host; where this one still logs in as another user, say so,
+and where it logs in as the account, run the writability check of
+`references/account.md` → 5. The switch in the same call: a mode
+changed since the switch shows there and nowhere else.
 
 Compare with the `Enforced readonly:` lines in the host's memory
 (→ Memory, journal, changelog). Report one line per glob: enforced
@@ -215,9 +218,12 @@ takes `-R` from its root; every other glob — `/etc/fstab`,
 — takes each file it expands to, never a directory, so a file the
 glob does not name can still be created or changed beside it. The verification
 is `test -w`, which asks
-the kernel whether a write would be allowed and writes nothing; it must fail
-on the glob's root and on one file under it, as root too, since
-the kernel answers for the flag and the property. A verification
+the kernel whether a write would be allowed and writes nothing;
+for the flag and the property it must fail on the glob's root and
+on one file under it, as root too, since the kernel answers for
+them whatever the parent allows. The account's check is wider,
+since a writable parent lets it replace a file it cannot write:
+`references/account.md` → 5. The switch. A verification
 that writes a byte to see whether it can is a write on a
 protected path, and is not done.
 
