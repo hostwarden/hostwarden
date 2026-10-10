@@ -765,7 +765,10 @@ Highlight as drift / warning:
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
 - Different needrestart restart modes: one host restarts
-  services after every apt run, another only lists them.
+  services after every apt run, another only lists them. The
+  baseline expects `l` (`rules/baseline.md` → Service Restarts),
+  so name the hosts that differ from it, `absent` and `default`
+  included, unless a decision settles the host.
 - A different reboot policy across hosts of the same family —
   `Automatic-Reboot` on some and not others, or a different
   `reboot =` on RHEL/Fedora — read from `memory.md`'s

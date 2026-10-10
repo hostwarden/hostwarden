@@ -430,6 +430,41 @@ Write the line in the form
 a setting cannot be read, its half of the line reads `off` or
 `unknown` rather than a guess.
 
+## Service Restarts
+
+**Debian/Ubuntu** only; the other families expect nothing here
+(`rules/baseline.md` → Service Restarts). The mode needs no probe: read the
+`needrestart=` or `$nrconf{restart}` line the Automatic Restarts
+probe above printed, and rate it. Every rating is **INFO**, since
+nothing is broken: the services that wait for a restart are rated
+in Critical Services below.
+
+- `needrestart=absent`: "needrestart is not installed: services
+  keep running replaced libraries unseen".
+- `needrestart=default`: "needrestart mode not set". On Ubuntu
+  24.04 and later add that it restarts services itself.
+- A `$nrconf{restart}` value other than `l`: "needrestart mode
+  is `<value>`", with "restarts services itself" for `a`.
+- `l`: no finding.
+
+The login notice (`rules/baseline.md` → Login Notice) is read with
+the same section, in one probe of its own:
+
+```bash
+test -x /etc/update-motd.d/91-hostwarden-restart \
+  && echo "login-notice=ok" || echo "login-notice=MISSING"
+grep -qs pam_motd /etc/pam.d/sshd \
+  && echo "pam_motd=ok" || echo "pam_motd=MISSING"
+```
+
+- `login-notice=MISSING` with `pam_motd=ok`: "no login notice for
+  a pending reboot". With `pam_motd=MISSING` the notice could not
+  show; report "sshd does not run pam_motd" instead.
+
+A decision that settles Service Restarts or Login Notice turns the
+finding into a "decided" line. The fix is the baseline's, offered
+once and applied only on a yes (`hostwarden-baseline`).
+
 ## Firewall Status
 
 Check that the firewall is still active.
@@ -856,8 +891,9 @@ installed but not active, and nothing complains.
 **Alpine:** no needrestart; use the manual fallback
 below, which works with busybox.
 
-**Debian/Ubuntu** (Ubuntu Server installs needrestart;
-on Debian it is an optional package):
+**Debian/Ubuntu** (the baseline installs needrestart; a host
+without it skips the probe, and Service Restarts above rates
+that):
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then

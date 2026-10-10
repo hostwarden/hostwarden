@@ -109,6 +109,54 @@ The family file's mechanism installed, enabled, and covering the
 security archive, with its reports mailed to root. Checked by
 housekeeping's Automatic Security Updates.
 
+## Service Restarts
+
+Where apt installs the packages (Debian, Ubuntu and their
+derivatives), `needrestart` is installed and its restart mode is
+set explicitly, to `l`: it lists the services that still run
+replaced libraries and restarts none. Automatic security updates
+replace files under running services. Without needrestart nobody
+sees which services still run the old code; with the default of
+Ubuntu 24.04 and later it restarts them unasked, whenever an
+update lands (`rules/os/debian.md` → Automatic Security Updates).
+A restart stays a step the user asks for (`AGENTS.md` → Critical
+Safety Rules): housekeeping lists what waits for one, and
+`rules/service-reload.md` takes it from there.
+
+The mode is policy, so the user can change it. `a`, restarting on
+its own, is settled for one host by a decision
+(`rules/decisions.md`), and for new guests or the whole fleet by an
+override that replaces this section. needrestart reboots nothing:
+a kernel waits for a reboot, which is a business of its own
+(`rules/maintenance-windows.md`). The other families expect
+nothing here. Checked by housekeeping's Service Restarts
+(`.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`)
+and the fleet audit's auto-reboot probe.
+
+## Login Notice
+
+Where pam_motd runs the scripts in `/etc/update-motd.d/` (Debian
+and Ubuntu), a login on the console or over SSH names a pending
+reboot and the reasons for it, and the services that still run
+replaced libraries; with nothing waiting it prints nothing. The
+script is `templates/login-notice/restart-notice`, deployed as
+`/etc/update-motd.d/91-hostwarden-restart`.
+
+A pending reboot is not always the kernel. The notice prints what
+the packages wrote to `/run/reboot-required.pkgs` and what
+needrestart finds: a newer kernel, a CPU microcode update. The
+services are listed whatever the restart mode, so where Service
+Restarts keeps `l` the login is the reminder that a restart is
+still to be chosen. In a container the kernel and microcode lines
+are left out; the host owns them.
+
+The script leaves `/etc/motd` and every other script in the
+directory alone. Ubuntu's own `98-reboot-required` prints its
+line beside it. A host that carries a notice of its own is
+settled by a decision, and the whole fleet by an override that
+replaces this section. The other families expect nothing here.
+Checked by housekeeping's Service Restarts.
+
 ## Time Sync
 
 One time service, running and synchronized, and the timezone the
