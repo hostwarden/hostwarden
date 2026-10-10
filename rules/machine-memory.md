@@ -211,7 +211,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Depends on:`            | `coordination.md`           | found, or told   |
 | `SSH: untested`          | `hypervisors.md`            | guest registered |
 | `Baseline:`              | `baseline.md`               | baseline applied |
-| `Baseline template:`     | `appliance/proxmox-ve.md`   | template built   |
+| `Baseline template:`     | `appliance/proxmox-ve.md`   | built, adopted   |
 | `Baseline check:`        | `baseline.md`               | baseline measured|
 | `Network:`               | `network.md`                | first connection |
 | `Site:`                  | `network-topology.md`       | user's answer    |

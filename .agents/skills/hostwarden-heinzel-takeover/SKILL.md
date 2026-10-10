@@ -331,6 +331,13 @@ leads, the host confirms them.
      with it that the manager cannot enter — a VM without an agent —
      keeps its `heinzel-memory.md` alone and is onboarded on its
      first SSH connection.
+   - **A baked container template** on a Proxmox VE node: an archive the user
+     names, or one `pveam list local` shows that is no
+     `pveam` template. It is measured against the baseline, not
+     rebuilt, and adopted where the user agrees
+     (`.agents/skills/hostwarden-new-guest/references/adopt-template.md`); the
+     result is the node's `Baseline template:` line and shows on its
+     report line.
    - **Heinzel's finds** answered "leave" or "later" are among the
      questions that only get recorded. Moving or renaming Heinzel's
      state is a change: an answer to take it over is recorded as

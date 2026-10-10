@@ -45,7 +45,7 @@ the host's memory names.
 ### Hosts and guests
 
 The guests of a hypervisor and what it passes through to them, the
-Proxmox VE baseline template's age, and files Hostwarden deployed
+Proxmox VE baseline template's age and checksum, and files Hostwarden deployed
 that changed on either side.
 
 ### Releases

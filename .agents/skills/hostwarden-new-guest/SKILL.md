@@ -65,7 +65,11 @@ exists):
   without nesting.
 - **Distribution and release:** the current stable release,
   looked up live (`rules/version-check.md`); never an image the
-  distribution no longer supports.
+  distribution no longer supports. For a container on Proxmox VE the
+  admin chooses from what `pveam available --section system` lists,
+  after `pveam update`: any official template, and a node can hold a
+  baseline template for several distributions and releases side by
+  side (`references/proxmox-template.md`).
 - **Name:** the guest's FQDN. Where a `rules/naming-scheme.md` block
   applies to the guest, propose the next name it gives: the site
   token is the code recorded for the hypervisor's `Site:` in
@@ -171,16 +175,16 @@ first boot, not from the hypervisor; the references are all under
 | The guest reads          | From                     | Reference             |
 | ------------------------ | ------------------------ | --------------------- |
 | user-data from the host  | a cloud image            | `user-data.md`        |
-| a seed in its filesystem | the container template   | `proxmox-template.md` |
+| first-boot units in it   | the container template   | `proxmox-template.md` |
 | a seed in its filesystem | the LXC download image   | `lxc.md`              |
 | a seed in its filesystem | a prepared disk image    | `image-prep.md`       |
 | an Ignition config       | Fedora CoreOS, Flatcar   | `ignition.md`         |
 | an installer's answers   | an installer ISO or tree | `answer-files.md`     |
 
-All but Ignition carry the one rendered cloud-init file, handed
-over or seeded; Fedora CoreOS and Flatcar run no cloud-init and
-get a rendering of their own. Either way one version is recorded
-in the guest's memory.
+All but Ignition and the Proxmox VE container template carry the one rendered
+cloud-init file, handed over or seeded; Fedora CoreOS, Flatcar and that template
+run no cloud-init and get a rendering of their own. Either way one version is
+recorded in the guest's memory.
 
 Hostwarden writes sshd's configuration and keys through the
 mechanism the guest itself reads, never from outside into a
@@ -193,14 +197,17 @@ guest has no such mechanism, the files are the user's to place
 1. **Wait for the first boot** in one call on the host, as the
    reference shows: a loop there, not an SSH retry
    (`rules/ssh-unreachable.md`). What that call waits for is the
-   form's own signal — cloud-init reporting done, the guest agent
-   answering after an install, and for Ignition, which has neither,
+   form's own signal — cloud-init reporting done, the first-boot
+   units of a Proxmox VE baseline template container finished (systemd) or its
+   upgrade marker written (OpenRC), the
+   guest agent answering after an install, and for Ignition, which has neither,
    a fixed wait before the first login. Never a loop on the SSH
    port, which fail2ban and sshd's `PerSourcePenalties` count.
    Where the manager can enter the guest — `pct exec`,
    `qm guest exec`, `incus exec` — the same call waits for
-   `cloud-init status --wait --long`, reads the public host key,
-   and, where the address is DHCP, the guest's own
+   `cloud-init status --wait --long` (for a baseline template container, the
+   units' state or the marker: `references/proxmox.md`), reads the public host
+   key, and, where the address is DHCP, the guest's own
    (`ip -4 addr show scope global`, run inside it through the same
    exec channel); read-only, and only on the guest this run
    created. Classic LXC enters it with `lxc-attach` and reads the
@@ -307,7 +314,10 @@ guest has no such mechanism, the files are the user's to place
    the way source 3 there says for a guest this run created with
    no session inside it to read the key through. Only where the
    guest has no cloud-init at all — Ignition (Fedora CoreOS,
-   Flatcar), or a UI-guest install with no second ISO at all — does
+   Flatcar), a container from a Proxmox VE baseline template with
+   first-boot units, which the first step already waited for, or
+   from an adopted one, which has nothing of ours to wait for, or a UI-guest
+   install with no second ISO at all — does
    it skip the wait for it below: the guest already answering SSH
    is the only signal there is. Every other path, an answer-file
    install included, hands its baseline to cloud-init for the first
@@ -403,8 +413,10 @@ guest has no such mechanism, the files are the user's to place
 
 A guest that fails is never deleted on Hostwarden's own account,
 and never rescued by writing a password or a key into it. Where
-the manager can enter it, read `cloud-init status --long` and the
-fingerprints of the SSH user's keys (`rules/secrets.md`) to find
+the manager can enter it, read `cloud-init status --long` (a
+baseline template container: the two first-boot units' status and
+`journalctl -u` for them) and the fingerprints of the SSH user's keys
+(`rules/secrets.md`) to find
 out why, and report. Fix the rendered file and create the guest
 again once the user has asked for the failed one to be removed
 (`rules/system-containers.md` → Changes).
@@ -479,7 +491,8 @@ known by its settled name rather than that address.
   how its checksum and signature are verified.
 - `references/proxmox.md` — Proxmox VE: VMs from a cloud image
   and containers from the baseline template.
-- `references/proxmox-template.md` — building that template.
+- `references/proxmox-template.md` — building that template, with
+  its first-boot units, which are the files under `firstboot/`.
 - `references/libvirt.md` — libvirt with `virt-install`.
 - `references/incus.md` — Incus and LXD, and the baseline as a
   profile.

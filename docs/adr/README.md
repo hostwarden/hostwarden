@@ -10,6 +10,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | :--- | :--- | :--- |
 | [A VM apart from the workstation is its own mode](20261008-cowork-is-no-operations-harness.md) | guard, harness, safety | — |
 | [Own review on Sonnet; Opus where files or findings call](20260929-reviewer-model-follows-the-files.md) | review, tooling | — |
+| [The Proxmox VE container template is baked, with first-boot units](20260929-proxmox-container-template-baked-with-first-boot-units.md) | guests, proxmox, baseline | — |
 | [SSH passwords reach ssh through an askpass helper only](20260927-ssh-passwords-through-askpass-helper.md) | ssh, secrets, appliances | — |
 | [Same-session fallback for a declined self-resolved address](20260926-same-session-fallback-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [Release tags are signed with a dedicated SSH key](20260926-release-tags-signed-with-dedicated-ssh-key.md) | release, signing, supply-chain | — |
