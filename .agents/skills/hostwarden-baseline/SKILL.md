@@ -3,7 +3,9 @@ name: hostwarden-baseline
 argument-hint: "[hostname]"
 description: Bring an existing server up to the Hostwarden server
   baseline — firewall with default deny, automatic security
-  updates, time sync, key-only SSH, persistent journal, storage
+  updates, service restarts (needrestart), a login notice for a
+  pending reboot, time sync, key-only
+  SSH, persistent journal, storage
   maintenance (TRIM, RAID checks, scrubs, smartd), guest agent,
   backup, and the user's own additions such as admin keys,
   timezone, mail relay and monitoring agent. Lists what is missing,

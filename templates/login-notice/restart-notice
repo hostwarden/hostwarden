@@ -1,0 +1,92 @@
+#!/bin/sh
+# Master copy: Hostwarden, templates/login-notice/restart-notice.
+# Deployed as /etc/update-motd.d/91-hostwarden-restart
+# (rules/baseline.md -> Login Notice).
+#
+# pam_motd runs this as root at each login on the console and over
+# SSH and shows what it prints. It names a pending reboot with its
+# reasons and the services that still run replaced libraries, and is
+# silent when nothing waits. It changes nothing.
+#
+# The reasons: /run/reboot-required and its .pkgs file, which the
+# distribution's packages write; a kernel or CPU microcode that
+# needrestart finds newer than the running one (not in a container,
+# which runs its host's kernel); and the services needrestart lists.
+# needrestart -b only reports, whatever restart mode is set. It takes
+# seconds, so its answer is kept in /run for ten minutes and dropped
+# as soon as dpkg's status is newer; a run that fails or prints
+# nothing is not kept. Without needrestart only the first reason shows.
+
+set -u
+umask 022
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+cache=/run/hostwarden-restart-notice
+
+in_container() {
+	systemd-detect-virt -cq 2>/dev/null
+}
+
+if command -v needrestart >/dev/null 2>&1 \
+	&& [ -z "$(find "$cache" -mmin -10 -newer /var/lib/dpkg/status \
+		2>/dev/null)" ]; then
+	rm -f "$cache"
+	if timeout 20 needrestart -b >"$cache.$$" 2>/dev/null \
+		&& [ -s "$cache.$$" ]; then
+		mv "$cache.$$" "$cache"
+	fi
+	rm -f "$cache.$$"
+fi
+
+ksta=0 ucsta=0 kcur='?' kexp='?' n=0 services=""
+if [ -f "$cache" ]; then
+	while IFS=': ' read -r key val; do
+		case $key in
+		NEEDRESTART-KSTA) ksta=$val ;;
+		NEEDRESTART-KCUR) kcur=$val ;;
+		NEEDRESTART-KEXP) kexp=$val ;;
+		NEEDRESTART-UCSTA) ucsta=$val ;;
+		NEEDRESTART-SVC)
+			n=$((n + 1))
+			[ "$n" -le 12 ] && services="$services ${val%.service}"
+			;;
+		esac
+	done <"$cache"
+fi
+
+reasons=""
+if [ -f /run/reboot-required ]; then
+	since=$(date -r /run/reboot-required '+%Y-%m-%d %H:%M' 2>/dev/null \
+		|| echo '?')
+	pkgs=$(sort -u /run/reboot-required.pkgs 2>/dev/null | tr '\n' ' ')
+	reasons="  reboot-required since $since${pkgs:+: ${pkgs% }}
+"
+fi
+case $ksta in
+'' | 0 | 1) ;;
+*) in_container || reasons="$reasons  kernel $kexp is installed, $kcur runs
+" ;;
+esac
+case $ucsta in
+'' | 0 | 1) ;;
+*) in_container \
+	|| reasons="$reasons  CPU microcode update is waiting for a reboot
+" ;;
+esac
+
+if [ -n "$reasons" ]; then
+	if in_container; then
+		what="restart of the container $(hostname) pending"
+	else
+		what="reboot of $(hostname) pending"
+	fi
+	printf '\n*** %s ***\n%s' "$what" "$reasons"
+fi
+
+if [ "$n" -gt 0 ]; then
+	more=""
+	[ "$n" -gt 12 ] && more=" and $((n - 12)) more"
+	printf '\n*** %s service(s) run replaced libraries ***\n %s%s\n' \
+		"$n" "$services" "$more"
+fi
+exit 0
