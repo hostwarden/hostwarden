@@ -375,7 +375,8 @@ trigger — not a request from the user.
   `rules/containers.md`
 - Reading what a server returned → `rules/anomaly-detection.md`
 - A reboot, a firewall or network change, a restart →
-  `rules/coordination.md`, before the step
+  `rules/coordination.md`, before the step; none on a host
+  this session is creating
 - SSH stops answering → `rules/ssh-unreachable.md`, which checks
   `hostwarden-impact status` first
 - The user asks about a host's network or VPN, a failure points
