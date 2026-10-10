@@ -371,7 +371,8 @@ where the command is absent or the daemon reports itself disabled,
 this half of the line reads `off`.
 
 **Every family but Alpine**, the needrestart or apt/dnf-hook mode,
-and the boot history, run once per host:
+the login notice on a dpkg host, and the boot history, run once per
+host:
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then
@@ -381,6 +382,12 @@ if command -v needrestart >/dev/null 2>&1; then
   echo "${M:-needrestart=default}"
 else
   echo "needrestart=absent"
+fi
+if command -v dpkg >/dev/null 2>&1; then
+  test -x /etc/update-motd.d/91-hostwarden-restart \
+    && echo "login-notice=ok" || echo "login-notice=MISSING"
+  grep -qs pam_motd /etc/pam.d/sshd \
+    && echo "pam_motd=ok" || echo "pam_motd=MISSING"
 fi
 if command -v journalctl >/dev/null 2>&1; then
   journalctl --list-boots -n 4 2>/dev/null
@@ -447,19 +454,13 @@ in Critical Services below.
   is `<value>`", with "restarts services itself" for `a`.
 - `l`: no finding.
 
-The login notice (`rules/baseline.md` → Login Notice) is read with
-the same section, in one probe of its own:
-
-```bash
-test -x /etc/update-motd.d/91-hostwarden-restart \
-  && echo "login-notice=ok" || echo "login-notice=MISSING"
-grep -qs pam_motd /etc/pam.d/sshd \
-  && echo "pam_motd=ok" || echo "pam_motd=MISSING"
-```
+The login notice (`rules/baseline.md` → Login Notice) is rated from
+the `login-notice=` and `pam_motd=` lines of the same probe:
 
 - `login-notice=MISSING` with `pam_motd=ok`: "no login notice for
-  a pending reboot". With `pam_motd=MISSING` the notice could not
-  show; report "sshd does not run pam_motd" instead.
+  a pending reboot".
+- `pam_motd=MISSING`: "sshd does not run pam_motd", since the
+  notice could not show.
 
 A decision that settles Service Restarts or Login Notice turns the
 finding into a "decided" line. The fix is the baseline's, offered

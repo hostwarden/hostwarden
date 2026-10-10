@@ -379,11 +379,7 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/stand
   from 24.04, restarts services itself in non-interactive runs,
   the apt run of unattended-upgrades included. Debian does not
   install it, and once it is there it lists when no terminal is
-  attached. A file that already sets the mode, the user's or
-  another tool's, stays as it is, and its value is the mode the
-  baseline measures. On a running host the drop-in is a deployed
-  file (`rules/deployed-files.md`), written only where none sets
-  the mode, and installing the package takes the form under
+  attached. Installing the package takes the form under
   **Non-interactive apt runs**.
 
 Sources: https://ubuntu.com/server/docs/how-to/software/automatic-updates/,
@@ -409,12 +405,6 @@ and is not deployed; say so. The script is a deployed file
 `files/etc/update-motd.d/91-hostwarden-restart` copied from
 `templates/login-notice/restart-notice`, mode 755 root:root. The
 name carries no dot, because run-parts skips a file that has one.
-`/etc/motd` and the other scripts stay as they are.
-
-The script runs `needrestart -b` at most every ten minutes and
-reads its answer from `/run/hostwarden-restart-notice` otherwise.
-Without needrestart it prints the `/run/reboot-required` lines
-only.
 
 ## Service Manager
 

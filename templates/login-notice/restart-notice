@@ -1,8 +1,7 @@
 #!/bin/sh
 # Master copy: Hostwarden, templates/login-notice/restart-notice.
 # Deployed as /etc/update-motd.d/91-hostwarden-restart
-# (rules/baseline.md -> Login Notice). Edits on a host are kept and
-# reported, not overwritten.
+# (rules/baseline.md -> Login Notice).
 #
 # pam_motd runs this as root at each login on the console and over
 # SSH and shows what it prints. It names a pending reboot with its
@@ -13,76 +12,81 @@
 # distribution's packages write; a kernel or CPU microcode that
 # needrestart finds newer than the running one (not in a container,
 # which runs its host's kernel); and the services needrestart lists.
-# needrestart -b only reports, whatever restart mode is set.
+# needrestart -b only reports, whatever restart mode is set. It takes
+# seconds, so its answer is kept in /run for ten minutes and dropped
+# as soon as dpkg's status is newer; a run that fails or prints
+# nothing is not kept. Without needrestart only the first reason shows.
 
 set -u
+umask 022
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 cache=/run/hostwarden-restart-notice
-host=$(hostname 2>/dev/null || echo '?')
 
-container=""
-if command -v systemd-detect-virt >/dev/null 2>&1 \
-	&& systemd-detect-virt -cq 2>/dev/null; then
-	container=1
-fi
-
-# pam_motd runs this at every login, so the batch is read from a cache
-# up to ten minutes old, and dropped as soon as dpkg's status is newer.
-batch=""
-if command -v needrestart >/dev/null 2>&1; then
-	if [ -f "$cache" ] \
-		&& [ -n "$(find "$cache" -mmin -10 2>/dev/null)" ] \
-		&& [ ! "$cache" -ot /var/lib/dpkg/status ]; then
-		batch=$(cat "$cache" 2>/dev/null)
-	else
-		batch=$(timeout 20 needrestart -b 2>/dev/null)
-		(umask 022; printf '%s\n' "$batch" >"$cache") 2>/dev/null
-	fi
-fi
-
-field() {
-	printf '%s\n' "$batch" | sed -n "s/^NEEDRESTART-$1: *//p" | head -n 1
+in_container() {
+	systemd-detect-virt -cq 2>/dev/null
 }
+
+if command -v needrestart >/dev/null 2>&1 \
+	&& [ -z "$(find "$cache" -mmin -10 -newer /var/lib/dpkg/status \
+		2>/dev/null)" ]; then
+	rm -f "$cache"
+	if timeout 20 needrestart -b >"$cache.$$" 2>/dev/null \
+		&& [ -s "$cache.$$" ]; then
+		mv "$cache.$$" "$cache"
+	fi
+	rm -f "$cache.$$"
+fi
+
+ksta=0 ucsta=0 kcur='?' kexp='?' n=0 services=""
+if [ -f "$cache" ]; then
+	while IFS=': ' read -r key val; do
+		case $key in
+		NEEDRESTART-KSTA) ksta=$val ;;
+		NEEDRESTART-KCUR) kcur=$val ;;
+		NEEDRESTART-KEXP) kexp=$val ;;
+		NEEDRESTART-UCSTA) ucsta=$val ;;
+		NEEDRESTART-SVC)
+			n=$((n + 1))
+			[ "$n" -le 12 ] && services="$services ${val%.service}"
+			;;
+		esac
+	done <"$cache"
+fi
 
 reasons=""
 if [ -f /run/reboot-required ]; then
 	since=$(date -r /run/reboot-required '+%Y-%m-%d %H:%M' 2>/dev/null \
 		|| echo '?')
 	pkgs=$(sort -u /run/reboot-required.pkgs 2>/dev/null | tr '\n' ' ')
-	reasons="$reasons  reboot-required since $since${pkgs:+: ${pkgs% }}
+	reasons="  reboot-required since $since${pkgs:+: ${pkgs% }}
 "
 fi
-if [ -z "$container" ]; then
-	case $(field KSTA) in
-	'' | 0 | 1) ;;
-	*) reasons="$reasons  kernel $(field KEXP) is installed, $(field KCUR) runs
+case $ksta in
+'' | 0 | 1) ;;
+*) in_container || reasons="$reasons  kernel $kexp is installed, $kcur runs
 " ;;
-	esac
-	case $(field UCSTA) in
-	'' | 0 | 1) ;;
-	*) reasons="$reasons  CPU microcode update is waiting for a reboot
+esac
+case $ucsta in
+'' | 0 | 1) ;;
+*) in_container \
+	|| reasons="$reasons  CPU microcode update is waiting for a reboot
 " ;;
-	esac
-fi
+esac
 
 if [ -n "$reasons" ]; then
-	if [ -n "$container" ]; then
-		what="restart of the container $host pending"
+	if in_container; then
+		what="restart of the container $(hostname) pending"
 	else
-		what="reboot of $host pending"
+		what="reboot of $(hostname) pending"
 	fi
 	printf '\n*** %s ***\n%s' "$what" "$reasons"
 fi
 
-services=$(printf '%s\n' "$batch" \
-	| sed -n 's/^NEEDRESTART-SVC: *//p' | sed 's/\.service$//')
-if [ -n "$services" ]; then
-	count=$(printf '%s\n' "$services" | wc -l | tr -d ' ')
-	list=$(printf '%s\n' "$services" | head -n 12 | tr '\n' ' ')
+if [ "$n" -gt 0 ]; then
 	more=""
-	[ "$count" -gt 12 ] && more=" and $((count - 12)) more"
-	printf '\n*** %s service(s) run replaced libraries ***\n  %s%s\n' \
-		"$count" "${list% }" "$more"
+	[ "$n" -gt 12 ] && more=" and $((n - 12)) more"
+	printf '\n*** %s service(s) run replaced libraries ***\n %s%s\n' \
+		"$n" "$services" "$more"
 fi
 exit 0
