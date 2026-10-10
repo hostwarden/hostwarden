@@ -376,7 +376,7 @@ host:
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then
-  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+  M=$(grep -hsE '^[[:space:]]*[$]nrconf[{].?restart.?[}]' \
     /etc/needrestart/needrestart.conf \
     /etc/needrestart/conf.d/*.conf | tail -n 1)
   echo "${M:-needrestart=default}"
@@ -386,7 +386,8 @@ fi
 if command -v dpkg >/dev/null 2>&1; then
   test -x /etc/update-motd.d/91-hostwarden-restart \
     && echo "login-notice=ok" || echo "login-notice=MISSING"
-  grep -qs pam_motd /etc/pam.d/sshd \
+  grep -hsE '^[[:space:]]*session[[:space:]].*pam_motd' /etc/pam.d/sshd \
+    | grep -qv noupdate \
     && echo "pam_motd=ok" || echo "pam_motd=MISSING"
 fi
 if command -v journalctl >/dev/null 2>&1; then

@@ -738,7 +738,7 @@ uptime -s
 # needrestart: the restart mode that wins — the last one set, in
 # needrestart's order: needrestart.conf, then conf.d/*.conf sorted.
 if command -v needrestart >/dev/null 2>&1; then
-  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+  M=$(grep -hsE '^[[:space:]]*[$]nrconf[{].?restart.?[}]' \
     /etc/needrestart/needrestart.conf \
     /etc/needrestart/conf.d/*.conf | tail -n 1)
   echo "${M:-needrestart=default}"
@@ -765,10 +765,11 @@ Highlight as drift / warning:
 - Hosts with uptime > 90d — even without a pending reboot,
   worth a heads-up.
 - Different needrestart restart modes: one host restarts
-  services after every apt run, another only lists them. The
-  baseline expects `l` (`rules/baseline.md` → Service Restarts),
-  so name the hosts that differ from it, `absent` and `default`
-  included, unless a decision settles the host.
+  services after every apt run, another only lists them. On apt
+  hosts the baseline expects `l` (`rules/baseline.md` → Service
+  Restarts), so name those that differ from it, `absent` and
+  `default` included, unless a decision settles the host; the
+  other families expect nothing.
 - A different reboot policy across hosts of the same family —
   `Automatic-Reboot` on some and not others, or a different
   `reboot =` on RHEL/Fedora — read from `memory.md`'s

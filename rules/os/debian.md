@@ -391,16 +391,19 @@ https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-
 
 `rules/baseline.md` → Login Notice. pam_motd shows the output of
 the executable files in `/etc/update-motd.d/`, run in name order,
-when `/etc/pam.d/sshd` and `/etc/pam.d/login` carry a `pam_motd`
-line. Read them before writing anything:
+for an active `session` line naming `pam_motd` in `/etc/pam.d/sshd`
+or `/etc/pam.d/login` that does not carry `noupdate`, which keeps
+pam_motd from running the scripts. Read them before writing
+anything:
 
 ```bash
-grep -s pam_motd /etc/pam.d/sshd /etc/pam.d/login
+grep -hsE '^[[:space:]]*session[[:space:]].*pam_motd' \
+  /etc/pam.d/sshd /etc/pam.d/login
 ls -l /etc/update-motd.d/ 2>/dev/null
 ```
 
-Without a `pam_motd` line in `sshd`, the notice would never show
-and is not deployed; say so. The script is a deployed file
+Without such a line in `sshd`, the notice would never show and is
+not deployed; say so. The script is a deployed file
 (`rules/deployed-files.md`), master
 `files/etc/update-motd.d/91-hostwarden-restart` copied from
 `templates/login-notice/restart-notice`, mode 755 root:root. The
