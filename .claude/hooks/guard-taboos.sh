@@ -40,11 +40,14 @@
 #     list (RevokedKeys) under any .../etc/ssh, directly or
 #     through a language runtime: sshd then refuses every
 #     public key login
-#   - the same effects through a configuration tool: running a
-#     playbook, ansible-pull or ansible-console at all; an ad-hoc
-#     ansible call with a module that partitions, formats, powers
-#     off, writes keys or runs a local script, or that writes to a
-#     key or sshd_config; terraform or tofu apply and destroy
+#   - the same effects through a configuration tool: a playbook
+#     from anywhere but the workspace, memory/ of this checkout,
+#     where the session reads it first; ansible-pull and
+#     ansible-console at all; an ad-hoc ansible call with any
+#     module but ping and setup; a password, secret, token or key
+#     in -e; a collection install that is not a pinned
+#     requirements file from the workspace into the playbook's
+#     own directory; terraform or tofu apply and destroy
 #   - the same effects on any Windows machine, reached over
 #     SSH or through WSL: shutdown /s /p /h, Stop-Computer,
 #     wsl --shutdown/--terminate (halt), wsl --unregister (the

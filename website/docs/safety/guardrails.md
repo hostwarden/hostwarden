@@ -52,11 +52,15 @@ them mechanically.
   arrow is a redirect, and the next word names the file it
   truncates. A plain `> "$VAR"` stays allowed.
 - **Configuration tools** — the same effects through a configuration
-  tool count too: no playbook, `ansible-pull` or `ansible-console`
-  (applying your Ansible code is your step), no ad-hoc `ansible`
-  call whose module partitions, formats, powers off, writes SSH keys
-  or runs a local script, and no `terraform` or `tofu` `apply` or
-  `destroy`.
+  tool count too. `ansible-playbook` runs only a playbook from the
+  workspace, `memory/`, named by absolute path together with its
+  inventory, and the rule keeps it under `memory/infra/<name>/`
+  ([Configuration management](../features/changes/config-management.md));
+  an ad-hoc `ansible` call runs only `ping` and `setup`; no
+  `ansible-pull` or `ansible-console`; no password, secret, token or
+  `key=` in `-e`; `ansible-galaxy` installs only a pinned
+  `requirements.yml` from the workspace into the playbook's own
+  directory; no `terraform` or `tofu` `apply` or `destroy`.
 
 ## Where it applies
 

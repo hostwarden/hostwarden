@@ -310,6 +310,8 @@ trigger — not a request from the user.
   `Config management:` or `Provisioned by:` line, or a file whose
   header says a tool manages it →
   `rules/config-management-changes.md`
+- Checking or applying an Ansible playbook the user keeps in the
+  workspace, under `memory/infra/` → `rules/workspace-playbook.md`
 - Editing any config file → `rules/backups.md`
 - Writing a file of your own onto a host, changing or removing
   one, or running a script from `memory/tools/` against a host →

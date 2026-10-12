@@ -236,6 +236,7 @@ probe() {
 }
 
 any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
+all() { for t in "$@"; do has "$t" || return 1; done; }
 
 # An ssh on PATH that is not the shim (.claude/hooks/shim.sh): the
 # one git-ssh.sh hands a push to, on the same PATH. Only looked
@@ -434,6 +435,12 @@ no key (OpenSSH 8.4+)" ssh ssh_askpass
   # rules/deployed-files.md
   probe feat "shellcheck, to lint a deployed shell script before \
 writing it" shellcheck has shellcheck
+  # rules/workspace-playbook.md. ansible-playbook and
+  # ansible-galaxy come in one package; ansible-lint is its own.
+  probe feat "an Ansible playbook from the workspace, checked and \
+applied" ansible all ansible-playbook ansible-galaxy
+  probe feat "ansible-lint, to check a playbook before it runs" \
+    ansible-lint has ansible-lint
 fi
 
 # shellcheck source=../lib/hostwarden-doctor/agent-shell.sh
