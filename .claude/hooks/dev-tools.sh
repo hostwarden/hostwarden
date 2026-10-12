@@ -1,6 +1,7 @@
 #!/bin/sh
 # dev-tools.sh — SessionStart hook: install the tools scripts/check.sh
-# needs (mise.dev.toml: ShellCheck, actionlint, betterleaks) in a
+# needs (mise.toml: ShellCheck; mise.dev.toml: actionlint, betterleaks,
+# Node) in a
 # Claude Code cloud session, whose container starts without them and
 # where a development session has no sudo to add them (guard-mode.sh).
 # A workstation clone installs them once by hand (CONTRIBUTING.md →
@@ -49,7 +50,15 @@ fi
 [ -x "$MISE" ] || exit 0
 
 "$MISE" trust "$ROOT/mise.dev.toml" >/dev/null 2>&1
-MISE_ENV=dev timeout -k 5 20 "$MISE" install >/dev/null 2>&1 || exit 0
+# Only what scripts/check.sh runs, named as the files spell them
+# (a short name would resolve to the registry's latest, not the
+# pin): mise.toml also pins Python and the Ansible packages, which
+# a development session never runs (the shim refuses the tools that
+# reach a server) and which would not fit the hook's 90 seconds
+# after the bootstrap.
+MISE_ENV=dev timeout -k 5 20 "$MISE" install aqua:koalaman/shellcheck \
+  aqua:rhysd/actionlint aqua:betterleaks/betterleaks node \
+  >/dev/null 2>&1 || exit 0
 
 # scripts/check.sh finds mise by name. The cloud image has
 # ~/.local/bin on PATH already; where it does not, append it —

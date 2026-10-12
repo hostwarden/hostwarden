@@ -142,8 +142,10 @@ tests/                 — Every fixture matrix, laid out like the
   templates/fleet-read.sh — The fleet-read wrapper
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
+mise.toml              — Pinned versions of the tools a session
+                         runs: Ansible, its linters, ShellCheck
 mise.dev.toml          — Pinned versions of the tools check.sh
-                         needs
+                         needs, on top of mise.toml
 .github/               — CI, review-record and release
                          workflows, the ruleset for main, and
                          the issue forms
@@ -180,11 +182,13 @@ contrib/
     guard-mode.d/      — Its stages, and scan.awk, the reader
                          of a development session's commands
     session-mode.sh    — SessionStart hook that announces the
-                         mode, a linked worktree included, and
-                         puts the shim on PATH in development
+                         mode, a linked worktree included, puts
+                         the shim on PATH in development and the
+                         tools mise.toml pins on it in operations
     dev-tools.sh       — SessionStart hook that installs the
-                         checks' tools (mise.dev.toml) in a
-                         Claude Code cloud development session
+                         checks' tools (mise.toml, mise.dev.toml)
+                         in a Claude Code cloud development
+                         session
     shim.sh, shim/     — Stand-ins for ssh, sudo and the other
                          tools that reach a server, in a
                          development session

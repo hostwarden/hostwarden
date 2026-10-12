@@ -9,6 +9,7 @@ paths:
   - "scripts/**"
   - "tests/**"
   - ".githooks/**"
+  - "mise.toml"
   - "mise.dev.toml"
 description: Versioning, tagging, porting from Heinzel, where code
   and tests go, and what counts as a guard finding — for work on the
@@ -197,7 +198,7 @@ there, never to the workflow alone. An agent session runs only
 `.github/workflows/review-record.yml` reads the pull request body
 instead of the tree (`pull-requests.md` → The review record).
 
-Tool versions are pinned in `mise.dev.toml` and kept current by
+Tool versions are pinned in `mise.toml` and `mise.dev.toml` and kept current by
 Renovate. Setup, including the git hooks, is in
 `CONTRIBUTING.md`.
 

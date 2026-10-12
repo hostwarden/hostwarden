@@ -83,6 +83,8 @@ checkout() {
     "$REPO/bin/hostwarden-ssh-config" "$REPO/bin/hostwarden-backup" \
     "$c/bin/"
   cp "$REPO/scripts/lab.sh" "$c/scripts/"
+  # The pinned tools session-mode.sh puts on the PATH in operations.
+  cp "$REPO/mise.toml" "$c/"
   mkdir -p "$c/templates"
   cp -R "$REPO/templates/workspace" "$c/templates/"
   printf 'memory/\n.claude/settings.local.json\n' > "$c/.gitignore"

@@ -62,6 +62,9 @@ ROOT=$(cd "$ROOT" && pwd)
 # website/docs/getting-started/install.md, published — every row
 # below that points a user there names it once.
 INSTALL_DOCS=https://hostwarden.github.io/docs/getting-started/install
+# CONTRIBUTING.md → Setup, published: one mise install per
+# distribution.
+CONTRIB_DOCS=https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#setup
 # The SessionStart hook runs in every checkout. One that is not for
 # operations reaches no server, so what it needs is what working on
 # Hostwarden needs. Only the hook: a full report run by hand in a
@@ -86,35 +89,42 @@ if [ "$HOSTWARDEN_MODE" = remote ] && [ -z "$DEV" ]; then
   exit 1
 fi
 [ -z "$HOOK" ] || [ "$HOSTWARDEN_MODE" = operations ] || DEV=1
-MISE_TOOLS=''
-if [ -f "$ROOT/mise.dev.toml" ]; then
+# mise_tools <file> — the tools a mise file pins, as the commands a
+# session runs, one line: an aqua tool by its repository's name, a
+# pypi package by its name, ansible-core by the two commands the
+# rules call, python as python3, a plain key by itself. Matched
+# with or without the spacing the files' own style uses, no
+# external tool (this runs under the ssh shim's bare PATH too). A
+# quoted key of another backend or an inline table matches
+# nothing; neither file has one.
+mise_tools() {
+  [ -f "$1" ] || return 0
   while IFS= read -r l; do
-    case $l in '"aqua:'*/*) t=${l#*/}; MISE_TOOLS="$MISE_TOOLS ${t%%\"*}" ;; esac
-    # A plain [tools] key, node the one there is today: the command
-    # name is what is before its `=`. Matched with or without the
-    # spacing mise.dev.toml's own style uses, no external tool
-    # (this runs under the ssh shim's bare PATH too). A quoted key
-    # or an inline table would not match either form; neither is in
-    # mise.dev.toml.
     case $l in
-      [a-z]*' = "'*) t=${l%% *}; MISE_TOOLS="$MISE_TOOLS $t" ;;
-      [a-z]*'="'*) t=${l%%=*}; MISE_TOOLS="$MISE_TOOLS $t" ;;
+      '"pypi:ansible-core"'*) printf 'ansible-playbook ansible-galaxy ' ;;
+      '"pypi:'*) t=${l#*:}; printf '%s ' "${t%%\"*}" ;;
+      '"aqua:'*/*) t=${l#*/}; printf '%s ' "${t%%\"*}" ;;
+      python*) printf 'python3 ' ;;
+      [a-z]*' = "'*) printf '%s ' "${l%% *}" ;;
+      [a-z]*'="'*) printf '%s ' "${l%%=*}" ;;
     esac
-  done < "$ROOT/mise.dev.toml"
+  done < "$1"
+}
+# What mise brings, and so what hint names mise install for:
+# mise.toml's tools in every checkout, and with --dev
+# mise.dev.toml's on top, as MISE_ENV=dev layers the files.
+MISE_TOOLS=$(mise_tools "$ROOT/mise.toml")
+MISE_DEV_TOOLS=''
+if [ -n "$DEV" ]; then
+  MISE_DEV_TOOLS=$(mise_tools "$ROOT/mise.dev.toml")
+  MISE_TOOLS="$MISE_TOOLS $MISE_DEV_TOOLS"
 fi
-# The tools mise.dev.toml pins are on PATH only with MISE_ENV=dev.
-# scripts/check.sh brings them in before it asks; a session start
-# that asks on its own has to see the same PATH, or it reports
-# installed tools as missing. mise bin-paths, not mise env: env
-# installs what is missing, and the doctor installs nothing.
-if [ -n "$DEV" ] && [ -n "$MISE_TOOLS" ] && has mise; then
-  bins=$(cd "$ROOT" && MISE_ENV=dev mise bin-paths 2>/dev/null) || bins=''
-  while IFS= read -r d; do
-    [ -z "$d" ] || PATH=$d:$PATH
-  done <<EOF
-$bins
-EOF
-fi
+# Wherever mise put them, first on PATH: scripts/check.sh and the
+# session-start hook bring them in before they ask, and a doctor
+# run on its own has to see the same PATH, or it reports installed
+# tools as missing. The helper installs nothing.
+hostwarden_mise_bins "$ROOT" ${DEV:+dev}
+[ -z "$HOSTWARDEN_MISE_BINS" ] || PATH=$HOSTWARDEN_MISE_BINS:$PATH
 OS=$(uname -s 2>/dev/null)
 
 # The guards and connection sharing need a POSIX workstation, so
@@ -178,38 +188,55 @@ pkgname() {
   esac
 }
 
-# hint "<tool> ..." — one install command for all of them.
+# pm_cmd " <package> ..." — the package manager's install command.
+pm_cmd() {
+  case "$PM" in
+    brew) echo "brew install$1" ;;
+    apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$1" ;;
+    pacman) echo "sudo pacman -S$1" ;;
+    apk) echo "sudo apk add$1" ;;
+    *) echo "install:$1" ;;
+  esac
+}
+
+# hint "<tool> ..." — one install command for all of them. A tool
+# a mise file pins comes from mise install in this checkout, with
+# MISE_ENV=dev where --dev asked, and mise itself first where it is
+# missing, from a package manager that carries it without a
+# repository added; the rest from the package manager.
 hint() {
-  pkgs=
+  pkgs='' viamise=''
   # shellcheck disable=SC2086 # one word per tool is the point
-  for t in $1; do pkgs="$pkgs $(pkgname "$t")"; done
+  for t in $1; do
+    case " $MISE_TOOLS " in
+      *" $t "*) viamise=1 ;;
+      *) pkgs="$pkgs $(pkgname "$t")" ;;
+    esac
+  done
+  if [ -n "$viamise" ]; then
+    m=''
+    has mise || case $PM in
+      brew|pacman|apk|pkg) m="$(pm_cmd ' mise') && " ;;
+      *) m="install mise ($CONTRIB_DOCS), then " ;;
+    esac
+    echo "${m}${DEV:+MISE_ENV=dev }mise -C \"$ROOT\" install${pkgs:+; $(pm_cmd "$pkgs")}"
+    return
+  fi
   [ -n "$pkgs" ] || {
     echo "see $INSTALL_DOCS"
     return
   }
-  case "$PM" in
-    brew) echo "brew install$pkgs" ;;
-    apt-get|dnf|yum|zypper|pkg) echo "sudo $PM install$pkgs" ;;
-    pacman) echo "sudo pacman -S$pkgs" ;;
-    apk) echo "sudo apk add$pkgs" ;;
-    *) echo "install:$pkgs" ;;
-  esac
+  pm_cmd "$pkgs"
 }
 
 # Per tier: the labels of what is missing, and the tools to name
-# in its install hint. Features get one hint line each. A tool
-# mise.dev.toml pins goes to MISE_T instead: no package manager
-# has it under that name, mise does.
-NEED='' NEED_T='' MISE_T='' WANT='' WANT_T='' FEAT='' WSLM='' SHM=''
+# in its install hint. Features get one hint line each.
+NEED='' NEED_T='' WANT='' WANT_T='' FEAT='' WSLM='' SHM=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
 
 miss() {
   case $1 in
-    need) NEED="$NEED, $2"
-      case " $MISE_TOOLS " in
-        *" ${3:--} "*) MISE_T="$MISE_T $3" ;;
-        *) NEED_T="$NEED_T $3" ;;
-      esac ;;
+    need) NEED="$NEED, $2" NEED_T="$NEED_T $3" ;;
     want) WANT="$WANT, $2" WANT_T="$WANT_T $3" ;;
     feat) FEAT="$FEAT
   $2: $(hint "$3")" ;;
@@ -238,128 +265,9 @@ probe() {
 any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
 all() { for t in "$@"; do has "$t" || return 1; done; }
 
-# An ssh on PATH that is not the shim (.claude/hooks/shim.sh): the
-# one git-ssh.sh hands a push to, on the same PATH. Only looked
-# for, never run.
-real_ssh() {
-  hostwarden_path_without_shim
-  (PATH=$HOSTWARDEN_PATH && command -v ssh >/dev/null)
-}
-
-# Every call shares one connection and passes memory/ssh_config
-# (AGENTS.md → SSH Options), whose Include and ProxyJump need
-# OpenSSH 7.3: 7.2 rejects the file before connecting. -G parses
-# and connects to nothing; the config on stdin holds only an
-# Include of nothing, so the user's config, and any Match exec in
-# it, stay out.
-ssh_shares() {
-  set --
-  for o in $HOSTWARDEN_SSH_OPTIONS; do set -- "$@" -o "$o"; done
-  printf 'Match all\n  Include /nonexistent/hostwarden-probe\n' |
-    ssh -F /dev/stdin -G "$@" example.invalid
-}
-
-# KnownHostsCommand came with OpenSSH 8.5. An older ssh rejects the
-# keyword, so bin/hostwarden-ssh-config leaves it out there; this
-# names the case, and the install that brings it back.
-ssh_khc() {
-  ssh -F /dev/null -G -o KnownHostsCommand=none example.invalid
-}
-
-# A host that takes only a password (rules/ssh-passwords.md) needs
-# SSH_ASKPASS_REQUIRE, from OpenSSH 8.4 on. -V prints the version;
-# nothing else of ssh tells it without connecting.
-ssh_askpass() {
-  ssh -V 2>&1 | awk '{ if (match($0, /OpenSSH_[0-9]+\.[0-9]+/)) {
-    split(substr($0, RSTART + 8, RLENGTH - 8), v, ".")
-    ok = v[1] > 8 || (v[1] == 8 && v[2] >= 4) } }
-    END { exit !ok }'
-}
-
-# .claude/skills and every DNS alias are links, and git writes a
-# text file where it cannot link
-# (website/docs/getting-started/install.md → Symbolic links).
-# Probed in the clone: a temporary directory can sit on a
-# filesystem that links when this one does not.
-links_work() {
-  d=$(mktemp -d "$ROOT/.link-probe.XXXXXX") || return 1
-  ln -s "$d" "$d/l" 2>/dev/null
-  [ -L "$d/l" ]
-  rc=$?
-  rm -rf "$d"
-  return $rc
-}
-
-# The transport 5L.1 accepts. macOS ships a sendmail that delivers
-# only while its Postfix is loaded.
-mail_ok() {
-  has msmtp && return 0
-  # The absolute path too, as 5L.1 does: a PATH without /usr/sbin
-  # is common, and the MTA puts it there.
-  has sendmail || [ -x /usr/sbin/sendmail ] || return 1
-  [ "$OS" = Darwin ] || return 0
-  launchctl print system/com.apple.postfix.master
-}
-
-# The drives under /mnt are Windows' own filesystem: slow for git,
-# and without Unix permissions unless mounted with metadata.
-in_distro_fs() { case $ROOT in /mnt/?/*) return 1 ;; esac; }
-
-# A key ssh can use from here: a key file ssh would try, or one an
-# agent holds, the one in SSH_AUTH_SOCK or an IdentityAgent from
-# ~/.ssh/config. Keys in Windows' ssh-agent or in a password
-# manager on Windows are not reachable from WSL unless something
-# relays them. Only names are checked, never contents; the common
-# case, a default key file, costs no process.
-key_reachable() {
-  # The names ssh tries on its own (ssh_config(5) → IdentityFile).
-  for f in id_rsa id_ecdsa id_ecdsa_sk id_ed25519 id_ed25519_sk; do
-    [ -f "$HOME/.ssh/$f" ] && return 0
-  done
-  has ssh-add && ssh-add -l >/dev/null 2>&1 && return 0
-  ssh_conf_key "$HOME/.ssh/config" 0
-}
-
-# ssh_conf_key <file> <depth> — an IdentityFile or IdentityAgent
-# that works, in <file> or a file it includes, host blocks too.
-# Read as text, never through ssh -G, which would run any Match
-# exec at every session start. Include nests at most five deep,
-# as a loop of includes must end somewhere.
-ssh_conf_key() {
-  [ "$2" -lt 5 ] && [ -r "$1" ] || return 1
-  while read -r k f; do
-    # Key value, Key=value and Key = value all occur.
-    case $k in *=*) f=${k#*=} k=${k%%=*} ;; esac
-    f=${f#=} f=${f# }
-    # A quoted value ends at its closing quote; an unquoted one at
-    # a # that starts a word, which ssh reads as a comment.
-    case $f in
-      \"*) f=${f#\"} f=${f%%\"*} ;;
-      *) f=${f%%[[:space:]]#*} f=${f%"${f##*[![:space:]]}"} ;;
-    esac
-    case $f in \~/*) f=$HOME/${f#\~/} ;; esac
-    case $k in
-      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Ff][Ii][Ll][Ee]) [ -f "$f" ] && return 0 ;;
-      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Aa][Gg][Ee][Nn][Tt]) [ -S "$f" ] \
-        && has ssh-add && SSH_AUTH_SOCK=$f ssh-add -l >/dev/null 2>&1 \
-        && return 0 ;;
-      # Several names, each relative to ~/.ssh unless absolute,
-      # each a glob. Split first, glob after the prefix.
-      [Ii][Nn][Cc][Ll][Uu][Dd][Ee])
-        set -f
-        for i in $f; do
-          case $i in \~/*) i=$HOME/${i#\~/} ;; /*) ;; *) i=$HOME/.ssh/$i ;; esac
-          set +f
-          for j in $i; do
-            ssh_conf_key "$j" $(($2 + 1)) && return 0
-          done
-          set -f
-        done
-        set +f ;;
-    esac
-  done < "$1"
-  return 1
-}
+# The probes' own checks, in lib/hostwarden-doctor/checks.sh.
+# shellcheck source=../lib/hostwarden-doctor/checks.sh
+. "$ROOT/lib/hostwarden-doctor/checks.sh"
 
 [ -n "$QUIET" ] || echo "Required"
 probe need ssh ssh real_ssh
@@ -388,9 +296,9 @@ if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"
   # What scripts/check.sh runs: python3, jq for
   # tests/instructions.sh, npm for the website build (node itself
-  # comes from mise.dev.toml, already in $MISE_TOOLS), and whatever
-  # else mise.dev.toml pins.
-  for t in python3 jq npm $MISE_TOOLS; do
+  # comes from mise.dev.toml, already in $MISE_DEV_TOOLS), the
+  # linter mise.toml pins, and whatever else mise.dev.toml pins.
+  for t in python3 jq npm shellcheck $MISE_DEV_TOOLS; do
     probe need "$t" "$t" has "$t"
   done
 
@@ -436,9 +344,10 @@ no key (OpenSSH 8.4+)" ssh ssh_askpass
   probe feat "shellcheck, to lint a deployed shell script before \
 writing it" shellcheck has shellcheck
   # rules/workspace-playbook.md. ansible-playbook and
-  # ansible-galaxy come in one package; ansible-lint is its own.
+  # ansible-galaxy come in one package; ansible-lint is its own
+  # and brings yamllint with it.
   probe feat "an Ansible playbook from the workspace, checked and \
-applied" ansible all ansible-playbook ansible-galaxy
+applied" ansible-playbook all ansible-playbook ansible-galaxy
   probe feat "ansible-lint, to check a playbook before it runs" \
     ansible-lint has ansible-lint
 fi
@@ -458,19 +367,7 @@ fi
 
 [ -n "$QUIET" ] || echo
 if [ -n "$NEED" ]; then
-  fix=''
-  [ -z "$NEED_T" ] || fix=$(hint "$NEED_T")
-  if [ -n "$MISE_T" ]; then
-    # mise itself from a package manager that carries it without a
-    # repository added first; CONTRIBUTING.md → Setup for the rest.
-    m=''
-    has mise || case $PM in
-      brew|pacman|apk|pkg) m="$(hint mise) && " ;;
-      *) m="install mise (CONTRIBUTING.md → Setup), then " ;;
-    esac
-    fix="${fix:+$fix; }${m}mise trust mise.dev.toml && MISE_ENV=dev mise install"
-  fi
-  echo "hostwarden: required, missing: ${NEED#, } — $fix"
+  echo "hostwarden: required, missing: ${NEED#, } — $(hint "$NEED_T")"
 fi
 if [ -n "$WANT" ]; then
   echo "hostwarden: recommended, missing: ${WANT#, } — $(hint "$WANT_T")"

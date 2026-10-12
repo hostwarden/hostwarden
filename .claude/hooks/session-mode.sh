@@ -54,6 +54,36 @@ operations)
     fi
     ;;
   esac
+  # The tools mise.toml pins, where mise has installed them, go
+  # first on the PATH of every later Bash call, so a session runs
+  # the pinned ansible-playbook or shellcheck rather than whatever
+  # the workstation has. One line, marked, and unlike the rest of
+  # the file rewritten whenever mise's answer differs from it: the
+  # directories carry the tool version in their path, so a resumed
+  # session after `mise install`, or after a pin was raised, must
+  # not keep the old ones. The whole list goes in front, in mise's
+  # order, unless the PATH already starts with exactly it, which is
+  # what makes sourcing the file before every call idempotent:
+  # ansible-lint's own directory holds the ansible-core pip chose
+  # for it, so the pinned ansible-core's must stay in front of it,
+  # and a PATH that came with some of the directories, from a shell
+  # mise was activated in, must not keep them in the wrong place.
+  # Without mise, or with nothing installed, no line is written.
+  # The one rewrite of the file: no other SessionStart hook of an
+  # operations checkout writes it.
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    hostwarden_mise_bins "$ROOT"
+    MISE_LINE=
+    [ -z "$HOSTWARDEN_MISE_BINS" ] ||
+      MISE_LINE="case \":\$PATH:\" in $(q ":$HOSTWARDEN_MISE_BINS:")*) ;; *) export PATH=$(q "$HOSTWARDEN_MISE_BINS"):\"\$PATH\" ;; esac # mise.toml"
+    if [ "$(grep -F '# mise.toml' "$CLAUDE_ENV_FILE" 2>/dev/null)" != "$MISE_LINE" ]; then
+      MISE_REST=$(grep -vF '# mise.toml' "$CLAUDE_ENV_FILE" 2>/dev/null)
+      {
+        [ -z "$MISE_REST" ] || printf '%s\n' "$MISE_REST"
+        [ -z "$MISE_LINE" ] || printf '%s\n' "$MISE_LINE"
+      } > "$CLAUDE_ENV_FILE"
+    fi
+  fi
   # HOSTWARDEN_SESSION carries this session's id into every Bash
   # call, so `bin/hostwarden-impact announce`, `ack` and `done`
   # write it into the entries they make, the same id presence.sh

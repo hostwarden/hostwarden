@@ -22,6 +22,15 @@ for Windows.
   guard hooks. Without it they cannot read what a
   tool call does, and the mode guard refuses
   whatever it cannot show to be safe.
+- **[mise](https://mise.jdx.dev), optional.** `mise install`
+  in the checkout brings Ansible, `ansible-lint`,
+  `yamllint` and ShellCheck at the versions `mise.toml`
+  pins; without mise, Hostwarden uses whatever the
+  workstation has, and `bin/hostwarden-doctor` names what
+  is missing either way. jq stays with the package
+  manager: the hooks run before mise is on the PATH.
+  [CONTRIBUTING](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#setup)
+  names one mise install per distribution.
 - **SSH access** to the target server — either as a
   normal user or as root. The SSH connection must
   not prompt for a password or passphrase (use
