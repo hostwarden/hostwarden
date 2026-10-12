@@ -1,14 +1,15 @@
 #!/bin/sh
-# dev-tools.sh — SessionStart hook: install the tools scripts/check.sh
-# needs (mise.toml: ShellCheck; mise.dev.toml: actionlint, betterleaks,
-# Node) in a
+# dev-tools.sh — SessionStart hook: install the jq the hooks run and
+# the tools scripts/check.sh needs (mise.toml: jq, ShellCheck;
+# mise.dev.toml: actionlint, betterleaks, Node) in a
 # Claude Code cloud session, whose container starts without them and
 # where a development session has no sudo to add them (guard-mode.sh).
 # A workstation clone installs them once by hand (CONTRIBUTING.md →
 # Setup), so this does nothing outside Claude Code on the web, and
 # nothing in an operations checkout, which never runs the checks.
 #
-# It installs and nothing more. scripts/check.sh brings the tools
+# It installs, and leaves the cache of the jq's directory
+# (lib/json.sh); nothing more. scripts/check.sh brings the tools
 # onto PATH itself (`MISE_ENV=dev mise env`), so this hook never puts
 # anything in front of the shim that session-mode.sh sets first.
 #
@@ -50,12 +51,26 @@ fi
 [ -x "$MISE" ] || exit 0
 
 "$MISE" trust "$ROOT/mise.dev.toml" >/dev/null 2>&1
-# Only what scripts/check.sh runs, named as the files spell them
+# Only what the hooks and scripts/check.sh run, named as the files spell them
 # (a short name would resolve to the registry's latest, not the
 # pin): mise.toml also pins Python and the Ansible packages, which
 # a development session never runs (the shim refuses the tools that
 # reach a server) and which would not fit the hook's 90 seconds
 # after the bootstrap.
+# The jq the hooks run comes first and alone, a small download that
+# the check tools' slowness must not take with it. session-mode.sh
+# looked for it before this ran and found none in a fresh container;
+# the hooks read the cache it leaves, which is written now.
+timeout -k 5 20 "$MISE" install aqua:jqlang/jq >/dev/null 2>&1
+# shellcheck source=../../lib/json.sh
+. "$ROOT/lib/json.sh"
+# mise may not be on the PATH yet; the tail below depends on that.
+OLD_PATH=$PATH
+PATH="${MISE%/*}:$PATH"
+hostwarden_mise_bins "$ROOT"
+PATH=$OLD_PATH
+hostwarden_write_mise_jq "$ROOT"
+
 MISE_ENV=dev timeout -k 5 20 "$MISE" install aqua:koalaman/shellcheck \
   aqua:rhysd/actionlint aqua:betterleaks/betterleaks node \
   >/dev/null 2>&1 || exit 0

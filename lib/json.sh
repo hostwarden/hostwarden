@@ -30,6 +30,12 @@
 #                  — puts the jq mise installed for the checkout in
 #                    front of the PATH. Called right after this file
 #                    is sourced by every hook that reads jq.
+#   hostwarden_write_mise_jq <root>
+#                  — leaves the directory of the jq mise installed in
+#                    <root>/.claude/mise-jq for the function above,
+#                    once hostwarden_mise_bins (mode.sh) has set
+#                    HOSTWARDEN_MISE_JQ. session-mode.sh runs it at
+#                    every start, dev-tools.sh after installing.
 
 # Read as text with sed: a key occurs once in the input, a quote
 # inside a string value is escaped, and a value with an escape in
@@ -67,7 +73,8 @@ hook_deny() {
 # The jq the hooks run is the one mise installed for this checkout,
 # where there is one: pinned, so the guards read a tool call the same
 # way on every workstation and in CI. session-mode.sh leaves its
-# directory in <root>/.claude/mise-jq at every session start, a line
+# directory in <root>/.claude/mise-jq at every session start, and
+# dev-tools.sh once it has installed the jq in a cloud session, a line
 # `<data directory>:<jq directory>` per mise environment, since a
 # hook cannot ask mise on every tool call. The data directory is the
 # environment's own spelling (MISE_DATA_DIR, else XDG_DATA_HOME, else
@@ -106,4 +113,35 @@ hook_jq_from_mise() {
   done
   PATH=$hj_new
   export PATH
+}
+
+# The cache hook_jq_from_mise reads, written at every session start
+# where mise has a jq installed. The file is never removed: a pin
+# raised and not yet installed or a session that cannot find mise
+# must not take the jq away from the others, and the reader checks
+# that the directory still holds a jq.
+hostwarden_write_mise_jq() {
+  [ -n "$HOSTWARDEN_MISE_JQ" ] || return 0
+  # A line per mise environment, `<data directory>:<jq directory>`
+  # as the reader reads it: this one's first, the others' kept while
+  # they still hold a jq, so a session with another MISE_DATA_DIR
+  # does not take the jq from this one.
+  hw_data=${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}
+  hw_data=${hw_data%/}
+  hw_keep=''
+  if [ -r "$1/.claude/mise-jq" ]; then
+    while IFS= read -r hw_line; do
+      [ "${hw_line%%:*}" != "$hw_data" ] &&
+        [ -x "${hw_line#*:}/jq" ] &&
+        hw_keep="$hw_keep$hw_line
+"
+    done < "$1/.claude/mise-jq"
+  fi
+  # Replaced in one step, so a hook of another session never reads it
+  # half written. Two starts within the same moment with different
+  # data directories can still lose one line; that session's next
+  # start writes it again.
+  { printf '%s:%s\n' "$hw_data" "$HOSTWARDEN_MISE_JQ"; printf '%s' "$hw_keep"; } \
+    > "$1/.claude/mise-jq.$$" &&
+    mv -f "$1/.claude/mise-jq.$$" "$1/.claude/mise-jq"
 }

@@ -186,7 +186,7 @@ contrib/
                          the shim on PATH in development and the
                          tools mise.toml pins on it in operations
     dev-tools.sh       — SessionStart hook that installs the
-                         checks' tools (mise.toml, mise.dev.toml)
+                         checks' tools and the jq the hooks run
                          in a Claude Code cloud development
                          session
     shim.sh, shim/     — Stand-ins for ssh, sudo and the other

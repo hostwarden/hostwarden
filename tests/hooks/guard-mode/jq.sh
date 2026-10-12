@@ -164,7 +164,7 @@ for f in "$HOOKS"/*.sh; do
   h=${f##*/}
   grep -q 'lib/json.sh"' "$f" || continue
   case $h in
-  authoring-conventions.sh | check-session.sh | session-mode.sh | wrap-markdown.sh) continue ;;
+  authoring-conventions.sh | check-session.sh | dev-tools.sh | session-mode.sh | wrap-markdown.sh) continue ;;
   esac
   if grep -q '^hook_jq_from_mise ' "$f"; then
     ok
@@ -172,3 +172,23 @@ for f in "$HOOKS"/*.sh; do
     bad "$h sources json.sh and does not call hook_jq_from_mise"
   fi
 done
+
+# dev-tools.sh, in a cloud session, installs mise's jq after
+# session-mode.sh looked for it, so it leaves the line itself.
+if command -v timeout >/dev/null 2>&1; then
+  mkdir -p "$jt/home/.local/bin" "$jt/cloud/installs/jq"
+  mkjq "$jt/cloud/installs/jq/jq"
+  printf '#!/bin/sh\n[ "$1" = bin-paths ] && echo "%s"\nexit 0\n' \
+    "$jt/cloud/installs/jq" > "$jt/home/.local/bin/mise"
+  chmod +x "$jt/home/.local/bin/mise"
+  cp "$HOOKS/dev-tools.sh" "$DEV/.claude/hooks/"
+  rm -f "$DEV/.claude/mise-jq"
+  HOME="$jt/home" MISE_DATA_DIR="$jt/cloud" CLAUDE_CODE_REMOTE=true \
+    sh "$DEV/.claude/hooks/dev-tools.sh" </dev/null >/dev/null 2>&1
+  if [ "$(cat "$DEV/.claude/mise-jq" 2>/dev/null)" = "$jt/cloud:$jt/cloud/installs/jq" ]; then
+    ok
+  else
+    bad "dev-tools did not leave mise's jq in .claude/mise-jq: $(cat "$DEV/.claude/mise-jq" 2>/dev/null)"
+  fi
+  rm -f "$DEV/.claude/mise-jq"
+fi
