@@ -118,6 +118,7 @@ done
 . "$ROOT/lib/mode.sh"
 # shellcheck source=../../lib/json.sh
 . "$ROOT/lib/json.sh"
+hook_jq_from_mise "$ROOT"
 hostwarden_mode "$ROOT"
 
 INPUT=$(cat)

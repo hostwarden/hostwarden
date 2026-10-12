@@ -55,10 +55,10 @@ Hostwarden session looks the same.
   the Claude desktop app's Code tab. Not Claude
   Cowork, whose shell runs in a VM without your SSH
   keys and without Hostwarden's hooks
-- jq
-- Optional: [mise](https://mise.jdx.dev); `mise install` in
-  the checkout brings Ansible, its linters and ShellCheck
-  at pinned versions
+- jq, from your package manager or from
+  [mise](https://mise.jdx.dev): `mise install` in the checkout
+  brings a pinned one, which the hooks run in preference to the
+  system's, and Ansible, its linters and ShellCheck besides
 - Key-based SSH access to the target, without a
   password or passphrase prompt
 - Linux, FreeBSD or macOS on the target, or Windows

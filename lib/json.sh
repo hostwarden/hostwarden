@@ -26,6 +26,10 @@
 #                    backslash is escaped, a control character becomes
 #                    a space. A reason with none of them is printed as
 #                    it is, without a process.
+#   hook_jq_from_mise <root>
+#                  — puts the jq mise installed for the checkout in
+#                    front of the PATH. Called right after this file
+#                    is sourced by every hook that reads jq.
 
 # Read as text with sed: a key occurs once in the input, a quote
 # inside a string value is escaped, and a value with an escape in
@@ -58,4 +62,48 @@ hook_decision() {
 
 hook_deny() {
   hook_decision deny "$1"
+}
+
+# The jq the hooks run is the one mise installed for this checkout,
+# where there is one: pinned, so the guards read a tool call the same
+# way on every workstation and in CI. session-mode.sh leaves its
+# directory in <root>/.claude/mise-jq at every session start, a line
+# `<data directory>:<jq directory>` per mise environment, since a
+# hook cannot ask mise on every tool call. The data directory is the
+# environment's own spelling (MISE_DATA_DIR, else XDG_DATA_HOME, else
+# ~/.local/share/mise, without a trailing slash), which the hooks and
+# the session start share, so no path is matched against another; a
+# colon cannot be in either, as both go on a PATH. This reads the
+# file with builtins alone and puts the first jq directory of its own
+# environment that still holds a jq in front of the PATH. Without a
+# usable file the jq the PATH has runs, but never through mise's
+# shims: with the checkout's pin not installed a shim fails, and
+# starts to install it in a hook that has 5 seconds and, on a
+# timeout, lets the call through. The settings keep any other path
+# to a shim from installing.
+hook_jq_from_mise() {
+  MISE_AUTO_INSTALL=0 MISE_EXEC_AUTO_INSTALL=0 MISE_NOT_FOUND_AUTO_INSTALL=0
+  export MISE_AUTO_INSTALL MISE_EXEC_AUTO_INSTALL MISE_NOT_FOUND_AUTO_INSTALL
+  hj_data=${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}
+  hj_data=${hj_data%/}
+  if [ -r "$1/.claude/mise-jq" ]; then
+    while IFS= read -r hj_line; do
+      hj_dir=${hj_line#*:}
+      if [ "${hj_line%%:*}" = "$hj_data" ] && [ -x "$hj_dir/jq" ]; then
+        PATH=$hj_dir:$PATH
+        export PATH
+        return 0
+      fi
+    done < "$1/.claude/mise-jq"
+  fi
+  hj_new='' hj_rest=$PATH:
+  while [ -n "$hj_rest" ]; do
+    hj_entry=${hj_rest%%:*}
+    hj_rest=${hj_rest#*:}
+    [ "$hj_entry" = "$hj_data/shims" ] ||
+      [ "$hj_entry" = "${MISE_SHIMS_DIR:-}" ] ||
+      hj_new=$hj_new${hj_new:+:}$hj_entry
+  done
+  PATH=$hj_new
+  export PATH
 }

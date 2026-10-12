@@ -247,6 +247,7 @@ for GUARD_MOD in $GUARD_MODULES; do
 done
 # shellcheck source=../../lib/json.sh
 . "$LIBDIR/json.sh"
+hook_jq_from_mise "$LIBDIR/.."
 
 decide() {
   # decide <deny|ask> <reason> -- the JSON decision on stdout, then

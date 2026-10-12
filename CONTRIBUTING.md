@@ -120,19 +120,20 @@ things live.
 Clone with symbolic links working, on Windows inside WSL 2
 (https://hostwarden.github.io/docs/getting-started/install#windows). The checks need ShellCheck,
 actionlint, betterleaks, `jq` and `python3`. `mise.toml` pins
-ShellCheck and `mise.dev.toml` actionlint, betterleaks and Node, all
-at the versions CI uses, and [mise](https://mise.jdx.dev) installs them. `jq` and
-`python3` come from the workstation's package manager and are not
-pinned: `jq` is also a prerequisite of the shipped hooks
-(README.md → Prerequisites), so the distribution's build is the one
-that matters. CI runs the `jq` that apt installs on
-`ubuntu-latest`. Install mise with the package manager the
-workstation already has, so it updates with everything else:
+ShellCheck and `jq`, and `mise.dev.toml` actionlint, betterleaks and
+Node, all at the versions CI uses, and [mise](https://mise.jdx.dev)
+installs them; the `jq` of the shipped hooks is the same one
+(README.md → Prerequisites). `python3` comes from the workstation's
+package manager and is not pinned. Install mise with the package
+manager the workstation already has, so it updates with everything
+else:
 
 - **macOS**, and Linux with Homebrew: `brew install mise`.
 - **Arch Linux:** `sudo pacman -S mise`. **Alpine:**
   `sudo apk add mise`, from the community repository.
-- **FreeBSD:** `sudo pkg install mise`.
+- **FreeBSD:** `sudo pkg install mise`. jq and ShellCheck publish no
+  FreeBSD build, so mise has none either: take them from `pkg`
+  (`jq`, `hs-ShellCheck`).
 - **Debian, Ubuntu, Fedora, RHEL and openSUSE** do not carry mise
   themselves. Enable the repository mise publishes for them —
   through extrepo on Debian and Ubuntu, COPR on Fedora — as

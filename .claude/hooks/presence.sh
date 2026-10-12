@@ -52,6 +52,7 @@ done
 . "$ROOT/lib/mode.sh"
 # shellcheck source=../../lib/json.sh
 . "$ROOT/lib/json.sh"
+hook_jq_from_mise "$ROOT"
 # shellcheck source=../../lib/coord-tokenize.sh
 . "$ROOT/lib/coord-tokenize.sh"
 # shellcheck source=../../lib/coord-lib.sh

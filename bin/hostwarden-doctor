@@ -124,6 +124,9 @@ fi
 # run on its own has to see the same PATH, or it reports installed
 # tools as missing. The helper installs nothing.
 hostwarden_mise_bins "$ROOT" ${DEV:+dev}
+# The PATH as the hooks have it, without mise's directories in front
+# (jq_runs).
+DOCTOR_PATH=$PATH
 [ -z "$HOSTWARDEN_MISE_BINS" ] || PATH=$HOSTWARDEN_MISE_BINS:$PATH
 OS=$(uname -s 2>/dev/null)
 
@@ -208,6 +211,10 @@ hint() {
   pkgs='' viamise=''
   # shellcheck disable=SC2086 # one word per tool is the point
   for t in $1; do
+    # jq and ShellCheck publish no FreeBSD build, so mise has none.
+    case "$PM:$t" in
+      pkg:jq|pkg:shellcheck) pkgs="$pkgs $(pkgname "$t")"; continue ;;
+    esac
     case " $MISE_TOOLS " in
       *" $t "*) viamise=1 ;;
       *) pkgs="$pkgs $(pkgname "$t")" ;;
@@ -263,6 +270,24 @@ probe() {
 }
 
 any() { for t in "$@"; do has "$t" && return 0; done; return 1; }
+# The jq the hooks run, run: the one mise installed, which the doctor
+# has found itself, or as the hooks find one (lib/json.sh →
+# hook_jq_from_mise), on the PATH they have, in a subshell so mise's
+# shims stay on the doctor's own. A jq that is a mise shim is found
+# where the checkout's pin is not installed, and then fails.
+jq_runs() {
+  if [ -n "$HOSTWARDEN_MISE_JQ" ]; then
+    "$HOSTWARDEN_MISE_JQ/jq" -n . >/dev/null 2>&1
+    return
+  fi
+  (
+    PATH=$DOCTOR_PATH
+    # shellcheck source=../lib/json.sh
+    . "$ROOT/lib/json.sh"
+    hook_jq_from_mise "$ROOT"
+    jq -n .
+  ) >/dev/null 2>&1
+}
 all() { for t in "$@"; do has "$t" || return 1; done; }
 
 # The probes' own checks, in lib/hostwarden-doctor/checks.sh.
@@ -294,13 +319,15 @@ probe need "symbolic links ($INSTALL_DOCS#symbolic-links)" "" links_work
 
 if [ -n "$DEV" ]; then
   [ -n "$QUIET" ] || echo "Development"
-  # What scripts/check.sh runs: python3, jq for
-  # tests/instructions.sh, npm for the website build (node itself
-  # comes from mise.dev.toml, already in $MISE_DEV_TOOLS), the
-  # linter mise.toml pins, and whatever else mise.dev.toml pins.
-  for t in python3 jq npm shellcheck $MISE_DEV_TOOLS; do
+  # What scripts/check.sh runs: python3, npm for the website build
+  # (node itself comes from mise.dev.toml, already in
+  # $MISE_DEV_TOOLS), the linter mise.toml pins, and whatever else
+  # mise.dev.toml pins; and jq, for tests/instructions.sh and the
+  # hooks, which has to run (jq_runs).
+  for t in python3 npm shellcheck $MISE_DEV_TOOLS; do
     probe need "$t" "$t" has "$t"
   done
+  probe need jq jq jq_runs
 
   [ -n "$QUIET" ] || echo "Per feature"
   # The pull request workflow (CONTRIBUTING.md → Setup) needs gh
@@ -310,12 +337,13 @@ if [ -n "$DEV" ]; then
   probe feat "gh, for pull requests from an agent session" gh has gh
 else
   [ -n "$QUIET" ] || echo "Recommended"
-  # Without it the guard reads the raw hook input and over-blocks
-  # (.claude/hooks/guard-taboos.sh); impact.sh instead fails open and
-  # lets a disruptive command through unchecked, silently, since it
-  # cannot read the command reliably enough to judge it
-  # (rules/coordination.md → The hooks).
-  probe want jq jq has jq
+  # Without one, the system's or the one mise installs, the guard
+  # reads the raw hook
+  # input and over-blocks (.claude/hooks/guard-taboos.sh); impact.sh
+  # instead fails open and lets a disruptive command through
+  # unchecked, silently, since it cannot read the command reliably
+  # enough to judge it (rules/coordination.md → The hooks).
+  probe want jq jq jq_runs
   # The ones rules/dns-aliases.md tries; any one resolves.
   probe want "hostname resolver" python3 any getent dscacheutil python3 dig
 
@@ -366,15 +394,23 @@ in ~/.ssh or in an agent this distribution reaches" key_reachable
 fi
 
 [ -n "$QUIET" ] || echo
+HINTS=''
 if [ -n "$NEED" ]; then
-  echo "hostwarden: required, missing: ${NEED#, } — $(hint "$NEED_T")"
+  h=$(hint "$NEED_T") HINTS="$HINTS$h"
+  echo "hostwarden: required, missing: ${NEED#, } — $h"
 fi
 if [ -n "$WANT" ]; then
-  echo "hostwarden: recommended, missing: ${WANT#, } — $(hint "$WANT_T")"
+  h=$(hint "$WANT_T") HINTS="$HINTS$h"
+  echo "hostwarden: recommended, missing: ${WANT#, } — $h"
 fi
 if [ -n "$FEAT" ]; then
   echo "hostwarden: not available on this workstation:$FEAT"
 fi
+# The session reads where mise put the tools at its start, which a
+# command a person can paste cannot say.
+case "$HINTS$FEAT" in
+  *"mise -C"*) echo "hostwarden: a session sees what mise installs at its next start." ;;
+esac
 if [ -n "$WSLM" ]; then
   echo "hostwarden: WSL setup, recommended ($INSTALL_DOCS#windows):$WSLM"
 fi

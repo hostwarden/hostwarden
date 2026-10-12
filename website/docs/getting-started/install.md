@@ -21,14 +21,17 @@ for Windows.
 - **[jq](https://jqlang.org)** for Claude Code's
   guard hooks. Without it they cannot read what a
   tool call does, and the mode guard refuses
-  whatever it cannot show to be safe.
+  whatever it cannot show to be safe. Your package
+  manager has it, and so does mise: where mise has
+  installed the jq `mise.toml` pins, the hooks run that
+  one on every workstation, and the system's otherwise.
 - **[mise](https://mise.jdx.dev), optional.** `mise install`
-  in the checkout brings Ansible, `ansible-lint`,
+  in the checkout brings jq, Ansible, `ansible-lint`,
   `yamllint` and ShellCheck at the versions `mise.toml`
   pins; without mise, Hostwarden uses whatever the
   workstation has, and `bin/hostwarden-doctor` names what
-  is missing either way. jq stays with the package
-  manager: the hooks run before mise is on the PATH.
+  is missing either way. On FreeBSD, jq and ShellCheck come from
+  `pkg`: neither publishes a build for it.
   [CONTRIBUTING](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#setup)
   names one mise install per distribution.
 - **SSH access** to the target server — either as a

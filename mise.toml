@@ -7,8 +7,8 @@
 # `mise trust`, which is why nothing else is in here: an [env] or a
 # [tasks] table would ask every operator to trust the file. Nothing
 # is required either: without mise the workstation's own copies
-# serve, and jq, which the hooks need before any session sets a
-# PATH, stays with the package manager.
+# serve. jq is in here for the hooks (lib/json.sh), which run the
+# one mise installed in preference to the system's.
 #
 #   mise install
 #
@@ -21,3 +21,4 @@ python = "3.14.8"
 "pypi:ansible-lint" = "26.10.0"
 "pypi:yamllint" = "1.38.0"
 "aqua:koalaman/shellcheck" = "0.11.0"
+"aqua:jqlang/jq" = "1.8.2"

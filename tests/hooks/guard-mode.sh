@@ -87,7 +87,7 @@ checkout() {
   cp "$REPO/mise.toml" "$c/"
   mkdir -p "$c/templates"
   cp -R "$REPO/templates/workspace" "$c/templates/"
-  printf 'memory/\n.claude/settings.local.json\n' > "$c/.gitignore"
+  printf 'memory/\n.claude/settings.local.json\n.claude/mise-jq\n' > "$c/.gitignore"
   echo '# rule' > "$c/rules/backups.md"
   git -C "$c" init --quiet
   commit "$c" init
@@ -182,7 +182,7 @@ write() { verdict "$1" "$2" "$(write_json "$3")"; }
 # sourced in this order into this shell: each reads what the ones
 # before it set.
 PARTS='development monitor containers operations session-mode shim
-init sync backup-lab'
+jq init sync backup-lab'
 for part in $PARTS; do
   [ -f "$REPO/tests/hooks/guard-mode/$part.sh" ] || {
     echo "${0##*/}: tests/hooks/guard-mode/$part.sh is missing" >&2
