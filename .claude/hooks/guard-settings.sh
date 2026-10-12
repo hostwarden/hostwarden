@@ -61,6 +61,7 @@ if [ ! -f "$HERE/../../lib/json.sh" ]; then
 fi
 # shellcheck source=../../lib/json.sh
 . "$HERE/../../lib/json.sh"
+hook_jq_from_mise "$HERE/../.."
 
 deny() {
   hook_deny "hostwarden guard: $V and its session records belong to \

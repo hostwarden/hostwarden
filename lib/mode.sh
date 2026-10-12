@@ -76,7 +76,9 @@
 #                             mise.toml pins into, colon-joined for
 #                             PATH, mise.dev.toml's too with dev;
 #                             empty without mise or anything
-#                             installed. Installs nothing
+#                             installed. Installs nothing. Sets
+#                             HOSTWARDEN_MISE_JQ to the first of them
+#                             that holds a jq, empty if none
 #   hostwarden_cache_dir <root>
 #                           — sets HOSTWARDEN_CHECKOUT_ID to <root>'s
 #                             checksum and HOSTWARDEN_CACHE to its
@@ -313,7 +315,7 @@ hostwarden_path_without_shim() {
 # about 2 s on a cold mise cache, inside a hook's 5 s.
 # shellcheck disable=SC2034 # read by whoever sources this file
 hostwarden_mise_bins() {
-  HOSTWARDEN_MISE_BINS=
+  HOSTWARDEN_MISE_BINS='' HOSTWARDEN_MISE_JQ=''
   command -v mise >/dev/null 2>&1 || return 0
   if [ "${2:-}" = dev ]; then
     hm_bins=$(cd "$1" && MISE_ENV=dev mise bin-paths 2>/dev/null) || return 0
@@ -323,6 +325,8 @@ hostwarden_mise_bins() {
   while IFS= read -r hm_dir; do
     [ -z "$hm_dir" ] ||
       HOSTWARDEN_MISE_BINS=$HOSTWARDEN_MISE_BINS${HOSTWARDEN_MISE_BINS:+:}$hm_dir
+    [ -n "$HOSTWARDEN_MISE_JQ" ] || [ ! -x "$hm_dir/jq" ] ||
+      HOSTWARDEN_MISE_JQ=$hm_dir
   done <<EOF
 $hm_bins
 EOF
