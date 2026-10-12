@@ -70,6 +70,13 @@
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
+#   hostwarden_mise_bins <root> [dev]
+#                           — sets HOSTWARDEN_MISE_BINS to the
+#                             directories mise has put the tools
+#                             mise.toml pins into, colon-joined for
+#                             PATH, mise.dev.toml's too with dev;
+#                             empty without mise or anything
+#                             installed. Installs nothing
 #   hostwarden_cache_dir <root>
 #                           — sets HOSTWARDEN_CHECKOUT_ID to <root>'s
 #                             checksum and HOSTWARDEN_CACHE to its
@@ -298,4 +305,25 @@ hostwarden_path_without_shim() {
     *) HOSTWARDEN_PATH=$HOSTWARDEN_PATH${HOSTWARDEN_PATH:+:}$hp_dir ;;
     esac
   done
+}
+
+# mise bin-paths, not mise env: env installs what is missing. Run
+# in <root>, where mise.toml is; what the user's own global mise
+# configuration adds is theirs, as their PATH is. 0.02 s warm,
+# about 2 s on a cold mise cache, inside a hook's 5 s.
+# shellcheck disable=SC2034 # read by whoever sources this file
+hostwarden_mise_bins() {
+  HOSTWARDEN_MISE_BINS=
+  command -v mise >/dev/null 2>&1 || return 0
+  if [ "${2:-}" = dev ]; then
+    hm_bins=$(cd "$1" && MISE_ENV=dev mise bin-paths 2>/dev/null) || return 0
+  else
+    hm_bins=$(cd "$1" && mise bin-paths 2>/dev/null) || return 0
+  fi
+  while IFS= read -r hm_dir; do
+    [ -z "$hm_dir" ] ||
+      HOSTWARDEN_MISE_BINS=$HOSTWARDEN_MISE_BINS${HOSTWARDEN_MISE_BINS:+:}$hm_dir
+  done <<EOF
+$hm_bins
+EOF
 }

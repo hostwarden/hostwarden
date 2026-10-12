@@ -65,6 +65,12 @@ stops `sh scripts/check.sh --pre-commit`, which comes before every
 commit, so say so at once; the other tools only the full run needs,
 which CI does.
 
+A tool `mise.toml` pins is installed by `mise install` in the
+checkout, which is what the doctor's hint names; the user runs it.
+In an operations checkout the session-start hook has already put
+what mise installed on the PATH, and in a development checkout
+`scripts/check.sh` and the doctor bring it in themselves.
+
 Take its output as the limits of this session. A line naming a VM
 apart from the workstation ends the server work before it starts
 (`AGENTS.md` → Development or Operations). A feature it lists

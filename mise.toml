@@ -1,0 +1,23 @@
+# The tools a session runs on this workstation, at pinned versions:
+# Ansible and its linters for rules/workspace-playbook.md, ShellCheck
+# for a script a session deploys (rules/deployed-files.md) and for
+# scripts/check.sh, and the Python and uv the pypi backend installs
+# with — pinned, since ansible-core needs Python 3.12 or newer and a
+# workstation's own may be older. A plain [tools] table needs no
+# `mise trust`, which is why nothing else is in here: an [env] or a
+# [tasks] table would ask every operator to trust the file. Nothing
+# is required either: without mise the workstation's own copies
+# serve, and jq, which the hooks need before any session sets a
+# PATH, stays with the package manager.
+#
+#   mise install
+#
+# Backends are spelled out so Renovate, which keeps these versions
+# current, can resolve each tool to its releases.
+[tools]
+python = "3.14.8"
+"aqua:astral-sh/uv" = "0.13.0"
+"pypi:ansible-core" = "2.21.5"
+"pypi:ansible-lint" = "26.10.0"
+"pypi:yamllint" = "1.38.0"
+"aqua:koalaman/shellcheck" = "0.11.0"

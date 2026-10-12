@@ -119,9 +119,9 @@ things live.
 
 Clone with symbolic links working, on Windows inside WSL 2
 (https://hostwarden.github.io/docs/getting-started/install#windows). The checks need ShellCheck,
-actionlint, betterleaks, `jq` and `python3`. `mise.dev.toml` pins
-ShellCheck, actionlint, betterleaks and Node to the versions CI
-uses, and [mise](https://mise.jdx.dev) installs them. `jq` and
+actionlint, betterleaks, `jq` and `python3`. `mise.toml` pins
+ShellCheck and `mise.dev.toml` actionlint, betterleaks and Node, all
+at the versions CI uses, and [mise](https://mise.jdx.dev) installs them. `jq` and
 `python3` come from the workstation's package manager and are not
 pinned: `jq` is also a prerequisite of the shipped hooks
 (README.md → Prerequisites), so the distribution's build is the one
@@ -146,10 +146,10 @@ add a repository, use mise's own installer,
 `~/.local/bin`, which has to be on `PATH` for the checks to find
 it, and that copy updates only through `mise self-update`.
 
-mise asks you to trust `mise.dev.toml` once:
+`mise.dev.toml` loads on top of `mise.toml`, the tools a session
+runs, so one install brings both:
 
 ```bash
-mise trust mise.dev.toml
 MISE_ENV=dev mise install
 ```
 

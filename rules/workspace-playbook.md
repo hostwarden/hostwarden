@@ -1,7 +1,8 @@
 # A Playbook From the Workspace
 
-Read when the user asks to check or apply an Ansible playbook that
-lives in the workspace, under `memory/infra/<name>/`. That tree is
+Read when the user asks to check, apply, write or change an Ansible
+playbook that lives in the workspace, under `memory/infra/<name>/`
+(→ Writing a tree for the last two). That tree is
 the one place a session runs `ansible-playbook` itself: the code is
 the user's own, in the repository the session already commits to.
 The taboo guard holds the run to the workspace, `memory/`
@@ -47,8 +48,8 @@ lines lacks them.
    mode too — one with `check_mode: false` — what it executes, and
    why it is read-only or not; such a task that writes is a reason
    to stop and ask, not to run `--check`. Run
-   `ansible-lint --offline` on the tree where the workstation has
-   it (`rules/session-start.md` → Workstation tools); without
+   `ansible-lint --offline` on the tree where the workstation has it
+   (→ Writing a tree); without
    `--offline` it installs every `requirements.yml` it finds. What
    it reports is fixed in the tree, or named to the user, before
    the run.
@@ -106,6 +107,44 @@ lines lacks them.
 
    Both paths absolute under `memory/`, `-p` under the directory
    that holds the requirements file; the guard takes nothing else.
+
+## Writing a tree
+
+The tools come from `mise.toml` in the checkout
+(`rules/session-start.md` → Workstation tools).
+
+- **Read the module before using it.** `ansible-doc <fqcn>` is the
+  `--help` of `AGENTS.md` → Verify Before Running: the argument
+  names, their defaults and whether the module supports check
+  mode and diff come from there, never from memory.
+- **Fully qualified names.** Every module and plugin by its
+  collection: `ansible.builtin.apt`, `ansible.posix.firewalld`,
+  `community.general.ufw`. Every collection outside
+  `ansible.builtin` is an entry of `requirements.yml`, pinned as
+  step 6 says.
+- **Every task reports in check mode, and a second run reports
+  `changed=0`** (step 4): `creates:`, `removes:` or `changed_when:`
+  on `command`, `shell` and `raw`, `check_mode: false` with a
+  comment where one only reads, and a file written through
+  `template`, `copy` or `lineinfile`, so `--diff` shows it.
+- **Handlers for restarts, reloads where the service takes one**
+  (`rules/service-reload.md`), never a restart in a task.
+- **Lint with the tree's profile.** The tree carries a
+  `.ansible-lint` naming it — `production` for a tree the session
+  starts, the one it has for a tree the user brought — and
+  `ansible-lint --offline` runs `yamllint` with it, before every
+  run (step 1) and every commit, where the workstation has it;
+  where it does not, say so, as a feature the doctor lists as not
+  available.
+- **Secrets** live in a vault, `ansible-vault` with a password file
+  outside the workspace (`~/hostwarden-keys/`, `rules/secrets.md`
+  → API Credentials on the Workstation), named in the call with
+  `--vault-password-file`; never in `-e`, never in a vars file in
+  the clear, never in the session's output.
+- **The host's memory stays the truth** for what the play owns:
+  step 5 records the scope, and a file the tree now renders is no
+  longer deployed by hand (`rules/deployed-files.md` → What gets a
+  master).
 
 The read-only commands need none of this: `ansible-inventory
 --list` and `--graph`, `ansible-doc`, `ansible-lint`,

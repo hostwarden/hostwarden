@@ -54,6 +54,10 @@ the tool's ownership changes what happens.
   runs, and shows a second run with nothing changed. Each host's
   memory then records what the play owns, and the changelog entry
   names the workspace commit it came from.
+- **Writing a tree is supported the same way.** A session also
+  writes or changes a tree, under the same rules, and lints it
+  before every run. The tools come from
+  [mise](../../getting-started/install.md#prerequisites).
 - **Collections stay with the playbook.** They install only from a
   `requirements.yml` whose every entry pins one exact version, not
   a range or a branch, into the tree's own `collections/` directory,

@@ -56,6 +56,9 @@ Hostwarden session looks the same.
   Cowork, whose shell runs in a VM without your SSH
   keys and without Hostwarden's hooks
 - jq
+- Optional: [mise](https://mise.jdx.dev); `mise install` in
+  the checkout brings Ansible, its linters and ShellCheck
+  at pinned versions
 - Key-based SSH access to the target, without a
   password or passphrase prompt
 - Linux, FreeBSD or macOS on the target, or Windows
