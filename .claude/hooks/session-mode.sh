@@ -30,36 +30,9 @@ hostwarden_mode "$ROOT"
 # of the Bash calls, in operations, and the jq the hooks run, in
 # every mode.
 hostwarden_mise_bins "$ROOT"
-# The jq the hooks run is mise's (lib/json.sh → hook_jq_from_mise):
-# its directory goes in .claude/mise-jq, which git ignores, at every
-# session start where mise has one installed. The file is never
-# removed: a pin raised and not yet installed or a session that
-# cannot find mise must not take the jq away from the others, and the
-# reader checks that the directory still holds a jq.
-if [ -n "$HOSTWARDEN_MISE_JQ" ]; then
-  # A line per mise environment, `<data directory>:<jq directory>`
-  # as the reader reads it: this one's first, the others' kept while
-  # they still hold a jq, so a session with another MISE_DATA_DIR
-  # does not take the jq from this one.
-  MISE_DATA=${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}
-  MISE_DATA=${MISE_DATA%/}
-  MISE_JQ_KEEP=''
-  if [ -r "$ROOT/.claude/mise-jq" ]; then
-    while IFS= read -r MISE_JQ_LINE; do
-      [ "${MISE_JQ_LINE%%:*}" != "$MISE_DATA" ] &&
-        [ -x "${MISE_JQ_LINE#*:}/jq" ] &&
-        MISE_JQ_KEEP="$MISE_JQ_KEEP$MISE_JQ_LINE
-"
-    done < "$ROOT/.claude/mise-jq"
-  fi
-  # Replaced in one step, so a hook of another session never reads it
-  # half written. Two starts within the same moment with different
-  # data directories can still lose one line; that session's next
-  # start writes it again.
-  { printf '%s:%s\n' "$MISE_DATA" "$HOSTWARDEN_MISE_JQ"; printf '%s' "$MISE_JQ_KEEP"; } \
-    > "$ROOT/.claude/mise-jq.$$" &&
-    mv -f "$ROOT/.claude/mise-jq.$$" "$ROOT/.claude/mise-jq"
-fi
+# The jq the hooks run is mise's: where mise has one installed, its
+# directory goes in the cache the hooks read (lib/json.sh).
+hostwarden_write_mise_jq "$ROOT"
 case "$HOSTWARDEN_MODE" in
 operations)
   echo "hostwarden: operations checkout — memory/ is the workspace."
