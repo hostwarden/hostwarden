@@ -351,6 +351,8 @@ rules/                 — Upstream rule files (git-tracked)
   config-management-changes.md — A change on a managed
                          host: through the tool or by
                          hand
+  workspace-playbook.md — An Ansible playbook kept in the
+                         workspace: read, checked, applied
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
   multi-host.md        — One task on several hosts: rounds
@@ -483,5 +485,7 @@ memory/                — The workspace: all your user
                          hosts, and its README.md
   tools/               — Scripts you run from the
                          workstation against hosts
+  infra/<name>/        — An Ansible playbook tree a session
+                         checks and applies
   plans/               — Work that spans sessions
 ```

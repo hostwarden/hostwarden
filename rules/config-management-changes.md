@@ -19,9 +19,10 @@ whose header says a tool manages it.
   in the tool's code, or the tool undoes it. Say so, name the file
   and the change, and let the user decide:
   - **In the tool's code.** For Ansible, Hostwarden can edit the
-    user's playbooks and roles on this machine when asked; applying
-    them is the user's step. For the other tools the user makes the
-    change.
+    user's playbooks and roles on this machine when asked, and
+    applies a playbook that lives in the workspace
+    (`rules/workspace-playbook.md`); one kept anywhere else the
+    user applies. For the other tools the user makes the change.
   - **By hand anyway**, only on the user's explicit request, after
     saying when the tool will undo it: at its next run for Ansible
     and for any tool a cron job runs, within the agent's run

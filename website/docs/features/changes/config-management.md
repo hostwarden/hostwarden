@@ -37,8 +37,31 @@ the tool's ownership changes what happens.
   into the code.
 - **Ansible activity is visible.** Ansible runs by anyone show up
   in the recent-activity summary on connect.
-- **Hostwarden never applies your code.** It runs no playbook to
-  apply a change; applying your Ansible code is your step.
+- **A playbook in the workspace, Hostwarden runs for you.** Keep a
+  playbook tree under `memory/infra/<name>/` — `site.yml`, the
+  inventory, `ansible.cfg`, `requirements.yml` — and a session reads
+  it first. A task that reaches a taboo — writing `sshd_config` or
+  an SSH key, partitioning or formatting a disk, a halt or reboot —
+  stops it there, until you take the task out or run the playbook
+  yourself; a firewall or network task gets the same safety net as
+  a change by hand
+  ([What it asks first](../../safety/approvals.md#firewall-and-network-changes)).
+  Then it names every task that runs even in check mode,
+  runs `ansible-lint --offline` where your machine has it, then
+  `--check --diff` for the hosts you name and shows you the diff per
+  host. Applying
+  is a change like any other: it asks once with the hosts listed,
+  runs, and shows a second run with nothing changed. Each host's
+  memory then records what the play owns, and the changelog entry
+  names the workspace commit it came from.
+- **Collections stay with the playbook.** They install only from a
+  `requirements.yml` whose every entry pins one exact version, not
+  a range or a branch, into the tree's own `collections/` directory,
+  never into your home.
+- **A playbook kept anywhere else you apply yourself.** The taboo
+  guard holds `ansible-playbook` to the workspace
+  ([Hard guardrails](../../safety/guardrails.md)); the session
+  prepares the change in your code and leaves the run to you.
 
 ## When the question comes back
 

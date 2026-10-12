@@ -36,6 +36,7 @@ memory/
 ├── maps/                 generated Mermaid maps
 ├── fleet/                files deployed to several hosts
 ├── tools/                scripts for your own machine
+├── infra/<name>/         an Ansible playbook tree a session runs
 ├── clusters/<name>/      a cluster: members, guests, decisions
 └── machines/<host>/     one directory per host
     ├── memory.md
@@ -118,6 +119,9 @@ typically well under a megabyte, so a backup is one `tar` command
   the masters of files Hostwarden wrote onto a server
   ([Files Hostwarden deploys](../features/changes/deployed-files.md)).
 - **`tools/`** — scripts for your own machine.
+- **`infra/<name>/`** — an Ansible playbook tree a session checks
+  and applies for you
+  ([Configuration management](../features/changes/config-management.md)).
 
 ## Personal and shared
 

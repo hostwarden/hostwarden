@@ -12,6 +12,11 @@
 /machines/localhost/
 /machines/127.0.0.1/
 
+# What ansible-galaxy fetches beside a playbook tree, and
+# ansible-lint's cache there (rules/workspace-playbook.md).
+/infra/*/collections/
+/infra/*/.ansible/
+
 .DS_Store
 *.lock
 # Written by bin/hostwarden-ssh-config for this machine alone.
