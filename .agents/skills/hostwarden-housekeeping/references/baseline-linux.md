@@ -371,16 +371,24 @@ where the command is absent or the daemon reports itself disabled,
 this half of the line reads `off`.
 
 **Every family but Alpine**, the needrestart or apt/dnf-hook mode,
-and the boot history, run once per host:
+the login notice on a dpkg host, and the boot history, run once per
+host:
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then
-  M=$(grep -hs '^[[:space:]]*\$nrconf{restart}' \
+  M=$(grep -hsE '^[[:space:]]*[$]nrconf[{].?restart.?[}]' \
     /etc/needrestart/needrestart.conf \
     /etc/needrestart/conf.d/*.conf | tail -n 1)
   echo "${M:-needrestart=default}"
 else
   echo "needrestart=absent"
+fi
+if command -v dpkg >/dev/null 2>&1; then
+  test -x /etc/update-motd.d/91-hostwarden-restart \
+    && echo "login-notice=ok" || echo "login-notice=MISSING"
+  grep -hsE '^[[:space:]]*session[[:space:]].*pam_motd' /etc/pam.d/sshd \
+    | grep -qv noupdate \
+    && echo "pam_motd=ok" || echo "pam_motd=MISSING"
 fi
 if command -v journalctl >/dev/null 2>&1; then
   journalctl --list-boots -n 4 2>/dev/null
@@ -429,6 +437,35 @@ Write the line in the form
 `rules/maintenance-windows.md` → Automatic restarts gives it. Where
 a setting cannot be read, its half of the line reads `off` or
 `unknown` rather than a guess.
+
+## Service Restarts
+
+**Debian/Ubuntu** only; the other families expect nothing here
+(`rules/baseline.md` → Service Restarts). The mode needs no probe: read the
+`needrestart=` or `$nrconf{restart}` line the Automatic Restarts
+probe above printed, and rate it. Every rating is **INFO**, since
+nothing is broken: the services that wait for a restart are rated
+in Critical Services below.
+
+- `needrestart=absent`: "needrestart is not installed: services
+  keep running replaced libraries unseen".
+- `needrestart=default`: "needrestart mode not set". On Ubuntu
+  24.04 and later add that it restarts services itself.
+- A `$nrconf{restart}` value other than `l`: "needrestart mode
+  is `<value>`", with "restarts services itself" for `a`.
+- `l`: no finding.
+
+The login notice (`rules/baseline.md` → Login Notice) is rated from
+the `login-notice=` and `pam_motd=` lines of the same probe:
+
+- `login-notice=MISSING` with `pam_motd=ok`: "no login notice for
+  a pending reboot".
+- `pam_motd=MISSING`: "sshd does not run pam_motd", since the
+  notice could not show.
+
+A decision that settles Service Restarts or Login Notice turns the
+finding into a "decided" line. The fix is the baseline's, offered
+once and applied only on a yes (`hostwarden-baseline`).
 
 ## Firewall Status
 
@@ -856,8 +893,9 @@ installed but not active, and nothing complains.
 **Alpine:** no needrestart; use the manual fallback
 below, which works with busybox.
 
-**Debian/Ubuntu** (Ubuntu Server installs needrestart;
-on Debian it is an optional package):
+**Debian/Ubuntu** (the baseline installs needrestart; a host
+without it skips the probe, and Service Restarts above rates
+that):
 
 ```bash
 if command -v needrestart >/dev/null 2>&1; then

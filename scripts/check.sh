@@ -173,7 +173,7 @@ json_valid() {
 shell_files() {
   git ls-files 'bin/*' '.claude/hooks/*.sh' '.claude/hooks/shim/*' \
     'lib/*.sh' 'scripts/*.sh' 'tests/*.sh' '.githooks/*' \
-    'templates/fleet-read/*'
+    'templates/fleet-read/*' 'templates/login-notice/*'
 }
 
 # file_size -- no shell or awk file past 500 lines

@@ -12,6 +12,10 @@ place, `rules/baseline.md`:
 - a firewall that denies incoming traffic by default and keeps SSH
   open
 - automatic security updates
+- `needrestart` on Debian and Ubuntu, set to list the services that
+  need a restart and not to restart them
+- a notice at login on Debian and Ubuntu when a reboot is pending,
+  with the reason, and which services still run replaced libraries
 - time sync
 - SSH by key only, and trust in your SSH CA where you run one
 - a persistent journal

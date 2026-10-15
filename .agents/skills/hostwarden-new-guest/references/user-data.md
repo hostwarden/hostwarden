@@ -75,6 +75,14 @@ family file's way:
   `packages:`, configured as the family file says, under
   `write_files:` with `defer: true`, so the package's own files
   come first.
+- **Service Restarts:** on Debian and Ubuntu, `needrestart` under
+  `packages:` and the drop-in `rules/os/debian.md` → Automatic
+  Security Updates names, written under `write_files:` with
+  `defer: true`. The RHEL family gets nothing.
+- **Login Notice:** on Debian and Ubuntu, one `write_files:` entry
+  with `permissions: '0755'`, whose `content:` is the body of
+  `templates/login-notice/restart-notice` as it is, indented under
+  the key. The RHEL family gets nothing.
 - **Firewall:** the family file's package, and under `runcmd:` the
   rule for SSH before the command that enables it.
 - **Time Sync:** the image's own service where it has one
@@ -122,6 +130,7 @@ packages:
   - openssh-server
   - qemu-guest-agent
   - unattended-upgrades
+  - needrestart
   - ufw
 write_files:
   - path: /etc/ssh/sshd_config.d/10-hostwarden.conf
@@ -139,6 +148,16 @@ write_files:
     defer: true
     content: |
       Unattended-Upgrade::Mail "root";
+  - path: /etc/needrestart/conf.d/50-hostwarden.conf
+    defer: true
+    content: |
+      $nrconf{restart} = 'l';
+  - path: /etc/update-motd.d/91-hostwarden-restart
+    permissions: '0755'
+    defer: true
+    content: |
+      #!/bin/sh
+      # … the body of templates/login-notice/restart-notice
   - path: /etc/systemd/journald.conf.d/50-hostwarden.conf
     content: |
       [Journal]

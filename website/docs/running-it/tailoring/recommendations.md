@@ -20,6 +20,15 @@ A decision, for one host or a group, settles any of these
 - **Automatic security updates** — a known vulnerability gets patched
   before someone finds it first.
   [Server baseline](../../features/checks/baseline.md)
+- **`needrestart` on Debian and Ubuntu, listing and not restarting** —
+  an update shows which services still run the old library, and a
+  restart stays yours to time. A decision keeps `a`, restarting by
+  itself, on a host.
+  [Server baseline](../../features/checks/baseline.md)
+- **A login notice for a pending reboot, on Debian and Ubuntu** — a
+  kernel from unattended-upgrades does not slip past for weeks
+  because nobody read a report; it greets you at the next login.
+  [Server baseline](../../features/checks/baseline.md)
 - **Time sync, and the timezone you name** — logs and certificates
   across hosts line up.
   [Server baseline](../../features/checks/baseline.md)
