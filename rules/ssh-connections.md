@@ -186,6 +186,8 @@ count toward the same limit. Counted are:
   ever run on a server against itself,
   `rules/ssh-ca.md` → Host Certificate); those two
   fail2ban modes also count every rejected login.
+  Alpine's package enables an `sshd-ddos` jail that
+  counts the same connections.
 
 The rules that own these steps keep Hostwarden clear of
 them: `rules/ssh-user.md` (user names),

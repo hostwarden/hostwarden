@@ -16,7 +16,8 @@ Many checks in this audit work without root:
   multiple UID 0 accounts, system accounts with login shells,
   listening services (without process names on Linux), all sysctl
   checks, world-writable system files, SUID/SGID audit, mount
-  options, unowned files, fail2ban status (`systemctl`,
+  options, unowned files, SELinux state and whether AppArmor is
+  enabled, fail2ban and CrowdSec service status (`systemctl`,
   `rc-service`), macOS checks (SIP, FileVault, Gatekeeper), host
   certificates (`*-cert.pub` is public; which one sshd serves
   comes with `sshd -G`).
@@ -26,7 +27,9 @@ Many checks in this audit work without root:
   client configuration and the crontabs other than the session
   user's, empty password accounts
   (`/etc/shadow`), listening services with process names on Linux
-  (`ss -tulnp`), cron directory permissions (some dirs may be
+  (`ss -tulnp`), AppArmor's profile counts (`aa-status`), the
+  fail2ban jails (`fail2ban-client`) and CrowdSec's bouncers and
+  collections (`cscli`), cron directory permissions (some dirs may be
   unreadable), and the container audit — except with `docker`
   group membership, or for the session user's own rootless
   containers.

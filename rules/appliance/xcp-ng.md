@@ -338,10 +338,18 @@ Source: <https://docs.xcp-ng.org/management/ha/>.
   Configuration). A pool with SSH off is managed through Xen
   Orchestra; that is a policy, not a fault.
 
-## Replace: SELinux
+## Replace: Brute-Force Protection
 
-- Dom0's SELinux state is XCP-ng's. Report `getenforce` when an
-  audit asks for it; never change it.
+- Nothing is installed on dom0 for it: fail2ban comes from EPEL,
+  which Package Manager above never enables. Where the security
+  audit finds dom0's SSH taking passwords from a public address,
+  the recommendation is key-only login and SSH limited to the
+  management network (Firewall above), given to the user.
+
+## Replace: Mandatory Access Control
+
+- Dom0's SELinux state is XCP-ng's. Report what the security
+  audit's `references/mac.md` reads, as INFO; never change it.
 
 ## Remove: Service Manager > Logs: `journalctl -u <service>`
 

@@ -29,6 +29,14 @@ A decision, for one host or a group, settles any of these
 - **Trust in your SSH CA, where you run one** — one certificate and
   one revocation list work the same way on every host it covers.
   [Server baseline](../../features/checks/baseline.md)
+- **SELinux or AppArmor, enforcing** — a compromised service is
+  held to what its policy allows instead of everything its user
+  may do. [Server baseline](../../features/checks/baseline.md)
+- **Brute-force protection for a service that takes passwords from
+  the internet** — fail2ban in its normal mode, from the
+  distribution or EPEL, or blocklistd on FreeBSD, bans a guesser;
+  CrowdSec and sshguard count too. A key-only sshd needs none.
+  [Security audit](../../features/checks/security-audit.md)
 - **A persistent journal** — the activity check still sees what
   happened before the last reboot.
   [Server baseline](../../features/checks/baseline.md)

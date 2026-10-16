@@ -221,6 +221,39 @@ ruleset count. Neither service in a runlevel and ufw inactive →
 **CRITICAL** "No active firewall", weighed by `rules/baseline.md`
 → Filtering in front of the host.
 
+## Brute-Force Protection
+
+Where the security audit finds a public service that takes a
+password (its `references/intrusion-prevention.md`), the
+recommendation is `fail2ban` from main. Key-only login and an admin
+interface behind a VPN come first.
+
+- The package enables two jails in `jail.d/alpine-ssh.conf`,
+  reading `/var/log/messages`: `sshd`, and `sshd-ddos`, which counts
+  connections that never log in and bans the admin's own automation
+  (`rules/ssh-connections.md`). The package depends on iptables
+  only: install `nftables` with it where `command -v nft` finds
+  none. One drop-in,
+  `/etc/fail2ban/jail.d/hostwarden.local`, a file of Hostwarden's
+  (`rules/deployed-files.md`), turns the second off and bans through
+  nftables, the firewall Firewall above recommends:
+
+  ```ini
+  [DEFAULT]
+  banaction = nftables
+  banaction_allports = nftables[type=allports]
+  ignoreip = 127.0.0.1/8 ::1 <admin networks>
+
+  [sshd-ddos]
+  enabled = false
+  ```
+
+  `ignoreip` takes the addresses this workstation and the admins
+  connect from: ask for them.
+- `fail2ban-client -t` tests the configuration; then
+  `rc-update add fail2ban default` and `rc-service fail2ban start`. Check:
+  `fail2ban-client status sshd`.
+
 ## Automatic Security Updates
 
 Alpine has none built in, and apk cannot select security updates

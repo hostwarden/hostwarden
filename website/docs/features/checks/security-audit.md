@@ -48,8 +48,11 @@ admin interfaces.
 
 ### The system
 
-Kernel hardening, file permissions, SUID and SGID files, fail2ban,
-blocklistd or sshguard.
+Kernel hardening, SELinux or AppArmor, file permissions, SUID and
+SGID files. Brute-force protection is rated by exposure: a service
+that takes a password from the internet without fail2ban, CrowdSec,
+sshguard or blocklistd watching it is a warning; with key-only SSH
+and no such service, none is needed.
 
 ### Management controllers
 
