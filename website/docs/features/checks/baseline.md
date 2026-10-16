@@ -14,6 +14,7 @@ place, `rules/baseline.md`:
 - automatic security updates
 - time sync
 - SSH by key only, and trust in your SSH CA where you run one
+- SELinux or AppArmor, whichever the distribution ships, enforcing
 - a persistent journal
 - storage maintenance on a schedule
 - the guest agent in a VM
@@ -28,7 +29,9 @@ Housekeeping and the security audit measure every server against
 it. Ask Hostwarden to bring a server up to the baseline —
 `/hostwarden-baseline web1` in Claude Code — and it lists what is
 missing and applies it one asked step at a time. It never changes
-sshd on a running server: for SSH it gives you the change to make.
+sshd on a running server: for SSH it gives you the change to make,
+and for SELinux or AppArmor the steps, since turning either on can
+stop a service or relabel the disk at the next boot.
 
 ## Your own additions
 

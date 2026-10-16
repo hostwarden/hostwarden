@@ -6,11 +6,12 @@ description: Run a Hostwarden security audit on a server — SSH
   certificates, user CA trust), firewall,
   user account hygiene, where accounts and sudo rules come from
   and who holds them, listening services, kernel hardening
-  (ASLR, IP forwarding), file permissions, SUID/SGID audit,
-  fail2ban. Use when the user asks for a "security audit",
-  "security review", "hardening check", "Sicherheitsaudit",
-  "prüf die Härtung", or to "audit security on <host>". Do NOT
-  auto-invoke on generic phrases like "check server <host>".
+  (ASLR, IP forwarding), SELinux and AppArmor, file permissions,
+  SUID/SGID audit, brute-force protection. Use when the user asks
+  for a "security audit", "security review", "hardening check",
+  "Sicherheitsaudit", "prüf die Härtung", or to "audit security
+  on <host>". Do NOT auto-invoke on generic phrases like "check
+  server <host>".
   Covers Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE,
   Alpine), FreeBSD, macOS (SIP, FileVault, Gatekeeper) and
   Windows Server (read-only; SSH, firewall, accounts, SMBv1,
@@ -31,8 +32,9 @@ applies before any of this runs.
    `memory/machines/<hostname>/memory.md` for context: services,
    legitimate external bindings, VPN role. A binding this host is
    known to need is not a finding. An override of
-   `rules/baseline.md` → Firewall or SSH Login changes what the
-   firewall and SSH checks below expect.
+   `rules/baseline.md` → Firewall, SSH Login or Mandatory Access
+   Control changes what the firewall, SSH and MAC checks below
+   expect.
 2. **Run checks in 2–3 parallel batches** for speed — not one
    massive batch. If a single parallel tool call errors, Claude
    Code cancels sibling calls, so grouping limits blast radius.
@@ -121,14 +123,19 @@ Read on demand, only when the relevant section applies:
   come from, who holds `ALL` or `NOPASSWD`, local accounts.
   Linux, FreeBSD and macOS.
 - `references/listening-services.md` — audit `ss` / `lsof`
-  output, flag databases on 0.0.0.0, open DNS resolvers and
-  exposed Pi-hole or AdGuard Home web interfaces.
+  output, flag databases on 0.0.0.0, mark password services, open DNS resolvers
+  and exposed Pi-hole or AdGuard Home web interfaces.
 - `references/kernel-os.md` — sysctl checks: ASLR, IP forwarding,
   ICMP redirects, SUID core dumps.
+- `references/mac.md` — SELinux or AppArmor, as the family file
+  names it.
 - `references/file-permissions.md` — world-writable system files,
   SUID/SGID audit, /tmp mount options, cron perms, unowned files.
-- `references/intrusion-prevention.md` — fail2ban, and
-  blocklistd or sshguard on FreeBSD.
+- `references/intrusion-prevention.md` — fail2ban, CrowdSec,
+  sshguard and blocklistd, rated by what takes passwords from the
+  internet. Its probe joins the first batch; its rating reads
+  `references/ssh.md`, `references/listening-services.md` and
+  `references/firewall.md`.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
 - `references/management-controller.md` — the `Management:` line
   on every host, and on a bare-metal one the controller's own

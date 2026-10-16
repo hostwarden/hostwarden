@@ -177,6 +177,8 @@ run inside reads the host's state as if it were the guest's:
   acceptance among them. A jail's own are `kern.securelevel`,
   `security.bsd.unprivileged_proc_debug` and, where
   `security.jail.vnet` is `1`, the `net.inet*` keys.
+- **Mandatory access control:** SELinux or AppArmor is the host
+  kernel's, whatever a probe inside reports.
 - **The USB bus:** a container sees the host's devices.
 - **CPU microcode**, which the host kernel loads.
 - **Kernel memory state:** zswap, zram, the ZFS ARC, memory

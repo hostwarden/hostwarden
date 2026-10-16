@@ -211,6 +211,12 @@ Rules for macOS (Apple Silicon and Intel).
   its first label, and `ComputerName` only where it held the old
   name, one `sudo scutil --set <pref> <value>` each.
 
+## Mandatory Access Control
+
+- SIP stands in for SELinux and AppArmor here: the baseline's
+  section is met by SIP enabled, which the security audit's
+  `references/macos-security.md` checks.
+
 ## SIP and Gatekeeper
 
 - **System Integrity Protection (SIP):**

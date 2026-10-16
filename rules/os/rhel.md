@@ -30,6 +30,39 @@ finding. See `rules/version-check.md`.
   and the default-zone check of `rules/firewalld.md`.
 - If `firewalld` is not running, flag it to the user.
 
+## Brute-Force Protection
+
+Where the security audit finds a public service that takes a
+password (its `references/intrusion-prevention.md`), the
+recommendation is `fail2ban`, which Fedora carries and RHEL and its
+rebuilds get from EPEL. Key-only login and an admin interface behind
+a VPN come first.
+
+- Install `fail2ban`, `fail2ban-firewalld` and `fail2ban-systemd`:
+  the two set firewalld's `firewallcmd-rich-rules` as the ban action
+  and the journal as the backend, in `jail.d/00-*.conf`. Where EPEL
+  is not enabled, enabling it is part of the same asked step, as
+  the EPEL documentation gives it for the release
+  (<https://docs.fedoraproject.org/en-US/epel/getting-started/>).
+- One drop-in, `/etc/fail2ban/jail.d/hostwarden.local`, a file of
+  Hostwarden's (`rules/deployed-files.md`):
+
+  ```ini
+  [DEFAULT]
+  ignoreip = 127.0.0.1/8 ::1 <admin networks>
+
+  [sshd]
+  enabled = true
+  mode = normal
+  ```
+
+  `ignoreip` takes the addresses this workstation and the admins
+  connect from: ask for them. Never `mode = aggressive` or `ddos`
+  (`rules/ssh-connections.md`).
+- The package leaves the service disabled: `fail2ban-client -t`
+  tests the configuration, then `systemctl enable --now fail2ban`.
+  Check: `fail2ban-client status sshd`.
+
 ## Automatic Security Updates
 
 - **Expected:** `dnf-automatic`
@@ -97,9 +130,10 @@ https://github.com/rpm-software-management/dnf/pull/1879
 - **Hostname:** `hostnamectl set-hostname <name>` writes the
   static name to `/etc/hostname` and sets the running one.
 
-## SELinux
+## Mandatory Access Control
 
-- RHEL-family systems typically have SELinux enabled.
+- **Expected:** SELinux, enforcing, with the targeted policy;
+  RHEL, its rebuilds and Fedora ship it so.
 - Check status: `getenforce`
 - If a service isn't working after configuration, SELinux
   may be blocking it. Check: `ausearch -m avc -ts recent`
@@ -142,9 +176,10 @@ What Fedora and the RHEL family schedule by themselves
 
 ## Notes
 
-- EPEL (Extra Packages for Enterprise Linux) is a common
-  third-party repo on RHEL/CentOS. Only enable it if
-  needed and with user approval.
+- EPEL (Extra Packages for Enterprise Linux), built by the
+  Fedora Project, is an official source like Debian's backports:
+  enabling it is part of the install step that needs it, asked
+  with that step.
 - Fedora is a fast-moving distro — package versions and
   available packages differ significantly from RHEL.
 

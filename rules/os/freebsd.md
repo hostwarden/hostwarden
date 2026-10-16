@@ -176,6 +176,25 @@ Record which one in machine memory.
   usual causes.
 - Start/stop: `service pf start`, `service pf stop`
 
+## Brute-Force Protection
+
+Where the security audit finds a public service that takes a
+password (its `references/intrusion-prevention.md`), the
+recommendation is the base system's `blocklistd` (`blacklistd` up
+to 14.x). Key-only login and an admin interface behind a VPN come
+first.
+
+- sshd reports to it only with `UseBlocklist yes`
+  (`UseBlacklist` on older releases). That line is sshd's
+  configuration, which Hostwarden never writes (`AGENTS.md` →
+  Critical Safety Rules): give it to the user to add.
+- `sysrc blocklistd_enable=YES`, and the `anchor "blocklistd/*"`
+  rule in the pf ruleset, which Firewall above changes as it says;
+  then `service blocklistd start`. For `blacklistd` each name takes
+  the old spelling: `blacklistd_enable`, `anchor "blacklistd/*"`,
+  `service blacklistd start`.
+- Check: `blocklistctl dump -a` (`blacklistctl` for `blacklistd`).
+
 ## Automatic Security Updates
 
 - **Base system, distribution sets:**

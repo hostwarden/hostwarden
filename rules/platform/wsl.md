@@ -270,6 +270,8 @@ idle instance, and a systemd service does not keep it alive.
 - **WSL version:** report it at **INFO**. Hostwarden does not
   judge whether it is current.
 - **Security audit:**
+  - Mandatory access control is the kernel's, which Windows
+    owns: the MAC line reads `n/a (WSL)`.
   - Interop on, which it is by default, lets any process of
     the default user become root through
     `wsl.exe -u root`. Report it at **INFO**, with
