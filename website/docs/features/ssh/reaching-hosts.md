@@ -10,7 +10,8 @@ Every SSH call passes one file, `memory/ssh_config`, which
 Hostwarden writes for your machine at every session start. Your
 own `~/.ssh/config` keeps working: it is read after Hostwarden's
 settings, for whatever they leave open, such as a key file or your
-user name on a host.
+user name on a host. What Hostwarden sets wins: agent, X11 or port
+forwarding you keep under `Host *` never reaches a managed server.
 
 ## Non-standard hosts
 
