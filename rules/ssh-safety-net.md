@@ -72,8 +72,9 @@ tests in the `- Access:` line (`rules/machine-memory.md`).
 
 ## The steps
 
-Both kinds of change go through `bin/hostwarden-impact announce
-<host> firewall|network` and `wait`, as `rules/coordination.md` →
+Both kinds of change on a host in service, not one this session is creating, go
+through `bin/hostwarden-impact
+announce <host> firewall|network` and `wait`, as `rules/coordination.md` →
 Announce, wait, go says, before step 5 applies it — a firewall or
 network reload takes the whole radius, guests and jump-host
 traffic included. `impact.sh` denies the apply mechanically where

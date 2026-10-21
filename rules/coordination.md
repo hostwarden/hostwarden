@@ -49,9 +49,25 @@ whole radius as `unreadable` rather than left out.
 
 The radius is only as good as memory. A guest never inventoried, a
 dependency never recorded, is not in it; including too much costs
-a notice, leaving a host out is the incident. A host whose
+an announcement to sessions, leaving a host out is the incident. A host whose
 `Depends on:` line is missing is not a host that depends on
 nothing.
+
+A host this session is creating, from its first boot until the user
+hands it over, has no radius: nobody uses it and nobody else works
+on it, so there is nothing to announce and nobody to inform. That
+covers what runs inside it — its reboot, the firewall and services
+set up on it. A command run on its hypervisor, `pct reboot` or
+`qm reboot`, is a step on the hypervisor and follows its radius:
+reboot from inside the guest instead. The
+state is the session's own knowledge that it made the host, never
+an absence from memory — a host found running, with no `Depends on:`
+entry naming it, is in service until the user says otherwise. On a
+host in service, announcing starts with the first step, a first
+start of a firewall, network or SSH-path unit included, which is
+`network` (→ `<kind>` above).
+This is unrelated to the `Downtime notice:` to customers and IT
+(`rules/maintenance-windows.md`).
 
 ### What-if
 
