@@ -18,6 +18,41 @@ script=$(sed -nE "s/^LIGHT='(.*)'$/\\1/p" review-tier.sh | tr ' ' '\n' | sort)
 script=$(awk '/^CRITICAL=.$/ { on = 1; next } on && /^.$/ { exit } on' \
   review-tier.sh)
 
+# A lib/ file that a file on the critical list names, by its path or
+# through a variable that holds the directory, is on the list; so is
+# every file of a lib/ directory that a loop sources as
+# lib/<dir>/$part.sh. The files are the working tree's, tracked or
+# new; a Markdown file names many it does not run, and is not read.
+tree=$(cd .. && git ls-files -co --exclude-standard)
+all=$(printf '%s\n' "$tree" \
+  | (cd .. && sh scripts/review-tier.sh --critical --names 2>/dev/null))
+SEGS='([a-z][a-z0-9._-]*/)*'
+VAR='\$[{]?[A-Za-z_]+[}]?'
+NAME='[a-z][a-z0-9._-]*'
+LIBREF="(lib|$VAR)/$SEGS($NAME\\.(sh|awk)|$NAME/$VAR\\.(sh|awk))"
+# What the critical scripts name: a file, or the directory a loop
+# sources from, with a trailing slash.
+names=$(printf '%s\n' "$all" | grep -v '\.md$' \
+  | (cd .. && xargs grep -ohsE "$LIBREF") \
+  | sed -E 's#/[^/]*\$[^/]*$#/#; s#^[^/]*/(lib/)?#lib/#' | sort -u)
+open=$({ printf '%s\n' "$tree" | sed 's/^/T /'
+  printf '%s\n' "$all" | sed 's/^/A /'
+  printf '%s\n' "$names" | sed 's/^/N /'; } | awk '
+  { v = substr($0, 3) }
+  /^T / { tree[v] = 1; list[++n] = v }
+  /^A / { crit[v] = 1 }
+  /^N / { nm[++m] = v }
+  END {
+    for (i = 1; i <= m; i++) {
+      if (nm[i] ~ /\/$/) {
+        for (j = 1; j <= n; j++)
+          if (index(list[j], nm[i]) == 1 && !(list[j] in crit)) print list[j]
+      } else if ((nm[i] in tree) && !(nm[i] in crit)) print nm[i]
+    }
+  }' | sort -u | tr '\n' ' ')
+[ -n "$all" ] && [ -z "$open" ] \
+  && ok || bad "a critical file names, and the critical list lacks: $open"
+
 # A fix line is judged by what its commit touches, so these run in
 # a repository of their own: $L1 a head the round ran on, then fixes
 # of it that touch docs/ alone ($L2), a script ($F2), a script moved
@@ -79,13 +114,19 @@ critical() {
 # shellcheck disable=SC2016,SC2086 # the inner shell's; an entry a word
 K2=$(fixof critical sh -c 'for c; do
     case $c in */) c=${c}x ;; *\*) c=${c%\*}-x.md ;; esac
-    mkdir -p "$(dirname "$c")" && echo c >"$c" || exit 1
+    case $c in */*) mkdir -p "${c%/*}" || exit 1 ;; esac
+    echo c >"$c" || exit 1
   done' sh $script)
 n=$(printf '%s\n' "$script" | grep -c .)
-[ "$(critical "$L1" "$K2" | grep -c .)" -eq "$n" ] \
+crit=$(critical "$L1" "$K2")
+full=$(cd "$IN" && sh "$HERE/review-tier.sh" "$L1" "$K2")
+[ "$(printf '%s\n' "$crit" | grep -c .)" -eq "$n" ] \
   && ok || bad "a file of each critical entry is critical"
-[ "$(cd "$IN" && sh "$HERE/review-tier.sh" "$L1" "$K2" | grep -c .)" \
-  -eq $((n + 1)) ] && ok || bad "no critical entry is light"
+[ "$(printf '%s\n' "$full" | grep -c .)" -eq $((n + 1)) ] \
+  && ok || bad "no critical entry is light"
+(cd "$IN" && sh "$HERE/review-tier.sh" --critical --names "$L1" \
+  </dev/null >/dev/null 2>&1)
+[ $? -eq 2 ] && ok || bad "an argument after --names is a usage error"
 (cd "$IN" && sh "$HERE/review-tier.sh" -p "$L1" >/dev/null 2>&1)
 [ $? -eq 2 ] && ok || bad "an option is a usage error"
 
