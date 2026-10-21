@@ -48,8 +48,11 @@ software is touched.
   in `memory.md` that was installed outside the
   distro package manager (e.g. Ollama,
   node_exporter, mise itself), or that a
-  `Community script:` line names, unless the
-  line says `version by package`, which is Tier 3
+  `Community script:` line names. Housekeeping
+  looks at that line's source first, and an
+  application it says `version by package`, or
+  `then package` with no file yet, goes no further,
+  as Tier 3
   (`rules/community-scripts.md` → The installed
   version).
 
@@ -136,6 +139,10 @@ Do not repeat the same nudge within **14 days**
 unless the available version has changed, or for
 an `UNKNOWN` its reason. Track
 the last check date in machine memory (see below).
+The same interval ends the validity of a
+`Community script:` line's source: after 14 days it
+is worked out again (`rules/community-scripts.md`
+→ The installed version).
 
 ### Inline Nudge Format
 
