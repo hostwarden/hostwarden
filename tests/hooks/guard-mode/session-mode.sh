@@ -25,6 +25,23 @@ says worktree "$WT" "linked worktree"
 says worktree "$WT" "how: rules/server-check-handoff.md"
 says development "$DEV" "scripts/lab.sh exec <family>"
 says worktree "$WT" "the SSH pipeline, FreeBSD or macOS"
+# A recorded operations clone is named, in a worktree too where its
+# main checkout has no workspace; a record of anything else is none.
+mkdir -p "$XDG_CONFIG_HOME/hostwarden"
+printf '%s\n' "$OPS" > "$XDG_CONFIG_HOME/hostwarden/operations-checkout"
+says development "$DEV" "operations session in $OPS, the operations clone"
+says worktree "$WT" "operations session in $OPS, the operations clone"
+OWT="$TMP/opswt"
+git -C "$OPS" worktree add --quiet -b feat/o "$OWT" 2>/dev/null
+printf '%s\n' "$DEV" > "$XDG_CONFIG_HOME/hostwarden/operations-checkout"
+says worktree "$OWT" "the main checkout, $OPS, if"
+# The parts after this one find the operations checkout as it was.
+git -C "$OPS" worktree remove --force "$OWT"
+git -C "$OPS" branch --quiet -D feat/o
+says development "$DEV" "a separate clone, set up once"
+printf 'ops\n' > "$XDG_CONFIG_HOME/hostwarden/operations-checkout"
+says development "$DEV" "a separate clone, set up once"
+rm "$XDG_CONFIG_HOME/hostwarden/operations-checkout"
 case "$(sh "$OPS/.claude/hooks/session-mode.sh")" in
 *lab.sh*) bad "session-mode named the lab in operations" ;;
 *) ok ;;
