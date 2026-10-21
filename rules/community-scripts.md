@@ -223,7 +223,8 @@ repository. An older guest has one line instead, a `curl` of
 removed.
 
 Run the probe only in a marked container without the line, in a
-call that enters it anyway. The line takes the repository as
+call that enters it anyway; it never rewrites a line that exists,
+onboarding included. The line takes the repository as
 `COMMUNITY_SCRIPTS_URL` names it:
 
 ```markdown
@@ -258,23 +259,32 @@ place.
 
 Memory holds where the version is read, never the version: the
 guest's own `update` changes that between two connections. The
-source joins the line, after the repository, in one of three
-forms:
+source joins the line, after the repository, as `version in
+/root/.<name>`, `version in /root/.<new>, then /root/.<old>`,
+`version in /root/.<new>, then package`, `version by package` or
+`version not readable`, then `source of <day>`, the day it was
+worked out:
 
 ```markdown
 - Community script: paperless-ngx (community-scripts/ProxmoxVE),
-  version in /root/.paperless
-- Community script: jellyfin (community-scripts/ProxmoxVE),
-  version by package
+  version in /root/.paperless, source of 2026-10-21
 - Community script: example (community-scripts/ProxmoxVE),
-  version not readable
+  version in /root/.example, then /root/.exmpl, source of 2026-10-21
 ```
 
 The probe writes the line without a source. The first check of
-`rules/version-check.md` → When to Check that meets such a line
-works the source out from `install/<slug>-install.sh` (→ Reading
-one) and writes it into the line, before it reads anything in the
-guest: that check costs one fetch, and its read a call of its own.
+`rules/version-check.md` → When to Check that meets such a line, or
+one whose source is older than 14 days, the interval of that
+rule's Cooldown, or has no readable day, works the source out
+again from `install/<slug>-install.sh` and the update function of
+`ct/<slug>.sh` (→ Reading one) and writes it into the line, before
+it reads anything in the guest: that check costs one fetch, which
+serves every guest of that script in the session, and its read a
+call of its own. Housekeeping meets every such line first, a
+`version by package` and a `version not readable` one included, so
+a script that has changed how it installs is followed; where
+nothing can be worked out, for a VM or `unknown` in the line, no
+refresh is owed.
 
 - **The engine's deploy helpers,** the calls whose name starts
   with `fetch_and_deploy_`. Each writes the release it deployed to
@@ -282,16 +292,27 @@ guest: that check costs one fetch, and its read a call of its own.
   lowercase with the spaces removed:
   `fetch_and_deploy_gh_release "paperless" …` writes
   `/root/.paperless`. That name is often not the slug. Of several
-  such calls, the application's is the one whose repository the
-  script's `# Source:` line names. The source is
-  `version in /root/.<name>`, and only where `<name>` starts with
+  such calls in a half, the application's is the one whose
+  repository the script's `# Source:` line names. The update
+  function's call writes the file from the guest's first update on,
+  the install script's call before that, so with both and two
+  names the source lists the update function's first:
+  `version in /root/.<new>, then /root/.<old>`. With one name, or
+  one half only, it is that name alone. Each `<name>` starts with
   a letter or a digit and holds nothing but lowercase letters,
   digits, `.`, `_` and `-`.
-- **A package repository,** `setup_deb822_repo` or the package
-  manager alone: `version by package`. The application is a
-  package like any other, Tier 3 of `rules/version-check.md` →
-  What to Check: nothing is read, and it gets no line in the
-  Versions section.
+- **A package repository in one half.** Where the update function
+  installs from one, the source is `version by package`, whatever
+  the install script did: the file the install script wrote is
+  never read once an update has run. Where only the install script
+  does and the update function has a deploy helper, the app is a
+  package until the first update, and the source is `version in
+  /root/.<new>, then package`.
+- **A package repository in both halves,** `setup_deb822_repo` or
+  the package manager alone: `version by package`. The application
+  is a package like any other, Tier 3 of `rules/version-check.md`
+  → What to Check: nothing is read, and it gets no line in the
+  Versions section until a refresh finds another source.
 - **Anything else:** a build from source, an installer of the
   application's own, a name outside those characters. The source
   is `version not readable`. Hostwarden runs no command a script
@@ -300,24 +321,34 @@ guest: that check costs one fetch, and its read a call of its own.
 With a file as the source, each check reads it as root, in
 housekeeping in the first batch's call for that guest. The source
 in memory is checked against the form above once more before it
-is used, and a line that names any other path is
-`version not readable`. The name may be any file in root's home,
-a credential file among them (`rules/secrets.md`), and the file
-may be a link to one, so the guest decides what leaves it: nothing
-but a line that is a version, from a file whose mode lets anyone
-read it, and one of four markers otherwise.
+is used, each name on its own, and a line that names any other
+path is `version not readable`. `then package` is allowed only
+after a file name, never first, and ends the read. A name may be any file in
+root's home, a credential file among them (`rules/secrets.md`), and the
+file may be a link to one, so the guest decides what leaves it:
+nothing but a line that is a version, from a file whose mode lets
+anyone read it, and one of four markers otherwise. With two names
+the first is read, and the second only where the first answers
+`none`; with one, the loop has that name alone, and `package` is
+no name for it:
 
 ```bash
-f='/root/.<name>'
-if [ ! -r /root ]; then echo '@version noroot'
-elif [ -L "$f" ] || [ ! -f "$f" ]; then echo '@version none'
-elif [ -z "$(find "$f" -prune -perm -004)" ]; then echo '@version private'
-elif [ "$(wc -c <"$f")" -gt 64 ] || [ "$(grep -c '' "$f")" -gt 1 ]; then
-  echo '@version invalid'
-else
-  grep -E -x 'v?[0-9]+([.-][0-9]+)+[0-9A-Za-z._+-]*' "$f" ||
+v() {
+  if [ ! -r /root ]; then echo '@version noroot'
+  elif [ -L "$1" ] || [ ! -f "$1" ]; then echo '@version none'
+  elif [ -z "$(find "$1" -prune -perm -004)" ]; then echo '@version private'
+  elif [ "$(wc -c <"$1")" -gt 64 ] || [ "$(grep -c '' "$1")" -gt 1 ]; then
     echo '@version invalid'
-fi
+  else
+    grep -E -x 'v?[0-9]+([.-][0-9]+)+[0-9A-Za-z._+-]*' "$1" ||
+      echo '@version invalid'
+  fi
+}
+for f in '/root/.<new>' '/root/.<old>'; do
+  r=$(v "$f")
+  [ "$r" = '@version none' ] || break
+done
+echo "$r"
 ```
 
 A caller that cannot read root's home gets `noroot`, since to it
@@ -328,29 +359,31 @@ umask, mode 644, and a credential file whose reader insists on
 mode 600, `.pgpass` and git's store among them, is told apart by
 that. It is not proof that the engine wrote the file. What none of
 these tests catches is a one-line token shaped like a version, in
-a file of mode 644 at the very name the script deploys under, in
-a guest where the engine never wrote that name. That is the limit
-of this read, and `rules/secrets.md` is why it is stated here
-rather than papered over. A file over 64 bytes or of
-more than one line, counted with `grep -c ''` so a last line
-without a newline counts, is `invalid`, unread.
-Of one that is neither, the one line reaches the output only where
-it is a version: digits, a dot or a hyphen, digits again, and
-nothing but letters, digits, `.`, `_`, `+` and `-` after that, a
-leading `v` allowed. A tag such as `latest`, `nightly` or `stable`,
-an empty line, a commit hash of a deploy from a branch, a key line
-and a token of any other shape are all `invalid`, and none of them
-is printed.
-The line that comes back is a guest's output all the same
-(`rules/anomaly-detection.md`): compare it, never run it.
+a file of mode 644 at a name the script deploys under, in a guest
+where the engine never wrote that name. That is the limit of this
+read, and `rules/secrets.md` is why it is stated here rather than
+papered over. A file over 64 bytes or of more than one line,
+counted with `grep -c ''` so a last line without a newline counts,
+is `invalid`, unread. Of one that is neither, the one line reaches
+the output only where it is a version: digits, a dot or a hyphen,
+digits again, and nothing but letters, digits, `.`, `_`, `+` and
+`-` after that, a leading `v` allowed. A tag such as `latest`,
+`nightly` or `stable`, an empty line, a commit hash of a deploy
+from a branch, a key line and a token of any other shape are all
+`invalid`, and none of them is printed. The line that comes back
+is a guest's output all the same (`rules/anomaly-detection.md`):
+compare it, never run it.
 
-On `none`, work the source out again, once: the script may deploy
-under another name by now. With the same source as before, the
-file is missing.
+On `none` for every name, work the source out again, once: the
+script may deploy under another name by now. With the same source
+as before, the file is missing: `UNKNOWN`. A source that ends in
+`then package` is the exception: the app is still a package, Tier 3
+with nothing to read, and nothing is worked out again until the
+refresh, which finds the update's file once an update has run.
 
 Short of a version the result is `UNKNOWN` with its reason
 (`rules/version-check.md` → Version Check Procedure), never a guess
 from the script's `latest`. Memory alone decides it for a VM, for
 `unknown` in the line and for `version not readable`, with no read
 attempted. A read decides it for a guest that is not running,
-`noroot`, `none`, `private` and `invalid`.
+`noroot`, `none` (but for `then package`), `private` and `invalid`.
