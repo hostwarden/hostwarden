@@ -47,6 +47,11 @@ directly. Where none is running, the tells to whoever merges below
 (→ Lifting the draft) still apply on their own — owed to the person
 deciding whether to merge, coordinator or not.
 
+The report names the pull request and the full SHA of the head it
+describes, and says what changed since the last one; without the
+SHA the coordinator cannot tell whether it still matches the
+branch.
+
 ## The project's branches
 
 Remote names say nothing here: in a fork `origin` is the fork, and
@@ -114,10 +119,29 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
   there, not in CI.
 - Beyond that, it runs neither `scripts/check.sh` nor a test script
   (`tests/hooks/guard-taboos.sh`, `tests/instructions.sh` on its own, …) on
-  the workstation. It pushes, waits with
-  `gh pr checks <number> -R hostwarden/hostwarden --watch`, and on
-  a failure reads
+  the workstation. It pushes and waits for the runs of the commit
+  it pushed, not for the pull request's checks:
+  `gh pr checks <number> -R hostwarden/hostwarden --watch` can return
+  before the new head's runs exist.
+  `gh run list -R hostwarden/hostwarden --commit <full sha>`, the
+  40 characters of `git rev-parse HEAD` (a short SHA stays empty for
+  good), is empty until the new runs exist. It waits for the newest
+  run of each workflow, `CI` and `Review record`, that began after
+  the push, the edit of the body or the lift: a push starts both,
+  the lift starts both again, an edit of the body starts only
+  `Review record`. `gh run watch <run-id> -R hostwarden/hostwarden
+  --exit-status` waits for each; a cancelled run was superseded and
+  is neither a failure nor a result. On a failure it reads
   `gh run view <run-id> -R hostwarden/hostwarden --log-failed`.
+- A turn that ends on "CI is still running" is not woken again,
+  since nothing here runs that way: the session waits for the
+  result before it reports, or the report says the result is
+  unknown. A red check on its own pull request is its work to fix,
+  and a changed result is reported as → Telling the coordinator
+  says. A `CI` run that has not appeared five minutes after the push
+  (a pull request with a merge conflict gets no `CI` run, while
+  `Review record` still runs) or that sits in `action_required` is no
+  result: the report says so.
 - The one exception is a guard hook patch the maintainer applies
   with `git am` (`repo-release.md` → CI), which CI does not see
   until then. The matrix of the hook it changes runs exactly once,
