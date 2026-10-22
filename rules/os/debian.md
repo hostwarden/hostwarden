@@ -87,7 +87,8 @@ Before reaching for `testing` or `unstable`:
    testing for the stable release and receive security
    support.
    ```
-   apt-get -t <codename>-backports install <package>
+   env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+     apt-get -y -t <codename>-backports install <package>
    ```
 2. **Upstream project repository.** Many projects
    provide their own Debian repos with current
@@ -136,7 +137,8 @@ security fixes, and must be tracked manually. See
 
 ```
 apt-get update
-apt-get -t testing install <package>
+env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l \
+  apt-get -y -t testing install <package>
 ```
 
 **Step 3 — Verify no collateral upgrades:**

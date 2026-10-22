@@ -530,7 +530,7 @@ Lua scripts in `/boot/lua/`. The entry point is
   Use `tail`, `grep`, or `less`. The Hostwarden
   changelog uses `logger`, which writes to syslog.
 - **`sudo` is not installed by default** — install
-  with `pkg install sudo`; its files are under
+  with `pkg install -y sudo`; its files are under
   Directory Conventions.
 
 ## Accounts

@@ -130,8 +130,9 @@ in this order:
      account can invoke the chosen transport. If group perms
      on its credentials file block it, fall to case 3.
    - Drop privileges for the send only:
-     `runuser -u <user> -- sh -c '…'` (Linux util-linux) or
-     `su - <user> -c '…'` (portable, FreeBSD).
+     `runuser -u <user> -- sh -c 'export LC_ALL=C; …'` (Linux
+     util-linux) or `su - <user> -c 'env LC_ALL=C …'`
+     (portable, FreeBSD).
 3. If no non-root sender is viable, send as root and tag the
    report **WARN** with the reason. Never invent a user.
 

@@ -6,13 +6,17 @@ Enterprise Server (SLES).
 ## Package Manager
 
 - Use `zypper`
-- Update repos: `zypper refresh`
-- Upgrade all: `zypper update`
-- Install: `zypper install <package>`
-- Dry-run before upgrading: `zypper update --dry-run`
+- Update repos: `zypper --non-interactive refresh`
+- Upgrade all: `zypper --non-interactive update`
+- Install: `zypper --non-interactive install <package>`
+- Dry-run before upgrading: `zypper --non-interactive update --dry-run`
   (`--dry-run` goes after the command — verify with
   `zypper help update` first)
-- Non-interactive: `zypper --non-interactive install <pkg>`
+- Every call runs with `--non-interactive`. Add
+  `--gpg-auto-import-keys` only to a refresh of one repository
+  by alias (`refresh <alias>`), the one the user approved adding
+  in this session, right after `zypper addrepo`; it accepts that repository's
+  signing key unseen.
 
 ## Version Detection
 

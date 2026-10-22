@@ -137,7 +137,7 @@ In one call:
 
 ```bash
 timeout 570 incus exec web3 --project <project> -- \
-  cloud-init status --wait --long &&
+  env LC_ALL=C cloud-init status --wait --long &&
   incus exec web3 --project <project> -- \
   cat /etc/ssh/ssh_host_ed25519_key.pub
 ```

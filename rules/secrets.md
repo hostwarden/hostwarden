@@ -326,7 +326,7 @@ So when verifying that a credential works:
   read back a single marker line you control:
 
   ```
-  runuser -l app -c '… probe …' \
+  runuser -l app -c 'env LC_ALL=C … probe …' \
     > /root/hostwarden-scratch/probe.log 2>&1 || true
   grep -E '^PROBE_(OK|FAIL)' \
     /root/hostwarden-scratch/probe.log

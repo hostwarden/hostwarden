@@ -203,7 +203,7 @@ included
 
   ```
   nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-  ssh … root@<console> "nonce=$nonce;" 'umask 077; j=$(mktemp); trap "command rm -f $j" EXIT
+  ssh … root@<console> "export LC_ALL=C; nonce=$nonce;" 'umask 077; j=$(mktemp); trap "command rm -f $j" EXIT
     curl -sSk -c "$j" -o /dev/null -H "Content-Type: application/json" \
       -w "\n{\"@\": \"login\", \"code\": \"%{http_code}\", \"n\": \"$nonce\"}\n" \
       --data @- https://127.0.0.1/api/auth/login

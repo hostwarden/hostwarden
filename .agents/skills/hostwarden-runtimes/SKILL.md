@@ -96,7 +96,7 @@ the distro-package trap, and what macOS and FreeBSD do instead.
 ## Making a runtime visible over SSH
 
 Every install ends here, and so does every
-`ssh host "node --version"` that fails after one — a
+`ssh … host "node --version"` that fails after one — a
 non-interactive shell does not read the files an
 interactive one does, so the runtime is there and
 unreachable. `references/shell-setup.md` carries the

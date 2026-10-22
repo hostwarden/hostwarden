@@ -210,6 +210,7 @@ outside the caller's role answers `Not authorized`.
   nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
   ssh … api-read@<host> sh -s "$nonce" <<'EOF' | jq -Rn --arg n "$nonce" …
   nonce=$1
+  export LC_ALL=C
   for m in alert.list update.status; do
     midclt call "$m"; printf '\n{"@": "%s", "code": "%s", "n": "%s"}\n' "$m" "$?" "$nonce"
   done
