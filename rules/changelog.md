@@ -140,7 +140,8 @@ technical detail the journal omitted:
       backward-compatible.
 
 A new entry starts with `[` in column 1; indented
-lines continue the previous entry. Use the labels
+lines continue the previous entry. Append it with the
+file-edit tool (`rules/machine-memory.md`). Use the labels
 `Detail:`, `Source:`, `Rollback:`, `Verify:`, `Flags:`
 as applicable — skip empty ones.
 

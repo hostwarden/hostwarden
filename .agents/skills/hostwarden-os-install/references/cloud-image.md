@@ -130,7 +130,7 @@ system user.
 2. Create the `sshd` system user:
    `useradd -r -d /run/sshd -s /usr/sbin/nologin sshd`
 3. Copy default config:
-   `cp usr/share/openssh/sshd_config etc/ssh/`
+   `command cp usr/share/openssh/sshd_config etc/ssh/`
 4. Set `PermitRootLogin prohibit-password` in
    sshd_config — root logs in with the key from
    step 6, never with a password over SSH

@@ -26,7 +26,7 @@ for f in all.md activity-check.md backups.md; do
   if [ -e "$DST/$f" ]; then
     echo "exists, merge by hand: $DST/$f"
   else
-    cp "contrib/heinzel-coexistence/$f" "$DST/$f"
+    command cp "contrib/heinzel-coexistence/$f" "$DST/$f"
   fi
 done
 ```

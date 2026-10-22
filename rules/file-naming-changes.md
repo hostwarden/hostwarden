@@ -70,7 +70,7 @@ find out the rule was wrong.
 Write the mapping to `$BACKUP_DIR` (`rules/backups.md`) as
 `<scheme>-rename-map-<timestamp>.txt` (new TAB old) so
 the rename can be replayed backwards, and use
-`mv -n` so an unforeseen collision cannot overwrite.
+`command mv -n` so an unforeseen collision cannot overwrite.
 
 ## 3. Deleting the subject also deletes its housekeeping
 
@@ -164,7 +164,7 @@ if [ -n "$plists" ]; then
 fi
 t=$(mktemp)
 echo "##links"; find $links $plists -type l -exec ls -l {} + >"$t"
-echo "##rc $?"; grep '<old-stem>' "$t"; echo "##rc $?"; rm -f "$t"
+echo "##rc $?"; grep '<old-stem>' "$t"; echo "##rc $?"; command rm -f "$t"
 ```
 
 Only directories that exist reach `grep` and `find`
@@ -244,7 +244,7 @@ match itself (`pgrep -f '[b]ackup.sh'`). Renaming a
 service that runs all the time stops and starts it,
 so ask as for a restart (`rules/service-reload.md`).
 
-**Rename, then rewrite the references.** `mv -n`
+**Rename, then rewrite the references.** `command mv -n`
 each path from the § 2 map, and back up every file
 whose content will change (`rules/backups.md`). In
 every file the search found, replace each old path
@@ -287,9 +287,9 @@ systemctl is-enabled <old>.timer <old>.service
 systemctl is-active <old>.timer <old>.service
 systemctl stop <old>.timer <old>.service
 systemctl disable <old>.timer <old>.service
-mv -n /etc/systemd/system/<old>.timer \
+command mv -n /etc/systemd/system/<old>.timer \
   /etc/systemd/system/<new>.timer
-mv -n /etc/systemd/system/<old>.service \
+command mv -n /etc/systemd/system/<old>.service \
   /etc/systemd/system/<new>.service
 systemctl daemon-reload
 ```

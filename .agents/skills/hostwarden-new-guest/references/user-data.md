@@ -262,13 +262,13 @@ n=$(grep -n CA-KEY "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
   while IFS= read -r k || [ -n "$k" ]; do
     printf '%s%s\n' "${l%%CA-KEY*}" "$k"
   done < ~/.cache/hostwarden/ca.web2.example.com.pub
-  tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
+  tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
 n=$(grep -n KRL-BASE64 "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
 { head -n $((n - 1)) "$f"
   printf '%s%s%s\n' "${l%%KRL-BASE64*}" \
     "$(cat ~/.cache/hostwarden/krl.web2.example.com.b64)" \
     "${l#*KRL-BASE64}"
-  tail -n +$((n + 1)) "$f"; } > "$f.new" && mv "$f.new" "$f"
+  tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
 ```
 
 On Incus the baseline is a profile's `cloud-init.vendor-data`, and

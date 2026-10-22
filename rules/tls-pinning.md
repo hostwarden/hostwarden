@@ -24,7 +24,7 @@ openssl s_client -connect <host>:443 -servername <host> </dev/null \
 openssl x509 -in "$c" -noout -fingerprint -sha256
 openssl x509 -in "$c" -pubkey -noout | openssl pkey -pubin -outform der \
   | openssl dgst -sha256 -binary | base64
-rm -f "$c"
+command rm -f "$c"
 ```
 
 Use the port the appliance's web UI listens on where it is not 443.

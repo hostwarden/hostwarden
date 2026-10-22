@@ -46,7 +46,7 @@ is copied first, in the same call as the first `virt-customize`
 original stays as it was:
 
 ```bash
-cp /var/lib/vz/import/<image> /var/lib/vz/import/<vmid>-<image>
+command cp /var/lib/vz/import/<image> /var/lib/vz/import/<vmid>-<image>
 ```
 
 That copy is what `import-from` takes. In the creation call below,
@@ -56,7 +56,7 @@ place and each prepared guest would otherwise keep a second full
 image on the node:
 
 ```bash
-qm set <vmid> --scsi0 <storage>:0,import-from=/var/lib/vz/import/<vmid>-<image> && rm /var/lib/vz/import/<vmid>-<image>
+qm set <vmid> --scsi0 <storage>:0,import-from=/var/lib/vz/import/<vmid>-<image> && command rm /var/lib/vz/import/<vmid>-<image>
 ```
 
 Such an image carries its own seed, so its VM gets no cloud-init
@@ -243,7 +243,7 @@ the SSH port. The start, the wait and the cleanup are one call;
 `<iso dir>` is the ISO directory of the storage the ISOs went to:
 
 ```bash
-qm start <vmid> && timeout 570 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null; do sleep 15; done' && qm set <vmid> --delete ide2,ide3 && rm <iso dir>/<answer iso>
+qm start <vmid> && timeout 570 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null; do sleep 15; done' && qm set <vmid> --delete ide2,ide3 && command rm <iso dir>/<answer iso>
 ```
 
 An install often outlasts one call. When the wait ends first, the

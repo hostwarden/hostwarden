@@ -290,8 +290,8 @@ GRUB does. After a kernel update, copy the new
 kernel and initramfs to the ESP manually:
 
 ```
-cp /boot/vmlinuz-* /boot/efi/debian/vmlinuz
-cp /boot/initrd.img-* /boot/efi/debian/initrd.img
+command cp /boot/vmlinuz-* /boot/efi/debian/vmlinuz
+command cp /boot/initrd.img-* /boot/efi/debian/initrd.img
 ```
 
 If the boot entry uses specific filenames, update

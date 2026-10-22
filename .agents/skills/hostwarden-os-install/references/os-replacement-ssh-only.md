@@ -156,21 +156,21 @@ mkdir -p $T/var/empty $T/var/log
 mkdir -p $T/usr/{bin,sbin,lib,libexec}
 
 # Copy ALL of /lib (not a subset!)
-cp -a /lib/* $T/lib/
+command cp -a /lib/* $T/lib/
 
 # Dynamic linker
-cp /libexec/ld-elf.so.1 $T/libexec/
+command cp /libexec/ld-elf.so.1 $T/libexec/
 
 # Binaries (adjust paths for Linux vs FreeBSD)
-cp /bin/{sh,dd,mkdir,cp,cat,chmod,ls,rm,mv,ln,df} \
+command cp /bin/{sh,dd,mkdir,cp,cat,chmod,ls,rm,mv,ln,df} \
    $T/bin/
-cp /sbin/{mount,umount,mdconfig,reboot,sysctl} \
+command cp /sbin/{mount,umount,mdconfig,reboot,sysctl} \
    $T/sbin/
-cp /sbin/{mount_msdosfs,newfs_msdos,gpart} \
+command cp /sbin/{mount_msdosfs,newfs_msdos,gpart} \
    $T/sbin/
-cp /usr/bin/fetch $T/usr/bin/
-cp /usr/sbin/sshd $T/usr/sbin/
-cp /usr/libexec/sftp-server $T/usr/libexec/
+command cp /usr/bin/fetch $T/usr/bin/
+command cp /usr/sbin/sshd $T/usr/sbin/
+command cp /usr/libexec/sftp-server $T/usr/libexec/
 
 # Copy any /usr/lib dependencies not in /lib
 ldd $T/usr/sbin/sshd $T/usr/bin/fetch \
@@ -179,11 +179,11 @@ ldd $T/usr/sbin/sshd $T/usr/bin/fetch \
   xargs -I{} cp -n {} $T/usr/lib/
 
 # Auth databases and config
-cp /etc/passwd /etc/master.passwd \
+command cp /etc/passwd /etc/master.passwd \
    /etc/pwd.db /etc/spwd.db /etc/group \
    $T/etc/
-cp /etc/ssh/ssh_host_* $T/etc/ssh/
-cp /root/.ssh/authorized_keys \
+command cp /etc/ssh/ssh_host_* $T/etc/ssh/
+command cp /root/.ssh/authorized_keys \
    $T/root/.ssh/
 chmod 700 $T/root/.ssh
 chmod 600 $T/root/.ssh/authorized_keys
@@ -216,12 +216,12 @@ OpenSSH 10.x splits sshd into three binaries.
 Copy all three into the chroot:
 
 ```
-cp /usr/sbin/sshd $T/usr/sbin/
-cp /usr/lib/openssh/sshd-session \
+command cp /usr/sbin/sshd $T/usr/sbin/
+command cp /usr/lib/openssh/sshd-session \
    $T/usr/lib/openssh/
-cp /usr/lib/openssh/sshd-auth \
+command cp /usr/lib/openssh/sshd-auth \
    $T/usr/lib/openssh/
-cp /usr/lib/openssh/sftp-server \
+command cp /usr/lib/openssh/sftp-server \
    $T/usr/lib/openssh/
 ```
 
@@ -259,7 +259,7 @@ sshd validates that the user's shell (from
 `/bin/bash`, copy `bash` into the chroot:
 
 ```
-cp /bin/bash $T/bin/
+command cp /bin/bash $T/bin/
 ```
 
 Without it, sshd rejects the login with
@@ -298,12 +298,12 @@ BootNext. Copy the binary AND all its shared
 libraries:
 
 ```
-cp /usr/sbin/efibootmgr $T/usr/sbin/
+command cp /usr/sbin/efibootmgr $T/usr/sbin/
 ldd /usr/sbin/efibootmgr 2>/dev/null | \
   grep -oP '/\S+\.so\S*' | while read lib; do
     dir=$(dirname "$lib")
     mkdir -p "$T$dir"
-    cp -n "$lib" "$T$lib" 2>/dev/null
+    command cp -n "$lib" "$T$lib" 2>/dev/null
   done
 # Verify:
 chroot $T /usr/sbin/efibootmgr --version
@@ -348,15 +348,15 @@ installation, copy ROM files alongside the binary:
 
 ```
 mkdir -p $T/usr/share/qemu
-cp /usr/share/seabios/vgabios-stdvga.bin \
+command cp /usr/share/seabios/vgabios-stdvga.bin \
    $T/usr/share/qemu/
-cp /usr/share/seabios/vgabios.bin \
+command cp /usr/share/seabios/vgabios.bin \
    $T/usr/share/qemu/
-cp /usr/share/seabios/bios-256k.bin \
+command cp /usr/share/seabios/bios-256k.bin \
    $T/usr/share/qemu/
-cp /usr/share/qemu/efi-virtio.rom \
+command cp /usr/share/qemu/efi-virtio.rom \
    $T/usr/share/qemu/
-cp /usr/share/qemu/kvmvapic.bin \
+command cp /usr/share/qemu/kvmvapic.bin \
    $T/usr/share/qemu/
 ```
 

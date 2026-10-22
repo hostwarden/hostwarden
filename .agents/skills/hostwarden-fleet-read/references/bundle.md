@@ -212,8 +212,8 @@ cd memory/fleet/fleet-read &&
 ssh-keygen -Y verify -I fleet-read -n fleet-read \
   -f files/etc/fleet-read/allowed_signers \
   -s src/linux.next.sh.sig < src/linux.next.sh &&
-mv src/linux.next.sh src/linux.sh &&
-mv src/linux.next.sh.sig src/linux.sh.sig
+command mv src/linux.next.sh src/linux.sh &&
+command mv src/linux.next.sh.sig src/linux.sh.sig
 ```
 
 Commit the bundle and its signature together (`rules/changelog.md` → The

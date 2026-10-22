@@ -90,8 +90,8 @@ comments and the file itself.
 
 ## Moving
 
-`mkdir -p` and `mv -n` inside the workspace, `cp -RPn` out of the
-old checkout; never overwrite. Hash the workspace's masters once per
+`mkdir -p` and `command mv -n` inside the workspace, `command cp -RPn` out of
+the old checkout; never overwrite. Hash the workspace's masters once per
 run, and look each copy up there before placing it: one at the same
 host path with the same hash is the same artifact, and the host gets
 an entry for that master instead of a second copy. Equal bytes at

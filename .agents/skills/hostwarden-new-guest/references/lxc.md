@@ -82,7 +82,7 @@ guest will read it:
 
 ```bash
 test -s /var/lib/lxc/web4/rootfs/etc/cloud/cloud.cfg.d/90-hostwarden.cfg || exit 1
-rm /var/lib/lxc/web4/rootfs/etc/cloud/cloud-init.disabled
+command rm /var/lib/lxc/web4/rootfs/etc/cloud/cloud-init.disabled
 lxc-start -n web4
 timeout 570 lxc-attach -n web4 -- cloud-init status --wait --long
 ```

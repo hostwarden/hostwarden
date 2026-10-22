@@ -184,7 +184,7 @@ awk -v p='@@SECRET:db@@' 'NR == FNR { if (FNR == 1) s = $0; next }
     }
     print o $0 }' /etc/app/db.secret - > "$t" &&
 install -m 600 -o root -g root "$t" /etc/app/app.conf
-rc=$?; rm -f "$t"; [ "$rc" -eq 0 ]
+rc=$?; command rm -f "$t"; [ "$rc" -eq 0 ]
 ```
 
 `index` and `substr` rather than `gsub`, which reads `&` and `\` in
@@ -254,7 +254,7 @@ A deploy is a change like any other: asked for, registered
    ```sh
    t=$(mktemp) && cat > "$t" &&
    install -m 755 -o root -g root "$t" /usr/local/bin/backup-usb-watch
-   rc=$?; rm -f "$t"; [ "$rc" -eq 0 ]
+   rc=$?; command rm -f "$t"; [ "$rc" -eq 0 ]
    ```
 
    `install` replaces the file instead of writing into it, so a

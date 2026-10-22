@@ -152,3 +152,7 @@ EOS"
 check pass 'ssh h "ps -A -ww -o pgid= -o args= | grep -F ~/.hostwarden-jobs/x | grep -vF \"grep -F\""'
 check pass 'ssh h "kill -TERM -4242"'
 check pass 'ssh h "k() { for c in \$(ps -A -o pid= -o ppid= | awk -v p=\"\$1\" \"\\\$2==p{print \\\$1}\"); do k \"\$c\"; done; kill -TERM \"\$1\"; }; k 4242"'
+
+check pass 'command cp -p /etc/nginx/nginx.conf /var/backups/hostwarden/'
+check pass 'command rm /var/tmp/old.log'
+check pass 'ssh root@h "command mv -n /var/tmp/a /var/tmp/b"'
