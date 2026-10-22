@@ -147,11 +147,17 @@ CMD
 (nohup sh -c 'sh \"\$1/cmd\" >\"\$1/out\" 2>\"\$1/err\" &
   echo \$! >\"\$1/pid\"; trap \"\" TERM
   wait \$!; echo \$? >\"\$1/status\"' sh \"\$d\" \\
-  </dev/null >/dev/null 2>&1 &)
+  </dev/null >/dev/null 2>\"\$d/launch\" &)
+i=0
+while [ ! -s \"\$d/pid\" ] && [ \$i -lt 5 ]; do
+  sleep 1; i=\$((i+1))
+done
+[ -s \"\$d/pid\" ] || { cat \"\$d/launch\" >&2
+  echo \"job not seen to start: \$d\" >&2; exit 1; }
 EOS"
 check pass 'ssh h "ps -A -ww -o pgid= -o args= | grep -F ~/.hostwarden-jobs/x | grep -vF \"grep -F\""'
 check pass 'ssh h "kill -TERM -4242"'
-check pass 'ssh h "k() { for c in \$(ps -A -o pid= -o ppid= | awk -v p=\"\$1\" \"\\\$2==p{print \\\$1}\"); do k \"\$c\"; done; kill -TERM \"\$1\"; }; k 4242"'
+check pass 'ssh h "k() { for c in \$(ps -A -o pid= -o ppid= 2>/dev/null | awk -v p=\"\$1\" \"\\\$2==p{print \\\$1}\"); do k \"\$c\"; done; kill -TERM \"\$1\"; }; k 4242"'
 
 check pass 'command cp -p /etc/nginx/nginx.conf /var/backups/hostwarden/'
 check pass 'command rm /var/tmp/old.log'

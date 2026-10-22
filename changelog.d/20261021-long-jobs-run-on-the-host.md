@@ -5,7 +5,8 @@
   time limit or a dropped connection ends while the command runs on,
   and its result was lost. A command that can take more than a minute
   now runs as a `nohup` job under `~/.hostwarden-jobs/<id>`, output
-  and exit status in files, and one later call reads it back. The
+  and exit status in files, and one later call reads it back; a job
+  not seen to start within five seconds fails the start call. The
   job is registered with the host's other sessions, recorded in the
   host's `todo.md`, stopped by process group and cleaned after seven
   days, and an interrupted command is looked up before it is repeated
