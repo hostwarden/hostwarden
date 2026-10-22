@@ -50,3 +50,12 @@ writes a line per login, `- admin@rtr1.example.com: local keychain`
 or `- admin@rtr1.example.com: 1password op://Hostwarden/rtr1/password`,
 saying where the password comes from, never the password itself
 (`rules/ssh-passwords.md`).
+
+# SSH Identity
+
+Only where Hostwarden logs in with an SSH key of its own
+(`rules/ssh-identity.md`); `SSH identity: none` where you declined.
+
+Hostwarden writes the lines itself once you chose where the key
+lives; they are not copied from here
+(`rules/ssh-identity.md` → Setting It Up).

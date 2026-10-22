@@ -23,20 +23,33 @@ SKILLS_DIR="$REPO/.agents/skills"
 # --verdict child inherits both through the environment.
 if [ -z "${GUARD_OPS:-}" ]; then
   GUARD_TREES=$(mktemp -d)
-  for t in ops dev; do
+  for t in ops dev id; do
     mkdir -p "$GUARD_TREES/$t/.claude/hooks" "$GUARD_TREES/$t/lib"
     cp "$CLAUDE_DIR/hooks/guard-taboos.sh" "$GUARD_TREES/$t/.claude/hooks/"
     cp -R "$CLAUDE_DIR/hooks/guard-taboos.d" "$GUARD_TREES/$t/.claude/hooks/"
     cp "$REPO/lib/mode.sh" "$REPO/lib/json.sh" \
       "$REPO/lib/coord-tokenize.sh" "$REPO/lib/coord-lib.sh" \
-      "$REPO/lib/coord-rest.sh" \
+      "$REPO/lib/coord-rest.sh" "$REPO/lib/identity.sh" \
       "$GUARD_TREES/$t/lib/"
   done
-  mkdir -p "$GUARD_TREES/ops/.git" "$GUARD_TREES/ops/memory"
-  : > "$GUARD_TREES/ops/memory/.hostwarden-workspace"
+  for t in ops id; do
+    mkdir -p "$GUARD_TREES/$t/.git" "$GUARD_TREES/$t/memory"
+    : > "$GUARD_TREES/$t/memory/.hostwarden-workspace"
+  done
+  # The third tree records Hostwarden's own SSH identity
+  # (guard-taboos.d/identity.sh), for the fixtures marked id-.
+  printf '# SSH Identity\n\nSSH identity: own-agent\nSSH identity key: ~/hw.pub\nSSH identity agent: ~/agent.sock\n' \
+    > "$GUARD_TREES/id/memory/user.md"
   GUARD_OPS="$GUARD_TREES/ops/.claude/hooks/guard-taboos.sh"
   GUARD_DEV="$GUARD_TREES/dev/.claude/hooks/guard-taboos.sh"
-  export GUARD_OPS GUARD_DEV
+  # The id- fixtures reach that tree through a link, as a session
+  # may reach its checkout: the physical and the logical path both
+  # name its memory/ssh_config.
+  ln -s "$GUARD_TREES/id" "$GUARD_TREES/id-link"
+  GUARD_ID="$GUARD_TREES/id-link/.claude/hooks/guard-taboos.sh"
+  GUARD_ID_CFG="$(cd "$GUARD_TREES/id" && pwd -P)/memory/ssh_config"
+  GUARD_ID_CFG_LOGICAL="$GUARD_TREES/id-link/memory/ssh_config"
+  export GUARD_OPS GUARD_DEV GUARD_ID GUARD_ID_CFG GUARD_ID_CFG_LOGICAL
 fi
 HOOK=$GUARD_OPS
 
@@ -103,7 +116,8 @@ EOF
 # Each fixture is four arguments: expectation, tool, command, and
 # the hook input the drain built from them (a dash without jq).
 # An expectation with a dev- prefix is judged by the copy in the
-# development tree (check_dev below).
+# development tree (check_dev below), one with an id- prefix by the
+# copy in the tree that records an SSH identity.
 if [ "$1" = "--verdict" ]; then
   shift
   unset HOSTWARDEN_GUARD_DISABLE
@@ -113,6 +127,8 @@ if [ "$1" = "--verdict" ]; then
     case $1 in
     dev-*) verdict "${1#dev-}" "$2" "$3" "$GUARD_DEV" "$IN" \
       ' in development' ;;
+    id-*) verdict "${1#id-}" "$2" "$3" "$GUARD_ID" "$IN" \
+      ' with an SSH identity' ;;
     *) verdict "$1" "$2" "$3" "$HOOK" "$IN" ;;
     esac
     shift 4
@@ -155,7 +171,7 @@ check_mode() {
 
 # The fixtures, one file per effect, in this order. Each queues its
 # checks with check or check_mode; a few judge the hook directly.
-for part in block guests first-boot storage ssh-keys boot windows pass instruction-blocks pass-ssh sshd config-mgmt heredoc override edit session development lock redirect passwords; do
+for part in block guests first-boot storage ssh-keys boot windows pass instruction-blocks pass-ssh sshd config-mgmt heredoc override edit session development lock redirect passwords identity; do
   # shellcheck source=/dev/null
   . "$REPO/tests/hooks/guard-taboos/$part.sh"
 done

@@ -1,0 +1,219 @@
+#!/bin/sh
+# hostwarden-identity — Hostwarden's own SSH identity on this
+# workstation, as memory/user.md records it (rules/ssh-identity.md).
+#
+# Usage:
+#   hostwarden-identity agent
+#                   Start Hostwarden's own ssh-agent on the recorded
+#                   socket, where none answers there
+#   hostwarden-identity load [-t <lifetime>]
+#                   Load the key into that agent for <lifetime>, 8h
+#                   by default (ssh-add's TIME FORMATS). From
+#                   Hostwarden's vault through its own identity
+#                   (rules/ssh-passwords.md → Passwords in a Manager),
+#                   with no terminal; from a key file, asking for its
+#                   passphrase, so the user runs it in a terminal of
+#                   their own
+#   hostwarden-identity line <host> [--from <addresses>]
+#                   [--until <YYYYMMDD>]
+#                   Print the authorized_keys line the operator adds
+#                   on <host>: restrict,port-forwarding,pty, the
+#                   options given, the public key and the comment
+#                   hostwarden@<operator>-<workstation>
+#   hostwarden-identity check [--quiet]
+#                   Whether the recorded agent answers and holds the
+#                   key, and the key's fingerprint. --quiet prints
+#                   only what is wrong
+#   hostwarden-identity --help
+#
+# Never prints, copies or writes a private key, and never touches
+# authorized_keys anywhere. A password manager's agent (SSH identity:
+# manager) holds the key itself: agent and load do nothing for it.
+#
+# Exit status: 0 on success, 1 on failure, 2 on a usage error, 3
+# where no identity is recorded.
+
+set -u
+case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
+ROOT=$(cd "$ROOT" && pwd -P) || exit 1
+# shellcheck source=../lib/mode.sh
+. "$ROOT/lib/mode.sh"
+# shellcheck disable=SC2034 # read by lib/identity.sh
+ID_ROOT=$ROOT
+# shellcheck source=../lib/identity.sh
+. "$ROOT/lib/identity.sh"
+
+say() { echo "hostwarden-identity: $*"; }
+die() { echo "hostwarden-identity: $*" >&2; exit 1; }
+usage() {
+  awk 'NR == 1 { next } /^[^#]/ { exit } { sub(/^# ?/, ""); print }' "$0"
+}
+
+case ${1:-} in
+  -h|--help) usage; exit 0 ;;
+  agent|load|line|check) CMD=$1; shift ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+hostwarden_mode "$ROOT"
+[ "$HOSTWARDEN_MODE" = operations ] ||
+  die "only an operations checkout has an SSH identity; this is $HOSTWARDEN_MODE"
+id_read || exit 1
+id_recorded || {
+  echo "hostwarden-identity: no SSH identity recorded in memory/user.md" \
+    "(rules/ssh-identity.md)" >&2
+  exit 3
+}
+FP=$(id_fingerprint) || die "the public key $ID_KEY is missing or no key"
+
+# The agent's own exit status for a listing: 0 keys, 1 none, 2 no
+# agent answers on the socket.
+agent_list() {
+  SSH_AUTH_SOCK=$ID_AGENT LC_ALL=C ssh-add -l 2>/dev/null
+}
+
+# comment — hostwarden@<operator>-<workstation>, the key's name in
+# every host's log and in the vault entry that holds it.
+comment() {
+  cm_op=$(awk '/^Operator:/ { sub(/^Operator:[ \t]*/, ""); sub(/[ \t]+$/, "")
+    print; exit }' "$ROOT/memory/user.md" 2>/dev/null)
+  cm_ws=$(hostname -s 2>/dev/null || hostname)
+  printf 'hostwarden@%s-%s\n' "${cm_op:-user}" "$cm_ws" |
+    tr '[:upper:]' '[:lower:]'
+}
+
+own_agent() {
+  [ "$ID_KIND" != manager ] || {
+    say "the password manager's agent holds the key; nothing to do here"
+    exit 0
+  }
+}
+
+start_agent() {
+  agent_list >/dev/null
+  case $? in 0|1) return 0 ;; esac
+  # A socket nobody answers on is what an agent left when it ended;
+  # a new one cannot bind beside it. Anything else at that path stays.
+  if [ -S "$ID_AGENT" ]; then
+    rm -f "$ID_AGENT" || die "cannot clear the stale socket $ID_AGENT"
+  elif [ -e "$ID_AGENT" ]; then
+    die "$ID_AGENT exists and is no socket; nothing started"
+  fi
+  # shellcheck disable=SC2174
+  mkdir -p -m 700 "${ID_AGENT%/*}" || die "cannot create ${ID_AGENT%/*}"
+  ssh-agent -a "$ID_AGENT" >/dev/null || die "ssh-agent did not start"
+  agent_list >/dev/null
+  [ $? -ne 2 ] || die "the agent started, but nothing answers on $ID_AGENT"
+}
+
+case $CMD in
+  agent)
+    [ $# -eq 0 ] || { usage >&2; exit 2; }
+    own_agent
+    start_agent
+    say "Hostwarden's agent answers on $ID_AGENT" ;;
+  load)
+    LIFE=8h
+    while [ $# -gt 0 ]; do
+      case $1 in
+        -t) [ $# -ge 2 ] || { usage >&2; exit 2; }; LIFE=$2; shift 2 ;;
+        *) usage >&2; exit 2 ;;
+      esac
+    done
+    printf '%s\n' "$LIFE" | grep -Eqx '([0-9]+[smhdwSMHDW]?)+' ||
+      die "not a lifetime: $LIFE"
+    own_agent
+    [ -n "$ID_SOURCE" ] ||
+      die "memory/user.md names no \"SSH identity source:\" to load from"
+    case $ID_SOURCE in
+      'file '*)
+        F=${ID_SOURCE#file }
+        [ -t 0 ] || die "asks for the key file's passphrase and needs a" \
+          "terminal: the user runs bin/hostwarden-identity load in a" \
+          "terminal of their own"
+        [ -f "$F" ] || die "the key file $F is missing"
+        # An unencrypted file is read by anything running as this user;
+        # a hardware key's file is only a handle and needs the device.
+        if [ "$ID_KIND" = own-agent ] &&
+            ssh-keygen -y -P '' -f "$F" >/dev/null 2>&1; then
+          die "$F has no passphrase; anything running as you can read" \
+            "it. Encrypt it first: ssh-keygen -p -f $F"
+        fi
+        start_agent
+        SSH_AUTH_SOCK=$ID_AGENT ssh-add -t "$LIFE" "$F" ||
+          die "ssh-add did not load $F" ;;
+      *)
+        # From the vault, through the identity that sees Hostwarden's
+        # entries alone; the entry names this key's comment in its
+        # own field, so a line pointing elsewhere loads nothing.
+        # shellcheck disable=SC2034 # read by lib/passwords.sh
+        PW_ROOT=$ROOT
+        hostwarden_cache_dir "$ROOT"
+        # shellcheck source=../lib/passwords.sh
+        . "$ROOT/lib/passwords.sh"
+        pw_manager_scoped "$ID_SOURCE" ||
+          die "the key is taken from a password manager only through an" \
+            "identity that sees Hostwarden's entries alone" \
+            "(rules/ssh-passwords.md → Passwords in a Manager)"
+        CM=$(comment)
+        pw_manager_bound "$ID_SOURCE" "$CM" ||
+          die "the entry must hold $CM in its own field: named" \
+            "$PW_BIND_FIELD for 1password, the secret's name for bws"
+        start_agent
+        # The key goes from the manager's CLI into ssh-add's stdin and
+        # nowhere else. A final newline, which op leaves out.
+        { pw_manager_field "$ID_SOURCE" "$CM" secret; echo; } |
+          SSH_AUTH_SOCK=$ID_AGENT ssh-add -q -t "$LIFE" - ||
+          die "ssh-add did not load the key from ${ID_SOURCE%% *}" ;;
+    esac
+    agent_list | grep -qF " $FP " || {
+      SSH_AUTH_SOCK=$ID_AGENT ssh-add -D >/dev/null 2>&1
+      die "the key loaded is not $ID_KEY ($FP); Hostwarden's agent was" \
+        "emptied"
+    }
+    say "$FP loaded into $ID_AGENT for $LIFE" ;;
+  line)
+    [ $# -ge 1 ] || { usage >&2; exit 2; }
+    HOST=$1
+    shift
+    case $HOST in ''|-*|*[!A-Za-z0-9._:-]*) die "not a host name: $HOST" ;; esac
+    OPTS=restrict,port-forwarding,pty
+    while [ $# -gt 0 ]; do
+      [ $# -ge 2 ] || { usage >&2; exit 2; }
+      case $1 in
+        --from)
+          printf '%s\n' "$2" | grep -Eqx '!?[0-9A-Za-z.:/*?-]+(,!?[0-9A-Za-z.:/*?-]+)*' ||
+            die "not an address list for from=: $2"
+          OPTS="$OPTS,from=\"$2\"" ;;
+        --until)
+          printf '%s\n' "$2" | grep -Eqx '[0-9]{8}([0-9]{4}([0-9]{2})?)?Z?' ||
+            die "not a date for expiry-time= (YYYYMMDD[HHMM[SS]][Z]): $2"
+          OPTS="$OPTS,expiry-time=\"$2\"" ;;
+        *) usage >&2; exit 2 ;;
+      esac
+      shift 2
+    done
+    read -r KT KB _ < "$ID_KEY" || die "cannot read $ID_KEY"
+    case $KT in
+      ssh-*|ecdsa-*|sk-*) ;;
+      *) die "$ID_KEY holds no public key" ;;
+    esac
+    echo "hostwarden-identity: for $HOST, added by the operator to the" \
+      "authorized keys of the account Hostwarden logs in as there:" >&2
+    printf '%s %s %s %s\n' "$OPTS" "$KT" "$KB" "$(comment)" ;;
+  check)
+    Q=''
+    case ${1:-} in --quiet) Q=1; shift ;; esac
+    [ $# -eq 0 ] || { usage >&2; exit 2; }
+    if [ "$ID_KIND" = manager ]; then
+      FIX="unlock the password manager, or add the key to it"
+    else
+      FIX="the user runs bin/hostwarden-identity load"
+    fi
+    L=$(agent_list)
+    [ $? -ne 2 ] || die "no agent answers on $ID_AGENT; $FIX"
+    printf '%s\n' "$L" | grep -qF " $FP " ||
+      die "the agent on $ID_AGENT does not hold $FP; its lifetime ended" \
+        "or it was never loaded: $FIX"
+    [ -n "$Q" ] || say "$FP $(comment), held by $ID_AGENT" ;;
+esac

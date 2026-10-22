@@ -105,7 +105,14 @@ exists):
   files of the workstation and the keys `ssh-add -L` lists (an
   agent such as 1Password's keeps no file), and suggest recording
   it there. A user without a key who asks for a password gets one
-  as `references/user-data.md` → Passwords says.
+  as `references/user-data.md` → Passwords says. Where
+  `memory/user.md` records Hostwarden's own SSH identity, offer its
+  key as well, as the whole line `bin/hostwarden-identity line
+  <guest>` prints, options included, and never as the only key: the
+  first login comes before the guest's memory exists
+  (`rules/ssh-identity.md` → Putting the Key on a Host). Where the
+  user has no other key, leave Hostwarden's out of the first-boot
+  keys and give the operator its line once the guest is registered.
 
 A static address must be free: no `IP:` line in memory and no
 entry in `guests.md` has it, and from the host neither

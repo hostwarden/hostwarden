@@ -37,6 +37,10 @@ Hostwarden is mostly instructions, but a few jobs are plain scripts in
   takes no key on this machine, or links it to a 1Password or
   Bitwarden item, and checks or forgets it; never prints one
   ([Password logins](../features/ssh/passwords.md)).
+- **`hostwarden-identity`** — starts and loads Hostwarden's own SSH
+  agent, prints the line you add to a host, and checks that the agent
+  holds the key; never prints a private key
+  ([Hostwarden's own SSH key](../features/ssh/own-key.md)).
 - **`hostwarden-agent`** — shows which local SSH agent signatures use,
   checks that it is available, or runs one command with it
   ([Choose your local SSH agent](../running-it/tailoring/ssh-agent.md)).

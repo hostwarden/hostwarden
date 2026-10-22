@@ -197,6 +197,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `SSH user CA:`           | `ssh-ca.md`                 | CA trust found   |
 | `SSH client host CA:`    | `ssh-ca.md`                 | CA line found    |
 | `SSH login:`             | `ssh-passwords.md`          | password set up  |
+| `Hostwarden key:`        | `ssh-identity.md`           | key added        |
 | `CLI channel:`           | `appliance/drayos.md`       | first connection |
 | `heinzel legacy:`        | `heinzel-takeover.md`       | legacy settled   |
 | `Other ways in:`         | `heinzel-takeover.md`       | host taken over  |

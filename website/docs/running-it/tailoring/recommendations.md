@@ -70,6 +70,15 @@ A decision, for one host or a group, settles any of these
   — nobody can send as a name that sends nothing.
   [rules/mail-dns.md](https://github.com/hostwarden/hostwarden/blob/main/rules/mail-dns.md)
 
+## Hostwarden's own SSH key
+
+Asked once; *Not now* settles it
+([Hostwarden's own SSH key](../../features/ssh/own-key.md)):
+
+- **An SSH key of its own for Hostwarden** — its logins show up in
+  every host's log under that key, and it can be revoked without
+  touching yours.
+
 ## Password logins
 
 For a device that takes no SSH key

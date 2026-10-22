@@ -294,6 +294,12 @@ Terms), the host is also measured against it as
   known-hosts file has no line for the host CA → **INFO**
   (`rules/ssh-ca.md` → Using the CA Everywhere).
 
+## Key logins and Hostwarden's key
+
+Run the probe of `rules/ssh-identity.md` → Audits in the batch of
+the sshd probe, and report its lines as `SSH key logins`, with the
+probe's `period:` line as their period, rated as that section says.
+
 ## SSH servers past sshd
 
 Some VPN and tunnel agents let people in without sshd, where none

@@ -68,6 +68,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Waiting on | Tags |
 | :--- | :--- | :--- |
+| [Hostwarden logs in with its own SSH key, per host](20261021-own-ssh-identity-recommended.md) | the review of the pull request for issue | ssh, keys, guard |
 | [Several hosts run in the session; agents only at scale](20260926-multi-host-work-runs-here-agents-at-scale.md) | review of the pull request that adds it | multi-host, subagents, hooks |
 
 ## History

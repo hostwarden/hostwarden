@@ -408,6 +408,8 @@ trigger — not a request from the user.
 - A secret is anywhere near the command → `rules/secrets.md`
 - `Host key verification failed`, or a host key that changed →
   `rules/host-keys.md`, never a manual login
+- `SSH identity:` in `memory/user.md`, its setup question, or
+  Hostwarden's own key for a host → `rules/ssh-identity.md`
 - A host certificate, a user CA or a refused certificate login →
   `rules/ssh-ca.md`
 - A host that takes no SSH key, only a password, or a memory line
