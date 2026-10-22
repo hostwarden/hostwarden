@@ -60,6 +60,15 @@ A decision, for one host or a group, settles any of these
   goes through CGNAT or DS-Lite** — receivers commonly reject mail
   sent directly from such an address.
   [A host's network](../../features/hosts/network.md)
+- **DMARC `reject`, SPF `~all` or `-all`, DNSSEC and MTA-STS
+  `enforce` for a domain that sends or receives mail** — a forged
+  sender or a downgraded delivery is refused instead of delivered.
+  Hostwarden reads the records and proposes them, never as a failure
+  of the baseline.
+  [rules/mail-dns.md](https://github.com/hostwarden/hostwarden/blob/main/rules/mail-dns.md)
+- **A null MX, `v=spf1 -all` and DMARC `reject` on a parked domain**
+  — nobody can send as a name that sends nothing.
+  [rules/mail-dns.md](https://github.com/hostwarden/hostwarden/blob/main/rules/mail-dns.md)
 
 ## Password logins
 

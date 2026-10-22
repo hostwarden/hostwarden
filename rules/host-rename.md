@@ -237,7 +237,7 @@ rewrites: other hosts' `Runs on:` lines, the `→` links in every
 and keep the old name.
 
 **Outside.** List these too, but the DNS records among them are not
-always the user's: the A, AAAA and PTR records, and the CNAMEs that
+always the user's: the A, AAAA and PTR records, and the CNAMEs and MXs that
 target the old name (`rules/dns.md` → The record convention), are
 written by Hostwarden, as `rules/dns.md` → Writing says, wherever
 the name space's `memory/dns.md` line reads `Hostwarden: write`, and
@@ -270,7 +270,10 @@ Agree it with the user in the question:
    the second record set `rules/dns.md` → The proposal gives for a
    rename, again as Outside decides, and the user changes the DHCP
    reservation, which stays theirs in every case. Then Hostwarden
-   removes the old name (When the Old Name Is Gone).
+   removes the old name (When the Old Name Is Gone). The second
+   set retargets an MX that targets the old name to the new one
+   (`rules/dns.md` → The proposal); the host stays, so nothing
+   else it serves is removed.
 
 ## The Question
 

@@ -144,7 +144,7 @@ Read on demand, only when the relevant section applies:
   whether their masters changed since.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, CasaOS, Home Assistant, Ollama, node_exporter, NVIDIA
-  GPU, MariaDB/MySQL, mesh VPNs and WireGuard, UPS (NUT,
+  GPU, MariaDB/MySQL, a mail server's DNS, mesh VPNs and WireGuard, UPS (NUT,
   apcupsd), Pi-hole,
   AdGuard Home. Only run the
   ones the server's `memory.md` mentions.
