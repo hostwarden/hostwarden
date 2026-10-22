@@ -189,6 +189,26 @@ file_size() {
   return $rc
 }
 
+# upstream_refs -- the changelog and the shipped files name the
+# upstream repository only in the origin credit
+# (.claude/rules/repo-release.md → Porting from Heinzel). The
+# trailer and the pull request body line live outside them. The
+# released decision records in docs/adr/ are never edited.
+upstream_refs() {
+  rc=0
+  # Issue and pull request numbers, links to them: nowhere.
+  git grep -nIiE 'heinzel(#|/(issues|pull)/)[0-9]' -- CHANGELOG.md README.md \
+    changelog.d rules .agents/skills docs website templates ':!docs/adr'
+  case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+  # The repository's name: only in the origin credit.
+  git grep -nIi 'wintermeyer/heinzel' -- CHANGELOG.md changelog.d \
+    rules .agents/skills docs website templates ':!docs/adr' \
+    ':!.agents/skills/hostwarden-heinzel-takeover' \
+    ':!rules/heinzel-legacy.md' ':!website/docs/getting-started/intro.md'
+  case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+  return $rc
+}
+
 sh_syntax() {
   rc=0
   for f in $(shell_files); do
@@ -325,6 +345,7 @@ fi
 step "JSON" json_valid
 step "shell syntax" sh_syntax
 step "file size" file_size
+step "upstream references" upstream_refs
 # shellcheck disable=SC2046 # one argument per file is the point
 step "ShellCheck" shellcheck -S warning $(shell_files)
 step "workflows" actionlint

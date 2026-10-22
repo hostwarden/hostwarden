@@ -666,13 +666,14 @@ agent can do is done:
 - the branch is one commit on its base, whose message is the
   squash text: the why, not only the what, which the changelog
   entry leaves out, and the trailers (`Ported-from:`,
-  `Co-Authored-By:`) at its end. The squash is
-  `git reset --soft $(git merge-base hostwarden/<base> HEAD)` and
+  `Co-Authored-By:`) at its end.
+  The squash is `git reset --soft $(git merge-base hostwarden/<base> HEAD)` and
   one commit; its tree is the reviewed head's, which
   `git diff <old sha> <new sha>` shows empty, and it is recorded
   under `## Review` as
   `squash, <new sha>: from <old sha>, tree unchanged`, both SHAs in
-  full. The body keeps the record and the deferred list;
+  full. The body keeps the record and the deferred list, and a port's
+  `Ported from` line (`repo-release.md` → Porting from Heinzel);
 - a stacked pull request's base is merged, and it has been
   retargeted and rebased onto `hostwarden/main` (→ After a merge,
   → Updating a branch): until then it stays a draft, since its
