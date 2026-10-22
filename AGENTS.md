@@ -346,7 +346,7 @@ trigger — not a request from the user.
 - Copying a directory tree between servers →
   `rules/directory-copy.md`
 - Growing, rebuilding or repairing storage — a file system, RAID,
-  LVM, ZFS or Btrfs → `rules/storage.md`
+  LVM, ZFS or Btrfs — or a disk running full → `rules/storage.md`
 - Needing elevated privileges → `rules/privilege-escalation.md`
 - Creating or removing an account, a group or a sudo rule, or
   letting a host's people log in with user certificates →
