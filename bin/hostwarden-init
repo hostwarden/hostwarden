@@ -257,6 +257,30 @@ if ! git -C memory check-ignore -q --no-index -- refusals.log; then
   mkdir -p "$(dirname "$EXCLUDE")"
   echo /refusals.log >> "$EXCLUDE"
 fi
+# Ignoring does not stop a file git already tracks. It leaves the
+# index with its content kept here, and the removal is committed at
+# once: hostwarden-sync commits by path, and a path-limited commit
+# of an ignored file takes nothing. A removal staged beside other
+# staged work waits for the user.
+# A signed workspace commits through the resolved signing agent, as
+# hostwarden-sync does (rules/ssh-agent.md).
+commit_removal() {
+  if [ "$(git -C memory config gpg.format)" = ssh ] &&
+    [ "$(git -C memory config --bool commit.gpgsign)" = true ]; then
+    sh bin/hostwarden-agent --exec git -C memory commit -q -m "$1"
+  else
+    git -C memory commit -q -m "$1"
+  fi
+}
+if git -C memory ls-files --error-unmatch refusals.log >/dev/null 2>&1; then
+  git -C memory rm --cached -q -f -- refusals.log
+  if [ "$(git -C memory diff --cached --name-only)" != refusals.log ] ||
+    ! commit_removal "Stop tracking refusals.log (personal)"; then
+    echo "hostwarden-init: the removal of refusals.log from memory/ is" \
+      "staged, not committed; run git -C memory commit -m" \
+      "'Stop tracking refusals.log' once the rest is committed." >&2
+  fi
+fi
 
 # Keep a secret out of every commit the workspace makes. The
 # hook lives in the workspace's own .git, so each clone gets
