@@ -79,12 +79,20 @@ case "$TEXT" in
 *efivars*)
   if full && hit "$EFIVARS"; then
     if hit ">>?[[:space:]]*[\"']?[^[:space:];|&]*$EFIVARS" \
-      || hit "(^|[^[:alnum:]_-])($CLOBBER|chattr|mount)([^[:alnum:]_-]|\$)" \
+      || hit "(^|[^[:alnum:]_-])($CLOBBER|chattr)([^[:alnum:]_-]|\$)" \
       || hit '(^|[[:space:]])-delete([[:space:]]|$)' \
       || writes_to "${EFIVARS}[^[:space:]]*"
     then
       deny "writing to or deleting under the efivars mount changes \
 firmware variables and can brick the board (cat and ls read them)"
+    fi
+    # A mount that names the efivars path makes the variables writable
+    # unless it is read-only; a bare mount, which lists, names no path.
+    if hit_without "(^|[^[:alnum:]_-])mount([[:space:]][^;&|]*)?[[:space:]]${EFIVARS}([^[:alnum:]_]|\$)" \
+      '(^|[[:space:]])(-[[:alpha:]]*r|--read-only|(-[[:alpha:]]*o|--options)[[:space:]=]*([^[:space:];&|]*,)?ro)([,[:space:]]|$)'
+    then
+      deny "mounting the efivars path read-write makes the firmware \
+variables writable and can brick the board (mount alone lists it)"
     fi
     if hit "(^|[[:space:];|&(\`\"'])(/[^[:space:]]*/)?(python[0-9.]*|perl|ruby|node|nodejs|deno|bun|php[0-9.]*|lua[0-9.]*|tclsh|osascript|Rscript|julia|elixir|escript|erl|[gmn]?awk)([^[:alnum:]_./-]|\$)[^;&|]*$EFIVARS"; then
       deny "an interpreter with the efivars mount on its command line \
