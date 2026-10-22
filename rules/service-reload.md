@@ -186,7 +186,7 @@ ask the user rather than guess them:
 
 ```bash
 # Container
-docker exec <container> python -m homeassistant \
+docker exec -e LC_ALL=C <container> python -m homeassistant \
   --script check_config --config /config
 # Supervised
 ha core check

@@ -1,7 +1,7 @@
 # Making a runtime visible over SSH
 
 Reached from the `hostwarden-runtimes` skill when a runtime is
-installed but a non-interactive `ssh host "node --version"`
+installed but a non-interactive `ssh … host "node --version"`
 cannot find it. That is a shell-initialisation problem, not an
 install problem, and it is the single most common reason a
 deployment fails after a successful install.
@@ -9,7 +9,7 @@ deployment fails after a successful install.
 ## SSH Non-Interactive Shell Setup
 
 **This is critical.** All Hostwarden work runs via
-`ssh user@host "command"` — a non-interactive,
+`ssh … user@host "command"` — a non-interactive,
 non-login shell where `.bashrc` is typically not
 sourced.
 
@@ -45,19 +45,22 @@ For bash, add both `~/.local/bin` (for the
 language runtimes) to `PATH` **at the top of
 `~/.bashrc`** — before the interactive guard
 (`case $- in ...`). This is the only reliable way to
-get mise into `ssh user@host "command"` on
+get mise into `ssh … user@host "command"` on
 Debian/Ubuntu, because `~/.bash_profile` is **not**
 sourced for non-login, non-interactive SSH commands.
 
 ```bash
-# Insert at the very top of ~/.bashrc.
+# Insert at the very top of ~/.bashrc, without sed -i (GNU only).
 # The grep guard makes re-runs a no-op.
-grep -q '# mise (before interactive guard)' ~/.bashrc || \
-  command cp ~/.bashrc ~/.bashrc.bak.$(date +%Y%m%d-%H%M%S)
-grep -q '# mise (before interactive guard)' ~/.bashrc || \
-sed -i '1i# mise (before interactive guard)\
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"\
-' ~/.bashrc
+grep -q '# mise (before interactive guard)' ~/.bashrc 2>/dev/null || {
+  t=$(mktemp) &&
+  { printf '%s\n' '# mise (before interactive guard)' \
+      'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"' ''
+    cat ~/.bashrc 2>/dev/null; } > "$t" &&
+  { [ ! -f ~/.bashrc ] || command cp ~/.bashrc ~/.bashrc.bak.$(date +%Y%m%d-%H%M%S); } &&
+  command cp "$t" ~/.bashrc
+  command rm -f "$t"
+}
 ```
 
 Also extend `~/.bash_profile` to source `.bashrc`

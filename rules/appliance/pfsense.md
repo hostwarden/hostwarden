@@ -120,7 +120,7 @@ documentation, <https://docs.netgate.com/pfsense/en/latest/>.
   its last check in `/var/run/pfSense_version`.
 - Apply: `pfSense-upgrade` (console menu option 13). **It reboots
   the firewall when done.** Always ask. Over SSH run it inside
-  `screen`, which is not in the base system (`pkg install screen`,
+  `screen`, which is not in the base system (`pkg install -y screen`,
   ask first). Log: `/conf/upgrade_log.latest.txt`.
 - **Plus on ZFS (24.03 and later)** upgrades inside a new Boot
   Environment and rolls back on its own if the new one fails to

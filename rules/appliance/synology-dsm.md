@@ -345,7 +345,7 @@ neither:
 
 ```
 nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-ssh … <user>@<nas> "nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cgi
+ssh … <user>@<nas> "export LC_ALL=C; nonce=$nonce;" 'u=https://127.0.0.1:<port>/webapi/entry.cgi
   m() { printf "\n{\"@\": \"%s\", \"code\": \"%s\", \"n\": \"%s\"}\n" "$1" "$2" "$nonce"; }
   IFS= read -r p
   r=$(printf %s "$p" | curl -sSk --data-urlencode passwd@- \

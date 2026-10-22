@@ -103,7 +103,7 @@ written:
 cat memory/fleet/fleet-read/src/linux.sh.sig \
   memory/fleet/fleet-read/src/linux.sh \
   | ssh root@web1.example.com \
-    'SSH_ORIGINAL_COMMAND=collect /usr/local/sbin/fleet-read check'
+    'env LC_ALL=C SSH_ORIGINAL_COMMAND=collect /usr/local/sbin/fleet-read check'
 ```
 
 (with the SSH options from `AGENTS.md` → SSH Options). It passes

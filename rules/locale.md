@@ -28,6 +28,14 @@ and `free -h` prints `Speicher:` for `Mem:` and `1,5Gi` for
   guest shell (`pct exec`, `incus exec`, `docker exec`,
   `lxc-attach`) and an `ssh` from the host onward. `sudo` keeps
   it as it is configured by default.
+- **A block in an instruction file** is the body of a call, and
+  the session opens that call with the `export` above: the block
+  does not repeat it. It sets the variable itself only where it
+  starts a new environment (above), or where the block is the
+  whole command string an `ssh` sends, as the appliance API reads
+  are. A command that only copies or searches file bytes (`cat`,
+  `base64`, `grep -H` over a path) prints none of the host's
+  words and needs none.
 - **Never through SSH itself.** `SendEnv`, or a variable set in the
   local shell, reaches the host only where its `AcceptEnv` lets it,
   and nothing says when it did not.

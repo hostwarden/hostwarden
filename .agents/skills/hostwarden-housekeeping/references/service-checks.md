@@ -247,7 +247,7 @@ Read the running version:
 
 ```bash
 # Container
-docker exec <container> python -m homeassistant --version
+docker exec -e LC_ALL=C <container> python -m homeassistant --version
 # Supervised
 ha core info
 # Core, as the unit's User=

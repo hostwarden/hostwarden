@@ -157,7 +157,7 @@ within the time a call may take:
 timeout 270 sh -c 'until qm guest cmd <vmid> ping 2>/dev/null
   do sleep 15; done' &&
   r=$(timeout 240 qm guest exec <vmid> --timeout 225 -- \
-    cloud-init status --wait --long) &&
+    env LC_ALL=C cloud-init status --wait --long) &&
   printf '%s\n' "$r" &&
   printf '%s\n' "$r" | jq -e '.exitcode == 0' >/dev/null &&
   timeout 45 qm guest exec <vmid> --timeout 30 -- \
@@ -272,7 +272,7 @@ Then, in one call:
 
 ```bash
 pct start <vmid> &&
-  timeout 570 pct exec <vmid> -- cloud-init status --wait --long &&
+  timeout 570 pct exec <vmid> -- env LC_ALL=C cloud-init status --wait --long &&
   pct exec <vmid> -- cat /etc/ssh/ssh_host_ed25519_key.pub
 ```
 

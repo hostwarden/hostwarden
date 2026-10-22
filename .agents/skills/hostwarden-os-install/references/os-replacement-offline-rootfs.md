@@ -25,7 +25,7 @@ by hand.
 **Install QEMU on the old OS** and use it to boot
 the new rootfs in a lightweight VM instead:
 
-1. Install QEMU (`pkg install qemu` on FreeBSD,
+1. Install QEMU (`pkg install -y qemu` on FreeBSD,
    `apt-get install qemu-system-aarch64` on
    Debian, etc.).
 2. Boot the new rootfs partition or image directly

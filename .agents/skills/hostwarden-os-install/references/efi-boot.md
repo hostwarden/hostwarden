@@ -51,7 +51,7 @@ efibootmgr -v          # same command, same output
 ```
 
 FreeBSD's `efibootmgr` has the same interface as
-Linux. Install with `pkg install efibootmgr` if
+Linux. Install with `pkg install -y efibootmgr` if
 missing.
 
 ## BootNext (One-Shot Boot)

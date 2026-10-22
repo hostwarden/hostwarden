@@ -65,8 +65,8 @@ attachments.
    without change.
 
    Remote path: run under the user chosen in 5R.4, via
-   `runuser -u <user> -- sh -c '…'` or
-   `su - <user> -c '…'`. Local path: under the current
+   `runuser -u <user> -- sh -c 'export LC_ALL=C; …'` or
+   `su - <user> -c 'env LC_ALL=C …'`. Local path: under the current
    shell user.
 
 8. **Verify delivery.** Check the send command's exit code,

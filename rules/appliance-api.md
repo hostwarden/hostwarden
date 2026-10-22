@@ -98,11 +98,11 @@ appliance file says so by name.
 
   Over SSH the nonce is set by an argument of its own in front of
   the single-quoted command, which the remote shell runs joined to
-  it: `ssh … "nonce=$nonce;" '<command>'`. A command on the host
-  writes its own marker in a `sh -s` bundle, which takes the nonce
+  it: `ssh … "export LC_ALL=C; nonce=$nonce;" '<command>'`. A command on the
+  host writes its own marker in a `sh -s` bundle, which takes the nonce
   as its argument, `ssh … sh -s "$nonce" <<'EOF'`, and sets
-  `nonce=$1` in its first line; the marker carries the command's
-  exit status:
+  `nonce=$1` and `export LC_ALL=C` in its first lines; the marker carries the
+  command's exit status:
 
   ```
   <command>; printf '\n{"@": "%s", "code": "%s", "n": "%s"}\n' <name> "$?" "$nonce"

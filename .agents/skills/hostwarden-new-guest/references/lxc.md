@@ -84,7 +84,7 @@ guest will read it:
 test -s /var/lib/lxc/web4/rootfs/etc/cloud/cloud.cfg.d/90-hostwarden.cfg || exit 1
 command rm /var/lib/lxc/web4/rootfs/etc/cloud/cloud-init.disabled
 lxc-start -n web4
-timeout 570 lxc-attach -n web4 -- cloud-init status --wait --long
+timeout 570 lxc-attach -n web4 -- env LC_ALL=C cloud-init status --wait --long
 ```
 
 The wait is the last command, so its exit status is the call's:
@@ -100,7 +100,7 @@ Rules):
 ```bash
 lxc-attach -n web4 -- cat /etc/ssh/ssh_host_ed25519_key.pub
 lxc-info -n web4 -c lxc.cgroup2.memory.max
-lxc-attach -n web4 -- ip -4 addr show scope global
+lxc-attach -n web4 -- env LC_ALL=C ip -4 addr show scope global
 ```
 
 The last line only where the address is DHCP.

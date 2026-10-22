@@ -45,7 +45,7 @@ mise` works if the user asks for it by name; never `sudo brew`
 For FreeBSD, upstream documents no package or port. Check the
 host before deciding — `pkg search mise` — and use what is
 there; otherwise the standalone installer, which needs `curl`
-from `pkg install curl`. If neither works, say so rather than
+from `pkg install -y curl`. If neither works, say so rather than
 improvising: a runtime manager installed some other way is the
 second source of truth this skill exists to avoid.
 
@@ -64,14 +64,16 @@ Trade-offs:
 #### Debian & Ubuntu
 
 ```
-apt-get update && apt-get install -y gpg wget
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l
+apt_opts='-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold'
+apt-get update && apt-get -y $apt_opts install gpg wget
 install -d -m 755 /etc/apt/keyrings
 wget -qO - https://mise.jdx.dev/gpg-key.pub \
   | gpg --dearmor \
   | tee /etc/apt/keyrings/mise-archive-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" \
   | tee /etc/apt/sources.list.d/mise.list
-apt-get update && apt-get install -y mise
+apt-get update && apt-get -y $apt_opts install mise
 ```
 
 #### RHEL & Fedora
@@ -93,10 +95,11 @@ target first.
 #### SUSE
 
 ```
-zypper addrepo \
+zypper --non-interactive addrepo \
   https://mise.jdx.dev/rpm/mise.repo mise
-zypper refresh
-zypper install -y mise
+zypper --non-interactive --gpg-auto-import-keys \
+  refresh mise
+zypper --non-interactive install mise
 ```
 
 ### Which Method to Use
