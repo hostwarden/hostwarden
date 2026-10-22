@@ -121,9 +121,29 @@ Two caveats to carry into the report:
 ## macOS Probes
 
 ```
-tmutil destinationinfo
-tmutil latestbackup 2>/dev/null
-tmutil listbackups 2>/dev/null | tail -1
+# Each Time Machine destination on its own; latestbackup and
+# listbackups need root: SUDO='sudo -n' as a normal user, '' as root
+SUDO='sudo -n'
+X=$(tmutil destinationinfo -X 2>&1)
+x() { printf '%s' "$X" | plutil -extract "$1" raw -o - - 2>/dev/null; }
+if C=$(x Destinations); then
+  echo "destinations: $C"
+  i=0
+  while [ "$i" -lt "$C" ]; do
+    printf '%s (%s): ' "$(x "Destinations.$i.Name")" \
+      "$(x "Destinations.$i.Kind")"
+    if M=$(x "Destinations.$i.MountPoint"); then
+      echo "$M"
+      $SUDO tmutil latestbackup -d "$M" 2>&1
+      $SUDO tmutil listbackups -d "$M" 2>&1 | tail -1
+    else
+      echo 'not mounted, last backup unknown'
+    fi
+    i=$((i + 1))
+  done
+else
+  printf '%s\n' "$X" | head -5
+fi
 P='backup|arq|restic|ccc'
 G=$(who | awk '$2 == "console" {print $1}' | sort -u |
   while read -r u; do echo "gui/$(id -u "$u")"; done)
@@ -145,6 +165,26 @@ screen (`who` lists them on `console`), where a backup tool can run
 as a LaunchAgent whoever the SSH user is. With nobody logged in no
 agent runs, and only `system` is read. An `unread` domain makes the
 backup "unknown", not "absent", when nothing else is found.
+
+A Mac often backs up to more than one destination, a local disk
+and a network share, and each is read with `-d` and the
+`MountPoint` that `destinationinfo -X` gives it, never with the
+bare `latestbackup` or `listbackups`: `man tmutil` says what `-d`
+selects, not which destination the bare form reads, so its answer
+cannot be told apart from "no backup" on another destination. For
+a network destination `man tmutil` calls the share the destination
+and the volume inside its disk image the backup disk; pass the
+`MountPoint` as printed, never a path built from `Name` or `URL`,
+and an error from `-d` makes that destination "unknown". An entry
+without `MountPoint` — a share not mounted, a disk unplugged, as a
+laptop's usually is — is "last backup unknown", never "no backup".
+`tmutil status` takes no `-d` and describes only a backup running
+now; it rates no destination. Errors can mean missing Full Disk
+Access, not a missing backup: "unknown", not "absent". A
+`destinations: 0` line is Time Machine not set up. Without a
+`destinations:` line, the lines printed in its place say why: no
+destination configured is Time Machine not set up, a refusal or a
+`plutil` older than macOS 12 is "unknown".
 
 With `Full disk access: off` in memory, the `tmutil`
 lines are skipped (`rules/os/macos.md` → Privacy
@@ -232,6 +272,12 @@ cron job, `syncoid`, `zrepl` with a remote target).
 - **OK / INFO** — mechanism plus fresh evidence.
   One line in Services, e.g.
   `Backups  OK — restic systemd timer, last run 6h ago`.
+- **Several Time Machine destinations** — the line names each
+  destination and its own state, and is rated by the best one with
+  fresh evidence: one OK beside one on its first run or not mounted
+  is OK, never collapsed into "no backup". Where none can be read,
+  the mechanism exists and its last run is unknown: say so, never
+  CRITICAL.
 
 ## Recording the Answer
 
