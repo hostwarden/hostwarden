@@ -340,8 +340,9 @@ trigger — not a request from the user.
   `rules/community-scripts.md`
 - Installing, removing or reconfiguring a network-facing service →
   `rules/firewall-changes.md`
-- Any firewall, network or login-shell change that can cut
-  SSH → `rules/ssh-safety-net.md`, before applying it
+- Any firewall, network, VPN, PAM, network sysctl or login-shell
+  change that can cut SSH → `rules/ssh-safety-net.md`, before
+  applying it
 - Reloading or restarting a service → `rules/service-reload.md`
 - Any install, service, permission or exposure change the user asked
   for → `rules/best-practices.md` for the anti-pattern catalog

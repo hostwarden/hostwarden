@@ -1,11 +1,14 @@
 # Safety Net for Changes That Can Cut SSH
 
 A change to the firewall — its rules, or starting and
-enabling it — or to the network configuration (addresses,
-routes, bridges, bonds) decides whether packets still reach
-sshd, and a change to the shell sshd starts for a login
-decides whether a login still gets one. A wrong one ends the
-session that could undo it. So
+enabling it — to the network configuration (addresses,
+routes, interfaces, VLANs, bridges, bonds), to a network
+sysctl (`net.ipv4.*`, `net.ipv6.*`, FreeBSD's `net.inet.*` and
+`net.inet6.*`) or to a VPN or tunnel
+the SSH path runs through decides whether packets still
+reach sshd. A change to PAM (`/etc/pam.d/`) or to the shell
+sshd starts for a login decides whether a login still gets
+one. A wrong one ends the session that could undo it. So
 the undo is armed on the host before the change, and runs
 on its own unless a working login cancels it.
 
@@ -18,6 +21,33 @@ not apply over SSH: the user applies the change with the console
 already open. A tool that arms its own timed revert when it
 applies names an **apply and arm** and a **confirm**
 instead; they stand in for steps 4, 5 and 7 below.
+
+PAM and a network sysctl have no tool file; their commands:
+
+- **PAM:** check `diff` of the new file against the step-2
+  backup; apply writes the file (PAM reads its files at each
+  login, so nothing reloads); revert restores the backup. A
+  key login runs PAM's account and session modules only, never
+  its `auth` stack, so the step-6 login does not test a change
+  to one (`common-auth`, `sudo`, `sshd`), and no call of
+  Hostwarden can, since none authenticates by password. Say so
+  in step 1. The revert stays armed until the user has tried
+  the changed service's own authentication, a password or
+  keyboard-interactive login for `sshd`, a `sudo` that prompts
+  for the password and takes it for `sudo` (`sudo -k` first,
+  since a cached credential or `NOPASSWD` skips the stack),
+  with the console `rules/management-controller.md` → The
+  rescue path names open; a key login proves none of it. If
+  that is not tried, let the revert fire.
+- **A network sysctl:** check `sysctl -n <key>`, which gives
+  the old value; apply `sysctl -w <key>=<value>`; revert
+  `sysctl -w <key>=<old value>`. The file that persists it
+  (`sysctl.d/`, FreeBSD's `/etc/sysctl.conf`) is written in
+  step 7.
+- **A VPN or tunnel:** the file that covers it
+  (`rules/mesh-vpn.md`, the OS file) names the commands. Where
+  none does, the change has no revert to arm: it is the
+  user's, at the console.
 
 ## Which way in
 
@@ -72,12 +102,15 @@ tests in the `- Access:` line (`rules/machine-memory.md`).
 
 ## The steps
 
-Both kinds of change on a host in service, not one this session is creating, go
-through `bin/hostwarden-impact
-announce <host> firewall|network` and `wait`, as `rules/coordination.md` →
-Announce, wait, go says, before step 5 applies it — a firewall or
-network reload takes the whole radius, guests and jump-host
-traffic included. `impact.sh` denies the apply mechanically where
+A firewall, network, VPN or network sysctl change on a host in
+service, not one this session is creating, goes through
+`bin/hostwarden-impact announce <host> firewall|network` and
+`wait`, as `rules/coordination.md` → Announce, wait, go says,
+before step 5 applies it: `firewall` for a firewall change,
+`network` for the rest. A firewall or network reload takes the
+whole radius, guests and jump-host traffic included. PAM and a
+login shell reach no one else and are not announced. `impact.sh` denies the
+apply mechanically where
 another live session is on the radius and this session has not;
 announcing before step 1 means the window agreed there already
 accounts for it.
@@ -86,7 +119,8 @@ accounts for it.
    (`AGENTS.md` → Critical Safety Rules), and so is the
    window: say that the change undoes itself after five
    minutes, five to ten on FreeBSD (step 4), unless a new
-   login succeeds. Name the path this session came in on
+   login succeeds, or after the longer window a play run
+   from the workstation needs (step 5). Name the path this session came in on
    when the change touches it (Which way in above).
 2. **Back up** everything the change overwrites
    (`rules/backups.md`), and read in the same call whether
@@ -99,35 +133,72 @@ accounts for it.
    one SSH depends on: the user settles which holds before
    the change.
 3. **Check.** The tool's dry run or syntax test must pass.
-4. **Arm the revert**, detached from the SSH session:
+4. **Arm the revert**, and run step 5 in the same command,
+   joined with `&&`, so the change never runs without an armed
+   timer and no turn between the two eats into the window. The
+   timer is detached from the SSH session:
 
    On a host with systemd:
 
    ```bash
    systemd-run --unit=hostwarden-revert --collect \
-     --on-active=5min sh -c '<revert>'
+     --on-active=5min sh -c '<revert>' &&
+     systemd-run --unit=hostwarden-apply --collect --wait \
+       sh -c '<apply>'
    systemctl list-timers hostwarden-revert.timer
    ```
 
-   Elsewhere, with `at`:
+   The apply runs under systemd, so a connection the change
+   drops does not kill it halfway; `--wait` returns once it
+   has finished; its output is in `journalctl -u
+   hostwarden-apply`, not tied to the session. A shell started
+   this way has none of the session's variables, so the apply
+   writes out what it uses. The unit name is fixed, so a
+   second window makes the first `systemd-run` fail and `&&`
+   skips the apply.
+
+   Elsewhere, with `at`, the apply runs in the SSH session and
+   is not detached. `at` queues a job even when nothing will
+   run it, and `atq` lists every user's jobs, so the proof is
+   the daemon that runs them: `pgrep -x atd`, or on FreeBSD
+   `test -f /etc/cron.d/at`. macOS disables `atrun` by default,
+   so there is no timer there. An apply of several commands is
+   grouped, so `&&` covers all of it:
 
    ```bash
-   echo '<revert>' | at now + 5 minutes
-   atq
+   <daemon check> &&
+     echo '<revert>' | at now + 5 minutes && { <apply>; }
    ```
 
    FreeBSD starts `at` jobs from `atrun`, which
    `/etc/cron.d/at` runs every five minutes, so the revert
-   lands five to ten minutes later; check that the file
-   exists. Where the loaded OS file names its own way to
-   arm the revert and to cancel it (Windows: a scheduled
-   task), use that. With none of these, stop here and hand
-   the change to the user with the console
-   `rules/management-controller.md` → The rescue path names.
-5. **Apply.**
+   lands five to ten minutes later. Where the loaded OS file names its own way
+   to arm the revert and to cancel it (Windows: a scheduled
+   task), use that. Its arm call reports success in its
+   output, not in its exit status: the apply follows in a
+   call of its own, once the arm printed that it is armed.
+   With none of these, stop here and hand the change to the
+   user with the console `rules/management-controller.md` →
+   The rescue path names.
+5. **Apply**, as the second half of step 4's command, except
+   where the OS file's arm call is separate or the apply runs
+   on the workstation, as an Ansible play does
+   (`rules/workspace-playbook.md`). Then the arm is a call of
+   its own that confirms the timer is pending, the apply
+   follows only after that. The timer must outlast the run:
+   one host at a time, and the arm call's `--on-active` (or
+   `at` time) is the longer window the user agreed to in
+   step 1, not five minutes. Where a tool
+   separates runtime from boot configuration, change the
+   runtime only and persist in step 7 (firewalld without
+   `--permanent`, whose revert is then `firewall-cmd --reload`).
+   A network configuration is applied from its files, so the
+   login tests them.
 6. **Test with a fresh login** (`rules/ssh-connections.md`
    → Fresh-login options) that also prints what the change
    was meant to do — the rule set, the address, the route.
+   When the change moves the host's address, the login goes
+   to the new one (→ When the address moves).
 7. **Login works:** cancel the revert —
    `systemctl stop hostwarden-revert.timer`,
    `atrm <job>`, or the OS file's cancel — and confirm it
@@ -143,5 +214,53 @@ accounts for it.
    address (`rules/management-controller.md` → The rescue
    path).
 
+Never reboot the host while the revert is armed: a reboot
+boots the new files from disk without the timer.
+
 Log the change and its outcome, including a revert that
 fired (`rules/changelog.md`).
+
+## When the address moves
+
+The old address no longer answers once the change works. The
+fresh login of step 6 names the host as always, so its port,
+jump host and user stay, and adds `-o HostName=<new-address>`
+and `-o HostKeyAlias=<key name>` to the options of
+`rules/ssh-connections.md` → Fresh-login options. The key
+name is the one `rules/host-keys.md` → Before the First
+Connection looks up, `[<name>]:<port>` off port 22, so the
+key already in `memory/known_hosts` is the one checked.
+Cancel the timer only through that login, never from the old
+session. A new address that answers with another host key is
+not this host: leave the timer armed.
+
+Once the login worked, the address is made permanent before
+the move counts as done: the host's `- IP:` line in memory
+takes the new address, and its name resolves to it through
+`rules/ssh-config.md` → Adding a Block, which keeps
+`HostKeyAlias`, regenerates `memory/ssh_config` and checks the
+result with `ssh -G`. A host that logs in by password finds no
+stored password at the new address (`rules/ssh-passwords.md`):
+tell the user before the next login.
+
+## Failures that show later
+
+The window tests the login, not the next boot, the next cron
+run or the next renewal. Before the change is called done,
+and always before a reboot, run what proves the files:
+
+- `fstab` (Linux): `findmnt --verify`; a typo hangs the next
+  boot in emergency mode. Mounting or editing an entry is a
+  storage change (`rules/storage.md`).
+- A unit enabled with `enable` (systemd): `systemd-analyze
+  verify <unit>` before the next boot needs it; starting it
+  follows `rules/port-check.md`.
+- A cron job or timer: its command once by hand, as its user.
+- A network or firewall configuration file written in step 7
+  rather than loaded by the apply: the tool's check of step 3
+  on that file, before the cancel.
+- A renewal or rotation configuration: its dry run
+  (`certbot renew --dry-run`, `logrotate -d <file>`).
+- A one-shot boot entry (`efibootmgr` `BootNext`, `grub-reboot`)
+  applies to the next boot only: the old entry stays the way
+  back, and the change is proven when that boot has come up.

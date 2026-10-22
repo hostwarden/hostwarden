@@ -99,8 +99,8 @@ one task on several hosts: run them host by host
 - **A `skill`** runs here, in rounds, on up to four hosts. On more,
   it runs in agents (→ Agents).
 - **A `change` that can cut SSH** — the firewall, the network, a
-  login shell — runs one host after another (→ Changes on several
-  hosts).
+  VPN, PAM, a network sysctl, a login shell — runs one host after another (→
+  Changes on several hosts).
 
 Where the tool has no agents, a `skill` runs here in rounds
 whatever the number of hosts.
@@ -374,8 +374,9 @@ and the guard and the taboos hold on every one of them.
    first, as `rules/config-management-changes.md` says, before it
    is in the question.
 
-   A change that can cut SSH — the firewall, the network, a login
-   shell — goes through all of this, but never in rounds: each host
+   A change that can cut SSH — the firewall, the network, a VPN,
+   PAM, a network sysctl, a login shell — goes through all of this, but never in
+   rounds: each host
    runs alone, one after another, as `rules/ssh-safety-net.md` says,
    since that file reads each host's way in and sshd ports and puts
    what it finds to the user.
