@@ -14,7 +14,7 @@ its own, and what happens when nobody is there to answer.
 | Action | What Hostwarden does |
 | --- | --- |
 | Destructive command, reboot, restart | asks first |
-| Firewall or network change | asks; arms an automatic undo first |
+| Firewall, network, VPN or PAM change | asks; arms an automatic undo first |
 | Config reload | auto-proceeds once the config test passes |
 | Stopping or deleting a guest | puts the command to you; blocked otherwise |
 | A new guest's SSH server | puts the command to you; guest never booted |
@@ -32,11 +32,16 @@ Rule: `AGENTS.md` → Critical Safety Rules.
 
 ## Firewall and network changes
 
-A firewall or network change arms its own undo first: it reverts
+A firewall, network, VPN, PAM or login-shell change arms its own
+undo first, in the same command that makes the change (on
+Windows and in an Ansible play, in a call just before it): it reverts
 after five minutes — five to ten on FreeBSD — unless a new SSH
-login succeeds. Where no undo can be armed, Hostwarden names the
-console it knows for that machine, or tells you there is none, and
-you make the change with that console open.
+login succeeds, one to the new address when the change moves it.
+For a PAM change to a password or `sudo` login, a key login does
+not count: the undo stays armed until you have tried that login,
+and fires if you have not. Where no undo can be armed, Hostwarden names the
+console it knows for that machine, or tells you there is none, and you make the
+change with that console open.
 
 Rule: `rules/ssh-safety-net.md`.
 

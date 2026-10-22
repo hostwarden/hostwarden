@@ -16,8 +16,8 @@ it in full.
 
 - Destructive commands, reboots, service restarts, and firewall or
   network changes all wait for your yes.
-- A firewall or network change arms a five-minute automatic undo
-  before it applies.
+- A firewall, network, VPN, PAM or login-shell change arms a
+  five-minute automatic undo before it applies.
 - Config reloads auto-proceed once the config test passes.
 - Stopping or deleting a guest, or a storage change, puts the exact
   command to you first.

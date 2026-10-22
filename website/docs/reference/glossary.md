@@ -113,9 +113,9 @@ description: Hostwarden's own terms, each in a sentence or two, with
   sshd's configuration. [Hard guardrails](../safety/guardrails.md)
 - **Taboo guard** — the Claude Code hook that blocks the taboos in
   every permission mode. [Hard guardrails](../safety/guardrails.md)
-- **SSH safety net** — the automatic undo a firewall or network change
-  arms first; it reverts the change unless a new SSH login succeeds.
-  [What it asks first](../safety/approvals.md)
+- **SSH safety net** — the automatic undo a firewall, network, VPN, PAM
+  or login-shell change arms first; it reverts the change unless a new SSH login
+  succeeds. [What it asks first](../safety/approvals.md)
 - **Canary** — on a change to several hosts, the one host that runs it
   alone first; the others follow only when its result matches what was
   expected. [One task on many hosts](../features/fleet/multi-host.md)

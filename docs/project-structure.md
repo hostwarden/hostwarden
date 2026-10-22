@@ -340,7 +340,8 @@ rules/                 — Upstream rule files (git-tracked)
                          a new host's port; port
                          forwardings per session
   ssh-safety-net.md    — Timed revert armed before a
-                         firewall or network change
+                         firewall, network, VPN, PAM or
+                         sysctl change
   machine-memory.md     — Machine memory file format
   storage-inventory.md — Disks, ZFS and btrfs settings
                          recorded once per host

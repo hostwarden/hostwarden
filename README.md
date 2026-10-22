@@ -134,7 +134,7 @@ everything below: [the Features page](https://hostwarden.github.io/docs/features
 - **Asks, backs up, and can undo a lockout.**
   Destructive commands, firewall and network changes,
   reboots and service restarts need your approval; a
-  firewall or network change reverts itself if it locks
+  firewall, network, VPN or PAM change reverts itself if it locks
   remote access out. The absolute taboos — partition
   tables, disk erases, storage repair, sshd's
   configuration and keys, power-off — are hard-blocked

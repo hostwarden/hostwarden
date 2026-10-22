@@ -40,8 +40,9 @@ lines lacks them.
    that does) is never run, in check mode or for real. Name it to
    the user; the play runs once the user has taken it out, or the
    user runs the playbook. A task that changes the firewall, the
-   network or a login shell (`ufw`, `firewalld`, `iptables`,
-   `nftables`, `nmcli`, `user` with `shell`, …) is run only as
+   network, a VPN, PAM, a network sysctl or a login shell (`ufw`,
+   `firewalld`, `iptables`, `nftables`, `nmcli`, `pamd`, `sysctl`,
+   `user` with `shell`, …) is run only as
    `rules/firewall-changes.md` and `rules/ssh-safety-net.md` say:
    every port sshd listens on stays open, and the timed revert is
    in place before step 4 applies. Then name every task that runs in check
@@ -81,11 +82,16 @@ lines lacks them.
    (`rules/parallel-sessions.md`), announce where a task restarts a
    service or touches the network (`rules/coordination.md` →
    Announce, wait, go), set the safety net where step 1 found a
-   firewall or network task (`rules/ssh-safety-net.md`), then ask
-   once, the hosts listed, and run the same call without
-   `--check`. A second run afterwards has to
-   report `changed=0` for every host; show it, and treat anything
-   else as a task that is not idempotent, named to the user.
+   task that can cut SSH (`rules/ssh-safety-net.md`, whose step 5
+   covers a play run from the workstation), then ask once, the
+   hosts listed, and run the same call without `--check`. For
+   such a task the call is `--limit` to one host, armed in a call
+   of its own first, then that host's fresh login and the cancel
+   before the next host starts. A second run afterwards has
+   to report `changed=0` for every host; for such a task it is a
+   change again, so each host is armed once more first, in a
+   call of its own, and the cancel follows its result; show it, and treat
+   anything else as a task that is not idempotent, named to the user.
 5. **Log it.** A journal line per host (`rules/changelog.md`), a
    changelog entry whose `Source:` names the workspace commit of
    the playbook tree, and the host's `Config management: ansible

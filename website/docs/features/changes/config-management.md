@@ -43,8 +43,8 @@ the tool's ownership changes what happens.
   it first. A task that reaches a taboo — writing `sshd_config` or
   an SSH key, partitioning or formatting a disk, a halt or reboot —
   stops it there, until you take the task out or run the playbook
-  yourself; a firewall or network task gets the same safety net as
-  a change by hand
+  yourself; a task that can cut SSH, such as a firewall or network
+  one, gets the same safety net as a change by hand
   ([What it asks first](../../safety/approvals.md#firewall-and-network-changes)).
   Then it names every task that runs even in check mode,
   runs `ansible-lint --offline` where your machine has it, then
