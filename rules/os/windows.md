@@ -82,16 +82,22 @@ name what it adds: `pwsh.exe` under
 `C:\Program Files\PowerShell\7\`, on the system `PATH`, updated
 through Microsoft Update.
 
-1. **Pick the release** through `rules/version-check.md`: the
-   newest stable one whose GitHub release still ships
+1. **Pick the release** through `rules/version-check.md`: read
+   [Microsoft's support lifecycle](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle)
+   for the newest **LTS** line still in support, then take that
+   line's newest release whose GitHub release ships
    `PowerShell-<version>-win-<arch>.msi`, `<arch>` being `x64`,
    or `arm64` where memory's `Arch:` line (Version Detection
-   below) holds `aarch64`. From
-   7.7 on there is no MSI, and the MSIX package that replaces it
-   changes its path with every version; the fixed path is the
-   reason for the MSI. Read the file's SHA-256 from the
-   release's "SHA256 Hashes of the release artifacts" section
-   on the workstation, never from the host.
+   below) holds `aarch64`. Never a Stable release: it gets
+   critical fixes only until a few months after the next LTS
+   ships, and an LTS line takes nothing but security and
+   servicing fixes, so a server stays on what it was tested on
+   until the line ends. From 7.7 on there is no MSI, and the
+   MSIX package that replaces it changes its path with every
+   version; the fixed path is the reason for the MSI. Where the
+   LTS line has no MSI, stop and tell the user. Read the file's
+   SHA-256 from the release's "SHA256 Hashes of the release
+   artifacts" section on the workstation, never from the host.
 2. **Download, check, install and verify** in one call:
 
    ```powershell
@@ -266,6 +272,24 @@ Record, besides the usual fields: `OS: <Caption> (build
 `DefaultShell` names, and the `Admin:` line from Privileges
 below. After Setting Up PowerShell 7 changed the default shell,
 also `DefaultShell: <path> (was <previous or unset>)`.
+
+### The installed PowerShell 7
+
+Rate the `PowerShell:` version against the same lifecycle page,
+read through `rules/version-check.md`, whenever it is reported:
+
+- A release of a line that is not LTS: **INFO**, naming the line
+  and its end-of-support date. Never downgrade it, and never
+  replace it unasked. Offer the LTS install above only when the
+  user wants it and the release it picks is newer than the
+  installed one; where the installed release is newer, there is
+  no install to offer, and the line ends the report.
+- An LTS line that ends within 90 days: **WARN**, with the date
+  and the LTS line that follows; one that has ended, **WARN**
+  with the date. The move is the install above, asked for like
+  any other.
+- A release behind the newest of its own line: **INFO**, as for
+  any package.
 
 ## Privileges
 
@@ -902,6 +926,13 @@ sections say.
   and property names, never on display text.
 - **Halting.** `Stop-Computer` and `shutdown /s` power the
   server off (`AGENTS.md` → Critical Safety Rules).
+- **File encoding.** A file without a byte order mark is read
+  as ANSI by Windows PowerShell 5.1 and as UTF-8 by PowerShell 7,
+  so one command gives two answers. Give `Get-Content` an
+  explicit `-Encoding` (`utf8`) wherever a file's text is
+  reported. Never switch the system-wide "Beta: Use Unicode
+  UTF-8" option on: it changes the code page of every program
+  on the host.
 - **Profiles.** `-NoProfile` keeps an admin's profile script
   out of every call; never drop it.
 - **Paths in single quotes.** Inside the bundle, write a path
