@@ -374,6 +374,13 @@ note that no entry and no memory line points to any
 more is deleted. Secrets never go in a note
 (`rules/secrets.md`).
 
+Memory holds facts about hosts, never content that passed through
+them. No log excerpts, no mail or ticket content, and no personal
+data beyond a name, a role and the contact settings a workflow
+records (`Alert email:`, `Reply-To:`): a workspace may be shared
+through git (→ Personal versus shared). Say what a log showed in a line
+("nginx restarted twice since 03:00"), not the lines.
+
 ## Cross-machine facts
 
 Facts that belong to no single host — a mesh VPN

@@ -31,6 +31,15 @@ getent passwd <user> | cut -d: -f7
   (commonly `~/.shrc`); `csh`/`tcsh` read
   `~/.cshrc` and use `setenv PATH ...` syntax.
 
+A user's shell profile belongs to its owner. Read it before
+writing, add one marked block and leave every other line as it
+is. Back up `~/.bashrc` as well as `~/.bash_profile` first
+(`rules/backups.md`). Where chezmoi, yadm or configuration
+management owns the file, a first line saying so or a symlink
+into a dotfiles directory shows it; change the source there, since
+an edit of the deployed file is overwritten at the next apply
+(`rules/config-management-changes.md`).
+
 For bash, add both `~/.local/bin` (for the
 `mise` binary itself) and the shims directory (for
 language runtimes) to `PATH` **at the top of
@@ -43,6 +52,8 @@ sourced for non-login, non-interactive SSH commands.
 ```bash
 # Insert at the very top of ~/.bashrc.
 # The grep guard makes re-runs a no-op.
+grep -q '# mise (before interactive guard)' ~/.bashrc || \
+  command cp ~/.bashrc ~/.bashrc.bak.$(date +%Y%m%d-%H%M%S)
 grep -q '# mise (before interactive guard)' ~/.bashrc || \
 sed -i '1i# mise (before interactive guard)\
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"\
@@ -57,8 +68,8 @@ rather than overwrite, and guard with a marker so
 re-runs are no-ops:
 
 ```bash
-[ -f ~/.bash_profile ] && \
-  command cp ~/.bash_profile ~/.bash_profile.bak.$(date +%F)
+[ -f ~/.bash_profile ] && ! grep -q '# mise shims' ~/.bash_profile && \
+  command cp ~/.bash_profile ~/.bash_profile.bak.$(date +%Y%m%d-%H%M%S)
 grep -q '# mise shims' ~/.bash_profile 2>/dev/null || \
 cat >> ~/.bash_profile << 'EOF'
 # mise shims

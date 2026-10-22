@@ -162,6 +162,17 @@ project all work this way.
 Cross-reference: `rules/containers.md` → Changes, and
 the host's appliance file or service check
 
+**Ending a process by name pattern**
+`pkill -f`, `killall <name>` and
+`pgrep -f … | xargs kill` hit every process whose
+name or command line matches: real services, and
+other sessions' work.
+→ Find the one PID (by port, unit or PID file) and
+end that one, through the service manager where one
+owns the process.
+Cross-reference: `rules/parallel-sessions.md` →
+Ending a process
+
 **Application server running as root**
 Services should run as a dedicated user with
 minimal privileges.

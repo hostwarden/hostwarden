@@ -162,6 +162,23 @@ guaranteed to come at all.
 Ask it only for what it has already seen
 (`rules/borrowed-rights.md`).
 
+## Ending a process
+
+Another session's processes run on the same host, and a name
+pattern cannot tell them from yours. Never end a process with
+`pkill`, `killall <name>` or `pgrep -f … | xargs kill`. Find the one
+PID, by listening port, unit or PID file, and end that, through the
+service manager (`systemctl stop`, `service`) where one owns it
+(`rules/best-practices.md` → Process & Service Management).
+
+## A rewind undoes nothing on a host
+
+A conversation rewind or checkpoint in the agent tool restores the
+conversation and the local files, never a command that already ran
+on a server. After one, check the host's state and the changelog
+before repeating or skipping a step; undoing a change is the entry's
+`Rollback:` (`rules/changelog.md`).
+
 ## Deregister when the changes are done
 
 A session rarely gets an end the agent can see: the user closes or
