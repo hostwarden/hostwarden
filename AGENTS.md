@@ -165,13 +165,15 @@ user when it will visibly slow the answer.
 - **Absolute taboos (never run without explicit user request):** any
   command that modifies the partition table, whichever tool it uses
   (`fdisk`, `cfdisk`, `sfdisk`, `gdisk`, `sgdisk`, `parted`,
-  `gpart`, `gpt`, `diskutil`, `growpart`). Also any command that
+  `gpart`, `gpt`, `diskutil`, `growpart`, `disklabel`, `mbrlabel`,
+  `fmthard`). Also any command that
   erases a whole disk device while leaving the partition table
   alone: `blkdiscard`, `nvme format`/`sanitize`, `hdparm`
   secure-erase, `badblocks -w`, `shred` on a device, and `dd`, a
   redirect or `tee` onto one. Also any command that repairs or
   destroys a file system, RAID array, volume group or ZFS pool
-  (`fsck` without `-n`, a ZFS rewind, …: `rules/storage.md`).
+  (`fsck` without `-n`, a ZFS rewind, …: `rules/storage.md`), and
+  `raidctl` or `bioctl` beyond a status display.
   Also any command that writes the boot configuration:
   `efibootmgr` with a write flag, `grub-install`, `update-grub`,
   `grub-mkconfig -o`, `bootctl install`/`update`/`remove`/`set-*`,

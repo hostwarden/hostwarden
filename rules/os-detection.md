@@ -163,12 +163,12 @@ machine memory. Then:
 - The partition-table and array taboos of `AGENTS.md`
   hold here under the tools of these systems too,
   read-only inspection excepted: `fmthard`,
-  `disklabel -e`, `-E`, `-i`, `-R` or `-w`,
-  `mbrlabel -w`, `raidctl` with any option but
-  a status display (`-s`, `-g`), and `bioctl -d` are
-  not run without the user's
-  explicit request. The taboo guard does not
-  recognise them.
+  `disklabel -e`, `-E`, `-i`, `-R`, `-w` or `-B`,
+  `mbrlabel -w`, `raidctl` with any option but a
+  status display (`-s`, `-g`, `-m`, `-S`, `-l`, `-h`), and
+  `bioctl` with an option that creates, deletes or
+  rebuilds a volume are not run without the user's
+  explicit request.
 - A command reported missing is looked for in
   `/sbin` and `/usr/sbin` before it counts as
   missing: over SSH their `PATH` may lack both, as

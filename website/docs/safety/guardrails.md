@@ -20,13 +20,15 @@ them mechanically.
 
 - **Disks and partition tables** — any partition-table writer,
   whichever tool (`fdisk`, `cfdisk`, `sfdisk`, `gdisk`, `sgdisk`,
-  `parted`, `gpart`, `gpt`, `diskutil`, `growpart`), and any command
+  `parted`, `gpart`, `gpt`, `diskutil`, `growpart`, `disklabel`,
+  `mbrlabel`, `fmthard`), and any command
   that erases a whole disk device while leaving the partition table
   alone: `blkdiscard`, `nvme format`/`sanitize`, `hdparm`
   secure-erase, `badblocks -w`, `shred` on a device, and `dd`, a
   redirect or `tee` onto one.
 - **File systems, RAID, LVM, ZFS and Btrfs repair or destroy** —
-  `fsck` without `-n`, a ZFS rewind, and the rest that
+  `fsck` without `-n`, a ZFS rewind, `raidctl` or `bioctl` beyond
+  a status display, and the rest that
   `rules/storage.md` lists in full.
 - **Power off or halt** — a server is never stopped or rebooted
   through this path (see [What it asks first](approvals.md) for the
