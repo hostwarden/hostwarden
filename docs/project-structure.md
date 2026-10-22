@@ -323,7 +323,7 @@ rules/                 — Upstream rule files (git-tracked)
                          virtualization, hypervisor, role
   ssh-user.md          — SSH username & language management
   ssh-connections.md   — Bundled, shared SSH connections;
-                         avoiding failed logins
+                         avoiding failed logins; long jobs
   ssh-unreachable.md   — No retry loops; blocked path vs
                          broken host
   host-keys.md         — memory/known_hosts: getting a key,

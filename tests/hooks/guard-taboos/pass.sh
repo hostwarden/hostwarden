@@ -133,3 +133,27 @@ check pass 'echo halting services'
 check pass 'dd if=/dev/sda of=/root/disk-backup.img'
 check pass 'uname -a'
 check pass 'echo see HOSTWARDEN_GUARD_DISABLE in the docs'
+
+# The long-job recipe (rules/ssh-connections.md → Long jobs): the
+# job file written by a here-document, the retention find with
+# rm -r of a finished job, and the stop by process group and tree.
+check pass "ssh h 'sh -s' <<'EOS'
+export LC_ALL=C
+set -e
+umask 077
+mkdir -p ~/.hostwarden-jobs
+find ~/.hostwarden-jobs -mindepth 2 -maxdepth 2 \\
+  -name status -mtime +7 | while read -r s; do
+  rm -r \"\${s%/status}\"; done
+d=\$(mktemp -d ~/.hostwarden-jobs/\$(date +%Y%m%d-%H%M%S)-upgrade.XXXXXX)
+cat >\"\$d/cmd\" <<'CMD'
+apt-get -y dist-upgrade
+CMD
+(nohup sh -c 'sh \"\$1/cmd\" >\"\$1/out\" 2>\"\$1/err\" &
+  echo \$! >\"\$1/pid\"; trap \"\" TERM
+  wait \$!; echo \$? >\"\$1/status\"' sh \"\$d\" \\
+  </dev/null >/dev/null 2>&1 &)
+EOS"
+check pass 'ssh h "ps -A -ww -o pgid= -o args= | grep -F ~/.hostwarden-jobs/x | grep -vF \"grep -F\""'
+check pass 'ssh h "kill -TERM -4242"'
+check pass 'ssh h "k() { for c in \$(ps -A -o pid= -o ppid= | awk -v p=\"\$1\" \"\\\$2==p{print \\\$1}\"); do k \"\$c\"; done; kill -TERM \"\$1\"; }; k 4242"'
