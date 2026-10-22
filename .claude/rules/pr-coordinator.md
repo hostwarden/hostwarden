@@ -35,8 +35,14 @@ can act on a pull request that has silently changed underneath.
 Before naming a merge command:
 
 - CI is green on the actual current head, read fresh
-  (`gh pr checks <n> -R hostwarden/hostwarden`), never a rollup that
-  could still be reporting an earlier one — the review record
+  (`gh pr checks <n> -R hostwarden/hostwarden`) and that head the
+  SHA the pull request's session reported
+  (`gh pr view <n> -R hostwarden/hostwarden --json headRefOid`),
+  never a rollup that could still be reporting an earlier one;
+  right after a push,
+  `gh run list -R hostwarden/hostwarden --commit <full sha>`
+  shows whether that head's runs exist yet
+  (`pull-requests.md` → Checks) — the review record
   (`pull-requests.md` → The review record) is one of its required
   checks, so a green run already covers it.
 - A real merge has been tried: fetch `hostwarden/main`
