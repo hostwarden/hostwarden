@@ -224,7 +224,9 @@ to a workstation's expectations rather than a
 server's: [Systems it knows](https://hostwarden.github.io/docs/features/systems/overview).
 Other distributions work too — Hostwarden applies
 general best practices and tells you which OS it
-detected.
+detected. Another Unix, such as NetBSD, OpenBSD or
+illumos, is read with generic commands only, and
+Hostwarden asks before changing anything there.
 
 ## Risks & Responsibilities
 

@@ -90,6 +90,8 @@ What counts as a first connection:
      `freebsd-version` line.
    - **macOS:** `macos`, version from the `sw_vers`
      line.
+   - **Another Unix:** no family, and no family file
+     to read (`rules/os-detection.md` → Another Unix).
    - **Windows:** `windows`, from the Windows probe
      (`rules/os-detection.md` → Windows); the lines
      after `@release` do not apply.

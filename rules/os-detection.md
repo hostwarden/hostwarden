@@ -63,16 +63,23 @@ can turn up under any `@` marker, because ssh passes
 stdout and stderr on separately; never read it as
 belonging to the section it lands in.
 
-**The first line decides whether to go on.** If it
-is anything but `Linux`, `FreeBSD` or `Darwin` — a
-menu, a banner, "This account is currently not
-available" — the account has no command shell. Stop
-and show the user the output. Never answer a menu
-over SSH: the same menus reboot the machine or reset
-it to factory defaults.
+**The first line decides whether to go on.** `Linux`,
+`FreeBSD` or `Darwin` goes on with the family it
+names. The name of another Unix — `NetBSD`,
+`OpenBSD`, `DragonFly`, `SunOS` (illumos and
+Solaris), `AIX` or `HP-UX` — goes on with Another
+Unix below, but only where the reply also holds the
+`@platform` line the call echoes: a shell ran the
+line. Anything else — a menu, a banner, "This
+account is currently not available", one of those
+names without the `@platform` line — means the
+account has no command shell. Stop and show the user
+the output. Never answer a menu over SSH: the same
+menus reboot the machine or reset it to factory
+defaults.
 
-One exception: when no line reads `Linux`,
-`FreeBSD` or `Darwin` and the reply holds an error
+One exception: when no line reads any of those
+names and the reply holds an error
 that names `uname` as a command the shell could not
 find — in whatever language the host speaks — a
 shell ran the line and knows no `uname`. That is
@@ -127,6 +134,50 @@ client in WSL 2
 Windows has no appliance or platform markers: steps 3
 and 4 of `rules/first-detection.md` → On first
 connection do not apply.
+
+## Another Unix
+
+A Unix that the first line names but no family file
+covers. Tell the user that Hostwarden has no OS file
+for it, and run the release command in the next
+call, since the full probe has none for it. That is
+`uname -r`, except on AIX, where it is
+`uname -v; uname -r` (`7.2`), and on SunOS, where
+`uname -r` says `5.11` for every illumos
+distribution and Solaris 11: there it is `uname -v`,
+and the full probe's os-release lines after
+`@release` name the distribution too. Record
+`OS: <name> <release>` and `Distro family: none` in
+machine memory. Then:
+
+- Work read-only, with generic POSIX commands only
+  (`ps`, `df`, `ls`, `cat`, `grep`, `uname`), each
+  checked with `--help` or its man page before it
+  runs (`AGENTS.md` → Verify Before Running): BSD and
+  System V tools take other flags than GNU ones. No
+  package manager, service manager or firewall
+  command is borrowed from a family file, and an
+  instruction that reads the OS file finds nothing
+  there: say so rather than reach for the nearest
+  family.
+- The partition-table and array taboos of `AGENTS.md`
+  hold here under the tools of these systems too,
+  read-only inspection excepted: `fmthard`,
+  `disklabel -e`, `-E`, `-i`, `-R` or `-w`,
+  `mbrlabel -w`, `raidctl` with any option but
+  a status display (`-s`, `-g`), and `bioctl -d` are
+  not run without the user's
+  explicit request. The taboo guard does not
+  recognise them.
+- A command reported missing is looked for in
+  `/sbin` and `/usr/sbin` before it counts as
+  missing: over SSH their `PATH` may lack both, as
+  NetBSD's does.
+- Ask before every change, however small, and say in
+  the question that no OS file backs it. The journal
+  line and the session markers every session writes
+  (`rules/changelog.md`, `rules/parallel-sessions.md`)
+  are the one write that needs no question.
 
 ## Layers
 
@@ -195,8 +246,9 @@ family file and the files that `Appliance:`,
 Shell and hardware come from memory. The first call
 still goes without stdin, in the shape The first call
 above gives: `uname -s`, then the version command
-from the OS file's Version Detection section and, for
-an appliance, its own, then `echo @platform;
+from the OS file's Version Detection section, or
+the release command of Another Unix, and, for an
+appliance, its own, then `echo @platform;
 cat /proc/version`. Its first line decides as The
 first call says. On Windows the first call is
 `cmd /c ver`, read as in Windows above — or, where
