@@ -390,6 +390,8 @@ trigger — not a request from the user.
 - A DNS record a host or service needs, a check of a DNS record or
   zone, or a DNS server to set up → `rules/dns.md`
 - Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
+- A command that can run over a minute → `rules/ssh-connections.md` →
+  Long jobs
 - A host that needs another port, address or jump host, or a
   port forwarding → `rules/ssh-config.md`
 - Asking what a reboot, restart or network change would hit →

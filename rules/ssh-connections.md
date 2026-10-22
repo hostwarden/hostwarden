@@ -36,8 +36,8 @@ either into a silent success.
 
 - Send several files in one `scp`/`rsync`.
 - Do not poll a host every few seconds. Run a long
-  job on the host (`nohup`, `systemd-run`, `daemon`)
-  and read its log at an interval of minutes.
+  job on the host and read it back with one call
+  that waits there (→ Long jobs).
 - `ProxyJump` costs a connection to the jump host
   **and** one to the target. Both are shared
   afterwards, since the jump host reads the same file
@@ -194,3 +194,174 @@ them: `rules/ssh-user.md` (user names),
 `rules/privilege-escalation.md` (root probe) and
 `rules/ssh-unreachable.md` (rejected logins, port
 probes).
+
+## 4. Long jobs
+
+The tool's own time limit ends a call long before a
+host is done with a big job (Claude Code: 2 minutes
+by default, 10 at most). A dropped connection or a
+context reset ends it just the same. The command
+runs on, and the session never learns its exit
+status or sees its output.
+
+So a command that can take more than a minute, or
+that must not be left half done (package upgrades,
+database migrations, `rsync` of a large tree,
+backups, builds, a long `find`), never runs inside
+the SSH call. It runs as a **job** on the host: one
+directory under `~/.hostwarden-jobs` (the SSH user's
+home, `/root` for root), the command in a file, its
+output and exit status in files beside it. The call
+only starts it and returns. The directory is not
+`$BACKUP_DIR`: the retention `find` there
+(`rules/backups.md`) would delete a job's files.
+
+A job writes files, so a host in read-only mode
+(`rules/access-control.md`) gets none, and neither
+does a host a rule forbids writing to. Its long
+check runs in the foreground, narrowed or split
+into pieces that each end within the tool's limit.
+
+```
+ssh … host 'sh -s' <<'EOS'
+export LC_ALL=C
+set -e
+umask 077
+mkdir -p ~/.hostwarden-jobs
+find ~/.hostwarden-jobs -mindepth 2 -maxdepth 2 \
+  -name status -mtime +7 | while read -r s; do
+  rm -r "${s%/status}"; done
+d=$(mktemp -d ~/.hostwarden-jobs/$(date +%Y%m%d-%H%M%S)-upgrade.XXXXXX)
+cat >"$d/cmd" <<'CMD'
+apt-get -o DPkg::Lock::Timeout=300 -y dist-upgrade
+CMD
+(nohup sh -c 'sh "$1/cmd" >"$1/out" 2>"$1/err" &
+  echo $! >"$1/pid"; trap "" TERM
+  wait $!; echo $? >"$1/status"' sh "$d" \
+  </dev/null >/dev/null 2>&1 &)
+echo "$d"
+EOS
+```
+
+`mktemp -d` gives every job a directory of its own,
+also for two sessions that start one in the same
+second. The `find` removes the jobs that finished
+more than 7 days ago: the `status` file marks them,
+so a job that still runs is never touched. A
+directory with no `status` is a job that died or is
+still running; look it up (→ below) before removing
+it by hand.
+
+`set -e` ends the call at the first step that fails
+(a home that takes no write, a full disk), before
+anything is started.
+
+The block needs only `sh` and `nohup`, which Linux,
+FreeBSD, macOS and busybox all have (tried on Debian
+and Alpine): no `screen` or `tmux`, nothing to
+install. The job outlives the
+call and the connection. Run it with the privilege
+the work needs and no more: as root when the login
+is root, otherwise `sudo -n` inside `cmd`
+(`rules/privilege-escalation.md`).
+
+Write the command so that a second run does no harm,
+because one day you will not know whether the first
+one ran: `rsync` rather than `scp` or `cp`,
+`mkdir -p`, a check before `useradd`,
+`DPkg::Lock::Timeout` instead of failing on the
+lock, and never `&& reboot` on the same line as an
+upgrade. The reboot is its own step, after the
+result was read and the user said yes
+(`rules/coordination.md`).
+
+Read the job back, at the path the start call
+printed, with one call that waits on the host, never
+a call every few seconds (→ Bundle commands). Set
+the tool's timeout to cover the wait (Claude Code:
+`timeout`, up to 10 minutes):
+
+```
+ssh … host 'sh -s' <<'EOS'
+export LC_ALL=C
+d=~/.hostwarden-jobs/20261021-141500-upgrade.Ab3dEf
+[ -d "$d" ] || { echo "no such job: $d"; exit 1; }
+i=0
+while [ ! -f "$d/status" ] && [ $i -lt 10 ]; do
+  sleep 30; i=$((i+1))
+done
+cat "$d/status" 2>/dev/null || echo running
+tail -n 40 "$d/out" "$d/err"
+EOS
+```
+
+`status` holds the exit code and exists only once
+the job is over. No `status` after the wait means it
+is still running: repeat the call. No `status` and
+no process whose command line names the job
+directory means the host went down with the job:
+read what it left behind before anything is started
+again (`rules/verify-before-reporting.md` → A
+command without a result ran, or it did not). The
+test is the command line, never a number kept in a
+file, which a reboot leaves behind for an unrelated
+process to inherit:
+
+    { ps -A -ww -o pgid= -o args= \
+      || ps -A -o pgid= -o args=; } 2>/dev/null \
+      | grep -F "$d" | grep -vF 'grep -F'
+
+`-ww` keeps a pipe from cutting the lines at 80
+columns; busybox `ps` takes neither it nor wider
+lines, hence the second form. The output is the
+wrapper and the job, each with its process group.
+
+To stop a job, signal its process group, read from
+that same output (`g`, the first column). sshd gives
+every call a group of its own, and the wrapper
+ignores the signal, so the status is still recorded:
+
+    kill -TERM -"$g"
+
+A job whose `cmd` runs under `sudo -n` belongs to
+root, which the SSH user cannot signal: stop it with
+`sudo -n kill -TERM -"$g"`. In local mode the job
+shares the session's group, so stop it by pid, the
+job and every process below it, once the command
+line above shows the job still there:
+
+    k() { for c in $(ps -A -o pid= -o ppid= \
+      | awk -v p="$1" '$2==p{print $1}'); do k "$c"; done
+      kill -TERM "$1"; }
+    k "$(cat "$d/pid")"
+
+**Other people see a job only if it is announced.**
+The presence map marks a host busy for a foreground
+call alone (`rules/coordination.md` → Presence map),
+and this call returns at once. So before the start,
+register or renew the entry with `<beat>` set to the
+job's expected end and a task such as `job-upgrade`
+(`rules/parallel-sessions.md` → Register, and
+renew), and deregister only when the result is read.
+Where the host has no register, the journal pair
+stands in, `done` written when the result is in. A
+job that restarts a service, reloads the firewall or
+changes the network is announced first
+(`rules/coordination.md` → Announce, wait, go), as
+the same command would be in the foreground.
+
+Record a running job and its directory in
+`memory/machines/<hostname>/todo.md`
+(`rules/machine-memory.md` → Session to-do list), so
+the next session, or a colleague's, picks it up
+instead of starting it again. Delete the job
+directory once the result is in the changelog
+(`rules/changelog.md`).
+
+This is for hosts with a POSIX shell. Windows has
+none, and its rules allow no write beyond the journal
+and two setup changes (`rules/os/windows.md`): a long
+command there runs in the foreground, narrowed or
+split. An appliance that is reached through an API
+only, or whose OS file names its own job mechanism,
+uses that instead.
