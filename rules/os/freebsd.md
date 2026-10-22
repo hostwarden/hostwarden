@@ -596,7 +596,7 @@ user confirmation** before doing this:
 
 ```
 # For base sshd (only with user confirmation):
-mv /usr/sbin/sshd /usr/sbin/sshd.real
+command mv /usr/sbin/sshd /usr/sbin/sshd.real
 cat > /usr/sbin/sshd << 'EOF'
 #!/bin/sh
 export OPENSSL_ia32cap=0

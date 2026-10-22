@@ -313,7 +313,7 @@ their backups first and Verify's reads on the host last.
      /^[[:space:]]*#/ { print; next }
      { for (i = 2; i <= NF && $i !~ /^#/; i++)
          if ($i == o) $i = n; else if ($i == s) $i = m
-       print }' "$f" > "$f.new" && cat "$f.new" > "$f" && rm -f "$f.new"
+       print }' "$f" > "$f.new" && cat "$f.new" > "$f" && command rm -f "$f.new"
    ```
 
    `cat` into the file keeps its owner and mode.

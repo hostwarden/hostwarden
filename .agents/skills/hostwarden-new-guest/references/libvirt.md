@@ -22,7 +22,7 @@ guest a copy of its own, so it never depends on the download:
 
 ```bash
 test ! -e /var/lib/libvirt/images/web1.qcow2 &&
-  cp /var/lib/libvirt/images/<image> /var/lib/libvirt/images/web1.qcow2 &&
+  command cp /var/lib/libvirt/images/<image> /var/lib/libvirt/images/web1.qcow2 &&
   qemu-img resize /var/lib/libvirt/images/web1.qcow2 20G
 ```
 

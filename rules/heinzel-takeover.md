@@ -136,7 +136,7 @@ recommended one:
 
 ## Move the fixed paths
 
-Never overwrite. `mv -n` keeps a same-named file at
+Never overwrite. `command mv -n` keeps a same-named file at
 the destination, and leftovers are reported rather
 than forced:
 

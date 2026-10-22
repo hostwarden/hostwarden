@@ -345,7 +345,7 @@ the `grep -H` prefix is off, in the file's order:
 f=~/.cache/hostwarden/certauth.web1.example.com
 cat "$f"
 sed 's/^[^:]*:[0-9]*://' "$f" | ssh-keygen -lf -
-rm -f "$f"
+command rm -f "$f"
 ```
 
 Such a line is user CA trust like `TrustedUserCAKeys`, for that

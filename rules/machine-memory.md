@@ -135,6 +135,14 @@ updates `storage.md` in the same step.
 Memory files never hold credential values — see
 `rules/secrets.md`.
 
+Write memory files with the file-edit tool, never
+through `sed -i`, a heredoc into `python3 -` or a
+`perl -e`. Memory names `sshd_config` and key paths,
+and the taboo guard denies an interpreter or an
+in-place edit whose command line carries one; the
+edit tool is judged by the file it writes, not by
+the text it puts there.
+
 ## Who writes which line
 
 Each line has one owner, which gives its wording and says when

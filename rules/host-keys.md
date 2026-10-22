@@ -111,7 +111,7 @@ f=~/.cache/hostwarden/hostkey.web2.example.com
 [ -s "$f" ] && sed 's/^@[^ ]* //' "$f" | ssh-keygen -lf - &&
   { echo "# $(date +%F) web2.example.com: pct exec 105 on pve1.example.com"
     cat "$f"; } >> "/srv/hostwarden/memory/known_hosts"
-rm -f "$f"
+command rm -f "$f"
 ```
 
 An empty file or one `ssh-keygen` rejects writes nothing: report
@@ -225,7 +225,7 @@ appending, give the line every name Getting a Key lists:
 ```bash
 f=~/.cache/hostwarden/hostkey.web1.example.com
 sed -E 's/^[^ ]+ /web1.example.com,192.0.2.10 /' "$f" > "$f.n" &&
-  mv "$f.n" "$f"
+  command mv "$f.n" "$f"
 ```
 
 For option 2, compare the printed fingerprint with the user's. A
@@ -264,7 +264,7 @@ with its aliases:
 
 ```bash
 ssh-keygen -R web1.example.com -f "/srv/hostwarden/memory/known_hosts" &&
-  rm -f "/srv/hostwarden/memory/known_hosts.old"
+  command rm -f "/srv/hostwarden/memory/known_hosts.old"
 ```
 
 `-R` removes each whole line that names the host, other names on
@@ -282,7 +282,7 @@ awk -v a=www.example.com '
   { i = ($1 ~ /^@/) ? 2 : 1; n = split($i, h, ","); o = ""
     for (j = 1; j <= n; j++) if (h[j] != a) o = o (o == "" ? "" : ",") h[j]
     if (o == "") next
-    $i = o; print }' "$f" > "$f.new" && mv "$f.new" "$f"
+    $i = o; print }' "$f" > "$f.new" && command mv "$f.new" "$f"
 ```
 
 A hashed name is not in clear and cannot be matched this way;

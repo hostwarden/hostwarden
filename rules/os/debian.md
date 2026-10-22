@@ -594,7 +594,8 @@ as a whole:
 - Check: `netplan generate`.
 - Apply: `netplan apply`.
 - Revert:
-  `rm -rf /etc/netplan && cp -a <backup-dir> /etc/netplan && netplan apply`.
+  `command rm -rf /etc/netplan && command cp -a <backup-dir> /etc/netplan &&
+  netplan apply`.
 
 `netplan try` is netplan's own safe apply: it rolls the
 change back unless ENTER confirms it within 120 seconds.

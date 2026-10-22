@@ -47,7 +47,7 @@ do
   then diff "$t" "$p" | sed -E "${fc:?}" && echo "compared $v"
   else echo "unread $v"; fi
 done
-rm -f "$t" "$p"
+command rm -f "$t" "$p"
 ```
 
 Each view is compared only where `compared <view>` says so;

@@ -347,7 +347,7 @@ Copy the default config from the package's
 
 ```sh guard-off
 # Example: openssh-server
-cp <rootfs>/usr/share/openssh/sshd_config \
+command cp <rootfs>/usr/share/openssh/sshd_config \
    <rootfs>/etc/ssh/sshd_config
 ```
 

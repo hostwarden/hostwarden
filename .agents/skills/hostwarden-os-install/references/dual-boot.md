@@ -106,7 +106,7 @@ support shrinking, so a migration is required.
   `zpool import -d /dev <guid> <name>`
 - **Stale `zpool.cache`:** After migration, the
   cache file may reference the old pool. Clear it:
-  `rm /boot/zfs/zpool.cache && zpool set
+  `command rm /boot/zfs/zpool.cache && zpool set
   cachefile=/boot/zfs/zpool.cache <pool>`
 - **`loader.conf` on BOTH pools:** After migration,
   update `vfs.root.mountfrom` in `/boot/loader.conf`

@@ -4,6 +4,17 @@
 # every part shares; never run on its own.
 # shellcheck shell=sh
 
+# --- the command prefix ----------------------------------------
+# cp, mv and rm are written as `command cp` so that an rm -i alias
+# cannot prompt (AGENTS.md -> SSH Options). The prefix must hide
+# no taboo from the guard.
+check deny 'command rm -rf ~/.ssh'
+check deny 'command mv /etc/ssh/sshd_config /tmp/'
+check deny 'command cp /tmp/new /root/.ssh/authorized_keys'
+check deny 'command dd if=/dev/zero of=/dev/sda'
+check deny 'command fdisk /dev/sda'
+check deny 'ssh root@h "command rm /etc/ssh/ssh_host_ed25519_key"'
+
 # --- must block ------------------------------------------------
 check deny 'halt'
 check deny 'poweroff'

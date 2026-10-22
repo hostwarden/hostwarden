@@ -67,7 +67,7 @@ if [ ! -L "$D" ] && cd "$D" 2>/dev/null \
    && [ "$(ls -ld . | cut -c1-10)" = drwxrwxrwx ]; then
   N="<token>+$(date +%s)+alice@ws1+nginx-upgrade"
   E=$(ls -d <token>+* 2>/dev/null)
-  if [ -n "$E" ]; then mv "$E" "$N"; else mkdir "$N"; fi && echo registered
+  if [ -n "$E" ]; then command mv "$E" "$N"; else mkdir "$N"; fi && echo registered
 fi
 date +%s; ls -1 "$D"
 ```
