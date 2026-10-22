@@ -31,24 +31,29 @@ OpenSSL: the `/usr/bin/openssl` of macOS is LibreSSL, which rejects
 installed skip the three refusal probes and say so. Set `addr`,
 `port` and `h` per name, `hport` for a plain HTTP listener (80 by
 default); write an IPv6 `addr` bracketed everywhere, `[::1]`, since
-`s_client` and `curl` both need it. `--noproxy '*'` keeps `curl` off
-any proxy the environment sets, so every probe reaches the listener:
+`s_client` and `curl` both need it. `k` keeps `curl` off any proxy
+the environment sets, so every probe reaches the listener, and
+bounds it; `c` bounds `s_client` with `timeout` (`gtimeout` from
+Homebrew's coreutils on macOS; without either, the `s_client`
+probes are unbounded, so say that in the report):
 
 ```sh
 port=443; hport=80; addr=127.0.0.1; h=web1.example.com
-c() { openssl s_client -connect "$addr:$port" -servername "$h" "$@" </dev/null 2>&1; }
-echo "tls1.3: $(c -tls1_3 | grep -E '^New,')"
-echo "tls1.2: $(c -tls1_2 | grep -E '^New,')"
-echo "tls1.1: $(c -tls1_1 -cipher 'DEFAULT:@SECLEVEL=0' | grep -E '^New,')"
-echo "tls1.0: $(c -tls1 -cipher 'DEFAULT:@SECLEVEL=0' | grep -E '^New,')"
-echo "legacy-suites: $(c -tls1_2 -cipher 'ALL:-ECDHE+AESGCM:-ECDHE+CHACHA20:@SECLEVEL=0' | grep -E '^New,')"
+to=$(command -v timeout || command -v gtimeout)
+k() { curl --noproxy '*' --connect-timeout 5 --max-time 15 "$@"; [ $? -ne 28 ] || printf '\ntimed out\n'; return 0; }
+c() { ${to:+$to 10} openssl s_client -connect "$addr:$port" -servername "$h" "$@" </dev/null 2>&1; [ $? -ne 124 ] || printf '\ntimed out\n'; return 0; }
+echo "tls1.3: $(c -tls1_3 | grep -E '^(New,|timed out)')"
+echo "tls1.2: $(c -tls1_2 | grep -E '^(New,|timed out)')"
+echo "tls1.1: $(c -tls1_1 -cipher 'DEFAULT:@SECLEVEL=0' | grep -E '^(New,|timed out)')"
+echo "tls1.0: $(c -tls1 -cipher 'DEFAULT:@SECLEVEL=0' | grep -E '^(New,|timed out)')"
+echo "legacy-suites: $(c -tls1_2 -cipher 'ALL:-ECDHE+AESGCM:-ECDHE+CHACHA20:@SECLEVEL=0' | grep -E '^(New,|timed out)')"
 c | openssl x509 -noout -subject -issuer -enddate
 c | openssl x509 -noout -text | grep -E 'Public Key Algorithm|Public-Key:|NIST CURVE'
-echo "stapling: $(c -status | grep -i 'OCSP response')"
-curl --noproxy '*' -s -o /dev/null -D - -H "Host: $h" "http://$addr:$hport/" | grep -iE '^(HTTP|location)'
-curl --noproxy '*' -sk --resolve "$h:$port:$addr" -o /dev/null -D - "https://$h:$port/" | grep -iE '^(HTTP/|server:|x-powered-by:|strict-transport-security:|x-content-type-options:|x-xss-protection:|expect-ct:|feature-policy:|public-key-pins:)'
-echo "unknown-sni: $(curl --noproxy '*' -sk -o /dev/null -w '%{http_code}' --resolve "example.invalid:$port:$addr" "https://example.invalid:$port/")"
-echo "unknown-host: $(curl --noproxy '*' -sk -o /dev/null -w '%{http_code}' --resolve "$h:$port:$addr" -H 'Host: example.invalid' "https://$h:$port/")"
+echo "stapling: $(c -status | grep -iE 'OCSP response|timed out')"
+k -s -o /dev/null -D - -H "Host: $h" "http://$addr:$hport/" | grep -iE '^(HTTP|location|timed out)'
+k -sk --resolve "$h:$port:$addr" -o /dev/null -D - "https://$h:$port/" | grep -iE '^(timed out|HTTP/|server:|x-powered-by:|strict-transport-security:|x-content-type-options:|x-xss-protection:|expect-ct:|feature-policy:|public-key-pins:)'
+echo "unknown-sni: $(k -sk -o /dev/null -w '%{http_code}' --resolve "example.invalid:$port:$addr" "https://example.invalid:$port/")"
+echo "unknown-host: $(k -sk -o /dev/null -w '%{http_code}' --resolve "$h:$port:$addr" -H 'Host: example.invalid' "https://$h:$port/")"
 ```
 
 A port where the TLS probes get no handshake and the HTTP probe an
@@ -58,7 +63,11 @@ line is an accepted protocol or
 suite; `New, (NONE), Cipher is (NONE)` is a refusal, and so is a
 line that is missing together with an `alert` from the server.
 A usage error or no output at all is no result: report the probe as
-not run, never as passed. `@SECLEVEL=0` lets the local OpenSSL
+not run, never as passed. A probe that hits its deadline (`c` and `k`
+print `timed out` when `timeout` exits 124 or `curl` 28) is an
+incomplete check whatever else its line shows, a `000` or a partial
+`New,` included: the report names the listener, says `timed out`,
+and never rates it as a pass or a refusal. `@SECLEVEL=0` lets the local OpenSSL
 offer what it would otherwise refuse to send, so the refusal is
 the server's. `curl` is missing on some hosts; without it the
 header and redirect lines read `not checked`.
