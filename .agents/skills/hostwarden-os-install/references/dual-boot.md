@@ -7,6 +7,10 @@ The boot-entry work continues in
 `references/efi-boot.md`; a cloud image as the
 source is `references/cloud-image.md`.
 
+Blocks fenced `guard-off` below run only once the operator
+relaunched with `HOSTWARDEN_GUARD_DISABLE` set to the host the
+boot writes run on — `SKILL.md` § The gate, step 4.
+
 ## Prerequisites
 
 Before starting any dual-boot setup:
@@ -188,7 +192,7 @@ Summary:
 new OS.** If it fails, the next reboot returns to
 the original OS automatically.
 
-```
+```sh guard-off
 efibootmgr -n XXXX    # boot entry for new OS
 reboot
 ```

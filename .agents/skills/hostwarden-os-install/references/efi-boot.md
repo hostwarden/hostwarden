@@ -1,9 +1,15 @@
 # EFI Boot Management
 
 Cross-OS rules for EFI boot management, dual-boot
-setups, and boot loader configuration. Boot-entry
-changes write no data and are outside the skill's
-gate; these rules govern them instead.
+setups, and boot loader configuration. The guard
+blocks the commands that write boot entries, the
+boot order or a boot loader, so those run behind the
+skill's gate, with the guard off toward the host
+(SKILL.md → Boot writes are behind the gate); the
+blocks below that run one of them carry `guard-off`
+and run only once the operator relaunched with
+`HOSTWARDEN_GUARD_DISABLE` set to that host. These
+rules say what to change and in which order.
 
 ## Safety
 
@@ -50,7 +56,7 @@ The safe way to test a new OS or boot loader.
 Boots the specified entry exactly once, then
 reverts to the normal BootOrder.
 
-```
+```sh guard-off
 # Linux
 efibootmgr -n XXXX     # XXXX = boot entry number
 
@@ -68,7 +74,7 @@ Changes the default boot priority. Riskier than
 BootNext — if the new entry doesn't work, the
 system may boot into a broken OS repeatedly.
 
-```
+```sh guard-off
 # Set new order (comma-separated entry numbers)
 efibootmgr -o XXXX,YYYY,ZZZZ
 ```
@@ -241,7 +247,7 @@ reliably.
 2. **Use `efibootmgr` from the tmpfs rescue** (or
    the old OS before it's destroyed) to create a
    new boot entry and update BootOrder:
-   ```
+   ```sh guard-off
    efibootmgr -c -d /dev/sda -p 1 \
      -l '\EFI\freebsd\loader.efi' \
      -L "FreeBSD"

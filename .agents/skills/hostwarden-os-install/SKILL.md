@@ -39,15 +39,20 @@ often invoked for exactly that.
 Never ask an operator to disable a safety mechanism in order to
 look at something.
 
-## Boot entries are not the gate
+## Boot writes are behind the gate
 
-Changing an EFI boot entry destroys no data, and the guard does not
-block `efibootmgr` in any form. Setting `BootNext` for a one-shot
-test is the *safe* way to try a new OS, and needing the guard off
-to do it would be backwards.
+The guard blocks the commands that write the boot configuration:
+`efibootmgr` with a write flag (`-c -B -o -n -N -a -A -t -T …`),
+`grub-install`, `update-grub`, `grub-mkconfig -o`, `bootctl install`
+and its siblings, `bless` beyond `--info` and `--getBoot`, `efivar -w`
+and anything written under `/sys/firmware/efi/efivars`. A wrong entry
+or a deleted variable leaves a machine that does not boot, so they
+need the gate below like a disk write does. Setting `BootNext` is
+still the safe way to try a new OS; it runs with the guard off toward
+that host, like the rest of the work. Reading needs none of it.
 
-So boot-entry work follows `references/efi-boot.md` § Safety
-instead, which owns those rules.
+Boot-entry work follows `references/efi-boot.md` § Safety, which owns
+the rules for what to change and in which order.
 
 The one place boot configuration turns dangerous is ordering, not
 permission — pointing the firmware at a root filesystem that is
@@ -91,8 +96,8 @@ as nothing is written.
 
 ## The gate — before the first disk write
 
-The moment a step would write to a disk or a partition table, all
-four have to hold:
+The moment a step would write to a disk, a partition table or the
+boot configuration, all four have to hold:
 
 1. **The user asked for it in this session.** Not inferred from a
    full disk, a broken boot, or an old release. This skill is never
@@ -104,9 +109,10 @@ four have to hold:
    `rules/backups.md`.
 4. **The taboo guard is off toward this machine for this
    session.** The shipped PreToolUse hook blocks `mkfs`, every
-   partition-table writer and `dd` onto a raw device — exactly what
-   these workflows run by design. The operator relaunches with
-   `HOSTWARDEN_GUARD_DISABLE` in the environment, set to the one
+   partition-table writer, `dd` onto a raw device, every boot
+   writer and a direct write to the account files of a root
+   being built — exactly what these workflows run by design. The operator
+   relaunches with `HOSTWARDEN_GUARD_DISABLE` in the environment, set to the one
    host whose disks the work writes: the name this session's `ssh`
    commands reach it by, as `memory/machines/` has it, or
    `localhost` for this machine's own disks. For a guest whose disk

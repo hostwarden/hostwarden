@@ -8,7 +8,8 @@ deployed VM brings with it.
 
 The taboo guard blocks the `dd` below and any edit
 of `sshd_config`, host keys or `authorized_keys`
-inside an offline image. Before the first of them,
+inside an offline image, and a write to its account
+files (`/etc/passwd`, `/etc/shadow`, `/etc/group`). Before the first of them,
 the gate in `SKILL.md` § The gate holds, including
 the operator having relaunched with
 `HOSTWARDEN_GUARD_DISABLE` set to the host the disk writes run on in the

@@ -39,6 +39,21 @@ them mechanically.
   configuration where dropbear is the SSH server. An sshd that
   already runs is never touched, not in a guest and not through its
   host.
+- **Boot loaders and firmware variables** — `efibootmgr` with a
+  write flag (creating, deleting, reordering or timing an entry),
+  `grub-install`, `update-grub`, `grub-mkconfig -o`,
+  `bootctl install`, `update`, `remove` and `set-*`, `bless`
+  beyond `--info` and `--getBoot`, `efivar -w`, and any write
+  under `/sys/firmware/efi/efivars`. OS installation lifts them
+  the way it lifts the disk writes (see
+  [The exception](#the-exception)).
+- **The account files, written directly** — `/etc/passwd`,
+  `shadow`, `group`, `gshadow`, `master.passwd` and the BSD
+  `pwd.db` databases, and `vipw`/`vigr`. Accounts are created
+  and changed with `useradd`, `usermod`, `passwd` and `pw`.
+  `sudoers` is not on this list: a drop-in is written, backed up
+  and checked with `visudo -c -f`, after asking
+  ([Accounts](../features/changes/accounts.md)).
 - **The same on Windows** — `diskpart`, `mbr2gpt`, `format X:` and
   the Storage cmdlets (`Clear-Disk`, `Remove-VirtualDisk`, …) write
   the partition table or erase a disk; `cipher /w` and
@@ -78,7 +93,8 @@ them mechanically.
 ## What stays allowed
 
 Read-only inspection is always allowed: `lsblk`, `fdisk -l`,
-`gpart show`, `diskutil list`, `nvme list`, `hdparm -I`. Looking a
+`gpart show`, `diskutil list`, `nvme list`, `hdparm -I`,
+`efibootmgr -v`, `bootctl status`, `getent passwd`. Looking a
 tool up — `man`, `--help` — costs nothing either.
 
 ## The exception

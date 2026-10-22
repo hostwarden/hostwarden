@@ -332,10 +332,13 @@ useradd -r -d /run/sshd -s /usr/sbin/nologin sshd
 useradd -r -d /var/lib/ntp -s /usr/sbin/nologin ntp
 ```
 
-Write `useradd` commands directly into the target
-rootfs's `/etc/passwd`, `/etc/shadow`, and
-`/etc/group` if `chroot` is not possible (different
-architecture or OS). Use the next available UID in
+Write the entries directly into the target rootfs's
+`/etc/passwd`, `/etc/shadow`, and `/etc/group` if
+`chroot` is not possible (different architecture or
+OS). The guard blocks a write to an account file, so
+this runs only once the operator relaunched with
+`HOSTWARDEN_GUARD_DISABLE` set to the host (`SKILL.md`
+§ The gate, step 4). Use the next available UID in
 the system range (100–999).
 
 ### 2. Configuration Files
