@@ -10,10 +10,10 @@
 # Heinzel hands-off (rules/access-control.md -> Server Lock); a
 # session that could flip it to true or delete it would make it
 # worthless. Moving or deleting it lifts the lock as surely as
-# writing true, so the write set is the sshd_config one: a
+# writing true, so the write set is the sshd_config one plus touch: a
 # redirect, sed -i, an editor, a delete, move or re-permission,
-# a copy or tee onto it, and find -delete, which deletes by a name
-# it never spells as a path. Reading it (cat, grep, ls) stays
+# a copy, touch or tee onto it, and find -delete, which deletes by
+# a name it never spells as a path. Reading it (cat, grep, ls) stays
 # allowed.
 #
 # Matched by the file name alone, in any case and after any path:
@@ -44,10 +44,14 @@ if full; then
       # After the verb, a separator, then anything but a command break
       # up to the name, which may follow the separator directly.
       LKN='([^;&|]*[^[:alnum:]_.;&|-])?'"$LOCKNAME"'([^[:alnum:]_.-]|$)'
+      # touch -r LOCK TARGET only reads LOCK: the reference operand is
+      # taken out before the touch rule looks for the lock as a target.
+      LKTOUCH=$(printf '%s\n' "$TEXT" | sed -E "s/[[:space:]](-[[:alpha:]]*r[[:space:]]+|--reference[=[:space:]]+)[\"']?[^[:space:];&|\"']*${LOCKNAME}/ REF/g")
       if hit '>>?[[:space:]]*["'\'']?[^[:space:];|&]*'"$LOCKFILE" \
         || hit "${LKV}(sed|perl)([^[:alnum:]_-][^;&|]*)?[[:space:]](-[[:alpha:]]*[iI][^[:space:]]*|--in-place[^[:space:]]*)[[:space:]]${LKN}" \
         || hit "${LKV}${EDITOR}[^[:alnum:]_-]${LKN}" \
         || hit "${LKV}(${CLOBBER}|cp)[^[:alnum:]_-]${LKN}" \
+        || printf '%s\n' "$LKTOUCH" | grep -Eq "${LKV}touch[^[:alnum:]_-]${LKN}" \
         || hit "${LOCKBARE}[^;&|]*[[:space:]]-(delete|exec(dir)?)([^[:alnum:]_-]|\$)" \
         || hit "${LKV}[gm]?awk([^[:alnum:]_-][^;&|]*)?[[:space:]]inplace[[:space:]]${LKN}" \
         || writes_to "$LOCKBARE"

@@ -50,6 +50,19 @@ check deny "sed -ni 's/false/true/p' /etc/heinzel.conf"
 check deny "sed -I '' 's/false/true/' /etc/heinzel.conf"
 check pass "sed -En 's/false//p' /etc/heinzel.conf"
 check deny "perl -pi.bak -e 's/false/true/' /etc/hostwarden.conf"
+check deny 'touch /etc/hostwarden.conf'
+check deny 'ssh root@h "touch /etc/heinzel.conf"'
+check deny 'cd /etc && touch heinzel.conf'
+check pass 'touch /etc/hostwarden.conf.bak'
+check pass 'touch -r /etc/hostwarden.conf /tmp/copy'
+check pass 'touch --reference=/etc/heinzel.conf /tmp/copy'
+check deny 'touch -r /tmp/x /etc/heinzel.conf'
+check deny 'touch -r /etc/hostwarden.conf /etc/heinzel.conf'
+check deny 'touch -r /etc/hostwarden.conf /tmp/copy /etc/heinzel.conf'
+check deny 'touch /etc/heinzel.conf -r /tmp/x'
+check deny 'touch -r /etc/hostwarden.conf /tmp/a; touch /etc/heinzel.conf'
+check deny 'touch -r /etc/hostwarden.conf /etc/hostwarden.conf'
+check deny 'touch /srv/a-r /etc/hostwarden.conf'
 # The drop-in the baseline writes at first boot is another file;
 # only the lock's own names count.
 check pass 'ls /etc/foo.d/10-hostwarden.conf'
