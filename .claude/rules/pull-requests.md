@@ -452,7 +452,7 @@ decide on.
 
 ### Codex
 
-- **Model:** `<model>` is `gpt-6-sol`, `<effort>` is `medium`.
+- **Model:** `<model>` is `gpt-6.1-sol`, `<effort>` is `medium`.
   This line is the only place to change them. The commands below
   use the placeholders and set them, and the provider `openai`, on
   every call, since a user's Codex configuration — `model`,
