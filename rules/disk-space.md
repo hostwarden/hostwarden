@@ -122,10 +122,11 @@ A volume is not a cache, whatever its name or age or whether a
 container uses it now: it holds a database as often as not.
 `volume rm` and `prune` delete data
 (`rules/containers.md` → Changes). A volume the user names as
-disposable goes by name, one at a time. A file that
-`logrotate` or `journald` already bounds is not the problem: find
-what keeps growing and why, and tell the user before trimming its
-output.
+disposable goes by name, one at a time. A log that `logrotate` or
+`journald` manages is not ruled out: rotation by time caps nothing
+between runs, and a size or retention limit can still exceed the
+disk. Read the policy and the measured usage, find what keeps
+growing and why, and tell the user before trimming its output.
 
 **Old kernels** are a capability because the previous one is the
 rollback target if the booted one fails; keep the running kernel
