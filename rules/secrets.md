@@ -120,6 +120,12 @@ openssl pkey -pubout -in example.key | sha256sum
   A keyword filter is a backstop, never the
   redaction: `db_pass`, `token` and `secret_key` get
   past one that knows `password`.
+- A recursive content search (`grep -r`, `rg`, `ag`) over `/etc`,
+  a home directory or an application directory prints the secret
+  lines it matches along with the rest. List the names first
+  (`grep -rl`, `rg -l --hidden --no-ignore`, `ag -l -u`; the
+  last two skip dotfiles such as `.env` otherwise), then read the
+  chosen file's fields as above.
 - A firewall listing prints its rules' free text
   whole, and a comment can hold a token. Every
   listing and saved rule file — `nft list`,

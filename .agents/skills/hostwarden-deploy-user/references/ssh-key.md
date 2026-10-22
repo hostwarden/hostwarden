@@ -15,9 +15,13 @@ key.
 Run locally (not on the server):
 
 ```bash
-ssh-keygen -t ed25519 -C "deploy@hostname" \
+ssh-keygen -t ed25519 -C "<owner> <host> deploy <date>" \
   -f deploy_ed25519 -N ""
 ```
+
+The comment names owner, host, purpose and date, such as
+`alice web1.example.com deploy 2026-10-22`, so whoever finds
+the key in an `authorized_keys` knows whose it is.
 
 This produces `deploy_ed25519` (private) and
 `deploy_ed25519.pub` (public).
@@ -54,8 +58,20 @@ tail -n 1 /home/deploy/.ssh/authorized_keys
 
 Tell the user to add the private key as a secret
 in their CI system (e.g. GitHub Actions secret
-named `DEPLOY_SSH_KEY`). **Never commit the
-private key to a repository.**
+named `DEPLOY_SSH_KEY`), handing it over on stdin:
+
+```bash operator
+gh secret set DEPLOY_SSH_KEY -R <owner>/<repo> < /path/to/deploy_ed25519
+```
+
+Hand it to the user with the pipeline's repository and the real
+key path; without `-R`, `gh` takes the repository of the directory
+it runs in. Never `--body` or any other argument: `argv` leaks
+into `ps` and shell history (`rules/secrets.md`).
+Once the secret is stored and the public key is
+installed, the user removes the local private key
+file. **Never commit the private key to a
+repository.**
 
 ### Restrict the authorized key (optional)
 
