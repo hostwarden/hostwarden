@@ -199,7 +199,7 @@ needed.
 Opening application ports (3000, 4000, 8080, etc.)
 to the world bypasses TLS and hardening.
 → Use nginx as a reverse proxy with TLS on 443.
-Cross-reference: `rules/port-check.md`
+Cross-reference: `rules/port-check.md`, `rules/web-tls.md`
 
 **Broad firewall port ranges**
 Opening ranges like 8000-9000 is overly permissive.

@@ -113,6 +113,12 @@ decision to keep Hostwarden from asking again
   directly** — the app never has to speak TLS or face the internet
   on its own.
   [rules/best-practices.md](https://github.com/hostwarden/hostwarden/blob/main/rules/best-practices.md)
+- **A web server on Mozilla's Intermediate TLS profile** — TLS 1.2
+  and 1.3 with forward-secret AEAD suites, port 80 only redirecting,
+  HSTS and no version strings. Stricter choices (HSTS preload,
+  re-encrypting to backends, TLS 1.3 only) are offered once and
+  recorded only if you say so.
+  [rules/web-tls.md](https://github.com/hostwarden/hostwarden/blob/main/rules/web-tls.md)
 - **A service bound to `127.0.0.1` when nothing outside the host
   needs it** — only the reverse proxy or the local caller can reach
   it.

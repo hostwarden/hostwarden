@@ -357,6 +357,8 @@ trigger — not a request from the user.
   `rules/community-scripts.md`
 - Installing, removing or reconfiguring a network-facing service →
   `rules/firewall-changes.md`
+- Installing or changing nginx, Apache, Caddy or HAProxy as a web
+  server or reverse proxy → `rules/web-tls.md`
 - Any firewall, network, VPN, PAM, network sysctl or login-shell
   change that can cut SSH → `rules/ssh-safety-net.md`, before
   applying it

@@ -37,6 +37,7 @@ Local accounts      WARN — deploy (sudo, keys); rescue (sudo,
                     keys) DECIDED — Break-glass account rescue
                     (user, 2026-09-18)
 Listening services  OK — no databases on 0.0.0.0
+Web TLS             WARN — web1.example.com:443 accepts TLS 1.1
 ASLR                OK — randomize_va_space = 2
 IP forwarding       OK — disabled
 MAC                 OK — AppArmor, 52 enforce, 4 complain
