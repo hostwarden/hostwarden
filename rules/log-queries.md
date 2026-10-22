@@ -34,7 +34,7 @@ behind it.**
   makes short: `-t hostwarden` holds Hostwarden's own entries, or
   `-u <unit>` with `--since`, on a journalctl without `-g`.
 - `--no-pager` always; `-q` hides the header lines and, for a
-  user outside `systemd-journal` and `adm`, the hint that the
+  user outside `systemd-journal`, `adm` and `wheel`, the hint that the
   journal is partial. `-o cat` drops timestamp and host when only
   the messages matter.
 
@@ -70,12 +70,17 @@ details are in `rules/os/macos.md` → Logs.
 
 When a precise query has answered the question
 (`-t hostwarden --since "48 hours ago"` returns nothing), report
-it. An empty result or a count of zero answers only if the session can read the
-whole journal: as a user outside `systemd-journal` and `adm`, `journalctl`
-shows its own entries alone, so run the sudo test of
-`rules/activity-check.md` → How to check first, or report the result
-as incomplete. Do not follow it with a broad cross-check that reads the whole
+it. Do not follow it with a broad cross-check that reads the whole
 log. If you need one, make it as precise as the first.
+
+**A result is an answer only if the session can read the whole
+journal.** As a user outside `systemd-journal`, `adm` and `wheel`,
+`journalctl` shows that user's own entries alone, so an empty
+result, a count of zero and a result with some lines all can leave
+out the entries that matter, such as a service's errors. Run the
+sudo test of `rules/activity-check.md` → How to check first, and
+where it passes, run the query itself under `sudo -n`. Where it
+fails, report the result as incomplete.
 
 A query that hit the time limit is not repeated unchanged and not
 widened. Narrow it: a shorter `--since`, a field filter, `-n`.
