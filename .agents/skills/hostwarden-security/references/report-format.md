@@ -39,9 +39,10 @@ Local accounts      WARN — deploy (sudo, keys); rescue (sudo,
 Listening services  OK — no databases on 0.0.0.0
 ASLR                OK — randomize_va_space = 2
 IP forwarding       OK — disabled
+MAC                 OK — AppArmor, 52 enforce, 4 complain
 File permissions    OK — no world-writable system files
 SUID/SGID binaries  INFO — 14 found (all expected)
-fail2ban            INFO — not running
+Brute force         OK — no password login from the internet
 ```
 
 ## Rules

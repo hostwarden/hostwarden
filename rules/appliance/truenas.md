@@ -358,6 +358,11 @@ never replaces it.
   - Whether the host is reachable from the internet, if the user
     knows. Exposure belongs to the router or firewall in front of it.
 
+## Replace: Mandatory Access Control
+
+- The module is the vendor's. Report what `references/mac.md` of
+  the security audit reads, as INFO; never change it.
+
 ## Replace: Service Manager
 
 - **Enabled services:** `systemctl list-unit-files --no-legend`, as

@@ -161,6 +161,21 @@ and gives the user the lines to add; the global known-hosts line
 of a server that connects out it adds itself, when the user says
 yes.
 
+## Mandatory Access Control
+
+The module the distribution ships, enabled and enforcing: SELinux
+or AppArmor, as the family file's Mandatory Access Control section
+names it; a family file without that section expects none.
+Checked by the security audit's `references/mac.md`.
+
+A new guest gets it from its image, which ships it on. On a running
+server, Hostwarden reports what differs and gives the user the
+steps, never takes them: enabling SELinux relabels the whole file
+system at the next boot, and a profile switched to enforcing can
+stop a service that ran under it. A denial that stops a service is
+answered with a targeted exception, never by turning the module
+off (`rules/best-practices.md` → Permissions & Security).
+
 ## Journal
 
 On a host with systemd, the journal is persistent, so the activity

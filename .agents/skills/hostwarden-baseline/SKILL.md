@@ -40,8 +40,9 @@ the gaps the user picks. The pipeline in
 4. **Apply** one section at a time, each under the rules
    `AGENTS.md` → Where the Rest Lives → Before you change something
    names for it.
-5. **SSH Login, SSH CA and Admin Keys:** as `rules/baseline.md` →
-   SSH Login and SSH CA say.
+5. **SSH Login, SSH CA, Admin Keys and Mandatory Access
+   Control:** as `rules/baseline.md` → SSH Login, SSH CA and
+   Mandatory Access Control say.
 6. **Record** `- Baseline: retrofitted <date>` in the host's
    memory once every section the user picked is in place and none
    is missing any more, and rewrite the `Baseline check:` line with

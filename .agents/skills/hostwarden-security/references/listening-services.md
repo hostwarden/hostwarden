@@ -78,6 +78,17 @@ These services should almost always be bound to localhost only.
 If the server's `memory.md` shows a legitimate reason for
 external binding (e.g. replication), note it as OK with context.
 
+Mark as **password service** a listener whose process is an FTP,
+IMAP or POP3 server, an MTA on its submission ports (465, 587),
+xrdp, a VNC server or Samba, on whatever port; without process
+names, a listener on 21, 110, 143, 993, 995, 465, 587, 3389, 445
+or 5900–5901; and the login page of a web interface the host's
+memory, appliance or role file names. A service whose
+configuration, where read, takes no password is not marked:
+FTP with anonymous login only, submission without SASL. The mark
+carries no severity here; `references/intrusion-prevention.md`
+rates it.
+
 All other listening services: report them for review, no
 automatic severity.
 

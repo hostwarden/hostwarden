@@ -26,6 +26,40 @@ Enterprise Server (SLES).
 - Some systems may use SuSEfirewall2 (older) — if so,
   flag it to the user as it's deprecated.
 
+## Brute-Force Protection
+
+Where the security audit finds a public service that takes a
+password (its `references/intrusion-prevention.md`), the
+recommendation is `fail2ban`: in openSUSE's main repository, and on
+SLES from SUSE Package Hub, which `SUSEConnect -p
+PackageHub/<version>/<arch>` enables as part of the same asked
+step. Key-only login and an admin interface behind a VPN come
+first.
+
+- The package bans through iptables and reads log files. One
+  drop-in, `/etc/fail2ban/jail.d/hostwarden.local`, a file of
+  Hostwarden's (`rules/deployed-files.md`), turns it to firewalld
+  and the journal:
+
+  ```ini
+  [DEFAULT]
+  backend = systemd
+  banaction = firewallcmd-rich-rules
+  banaction_allports = firewallcmd-rich-rules
+  ignoreip = 127.0.0.1/8 ::1 <admin networks>
+
+  [sshd]
+  enabled = true
+  mode = normal
+  ```
+
+  `ignoreip` takes the addresses this workstation and the admins
+  connect from: ask for them. Never `mode = aggressive` or `ddos`
+  (`rules/ssh-connections.md`).
+- The package leaves the service disabled: `fail2ban-client -t`
+  tests the configuration, then `systemctl enable --now fail2ban`.
+  Check: `fail2ban-client status sshd`.
+
 ## Automatic Security Updates
 
 - Prefer **security-only** patching via a cron job or
@@ -96,6 +130,18 @@ Enterprise Server (SLES).
   line tools for scripted operations, but be aware that YaST
   may have configured things in non-standard ways. Check
   existing config before assuming defaults.
+
+## Mandatory Access Control
+
+- **Expected:** SELinux, enforcing, on a new install of SLE 16,
+  Leap 16 or Tumbleweed; AppArmor on SLE 15 and Leap 15, and on a
+  16 upgraded from one where the migration kept it. Either one,
+  enforcing, meets the baseline.
+- Check status: `getenforce` for SELinux, `aa-status` as root for
+  AppArmor; `/sys/kernel/security/lsm` says which one runs.
+
+Sources: https://en.opensuse.org/How_to_switch_from_SELinux_to_AppArmor_in_Leap_16,
+https://linuxiac.com/sles-16-0-launches-with-agama-installer-selinux-and-16-years-of-support
 
 ## Storage Maintenance
 

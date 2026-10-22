@@ -339,6 +339,48 @@ https://www.debian.org/releases/bookworm/amd64/release-notes/ch-whats-new.en.htm
 Sources: https://documentation.ubuntu.com/security/security-features/network/firewall/,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/platform/tree/standard?h=resolute
 
+## Brute-Force Protection
+
+Where the security audit finds a public service that takes a
+password (its `references/intrusion-prevention.md`), the
+recommendation is `fail2ban` from the archive. Key-only login and
+an admin interface behind a VPN come first; the ban tool covers
+what is left.
+
+- Debian 13 and Ubuntu 24.04 and later ship it reading the journal
+  and banning through nftables, with the sshd jail on. Debian 12
+  ships 1.0.2 with neither: install `python3-systemd` with it, or
+  the sshd jail looks for `/var/log/auth.log`, which a host without
+  rsyslog lacks, and the service does not start. The nftables
+  action needs `nft`, which fail2ban only recommends: add
+  `nftables` where `command -v nft` finds none.
+- One drop-in, `/etc/fail2ban/jail.d/hostwarden.local`, a file of
+  Hostwarden's (`rules/deployed-files.md`), makes every release
+  alike:
+
+  ```ini
+  [DEFAULT]
+  backend = systemd
+  banaction = nftables
+  banaction_allports = nftables[type=allports]
+  ignoreip = 127.0.0.1/8 ::1 <admin networks>
+
+  [sshd]
+  enabled = true
+  mode = normal
+  journalmatch = _SYSTEMD_UNIT=ssh.service + _SYSTEMD_UNIT=sshd.service + _COMM=sshd + _COMM=sshd-session
+  ```
+
+  The nftables action keeps a table of its own, so it bans beside
+  ufw as well. `ignoreip` takes the addresses this workstation and
+  the admins connect from: ask for them. Never `mode = aggressive`
+  or `ddos`: they count connections that never log in and ban the
+  admin's own automation (`rules/ssh-connections.md`).
+- The package starts the service at install, before the drop-in
+  exists: `fail2ban-client -t` tests the configuration, then
+  `fail2ban-client reload` reads it. Check:
+  `fail2ban-client status sshd`.
+
 ## Automatic Security Updates
 
 - **Expected:** `unattended-upgrades`
@@ -765,6 +807,21 @@ and unattended-upgrades:
   channel.
 
 Sources: https://snapcraft.io/docs/how-to-guides/manage-snaps/manage-updates/
+
+## Mandatory Access Control
+
+- **Expected:** AppArmor, enabled, with the distribution's
+  profiles in enforce mode. Ubuntu ships it on, and Debian since
+  10 (buster).
+- Debian's kernel pulls in the `apparmor` package as a Recommends:
+  a host installed without recommends runs the module with no
+  profile loaded until `apparmor` is installed.
+- Check status: `aa-status` as root; `aa-complain` and
+  `aa-enforce` (`apparmor-utils`) switch one profile.
+- A denial shows in the journal as `apparmor="DENIED"`
+  (`journalctl -k --grep DENIED`).
+
+Sources: https://www.debian.org/releases/buster/amd64/release-notes/ch-whats-new.html
 
 ## Storage Maintenance
 
