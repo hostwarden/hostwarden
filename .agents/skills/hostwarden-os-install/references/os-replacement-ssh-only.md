@@ -44,9 +44,17 @@ bootable as a fallback throughout the process.
    `efibootmgr -n` (one-shot) so the system tries
    the new OS once. On failure, it automatically
    falls back to the old OS bootloader.
-8. **Clean up after confirmation** — once the new
-   OS is confirmed working, remove the old OS from
-   the swap partition and restore swap.
+8. **Make the new OS the default** — set BootOrder,
+   read it back, reboot once without BootNext and
+   check that the boot path does not depend on the
+   old OS.
+   Until then a plain reboot returns to the old
+   loader. See `references/efi-boot.md`
+   § Making the New Entry the Default.
+9. **Clean up after that reboot** — only once the
+   new OS has come up as the default on a boot path
+   of its own, remove the
+   old OS from the swap partition and restore swap.
 
 See `references/partition-staging.md` for hot-migration
 details. See `references/efi-boot.md` for BootNext

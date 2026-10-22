@@ -15,6 +15,10 @@ gate; these rules govern them instead.
   state before modifying.
 - **Keep the current default** until the new OS is
   confirmed working.
+- **Make the new entry the default before the old
+  system goes** — set, read back, one plain reboot,
+  and a boot path that outlives it
+  (§"Making the New Entry the Default").
 - A wrong BootOrder change can make the system
   unbootable (fixable via EFI shell or rescue, but
   disruptive).
@@ -75,6 +79,99 @@ efibootmgr -o XXXX,YYYY,ZZZZ
 
 **Only change BootOrder after BootNext has
 confirmed the new entry works.**
+
+## Making the New Entry the Default
+
+A one-shot boot proves the new entry once, and
+the boot after it takes the old default again.
+Making the new entry permanent is a step of its
+own, with its own proof, and it comes **before
+anything removes the old system** — its partition,
+its EFI directory, its boot entry. Until then a
+plain reboot returns to the old default, so
+removing the old system first leaves the default
+pointing at nothing: BootNext confirmed, BootOrder
+never set, the old partition formatted, and the
+next reboot stops in the old loader with nothing
+behind it.
+
+1. **Set the default** for the layer the one-shot
+   used:
+
+   | One-shot | Permanent |
+   |---|---|
+   | `efibootmgr -n XXXX` | `efibootmgr -o XXXX,…` |
+   | `grub-reboot <entry>` | `grub-set-default <entry>` |
+   | `bootctl set-oneshot <id>` | `bootctl set-default <id>` |
+
+   `grub-set-default` only counts with
+   `GRUB_DEFAULT=saved` in `/etc/default/grub`;
+   otherwise set `GRUB_DEFAULT` there and
+   regenerate the config. RHEL and its relatives
+   spell the tools `grub2-reboot` and
+   `grub2-set-default`.
+
+   A GRUB default counts only in the loader the
+   firmware starts. Run the tool in the system
+   whose loader that is, or with that loader's
+   `--boot-directory`; run from the new system
+   without it, the tool edits the new system's own
+   environment and the old loader keeps its
+   default. Where the firmware starts the old
+   loader, `efibootmgr -o` with the new entry
+   first is the plain way. `bootctl set-default`
+   writes an EFI variable that every system
+   shares, so it needs no such care; a `default`
+   line in `loader.conf` lives on the ESP and
+   counts there.
+2. **Read it back.** `efibootmgr` shows `BootOrder`
+   with the new entry first and no `BootNext`;
+   `grub-editenv <grubenv of the loader the
+   firmware starts> list` shows `saved_entry` and
+   no `next_entry` (RHEL: `grub2-editenv`);
+   `bootctl status` names the new entry as
+   `Default Boot Loader Entry`. For GRUB, also
+   read `GRUB_DEFAULT` in that system's
+   `/etc/default/grub` and its generated config: a
+   stale `GRUB_DEFAULT=0` can still point at the
+   old system.
+3. **Reboot once without the one-shot** and check
+   which system came up. A GRUB or systemd-boot
+   default starts through the same firmware entry
+   for both systems, so `BootCurrent` cannot tell
+   them apart there; read `/etc/os-release`,
+   `uname -r` or the root device. With `efibootmgr`
+   alone, `BootCurrent` is the new entry. Then
+   check that the login works and the services
+   run.
+4. **Check that the boot path outlives the old
+   system.** The loader that starts the new system,
+   its configuration and the kernel files it reads
+   must live on the new system or on the shared
+   ESP. Mounts of the running system do not show
+   that; read where the loader looks:
+   - GRUB: the stub `grub.cfg` on the ESP names the
+     file system it reads, as `search.fs_uuid <uuid>`
+     (Debian, Ubuntu) or `search --fs-uuid` (RHEL).
+     Compare the UUID with the new system's root or
+     `/boot` (`findmnt -no UUID /`, then
+     `findmnt -no UUID /boot`, one mount point per
+     call). With no stub on the ESP, the prefix sits
+     inside the loader image: reinstall it from the
+     new system.
+   - systemd-boot: the `linux` and `initrd` paths
+     of the entry sit on the ESP.
+   - FreeBSD `loader.efi`: the partition UUID it
+     boots (`gpart list`, `rawuuid`) or the pool's
+     `bootfs` (`zpool get bootfs`) is the new
+     system's.
+
+   A default that still goes through the old
+   system's GRUB or `/boot` stops working once that
+   is removed: install the new system's own loader
+   first, point the firmware at it with
+   `efibootmgr -o`, and repeat steps 2 and 3.
+5. **Only then** remove the old system.
 
 ## Boot Loaders
 
@@ -250,7 +347,9 @@ reliably.
 3. **Prefer BootNext** for the first boot into the
    new OS (see §"BootNext" above).
 4. **Delete old boot entries** only after the new
-   OS is confirmed working.
+   OS is confirmed working, has come up once as
+   the default and boots without the old system's
+   files (§"Making the New Entry the Default").
 
 If `efibootmgr` is not available in the rescue
 environment, rely on the fallback path and verify

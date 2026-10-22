@@ -219,7 +219,11 @@ Only after the new OS has booted successfully and
 SSH access is confirmed:
 
 1. Remove watchdog parameters from kernel cmdline.
-2. Change BootOrder to set the desired default.
+2. Change BootOrder to set the desired default,
+   read it back, and reboot once without
+   BootNext (`references/efi-boot.md` § Making
+   the New Entry the Default). Until then a plain
+   reboot takes the old default again.
 
 ## Static IP
 
@@ -258,4 +262,6 @@ check off for the whole call.
 8. [ ] cloud-init disabled (if cloud image)
 9. [ ] Network configured (static IP)
 10. [ ] BootNext test successful
-11. [ ] Backup or snapshot of working dual-boot
+11. [ ] Default set, read back, one plain reboot
+    into it
+12. [ ] Backup or snapshot of working dual-boot

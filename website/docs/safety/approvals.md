@@ -87,4 +87,10 @@ fails, Hostwarden reads, asks about your backup, and hands the
 repair command to you instead of running it. Looking a tool up —
 `man fsck`, `which e2fsck`, `--help` — is always free.
 
+A bigger disk for an existing machine, at your provider or in the
+hypervisor, is your decision: Hostwarden never orders one and does
+not suggest it to solve a space problem. Once you bring it up, it
+plans with it. The disk of a guest Hostwarden is creating is
+sized as part of creating it.
+
 Rule: `rules/storage.md`.

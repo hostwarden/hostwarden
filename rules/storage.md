@@ -146,6 +146,25 @@ instead (`rules/appliance/<name>.md`): it keeps records of arrays
 and volumes that a stock tool does not know, and a repair it did not
 run can leave the volume unreadable to the vendor's own software.
 
+## The Disk the Host Has
+
+Hostwarden works with the disk an existing machine has. It never
+grows a disk, volume or VM at the provider or in the hypervisor
+(`qm resize`, `pct resize`, `virsh blockresize`, a provider's
+volume resize), and does not propose it as the way out of a space
+problem: it costs money, and the decision is the user's at the
+provider. Free space on the host instead, or say what fills it.
+Only when the user brings a bigger disk up does it go into the
+plan. The new space usually sits after the partition, and
+growing a partition rewrites the partition table, an absolute
+taboo (`AGENTS.md`): Hostwarden hands that step to the user. The
+file system grows into the space under it as the Change tier
+says.
+
+Sizing the disk of a guest that `hostwarden-new-guest` is creating,
+the resize between `qm create` and its first boot included, is part
+of creating it, not growing one.
+
 ## Before a Change
 
 - **Name the device by what cannot move:** `/dev/disk/by-id/`, the

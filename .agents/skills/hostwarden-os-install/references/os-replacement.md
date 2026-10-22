@@ -148,6 +148,20 @@ becomes unrecoverable.
    BootNext (one-shot) for the first boot into
    the new OS. See `references/efi-boot.md`
    § BootNext (One-Shot Boot).
+5. **Make the new OS the default before anything
+   removes the old one.** Set BootOrder (or
+   `grub-set-default`, `bootctl set-default`),
+   read it back, and reboot once without the
+   one-shot, and check that its boot path does not
+   depend on the old OS (step 4 of that section).
+   Only after that remove the old OS, its partition, EFI directory or entry. See
+   `references/efi-boot.md` § Making the New Entry
+   the Default. Where the path overwrites the old
+   OS before the first boot (tmpfs rescue with
+   `dd`, mfsBSD), there is no old OS to fall back
+   to: create the entry and set BootOrder in the
+   same step as the write, read it back before the
+   reboot, and make that first boot the proof.
 
 ### What this means in practice
 
@@ -156,8 +170,10 @@ becomes unrecoverable.
   new OS is on disk.
 - Do NOT change BootOrder to prioritize the new
   OS before confirming it boots.
-- Do NOT remove old boot entries before the new
-  OS is confirmed working.
+- Do NOT remove old boot entries, or the old OS,
+  before the new OS has come up once as the
+  default (except on a path that overwrites it
+  before the first boot, step 5).
 - If the root filesystem write fails (dd error,
   permission denied, I/O error), **stop
   immediately**. Do not reboot. The old OS is
