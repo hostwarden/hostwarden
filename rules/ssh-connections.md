@@ -206,8 +206,9 @@ status or sees its output.
 
 So a command that can take more than a minute, or
 that must not be left half done (package upgrades,
-database migrations, `rsync` of a large tree,
-backups, builds, a long `find`), never runs inside
+database migrations, `rsync` of a large tree on the
+host, backups, builds, a long `find`), never runs
+inside
 the SSH call. It runs as a **job** on the host: one
 directory under `~/.hostwarden-jobs` (the SSH user's
 home, `/root` for root), the command in a file, its
@@ -238,7 +239,13 @@ CMD
 (nohup sh -c 'sh "$1/cmd" >"$1/out" 2>"$1/err" &
   echo $! >"$1/pid"; trap "" TERM
   wait $!; echo $? >"$1/status"' sh "$d" \
-  </dev/null >/dev/null 2>&1 &)
+  </dev/null >/dev/null 2>"$d/launch" &)
+i=0
+while [ ! -s "$d/pid" ] && [ $i -lt 5 ]; do
+  sleep 1; i=$((i+1))
+done
+[ -s "$d/pid" ] || { cat "$d/launch" >&2
+  echo "job not seen to start: $d" >&2; exit 1; }
 echo "$d"
 EOS
 ```
@@ -254,7 +261,13 @@ it by hand.
 
 `set -e` ends the call at the first step that fails
 (a home that takes no write, a full disk), before
-anything is started.
+anything is started. The last step waits for the
+wrapper to write its `pid`: without it, `launch`
+holds what `nohup` said, and the call fails with the
+job's path. That is "not seen within 5 seconds", not
+"never ran": a loaded host can start the wrapper
+late, so read the job back at that path before
+anything is started again.
 
 The block needs only `sh` and `nohup`, which Linux,
 FreeBSD, macOS and busybox all have (tried on Debian
@@ -292,6 +305,7 @@ while [ ! -f "$d/status" ] && [ $i -lt 10 ]; do
 done
 cat "$d/status" 2>/dev/null || echo running
 tail -n 40 "$d/out" "$d/err"
+if [ -s "$d/launch" ]; then cat "$d/launch"; fi
 EOS
 ```
 
@@ -308,13 +322,21 @@ file, which a reboot leaves behind for an unrelated
 process to inherit:
 
     { ps -A -ww -o pgid= -o args= \
-      || ps -A -o pgid= -o args=; } 2>/dev/null \
+      || ps -A -o pgid= -o args= \
+      || ps w; } 2>/dev/null \
       | grep -F "$d" | grep -vF 'grep -F'
 
 `-ww` keeps a pipe from cutting the lines at 80
 columns; busybox `ps` takes neither it nor wider
-lines, hence the second form. The output is the
-wrapper and the job, each with its process group.
+lines, hence the second form. The third is for
+OpenWrt's busybox, which takes no `-o` at all
+(`rules/busybox.md`). The output is the wrapper and
+the job, each with its process group; with the third
+form the first column is a pid, and the job is
+stopped by pid as in local mode. A lookup that
+printed nothing proves a dead job only if `ps`
+printed a list: run it once without the `grep`s when
+in doubt.
 
 To stop a job, signal its process group, read from
 that same output (`g`, the first column). sshd gives
@@ -328,9 +350,12 @@ root, which the SSH user cannot signal: stop it with
 `sudo -n kill -TERM -"$g"`. In local mode the job
 shares the session's group, so stop it by pid, the
 job and every process below it, once the command
-line above shows the job still there:
+line above shows the job still there. Where `ps`
+lists no parents, as on OpenWrt, the function finds
+no children: signal the pid, then read `ps w` for
+what still runs and stop each by pid.
 
-    k() { for c in $(ps -A -o pid= -o ppid= \
+    k() { for c in $(ps -A -o pid= -o ppid= 2>/dev/null \
       | awk -v p="$1" '$2==p{print $1}'); do k "$c"; done
       kill -TERM "$1"; }
     k "$(cat "$d/pid")"
@@ -357,6 +382,19 @@ the next session, or a colleague's, picks it up
 instead of starting it again. Delete the job
 directory once the result is in the changelog
 (`rules/changelog.md`).
+
+A transfer with an end on the workstation is not a
+host job: the files and the keys are here. Run it
+with `rsync --partial-dir=.rsync-partial` as the
+tool's background run, or in pieces that each end
+within the tool's limit. A call that was cut off is repeated unchanged once
+the earlier run is gone (the tool's task list, or
+`ps` for the `rsync`), never beside it: the partial
+directory keeps what was sent and leaves a finished
+file at the destination whole until the new one is
+complete, but it does not stop two runs from writing
+the same file. `rsync` then takes up where the
+partial file stopped.
 
 This is for hosts with a POSIX shell. Windows has
 none, and its rules allow no write beyond the journal
