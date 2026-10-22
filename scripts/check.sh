@@ -193,19 +193,28 @@ file_size() {
 # upstream repository only in the origin credit
 # (.claude/rules/repo-release.md → Porting from Heinzel). The
 # trailer and the pull request body line live outside them. The
-# released decision records in docs/adr/ are never edited.
+# released decision records in docs/adr/ are never edited. The
+# credit's files may name the repository, plainly: followed by
+# more name, a path, an @ or a # it is a reference, and so is
+# every issue or pull request number or link.
 upstream_refs() {
   rc=0
-  # Issue and pull request numbers, links to them: nowhere.
-  git grep -nIiE 'heinzel(#|/(issues|pull)/)[0-9]' -- CHANGELOG.md README.md \
-    changelog.d rules .agents/skills docs website templates ':!docs/adr'
-  case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
-  # The repository's name: only in the origin credit.
-  git grep -nIi 'wintermeyer/heinzel' -- CHANGELOG.md changelog.d \
-    rules .agents/skills docs website templates ':!docs/adr' \
-    ':!.agents/skills/hostwarden-heinzel-takeover' \
-    ':!rules/heinzel-legacy.md' ':!website/docs/getting-started/intro.md'
-  case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+  credit=':!.agents/skills/hostwarden-heinzel-takeover :!rules/heinzel-legacy.md :!website/docs/getting-started/intro.md'
+  # shellcheck disable=SC2086 # one pathspec per word is the point
+  {
+    git grep -nIiE 'heinzel(#|/(issues|pull)/)[0-9]' -- CHANGELOG.md \
+      README.md changelog.d rules .agents/skills docs website templates \
+      ':!docs/adr'
+    case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+    git grep -nIi 'wintermeyer/heinzel' -- CHANGELOG.md changelog.d \
+      rules .agents/skills docs website templates ':!docs/adr' $credit
+    case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+    git grep -nIiE \
+      'wintermeyer/heinzel([#/@_-]|[[:alnum:]]|\.[[:alnum:]])' -- \
+      README.md .agents/skills/hostwarden-heinzel-takeover \
+      rules/heinzel-legacy.md website/docs/getting-started/intro.md
+    case $? in 1) ;; 0) rc=1 ;; *) echo "  git grep failed" >&2; rc=1 ;; esac
+  }
   return $rc
 }
 

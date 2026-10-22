@@ -195,9 +195,9 @@ the shipped files (`rules/`, `.agents/skills/`, `docs/`, `website/`,
 `templates/`) either, the released records in `docs/adr/` apart.
 Only the origin credit in the README, the website's introduction,
 `rules/heinzel-legacy.md` and the takeover skill names the
-repository. `scripts/check.sh` fails an issue or pull request
-number or link anywhere in them and the repository's name outside
-those files; what the credit says is for review.
+repository, plainly: `scripts/check.sh` fails the name outside
+those files, and in them the name followed by more name, a path,
+an @ or a #, and every issue or pull request number or link.
 
 The `hostwarden-heinzel-takeover` skill and
 `rules/heinzel-legacy.md` are a different matter entirely: they
