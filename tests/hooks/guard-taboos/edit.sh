@@ -28,6 +28,13 @@ file_case deny 'Edit a private key' \
 file_case deny 'Write a public key' \
   "$(fjson Write /home/alice/.ssh/id_ed25519.pub)"
 file_case deny 'Edit sshd_config' "$(fjson Edit /etc/ssh/sshd_config)"
+file_case deny 'Write the server lock' "$(fjson Write /etc/hostwarden.conf)"
+file_case deny 'Edit the legacy server lock' "$(fjson Edit /etc/heinzel.conf)"
+file_case deny 'Edit the lock on macOS' "$(fjson Edit /private/etc/HEINZEL.conf)"
+file_case deny 'Write the lock through ./' \
+  "$(fjson Write /etc/./hostwarden.conf)"
+file_case pass 'Write a drop-in of the same name' \
+  "$(fjson Write /etc/foo.d/10-hostwarden.conf)"
 file_case deny 'MultiEdit a Homebrew sshd_config' \
   "$(fjson MultiEdit /opt/homebrew/etc/ssh/sshd_config)"
 file_case deny 'Edit QNAP sshd_config' \

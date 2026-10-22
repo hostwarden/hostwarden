@@ -22,6 +22,7 @@ condition, and what to do with the result.
 | What is added | Connection | Owner |
 | --- | --- | --- |
 | The session register | every | this file, below |
+| The server lock | every; no `sh`, none | `rules/access-control.md` |
 | Ansible's module runs | every | this file, below |
 | Agent directories and services | every | `rules/config-management.md` |
 | Cron and marker probe | first; conditional | `rules/config-management.md` |
@@ -37,6 +38,10 @@ condition, and what to do with the result.
 
 Where each condition is:
 
+- **The server lock:** on every family that runs `sh`
+  (`rules/access-control.md` → Server Lock); its
+  `##lock` block opens the call, so a lock is known
+  before the rest is read.
 - **The session register:** where the OS file's `## Logs` section
   does not say otherwise (A fresh Heinzel entry means a live session,
   below).

@@ -142,6 +142,10 @@ user when it will visibly slow the answer.
 ## Critical Safety Rules
 
 - **You are working on live production servers.**
+- **A server can lock itself.** `allow_changes = false` in
+  `/etc/hostwarden.conf` or `/etc/heinzel.conf` makes the host
+  read-only (`rules/access-control.md` → Server Lock). Never write,
+  move, delete or re-permission either file, even on request.
 - **Never fabricate server facts.** Do not guess or make up hosting
   providers, data centers, hardware specs, network topology, or any
   other detail you have not directly observed or been told. If you

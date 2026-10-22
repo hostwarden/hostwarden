@@ -58,6 +58,30 @@ are collected into a report you can hand off.
 
 Rule: `rules/access-control.md`.
 
+## Server lock
+
+The owner of a machine can lock it against changes with a file on
+the machine itself, for every Hostwarden and Heinzel that connects:
+
+```ini
+# /etc/hostwarden.conf  (or /etc/heinzel.conf)
+allow_changes = false
+reason = Database migration until 20 Oct, hands off
+```
+
+Hostwarden still connects and inspects, but changes nothing and
+reports what it would have done, as on a read-only server. Either
+file locks. An unreadable or empty file, any value other than `true`
+and a check that did not finish lock too. Windows servers are
+read-only anyway and DrayOS has no shell, so neither reads the file.
+
+Hostwarden never writes, moves or deletes the file, even when asked;
+you remove the lock by hand. It is a promise kept by every tool that
+honours it, not a security boundary: only withholding root and sudo
+keeps out a tool that does not.
+
+Rule: `rules/access-control.md`.
+
 ## Protected paths
 
 Two lists of globs protect single paths on a host that is otherwise

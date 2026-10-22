@@ -10,8 +10,9 @@ the sign of the pattern below, not the way out of it.
 Each of these is a limit the operator set, or left in place, for
 this session:
 
-- a host on `memory/blacklist.md` or `memory/readonly.md`, or
-  read-only by its OS file (`rules/access-control.md`);
+- a host on `memory/blacklist.md` or `memory/readonly.md`, locked
+  by its own `/etc/hostwarden.conf`, or read-only by its OS file
+  (`rules/access-control.md`);
 - unprivileged mode, or a group that grants one kind of work and
   no more (`rules/privilege-escalation.md`);
 - a guard block, a permission prompt that was denied, a request

@@ -64,6 +64,10 @@
 #     Format-Volume, Remove-VirtualDisk ...),
 #     \\.\PhysicalDriveN, sshd_config and host keys under
 #     ProgramData\ssh, and PowerShell or cmd.exe as a runtime
+#   - writing, moving or deleting the server lock,
+#     /etc/hostwarden.conf or /etc/heinzel.conf, which only the
+#     machine's owner sets (rules/access-control.md), in the
+#     full scope; the file tools are judged for it in every scope
 #   - an SSH key, a key store, sshd_config or dropbear's config
 #     as the target of Edit, Write, MultiEdit or NotebookEdit,
 #     which reach this machine's files without any shell
@@ -235,7 +239,7 @@ LIBDIR=$HOOKDIR/../../lib
 # reads HAS_KEY, SEGS or DISK as an earlier one left them. A new
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
-GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh boot accounts
+GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh boot accounts lock
 config-mgmt interpreters redirect guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer
