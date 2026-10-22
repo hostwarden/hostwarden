@@ -20,6 +20,14 @@ A decision, for one host or a group, settles any of these
 - **Automatic security updates** — a known vulnerability gets patched
   before someone finds it first.
   [Server baseline](../../features/checks/baseline.md)
+- **Every vendor repository in the automatic updates, by its own
+  pattern** — Docker, NetBird or Grafana stop waiting for a manual
+  `apt-get upgrade`, and a repository added later stays out until
+  someone names it. [Server baseline](../../features/checks/baseline.md)
+- **`live-restore` for Docker when its engine updates
+  automatically** — an engine upgrade no longer stops every
+  container.
+  [rules/containers.md](https://github.com/hostwarden/hostwarden/blob/main/rules/containers.md)
 - **Time sync, and the timezone you name** — logs and certificates
   across hosts line up.
   [Server baseline](../../features/checks/baseline.md)

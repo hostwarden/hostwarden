@@ -182,7 +182,10 @@ records it as one line:
   distribution's own apt or dnf hook where there is no needrestart
   (`rules/os/debian.md` → Non-interactive apt runs) — the same
   reading the housekeeping baseline and the fleet audit's
-  auto-reboot probe already take.
+  auto-reboot probe already take. A package that restarts its own
+  service on upgrade does so in the same slot whatever needrestart
+  says; for a container engine, `rules/containers.md` → Engine
+  Updates.
 - **How long a reboot takes:** measured, never estimated, from the
   host's own boot history —
   `journalctl --list-boots -n 4` where the journal reaches back that

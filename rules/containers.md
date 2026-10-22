@@ -241,3 +241,69 @@ container's name is unique only per engine and owner, so a
   before editing (`rules/backups.md`). It often carries passwords;
   read it for its structure and leave the values of password-like
   keys out (`rules/secrets.md`).
+
+## Engine Updates
+
+On Debian and Ubuntu, an upgrade of the Docker engine packages
+restarts the engine, from a manual `apt-get upgrade` and from
+unattended-upgrades alike: the `docker-ce` package installs
+`docker.service` with debhelper's default, which restarts the unit
+after the upgrade. Other families are not verified here. Without
+`live-restore`, a stopping `dockerd` stops every running container,
+and only the restart policies bring them back
+(`.agents/skills/hostwarden-housekeeping/references/containers.md`
+→ Containers That Should Run). On one Debian 13
+host an unattended upgrade from 29.9.1 to 29.9.2 brought four of
+five `unless-stopped` containers back and left the fifth in
+`Exited (0)`, with no cause found. So an engine upgrade is a
+restart of every container, and a container that is down
+afterwards is the finding, whatever its policy says.
+
+Before an engine repository goes into unattended-upgrades' origins
+(`rules/os/debian.md` → Vendor repositories), or when housekeeping
+reports one there:
+
+- **`live-restore`.** `"live-restore": true` in
+  `/etc/docker/daemon.json` keeps containers running while the
+  daemon restarts. Docker supports it across patch releases only;
+  after a larger upgrade, after skipped releases, or with daemon
+  options changed in between, the daemon may not reconnect to the
+  containers, and they then have to be stopped by hand. It is one
+  of the options `dockerd` reloads on `SIGHUP`, so turning it on
+  needs `systemctl reload docker`, not a restart: a reload under
+  `rules/service-reload.md`, with
+  `dockerd --validate --config-file /etc/docker/daemon.json` as the
+  config test and `daemon.json` backed up first (`rules/backups.md`).
+  While the daemon is down, a container's output can fill its log
+  buffer (64 KiB by default), and only a daemon restart flushes it.
+- **Where it does not help.** It covers standalone containers, not
+  Swarm services: with `docker info` reporting `Swarm.LocalNodeState`
+  `active`, it does not keep a service's containers through an
+  engine upgrade. Rootless Docker and Podman are
+  outside this section.
+- **Who owns `daemon.json`.** Config management owns it where the
+  host's memory says so (`rules/config-management-changes.md`), and
+  the setting goes there. Coolify's installer merges its own keys
+  into an existing `daemon.json` and keeps the others, so
+  `live-restore` survives its reruns.
+- **needrestart leaves Docker alone.** Debian 13's needrestart
+  (3.11) ships `qr(^docker) => 0` in `$nrconf{override_rc}`, so it
+  never restarts `docker.service` itself; the package's own restart
+  is the one that happens.
+- **When.** The restart happens in the update timer's slot, the one
+  the host's `Auto restarts:` line records
+  (`rules/maintenance-windows.md` → Automatic restarts), and with
+  `live-restore` off it is a downtime of every container in that
+  slot.
+- **Afterwards.** Housekeeping compares each container meant to run
+  with the engine's stops in the journal
+  (`.agents/skills/hostwarden-housekeeping/references/containers.md`
+  → Containers That Should Run). One that went down with the
+  restart and stayed down is started again only after asking, like
+  any restart (Changes above).
+
+Sources: https://docs.docker.com/engine/daemon/live-restore/,
+https://docs.docker.com/engine/containers/start-containers-automatically/,
+https://docs.docker.com/reference/cli/dockerd/,
+https://github.com/docker/docker-ce-packaging/blob/master/deb/common/rules,
+https://raw.githubusercontent.com/coollabsio/coolify/main/scripts/install.sh

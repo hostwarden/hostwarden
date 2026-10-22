@@ -11,7 +11,9 @@ place, `rules/baseline.md`:
 
 - a firewall that denies incoming traffic by default and keeps SSH
   open
-- automatic security updates
+- automatic security updates, from every vendor repository the
+  host uses as well (Docker, NetBird, Grafana, a PPA), each by a
+  pattern of its own
 - time sync
 - SSH by key only, and trust in your SSH CA where you run one
 - a persistent journal

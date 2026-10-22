@@ -25,7 +25,12 @@ Docker, first:
 
 ```bash
 d=docker
-$d info --format '{{.ServerVersion}} root={{.DockerRootDir}} log={{.LoggingDriver}} {{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
+$d info --format '{{.ServerVersion}} root={{.DockerRootDir}} log={{.LoggingDriver}} live-restore={{.LiveRestoreEnabled}} swarm={{.Swarm.LocalNodeState}} {{json .SecurityOptions}}{{range .Warnings}}{{printf "\n%s" .}}{{end}}'
+journalctl _PID=1 UNIT=docker.service -o short-iso-precise \
+  --since '14 days ago' 2>/dev/null \
+  | grep -E 'systemd\[1\]: (Stopping|Stopped) ' | tail -n 8
+grep -hE ' upgrade (docker-ce|containerd\.io):' \
+  /var/log/dpkg.log /var/log/dpkg.log.1 2>/dev/null | tail -n 4
 grep -oE '"(log-driver|max-size|max-file)" *: *"[^"]*"' \
   /etc/docker/daemon.json 2>/dev/null
 $d compose ls -a 2>/dev/null
@@ -34,6 +39,11 @@ grep -rlE '(dock|podm)[a-z]+ +(run|start|compose)' /etc/systemd/system \
 grep -rlE '(dock|podm)[a-z]+ +(run|start|compose)' \
   "$HOME/.config/systemd/user" 2>/dev/null
 ```
+
+The `Stopping` and `Stopped` lines are when systemd stopped the
+rootful engine, for a restart, an upgrade or a shutdown, as far back
+as the journal reaches; the `dpkg.log` lines (Debian and Ubuntu) name
+the engine upgrades.
 
 Podman, first; for a rootless owner, `systemctl --user` as that
 owner, with the same `XDG_RUNTIME_DIR`:
@@ -48,7 +58,7 @@ Then, for every engine:
 
 ```bash
 $d ps -a --format '{{.Names}}\t{{.State}}\t{{.Status}}\t{{.Image}}'
-i=$($d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} oneoff={{index .Config.Labels "com.docker.compose.oneoff"}} image={{.Config.Image}} id={{.Image}} logpath={{.LogPath}}')
+i=$($d ps -aq | xargs -r $d inspect --format '{{.Name}} policy={{.HostConfig.RestartPolicy.Name}} restarts={{.RestartCount}} exit={{.State.ExitCode}} finished={{.State.FinishedAt}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} log={{.HostConfig.LogConfig.Type}} max-size={{index .HostConfig.LogConfig.Config "max-size"}} unit={{index .Config.Labels "PODMAN_SYSTEMD_UNIT"}} project={{index .Config.Labels "com.docker.compose.project"}} service={{index .Config.Labels "com.docker.compose.service"}} dir={{index .Config.Labels "com.docker.compose.project.working_dir"}} oneoff={{index .Config.Labels "com.docker.compose.oneoff"}} image={{.Config.Image}} id={{.Image}} logpath={{.LogPath}}')
 printf '%s\n' "$i"
 printf '%s\n' "$i" | sed -n 's/.* logpath=\([^ ][^ ]*\).*/\1/p' \
   | xargs -r du -m | sort -rn | head -5
@@ -89,6 +99,13 @@ appliance's app — is reported there, not again here.
   `rules/privilege-escalation.md`, or is reported as skipped.
   Rootful Podman has no daemon; a `podman` that fails is reported
   with its error.
+- **INFO** for a rootful Docker with `live-restore=false` and
+  `swarm=inactive` whose `docker-ce` or `containerd.io` comes from a
+  repository unattended-upgrades takes (`references/baseline-linux.md`
+  → Vendor Repositories, `allowed=yes` or `loose`): "Unattended engine upgrades
+  restart every container: live-restore off". What to weigh is
+  `rules/containers.md` → Engine Updates. With the repository
+  outside the origins, that check's own finding stands instead.
 - Report the engine and version, rootful or rootless (`name=rootless`
   among Docker's `SecurityOptions`, `rootless=true` for Podman), and
   the owners queried. The engine is a package: its updates are the
@@ -117,6 +134,15 @@ daemon restarts or the container is started again, and the policy
 acts only once a container has run for ten seconds
 (<https://docs.docker.com/engine/containers/start-containers-automatically/>).
 
+- **WARN** for a container meant to run that is not running and
+  whose `finished` lies between a `Stopping` line of the engine and
+  the `Stopped` line after it, all read in UTC: the engine's own stop
+  stopped it, and it did not come back, whatever its exit code —
+  this takes the place of the INFO for a stop below. "Container
+  <name> down since the engine stopped at <time>", and the
+  `dpkg.log` upgrade at that time where there is one
+  (`rules/containers.md` → Engine Updates). Without such a pair the
+  cause is not shown, and the container is rated as below.
 - **CRITICAL** for a container in state `restarting`: a restart
   loop, the service is down. Read its logs (`rules/containers.md` →
   Logs) and quote the last error.
@@ -222,5 +248,6 @@ Findings go to Issues, one line each, in the skill's format:
 ```
 CRITICAL  Container media/jellyfin restarting (restart loop)
 WARN      Container db/postgres exited 1, policy unless-stopped
+WARN      Container proxy/traefik down since the engine stopped at 06:14 (docker-ce upgrade)
 INFO      Docker: 12.4 GB reclaimable, 7 dangling images, 3 unused volumes
 ```

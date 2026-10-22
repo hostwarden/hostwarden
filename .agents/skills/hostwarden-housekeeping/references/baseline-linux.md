@@ -179,7 +179,10 @@ the target before relying on them.
 ```bash
 apt-get update -qq 2>/dev/null
 
-inst=$(apt-get --just-print upgrade 2>/dev/null | grep "^Inst")
+# dist-upgrade, so an upgrade that needs a new dependency is not
+# held back and missed; only Inst lines with the installed version
+# in brackets are upgrades, the rest are new packages.
+inst=$(apt-get --just-print dist-upgrade 2>/dev/null | grep "^Inst [^ ]* \[")
 
 # Total pending upgrades.
 printf '%s\n' "$inst" | grep -c .
@@ -326,6 +329,168 @@ Check if `zypper-patch` or equivalent auto-update timer is
 configured.
 
 - **WARN** if auto-update mechanism is not active
+
+### Vendor Repositories
+
+**Debian/Ubuntu.** Every enabled repository that is not Debian's or
+Ubuntu's own — Docker CE, NetBird, Grafana, a PPA — with whether an
+unattended-upgrades origin matches it and which of its packages
+wait for an upgrade. The matching is unattended-upgrades' own:
+`Origins-Pattern` entries as they are, `Allowed-Origins`
+`"<origin>:<archive>"` as `o=…,a=…`, `${distro_codename}` and
+`${distro_id}` substituted, values compared as shell globs. The
+Release fields come from `apt-cache policy`, never from a file name
+under `/var/lib/apt/lists/`, which holds the URL. Run it in the
+same call as Pending Security Updates, after it: that call refreshed
+the lists, and its `inst` is the list of pending upgrades this probe
+reads. A local source (`file:`, `copy:`, `cdrom:`) has no site and
+is left out.
+
+```bash
+codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+distro=$(lsb_release -is 2>/dev/null) \
+  || distro=$(. /etc/os-release && echo "${NAME%% *}")
+pats=$(apt-config dump 2>/dev/null | sed -nE \
+  's/^Unattended-Upgrade::(Origins-Pattern|Allowed-Origins):: "(.+)";$/\1 \2/p')
+[ -n "${inst+x}" ] \
+  || inst=$(apt-get --just-print dist-upgrade 2>/dev/null | grep "^Inst [^ ]* \[")
+up=$(printf '%s\n' "$inst" | sed -n 's/^Inst \([^ ]*\) .*/\1/p')
+{
+  [ -n "$pats" ] && printf '%s\n' "$pats" | sed 's/^/P /'
+  apt-cache policy 2>/dev/null | sed 's/^/S /'
+  # shellcheck disable=SC2086 # one word per package name
+  [ -n "$up" ] && apt-cache policy $up 2>/dev/null | sed 's/^/C /'
+} | awk -v cn="$codename" -v id="$distro" '
+function g2r(s,  r, i, c) {
+  gsub(/\$\{distro_codename\}/, cn, s); gsub(/\$\{distro_id\}/, id, s)
+  r = ""
+  for (i = 1; i <= length(s); i++) {
+    c = substr(s, i, 1)
+    if (c == "*") r = r ".*"; else if (c == "?") r = r "."
+    else if (index(".+^$(){}|\\/", c)) r = r "\\" c
+    else r = r c
+  }
+  return "^" r "$"
+}
+function allowed(k,  p, t, n, i, f, v, ok, res) {
+  res = "no"; lp = ""
+  for (p = 1; p <= np; p++) {
+    n = split(pat[p], t, ","); ok = 1
+    for (i = 1; i <= n && ok; i++) {
+      gsub(/\001/, ",", t[i])
+      f = t[i]; sub(/=.*/, "", f); v = t[i]; sub(/^[^=]*=/, "", v)
+      if (f == "o" || f == "origin") ok = (o[k] ~ g2r(v))
+      else if (f == "a" || f == "suite" || f == "archive") ok = (a[k] ~ g2r(v))
+      else if (f == "n" || f == "codename") ok = (nn[k] ~ g2r(v))
+      else if (f == "l" || f == "label") ok = (l[k] ~ g2r(v))
+      else if (f == "c" || f == "component") ok = (c[k] ~ g2r(v))
+      else if (f == "site") ok = (site[k] ~ g2r(v))
+      else ok = 0
+    }
+    if (ok && lit[p]) { if (res == "no") res = "yes" }
+    else if (ok) { res = "loose"; lp = pat[p] }
+  }
+  return res
+}
+$1 == "P" {
+  s = substr($0, length($2) + 4)
+  if ($2 == "Allowed-Origins") {
+    gsub(/\\:/, "\002", s)
+    if (index(s, ":")) { split(s, t, ":") } else { split(s, t, " ") }
+    gsub(/\002/, ":", t[1]); gsub(/\002/, ":", t[2])
+    s = "o=" t[1] ",a=" t[2]
+  }
+  gsub(/\\,/, "\001", s); pat[++np] = s
+  lit[np] = (s ~ /(^|,)(o|origin)=[^*?,]+(,|$)/ && s ~ /(^|,)site=[^*?,]+(,|$)/)
+  if (s !~ /(^|,)(o|origin|site)=[^*?,]+(,|$)/) print "broad-pattern " s
+  next
+}
+$1 == "S" {
+  sub(/^S /, "")
+  if ($1 ~ /^-?[0-9]+$/) {
+    k = ""
+    if ($NF == "Packages" && NF >= 4 && $2 ~ /:\/\//) {
+      k = $2 " " $3; if (!(k in seen)) { seen[k] = 1; ord[++nk] = k }
+    }
+    next
+  }
+  if ($1 == "release" && k != "") {
+    r = $0; sub(/^ *release /, "", r); n = split(r, t, ",")
+    for (i = 1; i <= n; i++) {
+      f = substr(t[i], 1, 1); v = substr(t[i], 3)
+      if (f == "o") o[k] = v; else if (f == "a") a[k] = v
+      else if (f == "n") nn[k] = v; else if (f == "l") l[k] = v
+      else if (f == "c") c[k] = v
+    }
+    next
+  }
+  if ($1 == "origin" && k != "") site[k] = $2
+  next
+}
+$1 == "C" {
+  sub(/^C /, "")
+  if ($0 ~ /^[^ ].*:$/) { pkg = $0; sub(/:$/, "", pkg); got = ""; next }
+  if ($1 == "Candidate:") { cand = $2; next }
+  if ($1 == "***") { ver = $2; next }
+  if (NF == 2 && $2 ~ /^-?[0-9]+$/) { ver = $1; next }
+  if (NF >= 5 && ver == cand && got != pkg) {
+    got = pkg; pend[$2 " " $3] = pend[$2 " " $3] " " pkg; npend[$2 " " $3]++
+  }
+}
+END {
+  for (i = 1; i <= nk; i++) {
+    k = ord[i]
+    if (o[k] ~ /^(Debian|Ubuntu|UbuntuESM|UbuntuESMApps)$/) continue
+    al = allowed(k)
+    printf "vendor site=%s o=%s l=%s a=%s n=%s c=%s allowed=%s pending=%d%s\n", \
+      site[k], o[k], l[k], a[k], nn[k], c[k], al, npend[k], pend[k]
+    if (al == "loose") print "loose-pattern " site[k] " " lp
+  }
+}'
+```
+
+One line per repository and component:
+
+    vendor site=download.docker.com o=Docker l=Docker CE a=trixie n= c=stable allowed=no pending=2 containerd.io docker-ce
+    vendor site=pkgs.netbird.io o=Artifactory l=Artifactory a=stable n=stable c=main allowed=loose pending=0
+    loose-pattern pkgs.netbird.io origin=Artifactory,codename=stable
+    broad-pattern label=*
+
+Severity rules:
+
+- **WARN** for `allowed=no` with `pending` above 0: "Updates from
+  <site> (<o>) wait outside unattended-upgrades: <packages>".
+- **INFO** for `allowed=no` with `pending=0`: "<site> (<o>) not in
+  unattended-upgrades' origins" — the next release it publishes
+  waits for a manual run.
+- **WARN** for each `broad-pattern` line: a pattern without one
+  `origin=` or `site=` free of wildcards lets every repository
+  added later install unattended.
+- **WARN** for `allowed=loose`, with its `loose-pattern` line: the
+  repository updates unattended, and at least one pattern that
+  takes it does not name both its origin and its site without
+  wildcards, so another repository with the same origin is taken
+  too — even where an exact pattern for it exists as well. A loose
+  pattern that matches no enabled repository admits nothing yet and
+  shows once one does.
+- A decision that keeps a repository out, its heading naming the
+  site, settles its findings as `rules/decisions.md` → Rating
+  findings says; name the pending packages beside the `DECIDED`
+  line, since they still wait.
+- `allowed=yes` is no finding: name the site in the check line.
+- On a host whose memory has a `Config management:` or
+  `Provisioned by:` line, the finding says the origin belongs in
+  that tool's tree (`rules/config-management-changes.md`).
+
+The fix, a drop-in per vendor with a pattern built from these
+fields, is `rules/os/debian.md` → Vendor repositories, applied
+through `hostwarden-baseline`. Housekeeping changes nothing.
+
+Report it in the `Auto-updates` line, after the mechanism:
+
+    Auto-updates  unattended-upgrades active; vendors: download.docker.com
+                  (pending 2, not in origins), pkgs.netbird.io (loose pattern),
+                  apt.grafana.com (in origins)
 
 ## Automatic Restarts
 

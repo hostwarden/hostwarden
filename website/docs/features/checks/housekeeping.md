@@ -26,7 +26,8 @@ binary, the timezone and the persistent journal.
 
 ### The baseline
 
-Automatic security updates, time sync, the SSH host certificate,
+Automatic security updates and the vendor repositories they leave
+out, time sync, the SSH host certificate,
 backups, storage maintenance. See
 [Server baseline](baseline.md).
 
