@@ -79,11 +79,24 @@ sh "$P/bin/hostwarden-init" --local >/dev/null \
 # --clone takes the place of a workspace nothing was written to, and
 # keeps its personal files; one that holds work stays.
 echo '{}' > "$P/memory/opencode.json"
-sh "$P/bin/hostwarden-init" --clone "$TMP/remote.git" >/dev/null 2>&1 \
+echo '2026-10-22 alice: refused' > "$P/memory/refusals.log"
+# The workspace being cloned predates refusals.log: its .gitignore
+# lacks the line.
+git clone -q "$TMP/remote.git" "$TMP/oldws" 2>/dev/null
+grep -v '^/refusals.log$' "$TMP/oldws/.gitignore" > "$TMP/oldws/gi"
+mv "$TMP/oldws/gi" "$TMP/oldws/.gitignore"
+git -C "$TMP/oldws" -c user.name=t -c user.email=t@example.com \
+  commit -qam 'older .gitignore'
+git init -q --bare "$TMP/old.git"
+git -C "$TMP/oldws" push -q "$TMP/old.git" HEAD:refs/heads/main
+git -C "$TMP/old.git" symbolic-ref HEAD refs/heads/main
+sh "$P/bin/hostwarden-init" --clone "$TMP/old.git" >/dev/null 2>&1 \
   && git -C "$P/memory" rev-parse -q --verify HEAD >/dev/null \
   && grep -q '^Language: German$' "$P/memory/user.md" \
   && [ -f "$P/memory/opencode.json" ] && ok \
   || bad "init --clone did not replace a new workspace, personal files kept"
+git -C "$P/memory" check-ignore -q refusals.log && ok \
+  || bad "init --clone left the refusal log it carried over shareable"
 mode_is operations "$P"
 Q=$(checkout used)
 sh "$Q/bin/hostwarden-init" >/dev/null

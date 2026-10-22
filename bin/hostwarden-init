@@ -113,7 +113,7 @@ check_hooks() {
 # The personal files a clone never brings (templates/workspace/
 # .gitignore), which a clone in place of a new workspace carries
 # across from it.
-PERSONAL="user.md opencode.json blacklist.md readonly.md"
+PERSONAL="user.md opencode.json blacklist.md readonly.md refusals.log"
 
 # pristine — memory/ is a workspace nothing has been written to:
 # no commit, and no file but the ones init puts there, unchanged,
@@ -246,6 +246,17 @@ for f in templates/workspace/.[!.]* templates/workspace/*; do
   [ -f "$f" ] || continue
   [ -e "memory/${f##*/}" ] || cp "$f" memory/
 done
+# A .gitignore older than refusals.log stays as it is, so the
+# clone's own exclude list keeps the log out of the workspace. The
+# other personal files are the user's to share by deleting their
+# line, as the shared-workspace page says; only the log is never
+# shared.
+if ! git -C memory check-ignore -q --no-index -- refusals.log; then
+  EXCLUDE=$(git -C memory rev-parse --git-path info/exclude)
+  case "$EXCLUDE" in /*) ;; *) EXCLUDE="memory/$EXCLUDE" ;; esac
+  mkdir -p "$(dirname "$EXCLUDE")"
+  echo /refusals.log >> "$EXCLUDE"
+fi
 
 # Keep a secret out of every commit the workspace makes. The
 # hook lives in the workspace's own .git, so each clone gets

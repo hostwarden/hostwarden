@@ -18,7 +18,7 @@ for f in machines/server1.example.com/memory.md \
     bad "the workspace ignores $f, which a team shares"
   else ok; fi
 done
-for f in user.md blacklist.md readonly.md opencode.json \
+for f in user.md blacklist.md readonly.md refusals.log opencode.json \
     machines/localhost/memory.md machines/.link-probe.x; do
   if git -C "$OPS/memory" check-ignore -q --no-index -- "$f"; then ok
   else bad "the workspace would share $f, which is personal"; fi

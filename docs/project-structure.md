@@ -316,6 +316,8 @@ rules/                 — Upstream rule files (git-tracked)
                          short-lived certificates
   borrowed-rights.md   — No other session, job or token for
                          what this session may not do
+  ethics.md            — No attacks on any host, above
+                         every other rule
   os-detection.md      — OS detection on every connection:
                          the first call, Windows, layers
   first-detection.md   — What detection settles once:
@@ -448,6 +450,8 @@ memory/                — The workspace: all your user
   user.md              — Your preferences and SSH usernames
   blacklist.md         — Blocked servers
   readonly.md          — Read-only servers
+  refusals.log         — Requests refused under
+                         rules/ethics.md (personal)
   service-policy.md    — Your per-service opt-out /
                          opt-in for reload/restart
   housekeeping.md      — User-added custom checks
