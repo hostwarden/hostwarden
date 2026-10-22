@@ -922,7 +922,7 @@ What the running CPU carries:
 
 ```bash
 grep -m1 '^microcode' /proc/cpuinfo
-journalctl -k -b --grep=microcode --no-pager -q | tail -3
+journalctl -k -b --grep=microcode --no-pager -q -n 3
 ```
 
 **Alpine:** `dmesg | grep -i microcode | tail -3` for the
