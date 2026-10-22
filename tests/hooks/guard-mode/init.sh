@@ -27,6 +27,33 @@ done
 rm "$OPS/memory/.gitignore"
 sh "$OPS/bin/hostwarden-init" >/dev/null 2>&1 && ok || bad "second init failed"
 [ -f "$OPS/memory/.gitignore" ] && ok || bad "second init did not repair .gitignore"
+# A refusals.log a workspace already tracks is removed from it, the
+# removal committed, and the file stays.
+echo '2026-10-22 alice: refused' > "$OPS/memory/refusals.log"
+git -C "$OPS/memory" add -f refusals.log
+git -C "$OPS/memory" -c user.name=t -c user.email=t@example.com \
+  commit -q -m 'track the log' --no-verify
+git -C "$OPS/memory" config user.name t
+git -C "$OPS/memory" config user.email t@example.com
+sh "$OPS/bin/hostwarden-init" >/dev/null 2>&1
+if [ -f "$OPS/memory/refusals.log" ] \
+    && ! git -C "$OPS/memory" cat-file -e HEAD:refusals.log 2>/dev/null \
+    && [ -z "$(git -C "$OPS/memory" status --porcelain --untracked-files=no)" ]
+then ok
+else bad "init left a tracked refusals.log in the workspace, or deleted it"; fi
+# Beside other staged work the removal waits, and init says so.
+git -C "$OPS/memory" add -f refusals.log
+git -C "$OPS/memory" commit -q -m 'track the log again' --no-verify
+echo staged > "$OPS/memory/staged.txt"
+git -C "$OPS/memory" add -f staged.txt
+out=$(sh "$OPS/bin/hostwarden-init" 2>&1)
+case "$out" in
+*"staged, not committed"*) ok ;;
+*) bad "init said nothing about a refusals.log removal left staged" ;;
+esac
+git -C "$OPS/memory" commit -q -m 'the staged work' --no-verify
+git -C "$OPS/memory" config --unset user.name
+git -C "$OPS/memory" config --unset user.email
 # A hook of the user's own, or a core.hooksPath elsewhere, would
 # leave the secret scan out: init refuses before it marks
 # anything as a workspace.

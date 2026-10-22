@@ -74,10 +74,14 @@ Defensive work stays Hostwarden's job:
 
 1. Say so in one sentence: Hostwarden does not do this. No lecture,
    and no alternative that reaches the same effect.
-2. Check `git -C memory check-ignore -q refusals.log`; where it
-   fails (a workspace older than this file), add `/refusals.log` to
-   `memory/.git/info/exclude`. Then append one line to
-   `memory/refusals.log`: date, the operator's
+2. Check `git -C memory check-ignore -q refusals.log` and
+   `git -C memory ls-files --error-unmatch refusals.log`; where the
+   first fails (a workspace older than this file) or the second
+   succeeds (the workspace tracks the file), run
+   `sh bin/hostwarden-init`, which excludes the file and commits the
+   removal of a tracked copy. The file stays on this machine; a
+   clone that pulls the removal loses its copy. Then append one line
+   to `memory/refusals.log`: date, the operator's
    handle (`rules/ssh-user.md` → Operator), the request in a few words.
    Never a secret, never on a server (the request may name one
    Hostwarden does not administer), and not in a machine's
