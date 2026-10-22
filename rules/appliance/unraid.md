@@ -93,6 +93,8 @@ repositories on GitHub where the docs are silent.
   status: `/etc/rc.d/rc.<name> status`. There is no Enabled
   services listing. Change a service's settings on the web UI page
   that owns it. `rules/service-reload.md` still decides when to ask.
+  Restarting Docker over SSH has a trap of its own (see Docker and
+  VMs).
 
 ## Configuration
 
@@ -332,6 +334,11 @@ security audit reads from files.
     Slackware `run-parts` times, hourly at :47, daily at 04:40,
     weekly on Sunday at 04:30, monthly on the 1st at 04:20. A
     script that has not run yet may simply be waiting for that slot.
+    Whether a script ran, observed on 7.3.x:
+    `ls -la "/tmp/user.scripts/finished/<name>"` and
+    `tail "/tmp/user.scripts/tmpScripts/<name>/log.txt"`. Both live
+    in RAM and are gone after a reboot; only a log the script
+    writes to the array itself survives one.
   - **Unassigned Devices** reads and writes
     `/tmp/unassigned.devices/config/unassigned.devices.cfg`. A
     setting such as `automount="yes"` put into the boot copy alone is
@@ -359,6 +366,46 @@ security audit reads from files.
   `virsh list --all`, the rest as `rules/hypervisors.md` gives
   it for libvirt, reads only. Docker containers are not guests.
 - Stopping the array stops every container and VM with it.
+- **After a reboot, the autostart list decides which labelled
+  containers start, apart from the `always` policy.** Observed on Unraid 7.3.x,
+  not documented by Unraid. At shutdown
+  `/etc/rc.d/rc.docker` stops every container labelled
+  `net.unraid.docker.managed` with `docker stop`, which Docker counts
+  as a manual stop, so `restart: unless-stopped` does not bring it
+  back. At start it starts only the containers in
+  `/var/lib/docker/unraid-autostart`, the Autostart switch on the
+  Docker tab, in that file's order. Containers without the label,
+  such as a plain `docker compose` stack, go down with the daemon
+  and come back through their restart policy. Read the two with
+  `cat /var/lib/docker/unraid-autostart` and
+  `docker ps -a --filter label=net.unraid.docker.managed --format '{{.Names}}'`;
+  a labelled container that should run after a reboot and is not on
+  the list is a finding, and the switch is the user's. Docker's
+  `always` policy starts a stopped container again when the daemon
+  does, so for a container with it
+  (`docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' <name>`)
+  absence from the list is no finding.
+- **Restart Docker from Settings → Docker in the web UI.** Over SSH,
+  never run `/etc/rc.d/rc.docker restart` as it is: sshd's PAM stack
+  gives the session `XDG_RUNTIME_DIR=/run/user/0`, dockerd and
+  containerd inherit it, and containerd writes every exec spec
+  there. elogind removes `/run/user/0` when root's last session
+  ends; from then on every `docker exec` and every health check
+  fails with `OCI runtime exec failed: open
+  /run/user/0/runc-process<N>: no such file or directory`, while
+  the containers keep running and report unhealthy. Observed on
+  7.3.x. The
+  restart, asked first like any (`rules/service-reload.md`), is
+  ```
+  env -u XDG_RUNTIME_DIR /etc/rc.d/rc.docker restart
+  ```
+  and the check after it, or whenever exec and health checks fail
+  that way:
+  ```
+  p=$(pgrep -x dockerd) && tr '\0' '\n' < /proc/$p/environ | grep -c '^XDG_RUNTIME_DIR='
+  ```
+  `0` is clean; `1` means dockerd inherited the variable and needs
+  the restart above; no output means dockerd is not running.
 
 ## Storage: Array, Parity and Pools
 
@@ -405,6 +452,16 @@ security audit reads from files.
   (see Housekeeping).
 - Downgrading is a manual step on the boot device and the user's to
   take.
+- **The NVIDIA driver plugin** downloads new drivers by itself to
+  `/boot/config/plugins/nvidia-driver/packages/<kernel>/`, and they
+  load only at boot. List the directory for the running kernel
+  (`uname -r`) and compare with
+  `nvidia-smi --query-gpu=driver_version --format=csv,noheader`: a
+  newer version staged there than the one loaded points to a
+  reboot pending. The directory can also hold an older package, and
+  `nvidia-smi` prints nothing without a loaded driver, so report a
+  difference as "possibly pending" and let the user confirm it on
+  the plugin's page. Observed on 7.3.x.
 
 ## Reboots
 
