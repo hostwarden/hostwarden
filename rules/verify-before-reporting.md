@@ -72,7 +72,7 @@ run, never the thing as absent. Look at:
   fields (`awk '!/^#/ {print $1, $2, $3}' /etc/fstab`:
   the options can hold a CIFS password), plus the
   systemd mount-unit name in the journal
-  (`journalctl | grep '<escaped-path>.mount'`). A
+  (`journalctl -u '<escaped-path>.mount' -n 20 --no-pager`). A
   mount that fails to reappear usually leaves an
   **empty mountpoint** behind; a directory entry
   that is simply not there is a different failure

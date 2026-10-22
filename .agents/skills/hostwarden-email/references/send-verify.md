@@ -72,7 +72,7 @@ attachments.
 8. **Verify delivery.** Check the send command's exit code,
    then probe the appropriate mail log from the last minute:
    - Linux remote: `journalctl -u postfix --since "1 minute
-     ago" | tail -20` (substitute the active MTA unit), or
+     ago" -n 20` (substitute the active MTA unit), or
      `tail -50 /var/log/mail.log` (Debian) /
      `/var/log/maillog` (RHEL/FreeBSD).
    - macOS local: `log show --style compact --last 1m

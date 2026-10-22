@@ -377,6 +377,8 @@ trigger — not a request from the user.
 - Inspecting or changing a service that runs in a container →
   `rules/containers.md`
 - Reading what a server returned → `rules/anomaly-detection.md`
+- The first `journalctl`, `log show` or search through `/var/log`
+  → `rules/log-queries.md`
 - A reboot, a firewall or network change, a restart →
   `rules/coordination.md`, before the step; none on a host
   this session is creating
