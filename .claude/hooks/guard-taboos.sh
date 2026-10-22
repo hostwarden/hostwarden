@@ -29,6 +29,13 @@
 #     to a file an appliance merges into it (/etc/sshd_extra),
 #     and deploying OpenMediaVault's ssh Salt state, which
 #     rewrites sshd_config and the keys without naming them
+#   - boot loaders and firmware variables: efibootmgr write
+#     forms, grub-install, update-grub, grub-mkconfig -o,
+#     bootctl install/update/remove/set-*, bless beyond --info
+#     and --getBoot, efivar -w, a write under the efivars mount
+#   - the account files (/etc/passwd, shadow, group, gshadow,
+#     master.passwd, the pwd.db databases) written directly,
+#     and vipw/vigr; sudoers is not judged (rules/accounts.md)
 #   - any of the last three reached through a language
 #     runtime (python/perl/ruby/node/awk ...), whose file
 #     I/O looks nothing like a shell write
@@ -228,7 +235,7 @@ LIBDIR=$HOOKDIR/../../lib
 # reads HAS_KEY, SEGS or DISK as an earlier one left them. A new
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
-GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh
+GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh boot accounts
 config-mgmt interpreters redirect guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer

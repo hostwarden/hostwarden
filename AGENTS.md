@@ -158,6 +158,13 @@ user when it will visibly slow the answer.
   redirect or `tee` onto one. Also any command that repairs or
   destroys a file system, RAID array, volume group or ZFS pool
   (`fsck` without `-n`, a ZFS rewind, …: `rules/storage.md`).
+  Also any command that writes the boot configuration:
+  `efibootmgr` with a write flag, `grub-install`, `update-grub`,
+  `grub-mkconfig -o`, `bootctl install`/`update`/`remove`/`set-*`,
+  `bless` beyond `--info`/`--getBoot`, `efivar -w`, a write under
+  `/sys/firmware/efi/efivars`. Never write `/etc/passwd`, `shadow`,
+  `group`, `gshadow` or `master.passwd` directly, nor run
+  `vipw`/`vigr`: `useradd`, `usermod` and `pw` do that work.
   Read-only inspection (e.g. `lsblk`, `fdisk -l`, `gpart show`,
   `diskutil list`, `nvme list`, `hdparm -I`) is always allowed.
   Never modify `sshd_config` or its `sshd_config.d/` drop-ins,
