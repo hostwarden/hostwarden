@@ -236,10 +236,13 @@ d=$(mktemp -d ~/.hostwarden-jobs/$(date +%Y%m%d-%H%M%S)-upgrade.XXXXXX)
 cat >"$d/cmd" <<'CMD'
 apt-get -o DPkg::Lock::Timeout=300 -y dist-upgrade
 CMD
-(nohup sh -c 'sh "$1/cmd" >"$1/out" 2>"$1/err" &
-  echo $! >"$1/pid"; trap "" TERM
-  wait $!; echo $? >"$1/status"' sh "$d" \
-  </dev/null >/dev/null 2>"$d/launch" &)
+cat >"$d/run" <<'RUN'
+d=${0%/*}
+sh "$d/cmd" >"$d/out" 2>"$d/err" &
+echo $! >"$d/pid"; trap "" TERM
+wait $!; echo $? >"$d/status"
+RUN
+(nohup sh "$d/run" </dev/null >/dev/null 2>"$d/launch" &)
 i=0
 while [ ! -s "$d/pid" ] && [ $i -lt 5 ]; do
   sleep 1; i=$((i+1))
@@ -330,7 +333,12 @@ process to inherit:
 columns; busybox `ps` takes neither it nor wider
 lines, hence the second form. The third is for
 OpenWrt's busybox, which takes no `-o` at all
-(`rules/busybox.md`). The output is the wrapper and
+(`rules/busybox.md`) and bounds the width of a line
+(`ps w`: 132 columns). That is why the wrapper is a
+file of its own: its command line, `sh <job
+directory>/run`, is as short as the job's
+`sh <job directory>/cmd`, and the directory stays
+inside the bound. The output is the wrapper and
 the job, each with its process group; with the third
 form the first column is a pid, and the job is
 stopped by pid as in local mode. A lookup that
