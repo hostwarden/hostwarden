@@ -24,9 +24,17 @@ instead; they stand in for steps 4, 5 and 7 below.
 
 PAM and a network sysctl have no tool file; their commands:
 
-- **PAM:** check `diff` of the new file against the step-2
-  backup; apply writes the file (PAM reads its files at each
-  login, so nothing reloads); revert restores the backup. A
+- **PAM:** no tool checks PAM syntax, so step 3 is a reading,
+  not a gate: `diff -u` of the new file against the step-2
+  backup (it exits 1 for any real edit), and for each module
+  line that the module file exists at its path, or for a bare
+  name by looking for the file itself (`find /lib /usr/lib
+  -name '<module as written>*'`, which also finds macOS's
+  `.so.2`);
+  `@include` files and the control flags are read the same way. The
+  authentication test below is
+  the safety. Apply writes the file (PAM reads its files at each login, so
+  nothing reloads); revert restores the backup. A
   key login runs PAM's account and session modules only, never
   its `auth` stack, so the step-6 login does not test a change
   to one (`common-auth`, `sudo`, `sshd`), and no call of
@@ -199,14 +207,33 @@ accounts for it.
    was meant to do — the rule set, the address, the route.
    When the change moves the host's address, the login goes
    to the new one (→ When the address moves).
-7. **Login works:** cancel the revert —
+7. **Login works:** persist only the tested change, never
+   the whole live state.
+   Where the revert restores the step-2 backup of the file
+   that is persisted (a network file, `/etc/pf.conf`), persist
+   it, run the tool's check of step 3 on it and cancel the
+   revert in one call joined with `&&`: a file that fails its
+   check leaves the armed revert to put the backup back. A
+   check that prints its result, such as the loaded OS file's
+   `rc=<n>`, and exits 0 whatever it found is tested on that
+   result, not on its exit status. Where
+   the revert undoes the runtime only (firewalld's
+   `--reload`, a sysctl's `sysctl -w`), cancel it first, then
+   persist, and read the persisted file back, since a revert
+   that fired after the write would reload what was written. A
+   PAM file persists nothing here. On Windows, whose cancel
+   reports in its output and not its exit status, the check
+   runs first and the cancel follows in a call of its own once
+   it passed. The cancel is
    `systemctl stop hostwarden-revert.timer`,
-   `atrm <job>`, or the OS file's cancel — and confirm it
-   is gone. A revert left
-   armed undoes, minutes later, a change the user kept.
-   In the same call, persist only the tested change, never
-   the whole live state, and where starting a firewall and
-   enabling it at boot are separate commands, enable it.
+   `atrm <job>`, or the OS file's. Confirm the revert
+   is gone, and only then, where starting a firewall and
+   enabling it at boot are separate commands, enable it. A
+   revert left armed undoes, minutes later, a change the user
+   kept. If a check fails and the revert is
+   still armed, let it fire, report what it restored, and
+   start the change again with the file corrected; do not race
+   the timer.
 8. **Login fails:** change nothing more. Wait for the
    revert, then try a fresh login again. If the host still
    does not answer, follow `rules/ssh-unreachable.md` and
@@ -257,8 +284,8 @@ and always before a reboot, run what proves the files:
   follows `rules/port-check.md`.
 - A cron job or timer: its command once by hand, as its user.
 - A network or firewall configuration file written in step 7
-  rather than loaded by the apply: the tool's check of step 3
-  on that file, before the cancel.
+  rather than loaded by the apply, and a sysctl file: checked
+  or read back as step 7 says.
 - A renewal or rotation configuration: its dry run
   (`certbot renew --dry-run`, `logrotate -d <file>`).
 - A one-shot boot entry (`efibootmgr` `BootNext`, `grub-reboot`)
