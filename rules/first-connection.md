@@ -83,7 +83,10 @@ Than One Server before step 1.
    the first. See `rules/activity-check.md`; what
    else goes into its call, and on which connection,
    is `rules/activity-check.md` → What rides in this
-   call.
+   call. The server lock rides in it on every
+   connection, local mode too
+   (`rules/access-control.md` → Server Lock): until
+   its result is in, nothing on the host changes.
 8. **Heinzel legacy check.** Only in an installation
    that has something to do with Heinzel: a
    `Taken over from heinzel:` line in `memory/user.md`,
@@ -153,8 +156,8 @@ The connection to the host runs this pipeline for
 the host. For the guest, check the blacklist and the
 read-only list by its own name as well: the guest is
 read-only when it or its host is on the read-only
-list. Skip steps 3–4, and run the rest inside the
-guest, bundled into one call per step
+list or locked (`rules/access-control.md` → Server Lock). Skip steps 3–4, and
+run the rest inside the guest, bundled into one call per step
 (`rules/ssh-connections.md`):
 
 ```bash

@@ -178,7 +178,9 @@ nothing else changes:
 `/etc/heinzel/` → `/etc/hostwarden/`,
 `heinzel-backup.timer` → `hostwarden-backup.timer`.
 An artifact whose name does not say `heinzel` keeps
-it; there is no old name to shed. Also never renamed:
+it; there is no old name to shed. `/etc/heinzel.conf`
+is the server lock and is never renamed, moved or
+removed (`rules/access-control.md` → Server Lock). Also never renamed:
 what neither the inventory nor the changelog claims
 (`rules/heinzel-legacy.md` → What is not ours), and
 journal history and changelog entries.

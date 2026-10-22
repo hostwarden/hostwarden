@@ -289,7 +289,9 @@ leads, the host confirms them.
 
 8. **Ask how the names on the hosts should end up.** Scripts, units,
    cron files and config directories that Heinzel sessions created
-   carry names like `heinzel-backup.sh` or `/etc/heinzel/`. Ask once
+   carry names like `heinzel-backup.sh` or `/etc/heinzel/`; neither
+   answer touches `/etc/heinzel.conf`, the server lock
+   (`rules/access-control.md` → Server Lock). Ask once
    which way the user leans:
 
    - **Rename** — on each host, give them Hostwarden's name and

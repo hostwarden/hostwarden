@@ -2,6 +2,8 @@
 
 Rules for the server blacklist and read-only server
 list. Both use the same file format and lookup logic.
+A server can also lock itself against changes
+(→ Server Lock).
 The user's own lists of paths on a host that stay
 untouched, or need a word before they are touched, are
 under → Protected Paths.
@@ -224,6 +226,92 @@ exceptions; they are then the only thing the Blocked
 list above lets through, and a host listed in
 `memory/readonly.md` gets none of them.
 
+## Server Lock
+
+The machine's owner locks it against changes from the
+machine itself, for every Hostwarden or Heinzel that
+connects, whoever runs it. The file is
+`/etc/hostwarden.conf`, or `/etc/heinzel.conf` as
+Heinzel reads it; either one locks:
+
+```ini
+# /etc/hostwarden.conf
+allow_changes = false
+reason = Database migration until 20 Oct, hands off
+```
+
+`key = value` per line, `#` comments, blank lines
+ignored. The same path on Linux, FreeBSD and macOS
+(`/etc` is `/private/etc` there), root-owned, mode
+`0644`.
+
+**When to check:** on every connection, in the
+activity check's call
+(`rules/activity-check.md` → What rides in this
+call), local mode included. Nothing on the host
+changes before its result is in. Read it fresh every
+time, never from machine memory. The probe prints only the
+`allow_changes` and `reason` lines, since the file may hold
+other settings (`rules/secrets.md` → Commands That Leak). It is `sh`;
+`sh -s` runs it, whatever `Shell:` records:
+
+```
+echo "##lock"
+for f in /etc/hostwarden.conf /etc/heinzel.conf; do
+  if [ -e "$f" ] || [ -L "$f" ]; then
+    echo "LOCK_FILE $f"
+    grep -iE '^[[:space:]]*(allow_changes|reason)[[:space:]]*=' "$f"
+    [ $? -le 1 ] || echo LOCK_UNREADABLE
+  else
+    echo "LOCK_ABSENT $f"
+  fi
+done
+echo LOCK_DONE
+```
+
+**Where there is no `sh`:** a Windows host is read-only
+anyway (`rules/os/windows.md`), so it gets no probe, and
+DrayOS has no shell to run one (`rules/appliance/drayos.md`).
+Say `not read: no sh on this host` once and go on. Only a
+host that should have run the probe and printed no
+`LOCK_DONE` is locked.
+
+**How to read it (fails closed):** a file that exists
+unlocks the host only if it holds an `allow_changes`
+line whose value is `true`. Case and the spaces around
+`=` do not matter.
+
+- `LOCK_ABSENT` for both: no lock, work normally.
+- A file that holds no `allow_changes` line, any other
+  value than `true`, an empty file, `LOCK_UNREADABLE`:
+  a lock.
+- One lock is enough: the other file saying `true`
+  changes nothing.
+- No `LOCK_DONE` means the check did not run. The host
+  stays locked until it has.
+
+**On a lock:** the host is read-only wherever a rule says so:
+switch to read-only mode exactly as for
+`memory/readonly.md` above (same allowed and blocked
+lists, same deferred modification report). Tell the
+user: "This server is locked in `<file>`. I will
+inspect, but I will not change anything." Quote
+`reason` when it is set. A host listed in
+`memory/readonly.md` stays read-only whatever the
+files say.
+
+**Never lift it.** Hostwarden never creates, edits,
+moves, deletes or re-permissions either file, not even
+on request, and the rename in `rules/heinzel-takeover.md`
+leaves both alone. The owner changes them by hand. When
+the user asks to lock or unlock a server, give them the
+command to run themselves. The guard hook blocks every
+write to the names.
+
+The lock is cooperative, not a security boundary: it
+stops every tool that honours it. Only withholding root
+and sudo keeps out a tool that does not.
+
 ## Protected Paths
 
 The two lists above cover a whole host. A path on a host that
@@ -320,8 +408,8 @@ equivalents).
   a code block and the line `Reply CONFIRM to run it.`, and treat
   any other reply as no.
 
-**Precedence:** the blacklist and the read-only list win over
-both lists. Where globs of both lists in one file match a path,
+**Precedence:** the blacklist, the read-only list and the server
+lock win over both lists. Where globs of both lists in one file match a path,
 the more specific glob decides: the one whose text before its
 first wildcard is longer, so `readonly` `/etc/postgresql/**`
 holds under `confirm` `/etc/**`; at equal length the longer

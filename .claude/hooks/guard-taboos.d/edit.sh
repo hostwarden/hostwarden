@@ -57,6 +57,10 @@
 # and sshd's config; KEYDIR below says whose they are.
 KEYSTORE='conf/sshd|etc/config/ssh|etc/dropbear'
 FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/etc/ssh/ssh_host_[^/]+|/('"$KEYSTORE"')/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
+# The server lock (guard-taboos.d/lock.sh), by its path.
+LOCKKEY='/etc/(hostwarden|heinzel)\.conf$'
+LOCKMSG="writing /etc/hostwarden.conf or /etc/heinzel.conf, the server \
+lock, is never allowed - only the machine's owner changes it"
 KEYMSG="writing an SSH key, authorized_keys or the SSH server's \
 config is never allowed"
 case "$INPUT" in
@@ -87,14 +91,15 @@ folded, so it cannot be shown to be an ordinary file"
       || deny "$KEYMSG, and the target of this edit could not be \
 reduced to ASCII, so it cannot be shown to be an ordinary file"
   }
-  # hit <text> — whether any line names a key, as given, unfolded or
-  # unfolded and stripped to ASCII.
+  # hit <text> [pattern] — whether any line names a key (or matches the
+  # pattern given), as given, unfolded or unfolded and stripped to
+  # ASCII.
   hit() {
     unfold "$1"
     HM=$UF
     ascii "$HM"
     printf '%s\n%s\n%s\n' "$1" "$HM" "$UA" \
-      | LC_ALL=C grep -Eiq "$FILEKEY"
+      | LC_ALL=C grep -Eiq "${2:-$FILEKEY}"
   }
   # resolve <path> — appends the path as the file system resolves it
   # to FALL, one per line.
@@ -178,10 +183,16 @@ something else"
       deny "$KEYMSG, and without jq the target of this edit is \
 relative or may hide behind a JSON escape - install jq"
     fi
+    hit "$(printf '%s' "$INPUT" | tr '"' '\n')" "$LOCKKEY" \
+      && deny "$LOCKMSG, and without jq the target of this edit cannot \
+be told apart from its content - install jq"
     hit "$(printf '%s' "$INPUT" | tr '"' '\n')" \
       && deny "$KEYMSG, and without jq the target of this edit cannot \
 be told apart from its content - install jq"
     exit 0
+  fi
+  if hit "$FALL" "$LOCKKEY"; then
+    deny "$LOCKMSG"
   fi
   if hit "$FALL"; then
     deny "$KEYMSG, through an edit as much as through a shell - read \

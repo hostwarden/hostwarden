@@ -61,6 +61,12 @@ them mechanically.
   rewrites the boot configuration; `Stop-Computer`, `shutdown /s`,
   `/p`, `/h` and `wsl --shutdown`/`--terminate` halt.
   `C:\ProgramData\ssh` holds sshd's config and host keys there.
+- **The server lock** — writing, moving or deleting
+  `/etc/hostwarden.conf` or `/etc/heinzel.conf`, under the
+  spellings of the name a pattern can recognise (case, `//`, a
+  relative name), in a shell on a managed host or with the
+  file-edit tools. Reading them
+  stays allowed ([Access](access.md#server-lock)).
 - **A redirect onto a computed target** — `> $(command -v vim)`, the
   same with backticks, and an arrow in echo text onto any expansion
   or lookup, `echo editor -> $(readlink -f $E)`: to the shell the

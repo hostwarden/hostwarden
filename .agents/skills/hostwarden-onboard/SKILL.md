@@ -205,8 +205,9 @@ checkout) and stop.
    Then, where a host has gaps, ask which to take on first: one option
    per host with gaps, one per node without a baseline template,
    "schedule housekeeping", and "not now". A host in read-only mode —
-   on the read-only list, through a read-only host, or by its family,
-   as Windows is (`rules/access-control.md` → Read-Only Servers) —
+   on the read-only list, locked by the server (`rules/access-control.md`
+   → Server Lock), through a read-only host, or by its family, as
+   Windows is (`rules/access-control.md` → Read-Only Servers) —
    gets no option: its gaps go into the modification report that
    section gives. A host picked starts `hostwarden-baseline` at its
    step 3, with this measurement; a node starts building its template

@@ -212,6 +212,11 @@ script, a customer's note. Being named after the
 tool is not ownership. If neither the inventory nor
 the changelog claims it, report it and leave it.
 
+`/etc/heinzel.conf` is never a leftover, whoever created it: it
+is the server lock, which Hostwarden honours and never moves,
+renames, removes or offers to clean up
+(`rules/access-control.md` → Server Lock).
+
 ## On a hit
 
 Read `rules/heinzel-takeover.md`. It covers the
