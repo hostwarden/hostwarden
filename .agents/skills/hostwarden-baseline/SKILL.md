@@ -3,7 +3,9 @@ name: hostwarden-baseline
 argument-hint: "[hostname]"
 description: Bring an existing server up to the Hostwarden server
   baseline — firewall with default deny, automatic security
-  updates, time sync, key-only SSH, persistent journal, storage
+  updates, service restarts (needrestart), a login notice for a
+  pending reboot, time sync, key-only
+  SSH, persistent journal, storage
   maintenance (TRIM, RAID checks, scrubs, smartd), guest agent,
   backup, and the user's own additions such as admin keys,
   timezone, mail relay and monitoring agent. Lists what is missing,
@@ -39,7 +41,8 @@ the gaps the user picks. The pipeline in
    a decision (`rules/decisions.md` → Writing one).
 4. **Apply** one section at a time, each under the rules
    `AGENTS.md` → Where the Rest Lives → Before you change something
-   names for it.
+   names for it. A file written whole gets its master and its
+   `deployed.md` entry (`rules/deployed-files.md`).
 5. **SSH Login, SSH CA, Admin Keys and Mandatory Access
    Control:** as `rules/baseline.md` → SSH Login, SSH CA and
    Mandatory Access Control say.
