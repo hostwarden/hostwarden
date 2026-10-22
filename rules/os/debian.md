@@ -230,6 +230,9 @@ that holds it below 500 → **WARN** in the housekeeping
 report. A suite another origin publishes
 (`apt.grafana.com stable`, `./`) is that vendor's
 scheme, not a Debian release: name it, no finding.
+Whether unattended-upgrades installs from it is a
+separate check (Automatic Security Updates → Vendor
+repositories).
 
 ### Ubuntu Equivalent
 
@@ -371,6 +374,108 @@ Sources: https://ubuntu.com/server/docs/how-to/software/automatic-updates/,
 https://github.com/mvo5/unattended-upgrades/blob/master/data/50unattended-upgrades.Ubuntu,
 https://github.com/Debian/apt/blob/main/debian/apt-daily-upgrade.timer,
 https://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/ubuntu/tree/server-minimal?h=resolute
+
+### Vendor repositories
+
+unattended-upgrades installs a package only from a repository one
+of its origins matches. The shipped `50unattended-upgrades` names
+Debian's or Ubuntu's own archives and nothing else, so a vendor
+repository — Docker CE from `download.docker.com`, NetBird from
+`pkgs.netbird.io`, Grafana from `apt.grafana.com`, a PPA — gets no
+update until someone runs apt by hand. Housekeeping lists each one
+(`.agents/skills/hostwarden-housekeeping/references/baseline-linux.md`
+→ Vendor Repositories); this is how one is added.
+
+**Where it goes.** A drop-in of its own per vendor,
+`/etc/apt/apt.conf.d/52unattended-upgrades-<vendor>`, never an edit
+of `50unattended-upgrades`, whose conffile the package upgrade then
+asks about. apt reads `apt.conf.d` in lexical order and appends a
+list entry from a later file to the same list, so the drop-in adds
+to the shipped origins rather than replacing them. On a host whose
+memory has a `Config management:` or `Provisioned by:` line, the
+drop-in belongs in that tool's tree
+(`rules/config-management-changes.md`): Hostwarden reports the gap
+and names the pattern, and the change goes into the playbook.
+
+**The pattern** is built from what the repository's Release file
+says, read from the host, never from memory of what a vendor used
+to publish. `apt-cache policy` prints it for every enabled source:
+
+```
+ 500 https://download.docker.com/linux/debian trixie/stable amd64 Packages
+     release o=Docker,a=trixie,l=Docker CE,c=stable,b=amd64
+     origin download.docker.com
+```
+
+`o` is the origin, `a` the suite, `n` the codename, `l` the label,
+`c` the component, and the `origin` line the site, the host name
+apt fetches from. The pattern names each of them the vendor sets:
+
+```
+// Docker CE, download.docker.com. Hostwarden <date>.
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Docker,label=Docker CE,suite=${distro_codename},component=stable,site=download.docker.com";
+};
+```
+
+- **`site=` always.** Origin and label are whatever the vendor's
+  repository software writes: NetBird's say `Artifactory`, which
+  every repository hosted on Artifactory says too. Only the site
+  ties the pattern to the one repository the user chose.
+- **`codename=` where the Release file has a `Codename:`, `suite=`
+  where it has none.** Docker's has none, so `codename=` matches
+  nothing there. Write the host's codename as `${distro_codename}`
+  where the vendor uses it, so the drop-in survives a release
+  upgrade; a vendor suite such as `stable` is written as it is.
+- **`component=` where the repository publishes more than one.**
+  Docker's Release file lists `stable edge test nightly`; naming
+  `stable` keeps a test channel someone enables later out of the
+  nightly run.
+- **Never a wildcard.** No `*` or `?` in any value, and never a
+  pattern without `origin=` and `site=`: one such pattern lets
+  every repository added later install unattended, which nobody
+  decided. unattended-upgrades matches values with `fnmatch`, so
+  a wildcard does exactly what it says.
+- **Ubuntu takes the same `Origins-Pattern`.** Its shipped file
+  uses `Allowed-Origins`, whose `"<origin>:<archive>"` form names
+  origin and suite only and cannot carry a site. unattended-upgrades
+  reads both lists into one, so the drop-in adds an
+  `Origins-Pattern` beside the shipped `Allowed-Origins`.
+
+**Verify** before calling it done: `apt-config dump` shows the new
+line under `Unattended-Upgrade::Origins-Pattern`, and
+`unattended-upgrade --dry-run --debug` prints it among
+`Allowed origins are:` and names each pending package of that
+repository under `Packages that will be upgraded:`. The dry run
+downloads the packages into apt's cache and installs nothing.
+
+**Not every pending package follows.** unattended-upgrades skips a
+package whose upgrade would prompt about a conffile the admin
+changed, and logs `Package <name> has conffile prompt and needs to
+be upgraded manually`; such a package stays in the housekeeping
+finding until it is upgraded by hand. A package that must never be
+upgraded unattended goes into `Unattended-Upgrade::Package-Blacklist`
+in the same drop-in, by name, and the reason into the host's
+decisions (`rules/decisions.md`).
+
+**What an upgrade restarts.** A package's maintainer scripts
+usually restart its own service after the upgrade (debhelper's
+default since compat 10), and needrestart then handles the services
+using old libraries (Non-interactive apt runs above), both in the
+host's automatic restart slot (`rules/maintenance-windows.md` →
+Automatic restarts). For a container engine that restarts every
+container: `rules/containers.md` → Engine Updates, before its
+repository is added.
+
+**Kept out on purpose.** A repository the user wants updated by
+hand only is a decision (`rules/decisions.md`), its heading naming
+the site.
+
+Sources: https://github.com/mvo5/unattended-upgrades/blob/master/unattended-upgrade,
+https://manpages.debian.org/trixie/apt/apt.conf.5.en.html,
+https://manpages.debian.org/trixie/debhelper/dh_installsystemd.1.en.html,
+https://download.docker.com/linux/debian/dists/trixie/Release,
+https://pkgs.netbird.io/debian/dists/stable/Release
 
 ## Service Manager
 

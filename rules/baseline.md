@@ -106,8 +106,11 @@ every platform, whichever check reports it:
 ## Automatic Security Updates
 
 The family file's mechanism installed, enabled, and covering the
-security archive, with its reports mailed to root. Checked by
-housekeeping's Automatic Security Updates.
+security archive, with its reports mailed to root. On Debian and
+Ubuntu it covers every enabled vendor repository too, each by a
+pattern of its own (`rules/os/debian.md` → Vendor repositories),
+unless a decision keeps that repository out. Checked by
+housekeeping's Automatic Security Updates and Vendor Repositories.
 
 ## Time Sync
 

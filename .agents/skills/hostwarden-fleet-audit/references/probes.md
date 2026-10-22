@@ -105,6 +105,13 @@ audit's:
 - Origins count — the `origins.count=` line
 - Origins cover the security archive — `yes` for
   `origins=ok`, `no` for `origins=MISSING …`
+- Vendor repositories outside the origins — run the Vendor
+  Repositories probe of the same file too, on the package lists as
+  they are (the audit refreshes nothing) and with `inst=` set empty
+  before it, since the row needs no pending packages and the empty
+  value spares the upgrade simulation; list the sites of its
+  `vendor … allowed=no` lines, `none` without any, and those of
+  `allowed=loose` lines as `<site> (loose)`
 - `Mail`
 - `MailReport` (or legacy `MailOnlyOnError`)
 - `Automatic-Reboot`
