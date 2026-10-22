@@ -169,20 +169,35 @@ just the ones near this one.
 
 ## Porting from Heinzel
 
-Hostwarden grew out of
-[Heinzel](https://github.com/wintermeyer/heinzel) and branched off
-at tag `heinzel-2.22.0`. In the project's own clone the `upstream`
-remote points there, read-only and without tags.
+Hostwarden grew out of Heinzel and branched off at tag
+`heinzel-2.22.0`. In the project's own clone the `upstream` remote
+points there, read-only and without tags.
 
 Improvements come over selectively — cherry-picked or rewritten,
 never merged. Rename what the patch carries to Hostwarden, then add
-a trailer:
+a trailer to the commit message, one per upstream commit:
 
-    Ported-from: wintermeyer/heinzel@<sha>
+    Ported-from: wintermeyer/heinzel@<full sha>
 
 `git log --grep Ported-from` is then the list of what is already in,
-which is the only reason the trailer exists. Nothing is ever pushed
+which is the only reason the trailer exists. The pull request body
+ends with one line before the attribution lines, in the same form:
+`Ported from wintermeyer/heinzel@<full sha>`. Nothing is ever pushed
 to `upstream`.
+
+A commit SHA is the only reference to the upstream repository that
+is published. Never write `wintermeyer/heinzel#<n>`, a link to an
+upstream issue or pull request, or an upstream issue or pull
+request number: each makes GitHub add a "mentioned this" entry in
+the upstream repository, which a SHA does not. Never in a pull
+request title, in `changelog.d/`, `CHANGELOG.md`, release notes or
+the shipped files (`rules/`, `.agents/skills/`, `docs/`, `website/`,
+`templates/`) either, the released records in `docs/adr/` apart.
+Only the origin credit in the README, the website's introduction,
+`rules/heinzel-legacy.md` and the takeover skill names the
+repository. `scripts/check.sh` fails an issue or pull request
+number or link anywhere in them and the repository's name outside
+those files; what the credit says is for review.
 
 The `hostwarden-heinzel-takeover` skill and
 `rules/heinzel-legacy.md` are a different matter entirely: they

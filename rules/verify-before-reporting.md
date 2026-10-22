@@ -151,8 +151,7 @@ A check that should print something and printed
 nothing did not pass. It failed, ran somewhere else,
 or did something else: find out which before you
 call the work done (`rules/activity-check.md` says
-the same of the journal). Upstream, in
-wintermeyer/heinzel#51, a check printed nothing
+the same of the journal). Upstream, a check printed nothing
 because the `->` in its echo text was a redirect:
 it overwrote `/usr/bin/nvim` as root, and the empty
 output was read as "fine".
