@@ -5,8 +5,9 @@ description: Run a Hostwarden security audit on a server — SSH
   hardening (password auth, weak algos, root login, host
   certificates, user CA trust), firewall,
   user account hygiene, where accounts and sudo rules come from
-  and who holds them, listening services, kernel hardening
-  (ASLR, IP forwarding), SELinux and AppArmor, file permissions,
+  and who holds them, listening services, web server TLS and
+  headers, kernel hardening (ASLR, IP forwarding), SELinux and
+  AppArmor, file permissions,
   SUID/SGID audit, brute-force protection. Use when the user asks
   for a "security audit", "security review", "hardening check",
   "Sicherheitsaudit", "prüf die Härtung", or to "audit security
@@ -136,6 +137,10 @@ Read on demand, only when the relevant section applies:
   internet. Its probe joins the first batch; its rating reads
   `references/ssh.md`, `references/listening-services.md` and
   `references/firewall.md`.
+- `references/web-tls.md` — protocols, suites, certificate, port 80
+  redirect and response headers of a web server or reverse proxy
+  on the host, probed from the host itself. Whenever nginx, Apache,
+  Caddy or HAProxy listens.
 - `references/macos-security.md` — SIP, FileVault, Gatekeeper.
 - `references/management-controller.md` — the `Management:` line
   on every host, and on a bare-metal one the controller's own

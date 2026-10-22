@@ -46,6 +46,15 @@ TCP.
 Databases listening on every address, open DNS resolvers, exposed
 admin interfaces.
 
+### Web servers
+
+For nginx, Apache, Caddy or HAProxy: the TLS versions and cipher
+suites it accepts, the certificate's key and expiry, whether port 80
+only redirects, and the security headers and version strings in its
+answers, all probed from the host itself. Stricter choices such as
+HSTS preload rate at most INFO unless you recorded a decision for
+them.
+
 ### The system
 
 Kernel hardening, SELinux or AppArmor, file permissions, SUID and
