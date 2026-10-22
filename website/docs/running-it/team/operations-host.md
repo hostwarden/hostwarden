@@ -30,7 +30,7 @@ else. Not a shell, let alone root.
 Operator: ops1
 Report email: ops@example.com
 Workspace push: always
-Coordinator: off
+Presence: off
 ```
 
 `ops1` is the machine's own handle, which every journal line of the
@@ -38,8 +38,8 @@ nightly run carries — `[ops1 as root] read-only: housekeeping: …` —
 so your colleagues can tell it from your own sessions. It is
 reserved in `operators.md` as `ops1 (operations host)` — the session
 that sets the machine up does that — and the nightly run refuses to
-start until the reservation has been pushed. `Coordinator: off` keeps
-the machine from starting a coordinator nobody needs there.
+start until the reservation has been pushed. `Presence: off` keeps
+the machine from starting a presence session nobody needs there.
 
 ## Running the job
 

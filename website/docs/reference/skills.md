@@ -47,8 +47,8 @@ description.
 - **hostwarden-heinzel-takeover** (`/hostwarden-heinzel-takeover`) —
   Copy an existing Heinzel installation into Hostwarden: memory,
   access lists, overrides and host keys.
-- **hostwarden-coordinator** (`/hostwarden-coordinator`) — Control
-  the operational coordinator (the background session that tracks
+- **hostwarden-presence** (`/hostwarden-presence`) — Control
+  the operational presence session (the background session that tracks
   which session works where).
 
 ## Finding and using skills

@@ -284,7 +284,7 @@ limits already name. The prose in `AGENTS.md` is the backstop a
 mechanical check cannot be — announce before a step this hook would
 not catch either.
 
-## The coordinator
+## The presence session
 
 A background session of the operations checkout, one per checkout,
 that keeps the picture of which session works on which host: it
@@ -292,20 +292,20 @@ asks a session what it is doing once its hosts change, relays an
 announced step to the writers on its radius so they can ack before
 `wait` runs out, holds an order of steps that spans sessions, and
 watches the maintenance windows. It reaches no server. How it runs
-is the `hostwarden-coordinator` skill's; this is what every other
+is the `hostwarden-presence` skill's; this is what every other
 session needs to know.
 
 - **It starts by itself.** Claude Code's session start
   (`check-session.sh`) starts one where none runs, with
-  `claude --bg -n "hostwarden coordinator" "/hostwarden-coordinator"`,
+  `claude --bg -n "hostwarden presence" "/hostwarden-presence"`,
   and says so in one line. A development checkout and a worktree
   start none, and neither does a tool without hooks.
-- **It stays off** while `memory/user.md` has `Coordinator: off`
+- **It stays off** while `memory/user.md` has `Presence: off`
   under `# Preferences` (`rules/session-start.md` → The
-  coordinator). `/hostwarden-coordinator`, run in any operations
+  presence session). `/hostwarden-presence`, run in any operations
   session, stops a running one and writes that line, or removes the
   line and starts one.
-- **Reaching it:** `SendMessage` to `hostwarden coordinator`. Ask it
+- **Reaching it:** `SendMessage` to `hostwarden presence`. Ask it
   who works where, or give it an order of steps across sessions —
   a hypervisor after its guests, cluster members one by one —
   before announcing the first.

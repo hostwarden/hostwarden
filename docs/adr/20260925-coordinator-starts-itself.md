@@ -1,8 +1,8 @@
 ---
 id: 20260925-coordinator-starts-itself
-status: accepted
+status: superseded
 supersedes:
-superseded-by:
+superseded-by: 20261022-background-session-is-presence
 waiting-on:
 tags: [coordination, sessions]
 ---

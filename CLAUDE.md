@@ -46,10 +46,10 @@ tool reads. This file adds only what exists here and nowhere else.
     and a shell for Claude Code that is not a Bash 4 or newer;
   - reported a linked worktree or a guard that is off, if either
     applies;
-  - in an operations checkout, started the coordinator in the
+  - in an operations checkout, started the presence session in the
     background where none runs and `memory/user.md` has no
-    `Coordinator: off`, and said so in one line
-    (`rules/coordination.md` → The coordinator).
+    `Presence: off`, and said so in one line
+    (`rules/coordination.md` → The presence session).
 
   Where hooks do not run, `rules/session-start.md` says what to do
   instead.
@@ -62,7 +62,7 @@ tool reads. This file adds only what exists here and nowhere else.
   (`rules/parallel-sessions.md`), or a development session hands a
   question over (`rules/server-check-handoff.md`), `ListAgents`
   lists the sessions here and `SendMessage` reaches them; the
-  coordinator is `hostwarden coordinator`. With none
+  presence session is `hostwarden presence`. With none
   in the operations checkout, the one command is
   `claude "<question>"`, run there. A `spawn_task` chip starts in a
   new worktree of the directory it is given, a development session,

@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [The background session is called presence](20261022-background-session-is-presence.md) | coordination, sessions | — |
 | [A VM apart from the workstation is its own mode](20261008-cowork-is-no-operations-harness.md) | guard, harness, safety | — |
 | [Own review on Sonnet; Opus where files or findings call](20260929-reviewer-model-follows-the-files.md) | review, tooling | — |
 | [SSH passwords reach ssh through an askpass helper only](20260927-ssh-passwords-through-askpass-helper.md) | ssh, secrets, appliances | — |
@@ -26,7 +27,6 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Internal DNSSEC uses a delegated subdomain, never a shared key](20260925-internal-dnssec-delegated-subdomain.md) | dns, security | — |
 | [Docs stay in this repo, only publishing lives elsewhere](20260925-docs-stay-in-repo-thin-publish.md) | docs, release | — |
 | [DNS records are proposed; written only where allowed](20260925-dns-propose-write-only-where-allowed.md) | dns, memory | — |
-| [The coordinator starts itself; the user opts out](20260925-coordinator-starts-itself.md) | coordination, sessions | — |
 | [A shared tokenizer replaces coord-lib.sh's hand-patches](20260925-coord-lib-shared-tokenizer.md) | coordination, security | — |
 | [Ask before writing a self-resolved SSH address](20260925-ask-before-self-resolved-address.md) | ssh-config, shared-workspace | — |
 | [Router configuration is read over SSH through an allow-list](20260925-appliances-read-over-ssh-allow-list.md) | network, appliances, secrets | — |
@@ -68,3 +68,9 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | Decision | Waiting on | Tags |
 | :--- | :--- | :--- |
 | [Several hosts run in the session; agents only at scale](20260926-multi-host-work-runs-here-agents-at-scale.md) | review of the pull request that adds it | multi-host, subagents, hooks |
+
+## History
+
+| Decision | Status | Replaced by |
+| :--- | :--- | :--- |
+| [The coordinator starts itself; the user opts out](20260925-coordinator-starts-itself.md) | superseded | [The background session is called presence](20261022-background-session-is-presence.md) |

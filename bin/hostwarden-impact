@@ -61,16 +61,16 @@
 #       names no zone `date`/`date -j` can parse, is left out rather
 #       than guessed at. Exit status: 0 either kind of line printed,
 #       1 neither, 2 usage
-#   hostwarden-impact coordinator
-#       Prints the session of each live coordinator of this checkout
-#       (rules/coordination.md → The coordinator) and exits 0, or
-#       exits 1 where none is: an entry coordinator+<session>+<beat>
+#   hostwarden-impact presence
+#       Prints the session of each live presence session of this checkout
+#       (rules/coordination.md → The presence session) and exits 0, or
+#       exits 1 where none is: an entry presence-session+<session>+<beat>
 #       beside presence/ whose session `claude agents --json` lists,
 #       or, without the claude CLI, whose beat is under 30 minutes
 #       old. Marks nothing
 #   hostwarden-impact watch
-#       The coordinator's own run, for Monitor. Marks this session as
-#       the coordinator, or exits 1 with "another coordinator runs:
+#       The presence session's own run, for Monitor. Marks this session as
+#       the presence session, or exits 1 with "another presence session runs:
 #       <session>" where one was there first — or, when two marked
 #       themselves at once, has the smaller session id. Then every 5
 #       seconds it prints "+ <item>" or "- <item>" for each change
@@ -79,7 +79,7 @@
 #       ("impact <entry name>"), the acks ("ack <id> <session>") and
 #       the plans ("plan <file> <checksum>"); "tick <HH:MM>" every 15
 #       minutes while a plan has a Window: line; and renews its mark
-#       every 5, exiting 1 as above once another coordinator stays
+#       every 5, exiting 1 as above once another presence session stays
 #   hostwarden-impact --help
 #       Show this help
 #
@@ -184,7 +184,7 @@ case ${1:-} in
   ack) shift; do_ack "$@"; exit $? ;;
   done) shift; do_done "$@"; exit $? ;;
   status) shift; do_status "$@"; exit $? ;;
-  coordinator) shift; do_coordinator "$@"; exit $? ;;
+  presence) shift; do_presence "$@"; exit $? ;;
   watch) shift; do_watch "$@"; exit $? ;;
   -h | --help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;

@@ -19,7 +19,7 @@ Personal versus shared), so the operations host has its own. Its
 Operator: ops1
 Report email: ops@example.com
 Workspace push: always
-Coordinator: off
+Presence: off
 ```
 
 - `Operator:` — the machine's own handle, its short name, never a
@@ -37,9 +37,9 @@ Coordinator: off
   with this line: nobody is there to answer the push question of
   `rules/changelog.md` → The Workspace. Sessions on the machine
   still ask.
-- `Coordinator: off` — nobody works there in parallel sessions, so
-  its session start starts no coordinator (`rules/coordination.md`
-  → The coordinator).
+- `Presence: off` — nobody works there in parallel sessions, so
+  its session start starts no presence session (`rules/coordination.md`
+  → The presence session).
 - `Fleet key:` — the private key's path, when it is not
   `~/.ssh/id_fleet_read`.
 

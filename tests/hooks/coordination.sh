@@ -165,7 +165,7 @@ PAST=$(date -d '-400 minutes' +%Y%m%d%H%M 2>/dev/null \
 # The rest lives in tests/hooks/coordination/, one file per stage,
 # sourced in this order into this shell: each reads what the ones
 # before it set.
-PARTS='announce hooks hooks-jq teams coordinator'
+PARTS='announce hooks hooks-jq teams presence'
 for part in $PARTS; do
   [ -f "$REPO/tests/hooks/coordination/$part.sh" ] || {
     echo "${0##*/}: tests/hooks/coordination/$part.sh is missing" >&2

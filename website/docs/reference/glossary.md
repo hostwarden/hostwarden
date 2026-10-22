@@ -125,7 +125,7 @@ description: Hostwarden's own terms, each in a sentence or two, with
 - **Maintenance window** — a planned time for a disruptive step, with
   who to notify by when.
   [Planning a maintenance window](../features/fleet/maintenance-windows.md)
-- **Coordinator** — a background session per operations checkout that
+- **Presence session** — a background session per operations checkout that
   keeps track of which session works on which host and passes
   announced steps on. It never reaches a server.
   [Parallel sessions](../running-it/team/parallel-sessions.md)
