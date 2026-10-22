@@ -105,6 +105,98 @@ ln -s loop-a "$FL/loop-b"
 file_case deny 'a chain of links that does not end' \
   "$(fjson Write "$FL/loop-a")"
 rm -rf "$FL"
+# APFS folds in full and HFS+ ignores zero-width characters, so a
+# spelling that is not ASCII opens the same file. Bytes are built
+# here so that no editor normalises them away.
+LONGS=$(printf '\305\277')
+KELVIN=$(printf '\342\204\252')
+ZWJ=$(printf '\342\200\215')
+FI=$(printf '\357\254\201')
+ST=$(printf '\357\254\206')
+SZ=$(printf '\303\237')
+CAPSZ=$(printf '\341\272\236')
+FFL=$(printf '\357\254\204')
+LSD=$(printf '\360\235\276\225')
+DOTI=$(printf '\304\260')
+file_case deny 'long s for the s of sshd' \
+  "$(fjson Write "/etc/ssh/${LONGS}shd_config")"
+file_case deny 'Kelvin sign for the k of authorized_keys' \
+  "$(fjson Write "/Users/a/.ssh/authorized_${KELVIN}eys")"
+file_case deny 'a zero-width joiner inside sshd_config' \
+  "$(fjson Write "/etc/ssh/sshd_${ZWJ}config")"
+file_case deny 'a zero-width joiner in a directory and a long s' \
+  "$(fjson Write "/etc/ssh/.${ZWJ}/${LONGS}shd_config")"
+file_case deny 'the fi ligature in sshd_config' \
+  "$(fjson Write "/etc/ssh/sshd_con${FI}g")"
+file_case deny 'a sharp s for the ss of ssh' \
+  "$(fjson Write "/etc/${SZ}h/${SZ}hd_config")"
+file_case deny 'a capital sharp s for the ss of ssh' \
+  "$(fjson Write "/etc/${CAPSZ}h/sshd_config")"
+file_case deny 'the st ligature in a host key' \
+  "$(fjson Write "/etc/ssh/ssh_ho${ST}_ed25519_key")"
+file_case deny 'a sharp s in .ssh' \
+  "$(fjson Write "/Users/a/.${SZ}h/id_ed25519")"
+file_case deny 'U+1DF95 for the ss of ssh' \
+  "$(fjson Write "/etc/${LSD}h/sshd_config")"
+file_case deny 'the dotted capital I in sshd_conf' \
+  "$(fjson Write "/etc/ssh/sshd_conf${DOTI}g")"
+file_case deny 'a folded spelling behind a relative target' \
+  "$(fjson Write "${LONGS}shd_config" x /etc/ssh)"
+file_case pass 'a sharp s in an ordinary name' \
+  "$(fjson Write "/home/alice/Stra${SZ}e.md")"
+file_case pass 'the ffl ligature in an ordinary name' \
+  "$(fjson Write "/home/alice/wa${FFL}e.md")"
+file_case pass 'an umlaut in an ordinary name' \
+  "$(fjson Write "/home/alice/$(printf '\303\274')bersicht.md")"
+# A relative target is judged where the session stands.
+file_case deny 'bare sshd_config from inside /etc/ssh' \
+  "$(fjson Write sshd_config x /etc/ssh)"
+file_case pass 'bare sshd_config elsewhere' \
+  "$(fjson Write sshd_config x /home/alice/project)"
+# Every path key is judged, not the first one.
+file_case deny 'a second path key names the key' \
+  '{"cwd":"/r","tool_input":{"file_path":"/r/a.md","notebook_path":"/home/alice/.ssh/authorized_keys"}}'
+file_case deny 'a path key nested in an edit list' \
+  '{"cwd":"/r","tool_input":{"file_path":"/r/a.md","edits":[{"notebook_path":"/etc/ssh/sshd_config"}]}}'
+# Without jq nothing resolves a relative target or undoes an escape.
+file_case deny 'no jq: a relative target' \
+  '{"tool_input":{"file_path":"sshd_config"}}' "PATH=$NOJQ"
+file_case deny 'no jq: a relative notebook target' \
+  "$(fjson NotebookEdit id_ed25519)" "PATH=$NOJQ"
+file_case deny 'no jq: a JSON-escaped slash' \
+  '{"tool_input":{"file_path":"\/etc\/ssh\/sshd_config"}}' "PATH=$NOJQ"
+BSL=$(printf '\134')
+file_case deny 'no jq: a JSON unicode escape' \
+  '{"tool_input":{"file_path":"/tmp/sshd_conf'"${BSL}"'u0069g"}}' "PATH=$NOJQ"
+file_case deny 'no jq: a long s' \
+  "$(fjson Write "/etc/ssh/${LONGS}shd_config")" "PATH=$NOJQ"
+file_case deny 'no jq: a zero-width joiner' \
+  "$(fjson Write "/etc/ssh/sshd_${ZWJ}config")" "PATH=$NOJQ"
+file_case pass 'no jq: a sharp s in an ordinary name' \
+  "$(fjson Write "/home/alice/Stra${SZ}e.md")" "PATH=$NOJQ"
+# A fold that cannot run is a deny, not a pass: the form it misses
+# could be the key.
+NOSED=$(mktemp -d)
+for t in sh cat grep printf tr head; do
+  P=$(command -v "$t" 2>/dev/null) && ln -s "$P" "$NOSED/$t"
+done
+file_case deny 'no sed: the fold cannot run' \
+  "$(fjson Write /home/alice/notes.md)" "PATH=$NOSED"
+rm -rf "$NOSED"
+NOTR=$(mktemp -d)
+for t in sh cat grep printf sed head; do
+  P=$(command -v "$t" 2>/dev/null) && ln -s "$P" "$NOTR/$t"
+done
+file_case deny 'no tr: the ASCII form cannot be made' \
+  "$(fjson Write /home/alice/notes.md)" "PATH=$NOTR"
+rm -rf "$NOTR"
+# An escape in the content is text; only one in the target counts.
+file_case pass 'no jq: an escaped slash in the content' \
+  '{"tool_input":{"file_path":"/r/a.md","content":"s'"${BSL}${BSL}"'/a"}}' \
+  "PATH=$NOJQ"
+file_case pass 'no jq: a unicode escape in the content' \
+  '{"tool_input":{"file_path":"/r/a.md","content":"'"${BSL}${BSL}"'u00e9"}}' \
+  "PATH=$NOJQ"
 file_case deny 'no jq: Write authorized_keys' \
   "$(fjson Write /home/alice/.ssh/authorized_keys)" "PATH=$NOJQ"
 file_case pass 'no jq: Write an ordinary file' \
