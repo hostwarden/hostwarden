@@ -1,4 +1,4 @@
-# lib/hostwarden-impact/watch.sh — windows, the coordinator and
+# lib/hostwarden-impact/watch.sh — windows, the presence session and
 # watch. Sourced by bin/hostwarden-impact, in the order its PARTS
 # lists, into the one shell every part shares; never run on its own.
 # shellcheck shell=sh disable=SC2034 # read by the parts after it
@@ -79,17 +79,17 @@ window_status() {
   return 1
 }
 
-# coordinators — the session of each live coordinator entry: its
+# presences — the session of each live presence-session entry: its
 # session listed by `claude agents --json`, or, without the claude
 # CLI, its beat under 30 minutes old. Removes the others; asks the
 # CLI only where there is an entry to ask about.
-coordinators() {
-  set -- "$HOSTWARDEN_CACHE"/coordinator+*
+presences() {
+  set -- "$HOSTWARDEN_CACHE"/presence-session+*
   [ -e "$1" ] || return 0
   cs_ag=$(claude agents --json 2>/dev/null) || cs_ag=''
   cs_now=$(date +%s)
   for cs_e; do
-    cs_s=${cs_e##*/coordinator+}; cs_b=${cs_s##*+}; cs_s=${cs_s%+*}
+    cs_s=${cs_e##*/presence-session+}; cs_b=${cs_s##*+}; cs_s=${cs_s%+*}
     case $cs_b in *[!0-9]* | '') rm -rf "$cs_e"; continue ;; esac
     if [ -n "$cs_ag" ]; then
       case $cs_ag in *"\"$cs_s\""*) ;; *) rm -rf "$cs_e"; continue ;; esac
@@ -100,37 +100,37 @@ coordinators() {
   done
 }
 
-# coordinator_mark — marks this session as the coordinator, or
+# presence_mark — marks this session as the presence session, or
 # renews its mark; returns 1, having said why, where another stays:
 # one that was there first, or on a renewal one with the smaller
 # session id, so two that marked themselves at once settle on one.
-coordinator_mark() {
+presence_mark() {
   SESSION=$(impact_session)
   MINE=''
-  for ip_e in "$HOSTWARDEN_CACHE"/coordinator+"$SESSION"+*; do
+  for ip_e in "$HOSTWARDEN_CACHE"/presence-session+"$SESSION"+*; do
     [ -e "$ip_e" ] && MINE=1
   done
-  for ip_s in $(coordinators); do
+  for ip_s in $(presences); do
     [ "$ip_s" = "$SESSION" ] && continue
     if [ -z "$MINE" ] || [ "$(printf '%s\n%s\n' "$ip_s" "$SESSION" | LC_ALL=C sort | head -n 1)" = "$ip_s" ]; then
-      echo "another coordinator runs: $ip_s"
+      echo "another presence session runs: $ip_s"
       return 1
     fi
   done
-  hostwarden_coord_beat "$HOSTWARDEN_CACHE" "coordinator+$SESSION"
-  rmdir "$HOSTWARDEN_CACHE/coordinator-start" 2>/dev/null
+  hostwarden_coord_beat "$HOSTWARDEN_CACHE" "presence-session+$SESSION"
+  rmdir "$HOSTWARDEN_CACHE/presence-start" 2>/dev/null
   return 0
 }
 
-do_coordinator() {
+do_presence() {
   [ $# -eq 0 ] || { usage >&2; exit 2; }
   impact_setup
-  CS=$(coordinators)
+  CS=$(presences)
   [ -n "$CS" ] || exit 1
   printf '%s\n' "$CS"
 }
 
-# snapshot — one line per thing the coordinator watches: each live
+# snapshot — one line per thing the presence session watches: each live
 # touched and writer presence entry, without its time, each impact and
 # each ack under it, and each plan with its checksum. A run entry
 # comes and goes with every long command and asks nothing of it.
@@ -160,7 +160,7 @@ snapshot() {
 do_watch() {
   [ $# -eq 0 ] || { usage >&2; exit 2; }
   impact_setup
-  coordinator_mark || exit 1
+  presence_mark || exit 1
   POLL=${HOSTWARDEN_WATCH_POLL:-5}
   OLD=$(mktemp "${TMPDIR:-/tmp}/hostwarden-watch.XXXXXX") || die "no temp file"
   NEW=$OLD.new
@@ -173,15 +173,15 @@ do_watch() {
     LC_ALL=C comm -13 "$OLD" "$NEW" | sed 's/^/+ /'
     LC_ALL=C comm -23 "$OLD" "$NEW" | sed 's/^/- /'
     mv "$NEW" "$OLD"
-    # Another mark that appeared since — two coordinators that
+    # Another mark that appeared since — two presence sessions that
     # started at the same moment — settles at once, not at the next
     # renewal: the smaller session id stays.
-    for ip_e in "$HOSTWARDEN_CACHE"/coordinator+*; do
-      case $ip_e in "$HOSTWARDEN_CACHE/coordinator+$SESSION+"* | *'*') continue ;; esac
-      [ -e "$ip_e" ] && { coordinator_mark || exit 1; BEAT=$ELAPSED; break; }
+    for ip_e in "$HOSTWARDEN_CACHE"/presence-session+*; do
+      case $ip_e in "$HOSTWARDEN_CACHE/presence-session+$SESSION+"* | *'*') continue ;; esac
+      [ -e "$ip_e" ] && { presence_mark || exit 1; BEAT=$ELAPSED; break; }
     done
     if [ $((ELAPSED - BEAT)) -ge 300 ]; then
-      coordinator_mark || exit 1
+      presence_mark || exit 1
       BEAT=$ELAPSED
     fi
     if [ $((ELAPSED - TICK)) -ge 900 ]; then

@@ -1,10 +1,10 @@
-# tests/hooks/coordination/coordinator.sh — the coordinator. Sourced
+# tests/hooks/coordination/presence.sh — the presence session. Sourced
 # by tests/hooks/coordination.sh, in the order its PARTS lists, into
 # the one shell every part shares; never run on its own.
 # shellcheck shell=sh disable=SC2034 # read by the parts after it
 
 # ================================================================
-echo "== the coordinator"
+echo "== the presence session"
 
 # A stand-in for the claude CLI: agents --json prints
 # $TMP/agents.json, --bg records what it was asked to start.
@@ -29,26 +29,26 @@ started() {
   while [ "$i" -lt 5 ] && [ ! -s "$TMP/claude-bg" ]; do sleep 1; i=$((i + 1)); done
   [ -s "$TMP/claude-bg" ]
 }
-LOCK="$CACHE/coordinator-start"
+LOCK="$CACHE/presence-start"
 
 rm -f "$TMP/claude-bg"
 start startup
-hasi "$TMP/hookout" "coordinator started" "check-session: starts one where none runs"
-started && hasi "$TMP/claude-bg" "/hostwarden-coordinator" \
+hasi "$TMP/hookout" "presence session started" "check-session: starts one where none runs"
+started && hasi "$TMP/claude-bg" "/hostwarden-presence" \
   "check-session: starts the skill in the background" \
   || bad "check-session: nothing was started"
 
 rm -f "$TMP/claude-bg"
 start startup
-lacks "$TMP/hookout" "coordinator started" "check-session: a held start lock starts none"
+lacks "$TMP/hookout" "presence session started" "check-session: a held start lock starts none"
 
-# The watch marks the coordinator and prints the picture first; a
+# The watch marks the presence session and prints the picture first; a
 # second one exits. A long command's run entry is no event.
 echo '[{"sessionId":"coord1","kind":"background"}]' >"$TMP/agents.json"
 mkdir -p "$PRES/sessw+web1.example.com+$(date +%s)" "$PRES/sessw+web1.example.com+run"
 : >"$PRES/sessw+web1.example.com+run/1"
 HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
-[ $? = 0 ] && ok || bad "watch: the first coordinator marks itself"
+[ $? = 0 ] && ok || bad "watch: the first presence session marks itself"
 has "$TMP/out" "+ presence sessw web1.example.com touched" "watch: prints a touched entry"
 lacks "$TMP/out" " run" "watch: a run entry is no event"
 [ -d "$LOCK" ] && bad "watch: its mark releases the start lock" || ok
@@ -61,42 +61,42 @@ HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
 lacks "$TMP/out" "oldid+" "watch: an expired impact is pruned, not reported"
 [ -d "$OLDIMP" ] && bad "watch: prunes an expired impact" || ok
 HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord2 run watch >"$TMP/out"
-[ $? = 1 ] && ok || bad "watch: a second coordinator exits"
-hasi "$TMP/out" "another coordinator runs: coord1" "watch: names the first"
-run coordinator >"$TMP/out"
-has "$TMP/out" "coord1" "coordinator: names the live one"
+[ $? = 1 ] && ok || bad "watch: a second presence session exits"
+hasi "$TMP/out" "another presence session runs: coord1" "watch: names the first"
+run presence >"$TMP/out"
+has "$TMP/out" "coord1" "presence session: names the live one"
 # Two marks at once: the smaller session id stays.
 echo '[{"sessionId":"coord0"},{"sessionId":"coord1"}]' >"$TMP/agents.json"
-mkdir "$CACHE/coordinator+coord0+$(date +%s)"
+mkdir "$CACHE/presence-session+coord0+$(date +%s)"
 HOSTWARDEN_WATCH_ONCE=1 HOSTWARDEN_SESSION=coord1 run watch >"$TMP/out"
 [ $? = 1 ] && ok || bad "watch: the larger of two session ids exits"
-hasi "$TMP/out" "another coordinator runs: coord0" "watch: names the one that stays"
-rm -rf "$CACHE"/coordinator+coord0+*
+hasi "$TMP/out" "another presence session runs: coord0" "watch: names the one that stays"
+rm -rf "$CACHE"/presence-session+coord0+*
 echo '[{"sessionId":"coord1","kind":"background"}]' >"$TMP/agents.json"
 
 rm -f "$TMP/claude-bg"
 start startup
-lacks "$TMP/hookout" "coordinator started" "check-session: a live coordinator starts none"
+lacks "$TMP/hookout" "presence session started" "check-session: a live presence session starts none"
 
 # Its session gone, the entry is stale and a new one starts.
 echo '[]' >"$TMP/agents.json"
-run coordinator >/dev/null
-[ $? = 1 ] && ok || bad "coordinator: a session not listed is not live"
+run presence >/dev/null
+[ $? = 1 ] && ok || bad "presence session: a session not listed is not live"
 rm -f "$TMP/claude-bg"
 start resume
-started && ok || bad "check-session: a stale coordinator is replaced"
+started && ok || bad "check-session: a stale presence session is replaced"
 rmdir "$LOCK" 2>/dev/null
 
-# Coordinator: off, a compaction and a development checkout start none.
-printf '# Preferences\nCoordinator: off\n' >>"$M/user.md"
+# Presence: off, a compaction and a development checkout start none.
+printf '# Preferences\nPresence: off\n' >>"$M/user.md"
 rm -f "$TMP/claude-bg"
 start startup
-lacks "$TMP/hookout" "coordinator started" "check-session: Coordinator: off starts none"
-sed -i.bak '/^Coordinator: off$/d' "$M/user.md" && rm -f "$M/user.md.bak"
+lacks "$TMP/hookout" "presence session started" "check-session: Presence: off starts none"
+sed -i.bak '/^Presence: off$/d' "$M/user.md" && rm -f "$M/user.md.bak"
 start compact
-lacks "$TMP/hookout" "coordinator started" "check-session: a compaction starts none"
+lacks "$TMP/hookout" "presence session started" "check-session: a compaction starts none"
 rm "$M/.hostwarden-workspace"
 start startup
-lacks "$TMP/hookout" "coordinator started" "check-session: a development checkout starts none"
+lacks "$TMP/hookout" "presence session started" "check-session: a development checkout starts none"
 : >"$M/.hostwarden-workspace"
 rm -f "$TMP/bin/claude"

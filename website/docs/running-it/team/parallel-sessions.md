@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 description: Sessions that see each other on the same host, steps
-  that reach other hosts, and the coordinator that tracks them.
+  that reach other hosts, and the presence session that tracks them.
 ---
 
 # Parallel sessions
@@ -36,9 +36,9 @@ entry and a journal line, so your colleagues' sessions see it too.
 Alone, with or without a shared workspace, nothing is written on
 other hosts.
 
-## The coordinator
+## The presence session
 
-The first session in an operations checkout starts a coordinator in
+The first session in an operations checkout starts a presence session in
 the background, one per checkout, and says so in one line. It keeps
 track of which session works on which host, asks a session what it
 is doing when it moves on to other hosts, passes an announced step
@@ -46,8 +46,8 @@ on to the sessions it concerns, keeps an order of steps that spans
 sessions, and warns about maintenance windows. It never reaches a
 server and never decides anything for you or another session.
 
-`claude agents` lists it as `hostwarden coordinator`. To turn it off,
-run `/hostwarden-coordinator` in any session: it stops the
-coordinator and writes `Coordinator: off` into your `memory/user.md`,
+`claude agents` lists it as `hostwarden presence`. To turn it off,
+run `/hostwarden-presence` in any session: it stops the
+presence session and writes `Presence: off` into your `memory/user.md`,
 so the next session does not start it again. The same skill removes
 the line and starts one when you want it back.

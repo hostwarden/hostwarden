@@ -198,7 +198,7 @@ contrib/
                          .claude/skills link that is not one
     check-session.sh   — SessionStart hook that records and
                          reports a guard that is off, and
-                         starts the coordinator in operations
+                         starts the presence session in operations
     presence.sh        — Pre- and PostToolUse hook that keeps
                          the presence map in operations
     impact.sh          — PreToolUse hook that denies a
@@ -225,7 +225,7 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-multi-host/ — One question, check or change
                          on several servers (SKILL.md)
-    hostwarden-coordinator/ — The background session that keeps
+    hostwarden-presence/ — The background session that keeps
                          track of which session works where
                          (SKILL.md)
     hostwarden-os-install/    — Install, replace or dual-boot an

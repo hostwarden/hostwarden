@@ -1,7 +1,7 @@
 #!/bin/sh
 # check-session.sh — SessionStart hook: say when the taboo guard is
 # switched off for this session, before anything reaches a machine,
-# and in an operations checkout start the coordinator where none
+# and in an operations checkout start the presence session where none
 # runs, in one line. Silent otherwise. (A linked worktree is
 # announced by session-mode.sh, with the rest of the mode.)
 #
@@ -66,14 +66,14 @@ fi
 # Records of sessions long gone.
 find "$CACHE" -name 'guard-off-*' -mtime +2 -exec rm -f {} + 2>/dev/null
 
-# The coordinator (rules/coordination.md → The coordinator). An
+# The presence session (rules/coordination.md → The presence session). An
 # operations checkout's session starts one in the background when
 # none runs for this checkout, unless memory/user.md says
-# `Coordinator: off`; a development checkout and a worktree start
-# none. `bin/hostwarden-impact coordinator` says whether one
+# `Presence: off`; a development checkout and a worktree start
+# none. `bin/hostwarden-impact presence` says whether one
 # is live. The start lock, an atomic mkdir, keeps two sessions
 # starting at once — and the background session's own start, which
-# runs this hook too — from starting a second; the coordinator
+# runs this hook too — from starting a second; the presence session
 # checks for another on its own start as well. `claude --bg` goes
 # into the background itself, since it takes about two seconds of
 # the hook's five.
@@ -83,16 +83,16 @@ case "$(hook_field source '[A-Za-z0-9_-]')" in startup | resume | "") ;; *) exit
 ROOT=$(cd "$HERE/../.." 2>/dev/null && pwd) || exit 0
 hostwarden_mode "$ROOT"
 [ "$HOSTWARDEN_MODE" = operations ] || exit 0
-grep -Eqi '^[-*[:space:]]*Coordinator:[[:space:]]*off([[:space:]]|$)' \
+grep -Eqi '^[-*[:space:]]*Presence:[[:space:]]*off([[:space:]]|$)' \
   "$ROOT/memory/user.md" 2>/dev/null && exit 0
 command -v claude >/dev/null 2>&1 || exit 0
-sh "$ROOT/bin/hostwarden-impact" coordinator >/dev/null 2>&1 && exit 0
+sh "$ROOT/bin/hostwarden-impact" presence >/dev/null 2>&1 && exit 0
 hostwarden_cache_dir "$ROOT"
-LOCK=$HOSTWARDEN_CACHE/coordinator-start
+LOCK=$HOSTWARDEN_CACHE/presence-start
 [ -n "$(find "$LOCK" -maxdepth 0 -mmin +2 2>/dev/null)" ] && rmdir "$LOCK" 2>/dev/null
 mkdir "$LOCK" 2>/dev/null || exit 0
-(cd "$ROOT" && claude --bg -n "hostwarden coordinator" "/hostwarden-coordinator" \
+(cd "$ROOT" && claude --bg -n "hostwarden presence" "/hostwarden-presence" \
   </dev/null >/dev/null 2>&1 &)
-echo "hostwarden: coordinator started in the background; /hostwarden-coordinator stops it for good."
+echo "hostwarden: presence session started in the background; /hostwarden-presence stops it for good."
 
 exit 0

@@ -64,7 +64,7 @@ typically well under a megabyte, so a backup is one `tar` command
 - **`user.md`** — SSH usernames, the SSH ports you use instead of 22
   (`Alternative SSH ports:`), your language, your handle
   (`Operator:`), your full name for email signatures
-  (`Operator name:`), `Coordinator: off` where you turned it off, and
+  (`Operator name:`), `Presence: off` where you turned it off, and
   `Multi-host: agents` where you want questions and skills on
   several hosts in subagents
   ([One task on many hosts](../features/fleet/multi-host.md)).

@@ -30,7 +30,7 @@ and how to make it your own.
   remote.
 - [Parallel sessions](team/parallel-sessions.md) — sessions that see
   each other on the same host, steps that reach other hosts, and the
-  coordinator.
+  presence session.
 - [An operations host](team/operations-host.md) — an always-on
   machine that runs the fleet's housekeeping unattended.
 

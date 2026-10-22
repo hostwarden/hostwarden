@@ -230,12 +230,12 @@ the remote to carry it before it is written. An `Operator:` line
 the user wrote themselves that the list lacks is reserved the same
 way, without a question.
 
-## The coordinator
+## The presence session
 
-Where the session start said it started the coordinator, pass that
+Where the session start said it started the presence session, pass that
 line on in your first reply. What it is, and how
-`Coordinator: off` keeps it off: `rules/coordination.md` → The
-coordinator.
+`Presence: off` keeps it off: `rules/coordination.md` → The
+presence session.
 
 ## What not to ask
 
