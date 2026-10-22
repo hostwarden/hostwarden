@@ -127,9 +127,16 @@ behind it.
    loader, `efibootmgr -o` with the new entry
    first is the plain way. `bootctl set-default`
    writes an EFI variable that every system
-   shares, so it needs no such care; a `default`
-   line in `loader.conf` lives on the ESP and
-   counts there.
+   shares, but the entry it names must exist for
+   the systemd-boot the firmware starts: with a
+   separate ESP per system, `bootctl status` shows
+   the ESP in use and `efibootmgr -v` the one the
+   firmware starts. Where they differ, switch
+   the firmware entry to the new system's ESP with
+   `efibootmgr -o`; an entry copied onto the old
+   system's ESP ties the new system to it. A
+   `default` line in `loader.conf` lives on the
+   ESP in use and counts there.
 2. **Read it back.** `efibootmgr` shows `BootOrder`
    with the new entry first and no `BootNext`;
    `grub-editenv <grubenv of the loader the
@@ -166,7 +173,12 @@ behind it.
      inside the loader image: reinstall it from the
      new system.
    - systemd-boot: the `linux` and `initrd` paths
-     of the entry sit on the ESP.
+     of the entry resolve on the ESP or, with a
+     separate XBOOTLDR partition, there
+     (`bootctl status` shows both). The ESP the
+     firmware starts and that partition must each
+     be the new system's or one that stays, not
+     the old system's.
    - FreeBSD `loader.efi`: the partition UUID it
      boots (`gpart list`, `rawuuid`) or the pool's
      `bootfs` (`zpool get bootfs`) is the new
