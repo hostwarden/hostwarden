@@ -290,6 +290,18 @@ systemctl is-active nginx 2>/dev/null \
 - **WARN** if config test fails
 - **CRITICAL** if nginx is not running
 
+## Mail server (MTA)
+
+Triggered when `memory.md` names an MTA that takes mail from the
+internet or sends it to the internet directly. One that only relays
+through a smarthost (nullmailer, dma, msmtp, or Postfix with a
+`relayhost`) is not.
+
+Its DNS side, SPF, DKIM, DMARC, MTA-STS, reverse DNS and CAA, is
+read and rated as `rules/mail-dns.md` says, for the domains the
+user names; a domain nobody has named is asked about once, not
+guessed. Its findings join the report as that file gives them.
+
 ## Ollama
 
 Triggered when `memory.md` mentions Ollama.

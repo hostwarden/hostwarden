@@ -102,7 +102,8 @@ otherwise refuse cleanly and explain (residential macOS
 rarely sends).
 
 Before installing, surface the deliverability caveat: the
-server's IP probably has no PTR/SPF/DKIM, so mail to
+server's IP probably has no PTR/SPF/DKIM (`rules/mail-dns.md` reads
+them), so mail to
 gmail-style providers will likely be filtered. Recommend a
 smarthost relay if the user has one — every agent above
 takes one (`/etc/nullmailer/remotes`,

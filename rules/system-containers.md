@@ -212,7 +212,9 @@ asked first:
   disks (a jail's path and the dataset under it), and the newest
   backup (a snapshot goes with the guest).
   A run with no human to ask never does it: the user runs the
-  command.
+  command. A deletion, by either, ends with the records that name
+  the guest as `rules/dns.md` → No record outlives its service lists
+  them; a stopped guest keeps its records.
 - Deleting a snapshot, or rolling back to one, which discards
   everything since: name what goes.
 - **A guest's cloud-init settings** — Proxmox VE's `--ipconfig`

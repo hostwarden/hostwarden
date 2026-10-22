@@ -28,6 +28,9 @@ A host's own A, AAAA and PTR records against its addresses stay with
   (`.agents/skills/hostwarden-fleet-audit/references/probes.md` →
   DNS resolver sets). It reads `memory/dns.md` and writes nothing to
   it.
+- **A host or service is removed:** No record outlives its service
+  below.
+- **A host sends or receives mail:** `rules/mail-dns.md`.
 - **On request:** the DNSSEC chain of a zone, a provider's zone, or
   a name space nobody has described yet.
 
@@ -493,9 +496,52 @@ named, since nothing copies them from one to the next.
 - **A rename** (`rules/host-rename.md` → The Order) gets two sets:
   the new name's records to add, and later the old name's to remove,
   the PTR's new target, and every CNAME that targets the old name,
-  retargeted. Those CNAMEs are the ones the Records below show on the
+  retargeted, and an MX that targets the old name, retargeted the
+  same way. Those CNAMEs are the ones the Records below show on the
   DNS servers memory names; the set says that others, at a provider
   or on a server Hostwarden does not read, are the user's to find.
+
+## No record outlives its service
+
+A record that names a host, a cloud resource, a CDN or a SaaS tenant
+goes in the same change that removes the thing it names. One left
+behind answers for a name nobody serves, and whoever claims the
+address or the resource next serves content under it (a dangling
+CNAME or A record), receives its mail (an MX) or is named by it
+(a PTR).
+
+When a host is deleted, retired or replaced, and a guest on its
+hypervisor deleted (`rules/system-containers.md` → Changes), the
+request's last step is the removal set, handed over as The proposal
+says and written only where Writing allows it. A stopped guest, and
+a host that is renamed, keep their records: a rename has the two
+sets of The proposal instead. The removal set:
+
+- the A and AAAA records of its names. A service name that is an A
+  or AAAA to its address is listed for the user to judge, not in
+  the set, since a NAT or a reverse proxy can put other live
+  services on the same address; it joins the set only once the user
+  says the name belonged to this host alone;
+- every CNAME whose target is one of its names, found as the Records
+  of Reading a DNS server shows them on the servers memory names,
+  and, for a provider's zone, by name; the user is told that others
+  can exist where Hostwarden does not read;
+- an MX whose target is one of its names, and the PTR of its
+  addresses, which is the address owner's to remove: the user's
+  reverse zone or the provider;
+- its ACME or site-verification TXT records, once the check is done
+  for good: named for the user to judge, never removed from a
+  guess, since a TXT can carry a token (`rules/secrets.md`);
+- a CAA record that exists only for it, where it was the one host
+  needing a certificate.
+
+A record that stays because the service moved to another host is a
+retargeting, not a removal: the set says which. The removal set is
+proposed in the same answer that asks for the removal, and an item
+in the host's `todo.md` records what the user still has to do
+(`rules/machine-memory.md` → Session to-do list). Where the name's
+records cannot be read at all, the set says so instead of reading
+as complete.
 
 ## Writing
 
@@ -593,9 +639,12 @@ version can move a flag from the one below.
 
   A rename's second set (The proposal) removes the old name's
   records with `update delete <name> [type]` lines the same way.
-  Retargeting an existing PTR or CNAME to a new value takes a
+  Retargeting an existing PTR, CNAME or MX to a new value takes a
   `delete` for the old value and an `add` for the new one in the
-  same transaction, never `add` alone, which would leave both.
+  same transaction, never `add` alone, which would leave both. An
+  MX's `delete` names its preference and target
+  (`update delete example.com. MX 10 mail1.example.com.`), so the
+  domain's other MX records stay.
 - **PowerDNS:** `pdnsutil`, on the host, or its API where the host's
   configuration shows one is enabled:
 
@@ -612,7 +661,9 @@ version can move a flag from the one below.
   notified the same way. Retargeting an existing PTR or CNAME uses
   `pdnsutil replace-rrset <zone> <name> <type> [ttl] <content>`
   instead of `add-record`, which replaces the value outright rather
-  than adding a second one beside it.
+  than adding a second one beside it. An MX is never retargeted that
+  way: `replace-rrset` swaps the whole set and drops the domain's
+  other MX records. The retarget goes to the user.
 - **Knot:** a transaction, one zone at a time, aborted rather than
   committed on any failure of the product's own check:
 
@@ -625,9 +676,10 @@ version can move a flag from the one below.
 
   `zone-unset <zone> <owner> [type [rdata]]` removes a record before
   the commit; `zone-abort <zone>` drops the transaction instead.
-  Retargeting an existing PTR or CNAME unsets the old value before
-  setting the new one, in the same transaction, never `zone-set`
-  alone.
+  Retargeting an existing PTR, CNAME or MX unsets the old value
+  before setting the new one, in the same transaction, never
+  `zone-set` alone; an MX's `zone-unset` names its rdata, so the
+  domain's other MX records stay.
 - **Resolver records** (source 2, on a host reached over SSH), each
   product's own way to make the change take effect — a reload that
   only clears a cache, never the products' configuration itself, is

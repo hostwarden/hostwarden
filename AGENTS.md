@@ -414,6 +414,8 @@ trigger — not a request from the user.
   engine beside bridged guests included → `rules/network.md`
 - A DNS record a host or service needs, a check of a DNS record or
   zone, or a DNS server to set up → `rules/dns.md`
+- A host that sends or receives mail, or a domain's mail records →
+  `rules/mail-dns.md`
 - Bundling commands, or a rate limit looming → `rules/ssh-connections.md`
 - A command that can run over a minute → `rules/ssh-connections.md` →
   Long jobs
