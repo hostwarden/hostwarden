@@ -196,6 +196,8 @@ do_restore() {
   # restored memory/ssh_hosts instead.
   rm -f "$TMPEX/memory/ssh_config"
   cp -R "$TMPEX/memory/." memory/
+  # The archive's .gitignore may predate a personal file.
+  sh bin/hostwarden-init >/dev/null
   sh bin/hostwarden-ssh-config || true
   echo "restored $FILE into $REPO_DIR"
 }

@@ -19,6 +19,7 @@ memory/
 ├── user.md               your SSH users, language, handle   personal
 ├── blacklist.md          hosts never to connect to          personal
 ├── readonly.md           hosts to inspect, never change     personal
+├── refusals.log          requests Hostwarden refused        personal
 ├── ssh_config            written each session start         personal
 ├── opencode.json         your OpenCode config               personal
 ├── operators.md          the handles in use in a team
@@ -70,6 +71,9 @@ typically well under a megabyte, so a backup is one `tar` command
   ([One task on many hosts](../features/fleet/multi-host.md)).
 - **`blacklist.md`, `readonly.md`** — the access lists
   ([Access control](../safety/access.md)).
+- **`refusals.log`** — one line per request Hostwarden refused as an
+  attack ([Hard guardrails](../safety/guardrails.md#attacks)); it
+  stays on this machine.
 - **`operators.md`** — the handles in use, and which are inactive or
   an operations host's ([A shared workspace](../running-it/team/shared-workspace.md)).
 - **`service-policy.md`** — per service, whether a reload or restart
@@ -131,7 +135,7 @@ machines, shares it through a private one
 the split matters:
 
 - **Always personal, never shared:** `user.md`, `blacklist.md`,
-  `readonly.md`, `ssh_config`, `opencode.json`, and the memory
+  `readonly.md`, `refusals.log`, `ssh_config`, `opencode.json`, and the memory
   directory of anyone's own machine. The workspace's `.gitignore` names
   them; your machine's hostname directory you add there yourself.
 - **Shared:** everything else — every host's memory, rules, decisions

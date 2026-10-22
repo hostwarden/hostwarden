@@ -56,7 +56,7 @@ the pull and are left for you.
 ## Personal files
 
 Personal files never reach the remote: `memory/.gitignore` names
-`user.md`, `blacklist.md`, `readonly.md`, `opencode.json` and
+`user.md`, `blacklist.md`, `readonly.md`, `refusals.log`, `opencode.json` and
 `ssh_config`. Add your own machine's hostname directory there (e.g.
 `/machines/my-laptop/`). Alone on several machines, you may want your
 SSH usernames on all of them: delete the `/user.md` line — unless one

@@ -34,7 +34,8 @@ most specific thing the user can say.
 
 **Not overridable at any level:** `AGENTS.md` → Critical
 Safety Rules. The absolute taboos, the ask-before list, the
-port-22 refusal, secrets hygiene. The taboo guard enforces
+port-22 refusal, secrets hygiene, the refusal of attacks
+(`rules/ethics.md`). The taboo guard enforces
 the hardest of them mechanically, so an override that tries
 would not work even if this file allowed it. Follow the
 rest of such a file and tell the user which part was

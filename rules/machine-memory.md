@@ -400,7 +400,8 @@ machines — and then the split matters.
 (SSH usernames, language, operator handle),
 `memory/blacklist.md`, `memory/readonly.md`,
 `memory/ssh_config`, which `bin/hostwarden-ssh-config`
-writes for each machine, and the memory directory of
+writes for each machine, `memory/refusals.log`
+(`rules/ethics.md` → On a refusal), and the memory directory of
 anyone's local machine. The workspace's own
 `.gitignore` names them; a machine's hostname
 directory is added there on its first local-mode

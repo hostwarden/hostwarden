@@ -28,6 +28,18 @@ sh "$R/bin/hostwarden-backup" --restore "$TMP/ws.tgz" >/dev/null
 mode_is operations "$R"
 [ -f "$R/memory/machines/server1.example.com/memory.md" ] && ok \
   || bad "a restore lost machine memory"
+# An archive from a workspace older than refusals.log: its
+# .gitignore overwrites the new one, and the log stays personal.
+mkdir -p "$TMP/oldarc/memory"
+grep -v '^/refusals.log$' "$R/memory/.gitignore" > "$TMP/oldarc/memory/.gitignore"
+echo '2026-10-22 alice: refused' > "$TMP/oldarc/memory/refusals.log"
+tar czf "$TMP/old.tgz" -C "$TMP/oldarc" memory
+R=$(checkout old)
+sh "$R/bin/hostwarden-backup" --restore "$TMP/old.tgz" >/dev/null
+mode_is operations "$R"
+[ -f "$R/memory/refusals.log" ] \
+  && git -C "$R/memory" check-ignore -q refusals.log && ok \
+  || bad "a restore of an older archive left memory/refusals.log shareable"
 
 # --- scripts/lab.sh ----------------------------------------
 # What it refuses before an engine or a VM manager is asked, and on

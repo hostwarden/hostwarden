@@ -6,6 +6,7 @@
 /opencode.json
 /blacklist.md
 /readonly.md
+/refusals.log
 # The memory of this machine itself. Its first local-mode
 # connection adds its own directory here (rules/machine-memory.md);
 # these two only cover a workspace from before that.

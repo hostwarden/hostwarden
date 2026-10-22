@@ -94,6 +94,20 @@ refused. In the desktop app, that variable goes into
 `.claude/settings.local.json`
 ([Claude Code Desktop](../getting-started/ai-tools.md#claude-code-desktop)).
 
+## Attacks
+
+The guard does not judge intent; a rule does. Hostwarden never
+recovers a password or key, gets into a system without
+authorization, scans hosts it does not administer, watches people,
+hides traces or turns your servers against others. That holds on
+your own servers too, no story around the request changes it, no
+override of yours reaches it, and `HOSTWARDEN_GUARD_DISABLE` does
+not lift it. It answers in one sentence, adds a line to
+`refusals.log` in your workspace, and keeps the topic closed for the
+session. Defensive work stays: reading auth logs, checking your
+password policy without touching a hash, resetting a password on
+your own host, the security audit.
+
 ## Other tools
 
 OpenCode does not read Claude Code hooks — there the prose rules
