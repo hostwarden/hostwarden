@@ -14,6 +14,10 @@ place, `rules/baseline.md`:
 - automatic security updates, from every vendor repository the
   host uses as well (Docker, NetBird, Grafana, a PPA), each by a
   pattern of its own
+- `needrestart` on Debian and Ubuntu, set to list the services that
+  need a restart and not to restart them
+- a notice at login on Debian and Ubuntu when a reboot is pending,
+  with the reason, and which services still run replaced libraries
 - time sync
 - SSH by key only, and trust in your SSH CA where you run one
 - SELinux or AppArmor, whichever the distribution ships, enforcing

@@ -53,9 +53,11 @@ never reach apt; `env` after it sets them for root.
   Afterwards, take the listed services through
   `rules/service-reload.md`.
 
-The daily unattended-upgrades run is not affected: on
-Ubuntu it keeps restarting services on its own, which is
-the host's policy, not a Hostwarden change.
+The variable is set for Hostwarden's own runs only. The daily
+unattended-upgrades run follows the mode in needrestart's
+configuration: `l` where the baseline set it, and on Ubuntu 24.04
+and later, with no mode set, restarting services on its own
+(→ Automatic Security Updates).
 
 Sources: https://manpages.debian.org/trixie/debconf-doc/debconf.7.en.html,
 https://manpages.debian.org/trixie/dpkg/dpkg.1.en.html,
@@ -413,6 +415,21 @@ what is left.
   `OnCalendar=*-*-* 06:00` with a
   `RandomizedDelaySec=60m` spread
   (`rules/maintenance-windows.md` → Automatic restarts).
+- **Service restarts:** `needrestart` (`rules/baseline.md` →
+  Service Restarts), configured in
+  `/etc/needrestart/needrestart.conf` and the `conf.d/*.conf`
+  drop-ins, read in sorted order, the last `$nrconf{restart}`
+  winning. The baseline sets it in
+  `/etc/needrestart/conf.d/50-hostwarden.conf`, whose one
+  line is `$nrconf{restart} = 'l';`. Its master is the fleet master
+  `memory/fleet/needrestart-mode/`, at the same path under `files/`
+  (`rules/deployed-files.md`). `l` lists, `a` restarts
+  on its own, `i` asks. Ubuntu Server installs needrestart and,
+  from 24.04, restarts services itself in non-interactive runs,
+  the apt run of unattended-upgrades included. Debian does not
+  install it, and once it is there it lists when no terminal is
+  attached. Installing the package takes the form under
+  **Non-interactive apt runs**.
 
 Sources: https://ubuntu.com/server/docs/how-to/software/automatic-updates/,
 https://github.com/mvo5/unattended-upgrades/blob/master/data/50unattended-upgrades.Ubuntu,
@@ -504,10 +521,11 @@ decisions (`rules/decisions.md`).
 
 **What an upgrade restarts.** A package's maintainer scripts
 usually restart its own service after the upgrade (debhelper's
-default since compat 10), and needrestart then handles the services
-using old libraries (Non-interactive apt runs above), both in the
-host's automatic restart slot (`rules/maintenance-windows.md` →
-Automatic restarts). For a container engine that restarts every
+default since compat 10), and needrestart restarts the services
+using old libraries where its mode is `a` and only lists them where
+it is `l` (Service restarts above). Both happen in the host's
+automatic restart slot (`rules/maintenance-windows.md` → Automatic
+restarts). For a container engine that restarts every
 container: `rules/containers.md` → Engine Updates, before its
 repository is added.
 
@@ -520,6 +538,29 @@ https://manpages.debian.org/trixie/apt/apt.conf.5.en.html,
 https://manpages.debian.org/trixie/debhelper/dh_installsystemd.1.en.html,
 https://download.docker.com/linux/debian/dists/trixie/Release,
 https://pkgs.netbird.io/debian/dists/stable/Release
+
+## Login Notice
+
+`rules/baseline.md` → Login Notice. pam_motd shows the output of
+the executable files in `/etc/update-motd.d/`, run in name order,
+for an active `session` line naming `pam_motd` in `/etc/pam.d/sshd`
+or `/etc/pam.d/login` that does not carry `noupdate`, which keeps
+pam_motd from running the scripts. Read them before writing
+anything:
+
+```bash
+grep -hsE '^[[:space:]]*session[[:space:]].*pam_motd' \
+  /etc/pam.d/sshd /etc/pam.d/login
+ls -l /etc/update-motd.d/ 2>/dev/null
+```
+
+Without such a line in `sshd`, the notice would never show and is
+not deployed; say so. The script is a deployed file
+(`rules/deployed-files.md`), a fleet master
+`memory/fleet/login-notice/files/etc/update-motd.d/91-hostwarden-restart`
+copied from `templates/login-notice/restart-notice`, mode 755
+root:root. The
+name carries no dot, because run-parts skips a file that has one.
 
 ## Service Manager
 
