@@ -80,6 +80,7 @@ printf '%s\n' "${D:-sshd}" \
     -e '^(usepam|authenticationmethods|permitemptypasswords) ' \
     -e '^(permitrootlogin|ciphers|macs|kexalgorithms) ' \
     -e '^(hostkeyalgorithms|maxauthtries|x11forwarding) ' \
+    -e '^allowagentforwarding ' \
     -e '^use(block|black)list '
 done
 ```
@@ -252,6 +253,14 @@ Fallback: parse from config files.
 - `no` → OK
 
 Skip this check on macOS.
+
+### AllowAgentForwarding
+
+Fallback: parse from config files. Default is `yes`.
+
+- `yes` → **INFO** (`rules/ssh-connections.md` → Why these
+  values)
+- `no` → OK
 
 ## SSH CA
 

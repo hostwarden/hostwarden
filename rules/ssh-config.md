@@ -411,15 +411,23 @@ shared file would open a port on every machine that shares it at every
 connection, held by a master that outlives the need. A session
 that needs one adds it to its shared connection, which an earlier
 call has opened, and takes it away with the same arguments when
-it is done:
+it is done, both through the connection's socket:
 
 ```bash
-ssh -F "/srv/hostwarden/memory/ssh_config" -O forward \
+S=$(ssh -F "/srv/hostwarden/memory/ssh_config" -G alice@web1.example.com |
+  awk '$1 == "controlpath" { print $2; exit }')
+ssh -F /dev/null -S "$S" -O forward \
   -L 127.0.0.1:8443:127.0.0.1:443 alice@web1.example.com
-ssh -F "/srv/hostwarden/memory/ssh_config" -O cancel \
+ssh -F /dev/null -S "$S" -O cancel \
   -L 127.0.0.1:8443:127.0.0.1:443 alice@web1.example.com
 ```
 
+- **Never `-F` with the file for `-O forward`:** its
+  `ClearAllForwardings yes` clears the `-L` as well, and ssh
+  exits 0 with no port open. `-o ClearAllForwardings=no` is no way
+  out: it brings every forwarding of the user's own files onto the
+  connection with it (`rules/ssh-connections.md` → Why these
+  values).
 - **Name the shared connection's own user:** its socket is kept
   per user, so another user's `-O` finds no connection.
 - **Bind to `127.0.0.1`,** never to every address: other machines

@@ -1,7 +1,8 @@
 #!/bin/sh
 # tests/bin/hostwarden-ssh-config.sh — fixture matrix for
 # bin/hostwarden-ssh-config: which lines of memory/ssh_hosts pass,
-# and the Match block that tells bin/hostwarden-askpass its target.
+# the Match block that tells bin/hostwarden-askpass its target, and
+# no forwarding from the user's own file.
 # CI runs it through scripts/check.sh; an agent session leaves it to
 # CI (.claude/rules/pull-requests.md → Checks).
 
@@ -161,6 +162,17 @@ chmod +x "$OPS/bin/hostwarden-askpass"
 ssh -F "$OPS/memory/ssh_config" -G alice@rtr1 >/dev/null 2>&1
 [ "$(cat "$TMP/note" 2>/dev/null)" = "--note rtr1 alice 192.0.2.1 2222" ] && ok ||
   bad "the note got: $(cat "$TMP/note" 2>/dev/null)"
+
+# No agent, X11 or port forwarding, whatever the user's own file says:
+# the standard options come first, and ssh keeps the first value.
+printf 'Host *\n  ForwardAgent yes\n  ForwardX11 yes\n  LocalForward 127.0.0.1:9100 127.0.0.1:80\n  RemoteForward 127.0.0.1:9200 127.0.0.1:80\n' > "$HOME/.ssh/config"
+ssh -F "$OPS/memory/ssh_config" -G alice@db1 > "$TMP/g" 2>&1
+grep -q '^forwardagent no$' "$TMP/g" && ok ||
+  bad "the user's ForwardAgent yes wins"
+grep -q '^forwardx11 no$' "$TMP/g" && ok ||
+  bad "the user's ForwardX11 yes wins"
+grep -qE '^(local|remote)forward ' "$TMP/g" &&
+  bad "a forwarding of the user's file is kept" || ok
 rm -f "$HOME/.ssh/config"
 
 finish "ssh-config tests"

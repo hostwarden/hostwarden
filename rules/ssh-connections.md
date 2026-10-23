@@ -98,6 +98,16 @@ which are never shared.
   writes it only where ssh accepts it: such an ssh
   has no source of that kind to switch off.
   `bin/hostwarden-doctor` reports the case.
+- **`ForwardAgent no`, `ForwardX11 no`,
+  `ClearAllForwardings yes`:** a `ForwardAgent yes`, a
+  `ForwardX11 yes` or a `LocalForward`,
+  `RemoteForward` or `DynamicForward` the user keeps
+  under `Host *` never reaches a managed host. A
+  forwarded agent signs for whoever holds root there,
+  and a forwarded display or a remote forwarding opens
+  the workstation to the host. A port forwarding a session needs goes through
+  the shared connection's socket instead
+  (`rules/ssh-config.md` → Port Forwardings).
 
 ### Fresh-login options
 
