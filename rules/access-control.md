@@ -277,14 +277,17 @@ host that should have run the probe and printed no
 `LOCK_DONE` is locked.
 
 **How to read it (fails closed):** a file that exists
-unlocks the host only if it holds an `allow_changes`
-line whose value is `true`. Case and the spaces around
-`=` do not matter.
+unlocks the host only if it holds at least one
+`allow_changes` line and every `allow_changes` line the
+probe printed has the value `true`. Case and the spaces
+around `=` do not matter.
 
 - `LOCK_ABSENT` for both: no lock, work normally.
-- A file that holds no `allow_changes` line, any other
-  value than `true`, an empty file, `LOCK_UNREADABLE`:
-  a lock.
+- Any `allow_changes` line with another value than
+  `true` locks, whatever other lines the file holds:
+  `false` beside `true` is a lock.
+- A file that holds no `allow_changes` line, an empty
+  file, `LOCK_UNREADABLE`: a lock.
 - One lock is enough: the other file saying `true`
   changes nothing.
 - No `LOCK_DONE` means the check did not run. The host
