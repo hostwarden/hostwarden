@@ -36,6 +36,9 @@ bin/                   — Commands an operator runs, or the
                             password of a host that takes no key
   hostwarden-askpass      — Hand ssh that password, and nobody
                             else (SSH_ASKPASS)
+  hostwarden-identity     — Hostwarden's own SSH key: its agent,
+                            the line a host's operator adds,
+                            a check
   hostwarden-fleet-run    — An operations host's nightly
                             housekeeping through fleet read
   hostwarden-impact       — What a reboot, restart or network
@@ -65,6 +68,10 @@ lib/                   — Code bin/ and the hooks share; sourced,
   json.sh              — The hook input read as text, and a
                          deny or ask written, defined once
                          for the hooks
+  identity.sh          — Hostwarden's own SSH identity as
+                         memory/user.md records it, for
+                         hostwarden-identity, -ssh-config, the
+                         doctor and the guard
   passwords.sh         — Where a password comes from: the local
                          stores and the sources, for
                          hostwarden-password and -askpass; the
@@ -337,6 +344,8 @@ rules/                 — Upstream rule files (git-tracked)
                          a login that fails on the principal
   ssh-passwords.md     — A host that takes no key: its password
                          from this machine or a password manager
+  ssh-identity.md      — Hostwarden's own SSH key: where it
+                         lives, the line for a host, what holds
   ssh-config.md        — memory/ssh_hosts: other ports,
                          addresses, jump hosts; finding
                          a new host's port; port

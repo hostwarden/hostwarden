@@ -102,7 +102,8 @@ Read on demand, only when the relevant section applies:
 - `references/ssh.md` — sshd's effective configuration and the
   files it reads, `Match` blocks, SSH password auth, root login,
   weak algorithms, MaxAuthTries, X11Forwarding, AllowAgentForwarding,
-  the SSH client on the server, and SSH CA.
+  the SSH client on the server, key logins and Hostwarden's own key,
+  and SSH CA.
 - `rules/ssh-ca-issuing.md` — the issuing rules of a user CA the
   host trusts.
 - `references/firewall.md` — Linux (ufw / firewalld), FreeBSD

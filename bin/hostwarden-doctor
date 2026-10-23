@@ -383,6 +383,26 @@ fi
 # shellcheck source=../lib/hostwarden-doctor/agent-shell.sh
 . "$ROOT/lib/hostwarden-doctor/agent-shell.sh"
 
+# Hostwarden's own SSH identity, where memory/user.md records one
+# (rules/ssh-identity.md): whether its agent answers and holds the
+# key. Not a tool to install, so a line of its own below.
+IDM=''
+if [ "$HOSTWARDEN_MODE" = operations ] && [ -z "$DEV" ]; then
+  # shellcheck disable=SC2034 # read by lib/identity.sh
+  ID_ROOT=$ROOT
+  # shellcheck source=../lib/identity.sh
+  . "$ROOT/lib/identity.sh"
+  # A line that does not parse is no identity; ssh-config says so.
+  if id_read 2>/dev/null && id_recorded; then
+    if ID_OUT=$(sh "$ROOT/bin/hostwarden-identity" check --quiet 2>&1); then
+      row "ok       Hostwarden's SSH identity"
+    else
+      row "missing  Hostwarden's SSH identity"
+      IDM=${ID_OUT#hostwarden-identity: }
+    fi
+  fi
+fi
+
 # Running inside WSL: what
 # website/docs/getting-started/install.md → Windows asks for.
 if [ -n "$WSL" ]; then
@@ -417,7 +437,10 @@ fi
 if [ -n "$SHM" ]; then
   echo "hostwarden: agent shell, recommended:$SHM"
 fi
-if [ -z "$QUIET$NEED$WANT$FEAT$WSLM$SHM" ]; then
+if [ -n "$IDM" ]; then
+  echo "hostwarden: Hostwarden's SSH identity: $IDM"
+fi
+if [ -z "$QUIET$NEED$WANT$FEAT$WSLM$SHM$IDM" ]; then
   echo "Everything Hostwarden runs locally is here."
 fi
 

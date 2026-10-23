@@ -16,7 +16,7 @@ TMP=$(cd "$TMP" && pwd -P)
 OPS=$TMP/ops
 mkdir -p "$OPS/bin" "$OPS/lib" "$OPS/memory" "$OPS/.git" "$TMP/home"
 cp "$REPO/bin/hostwarden-ssh-config" "$OPS/bin/"
-cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/mode.sh" "$OPS/lib/"
+cp "$REPO/lib/ssh-agent.sh" "$REPO/lib/identity.sh" "$REPO/lib/mode.sh" "$OPS/lib/"
 : > "$OPS/memory/.hostwarden-workspace"
 git -C "$OPS/memory" init -q
 HOME=$TMP/home
@@ -174,5 +174,100 @@ grep -q '^forwardx11 no$' "$TMP/g" && ok ||
 grep -qE '^(local|remote)forward ' "$TMP/g" &&
   bad "a forwarding of the user's file is kept" || ok
 rm -f "$HOME/.ssh/config"
+
+# --- Hostwarden's own SSH identity (rules/ssh-identity.md) ------
+ssh-keygen -q -t ed25519 -N '' -C hostwarden@alice-ws1 -f "$TMP/home/hw"
+FP=$(ssh-keygen -E sha256 -lf "$TMP/home/hw.pub" | awk '{ print $2 }')
+ssh-keygen -q -t ed25519 -N '' -C other -f "$TMP/home/other"
+OTHER=$(ssh-keygen -E sha256 -lf "$TMP/home/other.pub" | awk '{ print $2 }')
+idmd() {
+  printf '# SSH Identity\n\nSSH identity: %s\nSSH identity key: %s\nSSH identity agent: ~/.cache/hostwarden/agent.sock\nSSH agent socket: /signing.sock\n' \
+    "$1" "${2:-~/hw.pub}" > "$OPS/memory/user.md"
+}
+mkdir -p "$OPS/memory/machines/web1" "$OPS/memory/machines/db1" \
+  "$OPS/memory/machines/app1"
+printf '# web1\n- IP: 192.0.2.10\n- Reached as: root@web1.example.com\n- Hostwarden key: %s (hostwarden@alice-ws1, 2026-10-21)\n' \
+  "$FP" > "$OPS/memory/machines/web1/memory.md"
+printf '# db1\n- IP: 192.0.2.11\n' > "$OPS/memory/machines/db1/memory.md"
+printf '# app1\n- Hostwarden key: %s (someone else)\n' "$OTHER" \
+  > "$OPS/memory/machines/app1/memory.md"
+HB='Host w1 web1
+  HostName 192.0.2.10
+Host db1
+  Port 2222'
+
+idmd own-agent
+out=$(gen "$HB")
+case $out in rc=0) ok ;; *) bad "an identity broke the file: $out" ;; esac
+grep -qx 'Match originalhost 192.0.2.10,w1,web1,web1.example.com' \
+  "$OPS/memory/ssh_config" && ok ||
+  bad "identity hosts: $(grep '^Match originalhost' "$OPS/memory/ssh_config")"
+grep -qF "  IdentityAgent \"$HOME/.cache/hostwarden/agent.sock\"" "$OPS/memory/ssh_config" &&
+  grep -qx '  IdentitiesOnly yes' "$OPS/memory/ssh_config" &&
+  grep -qF "  IdentityFile \"$HOME/hw.pub\"" "$OPS/memory/ssh_config" && ok ||
+  bad "the identity lines are missing"
+M=$(grep -n '^Match originalhost' "$OPS/memory/ssh_config" | cut -d: -f1)
+A=$(grep -n '^Match all' "$OPS/memory/ssh_config" | cut -d: -f1)
+[ -n "$M" ] && [ -n "$A" ] && [ "$M" -lt "$A" ] && ok ||
+  bad "the identity block does not stand before Match all"
+# The saved signing agent stays for every other host.
+grep -qF '  IdentityAgent "/signing.sock"' "$OPS/memory/ssh_config" && ok ||
+  bad "the SSH agent socket line went missing"
+G=$(ssh -F "$OPS/memory/ssh_config" -G root@web1.example.com 2>/dev/null)
+printf '%s\n' "$G" | grep -qx "identityagent $HOME/.cache/hostwarden/agent.sock" &&
+  printf '%s\n' "$G" | grep -qx 'identitiesonly yes' && ok ||
+  bad "ssh -G web1 does not pick the identity"
+G=$(ssh -F "$OPS/memory/ssh_config" -G root@db1 2>/dev/null)
+printf '%s\n' "$G" | grep -qx 'identityagent /signing.sock' && ok ||
+  bad "a host without the key got the identity"
+
+# A shared-settings block with no HostName adds no other name; a block
+# whose HostName is a recorded name makes an alias of every name it
+# gives; a recorded name whose block points elsewhere is dropped; a
+# DNS alias of the host counts.
+gen 'Host web1 dbx
+  Port 2222' >/dev/null
+grep -qx 'Match originalhost 192.0.2.10,web1,web1.example.com' "$OPS/memory/ssh_config" &&
+  ok || bad "a shared block named another host: $(grep '^Match originalhost' "$OPS/memory/ssh_config")"
+gen 'Host web1-short
+  HostName WEB1.example.com' >/dev/null
+grep -qx 'Match originalhost 192.0.2.10,web1,web1-short,web1.example.com' "$OPS/memory/ssh_config" &&
+  ok || bad "an alias by HostName: $(grep '^Match originalhost' "$OPS/memory/ssh_config")"
+gen 'Host web1
+  HostName 198.51.100.9' >/dev/null
+grep -qx 'Match originalhost 192.0.2.10,web1.example.com' "$OPS/memory/ssh_config" &&
+  ok || bad "a name pointed elsewhere stayed: $(grep '^Match originalhost' "$OPS/memory/ssh_config")"
+printf -- '- DNS alias: old-web\n' >> "$OPS/memory/machines/web1/memory.md"
+gen 'Host db1
+  Port 2222' >/dev/null
+grep -qx 'Match originalhost 192.0.2.10,old-web,web1,web1.example.com' "$OPS/memory/ssh_config" &&
+  ok || bad "a DNS alias: $(grep '^Match originalhost' "$OPS/memory/ssh_config")"
+
+idmd none
+gen "$HB" >/dev/null
+grep -q 'IdentitiesOnly' "$OPS/memory/ssh_config" &&
+  bad "SSH identity: none wrote identity lines" || ok
+rm -f "$OPS/memory/user.md"
+gen "$HB" >/dev/null
+grep -q 'IdentitiesOnly' "$OPS/memory/ssh_config" &&
+  bad "no identity wrote identity lines" || ok
+
+# A line that does not parse or a missing key writes no block, says so,
+# and keeps the host blocks.
+for v in 'own-agent ~/nosuch.pub' 'own-agent ~/hw' 'own-agent hw.pub' 'sometimes'; do
+  set -- $v
+  idmd "$1" "${2:-~/hw.pub}"
+  out=$(gen "$HB")
+  case $out in
+    *rc=0) bad "passed: $v" ;;
+    *) { ! grep -q 'IdentitiesOnly' "$OPS/memory/ssh_config" &&
+         grep -q '^Host db1' "$OPS/memory/ssh_config"; } && ok ||
+         bad "wrong file after: $v" ;;
+  esac
+done
+printf 'SSH identity: own-agent\nSSH identity: manager\n' > "$OPS/memory/user.md"
+out=$(gen "$HB")
+case $out in *rc=0) bad "two SSH identity lines passed" ;; *) ok ;; esac
+rm -f "$OPS/memory/user.md"
 
 finish "ssh-config tests"

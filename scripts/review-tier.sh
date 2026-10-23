@@ -90,6 +90,9 @@ lib/ssh-agent.sh
 rules/ssh-agent.md
 rules/workspace-playbook.md
 bin/hostwarden-ssh-config
+bin/hostwarden-identity
+lib/identity.sh
+rules/ssh-identity.md
 bin/hostwarden-update
 lib/follow.sh
 lib/release-notes.sh

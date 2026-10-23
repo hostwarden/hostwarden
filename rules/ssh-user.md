@@ -21,6 +21,9 @@ the user runs sshd on instead of 22, in the order
 Under `# SSH Passwords`, one line per login of a host
 that takes no key says where its password comes from,
 never the password itself (`rules/ssh-passwords.md`).
+Under `# SSH Identity`, the lines of Hostwarden's own
+SSH key, where the user set one up
+(`rules/ssh-identity.md`).
 
 ## Interview format
 

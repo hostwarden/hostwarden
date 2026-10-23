@@ -7,7 +7,8 @@ description: Compare key policies across all servers in
   Probes unattended-upgrades, sshd effective config and SSH CA
   trust, firewall posture, MTA, network stack and resolver, time
   sync, auto-reboot behaviour, mesh VPNs and their SSH servers,
-  accounts and sudo rules, Ubuntu Pro/ESM coverage and
+  accounts and sudo rules, key logins and Hostwarden's own key,
+  Ubuntu Pro/ESM coverage and
   needrestart mode, and the records of DNS resolvers that should
   answer alike. Use when
   the user asks to "fleet audit", "vergleiche alle server",
@@ -235,7 +236,7 @@ Read on demand:
 - `references/probes.md` — the exact commands to run per
   category (UA, sshd, firewall, MTA, network, time,
   auto-reboot, mesh VPNs, accounts and sudo, DNS resolver
-  sets).
+  sets, key logins).
 - `references/output-format.md` — table layout, the Naming row
   and the "Drift detected" section format.
 

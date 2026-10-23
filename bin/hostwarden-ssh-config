@@ -19,13 +19,19 @@
 #
 #   1. memory/ssh_hosts, the shared host blocks, checked here line
 #      by line;
-#   2. Match all with the standard options: connection sharing,
+#   2. where memory/user.md records Hostwarden's own SSH identity
+#      (rules/ssh-identity.md), a Match block for the hosts whose
+#      memory.md carries a `Hostwarden key:` line with its
+#      fingerprint: IdentityAgent, IdentitiesOnly yes and the key's
+#      IdentityFile, so ssh offers that key there instead of the
+#      agent's;
+#   3. Match all with the standard options: connection sharing,
 #      keepalives, the host key checked against
 #      memory/known_hosts alone, with no other source and no
 #      rewriting by ssh itself (rules/host-keys.md), and no
 #      agent, X11 or port forwarding, whatever the user's own file
 #      sets (rules/ssh-connections.md → Why these values);
-#   3. the user's own ~/.ssh/config, then /etc/ssh/ssh_config,
+#   4. the user's own ~/.ssh/config, then /etc/ssh/ssh_config,
 #      which -F would otherwise leave out.
 #
 # A jump host reads the same file: ssh hands -F on to the
@@ -46,9 +52,9 @@
 # an old algorithm to ssh's own and takes none away. One line that
 # fails keeps every host block out, not only its own: half a file
 # would send a host to the wrong port, or past its jump host.
-# Parts 2 and 3 are written either way.
+# Parts 2 to 4 are written either way.
 #
-# After part 3 stands one Match block that sets nothing, for the
+# After part 4 stands one Match block that sets nothing, for the
 # hosts that take a password: its exec tells bin/hostwarden-askpass
 # which user, HostName and Port the ssh process logs in to, so a
 # password goes to the target it was stored for and no other.
@@ -91,6 +97,27 @@ if hw_agent_saved && [ -n "$HW_AGENT_SAVED" ]; then
     if hw_agent_path; then
       AGENT_LINE=$(printf '  IdentityAgent "%s"' "${HW_AGENT_SOCKET:-none}")
     fi
+  fi
+fi
+
+# Hostwarden's own identity, where one is recorded. A line that does
+# not parse, or a public key that is missing, writes no block: those
+# hosts keep today's keys, and the message says why.
+# shellcheck disable=SC2034 # read by lib/identity.sh
+ID_ROOT=$REPO_DIR
+# shellcheck source=../lib/identity.sh
+. "$REPO_DIR/lib/identity.sh"
+ID_FP=''
+if ! id_read; then
+  echo "hostwarden: memory/ssh_config was written without Hostwarden's" >&2
+  echo "  SSH identity until that line is fixed (rules/ssh-identity.md)." >&2
+  FAILED=1
+elif id_recorded; then
+  if ! ID_FP=$(id_fingerprint); then
+    echo "hostwarden: memory/user.md names $ID_KEY as Hostwarden's SSH" >&2
+    echo "  key, which is no public key here; memory/ssh_config was" >&2
+    echo "  written without it (rules/ssh-identity.md)." >&2
+    FAILED=1
   fi
 fi
 
@@ -273,6 +300,72 @@ case "$REPO_DIR" in
     [ -n "$PWHOSTS" ] && ASKPASS_NOTE="exec '$AP' --note %n %r %h %p" ;;
 esac
 
+# The hosts that carry Hostwarden's key, by every name a call may
+# give: the memory directory, Reached as, FQDN, IP and DNS aliases of
+# each host whose memory.md has a `Hostwarden key:` line with this
+# identity's fingerprint. A memory/ssh_hosts block with a HostName
+# decides for the names it gives: they stand for the host when its
+# HostName is one of those names, and for another machine, and so
+# not listed, when it is not (the first block to name one wins, as
+# ssh takes the first value). Only names that cannot carry a
+# pattern, a token or an option pass. A host not listed keeps the
+# keys it has today.
+ID_HOSTS=''
+if [ -n "$ID_FP" ]; then
+  ID_HOSTS=$(
+    for f in memory/machines/*/memory.md; do
+      [ -f "$f" ] && [ ! -L "${f%/memory.md}" ] && printf '%s\n' "$f"
+    done | awk -v fp="$ID_FP" '
+      # One host per file: its names, printed where it carries the key.
+      function flush(   h) {
+        if (mine) for (h in n) print h
+        mine = 0; split("", n)
+      }
+      { f = $0; flush(); d = f; sub(/\/memory\.md$/, "", d); sub(/.*\//, "", d)
+        n[d] = 1
+        while ((getline l < f) > 0) {
+          split(l, w, /[ \t]+/)
+          if (w[1] != "-") continue
+          if (w[2] == "Hostwarden" && w[3] == "key:" && w[4] == fp) mine = 1
+          else if (w[2] == "FQDN:" || w[2] == "IP:") n[w[3]] = 1
+          else if (w[2] == "DNS" && w[3] == "alias:") n[w[4]] = 1
+          else if (w[2] == "Reached" && w[3] == "as:") {
+            h = w[4]; sub(/^[^@]*@/, "", h); n[h] = 1 }
+        }
+        close(f) }
+      END { flush() }' | ID_BLOCKS=$HOSTS awk '
+      BEGIN {
+        # The memory/ssh_hosts blocks, already checked: the names of
+        # each Host line and the first HostName under it. From the
+        # environment, since awk -v takes no line break.
+        nb = split(ENVIRON["ID_BLOCKS"], l, "\n")
+        for (i = 1; i <= nb; i++) {
+          split(l[i], w, " ")
+          if (w[1] == "Host") { blocks[++b] = substr(l[i], 6); hn[b] = "" }
+          else if (w[1] == "HostName" && b && hn[b] == "") hn[b] = tolower(w[2])
+        }
+      }
+      /^[A-Za-z0-9_.][A-Za-z0-9_.-]*$/ || /^[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*$/ {
+        want[tolower($0)] = 1
+      }
+      END {
+        for (h in want) final[h] = 1
+        for (i = 1; i <= b; i++) {
+          if (hn[i] == "") continue
+          m = split(blocks[i], w, " ")
+          for (j = 1; j <= m; j++) {
+            if (w[j] ~ /[*?!]/) continue
+            nm = tolower(w[j])
+            if (nm in done) continue
+            done[nm] = 1
+            if (hn[i] in want) final[nm] = 1
+            else delete final[nm]
+          }
+        }
+        for (h in final) print h
+      }' | LC_ALL=C sort | paste -sd, -)
+fi
+
 # ControlPath needs the directory before the first call.
 # shellcheck disable=SC2174
 mkdir -p -m 700 "$HOME/.cache/hostwarden"
@@ -290,6 +383,15 @@ trap 'rm -f "$TMP"' EXIT
     echo
     echo "# From memory/ssh_hosts."
     printf '%s\n' "$HOSTS"
+  fi
+  if [ -n "$ID_HOSTS" ]; then
+    echo
+    echo "# Hostwarden's own SSH identity, for the hosts whose memory"
+    echo "# records its key (rules/ssh-identity.md)."
+    echo "Match originalhost $ID_HOSTS"
+    printf '  IdentityAgent "%s"\n' "$ID_AGENT"
+    echo "  IdentitiesOnly yes"
+    printf '  IdentityFile "%s"\n' "$ID_KEY"
   fi
   echo
   echo "# The standard options (AGENTS.md → SSH Options)."

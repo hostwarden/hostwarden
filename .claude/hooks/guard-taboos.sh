@@ -76,6 +76,11 @@
 #     rbw get, bws secret get, bw get, the file store's key), sshpass,
 #     and an SSH_ASKPASS other than bin/hostwarden-askpass
 #     (rules/ssh-passwords.md)
+#   - where memory/user.md records Hostwarden's own SSH identity: an
+#     ssh, scp, sftp or rsync call with -i, -A, -o IdentityFile,
+#     IdentityAgent or IdentitiesOnly, or without -F naming this
+#     checkout's memory/ssh_config, and naming a private key ~/.ssh/
+#     id_* (rules/ssh-identity.md)
 #
 # ASKED, not denied -- the user confirms the exact command in a
 # permission prompt (see "The ask tier" below the scope for the
@@ -239,7 +244,7 @@ LIBDIR=$HOOKDIR/../../lib
 # reads HAS_KEY, SEGS or DISK as an earlier one left them. A new
 # module is added to this list, and the fixture matrix gets its
 # lines (tests/hooks/guard-taboos/).
-GUARD_MODULES='reach off edit command passwords first-boot scope power disks storage ssh boot accounts lock
+GUARD_MODULES='reach off edit command passwords identity first-boot scope power disks storage ssh boot accounts lock
 config-mgmt interpreters redirect guests'
 # Without json.sh the guard could neither read the session nor say
 # deny, and without one of its modules it would judge by fewer

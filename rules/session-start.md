@@ -230,6 +230,12 @@ the remote to carry it before it is written. An `Operator:` line
 the user wrote themselves that the list lacks is reserved the same
 way, without a question.
 
+## Hostwarden's SSH identity
+
+`rules/ssh-identity.md` → The Setup Question says when to ask.
+Where the doctor's line names Hostwarden's SSH identity, pass it on
+with the command it names.
+
 ## The presence session
 
 Where the session start said it started the presence session, pass that

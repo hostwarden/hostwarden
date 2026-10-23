@@ -80,6 +80,9 @@ path silently. No app name is required, Bitwarden included.
 
 1. A saved `SSH agent socket:` overrides SSH configuration for every host and
    the inherited environment. `none` disables the agent without a fallback.
+   In `memory/ssh_config`, the hosts that carry Hostwarden's own key take the
+   identity's agent instead (`rules/ssh-identity.md`); Git signing keeps this
+   line.
 2. Without one, `ssh -G HOST` gives the effective `IdentityAgent` by OpenSSH's
    own Host, Match, Include and first-value rules. It evaluates local
    configuration only, and trusted `Match exec` commands can run locally.

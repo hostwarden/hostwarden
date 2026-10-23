@@ -17,6 +17,7 @@ echo "###net###"; <network probe>
 echo "###time###"; <time probe>
 echo "###reboot###"; <reboot probe>
 echo "###meshvpn###"; <mesh VPN probe>
+echo "###keylogins###"; <key logins probe>
 ```
 
 `bin/hostwarden-group` splits the output on the `###<key>###`
@@ -44,16 +45,17 @@ runlevels from it rather than calling OpenRC again. It also
 answers whether a syslog daemon runs, which decides whether the
 audit-trail line was written (`rules/os/alpine.md` → Logs).
 
-On macOS, every probe below but sections 8 and 9 has a **macOS**
+On macOS, every probe below but sections 8, 9 and 11 has a **macOS**
 variant that replaces it; section 9 carries its own in
-`rules/accounts-probe.md`. The privilege prefix applies unchanged, but
+`rules/accounts-probe.md`, and section 11 is `n/a (macOS)`. The privilege prefix
+applies unchanged, but
 the root account is disabled on a Mac and sudo usually asks for
 a password, so `$SUDO` is often `-`: expect
 `unknown(needs-root)` cells for what sudo does not cover,
 rather than a partial row. A key
 only the other families have is `n/a (macOS)`.
 
-On FreeBSD, every probe below but sections 8 and 9 has a **FreeBSD**
+On FreeBSD, every probe below but sections 8, 9 and 11 has a **FreeBSD**
 variant that replaces it, and `rules/os/freebsd.md` is the reference for what
 the commands print. Open the FreeBSD bundle with the privilege
 prefix, so `$SUDO` is set for every probe, and with the loaded OS
@@ -989,3 +991,22 @@ Highlight as drift, as `rules/dns.md` → Checks rates it (WARN):
   names differ.
 
 No warnings on one host alone.
+
+## 11. Key logins
+
+The probe is `rules/ssh-identity.md` → Audits, under the
+`###keylogins###` marker, on Linux and FreeBSD; macOS gets
+`n/a (macOS)`. It is a per-host count, not a setting, so it is no
+drift.
+
+Row keys:
+
+- Period: the probe's `period:` line; a sentinel (`unknown(...)`)
+  stands for the whole block.
+- Hostwarden key: the logins under each fingerprint the host's
+  `Hostwarden key:` lines name, or `none recorded`.
+- Other keys: the number of distinct fingerprints and their
+  logins.
+
+Warnings, one host at a time: `no Hostwarden key`, as that file
+rates it.

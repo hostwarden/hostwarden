@@ -7,7 +7,7 @@ test_tmp agent
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 mkdir -p "$TMP/ops space/bin" "$TMP/ops space/lib" "$TMP/ops space/memory" "$TMP/tools"
 cp bin/hostwarden-agent "$TMP/ops space/bin/"
-cp lib/ssh-agent.sh lib/mode.sh "$TMP/ops space/lib/"
+cp lib/ssh-agent.sh lib/identity.sh lib/mode.sh "$TMP/ops space/lib/"
 cp bin/hostwarden-sync bin/hostwarden-ssh-config "$TMP/ops space/bin/"
 HW_AGENT_ROOT="$TMP/ops space"
 export HW_AGENT_ROOT
