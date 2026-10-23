@@ -123,7 +123,7 @@ section's but Windows', pipes what it read into
 watchers below, defined at the top of the same call.
 
 As a non-root user outside the `systemd-journal` /
-`adm` groups, `journalctl` silently shows only the
+`adm` / `wheel` groups, `journalctl` silently shows only the
 user's own entries. When connected as non-root, try
 sudo and fall back in the same call. The test asks
 for `journalctl` itself, since a sudoers rule may
