@@ -35,23 +35,17 @@ for Windows.
   [CONTRIBUTING](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#setup)
   names one mise install per distribution.
 - **SSH access** to the target server — either as a
-  normal user or as root. The SSH connection must
-  not prompt for a password or passphrase (use
-  key-based authentication without a passphrase).
-  This is not needed for local administration
-  (localhost / your own machine).
+  normal user or as root, with a key an agent holds
+  and confirms per use, or a hardware key; see
+  [SSH keys](#ssh-keys). This is not needed for local
+  administration (localhost / your own machine).
 
   Hostwarden shares one SSH connection per host and
   keeps it open for 10 minutes after the last call.
   The sockets live in `~/.cache/hostwarden` (mode 0700),
   so any process of your local user can use an open
-  connection without asking for the key again.
-
-  Quick setup: generate a key with `ssh-keygen`,
-  copy it to the server with `ssh-copy-id user@host`,
-  and test with `ssh user@host`. See the
-  [Arch wiki SSH keys guide](https://wiki.archlinux.org/title/SSH_keys)
-  for details.
+  connection without asking for the key again, and an
+  agent that confirms each use asks once per host.
 
 - Linux (any distribution), FreeBSD, or macOS on the
   target machines; these can also be managed locally
@@ -78,6 +72,42 @@ for Windows.
 - **Local tools.** `bin/hostwarden-doctor` lists
   what Hostwarden needs on your workstation, what is
   missing, and the command to install it.
+
+## SSH keys
+
+Hostwarden logs in with your keys. It never makes a login key
+without a passphrase, never adds a private key to an agent, and
+reads none beyond the doctor's check below. Keep each key where
+every use is confirmed:
+
+- **In a password manager's SSH agent** — 1Password, Bitwarden or
+  KeePassXC — set to ask before a key is used.
+- **In `ssh-agent`**, added with `ssh-add -c`, which asks before
+  every use and needs an `ssh-askpass` program to ask with.
+- **On a hardware key**: `ssh-keygen -t ed25519-sk` makes a key
+  whose private half never leaves the token, and each login waits
+  for a touch.
+
+Copy the public half to the server with `ssh-copy-id user@host`
+and test with `ssh user@host`; the
+[Arch wiki SSH keys guide](https://wiki.archlinux.org/title/SSH_keys)
+has the details.
+
+A key without a passphrase belongs only where nobody is at the
+keyboard: an operations host's fleet-read key
+([Fleet read](../features/fleet/fleet-read.md)), and a deploy
+user's key, which its pipeline holds.
+`bin/hostwarden-doctor` names the agents and the key files ssh
+offers, those every host gets and those of the block in
+`~/.ssh/config` of a host Hostwarden knows. It warns about each other key file
+without a passphrase, and about one with a passphrase that no agent holds,
+with no key material in its output; `ssh-keygen` tells it which
+have one. It runs at the start of every session in an operations
+checkout too, and refuses nothing. Where NIS2 or the BSI's
+IT-Grundschutz applies, administration access needs more than one
+factor; the [security audit](../features/checks/security-audit.md)
+reports sshd asking for two, and, with an override, a host where
+it asks for one.
 
 ## Windows
 

@@ -306,6 +306,14 @@ else
   step "ssh-config" sh tests/bin/hostwarden-ssh-config.sh
   step "SSH identity" sh tests/bin/hostwarden-identity.sh
 fi
+# The doctor's key matrix reads the key check alone.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    "^lib/(hostwarden-doctor/keys|ssh-agent)\\.sh\$|^tests/bin/hostwarden-doctor\\.sh\$$HELPERS"
+then
+  echo "== doctor key matrix: nothing it reads is pushed, skipped"
+else
+  step "doctor keys" sh tests/bin/hostwarden-doctor.sh
+fi
 # The map matrix reads hostwarden-map, its parts and lib/mode.sh;
 # hostwarden-sync only calls it, so a change there does not need
 # this to run.

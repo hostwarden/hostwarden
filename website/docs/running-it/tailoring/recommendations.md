@@ -88,6 +88,21 @@ Asked once; *Not now* settles it
   every host's log under that key, and it can be revoked without
   touching yours.
 
+## Your SSH keys
+
+For the keys Hostwarden logs in with
+([SSH keys](../../getting-started/install.md#ssh-keys)):
+
+- **A key an agent confirms per use, or a hardware key** — a key
+  file without a passphrase logs in for whoever copies it. Only an
+  operations host's fleet-read key and a deploy user's pipeline key
+  go without one.
+- **Two factors for SSH logins where NIS2 or BSI IT-Grundschutz
+  applies** — with the override its reference names, the security
+  audit reports a host whose sshd accepts one factor, a key or a
+  password alone.
+  [Security audit](../../features/checks/security-audit.md)
+
 ## Password logins
 
 For a device that takes no SSH key

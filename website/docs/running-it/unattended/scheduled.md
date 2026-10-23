@@ -21,9 +21,14 @@ A scheduled run writes nothing over SSH until your servers are named
 under `autoMode` in `~/.claude/settings.json`; see
 [Auto mode](automation.md#auto-mode).
 
-This runs on your workstation. An always-on machine that should do
-it for the whole fleet while the workstation sleeps is an operations
-host instead, with its own least-privilege access
+This runs on your workstation, with your own keys, and every call
+runs in BatchMode: a key whose agent confirms each use cannot
+answer with nobody at the keyboard, and a key without a passphrase
+belongs only on an operations host
+([SSH keys](../../getting-started/install.md#ssh-keys)). An
+always-on machine that should do it for the whole fleet while the
+workstation sleeps is an operations host instead, with its own
+least-privilege access
 ([An operations host](../team/operations-host.md)). Fleet read is
 the one part of Hostwarden's access control the host enforces; a
 read-only list a session is asked to follow is no substitute for it

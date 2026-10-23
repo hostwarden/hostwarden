@@ -83,16 +83,37 @@ key_reachable() {
     [ -f "$HOME/.ssh/$f" ] && return 0
   done
   has ssh-add && ssh-add -l >/dev/null 2>&1 && return 0
-  ssh_conf_key "$HOME/.ssh/config" 0
+  ssh_conf_each "$HOME/.ssh/config" 0 ssh_conf_usable
 }
 
-# ssh_conf_key <file> <depth> — an IdentityFile or IdentityAgent
-# that works, in <file> or a file it includes, host blocks too.
-# Read as text, never through ssh -G, which would run any Match
-# exec at every session start. Include nests at most five deep,
-# as a loop of includes must end somewhere.
-ssh_conf_key() {
+# ssh_conf_usable identityfile|identityagent|hostname <value> — a
+# key file that is there, or an agent that answers.
+ssh_conf_usable() {
+  case $1 in
+    identityfile) [ -f "$2" ] ;;
+    identityagent) [ -S "$2" ] && has ssh-add \
+      && SSH_AUTH_SOCK=$2 ssh-add -l >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ssh_conf_each <file> <depth> <callback> — <callback> called with
+# identityfile, identityagent or hostname and the value, for every
+# such line in <file> or a file it includes, host blocks too, ~/
+# filled in; the walk stops at the first call that returns 0, and
+# returns 0 then. SSH_CONF_HOSTS holds the host patterns the call's
+# line stands under: * before any block, the Host line's, or a
+# Match's as below.
+# Read as text: whether any key is there at all needs no ssh -G,
+# which would run a Match exec of the user's own configuration. The
+# key check (keys.sh) runs ssh -G once and time-bound for the keys
+# every host gets, and this walk for those of a host's own block.
+# Include nests at most five deep, as a loop of includes must end
+# somewhere.
+# shellcheck disable=SC2034 # SSH_CONF_HOSTS is the callback's to read
+ssh_conf_each() {
   [ "$2" -lt 5 ] && [ -r "$1" ] || return 1
+  [ "$2" -gt 0 ] || SSH_CONF_HOSTS='*'
   while read -r k f; do
     # Key value, Key=value and Key = value all occur.
     case $k in *=*) f=${k#*=} k=${k%%=*} ;; esac
@@ -105,10 +126,28 @@ ssh_conf_key() {
     esac
     case $f in \~/*) f=$HOME/${f#\~/} ;; esac
     case $k in
-      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Ff][Ii][Ll][Ee]) [ -f "$f" ] && return 0 ;;
-      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Aa][Gg][Ee][Nn][Tt]) [ -S "$f" ] \
-        && has ssh-add && SSH_AUTH_SOCK=$f ssh-add -l >/dev/null 2>&1 \
-        && return 0 ;;
+      [Hh][Oo][Ss][Tt]) SSH_CONF_HOSTS=$f ;;
+      # Match all is every host; a single host or originalhost
+      # criterion is a list of patterns; any other cannot be judged
+      # as text, and its block stands for no host.
+      [Mm][Aa][Tt][Cc][Hh])
+        case $f in
+          [Aa][Ll][Ll]) SSH_CONF_HOSTS='*' ;;
+          [Hh][Oo][Ss][Tt][[:space:]]*[!,[:space:]]|\
+[Oo][Rr][Ii][Gg][Ii][Nn][Aa][Ll][Hh][Oo][Ss][Tt][[:space:]]*[!,[:space:]])
+            i=${f#*[[:space:]]} SSH_CONF_HOSTS=''
+            case $i in *[[:space:]]*) i='' ;; esac
+            while [ -n "$i" ]; do
+              SSH_CONF_HOSTS="$SSH_CONF_HOSTS ${i%%,*}"
+              case $i in *,*) i=${i#*,} ;; *) i='' ;; esac
+            done ;;
+          *) SSH_CONF_HOSTS='' ;;
+        esac ;;
+      [Hh][Oo][Ss][Tt][Nn][Aa][Mm][Ee]) "$3" hostname "$f" && return 0 ;;
+      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Ff][Ii][Ll][Ee])
+        "$3" identityfile "$f" && return 0 ;;
+      [Ii][Dd][Ee][Nn][Tt][Ii][Tt][Yy][Aa][Gg][Ee][Nn][Tt])
+        "$3" identityagent "$f" && return 0 ;;
       # Several names, each relative to ~/.ssh unless absolute,
       # each a glob. Split first, glob after the prefix.
       [Ii][Nn][Cc][Ll][Uu][Dd][Ee])
@@ -117,7 +156,7 @@ ssh_conf_key() {
           case $i in \~/*) i=$HOME/${i#\~/} ;; /*) ;; *) i=$HOME/.ssh/$i ;; esac
           set +f
           for j in $i; do
-            ssh_conf_key "$j" $(($2 + 1)) && return 0
+            ssh_conf_each "$j" $(($2 + 1)) "$3" && return 0
           done
           set -f
         done

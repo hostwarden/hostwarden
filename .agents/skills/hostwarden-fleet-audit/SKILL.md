@@ -253,6 +253,7 @@ Read on demand:
 - The audit does not check that running services are
   healthy (that is housekeeping's job). It only compares
   declared policy.
-- BatchMode SSH means no password prompts. Hosts that need
-  a passphrase get skipped — fix the agent setup
-  separately.
+- BatchMode SSH asks for nothing. A host whose key waits
+  for a passphrase that no agent holds is skipped and
+  named; loading the key into an agent is the user's step
+  (`rules/secrets.md` → Login Keys).

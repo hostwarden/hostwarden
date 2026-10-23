@@ -56,8 +56,10 @@ one.
 ## How It Works
 
 The user provides a server hostname and optionally a user. SSH
-key-based auth is used (no password/passphrase needed). All work on
-remote machines happens over SSH.
+key-based auth is used: a key an agent holds and confirms per use,
+or a hardware key, and without a passphrase only an operations
+host's fleet-read key (`rules/secrets.md` → Login Keys). All work
+on remote machines happens over SSH.
 
 ### Local mode
 
