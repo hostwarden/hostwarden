@@ -144,10 +144,13 @@ d=\$(mktemp -d ~/.hostwarden-jobs/\$(date +%Y%m%d-%H%M%S)-upgrade.XXXXXX)
 cat >\"\$d/cmd\" <<'CMD'
 apt-get -y dist-upgrade
 CMD
-(nohup sh -c 'sh \"\$1/cmd\" >\"\$1/out\" 2>\"\$1/err\" &
-  echo \$! >\"\$1/pid\"; trap \"\" TERM
-  wait \$!; echo \$? >\"\$1/status\"' sh \"\$d\" \\
-  </dev/null >/dev/null 2>\"\$d/launch\" &)
+cat >\"\$d/run\" <<'RUN'
+d=\${0%/*}
+sh \"\$d/cmd\" >\"\$d/out\" 2>\"\$d/err\" &
+echo \$! >\"\$d/pid\"; trap \"\" TERM
+wait \$!; echo \$? >\"\$d/status\"
+RUN
+(nohup sh \"\$d/run\" </dev/null >/dev/null 2>\"\$d/launch\" &)
 i=0
 while [ ! -s \"\$d/pid\" ] && [ \$i -lt 5 ]; do
   sleep 1; i=\$((i+1))
