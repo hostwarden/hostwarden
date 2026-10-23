@@ -127,6 +127,21 @@ an admin may need to enable it. See the
 [permission modes docs](https://code.claude.com/docs/en/permission-modes)
 for details and alternatives.)
 
+Auto mode trusts the working directory, not your servers, and
+refuses writes over SSH (a package purge, a config edit, a reload)
+until you name the servers under `autoMode` in
+`~/.claude/settings.json`. Claude Code reads that key only from your
+user settings, managed settings or `--settings`, never from a
+project's `.claude/settings.json`
+([auto mode configuration](https://code.claude.com/docs/en/auto-mode-config)).
+Run `/auto-mode-setup` in the Hostwarden directory to draft the
+entries, and check the draft before you accept it: only your own
+managed hosts, nothing from `memory/blacklist.md` or
+`memory/readonly.md`, and `"$defaults"` in each `allow`, `soft_deny` and
+`hard_deny` array. `claude auto-mode
+config` shows what took effect. Hostwarden never writes the file
+itself. The block is in `rules/service-reload.md`.
+
 For locked-down scripting and CI, the strictest option is an
 explicit allowlist: `--permission-mode dontAsk` combined with
 `--allowedTools` or `permissions.allow` rules in

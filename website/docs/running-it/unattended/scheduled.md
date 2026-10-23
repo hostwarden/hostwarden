@@ -17,6 +17,10 @@ nightly housekeeping run that emails you the report:
 email me the report" >> ~/hostwarden-cron.log 2>&1
 ```
 
+A scheduled run writes nothing over SSH until your servers are named
+under `autoMode` in `~/.claude/settings.json`; see
+[Auto mode](automation.md#auto-mode).
+
 This runs on your workstation. An always-on machine that should do
 it for the whole fleet while the workstation sleeps is an operations
 host instead, with its own least-privilege access

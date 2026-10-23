@@ -53,6 +53,11 @@ tool reads. This file adds only what exists here and nowhere else.
 
   Where hooks do not run, `rules/session-start.md` says what to do
   instead.
+- **A classifier refusal of a server write stops that write.** Say so
+  and stop it and what depends on it, whatever the write; other
+  hosts, read-only steps and the session-end records go on. Never
+  write a settings file for the user. The fix is in `rules/service-reload.md` →
+  When the Agent Harness Blocks a Server Write.
 - **Ask with `AskUserQuestion`.** Any picker a rule describes —
   the SSH-user interview, the four-way restart question, the
   question after an update — uses it
