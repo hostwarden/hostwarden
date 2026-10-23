@@ -70,6 +70,9 @@ rather than idling until the job times out.
 
 - **`--permission-mode auto` only.** Auto mode keeps
   a safety check on every action.
+- Auto mode refuses writes over SSH until the user names the
+  hosts under `autoMode` in `~/.claude/settings.json`, never
+  the project file (`rules/service-reload.md`).
 - **Never `--dangerously-skip-permissions` in
   cron.** Unattended plus unguarded plus production
   SSH keys is the worst possible combination.

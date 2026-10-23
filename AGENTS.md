@@ -367,6 +367,9 @@ trigger — not a request from the user.
   change that can cut SSH → `rules/ssh-safety-net.md`, before
   applying it
 - Reloading or restarting a service → `rules/service-reload.md`
+- The agent harness refuses a write to a server (a permission
+  error naming the auto-mode classifier) → `rules/service-reload.md`
+  → When the Agent Harness Blocks a Server Write
 - Any install, service, permission or exposure change the user asked
   for → `rules/best-practices.md` for the anti-pattern catalog
 - Renaming or moving files, or changing a retention scheme →

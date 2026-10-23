@@ -52,6 +52,11 @@ own config test passes. A `memory/service-policy.md` file lets you
 opt individual services out of auto-proceeding, or opt a restart
 into it.
 
+Auto mode's own classifier can still refuse a reload or any other
+write over SSH. That is Claude Code, not Hostwarden: name your
+servers under `autoMode` in `~/.claude/settings.json`
+([Scripting and auto mode](../running-it/unattended/automation.md#auto-mode)).
+
 Rule: `rules/service-reload.md`.
 
 ## Stopping or deleting a guest

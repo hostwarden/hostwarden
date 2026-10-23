@@ -244,7 +244,7 @@ If an auto-proceeded reload or restart fails:
 - Offer to roll back the config file from the
   backup written per `rules/backups.md`.
 
-## When the Agent Harness Blocks the Reload
+## When the Agent Harness Blocks a Server Write
 
 Everything above is Hostwarden's **policy** layer: what
 Hostwarden decides it should do. The agent harness
@@ -266,26 +266,55 @@ override, global or per server, can lift —
 editing `memory/service-policy.md` in response to
 one changes nothing at all.
 
-**In Claude Code**, note that `permissions.allow`
-does NOT override the auto-mode classifier: a
-session can carry `Bash(ssh *)` in its allow list
-and still have `systemctl reload nginx` refused.
-The classifier has its own key. Add to
-`.claude/settings.json`:
+**In Claude Code**, `permissions.allow` does not
+reach the auto-mode classifier: a session can carry
+`Bash(ssh *)` in its allow list and still have
+`systemctl reload nginx`, an `apt-get purge` or any
+other write over SSH refused, typically as "Modify
+Shared Resources". The classifier trusts only the
+working directory and the repo's remotes, so every
+server is a foreign system until the operator names
+it.
+
+The classifier has its own key, `autoMode`, and
+reads it only from `~/.claude/settings.json`,
+managed settings or `--settings`. It ignores the
+key in `.claude/settings.json` and
+`.claude/settings.local.json`, so a repo cannot
+trust itself and Hostwarden cannot ship the fix
+(https://code.claude.com/docs/en/auto-mode-config).
+The operator adds it once, to the user file:
 
 ```json
 "autoMode": {
+  "environment": [
+    "$defaults",
+    "Trusted hosts I administer: server1.example.com, server2.example.com"
+  ],
   "allow": [
     "$defaults",
-    "Reloading/restarting services hostwarden administers, over ssh."
+    "Changes I asked for on trusted hosts over SSH: packages, configs, services"
   ]
 }
 ```
 
-The literal `"$defaults"` entry is required — it
-inherits the built-in rules. Omit it and you
-replace the harness's own safety rules with just
-your line.
+`/auto-mode-setup`, run in the Hostwarden directory,
+drafts such entries from recent sessions, and
+`claude auto-mode config` shows what took effect.
+The draft takes hosts from recent sessions, read-only
+ones included, so check it before accepting:
+
+- only the user's own managed hosts;
+- nothing from `memory/blacklist.md` or
+  `memory/readonly.md` (`rules/access-control.md`);
+- `"$defaults"` in every `allow`, `soft_deny` and
+  `hard_deny` array. An `environment` array that
+  spells the defaults out needs none.
+
+Without `"$defaults"` the lines replace the built-in
+rules instead of adding to them. Hostwarden never
+edits the file itself; the classifier rightly
+refuses to let an agent widen its own permissions.
 
 This does not weaken Hostwarden's taboos. Those are
 enforced by `.claude/hooks/guard-taboos.sh`, a
@@ -310,7 +339,11 @@ later restart, a package upgrade, a logrotate
 nobody has watched go live. Finishing the reload is
 the safer end state than abandoning it, so surface
 a harness refusal to the user immediately rather
-than quietly moving on to the next task.
+than quietly moving on to the next task. For any
+other refused write, such as a package purge, say so
+plainly, name the fix above and stop that write and
+what depends on it. Other hosts, read-only steps and
+the session-end records go on.
 
 ## Override Chain
 
