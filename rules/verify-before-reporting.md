@@ -18,6 +18,8 @@ persistent, or your note is from an older layout.
 Memory and notes go stale; the live system is the
 source of truth.
 
+For the order to find a cause in, see `rules/diagnosing.md`.
+
 This is the same discipline as **Verify Before
 Running** (don't trust training data for command
 *syntax*) and **Never fabricate server facts**
