@@ -192,3 +192,7 @@ check pass 'ssh h "k() { for c in \$(ps -A -o pid= -o ppid= 2>/dev/null | awk -v
 check pass 'command cp -p /etc/nginx/nginx.conf /var/backups/hostwarden/'
 check pass 'command rm /var/tmp/old.log'
 check pass 'ssh root@h "command mv -n /var/tmp/a /var/tmp/b"'
+check pass 'command ls -l /var/log'
+check pass 'command grep -c error /var/log/syslog'
+check pass 'ssh root@h "command df -P /var | command awk \"NR==2\""'
+check pass 'command find /var/tmp -name "*.log" -mtime +7'

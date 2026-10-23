@@ -1,13 +1,14 @@
 ### Fixed
 
-- **An `rm -i` alias no longer makes a delete look like it worked.**
-  Sessions write `command cp`, `command mv` and `command rm` for every
-  command that runs on the workstation and in calls a login shell
-  reads itself, and `command sudo rm` where a shell reads a `sudo`
-  alias that expands the next word. An alias without a terminal keeps
-  the file and exits 0 for `rm -i`. Calls inside `sh -s` need no
-  prefix, and rules and skill probes that copy, move or delete carry
-  it anyway.
+- **An alias or function no longer changes a command the session
+  relies on.** In a shell that may have read the user's profile —
+  the workstation, local mode, a plain `ssh host 'cmd'`, `bash -lc`
+  — sessions write `command <tool>` (`\<tool>` in csh) for every
+  command whose output or effect they use, and `command sudo` where
+  a `sudo` alias expands the next word. `rm -i` without a terminal
+  keeps the file and exits 0, the case that shows it. Calls inside
+  `sh -s`, scripts and behind `xargs` need none; the limits are in
+  `rules/shell-aliases.md`.
 
 ### Changed
 

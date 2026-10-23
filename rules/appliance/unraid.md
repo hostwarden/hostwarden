@@ -226,7 +226,8 @@ holds one line, `x-api-key: <key>`.
 
   ```
   nonce=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-  { cat ~/hostwarden-keys/<hostname>/unraid-ro.header; cat <scratch>/unraid-read.jsonl; } \
+  { command cat ~/hostwarden-keys/<hostname>/unraid-ro.header
+    command cat <scratch>/unraid-read.jsonl; } \
     | ssh … root@<hostname> "export LC_ALL=C; nonce=$nonce;" 'IFS= read -r h; i=0
       while IFS= read -r q; do
         i=$((i+1))

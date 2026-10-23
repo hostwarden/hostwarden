@@ -419,9 +419,9 @@ Findings:
   says:
 
   ```bash
-  ssh-add -L | grep -e '-cert-v01@' | ssh-keygen -L -f /dev/stdin
+  ssh-add -L | command grep -e '-cert-v01@' | ssh-keygen -L -f /dev/stdin
   ssh -F "/srv/hostwarden/memory/ssh_config" -G root@web1.example.com \
-    | grep -i -e '^certificatefile ' -e '^identityfile '
+    | command grep -i -e '^certificatefile ' -e '^identityfile '
   ```
 
   and `ssh-keygen -L -f` on each certificate file those lines

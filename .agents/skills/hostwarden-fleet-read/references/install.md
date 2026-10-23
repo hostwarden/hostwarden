@@ -100,7 +100,7 @@ sshd, with a test name, and prints the sections; nothing is
 written:
 
 ```sh
-cat memory/fleet/fleet-read/src/linux.sh.sig \
+command cat memory/fleet/fleet-read/src/linux.sh.sig \
   memory/fleet/fleet-read/src/linux.sh \
   | ssh root@web1.example.com \
     'env LC_ALL=C SSH_ORIGINAL_COMMAND=collect /usr/local/sbin/fleet-read check'

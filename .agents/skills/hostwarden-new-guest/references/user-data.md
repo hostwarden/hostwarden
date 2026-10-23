@@ -255,20 +255,20 @@ its placeholder, so a Butane `source:` line works as well:
 ```bash
 f=~/.cache/hostwarden/user-data.web2.example.com.yaml
 for p in CA-KEY KRL-BASE64; do
-  [ "$(grep -c "$p" "$f")" = 1 ] || { echo "$p: not exactly once"; exit 1; }
+  [ "$(command grep -c "$p" "$f")" = 1 ] || { echo "$p: not exactly once"; exit 1; }
 done
-n=$(grep -n CA-KEY "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
-{ head -n $((n - 1)) "$f"
+n=$(command grep -n CA-KEY "$f" | command cut -d: -f1); l=$(command sed -n "${n}p" "$f")
+{ command head -n $((n - 1)) "$f"
   while IFS= read -r k || [ -n "$k" ]; do
     printf '%s%s\n' "${l%%CA-KEY*}" "$k"
   done < ~/.cache/hostwarden/ca.web2.example.com.pub
-  tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
-n=$(grep -n KRL-BASE64 "$f" | cut -d: -f1); l=$(sed -n "${n}p" "$f")
-{ head -n $((n - 1)) "$f"
+  command tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
+n=$(command grep -n KRL-BASE64 "$f" | command cut -d: -f1); l=$(command sed -n "${n}p" "$f")
+{ command head -n $((n - 1)) "$f"
   printf '%s%s%s\n' "${l%%KRL-BASE64*}" \
-    "$(cat ~/.cache/hostwarden/krl.web2.example.com.b64)" \
+    "$(command cat ~/.cache/hostwarden/krl.web2.example.com.b64)" \
     "${l#*KRL-BASE64}"
-  tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
+  command tail -n +$((n + 1)) "$f"; } > "$f.new" && command mv "$f.new" "$f"
 ```
 
 On Incus the baseline is a profile's `cloud-init.vendor-data`, and

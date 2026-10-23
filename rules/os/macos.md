@@ -252,7 +252,7 @@ Open protected directories without printing what is in them;
 only a refusal reaches the output:
 
 ```bash
-ls "$HOME/Library/Mail" "$HOME/Library/Safari" > /dev/null
+command ls "$HOME/Library/Mail" "$HOME/Library/Safari" > /dev/null
 sudo -n ls "/Library/Application Support/com.apple.TCC" > /dev/null
 ```
 

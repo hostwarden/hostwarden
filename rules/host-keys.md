@@ -108,9 +108,9 @@ refuses):
 
 ```bash
 f=~/.cache/hostwarden/hostkey.web2.example.com
-[ -s "$f" ] && sed 's/^@[^ ]* //' "$f" | ssh-keygen -lf - &&
+[ -s "$f" ] && command sed 's/^@[^ ]* //' "$f" | ssh-keygen -lf - &&
   { echo "# $(date +%F) web2.example.com: pct exec 105 on pve1.example.com"
-    cat "$f"; } >> "/srv/hostwarden/memory/known_hosts"
+    command cat "$f"; } >> "/srv/hostwarden/memory/known_hosts"
 command rm -f "$f"
 ```
 
@@ -311,7 +311,8 @@ CA line for either `[<name>]:<port>` or `<name>`, while
 ```bash
 for n in '[web1.example.com]:2222' web1.example.com; do
   ssh-keygen -F "$n" -f "/srv/hostwarden/memory/known_hosts" |
-    grep '^@cert-authority' | cut -d' ' -f3- | ssh-keygen -lf -
+    command grep '^@cert-authority' | command cut -d' ' -f3- |
+    ssh-keygen -lf -
 done
 ```
 
