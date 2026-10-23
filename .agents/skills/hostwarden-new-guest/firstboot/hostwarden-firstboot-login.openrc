@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+# The login of a container made from the Hostwarden baseline
+# template, placed before sshd first starts. rc.conf makes sshd
+# need this service, so a failure here leaves no sshd.
+
+description="Hostwarden first boot: the login"
+
+depend() {
+	before sshd
+	need localmount
+}
+
+start() {
+	[ -e /var/lib/hostwarden/login.done ] && return 0
+	ebegin "Placing the Hostwarden login"
+	/usr/local/lib/hostwarden/firstboot/login.sh
+	eend $?
+}
