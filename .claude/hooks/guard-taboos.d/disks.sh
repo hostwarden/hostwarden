@@ -19,6 +19,7 @@ case "$TEXT" in
 *newfs*|*wipefs*|*fdisk*|*gdisk*|*parted*|*growpart*) DISK=1 ;;
 *gpt*|*gpart*|*[Dd][Ii][Ss][Kk][Uu][Tt][Ii][Ll]*) DISK=1 ;;
 *blkdiscard*|*nvme*|*hdparm*|*badblocks*) DISK=1 ;;
+*disklabel*|*fmthard*|*mbrlabel*|*raidctl*|*bioctl*) DISK=1 ;;
 */dev/*|*[Pp][Hh][Yy][Ss][Ii][Cc][Aa][Ll][Dd][Rr][Ii][Vv][Ee]*) DISK=1 ;;
 esac
 if [ -n "$DISK" ]; then
@@ -106,6 +107,47 @@ fi
 if full && hit 'gpart[[:space:]]+(create|add|delete|destroy|modify|resize|bootcode|recover|set|undo|commit)'
 then
   deny "gpart write verbs modify the partition table"
+fi
+# NetBSD, OpenBSD and illumos. The option tests start at the tool's
+# own name and stop at the next ; & or |, so ssh's -F or -i, a
+# pipe's grep -i and the like never count as the tool's options
+# (BSDT opens the pattern at the tool, BSDA runs to its option).
+BSDT='(^|[^[:alnum:]_.-])'
+BSDA='[[:space:]]([^;&|]*[[:space:]])?'
+# Display is the default for disklabel
+# and mbrlabel, so their write flags are enumerated: disklabel
+# -e, -E, -i, -R, -w and -B edit, restore or write the label or the
+# boot blocks (-wA writes, -A alone displays), mbrlabel only with
+# -w. fmthard writes a VTOC (-s, -d, and -n, which sets a volume
+# name) unless -i holds it back to a printout.
+if full && hit "${BSDT}disklabel${BSDA}-[[:alnum:]]*[eEiRwB]"; then
+  deny "disklabel with a write option rewrites the disk label"
+fi
+if full && hit "${BSDT}mbrlabel${BSDA}-[[:alnum:]]*w"; then
+  deny "mbrlabel -w rewrites the partition table"
+fi
+if full && hit_without '(^|[^[:alnum:]_.-])fmthard([^[:alnum:]_.-]|$)' \
+  '(^|[[:space:]])-[[:alnum:]]*i'; then
+  deny "fmthard writes the VTOC, the partition table of the disk"
+fi
+# raidctl and bioctl take several options per call, so the write
+# sets are enumerated as for sgdisk: raidctl -A -a -C -c -d -F -f
+# -I -i -M -P -R -r -U -u change the set, its labels or its parity,
+# and so does illumos' -p with a param=value (-g -G -L -l -h -m -S
+# -s -t -v and NetBSD's -p alone only read); bioctl -b -u -H -R -C -c
+# -l -d -k -O -P and the changing words of -a and -t create, delete,
+# rebuild or reconfigure a volume or its chunks (-h -i -q -v only
+# read); -a takes enable, disable, silence, quiet or test by its first
+# letter, and get reads.
+if full && hit "${BSDT}raidctl${BSDA}(-[[:alnum:]]*[AaCcdFfIiMPRrUu]|-p[[:space:]]+[^[:space:]]*=)"
+then
+  deny "this raidctl option changes a RAID set, its labels or its \
+parity"
+fi
+if full && hit "${BSDT}bioctl${BSDA}(-[[:alnum:]]*[buHRCcldkOP]|-a[[:space:]]+[edsqt]|-t[[:space:]]+(start|stop|disable|manual|auto))"
+then
+  deny "this bioctl option creates, deletes or rebuilds a softraid \
+volume, or reconfigures a controller"
 fi
 # Windows, as WSL reaches it. Names are matched without regard to
 # case, as Windows reads them. diskpart runs its verbs from a
