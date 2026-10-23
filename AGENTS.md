@@ -113,15 +113,13 @@ the call.
 Run every command on a host with `LC_ALL=C`, set at the top of the
 call, never forwarded by SSH: `rules/locale.md`.
 
-Write `command cp`, `command mv` and `command rm` for every command
-that runs on the workstation, and in any call a login shell reads
-itself: an `rm -i` alias without a TTY keeps the file and exits 0.
-Where csh does not find `command`, `\rm` skips the alias. Inside
-`sh -s`, behind `xargs` or `find -exec` the plain tool is right, since
-no alias expands there; `sudo` is the same except where a blank-ended
-`sudo` alias exists, so a shell that reads the line itself gets
-`command sudo rm`. Never `yes |` or an added `-f` to beat an alias;
-`type <name>` says what answered.
+Write `command <tool>` for every command whose output or effect
+you rely on, wherever a shell that read the user's profile may
+expand an alias or function: the workstation, local mode, a plain
+`ssh host 'cmd'`, `bash -lc`. `rm -i` without a TTY keeps the file
+and exits 0. Not needed inside `sh -s`, scripts or behind `xargs`,
+and not for a `cat`/`tee` heredoc (the guard reads that plain).
+Details and limits: `rules/shell-aliases.md`.
 
 Access tests and the single retry after a hanging call need a fresh
 login instead, and connection sharing has limits worth knowing

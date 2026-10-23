@@ -5,15 +5,36 @@
 # shellcheck shell=sh
 
 # --- the command prefix ----------------------------------------
-# cp, mv and rm are written as `command cp` so that an rm -i alias
-# cannot prompt (AGENTS.md -> SSH Options). The prefix must hide
-# no taboo from the guard.
+# a command whose result is relied on is written `command <tool>`
+# so that an alias or function cannot change it (rules/shell-aliases.md).
+# The prefix must hide no taboo from the guard.
 check deny 'command rm -rf ~/.ssh'
 check deny 'command mv /etc/ssh/sshd_config /tmp/'
 check deny 'command cp /tmp/new /root/.ssh/authorized_keys'
 check deny 'command dd if=/dev/zero of=/dev/sda'
 check deny 'command fdisk /dev/sda'
 check deny 'ssh root@h "command rm /etc/ssh/ssh_host_ed25519_key"'
+# Any tool the guard watches, with the prefix and after one.
+check deny 'command parted /dev/sda rm 2'
+check deny 'command sgdisk --zap-all /dev/sda'
+check deny 'command wipefs -a /dev/sdb'
+check deny 'command mkfs.ext4 /dev/sda1'
+check deny 'command blkdiscard /dev/nvme0n1'
+check deny 'command shred -n1 /dev/sdb'
+check deny 'command gpart destroy -F ada0'
+check deny 'command raidctl -c raid0.conf raid0'
+check deny 'command efibootmgr -n 0003'
+check deny 'command grub-install /dev/sda'
+check deny 'command update-grub'
+check deny 'command bootctl install'
+check deny 'command vipw'
+check deny 'command shutdown -h now'
+check deny 'command halt'
+check deny 'command poweroff'
+check deny 'command sudo parted /dev/sda rm 2'
+check deny 'command sudo command rm -rf ~/.ssh'
+check deny 'ssh root@h "command shutdown -h now"'
+check deny 'ssh root@h "command grub-install /dev/sda"'
 
 # --- must block ------------------------------------------------
 check deny 'halt'

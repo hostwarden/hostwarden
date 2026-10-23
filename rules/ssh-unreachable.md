@@ -49,7 +49,7 @@ modes count every rejected login
 For too many keys the fix is on the client:
 `IdentitiesOnly yes` and one `IdentityFile` for the
 host in `~/.ssh/config`; check with
-`ssh -F "<checkout>/memory/ssh_config" -G <host> | grep -i identit`.
+`ssh -F "<checkout>/memory/ssh_config" -G <host> | command grep -i identit`.
 A login with a certificate: `rules/ssh-ca.md` → Failures.
 
 Where the `- Access:` line says `via Tailscale SSH` or
