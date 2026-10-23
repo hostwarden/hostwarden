@@ -123,6 +123,12 @@ check_mode deny default "rm /var/lib/lxc/web4/rootfs/../../../../etc/ssh/ssh_hos
 check pass "cat /var/lib/lxc/web4/rootfs/etc/ssh/sshd_config"
 check pass "scp user-data root@h:/var/lib/lxc/web4/rootfs/var/lib/cloud/seed/nocloud-net/user-data"
 check pass "virt-customize -a $FB_IMG --copy-in 90-hostwarden.cfg:/etc/cloud/cloud.cfg.d"
+# The Proxmox VE baseline template keeps the login as inert files
+# and reads a foreign archive one member at a time: neither names a
+# write to sshd's config.
+check pass "pct push 105 /root/hostwarden-bake/login.conf /usr/local/lib/hostwarden/firstboot/login.conf"
+check pass "pct exec 105 -- sh /usr/local/lib/hostwarden/firstboot/build.sh"
+check pass "tar --zstd -xOf /var/lib/vz/template/cache/debian-13-base.tar.zst ./etc/ssh/sshd_config.d/10-hostwarden.conf"
 # One prompt names every reason the line holds, each once: a guest
 # stopped beside a first-boot write, a key change beside an sshd
 # write in the same guest, and a storage change beside a guest.

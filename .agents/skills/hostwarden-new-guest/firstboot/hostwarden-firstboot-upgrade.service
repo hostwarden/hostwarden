@@ -1,0 +1,15 @@
+[Unit]
+Description=Hostwarden first boot: firewall, first upgrade, baseline version
+After=network-online.target hostwarden-firstboot-login.service
+Wants=network-online.target
+Requires=hostwarden-firstboot-login.service
+ConditionPathExists=!/var/lib/hostwarden/upgrade.done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=1200
+ExecStart=/usr/local/lib/hostwarden/firstboot/upgrade.sh
+
+[Install]
+WantedBy=multi-user.target

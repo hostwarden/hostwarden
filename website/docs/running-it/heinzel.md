@@ -84,7 +84,9 @@ with your notes carried over, offers your earlier decisions as
 decision records, runs the network profile, checks the leads, and on
 a hypervisor inventories and registers the guests — and takes over
 the guests still in your Heinzel checkout together with it, if you
-say so. It ends with what each host lacks against the baseline and
+say so. A baked container template of yours on a Proxmox VE node is
+measured against the baseline and adopted instead of rebuilt. It ends with what
+each host lacks against the baseline and
 asks which to take on first. With "only copy", the first connection
 to each host does the same later, or `/hostwarden-onboard <host>`
 when you choose.

@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+# The first upgrade of a container made from the Hostwarden
+# baseline template, once the network is up and the login is in
+# place.
+
+description="Hostwarden first boot: first upgrade, baseline version"
+
+depend() {
+	need net hostwarden-firstboot-login
+	use dns
+}
+
+start() {
+	[ -e /var/lib/hostwarden/upgrade.done ] && return 0
+	ebegin "Running the Hostwarden first upgrade"
+	/usr/local/lib/hostwarden/firstboot/upgrade.sh
+	eend $?
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Hostwarden: install security patches
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+SuccessExitStatus=102 103 106
+ExecStart=/usr/bin/zypper --non-interactive patch --category security
