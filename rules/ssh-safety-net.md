@@ -220,8 +220,21 @@ accounts for it.
    the revert undoes the runtime only (firewalld's
    `--reload`, a sysctl's `sysctl -w`), cancel it first, then
    persist, and read the persisted file back, since a revert
-   that fired after the write would reload what was written. A
-   PAM file persists nothing here. On Windows, whose cancel
+   that fired after the write would reload what was written.
+   Nothing is armed in that gap, so before the cancel, add a
+   task to the host's `todo.md` (`rules/machine-memory.md`)
+   that names the file to persist, the command that writes it
+   and the revert, and mark it `[x]` once the read-back
+   matched. If the write or the read-back fails, the runtime
+   and the files disagree, and the revert alone does not close
+   that: it resets the runtime, not a file that was written.
+   Put the files back from the step-2 backup, then make the
+   runtime match (a sysctl: `sysctl -w <key>=<old value>`;
+   firewalld: `firewall-cmd --reload`, which loads the restored
+   files, so arm the revert and test with a fresh login as in
+   steps 4 to 6). Or, if the user wants the change kept,
+   correct the file and persist again. Tell the user which.
+   A PAM file persists nothing here. On Windows, whose cancel
    reports in its output and not its exit status, the check
    runs first and the cancel follows in a call of its own once
    it passed. The cancel is
