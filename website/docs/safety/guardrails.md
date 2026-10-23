@@ -91,7 +91,8 @@ them mechanically.
   such a command line cannot be shown to be read-only, so it counts
   as a write and is blocked.
 - The agent's own edit tools, judged by the file they write: they
-  cannot write an SSH key or `sshd_config` either.
+  cannot write an SSH key, `sshd_config`, an account file or a file
+  of the EFI variables mount either.
 - Subagents too.
 - The `PowerShell` tool is denied outright — its commands cannot be
   read, so there is nothing for the hook to judge.

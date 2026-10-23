@@ -22,7 +22,9 @@
 # authorized_keys and OpenMediaVault's directory of that name, a
 # private or public key under .ssh, a host key, an appliance key
 # store (/conf/sshd, /etc/dropbear, /etc/config/ssh), Windows'
-# ProgramData\ssh,
+# ProgramData\ssh, the account files (/etc/passwd, shadow, gshadow,
+# group, master.passwd, the pwd.db databases) and the files of the
+# EFI variables mount,
 # sshd_config and its drop-ins, a file an appliance merges into
 # it, and dropbear's config. ~/.ssh/config and known_hosts are not
 # keys and stay open. The left side stays open as in the Bash
@@ -56,13 +58,13 @@
 # KEYSTORE: the appliances' key stores, whole directories of keys
 # and sshd's config; KEYDIR below says whose they are.
 KEYSTORE='conf/sshd|etc/config/ssh|etc/dropbear'
-FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/etc/ssh/ssh_host_[^/]+|/('"$KEYSTORE"')/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
+FILEKEY='((^|[/\\])authorized_keys2?|/authorized_keys/[^/]+|(^|[/\\])\.ssh[/\\]+id_[^/\\]+|/etc/ssh/ssh_host_[^/]+|/('"$KEYSTORE"')/[^/]+|/etc/ssh/sshd_config(\.d/[^/]+)?|/etc/sshd_extra|/etc/(config|conf\.d|default)/dropbear|/etc/(passwd|shadow|gshadow|group|master\.passwd|s?pwd\.db)|/sys/firmware/efi/efivars/[^/]+|programdata[/\\]+ssh[/\\]+[^/\\]+)$'
 # The server lock (guard-taboos.d/lock.sh), by its path.
 LOCKKEY='/etc/(hostwarden|heinzel)\.conf$'
 LOCKMSG="writing /etc/hostwarden.conf or /etc/heinzel.conf, the server \
 lock, is never allowed - only the machine's owner changes it"
-KEYMSG="writing an SSH key, authorized_keys or the SSH server's \
-config is never allowed"
+KEYMSG="writing an SSH key, authorized_keys, the SSH server's \
+config, an account file or a firmware variable is never allowed"
 case "$INPUT" in
 *'"file_path"'*|*'"notebook_path"'*)
   # The sed program of the folds: each character as its UTF-8 bytes,
@@ -196,7 +198,8 @@ be told apart from its content - install jq"
   fi
   if hit "$FALL"; then
     deny "$KEYMSG, through an edit as much as through a shell - read \
-it with cat, grep or sshd -T, and leave a change to it to the user"
+it with cat, grep, getent or sshd -T, and leave a change to it to the \
+user (accounts: useradd, usermod, pw)"
   fi
   exit 0
   ;;

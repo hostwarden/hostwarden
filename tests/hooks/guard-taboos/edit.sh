@@ -6,7 +6,8 @@
 
 # --- Edit, Write, MultiEdit, NotebookEdit: the target path ------
 # Judged by the file they write, in every mode: an SSH key,
-# authorized_keys or sshd_config is denied, and their content is
+# authorized_keys, sshd_config, an account file or an EFI variable is
+# denied, and their content is
 # never scanned. The file-tool branch runs before the scope is read,
 # so one case in the development tree stands for the mode.
 file_case() { hook_case "$HOOK" "file tool" "$@"; }
@@ -84,6 +85,35 @@ file_case pass 'an example sshd_config' \
   "$(fjson Edit /r/docs/sshd_config.example)"
 file_case pass 'ssh client config' "$(fjson Write /home/alice/.ssh/config)"
 file_case pass 'known_hosts' "$(fjson Write /home/alice/.ssh/known_hosts)"
+# The account files and the EFI variables mount, written through an
+# edit tool as much as through a shell. A document about them is open.
+file_case deny 'Write /etc/passwd' "$(fjson Write /etc/passwd)"
+file_case deny 'Edit /etc/shadow' "$(fjson Edit /etc/shadow)"
+file_case deny 'Edit /etc/group' "$(fjson Edit /etc/group)"
+file_case deny 'Edit /etc/gshadow' "$(fjson Edit /etc/gshadow)"
+file_case deny 'MultiEdit master.passwd' "$(fjson MultiEdit /etc/master.passwd)"
+file_case deny 'Write a BSD password database' "$(fjson Write /etc/spwd.db)"
+file_case deny 'Write pwd.db' "$(fjson Write /etc/pwd.db)"
+file_case deny 'NotebookEdit onto /etc/passwd' \
+  "$(fjson NotebookEdit /etc/passwd)"
+file_case deny 'Write the passwd of an offline root' \
+  "$(fjson Write /mnt/etc/passwd)"
+file_case deny 'passwd in upper case' "$(fjson Write /ETC/PASSWD)"
+file_case deny 'relative passwd resolved against cwd' \
+  "$(fjson Write etc/passwd x /mnt)"
+file_case deny 'passwd behind a dot-dot segment' \
+  "$(fjson Write /etc/nosuch/../passwd)"
+file_case deny 'Write an EFI variable' \
+  "$(fjson Write /sys/firmware/efi/efivars/Boot0001-8be4df61-93ca-11d2-aa0d-00e098032b8c)"
+hook_case "$GUARD_DEV" "file tool in development" deny 'Write /etc/shadow' \
+  "$(fjson Write /etc/shadow)"
+file_case pass 'a note named after passwd' "$(fjson Write /r/docs/passwd.md)"
+file_case pass 'a backup beside passwd' "$(fjson Write /etc/passwd.bak)"
+file_case pass 'a PAM passwd policy' "$(fjson Write /etc/passwdqc.conf)"
+file_case pass 'a group drop-in directory file' \
+  "$(fjson Write /etc/group.d/notes)"
+file_case pass 'a rule about the efivars mount' \
+  "$(fjson Write /r/rules/efivars.md)"
 file_case pass 'content that names taboos is text' \
   "$(fjson Edit /r/rules/os/debian.md 'mkfs.ext4 /dev/sda1; rm ~/.ssh/id_ed25519; shutdown -h now')"
 file_case pass 'content with the off switch is text (guard-settings has settings)' \
