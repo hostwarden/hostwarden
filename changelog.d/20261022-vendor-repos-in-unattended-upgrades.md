@@ -8,7 +8,8 @@
   which of its packages wait: a warning when updates are pending
   outside the origins, a note when none are yet, and a line marked
   decided where a decision keeps the repository out. A pattern that does not
-  name the repository's origin and site is flagged too. The baseline adds a
+  name an origin, a site and a component, or holds a wildcard in any value, is
+  flagged too, whether or not it takes a repository yet. The baseline adds a
   missing origin as a drop-in per vendor, built from the repository's own
   Release fields with its site always named; on a host under
   configuration management it goes into the playbook instead.

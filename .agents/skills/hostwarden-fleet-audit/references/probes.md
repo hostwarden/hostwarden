@@ -112,8 +112,10 @@ audit's:
   they are (the audit refreshes nothing) and with `inst=` set empty
   before it, since the row needs no pending packages and the empty
   value spares the upgrade simulation; list the sites of its
-  `vendor … allowed=no` lines, `none` without any, and those of
-  `allowed=loose` lines as `<site> (loose)`
+  `vendor … allowed=no` lines, `none` without any, those of
+  `allowed=loose` lines as `<site> (loose)`, and of the lines with
+  `takes=none` each `broad-pattern` as `<pattern> (broad)` and each
+  `loose-pattern` as `<pattern> (loose)`
 - `Mail`
 - `MailReport` (or legacy `MailOnlyOnError`)
 - `Automatic-Reboot`

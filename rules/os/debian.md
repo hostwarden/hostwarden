@@ -488,15 +488,20 @@ Unattended-Upgrade::Origins-Pattern {
   nothing there. Write the host's codename as `${distro_codename}`
   where the vendor uses it, so the drop-in survives a release
   upgrade; a vendor suite such as `stable` is written as it is.
-- **`component=` where the repository publishes more than one.**
-  Docker's Release file lists `stable edge test nightly`; naming
-  `stable` keeps a test channel someone enables later out of the
-  nightly run.
-- **Never a wildcard.** No `*` or `?` in any value, and never a
-  pattern without `origin=` and `site=`: one such pattern lets
-  every repository added later install unattended, which nobody
-  decided. unattended-upgrades matches values with `fnmatch`, so
-  a wildcard does exactly what it says.
+- **`component=` always.** Docker's Release file lists `stable edge
+  test nightly`; naming `stable` keeps a test channel someone
+  enables later out of the nightly run. A repository with one
+  component today gets it named too, so a second one published
+  later stays out. A flat repository (`deb <url> ./`) has none:
+  `apt-cache policy` prints `c=` with nothing after it, and the
+  pattern says `component=` the same way, which matches only an
+  empty component.
+- **Never a wildcard.** No `*`, `?` or `[` in any value, and never
+  a pattern without `origin=`, `site=` and `component=`: one such
+  pattern lets a repository or channel added later install
+  unattended, which nobody decided, whether or not it matches anything today.
+  unattended-upgrades matches values with `fnmatch`, so a wildcard
+  does exactly what it says.
 - **Ubuntu takes the same `Origins-Pattern`.** Its shipped file
   uses `Allowed-Origins`, whose `"<origin>:<archive>"` form names
   origin and suite only and cannot carry a site. unattended-upgrades
