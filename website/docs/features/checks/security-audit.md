@@ -19,8 +19,9 @@ Findings are reported by severity.
 ### SSH
 
 What sshd really uses (`sshd -G`, a daemon's own config file,
-`Match` blocks), password and root login, weak algorithms, agent
-forwarding, host certificates and user CA trust; the SSH servers built into VPN
+`Match` blocks), password and root login, how many factors a login
+needs (`AuthenticationMethods`), weak algorithms, agent forwarding,
+host certificates and user CA trust; the SSH servers built into VPN
 agents and who they admit; the SSH client on the server.
 
 ### Firewall

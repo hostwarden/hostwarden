@@ -398,6 +398,30 @@ material outside the repo
 `0700` on the directory and `0600` on files) and
 record only the *path* in memory or inventories.
 
+## Login Keys
+
+The keys Hostwarden logs in with are the user's. They belong in an
+agent that confirms each use — the SSH agents of 1Password,
+Bitwarden or KeePassXC, or `ssh-agent` with keys added by
+`ssh-add -c` — or on a hardware key (`ed25519-sk`). A key without a
+passphrase belongs only where nobody is at the keyboard: an
+operations host's fleet-read key (`hostwarden-fleet-read`), and a
+deploy user's key, which its pipeline holds
+(`hostwarden-deploy-user`).
+
+Hostwarden never creates a key to log in with that has no
+passphrase, never adds a private key to an agent, and never reads
+one beyond `bin/hostwarden-doctor`'s check: `ssh-keygen` tells it
+whether a key file has a passphrase, no key material reaches its
+output, and it warns and refuses nothing.
+
+A key that waits for a passphrase no agent holds fails at once
+under `BatchMode`. One whose agent waits for a confirmation nobody
+gives holds the call until sshd gives up, 120 seconds by default,
+and ends in a closed connection, which looks like a filter: ask the
+user whether a confirmation is waiting before reading it as one,
+and leave loading or confirming the key to them.
+
 ## API Credentials on the Workstation
 
 An appliance API that Hostwarden calls — a key, a

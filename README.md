@@ -59,8 +59,8 @@ Hostwarden session looks the same.
   [mise](https://mise.jdx.dev): `mise install` in the checkout
   brings a pinned one, which the hooks run in preference to the
   system's, and Ansible, its linters and ShellCheck besides
-- Key-based SSH access to the target, without a
-  password or passphrase prompt
+- Key-based SSH access to the target, with a key an
+  agent holds and confirms per use, or a hardware key
 - Linux, FreeBSD or macOS on the target, or Windows
   Server, where Hostwarden reports and, when asked,
   installs PowerShell 7 and sets it as the SSH shell

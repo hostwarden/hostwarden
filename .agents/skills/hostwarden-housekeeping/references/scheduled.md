@@ -94,9 +94,13 @@ rather than idling until the job times out.
 - Schedule in the crontab of the user who owns
   `~/.claude` (CLI credentials) and the SSH keys —
   not root's.
-- The SSH key must work without an interactive
-  agent or passphrase prompt (Hostwarden's standard
-  BatchMode requirement).
+- The SSH key must answer with nobody at the keyboard,
+  since every call runs in BatchMode. An agent that
+  confirms each use cannot, and a key without a
+  passphrase belongs only on an operations host
+  (`rules/secrets.md` → Login Keys): a schedule the
+  user's own keys cannot serve unattended goes there,
+  as fleet read.
 
 ## Crontab Template
 

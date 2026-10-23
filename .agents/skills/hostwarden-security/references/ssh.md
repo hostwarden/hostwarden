@@ -145,9 +145,11 @@ With `UsePAM yes`, PAM asks for the Unix password over
 keyboard-interactive, so `KbdInteractiveAuthentication yes`
 accepts passwords although `PasswordAuthentication` says `no`.
 FreeBSD ships exactly that combination. Where the `auth` lines of
-`/etc/pam.d/sshd`, includes followed, carry no password module
-(`pam_unix`) — a token or MFA module only — report the modules as
-INFO instead of the warning below.
+`/etc/pam.d/sshd`, includes followed, are a plain stack (→
+Authentication factors) whose prompting modules are all token or
+MFA modules, with no password module (`pam_unix`, `pam_ldap`,
+`pam_sss`, `pam_krb5`, `pam_winbind`) among them, report the
+modules as INFO instead of the warning below.
 
 - **WARN** "SSH accepts passwords" if `passwordauthentication` is
   `yes`, or `kbdinteractiveauthentication` and `usepam` are both
@@ -237,6 +239,92 @@ Flag any of these as **WARN**:
 - **Host key types:** `ssh-dss`
 
 Report each weak algorithm found with its category.
+
+### Authentication factors
+
+From `authenticationmethods`. Fallback: parse `AuthenticationMethods`
+from the files the fallback read; without one, the value is `any`.
+The value is one or more lists, separated by spaces, each a login
+sshd accepts; a list names its methods separated by commas, and
+what follows a `:` in a method is a submethod, which does not make
+it another method.
+
+A factor is what a method asks for, not the method's name:
+
+- `publickey` and `hostbased` — a key.
+- `password` — a password. With `usepam yes` the typed password
+  goes to the same PAM stack as `keyboard-interactive`: it is a
+  password where `pam_unix` or `pam_ldap` is the only module of the
+  stack that prompts, no line before its line is `sufficient` or
+  carries a bracket control (`done`, `success=N`), and its own line
+  is `required`, or `sufficient` or the stock
+  `[success=1 default=ignore]` with a `requisite` or `required`
+  `pam_deny` right after it, before any line that can succeed, as in
+  Debian's stack and the `local` authselect profile of RHEL, even
+  where the stack is not plain below; otherwise it has that
+  method's factor. Either way it is one factor together with
+  `keyboard-interactive`.
+- `keyboard-interactive` — what PAM asks, from the `auth` lines of
+  `/etc/pam.d/sshd`, includes followed, and only where they are a
+  plain stack: every line `required` or `requisite`, no bracket
+  control (`[success=1 default=ignore]`), no `substack`, and none
+  of the options `nullok`, `nouserok` or `failmode=safe`, each of
+  which lets a user through without the factor; `try_first_pass`
+  asks for nothing new and does not count against a stack. Where
+  the stack is not plain, a `sufficient` or `optional` line or a
+  bracket can let a login skip a module, the factor is unknown. In
+  a plain stack, a plain password module (`pam_unix`, `pam_ldap`)
+  is a password, a token or one-time-code module
+  (`pam_google_authenticator`, `pam_oath`, `pam_u2f`, `pam_yubico`)
+  a token, `pam_duo` a token only where its configuration sets
+  `failmode = secure` (its default, `safe`, lets a login through
+  when Duo cannot be reached) and unknown otherwise, and both in
+  turn are both. Read that setting alone, never the file, which
+  holds Duo's secret key (`rules/secrets.md` → Commands That
+  Leak): `grep -iE '^[[:space:]]*failmode[[:space:]]*='` on the
+  file the PAM line's `conf=` option names, else
+  `/etc/duo/pam_duo.conf` or `/usr/local/etc/pam_duo.conf`. A module that
+  asks for nothing counts for no factor (`pam_env`, `pam_faildelay`,
+  `pam_faillock`, `pam_deny`, `pam_permit`, `pam_nologin`,
+  `pam_succeed_if`, `pam_limits`, `pam_cap`, `pam_localuser`). Any
+  other module can ask for more than a password: `pam_sss` and
+  `pam_krb5` with one-time codes or pre-authentication,
+  `pam_winbind`, `pam_radius_auth`. Its factor is unknown. Without PAM
+  (`usepam no`), the BSDs ask through BSD auth, a password unless
+  `/etc/login.conf` names another style for the class, which is then
+  unknown; on Linux the method then asks nothing and counts for no
+  factor.
+- `gssapi-with-mic` — a Kerberos ticket.
+
+A list needs two factors where it holds two different ones: a key
+and a password, a key and a token, a password and a token. Two
+methods that come down to the same factor —
+`password,keyboard-interactive` over `pam_unix`, or
+`publickey,publickey` — are one.
+
+- Every list needs two factors → OK, reported as "multi-factor"
+- A list whose count turns on an unknown factor or a stack that is
+  not plain → **INFO** "SSH login factors not known", the list and
+  the module, style or line named, and neither of the reports below
+- `any`, or a list that needs one factor → OK, reported as
+  nothing, unless an override adds the single-factor report below
+
+Hostwarden sets up no second factor on a host; this only reports.
+
+#### Single-factor report
+
+Off as shipped. Where NIS2 or BSI IT-Grundschutz applies,
+administration access needs a second factor, and the user turns
+the report on with an override (`rules/overrides.md`): for every
+host in `memory/custom-rules/hostwarden-security/ssh.md`, for one
+under `# hostwarden-security/ssh` in its
+`memory/machines/<hostname>/rules.md`:
+
+    ## Add: Single-factor report
+    Report SSH logins that need one factor; NIS2 applies here.
+
+With it, a login that needs one factor is **INFO** "SSH logins need
+one factor", the list named, with the reason the override gives.
 
 ### MaxAuthTries
 

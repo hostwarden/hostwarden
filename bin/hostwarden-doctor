@@ -15,10 +15,11 @@
 #   hostwarden-doctor --help    Show this help
 #
 # Checks the machine the AI tool runs on, never a managed host.
-# Prints install commands; never runs them. In an operations
-# checkout whose shell runs in a VM apart from the workstation
-# (Claude Cowork, Claude Code on the web) it prints one line naming
-# the way out instead, and goes on only with --dev.
+# Prints install commands; never runs them. Outside --dev it also
+# checks the SSH keys (lib/hostwarden-doctor/keys.sh). In an
+# operations checkout whose shell runs in a VM apart from the
+# workstation (Claude Cowork, Claude Code on the web) it prints one
+# line naming the way out instead, and goes on only with --dev.
 # Exit status: 1 when something required is missing, or without
 # --dev in such a VM, else 0.
 # --quiet prints only what is missing and, without --dev, always
@@ -238,7 +239,7 @@ hint() {
 
 # Per tier: the labels of what is missing, and the tools to name
 # in its install hint. Features get one hint line each.
-NEED='' NEED_T='' WANT='' WANT_T='' FEAT='' WSLM='' SHM=''
+NEED='' NEED_T='' WANT='' WANT_T='' FEAT='' WSLM='' SHM='' KEYM=''
 row() { [ -n "$QUIET" ] || echo "  $1"; }
 
 miss() {
@@ -252,6 +253,9 @@ miss() {
   $2: $3" ;;
     # The agent's shell: the third argument is the fix too.
     shell) SHM="$SHM
+  $2: $3" ;;
+    # A key ssh would offer: the third argument is the finding.
+    keys) KEYM="$KEYM
   $2: $3" ;;
   esac
 }
@@ -382,6 +386,8 @@ fi
 
 # shellcheck source=../lib/hostwarden-doctor/agent-shell.sh
 . "$ROOT/lib/hostwarden-doctor/agent-shell.sh"
+# shellcheck source=../lib/hostwarden-doctor/keys.sh
+. "$ROOT/lib/hostwarden-doctor/keys.sh"
 
 # Hostwarden's own SSH identity, where memory/user.md records one
 # (rules/ssh-identity.md): whether its agent answers and holds the
@@ -440,7 +446,10 @@ fi
 if [ -n "$IDM" ]; then
   echo "hostwarden: Hostwarden's SSH identity: $IDM"
 fi
-if [ -z "$QUIET$NEED$WANT$FEAT$WSLM$SHM$IDM" ]; then
+if [ -n "$KEYM" ]; then
+  echo "hostwarden: SSH keys, recommended:$KEYM"
+fi
+if [ -z "$QUIET$NEED$WANT$FEAT$WSLM$SHM$IDM$KEYM" ]; then
   echo "Everything Hostwarden runs locally is here."
 fi
 

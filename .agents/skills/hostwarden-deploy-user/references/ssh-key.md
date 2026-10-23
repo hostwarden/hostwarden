@@ -12,11 +12,19 @@ key.
 
 ### Generate the keypair
 
-Run locally (not on the server):
+The user runs this locally, never on the server:
+the pipeline types no passphrase, so the key has
+none, and Hostwarden never creates such a key
+(`rules/secrets.md` → Login Keys). The key goes to
+`~/hostwarden-keys/<hostname>/` (`rules/secrets.md` →
+Never Into the Repo Tree): outside the checkout, and
+outside `~/.ssh`, where ssh would offer it on every
+login:
 
-```bash
+```bash operator
+mkdir -p -m 700 ~/hostwarden-keys/hostname
 ssh-keygen -t ed25519 -C "<owner> <host> deploy <date>" \
-  -f deploy_ed25519 -N ""
+  -f ~/hostwarden-keys/hostname/deploy_ed25519 -N ""
 ```
 
 The comment names owner, host, purpose and date, such as
@@ -24,7 +32,7 @@ The comment names owner, host, purpose and date, such as
 the key in an `authorized_keys` knows whose it is.
 
 This produces `deploy_ed25519` (private) and
-`deploy_ed25519.pub` (public).
+`deploy_ed25519.pub` (public) there.
 
 ### Install the public key on the server
 
@@ -41,7 +49,7 @@ ssh root@hostname 'sh -c "
   chmod 700 /home/deploy/.ssh
   chmod 600 /home/deploy/.ssh/authorized_keys
   chown -R deploy:deploy /home/deploy/.ssh
-"' < /path/to/deploy_ed25519.pub
+"' < ~/hostwarden-keys/hostname/deploy_ed25519.pub
 ```
 
 Then verify: both paths belong to `deploy`, with
@@ -61,7 +69,8 @@ in their CI system (e.g. GitHub Actions secret
 named `DEPLOY_SSH_KEY`), handing it over on stdin:
 
 ```bash operator
-gh secret set DEPLOY_SSH_KEY -R <owner>/<repo> < /path/to/deploy_ed25519
+gh secret set DEPLOY_SSH_KEY -R <owner>/<repo> \
+  < ~/hostwarden-keys/hostname/deploy_ed25519
 ```
 
 Hand it to the user with the pipeline's repository and the real
