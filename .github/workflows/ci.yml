@@ -79,3 +79,32 @@ jobs:
           else
             sh scripts/check.sh
           fi
+
+  # On a machine without mise, the hooks and bin/ scripts run with the
+  # jq the distribution ships. `check` above never sees it: mise.toml
+  # pins the newest jq, Renovate keeps it current, and scripts/check.sh
+  # puts it first on PATH. This job runs the matrices under Ubuntu
+  # 24.04's jq (1.7; `ubuntu-latest` already ships a 1.8, which would
+  # leave the two alike): `scripts/check.sh --jq`. A jq program that
+  # only one of them accepts is red here or in `check`; this job is
+  # not a required check, so it informs and does not block the queue.
+  # Not in a draft, which is scoped to what its commits touch: this is
+  # the extra run.
+  distro-jq:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install the distribution's jq
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends jq
+          test "$(command -v jq)" = /usr/bin/jq
+          jq --version
+
+      - name: Matrices
+        run: sh scripts/check.sh --jq

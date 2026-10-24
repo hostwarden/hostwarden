@@ -7,6 +7,8 @@
 #                                     seconds
 #   sh scripts/check.sh --pre-push    what the pushed commits need,
 #                                     refs on stdin as git gives them
+#   sh scripts/check.sh --jq          every matrix under the jq on PATH,
+#                                     for CI's distro-jq job
 #   sh scripts/check.sh --help        this usage; runs nothing
 #
 # An agent session runs only --pre-commit and leaves the rest to CI
@@ -28,7 +30,7 @@ usage() {
 # through to the full run, --help included.
 [ $# -le 1 ] || { usage >&2; exit 2; }
 case "${1:-}" in
-  ''|--pre-commit|--pre-push) ;;
+  ''|--pre-commit|--pre-push|--jq) ;;
   -h|--help) usage; exit 0 ;;
   *) usage >&2; exit 2 ;;
 esac
@@ -41,7 +43,8 @@ cd "$ROOT" || exit 2
 
 # Tools installed from mise.dev.toml are on PATH only with
 # MISE_ENV=dev; bring them in here, so no shell has to export it.
-if command -v mise >/dev/null 2>&1; then
+# --jq tests the jq already on PATH, so it brings none in.
+if [ "${1:-}" != "--jq" ] && command -v mise >/dev/null 2>&1; then
   eval "$(MISE_ENV=dev mise env -s bash 2>/dev/null)"
 fi
 
@@ -83,6 +86,37 @@ case "${1:-}" in
       || rc=1
     exit $rc ;;
 esac
+
+# --jq: CI's distro-jq job runs it on a runner without mise, so the
+# jq on PATH is the distribution's, which the shipped hooks and bin/
+# scripts use on a machine without mise. Every matrix runs but the
+# markdown wrap matrix, which needs the awks only `check` installs,
+# the review record, which reads the pull request, and the parts in
+# tests/instructions/, which tests/instructions.sh sources. A new
+# matrix is in without a line here.
+if [ "${1:-}" = "--jq" ]; then
+  command -v jq >/dev/null 2>&1 || {
+    echo "check: jq is missing" >&2
+    exit 2
+  }
+  jq --version
+  failed=
+  for t in tests/instructions.sh tests/*/*.sh; do
+    case $t in
+      tests/bin/hostwarden-wrap.sh|tests/scripts/review-record.sh) continue ;;
+      tests/instructions/*) continue ;;
+    esac
+    echo "== $t"
+    sh "$t" || failed="$failed
+  $t"
+  done
+  if [ -n "$failed" ]; then
+    echo "check: failed:$failed"
+    exit 1
+  fi
+  echo "check: all passed"
+  exit 0
+fi
 
 # --pre-push skips the one slow step, the guard matrix, when the
 # pushed commits touch nothing it reads. CI runs everything, except
