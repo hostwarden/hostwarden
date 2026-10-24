@@ -119,8 +119,9 @@ if [ "${1:-}" = "--jq" ]; then
 fi
 
 # --pre-push skips the one slow step, the guard matrix, when the
-# pushed commits touch nothing it reads. CI runs everything, except
-# on a draft, which it checks as a push of its commits.
+# pushed commits touch nothing it reads. CI checks a pull request,
+# draft or not, as a push of its commits; the merge queue and a run
+# by hand run everything.
 PUSHED='' ALL='' TIPS='' OTHER=''
 if [ "${1:-}" = "--pre-push" ]; then
   # One line per ref: <local ref> <sha> <remote ref> <sha>.

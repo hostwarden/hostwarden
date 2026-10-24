@@ -108,7 +108,8 @@ own review checks it (→ The own review, step 2).
 CI is the only gate for the tests. A run of the guard matrix on the
 workstation starts tens of thousands of processes, endpoint
 protection inspects each, and parallel sessions compete for the
-cores; CI runs all of `scripts/check.sh` in one to two minutes.
+cores; the merge queue runs all of `scripts/check.sh` in one to two
+minutes, and a pull request the scoped part of it.
 
 - Before each commit, a pull request session runs the cheap
   checks, which take seconds: `sh scripts/check.sh --pre-commit`,
@@ -149,11 +150,22 @@ cores; CI runs all of `scripts/check.sh` in one to two minutes.
 - A clone agents push from does not set up the git hooks from
   `CONTRIBUTING.md`: the pre-push hook would run the checks on
   every push.
-- CI runs `check` on every push to a pull request: on a draft what
-  `--pre-push` runs for its commits against the base, each matrix
-  only when they touch what it reads; out of draft and in
-  the merge queue all of `scripts/check.sh`. A push to `main` is
-  not checked again: what the queue merges is the commit it
+- CI runs `check` on every push to a pull request, draft or not:
+  what `--pre-push` runs for its commits against the base, each
+  matrix only when they touch what it reads. Only the merge queue
+  runs all of `scripts/check.sh`, on the group's merge commit, where
+  a failure that only the full run finds drops the pull request. The
+  pull request's own checks stay green then, so a dropped one is read
+  from the queue's run: `gh run list -R hostwarden/hostwarden
+  --workflow ci.yml --event merge_group --limit 200 --json
+  databaseId,headBranch,conclusion,createdAt`, the newest failed one
+  whose `headBranch` contains `pr-<number>-`, then
+  `gh run view <run-id> -R hostwarden/hostwarden --log-failed`. No
+  match is no result, never "nothing failed". Its failure is the
+  session's to fix like a red check: the pull request goes back into
+  draft, whoever merges is told, and the fix is pushed and checked
+  as any other. A push to `main` is not
+  checked again: what the queue merges is the commit it
   checked. A commit that bypasses the queue is checked by hand,
   `gh workflow run ci.yml -R hostwarden/hostwarden --ref main`.
 
@@ -659,10 +671,11 @@ agent can do is done:
   review's deferred list, has already been put to them;
 - CI is green on the current head, and
   `gh pr view <n> -R hostwarden/hostwarden --json mergeable` shows
-  `MERGEABLE`. That is a draft's scoped run: the lift starts the
-  full `check` and the `review record`, and the session waits for
-  both. A failure puts the pull request back into draft, and
-  whoever merges is told;
+  `MERGEABLE`. That run is scoped, as a draft's is: the lift starts
+  `check` again, scoped the same way, and the `review record`, and
+  the session waits for both. A failure puts the pull request back
+  into draft, and whoever merges is told. The full run is the
+  queue's;
 - the branch is one commit on its base, whose message is the
   squash text: the why, not only the what, which the changelog
   entry leaves out, and the trailers (`Ported-from:`,

@@ -210,6 +210,9 @@ user's machines, not a compatibility layer, and they stay.
 else; its `step` lines are the list of checks. Add a new check
 there, never to the workflow alone. An agent session runs only
 `--pre-commit` on the workstation: `pull-requests.md` → Checks.
+On a pull request, draft or not, it runs `--pre-push` for the
+commits against the base; the merge queue and a run by hand run
+all of it.
 Its second job, `distro-jq`, runs `scripts/check.sh --jq`: the
 matrices under Ubuntu 24.04's jq, beside the newer one `mise.toml`
 pins for `check`. It is not a required check.
