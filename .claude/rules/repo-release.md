@@ -210,6 +210,9 @@ user's machines, not a compatibility layer, and they stay.
 else; its `step` lines are the list of checks. Add a new check
 there, never to the workflow alone. An agent session runs only
 `--pre-commit` on the workstation: `pull-requests.md` → Checks.
+Its second job, `distro-jq`, runs `scripts/check.sh --jq`: the
+matrices under Ubuntu 24.04's jq, beside the newer one `mise.toml`
+pins for `check`. It is not a required check.
 `.github/workflows/review-record.yml` reads the pull request body
 instead of the tree (`pull-requests.md` → The review record).
 
