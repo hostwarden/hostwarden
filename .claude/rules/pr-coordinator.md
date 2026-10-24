@@ -64,42 +64,43 @@ reports failure, rather than one that exits quietly.
 
 ## The merge queue
 
-On this repository the queue batch-builds several simultaneously
-queued pull requests together, and a member whose combined diff
-conflicts with another's — most often several pull requests that
-each regenerate the same generated file, such as
-`docs/adr/README.md` — can silently go `UNMERGEABLE` or drop out of
-the queue (`mergeQueueEntry: null`) without the queue retrying it and
-without the pull request's own fields ever showing that it happened.
+The queue builds each entry on top of the ones ahead of it and
+merges a group once all of them pass. Pull requests that each
+regenerate the same generated file conflict in that build: a member
+can silently go `UNMERGEABLE` or drop out of the queue
+(`mergeQueueEntry: null`) without the queue retrying it and without
+the pull request's own fields ever showing that it happened.
+`docs/adr/README.md`, which `scripts/decisions.py --write` writes,
+is the generated file known today; a file a check in
+`scripts/check.sh` rewrites counts too.
 
-Queue one pull request at a time — wait for a real `state: MERGED`
-(→ Verifying readiness) before queuing the next — unless every
-condition below holds, shown right before queuing, not remembered
-from earlier:
+Pull requests that are ready together are queued together, once
+each condition below holds, shown right before queuing, not
+remembered from earlier:
 
 - Each pull request on its own meets → Verifying readiness: CI green
   on its current head, read fresh.
-- None changes a generated file. `docs/adr/README.md`, which
-  `scripts/decisions.py --write` writes, is the one known today;
-  `git diff --name-only hostwarden/main...<sha>` per pull request
-  shows it, and a file a check in `scripts/check.sh` rewrites counts
-  too. A pull request that does goes alone.
 - The set merges together: fetch `hostwarden/main`, and in a scratch
   worktree merge each pull request's current head with
   `git merge --no-edit <sha>`, in the order they will be queued. Every
   merge goes through clean. Any head that moves afterwards voids this
   for the set.
 
-When any condition fails, fall back to one at a time. Once the set is
-queued, the coordinator watches every member until `state: MERGED`,
-with a loop that also reports a member that leaves the queue. The
-loop reads `mergeQueueEntry` through `gh api graphql`, since
-`gh pr view --json` does not know the field (→ Verifying readiness),
-and has the timeout branch that reports failure. A member that drops
-out is re-verified by → Verifying readiness and queued again alone,
-after the others have merged, once the failed `merge_group` run that
-dropped it is read and answered (`pull-requests.md` → Checks): the
-head's scoped checks stay green when the full run fails.
+A pull request that changes a generated file goes alone, whatever
+the merge test says (`git diff --name-only hostwarden/main...<sha>`
+shows it): queued once the queue is empty, the next only after its
+real `state: MERGED` (→ Verifying readiness).
+
+Once a set is queued, the coordinator watches every member until
+`state: MERGED`, with a loop that also reports a member that leaves
+the queue. The loop reads `mergeQueueEntry` through `gh api graphql`,
+since `gh pr view --json` does not know the field (→ Verifying
+readiness), and has the timeout branch that reports failure. A
+member that drops out is re-verified by → Verifying readiness and
+queued again alone in the same way, after the others have merged,
+once the failed `merge_group` run that dropped it is read and
+answered (`pull-requests.md` → Checks): the head's scoped checks
+stay green when the full run fails.
 
 ## Cleanup after a merge
 

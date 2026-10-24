@@ -233,8 +233,9 @@ again, which would add a second one enforced beside the old:
 
 It puts `main` behind the merge queue and requires the `check` and
 `review record` jobs; `tests/instructions.sh` fails when a required
-name matches no job. `gh pr merge` puts a pull request into the
-queue through auto-merge, which the repository allows, set once:
+name matches no job. The queue's rule sets the merge method,
+squash. `gh pr merge` puts a pull request into the queue through
+auto-merge, which the repository allows, set once:
 
     gh api -X PATCH repos/<owner>/<repo> -F allow_auto_merge=true
 
