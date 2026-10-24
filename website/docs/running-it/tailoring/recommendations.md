@@ -87,6 +87,9 @@ Asked once; *Not now* settles it
 - **An SSH key of its own for Hostwarden** — its logins show up in
   every host's log under that key, and it can be revoked without
   touching yours.
+- **A certificate for it valid one working day, where you run an SSH
+  CA** — key ID `hostwarden@<your handle>`, only the principals it
+  needs, no agent forwarding: its access ends unless you renew it.
 
 ## Your SSH keys
 

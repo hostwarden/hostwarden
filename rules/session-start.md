@@ -236,6 +236,13 @@ way, without a question.
 Where the doctor's line names Hostwarden's SSH identity, pass it on
 with the command it names.
 
+Where `memory/user.md` records a certificate for it, the doctor
+also reads how long it is valid. A line that it ends within two
+hours goes to the user at once, with the renewal command it names;
+one that says it cannot be used holds hosts back, and the session checks
+again before it reaches them (`rules/ssh-identity.md` → Every
+Connection).
+
 ## The presence session
 
 Where the session start said it started the presence session, pass that

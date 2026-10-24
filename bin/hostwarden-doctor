@@ -391,7 +391,8 @@ fi
 
 # Hostwarden's own SSH identity, where memory/user.md records one
 # (rules/ssh-identity.md): whether its agent answers and holds the
-# key. Not a tool to install, so a line of its own below.
+# key, and how long its certificate has left. Not a tool to
+# install, so a line of its own below.
 IDM=''
 if [ "$HOSTWARDEN_MODE" = operations ] && [ -z "$DEV" ]; then
   # shellcheck disable=SC2034 # read by lib/identity.sh
@@ -400,12 +401,17 @@ if [ "$HOSTWARDEN_MODE" = operations ] && [ -z "$DEV" ]; then
   . "$ROOT/lib/identity.sh"
   # A line that does not parse is no identity; ssh-config says so.
   if id_read 2>/dev/null && id_recorded; then
-    if ID_OUT=$(sh "$ROOT/bin/hostwarden-identity" check --quiet 2>&1); then
-      row "ok       Hostwarden's SSH identity"
-    else
-      row "missing  Hostwarden's SSH identity"
-      IDM=${ID_OUT#hostwarden-identity: }
-    fi
+    ID_OUT=$(sh "$ROOT/bin/hostwarden-identity" check --quiet 2>&1)
+    case $? in
+      0) row "ok       Hostwarden's SSH identity" ;;
+      4) row "ok       Hostwarden's SSH identity"
+         row "unusable Hostwarden's SSH certificate" ;;
+      *) row "missing  Hostwarden's SSH identity" ;;
+    esac
+    # On success, a certificate that ends soon. One line, where the
+    # agent and the certificate both have something to say.
+    IDM=$(printf '%s\n' "$ID_OUT" | sed 's/^hostwarden-identity: //' |
+      awk 'NF { printf "%s%s", (n++ ? "; " : ""), $0 }')
   fi
 fi
 

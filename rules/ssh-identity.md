@@ -148,6 +148,17 @@ prints it.
    the key's file for a hardware key, and absent for the manager's
    agent. An `SSH agent socket:` line stays
    (`rules/ssh-agent.md` → Precedence).
+
+   Where the user's CA certifies the key (`rules/ssh-ca.md` →
+   Hostwarden's Own Certificate), two more lines, the second
+   optional: the certificate, a path ending in `-cert.pub`, and the
+   command the user renews it with, which Hostwarden prints when the
+   certificate runs out and never runs.
+
+   ```markdown
+   SSH identity certificate: ~/.ssh/hostwarden_ed25519-cert.pub
+   SSH identity renew: ~/bin/renew-hostwarden-cert
+   ```
 3. **Load it**, for its own agent and a hardware key:
    `bin/hostwarden-identity load`, `-t <lifetime>` for another
    lifetime than 8 hours. From the vault, it needs no terminal: run
@@ -156,11 +167,22 @@ prints it.
    own, run from the checkout. It refuses a key file without a
    passphrase.
 4. **Check** with `bin/hostwarden-identity check`, which prints the
-   fingerprint.
+   fingerprint, and for a certificate its key ID and how long it is
+   valid.
 
 ## Putting the Key on a Host
 
 The operator adds the line Hostwarden prints, as for fleet read.
+Where `memory/user.md` records a certificate and the host takes it
+(`rules/ssh-ca.md` → Hostwarden's Own Certificate), there is no
+line to add: skip step 1, and write `certificate` before the date
+in step 2's line. That word is what makes `memory/ssh_config` offer
+the certificate there; a host with the key's line never gets it,
+since ssh offers the certificate before the plain key and such a
+host refuses it first (lab, OpenSSH 10.0, 2026-10-24). Without a
+recorded certificate, a host whose line says `certificate` gets no
+call: `bin/hostwarden-ssh-config` names it, and it keeps the keys it
+has today.
 
 1. Print the line for the host:
 
@@ -188,6 +210,7 @@ The operator adds the line Hostwarden prints, as for fleet read.
 
    ```markdown
    - Hostwarden key: SHA256:4W9k… (hostwarden@alice-ws1, 2026-10-21)
+   - Hostwarden key: SHA256:4W9k… (hostwarden@alice-ws1, certificate, 2026-10-24)
    ```
 
    The fingerprint is the one `bin/hostwarden-identity check`
@@ -210,8 +233,10 @@ The operator adds the line Hostwarden prints, as for fleet read.
      -o ControlPath=none root@web1.example.com true
    ```
 
-   A `Permission denied` means the line is not where sshd reads it:
-   take the `Hostwarden key:` line out again, run
+   A `Permission denied` means the line is not where sshd reads it,
+   or for a certificate that the host does not take it
+   (`rules/ssh-ca.md` → Failures): take the `Hostwarden key:` line
+   out again, run
    `bin/hostwarden-ssh-config`, and tell the user. Never repeat the
    call: each refusal is a failed login (`rules/ssh-connections.md`
    → Avoid failed logins).
@@ -236,6 +261,16 @@ operator may then take the other key out.
   tools). Where it said the agent does not answer or does not hold
   the key, load it first (Setting It Up, step 3), or wait for the
   user to. A call made anyway is refused, and counted.
+- Before the session's first call to a host whose line says
+  `certificate`, after a load, and before any later call past the
+  end the last check printed, run `bin/hostwarden-identity check`
+  on the workstation: a certificate runs out during a session, and
+  the session start's reading may predate it. Where it reports
+  anything wrong with the certificate, exit 4 with the key in the
+  agent and 1 with the agent failing too, those hosts wait for the
+  user's renewal; the message names their command, which the
+  session passes on and never runs. Exit 4 holds back no host that
+  takes the plain key.
 - Every call is the ordinary one, `ssh -F …` (`AGENTS.md` → SSH
   Options). The taboo guard denies an
   ssh, scp or sftp call, an `rsync -e "ssh …"`, and an rsync to a
@@ -276,10 +311,11 @@ if [ "$SUDO" = - ]; then echo 'unknown(needs-root)'; else
   if [ -z "$L" ]; then echo 'unknown(no-log)'; else
     echo "period: $P"
     R=$(printf '%s\n' "$L" | grep 'Accepted publickey for ' |
-      awk '{ u = ""; f = ""
+      awk '{ u = ""; f = ""; k = ""
         for (i = 1; i < NF; i++) if ($i == "for") { u = $(i + 1); break }
         for (i = 1; i <= NF; i++) if ($i ~ /^SHA256:/) { f = $i; break }
-        print u, f }' | sort | uniq -c)
+        if ($(i + 1) == "ID") k = " " $(i + 2)
+        print u, f k }' | sort | uniq -c)
     echo "${R:-none}"
   fi
 fi
@@ -290,7 +326,13 @@ sshd entry within the last 30 days, which is not the journal's own
 start (a quiet sshd, a volatile or capped journal), or the log
 files back to their last rotation. Then one line per account and key: the count,
 the account and the key's fingerprint, the first `SHA256:` of the line, which
-for a certificate login is the key's and not the CA's. `none` is a
+for a certificate login is the key's and not the CA's, and for such
+a login the certificate's key ID, its first word, which sshd logs
+right after the fingerprint (seen in sshd's own log file in a lab
+container; the journal's and `auth.log`'s form on a distribution
+not verified). The key ID `hostwarden@<operator>`
+(`rules/ssh-ca.md` → Hostwarden's Own Certificate) names who made a
+login as root under Hostwarden's certificate. `none` is a
 log read with no key login in it; `unknown(no-log)` is no log
 found, the journal empty and none of the files there, which is
 never reported as no logins (`rules/verify-before-reporting.md`).
@@ -308,16 +350,24 @@ names the period.
 
 ## Replacing or Removing It
 
-- **A new key**: the user makes it and the four lines point at it;
+- **A new key**: the user makes it and the identity lines point at it, a
+  certificate issued for it;
   each host then goes through Putting the Key on a Host again, and
   the old key's `Hostwarden key:` line comes out with the new one's
   test; the operator removes the old line on the host.
 - **A key that leaked**: the operator removes its line on every host
   first, then the `Hostwarden key:` lines come out and
   `bin/hostwarden-ssh-config` runs.
-- **No identity any more**: `SSH identity: none`, the other three
-  lines out, `bin/hostwarden-ssh-config`. The host lines stay until
-  the operator removed the key there.
+- **A certificate that leaked**: the user revokes it in their CA's
+  revocation list (`rules/ssh-ca.md` → User CA Trust); one that
+  only ran out is renewed.
+- **No certificate any more**: the two certificate lines come out,
+  and with them each host line that says `certificate`; those hosts
+  go through Putting the Key on a Host again, with the key's line.
+- **No identity any more**: `SSH identity: none`, the other lines
+  out, `bin/hostwarden-ssh-config`. The host lines stay until
+  the operator removed the key there; a line that says
+  `certificate` comes out at once, since no key line backs it.
 
 ## Never
 
