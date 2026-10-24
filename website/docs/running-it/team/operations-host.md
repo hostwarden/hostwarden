@@ -12,7 +12,8 @@ one report. It is an operations checkout of its own that joined the
 shared workspace, and it reaches your servers only through fleet
 read (`hostwarden-fleet-read` skill): its key runs a bundle of
 read-only checks you signed and writes one journal line, nothing
-else. Not a shell, let alone root.
+else. Not a shell, let alone root, unless you unlock a write key
+there for a while (below).
 
 ## What it needs from you
 
@@ -22,7 +23,8 @@ else. Not a shell, let alone root.
   may push there.
 - Its own `memory/user.md` (see below).
 - `*` in its `memory/readonly.md`, so no session there changes
-  anything, and a copy of your blacklist.
+  anything, and a copy of your blacklist; with a write key (below),
+  only the servers that stay read-only.
 - The fleet key, made by you, and the key line on each server, added
   by you from what the skill writes out.
 
@@ -65,6 +67,28 @@ bundle's `SECTIONS=` line, and a key a host's bundle does not
 carry leaves that host unread, with the key named, rather than
 reading everything. A bundle built without that line runs only
 whole; ask for a rebuild in the current layout to use this.
+
+## Changing hosts from there
+
+Optionally, a session you start on the operations host can change
+hosts while you allow it. You give the account a write key of its
+own, [Hostwarden's own SSH key](../../features/ssh/own-key.md), in an
+encrypted file, and add its line to each server next to the fleet
+line, or have your SSH CA certify it for a few hours. You unlock it
+yourself, logged in there as that account, for the time you name:
+
+```bash
+bin/hostwarden-identity load -t 2h
+```
+
+Take `*` out of `memory/readonly.md` there, and list the servers
+that stay read-only and the machine's own names, `localhost` among
+them. A session checks the key before each change; when the time is
+up, or after `ssh-add -D` on Hostwarden's agent, it closes every
+shared connection the sessions there opened, which would otherwise
+outlive the key, and the machine is read-only again.
+The nightly run never uses the write key or those connections, and
+no key is ever forwarded to the machine from your workstation.
 
 Anything else you run on that machine — a mailbox triage, a bot — is
 yours, not Hostwarden's, and never gets the fleet key.

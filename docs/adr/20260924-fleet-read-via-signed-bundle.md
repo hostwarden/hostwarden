@@ -1,8 +1,8 @@
 ---
 id: 20260924-fleet-read-via-signed-bundle
-status: accepted
+status: superseded
 supersedes:
-superseded-by:
+superseded-by: 20261024-ops-host-read-only-while-no-write-key
 waiting-on:
 tags: [operations, access-control]
 ---

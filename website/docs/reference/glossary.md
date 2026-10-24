@@ -24,8 +24,9 @@ description: Hostwarden's own terms, each in a sentence or two, with
   every journal line you cause and every decision you record.
   [A shared workspace](../running-it/team/shared-workspace.md)
 - **Operations host** — an always-on machine that runs the fleet's
-  housekeeping unattended and reads your servers only through fleet
-  read. [An operations host](../running-it/team/operations-host.md)
+  housekeeping unattended and reads your servers through fleet read;
+  it changes them only while you have a write key unlocked there.
+  [An operations host](../running-it/team/operations-host.md)
 
 ## What it records
 

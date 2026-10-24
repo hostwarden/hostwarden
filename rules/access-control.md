@@ -18,8 +18,8 @@ hostname) or an IP address (matched against the
 resolved IP). IPs are the most robust form — prefer
 them. In `memory/readonly.md` only, the entry `*`
 matches every host, the local machine included: an
-operations host's list holds it
-(`hostwarden-fleet-read` skill). Files are created on
+operations host's list holds it unless the operator
+gave it a write key (`hostwarden-fleet-read` skill). Files are created on
 first need — do not pre-create them.
 
 ```markdown
@@ -30,7 +30,10 @@ first need — do not pre-create them.
 ```
 
 The user can add or remove entries by asking Hostwarden
-to edit the file, or by editing it directly.
+to edit the file, or by editing it directly; on an
+operations host, `readonly.md` is edited by the operator
+alone once the setup has written its `*`
+(`hostwarden-fleet-read` skill).
 
 ## Shared Lookup Logic
 

@@ -35,6 +35,9 @@ esac
 for a; do host=\$verb; verb=\$a; done
 host=\${host#root@}
 printf '%s\\n' "\$verb" >"$TMP/verb-\$host"
+f=; p=; for a; do [ "\$p" = -F ] && f=\$a; p=\$a; done
+[ -z "\$f" ] || cp "\$f" "$TMP/cfg-\$host"
+printf '%s\\n' "agent=\${SSH_AUTH_SOCK-unset}" >"$TMP/env-\$host"
 case \$verb in
 collect*)
   cat >"$TMP/collect-\$host"

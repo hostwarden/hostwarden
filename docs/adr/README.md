@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Operations host read-only while no write key is unlocked](20261024-ops-host-read-only-while-no-write-key.md) | operations, access-control, ssh, keys | — |
 | [The background session is called presence](20261022-background-session-is-presence.md) | coordination, sessions | — |
 | [A host locks itself with allow_changes in its own file](20261021-server-lock-file-allow-changes.md) | safety, access-control, guard | — |
 | [A VM apart from the workstation is its own mode](20261008-cowork-is-no-operations-harness.md) | guard, harness, safety | — |
@@ -55,7 +56,6 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | [Guests get keys at first boot, never passwords](20260924-guests-get-keys-never-passwords.md) | guests, security | — |
 | [The taboo guard is a backstop, not a sandbox](20260924-guard-is-a-backstop-not-a-sandbox.md) | guard | — |
 | [PreToolUse hook enforces taboos, not permissions.deny](20260924-guard-hook-over-permissions-deny.md) | guard, taboos | — |
-| [Fleet read runs a signed bundle, not a shell](20260924-fleet-read-via-signed-bundle.md) | operations, access-control | — |
 | [A deployed file's master lives in the workspace](20260924-deployed-file-masters-in-workspace.md) | deployed-files, server-memory | — |
 | [Operator decisions are scoped entries, not overrides](20260924-decisions-scoped-not-overrides.md) | decisions, memory | — |
 | [A claim a review keeps breaking is dropped, not narrowed](20260924-claims-dropped-not-narrowed.md) | instructions, review | — |
@@ -77,3 +77,4 @@ One line per record. Read this before deciding something new, so a fresh decisio
 | Decision | Status | Replaced by |
 | :--- | :--- | :--- |
 | [The coordinator starts itself; the user opts out](20260925-coordinator-starts-itself.md) | superseded | [The background session is called presence](20261022-background-session-is-presence.md) |
+| [Fleet read runs a signed bundle, not a shell](20260924-fleet-read-via-signed-bundle.md) | superseded | [Operations host read-only while no write key is unlocked](20261024-ops-host-read-only-while-no-write-key.md) |

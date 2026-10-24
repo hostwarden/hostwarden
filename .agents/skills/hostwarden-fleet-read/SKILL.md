@@ -23,8 +23,10 @@ description: Set up an operations host that runs the fleet's
 
 An operations host (`references/operations-host.md`) — an always-on
 machine that runs Hostwarden without anyone at the keyboard —
-reaches each host with one key of its own, and its fleet run
-(`bin/hostwarden-fleet-run`) uses nothing else. On the host, that
+reads each host with one key of its own, and its fleet run
+(`bin/hostwarden-fleet-run`) uses nothing else; a write key for its
+interactive sessions is apart from it
+(`references/operations-host.md` → A Write Key). On the host, that
 key is forced to `fleet-read`, a wrapper that accepts exactly two
 requests:
 
@@ -43,7 +45,8 @@ requests:
 
 Nothing else runs: no shell, no other command. Whoever takes the
 operations host over can replay a signed bundle until its date and
-write read-only journal lines, and that is all. The signature is
+write read-only journal lines; with a write key unlocked there,
+more (`references/operations-host.md` → A Write Key). The signature is
 the operator's approval of every command in the bundle, and the
 signing key never lies on the operations host.
 
@@ -99,8 +102,9 @@ user agrees.
 
 ## The operations host
 
-`references/operations-host.md`: what it holds, what it runs, the
-workspace, and setting one up.
+`references/operations-host.md`: what it holds, what it runs, a
+write key for its interactive sessions, the workspace, and setting
+one up.
 
 ## Setting up a host
 

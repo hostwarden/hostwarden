@@ -43,5 +43,7 @@ A signed bundle stops running on its `valid-until` date, at most a
 year ahead, with a warning 30 days before; Hostwarden tells you
 when its checks have changed since it was built. Whoever takes
 over the operations host can replay what you signed and write
-read-only journal lines, nothing more. Everything lives in
+read-only journal lines, nothing more, unless they take it over
+while you have a write key unlocked there
+([An operations host](../../running-it/team/operations-host.md)). Everything lives in
 `memory/fleet/fleet-read/`. Windows hosts get no fleet read.
