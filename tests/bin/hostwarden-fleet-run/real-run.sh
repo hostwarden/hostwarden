@@ -41,8 +41,23 @@ has "$TMP/cfg-web1.example.com" "  ControlPath ~/.cache/hostwarden/fleet-" \
   "the fleet run shares the sessions' connections"
 grep -qx 'agent=' "$TMP/env-web1.example.com" && ok ||
   bad "the fleet run's ssh inherits an agent socket"
-has "$TMP/cfg-web1.example.com" "/memory/ssh_config\"" \
-  "the fleet run's file leaves out memory/ssh_config"
+K=$(grep -m 1 '^  UserKnownHostsFile ' "$M/ssh_config")
+grep -qxF -- "$K" "$TMP/cfg-web1.example.com" && ok ||
+  bad "the fleet run's file leaves out memory/ssh_config"
+lacks "$TMP/cfg-web1.example.com" "Include \"$R" \
+  "the fleet run's file includes the checkout's path"
+
+# --- a checkout path ssh_config would read as a pattern -----------
+# memory/ssh_config is copied into the fleet file, not included, so
+# a % or a glob character in the checkout's path changes nothing.
+cp -R "$R" "$TMP/10%ops[1]"
+rm -f "$TMP/cfg-web1.example.com"
+PATH="$S:$PATH" sh "$TMP/10%ops[1]/bin/hostwarden-fleet-run" --dry-run \
+  --host web1.example.com >"$TMP/out" 2>"$TMP/err"
+K=$(grep -m 1 '^  UserKnownHostsFile ' "$TMP/10%ops[1]/memory/ssh_config")
+grep -qxF -- "$K" "$TMP/cfg-web1.example.com" 2>/dev/null && ok ||
+  bad "a % or [ in the checkout path kept memory/ssh_config out: $(cat "$TMP/err")"
+rm -rf "$TMP/10%ops[1]"
 
 # --- a host nobody judged, without an alarm ----------------------
 run --dry-run --host nojudge1.example.com
