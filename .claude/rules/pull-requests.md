@@ -771,9 +771,10 @@ finished with gets merged.
   SHAs in full. Only a new fix commit of its own needs the second
   review again, where → Rounds makes it due.
 - The merge is
-  `gh pr merge <n> -R hostwarden/hostwarden --squash --match-head-commit <sha>`,
+  `gh pr merge <n> -R hostwarden/hostwarden --match-head-commit <sha>`,
   which puts the pull request into the merge queue through
-  auto-merge (`repo-release.md` → CI). The queue merges it once the
+  auto-merge, and names no merge method, which the queue's rule
+  sets (`repo-release.md` → CI). The queue merges it once the
   required checks pass on its group, and takes no message of its
   own: the one commit lands as it is (→ Lifting the draft).
 
