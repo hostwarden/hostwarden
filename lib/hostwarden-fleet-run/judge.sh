@@ -82,12 +82,30 @@ done
 # against the workspace's known_hosts and nothing else
 # (rules/host-keys.md), which a workstation session filled and the
 # workspace carried here, the host's port from memory/ssh_hosts,
-# and one shared connection per host. Only the fleet key is added.
+# and one shared connection per host. Added: the fleet key, no
+# agent, and a ControlPath of the run's own, apart from the
+# sessions'. A session here may hold a write key in Hostwarden's
+# agent, and a connection it opened with that key would run collect
+# as a plain command (A Write Key, in the operations-host reference
+# of the hostwarden-fleet-read skill). The two go in a file of the
+# run's own ahead of memory/ssh_config, since ssh keeps the first
+# value and hands -F on to a ProxyJump hop, where -o never reaches.
+# An ssh a ProxyCommand starts reads neither, only the environment,
+# so SSH_AUTH_SOCK goes empty too, which OpenSSH reads as no agent.
 # shellcheck disable=SC2174 # as the session-start hook makes it
 mkdir -p -m 700 "$HOME/.cache/hostwarden"
+hostwarden_cache_dir "$REPO_DIR"
+FLEET_CFG=$WORK/ssh_config
+{
+  echo 'Match all'
+  echo '  IdentityAgent none'
+  printf '  ControlPath ~/.cache/hostwarden/fleet-%s-%%C\n' \
+    "$HOSTWARDEN_CHECKOUT_ID"
+  printf '  Include "%s"\n' "$SSHCFG"
+} >"$FLEET_CFG"
 fleet_ssh() {
   # shellcheck disable=SC2086 # TIMEOUT is empty or one word
-  $TIMEOUT ${TIMEOUT:+"$2"} ssh -F "$SSHCFG" \
+  SSH_AUTH_SOCK='' $TIMEOUT ${TIMEOUT:+"$2"} ssh -F "$FLEET_CFG" \
     -o IdentitiesOnly=yes -i "$KEY" "root@$1" "$3"
 }
 

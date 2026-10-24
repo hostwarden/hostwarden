@@ -8,8 +8,13 @@
 mkdir -p "$XDG_STATE_HOME/hostwarden/fleet-run"
 echo '{"web1.example.com":{"disk-full":"2026-01-01"}}' \
   >"$XDG_STATE_HOME/hostwarden/fleet-run/findings.json"
+# An agent socket in the environment, which the fleet run's ssh must
+# not see.
+SSH_AUTH_SOCK=$TMP/agent.sock
+export SSH_AUTH_SOCK
 run
 rc=$?
+unset SSH_AUTH_SOCK
 [ "$rc" = 2 ] && ok || bad "a real run did not exit 2 (rc $rc): $(cat "$TMP/err")"
 has "$TMP/out" "/var at 97% — since 2026-01-01" "a known finding lost its date"
 has "$TMP/logs" "web1.example.com housekeeping: 2 CRITICAL, 1 WARN" \
@@ -27,6 +32,17 @@ esac
   || bad "the run left uncommitted changes"
 lacks "$M/machines/web1.example.com/memory.md" "Last connected" \
   "the run wrote memory.md"
+# No agent and connections of its own, in the file ssh hands on to a
+# jump host too, so a write key an interactive session unlocked is
+# never offered nor ridden.
+has "$TMP/cfg-web1.example.com" "  IdentityAgent none" \
+  "the fleet run's ssh may use an agent"
+has "$TMP/cfg-web1.example.com" "  ControlPath ~/.cache/hostwarden/fleet-" \
+  "the fleet run shares the sessions' connections"
+grep -qx 'agent=' "$TMP/env-web1.example.com" && ok ||
+  bad "the fleet run's ssh inherits an agent socket"
+has "$TMP/cfg-web1.example.com" "/memory/ssh_config\"" \
+  "the fleet run's file leaves out memory/ssh_config"
 
 # --- a host nobody judged, without an alarm ----------------------
 run --dry-run --host nojudge1.example.com

@@ -5,8 +5,9 @@ always-on machine that runs Hostwarden with nobody at the keyboard:
 the nightly housekeeping of the fleet, from a timer, while the
 operator's workstation sleeps. It is an operations checkout like
 any other (`AGENTS.md` → Development or Operations), with a
-workspace cloned from the same remote. It reaches the fleet only
-through fleet read, never with a shell.
+workspace cloned from the same remote. It reaches the fleet through
+fleet read, never with a shell, but for a session there while the
+operator has unlocked a write key (A Write Key).
 
 ## What it holds
 
@@ -45,14 +46,16 @@ Presence: off
 
 `memory/readonly.md` holds `*`, which makes every host read-only
 for every session there (`rules/access-control.md` → Read-Only
-Servers). `memory/blacklist.md` carries the operator's blacklist,
+Servers), unless the operator sets up a write key (A Write Key
+below). `memory/blacklist.md` carries the operator's blacklist,
 copied by hand, since it never syncs; the fleet run checks it too.
 
 **Keys the operator made, and nothing more:** the fleet key, a key
-that may push to the workspace's remote, and the `claude` login.
-No key that is root or a shell on a managed host, and no
-credential for anything else. Everything on it is what a thief of
-the machine would hold.
+that may push to the workspace's remote, the `claude` login, and an
+encrypted write key where the operator wants one (A Write Key). No
+other key that is root or a shell on a managed host, and no
+credential for anything else. Everything on it is what a
+thief of the machine would hold.
 
 **No `sudo`** for the account that runs Hostwarden. It needs none.
 
@@ -140,11 +143,85 @@ silently stops. Both units are deployed files of the operations
 host itself (`rules/deployed-files.md`).
 
 **An interactive session** there — over SSH, or through remote
-control — reaches no managed host: the fleet key opens only the
-wrapper. It reads the workspace and the reports, and works on the
-operations host itself in local mode, read-only like every host.
-What it cannot do, it reports; it never asks a session on the
-operator's workstation to do it instead (`rules/borrowed-rights.md`).
+control — gets nothing from the fleet key, which opens only the
+wrapper. Without a write key unlocked, it reads the workspace and
+the reports, and works on the operations host itself in local mode,
+read-only like every host. What it cannot do, it reports; it never
+asks a session on the operator's workstation to do it instead
+(`rules/borrowed-rights.md`).
+
+## A Write Key
+
+Optional: an interactive session there changes hosts while the
+operator has unlocked a write key, and the host is read-only again
+once the key is gone and every connection opened with it is closed.
+The write key is Hostwarden's own SSH identity
+(`rules/ssh-identity.md`), set up in the account that runs
+Hostwarden, the way that file sets it up on a workstation, with
+these limits:
+
+- **Its own agent, from an encrypted key file:** `SSH identity:
+  own-agent` and `SSH identity source: file <path>`, the comment
+  `hostwarden@<machine handle>-<host name>`. Never a key without a
+  passphrase, never a source in a password manager, which loads with
+  no person there, and never a hardware key left plugged in.
+- **Each host** gets its line from the operator, beside the
+  fleet-read line, and a second `Hostwarden key:` line in its
+  memory (`rules/ssh-identity.md` → Putting the Key on a Host).
+  With the user's CA, a certificate for a few hours replaces the
+  line (`rules/ssh-ca.md` → Hostwarden's Own Certificate),
+  `-V +4h` for one.
+- **`memory/readonly.md`:** `*` keeps every host read-only, with the
+  key unlocked too. The operator takes it out themselves and lists
+  instead the hosts that stay read-only and the operations host's
+  own names, `localhost` among them: without `*` nothing else keeps
+  its local mode read-only. Hostwarden never edits `readonly.md`
+  there, not on the operator's word either.
+- **Unlocking:** the operator logs in to the operations host as that
+  account and runs
+  `bin/hostwarden-identity load -t 2h`, or the lifetime they want, in
+  a terminal of their own there. A session started there then
+  works as on the workstation.
+- **Before each change** on a host, the session runs
+  `bin/hostwarden-identity check` (`rules/ssh-identity.md` → Every
+  Connection). Where it fails, with exit 1 the key's lifetime has
+  ended or the operator emptied the agent, with exit 4 the
+  certificate has; either way the session locks as below and
+  changes nothing more, stricter than Every Connection, since a
+  connection the certificate opened outlives it too. A shared connection opened
+  with the key stays open without it, as long as calls keep using it,
+  and only this check ends a busy session's write access (lab,
+  OpenSSH 10.0, 2026-10-24: a call ran through the shared connection
+  after `ssh-add -t 10` had run out, and the login was refused once
+  it was closed).
+- **Locking:** the lifetime ends, or
+  `SSH_AUTH_SOCK=~/.cache/hostwarden/agent.sock ssh-add -D` ends it
+  sooner; then every shared connection of the sessions there is
+  closed, whatever user or jump host it went to: the sockets under
+  the prefix this checkout's `memory/ssh_config` names in its
+  `ControlPath`. The fleet run's connections to hosts, under
+  `fleet-`, and git's to the workspace remote, under `ssh-` without
+  the checkout's number, stay out of it:
+
+  ```bash
+  P=$(sed -n 's|^  ControlPath ~/\.cache/hostwarden/\(ssh-[0-9]*-\)%C$|\1|p' \
+    "/srv/hostwarden/memory/ssh_config")
+  for s in ~/.cache/hostwarden/"${P:?no ControlPath in memory/ssh_config}"*; do
+    [ -S "$s" ] && ssh -F /dev/null -S "$s" -O exit lock
+  done
+  ```
+
+  `/srv/hostwarden` stands for this checkout's absolute path.
+- **The fleet run never uses it:** its ssh calls, their jump hosts
+  included, take no agent and connections of their own, since a
+  connection a session opened with the key would carry `collect`
+  too (lab, 2026-10-24); the timer loads no key. An ssh that a
+  `ProxyCommand` starts reads only the account's ssh configuration
+  and the system's, with no agent in its environment: neither file
+  there names Hostwarden's agent, its write key, `memory/ssh_config`
+  or a socket under `~/.cache/hostwarden/`.
+- **No agent forwarding** to the operations host, ever: anything
+  there could sign with the admin's own keys while it lasts.
 
 ## What it is not
 
@@ -182,7 +259,9 @@ operator's:
 2. Clone Hostwarden into the account's home, and
    `bin/hostwarden-init --clone <workspace remote>` — the operator
    gives the account a key that may push there.
-3. The personal files above, with an `Operator:` handle of the
+3. The personal files above, `memory/readonly.md` with its `*`
+   among them, which the session writes once when it creates the
+   file and never edits after; with an `Operator:` handle of the
    machine's own that the remote's `memory/operators.md` does not
    hold yet. One it holds belongs to a person or another machine,
    the operator's own included, and is never taken. This session
@@ -200,6 +279,7 @@ operator's:
    returns, `--dry-run` shows the report; neither updates the
    checkouts, so run `bin/hostwarden-ssh-config` once before them.
    Then the two units.
+7. Where the operator wants one, the write key (A Write Key).
 
 Record the role in its memory, the timer and the report address
 included, as for anything else the host runs.

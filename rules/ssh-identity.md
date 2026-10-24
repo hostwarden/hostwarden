@@ -262,15 +262,21 @@ operator may then take the other key out.
   the key, load it first (Setting It Up, step 3), or wait for the
   user to. A call made anyway is refused, and counted.
 - Before the session's first call to a host whose line says
-  `certificate`, after a load, and before any later call past the
-  end the last check printed, run `bin/hostwarden-identity check`
-  on the workstation: a certificate runs out during a session, and
-  the session start's reading may predate it. Where it reports
-  anything wrong with the certificate, exit 4 with the key in the
-  agent and 1 with the agent failing too, those hosts wait for the
-  user's renewal; the message names their command, which the
-  session passes on and never runs. Exit 4 holds back no host that
-  takes the plain key.
+  `certificate`, after a load, before any later call past the end
+  the last check printed, and before each change on a host whose
+  memory has this identity's line, run `bin/hostwarden-identity
+  check` where the session runs: the key's lifetime and a
+  certificate run out during a session, while a shared connection
+  opened with them goes on working, and the session start's reading
+  may predate both. Where it exits 1, the agent does not hold the
+  key, and those hosts get no further change until the user has
+  loaded it; where it exits 4, only the certificate is of no use,
+  and the hosts whose line says `certificate` wait for the user's
+  renewal. The message names their command, which the session
+  passes on and never runs. On an operations host, the session
+  also closes every shared connection of the sessions there
+  (`.agents/skills/hostwarden-fleet-read/references/operations-host.md`
+  → A Write Key).
 - Every call is the ordinary one, `ssh -F …` (`AGENTS.md` → SSH
   Options). The taboo guard denies an
   ssh, scp or sftp call, an `rsync -e "ssh …"`, and an rsync to a
