@@ -197,21 +197,18 @@ these limits:
 - **Locking:** the lifetime ends, or
   `SSH_AUTH_SOCK=~/.cache/hostwarden/agent.sock ssh-add -D` ends it
   sooner; then every shared connection of the sessions there is
-  closed, whatever user or jump host it went to: the sockets under
-  the prefix this checkout's `memory/ssh_config` names in its
-  `ControlPath`. The fleet run's connections to hosts, under
-  `fleet-`, and git's to the workspace remote, under `ssh-` without
-  the checkout's number, stay out of it:
+  closed, whatever user or jump host it went to, those of every
+  checkout in the account: the agent is the account's, so a session
+  of any checkout there may have used the key. They are the sockets
+  `ssh-<checkout number>-…`. The fleet run's connections to hosts,
+  under `fleet-`, and git's to the workspace remote, under `ssh-`
+  without a number, stay out of it:
 
   ```bash
-  P=$(sed -n 's|^  ControlPath ~/\.cache/hostwarden/\(ssh-[0-9]*-\)%C$|\1|p' \
-    "/srv/hostwarden/memory/ssh_config")
-  for s in ~/.cache/hostwarden/"${P:?no ControlPath in memory/ssh_config}"*; do
+  for s in ~/.cache/hostwarden/ssh-[0-9]*-*; do
     [ -S "$s" ] && ssh -F /dev/null -S "$s" -O exit lock
   done
   ```
-
-  `/srv/hostwarden` stands for this checkout's absolute path.
 - **The fleet run never uses it:** its ssh calls, their jump hosts
   included, take no agent and connections of their own, since a
   connection a session opened with the key would carry `collect`

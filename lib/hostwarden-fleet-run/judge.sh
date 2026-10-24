@@ -88,21 +88,28 @@ done
 # agent, and a connection it opened with that key would run collect
 # as a plain command (A Write Key, in the operations-host reference
 # of the hostwarden-fleet-read skill). The two go in a file of the
-# run's own ahead of memory/ssh_config, since ssh keeps the first
-# value and hands -F on to a ProxyJump hop, where -o never reaches.
+# run's own ahead of a copy of memory/ssh_config, since ssh keeps
+# the first value and hands -F on to a ProxyJump hop, where -o never
+# reaches. A copy, not an Include: Include reads its path as a
+# pattern, from OpenSSH 9.9 on with tokens as well, so a %, a glob
+# character or a $ in the checkout's path would read another file or
+# none, and before 9.9 a doubled % names one that is not there.
 # An ssh a ProxyCommand starts reads neither, only the environment,
 # so SSH_AUTH_SOCK goes empty too, which OpenSSH reads as no agent.
 # shellcheck disable=SC2174 # as the session-start hook makes it
 mkdir -p -m 700 "$HOME/.cache/hostwarden"
 hostwarden_cache_dir "$REPO_DIR"
 FLEET_CFG=$WORK/ssh_config
+[ -r "$SSHCFG" ] || die "no memory/ssh_config to read: run" \
+  "bin/hostwarden-ssh-config and fix what it reports"
 {
   echo 'Match all'
   echo '  IdentityAgent none'
   printf '  ControlPath ~/.cache/hostwarden/fleet-%s-%%C\n' \
     "$HOSTWARDEN_CHECKOUT_ID"
-  printf '  Include "%s"\n' "$SSHCFG"
-} >"$FLEET_CFG"
+  echo
+  cat "$SSHCFG"
+} >"$FLEET_CFG" || die "cannot write the run's ssh configuration"
 fleet_ssh() {
   # shellcheck disable=SC2086 # TIMEOUT is empty or one word
   SSH_AUTH_SOCK='' $TIMEOUT ${TIMEOUT:+"$2"} ssh -F "$FLEET_CFG" \
