@@ -16,10 +16,13 @@ before one is added.
 ## 1. A missing variant
 
 1. Every form of one input or method: long, short, clustered and
-   `=` options, deprecated and alias spellings, quoted and unquoted
-   `ssh host cmd`, sibling tools of the same job, other key types,
-   states, drivers, middleware front ends, search roots, both
-   address families, every manager the file supports elsewhere
+   `=` options, deprecated and alias spellings, every word an option
+   takes as the manual page lists it (`bioctl`'s alarm actions),
+   quoted and unquoted `ssh host cmd`, sibling tools of the same
+   job, other key types, states, drivers, middleware front ends,
+   search roots, both address families, every mechanism that already
+   does the job of an entry the rule demands (Docker's `always`
+   restart policy), every manager the file supports elsewhere
    (classic LXC beside Incus), each variant of a write method
    that keeps its state somewhere else (a journal, a database, an
    API backend), and every tool that opens its own connections
@@ -33,7 +36,12 @@ before one is added.
    a notice): does it resolve by the same name, along the same
    path, by the condition the action itself decides by rather than
    a simpler one that agrees in the usual case (a tag's name where
-   the action checks its signature), and for every address family
+   the action checks its signature)? Which cases does the simpler
+   condition leave out — a healthy but idle system under a recency
+   threshold, a package held back or phased under a simulated
+   upgrade, a login page that a reverse proxy, a tunnel or a port
+   forwarding exposes behind a loopback listener? Does the lookup
+   hold for every address family
    that step uses — each file `ssh -G` lists, each include, the
    server split DNS, a routing domain or a scoped resolver picks,
    aliases, jump hosts, other users' endpoints, AAAA as well as A,
@@ -84,22 +92,22 @@ before one is added.
    agree on where a construct starts and ends, and is extracted
    text judged as commands only where the command receiving it
    executes it?
-6. A filter that withholds free text: can the same text reach the
-   output in another form — a section id, a key, an error message
-   that quotes it — and does the filter print only the fields it
-   names rather than withhold the ones it knows?
-7. A transform meant to change only layout or to strip one kind of
-   character: does every byte whose meaning depends on context
-   survive it — a run of spaces inside a code span, an escape, a
-   code span that stays open across a line end — and is it checked
-   against how the source format encodes those characters (JSON or
-   URL escapes), not only a plain-text example?
-8. A step that handles one kind of change or outcome in a set: does
+6. A filter or transform meant to touch one thing — withhold free
+   text, change only layout, strip one kind of character. Can the
+   withheld text reach the output in another form — a section id, a
+   key, an error message that quotes it — and does the filter print
+   only the fields it names rather than withhold the ones it knows?
+   Does every byte whose meaning depends on context survive the
+   transform — a run of spaces inside a code span, an escape, a
+   code span that stays open across a line end — checked against
+   how the source format encodes those characters (JSON or URL
+   escapes), not only a plain-text example?
+7. A step that handles one kind of change or outcome in a set: does
    it cover every kind — a record added, edited, deleted or renamed,
    a verification written for the add case — and does treating two
    alike undo what one of them accomplished (an issue closed as
    duplicate, not planned or completed)?
-9. An exclusion, filter or special handling meant for one kind of
+8. An exclusion, filter or special handling meant for one kind of
    entry: is it matched by that kind — a link, a name, an address
    range such as link-local — rather than a whole directory or an
    interface name; when an entity skips one handling because it
@@ -109,32 +117,49 @@ before one is added.
    Hostwarden)? Does an exemption for commands whose arguments are
    data leave in one that takes an option pointing it at another
    machine (`systemctl -H`)?
-10. Several fact types, entry forms, models or states in one store:
-    does every consumer read each type that bears on its question,
-    each documented entry form of a memory line (name → dir, name
-    with no memory), each state git holds a path in when a list of
-    paths is built from it (staged only, beside modified in the
-    tree), an explicit check for the model presented as the plain
-    default, and a matched field that stores the value, not only a
-    property of it such as a prefix length?
-11. A list of what a step needs (a delegation, a certificate chain,
+9. Several fact types, entry forms, models or states in one store:
+   does every consumer read each type that bears on its question,
+   each documented entry form of a memory line (name → dir, name
+   with no memory), each state git holds a path in when a list of
+   paths is built from it (staged only, beside modified in the
+   tree), an explicit check for the model presented as the plain
+   default, and a matched field that stores the value, not only a
+   property of it such as a prefix length?
+10. A list of what a step needs (a delegation, a certificate chain,
     a mail setup, the login methods a host offers): does it hold
     every record the protocol requires in the rule's own example,
     such as glue for a nameserver inside the delegated zone, and
     where the list is judged by what it lacks (no key), is it also
     checked for what the next step needs (a password method before
     a keyless host is accepted)?
-12. A summary derived by comparing several hosts' fields: is the
+11. A summary derived by comparing several hosts' fields: is the
     documented state where none of them contributes anything
     defined?
+12. A rule that reads `ssh_config`, or another file of pattern
+    blocks, as text rather than asking `ssh -G` for the host itself:
+    does it apply what ssh applies — every matching block in every
+    file and include, the first value winning across them, a
+    negated pattern narrowing the match rather than read as a name,
+    a wildcard block that sets a value (HostName, IdentityAgent) for
+    a name the rule treats as exact — and match a name by what ssh
+    resolves it to (HostName), not by its spelling? Where it asks
+    `ssh -G` for one stand-in host, what can a specific host's own
+    block set that the stand-in never reaches? Where it collapses
+    items by path, is one item judged differently in another host's
+    context (a host that sets `IdentityAgent none`)?
 
 ## 2. A conclusion the evidence does not carry
 
 1. Present is not in use. Is a file, bundle or unit taken as
-   running, a value on disk or in a dump as what the process uses
+   running, a value on disk, in a dump or as a tool prints it
+   unexpanded (`postconf` without `-x`) as what the process uses
    now, a unit chosen because its config file exists rather than
-   because systemd reports it enabled or active, a dump's object
-   taken as enabled where its flag is missing? Does the probe skip
+   because systemd reports it enabled or active, an "installed,
+   enabled" requirement recorded complete without the read that
+   shows enablement and masking, a dump's object taken as enabled
+   where its flag is missing, a safeguard counted because it runs,
+   not because it reads the service's log and its action reaches
+   something that enforces? Does the probe skip
    comments and read only the files and sections the program loads
    (the PAM stack sshd includes, the domains SSSD enables), and
    establish that the daemon is configured to use a file before it
@@ -148,11 +173,19 @@ before one is added.
    (proxy ARP, a gateway); an ssh error line to the target host
    rather than a jump host that printed it; a relative path to the
    directory each command that uses it runs from; one host's
-   observation to a whole site or range?
+   observation to a whole site or range; a count of items (any
+   identity in the agent) or a pooled set (every agent's
+   fingerprints) to the one item it judges, which has its own
+   source; every name a Host block gives to one machine, where only
+   each name's HostName shows that; one domain variable
+   to every mechanism that reads it, where SPF, DKIM and DMARC each
+   look at their own?
 3. More than one candidate: two backends, managers or loggers
    active at once, where "the first one found wins" is a defect; a
    single-capture extraction (`sed -n … | head -n1`, a greedy
-   regex) over text that can hold several instances; two fields
+   regex) over text that can hold several instances, or a bounded
+   one (`grep -m`) whose first matches are not the ones the
+   question wants (the newest); two fields
    that answer one question, where the one their source says
    decides must win and the output show that one; a fallback to
    "the first matching record" after a disambiguation that failed,
@@ -165,7 +198,11 @@ before one is added.
    void it (dnsmasq's `local-service` beside `interface`,
    `except-interface`, `listen-address`, `auth-server`), with the
    lines a wrapper such as Pi-hole adds in every mode judged
-   together with the one its own mode writes.
+   together with the one its own mode writes. A stack read as
+   deciding (PAM) is read with each control flag's effect on the
+   modules after it (`sufficient`, `optional`, a bracket form). Two
+   method names that come down to one factor (two password prompts)
+   count once.
 5. A match or comparison on text: is the word matched in the field
    the rule is about, not anywhere on the line where a URL, key file
    or free-text value can hold it; is a regex documented for one
@@ -174,7 +211,11 @@ before one is added.
    code after a host moved); does a character class meant for one
    type (an address) reject another built from the same characters
    (a hostname), and a word of the right characters that is not the
-   thing (`latest` for a version); and are both sides of a
+   thing (`latest` for a version); does a port read as a service
+   hold for every service on that port, and miss none that runs on
+   another; is a value reassembled from output joined as its RFC
+   joins it (a TXT record's strings, without a separator); and are
+   both sides of a
    comparison resolved and normalised the same way (not a raw
    `ssh -G` field against a resolved name; DNS names without regard
    to case or a final dot; a stored remote URL that git rewrote on
@@ -187,15 +228,24 @@ before one is added.
    a trigger that occurs in the state the branch leaves, and does a
    branch added for a rare case stay out of the common case it was
    carved from?
-8. A check that parses a hand-written record: does it require every
-   field the rule spells out, closing words included, with content
-   after each label, and count distinct items rather than matches?
+8. A check that parses a hand-written record, counts items, or
+   calls a result exact, covered or reclaimable. Does it require
+   every field the rule spells out, closing words included, with
+   content after each label, and every field of a match, so that a
+   wildcard in any one fails it? Does it count distinct items rather
+   than matches, and a part several items share once (an image
+   layer)? Is the label true of each item it covers — a pattern
+   counted as coverage no wider than the rule it enforces (a site in
+   a vendor origin), an image called rebuildable whose inputs may be
+   the only copy?
 9. A check that fails when no item matches: does it first establish
    that there are items, where an empty set is valid? A failed read
    that leads to a create, or a lookup answered "not found": does
    the branch it lands on hold only absence, or also no access, a
    server failure and a failed read? A record that a step was announced or
-   planned: is there evidence it ran before it is named as a cause?
+   planned: is there evidence it ran before it is named as a cause,
+   and where a cause is attributed by a time window, what else falls
+   in that window, and which record shows the cause itself?
 10. A drift report that compares hosts with each other where the
     question is each host against a recorded standard: does it miss
     every host sharing the same wrong value?
@@ -207,7 +257,9 @@ before one is added.
     scoped resolver routes the name to — rather than a default? A
     probe meant to answer without credentials: can its input (a URL
     with userinfo) carry one, so the answer is the account's rather
-    than the public's? Prose that offers a related field in place
+    than the public's? A period a report labels: does the source
+    guarantee it, or can the file be rotated or the journal empty?
+    Prose that offers a related field in place
     of an unavailable one (a WAN interface's address for the
     gateway's next hop): are the two normally the same value?
 12. A model of what a shell command reads or writes — a pipeline
@@ -238,12 +290,16 @@ before one is added.
    branch, or does it count on another file's block; which other
    commands set the same flag (a local shell as well as an SSH
    one), and do they share the behaviour it switches on; and
-   what does the tool do with it unset?
+   what does the tool do with it unset? A value a rule records on a
+   first connection: which command of the first probe prints it,
+   and does a new branch (another family) run that command at all?
 3. A procedure that branches by job, mode or tier: does every job a
    caller can hand it — one carrying findings, a fix range, an
    escalation — land on a defined branch of every step, and does a
    step that starts on what a command prints (the files that made
-   the tier full) have a branch for where it prints nothing?
+   the tier full) have a branch for where it prints nothing? What
+   does a check that rates items through what they match say about
+   an item that matches nothing yet?
 4. A script now run on its own that another script only called: does
    the new call get the `PATH`, environment (`MISE_ENV`) and working
    directory the caller set up? A hook that starts sourcing a
@@ -254,7 +310,9 @@ before one is added.
    `VERSION`)? Does a setting a call makes (a locale) reach
    each command in it that crosses into a new environment — every
    one `rules/locale.md` → Where it is set names, and `jexec` for a
-   FreeBSD jail?
+   FreeBSD jail? Does a path a rule names for a master or a source
+   exist in the checkout the step runs in, and what is a relative
+   `files/` relative to there?
 5. A loop that reuses one scratch file or variable, or a cleanup
    that sweeps a directory by age: is it emptied before each item,
    an item with no output included, and what else lives in the
@@ -264,7 +322,9 @@ before one is added.
    flow run again for this host in practice? A memory line that
    switches a behaviour on: which step writes it for every kind of
    object the behaviour reaches — a VM and a stopped guest beside a
-   running container?
+   running container? A login to something the flow has just
+   created: which record does the login's configuration read (a
+   host key, a Host block), and does it exist yet?
 7. A check that fetches objects by ID from a remote, or a test that
    saves a ref and removes it: does the flow keep them reachable
    until its last run — across a squash, a force-push, a deleted
@@ -274,11 +334,16 @@ before one is added.
    exception resolves, or a source added to the list a procedure
    works through: does the definition read the exception, and does
    the source hold every value the procedure reads (an installed
-   version before a Tier 1 check runs on it)?
+   version before a Tier 1 check runs on it)? Where a value or a
+   state is set by a later event or the later of two sources (the
+   update path, the install-time version file): what is there, and
+   what is true, until that event has run, and can anything tell
+   the two apart?
 9. Every option a question or plan offers — the "no" of a yes/no,
-   DHCP beside a static address, no scheme, no name typed: does each
-   get its own effect and produce the value a later step reads as
-   settled?
+   DHCP beside a static address, no scheme, no name typed — and
+   every state a probe recognises (a revoked DKIM key): does each
+   get its own effect, a finding in the rating list where the probe
+   rates, and produce the value a later step reads as settled?
 10. A value handed between functions or steps across a lossy
     transport (a shell `read` loop, a fixed-width field): does it
     reach the consumer as that consumer parses it?
@@ -305,7 +370,9 @@ before one is added.
    flow that applies it? A field exempted from a comparison, such as an
    immutability check, is held to the moves the rule names, not any
    value; a field the rule empties on a transition is checked for
-   its value after it, not only for a change.
+   its value after it, not only for a change. A check gated on a
+   feature (a TLS port): do the rows it rates need that feature, and
+   what does the gate report where it is missing?
 2. "Every connection" or "each host" through a fixed pipeline, a
    step in a skill that assumes SSH, or a numbered step that reads
    "each changed file": does a mode that narrows the flow — local
@@ -320,7 +387,8 @@ before one is added.
    and what happens where nobody answers?
 5. A condition that restates where a probe applies: does it copy
    the probe's rule in full, exceptions (a VM with a passed-through
-   disk) included?
+   disk) included? A source excluded as bounded (managed logs): what
+   is the bound, and does it fit the disk?
 6. A second caller that writes a completion marker, one a fallback
    hands half of a bundled write-and-check included: does it run
    every step the marker's definition names?
@@ -337,13 +405,18 @@ before one is added.
    against the list as it now reads?
 10. A new check, or a limit on a fact, against the rules around it:
     does another rule forbid its caller to read the store it needs,
-    and does calling a fact "never known" because one store cannot
+    or name the tool a write must go through (`AGENTS.md` and
+    `rules/accounts.md` for an account file or a new password), and
+    does calling a fact "never known" because one store cannot
     hold it contradict the principle that a value may be asked as
     well as observed?
 11. An indirection across files: when a pointer sends the reader to
     B "instead of" A, does B still use A's mechanisms by name; when
     one rule reads a fact through a reference field, does a second
-    rule matching that fact resolve the reference first?
+    rule matching that fact resolve the reference first? When a set
+    is derived from an address (the services of a removed guest),
+    what else answers on that address (NAT, a proxy, a shared
+    front)?
 12. A step that names two remedies for one defect: does a cap in the
     cited rule make one of them unreachable in every case?
 
@@ -352,7 +425,8 @@ before one is added.
 1. A path or source written for one platform, such as Alpine's log
    file: what does the check print where it is not written?
 2. A step or form decision that names one file as where a setting
-   lives: does every family keep it there, or does the family file
+   lives: does every family keep it there and in the same form (a
+   regular file where another has a link), or does the family file
    name another store (`rc.conf`, `scutil`, UCI)?
 3. A step reused by pointing at another step (a read-back, a
    verification): does every case that points there have its shell,
@@ -374,6 +448,10 @@ before one is added.
    mode, owner, group and read-only state does the replacement
    keep, with each platform's `mktemp` defaults, and which did the
    old file's readers count on?
+8. One command or option given for several tools or releases (a
+   cleanup for dnf and yum, a rewrite to a newer `journalctl`
+   option): does each ship it in every release the file covers, and
+   what does the call print where one lacks it?
 
 ## 6. A tool that does not work as written
 
@@ -383,7 +461,8 @@ before one is added.
    does off count as off everywhere it is read?
 2. An input or placeholder required exactly once: does every
    optional branch (no revocation list, no principals file) still
-   satisfy it?
+   satisfy it? Does a branch that skips the work under a condition
+   tell the operator so (a removal left staged)?
 3. A value filter over each field: does it accept every shape the
    product stores the field in (a list, a nested object)?
 4. Two steps behind one guard: does a retry, with the first step
@@ -409,6 +488,25 @@ before one is added.
     read): do callers queue behind each other, so the n-th waits n
     times as long and gives up while the resource is still in
     legitimate use?
+11. A call's exit status: what does the whole call return where its
+    last line is a test or a `grep` that may find nothing, and does
+    a non-zero status cancel the sibling calls a batch runs beside
+    it? Under `set -e`, which non-zero codes of a command mean
+    success (zypper's informational ones), and is each call and
+    each unit that runs it ready for them?
+12. A server configuration example or a probe of the host's own
+    server (nginx, Apache, HAProxy, curl): does the server read the
+    option where the example sets it, or has it already chosen it
+    before it knows the name (TLS protocols, in the default context);
+    what picks the
+    named default where another block matches the address first;
+    does a header said to be on every response reach the ones the
+    proxy makes itself; and is a refusal shown at one layer (the
+    handshake) also there at the next (an unknown HTTP Host)? Does
+    the probe reach the listener as it is bound (one interface
+    address, IPv6, not only loopback), held by the process it rates,
+    and past a proxy variable (`https_proxy`, `ALL_PROXY`) that
+    would reroute it?
 
 ## 7. A literal where a recorded value belongs
 
@@ -424,8 +522,10 @@ before one is added.
    several sources (`ssh_config`, includes, patterns), what do the
    untouched keywords still inherit, during the override and after
    it is removed?
-4. A whole block removed to retire one of its lines: does it also
-   carry settings that must stay?
+4. A whole block removed to retire one of its lines, or a path
+   rendered anew in place of one that carried other sections: does
+   it also carry settings that must stay (a relay or monitoring
+   override), and what carries them now?
 5. A program or path taken from the invoking user's `PATH` or
    environment for something root runs (a Bash for a root script):
    who can replace what it points to, on every OS the step covers,
@@ -433,7 +533,11 @@ before one is added.
 6. An environment or configuration selected for one phase of a
    command (a signing agent for the commit of `git pull`): does an
    earlier phase of the same command (the fetch, over SSH) read it
-   too, and change what it authenticates with?
+   too, and change what it authenticates with? A commit a change
+   adds to the workspace: does it go through the signing agent
+   `hostwarden-sync` and `rules/ssh-agent.md` resolve
+   (`bin/hostwarden-agent --exec`), or through whatever the
+   environment holds?
 
 ## 8. An identity key that is not unique or not stable
 
@@ -468,8 +572,11 @@ before one is added.
    before it is printed?
 3. A read of a whole configuration or inventory dump: can it carry
    credentials or user data, does the step read only the keys it
-   needs, and does a new read of a source the file already flags as
-   secret-bearing reuse the file's filtered command?
+   needs — a field format on an image inspection, which otherwise
+   prints environment values and labels — and does a new read of a
+   source the file already flags as secret-bearing reuse the file's
+   filtered command (a firewall listing, even through a `grep`,
+   passes the `fc` filter of `rules/secrets.md` first)?
 4. An allowlist of fields for an appliance or config read: does
    each hold only machine-set values, or does one (a `desc`, a
    `name`, a label) hold typed text?
@@ -495,13 +602,20 @@ before one is added.
    included, reach that write? Where a written configuration
    selects a value from the environment, does it store the
    variable (`${SSH_AUTH_SOCK}`) or a snapshot of it that the next
-   consumer reads stale?
+   consumer reads stale? A repair for one way a file reaches a
+   directory: which other ways bring it in (a clone, a restore, a
+   copy, a replaced workspace), does the repair run after each, and
+   does it leave alone a choice the user documented about the other
+   files of its list (a shared `user.md`)?
 3. A condition checked once before a hand-off, a verdict cached
    across several gates of one run, or a derived value stored (a
    path a script computed): what makes it true again, or derives it
    again, when what it was checked against changes — the script
    itself included — who is told, and can a cached "safe" outlive
    the state it described at the gate right before a connection?
+   Where a classification stops a check, is the check that revisits
+   the classification stopped with it (a refresh of package-based
+   sources under a Tier 3 exclusion)?
 4. A session that ends after any step: can a later one find the
    full text of each item still to act on?
 5. A move or rename of a stored object: is every pointer to the old
@@ -510,8 +624,10 @@ before one is added.
    removes?
 6. An age rule on a stored date: does the run that re-checks the
    fact also move the date?
-7. A cache judged fresh by mtimes (`find -newer`): does a deleted or
-   renamed input make it stale?
+7. A cache judged fresh by mtimes (`find -newer`) or by a key: does
+   a deleted or renamed input, or a change that leaves the key alone
+   (a manual restart under a cached service status), make it stale,
+   and does the output say how old the value is?
 8. A marker a crashed or denied step never clears (a lock, a
    presence entry): does its reader age it out on its own?
 9. Multi-writer state read by picking a record by age or identity:
@@ -541,10 +657,11 @@ before one is added.
    command's (`qm guest exec`): does a failed action
    still reach the caller, on each failing path the script has
    (`${x:?}`, `set -u`), under macOS `/bin/sh` (bash 3.2) as well?
-4. An empty answer that has several causes — no record, a server
-   failure, a timeout, a setting simply not set, a neighbour entry
-   that is FAILED or INCOMPLETE: does each get its own meaning, and
-   its own row where the check reports rows, so silence is never
+4. An empty answer that has several causes — no record (NXDOMAIN
+   beside an empty NOERROR), a server failure (SERVFAIL), a timeout,
+   no privilege to read it whole (a journal), a setting simply not
+   set, a neighbour entry that is FAILED or INCOMPLETE: does each get its own
+   meaning, and its own row where the check reports rows, so silence is never
    read as confirmation?
 5. Several lookups combined into one result (one per address
    family): can a failure in one hide behind a success in another?
@@ -632,10 +749,15 @@ before one is added.
 10. A field, fact or exit status prose reads from a command's
     output: does the command as invoked — its flags, its filter, the
     pipeline around it — produce it and carry it to the reader, in
-    the order the prose reads it, checked against its code?
+    the order the prose reads it, checked against its code? Does
+    what prose says a flag skips (`du -x`, other file systems) hold
+    for every case the flag meets, a bind mount of the same file
+    system on Linux among them?
 11. A step that claims to reject a bad value rather than guess: does
     the command it hands the value to fail loudly, or fall back to a
-    default?
+    default? A change that claims a file becomes personal or
+    untracked, or an ignore rule meant to keep it private: what do
+    the index, earlier commits and existing clones still hold?
 12. A rule that hands a read-only flow a step that edits the store
     that flow protects: is the flow's guarantee checked first?
 

@@ -640,7 +640,12 @@ That pull request works each line into
 `.claude/agents/hostwarden-reviewer/classes.md` by widening the
 class's closest question to take the case in, or by merging two
 questions to make room; it adds a question only where none comes
-close, within the cap that file sets. Before a question is
+close, within the cap that file sets. A line whose class does not
+fit the miss, or whose case another class's question already asks,
+goes to that class instead, and the pull request names each such
+line, the class it was given and the one it went to: the focus that
+reads the new class (`.claude/agents/hostwarden-reviewer.md` → Your
+task) is then the one that asks it. Before a question is
 widened or merged away, each case it named is checked against the
 new wording, so no earlier miss loses its coverage. The general
 questions in `.claude/agents/hostwarden-reviewer.md` change only
