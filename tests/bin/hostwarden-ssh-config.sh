@@ -206,6 +206,43 @@ grep -qF "  IdentityAgent \"$HOME/.cache/hostwarden/agent.sock\"" "$OPS/memory/s
   grep -qx '  IdentitiesOnly yes' "$OPS/memory/ssh_config" &&
   grep -qF "  IdentityFile \"$HOME/hw.pub\"" "$OPS/memory/ssh_config" && ok ||
   bad "the identity lines are missing"
+grep -q CertificateFile "$OPS/memory/ssh_config" &&
+  bad "a CertificateFile line without a recorded certificate" || ok
+# A recorded certificate is named by CertificateFile, since beside
+# IdentitiesOnly ssh offers no certificate the agent holds, and only
+# to a host whose line says certificate: one that has the key in its
+# authorized_keys would refuse the certificate first.
+printf 'SSH identity certificate: ~/hw-cert.pub\n' >> "$OPS/memory/user.md"
+gen "$HB" >/dev/null
+G=$(ssh -F "$OPS/memory/ssh_config" -G root@web1.example.com 2>/dev/null)
+printf '%s\n' "$G" | grep -qx 'identitiesonly yes' &&
+  ! printf '%s\n' "$G" | grep -q '^certificatefile ' && ok ||
+  bad "a host with the key's line got the certificate"
+cp "$OPS/memory/machines/web1/memory.md" "$TMP/web1.md"
+sed 's/(hostwarden@alice-ws1, /&certificate, /' "$TMP/web1.md" \
+  > "$OPS/memory/machines/web1/memory.md"
+gen "$HB" >/dev/null
+grep -qF "  CertificateFile \"$HOME/hw-cert.pub\"" "$OPS/memory/ssh_config" &&
+  ok || bad "the certificate line is missing"
+ssh -F "$OPS/memory/ssh_config" -G root@web1.example.com 2>/dev/null |
+  grep -qx "certificatefile $HOME/hw-cert.pub" && ok ||
+  bad "ssh -G web1 does not pick the certificate"
+ssh -F "$OPS/memory/ssh_config" -G root@db1 2>/dev/null |
+  grep -q '^certificatefile ' && bad "a host without the key got the certificate" || ok
+# Without a recorded certificate, a host that takes it alone keeps
+# today's keys, and the message names it.
+idmd own-agent
+out=$(gen "$HB")
+case $out in
+  *"keep"*"today's keys: "*web1*rc=0) ok ;;
+  *) bad "no warning for a certificate host without a certificate: $out" ;;
+esac
+ssh -F "$OPS/memory/ssh_config" -G root@web1.example.com 2>/dev/null |
+  grep -qx "identityagent $HOME/.cache/hostwarden/agent.sock" &&
+  bad "a certificate host got the plain key without a certificate" || ok
+cp "$TMP/web1.md" "$OPS/memory/machines/web1/memory.md"
+idmd own-agent
+gen "$HB" >/dev/null
 M=$(grep -n '^Match originalhost' "$OPS/memory/ssh_config" | cut -d: -f1)
 A=$(grep -n '^Match all' "$OPS/memory/ssh_config" | cut -d: -f1)
 [ -n "$M" ] && [ -n "$A" ] && [ "$M" -lt "$A" ] && ok ||

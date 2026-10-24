@@ -1010,7 +1010,8 @@ Row keys:
 - Period: the probe's `period:` line; a sentinel (`unknown(...)`)
   stands for the whole block.
 - Hostwarden key: the logins under each fingerprint the host's
-  `Hostwarden key:` lines name, or `none recorded`.
+  `Hostwarden key:` lines name, with the key ID of those made by
+  certificate, or `none recorded`.
 - Other keys: the number of distinct fingerprints and their
   logins.
 

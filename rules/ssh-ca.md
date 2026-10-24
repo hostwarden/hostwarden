@@ -432,9 +432,13 @@ Findings:
   the console, or a later session — it names the reason, in the
   place `rules/os/<family>.md` gives:
   - `Certificate invalid: expired` — the holder renews it.
-  - `Certificate invalid: name is not a listed principal`:
-    `rules/ssh-ca-issuing.md` → When a Login Fails on the
-    Principal.
+  - `Certificate invalid: name is not a listed principal`, or with
+    a principals file `Certificate does not contain an authorized
+    principal`: `rules/ssh-ca-issuing.md` → When a Login Fails on
+    the Principal.
+  - `not from a permitted source address`: the certificate's
+    `source-address` leaves out the address the client comes from;
+    the holder has it issued again.
   - `Error checking authentication key … in revoked keys file`:
     the revocation list is missing or unreadable, and plain keys
     fail too — the CRITICAL finding of User CA Trust.
@@ -490,6 +494,71 @@ cannot write reports the gap.
   of creation. Tell the user in the same breath that the guest now
   has to be among the hosts their revocations reach; the fleet
   audit's `krl` row shows where one has not.
+
+## Hostwarden's Own Certificate
+
+Hostwarden's own key (`rules/ssh-identity.md`) can log in with a
+user certificate from the user's CA instead of a line in each
+host's `authorized_keys`, so its access ends unless the user
+renews it. Optional, as the key is: no CA is a prerequisite, and
+none is recommended to a user who runs none. The user's CA issues
+and renews it by whatever means the user runs; Hostwarden asks for
+it, records where it lies and reads how long it is valid.
+
+What the certificate carries, said to the user when they want one:
+
+- **Valid one working day at most**, `-V +9h` for one, renewed each
+  morning: a leaked certificate is of no use the next day.
+- **Key ID `hostwarden@<operator>`**, `<operator>` as
+  `rules/ssh-user.md` → Operator defines it. sshd writes it into its
+  login line beside the key's fingerprint and the CA's:
+  `Accepted publickey for root from … ED25519-CERT SHA256:… ID
+  hostwarden@alice (serial 1) CA ED25519 SHA256:…` (lab container,
+  OpenSSH 10.0, sshd's own log file, 2026-10-24; that a
+  distribution's sshd under systemd writes the same line to the
+  journal or `auth.log` is not verified). It names the person
+  behind a root login (Audits in `rules/ssh-identity.md`).
+- **Only the principals needed:** the account `memory/user.md`
+  records for the hosts, or a role principal their principals
+  files map to it, never every account there is.
+- **No `permit-agent-forwarding`**, nor X11 or user-rc: `-O clear`
+  then `-O permit-port-forwarding -O permit-pty` grants what the
+  `authorized_keys` line `restrict,port-forwarding,pty` grants. Both,
+  and that sshd refuses what a certificate does not permit, are
+  `ssh-keygen(1)` → CERTIFICATES and `sshd(8)` → AUTHORIZED_KEYS FILE
+  FORMAT, not tried in the lab.
+- **`source-address`** where every host sees the workstation at a
+  fixed address; from another, sshd refuses the certificate (lab,
+  2026-10-24; → Failures).
+
+With plain OpenSSH, what the user runs where the CA's key is:
+
+```bash operator
+ssh-keygen -s <CA key> -I hostwarden@alice -n root -V +9h -O clear \
+  -O permit-port-forwarding -O permit-pty -O source-address=198.51.100.7 \
+  ~/.ssh/hostwarden_ed25519.pub
+```
+
+It writes `~/.ssh/hostwarden_ed25519-cert.pub` beside the public
+key. Other CA software sets the same certificate fields under names
+of its own, which its documentation gives (`rules/ssh-ca-issuing.md`
+names where to read them); none was tried in the lab. The user's command for it
+is recorded with the certificate's path (`rules/ssh-identity.md` → Setting It
+Up).
+
+`memory/ssh_config` offers the file that line names, and the agent
+signs with the key: a renewed file counts from the next login,
+without a new load into the agent. An expired one is offered, and
+the plain key after it: two refusals in one login (both lab,
+OpenSSH 10.0, 2026-10-24).
+
+A host takes the certificate where its `SSH user CA:` line names the
+CA that signed it, the `Signing CA` of `ssh-keygen -L -f`, and the
+account's principals admit one of the certificate's (`sshd_config(5)`
+→ TrustedUserCAKeys, AuthorizedPrincipalsFile; in the lab, a
+certificate without the account's principal was refused). A certificate
+that leaked is revoked in the CA's revocation list, which is the
+user's (User CA Trust).
 
 ## Memory
 

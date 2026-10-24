@@ -22,8 +22,11 @@
 #                   hostwarden@<operator>-<workstation>
 #   hostwarden-identity check [--quiet]
 #                   Whether the recorded agent answers and holds the
-#                   key, and the key's fingerprint. --quiet prints
-#                   only what is wrong
+#                   key, and the key's fingerprint; where a
+#                   certificate is recorded, whether it certifies the
+#                   key and how long it is valid, naming the user's
+#                   renewal command where it ends within two hours
+#                   or has ended. --quiet prints only what is wrong
 #   hostwarden-identity --help
 #
 # Never prints, copies or writes a private key, and never touches
@@ -31,7 +34,8 @@
 # manager) holds the key itself: agent and load do nothing for it.
 #
 # Exit status: 0 on success, 1 on failure, 2 on a usage error, 3
-# where no identity is recorded.
+# where no identity is recorded, 4 from check where the agent holds
+# the key and only the certificate is of no use.
 
 set -u
 case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
@@ -104,6 +108,79 @@ start_agent() {
   ssh-agent -a "$ID_AGENT" >/dev/null || die "ssh-agent did not start"
   agent_list >/dev/null
   [ $? -ne 2 ] || die "the agent started, but nothing answers on $ID_AGENT"
+}
+
+# epoch <YYYY-MM-DDTHH:MM:SS> — the local time ssh-keygen -L prints,
+# as seconds; GNU date first, then BSD's. The shape first: GNU's -d
+# reads "today" or "2026" too.
+epoch() {
+  case $1 in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]) ;;
+    *) return 1 ;;
+  esac
+  date -d "$1" +%s 2>/dev/null ||
+    date -j -f '%Y-%m-%dT%H:%M:%S' "$1" +%s 2>/dev/null
+}
+
+# cert_check — the certificate memory/user.md records, as ssh offers
+# it through CertificateFile: for this key, valid now, and how long
+# it has left. Dies where it is no use; warns, quiet or not, under
+# two hours left. Hostwarden never renews it: it names the user's
+# command (rules/ssh-ca.md → Hostwarden's Own Certificate).
+cert_check() {
+  if [ -n "$ID_RENEW" ]; then RENEW="the user runs: $ID_RENEW"
+  else RENEW="the user renews it with their CA"; fi
+  [ -f "$ID_CERT" ] || die "the certificate $ID_CERT is missing; $RENEW"
+  [ -r "$ID_CERT" ] || die "cannot read the certificate $ID_CERT"
+  command -v ssh-keygen >/dev/null 2>&1 ||
+    die "no ssh-keygen here to read the certificate $ID_CERT with"
+  # One line: whether it is a user certificate, the key it certifies,
+  # its validity, its key ID last, since that one may hold spaces.
+  C=$(LC_ALL=C ssh-keygen -L -f "$ID_CERT" 2>/dev/null | awk '
+    $1 == "Type:" { u = / user certificate$/ }
+    $1 == "Public" && $2 == "key:" { f = $4 }
+    $1 == "Valid:" { v = $0; sub(/^[ \t]*Valid: /, "", v) }
+    $1 == "Key" && $2 == "ID:" { k = $0; sub(/^[ \t]*Key ID: "/, "", k); sub(/"$/, "", k) }
+    END { if (u) print f "\t" v "\t" k }')
+  [ -n "$C" ] || die "$ID_CERT is no user certificate; $RENEW"
+  IFS=$(printf '\t') read -r CFP V KID <<EOF
+$C
+EOF
+  [ "$CFP" = "$FP" ] || die "$ID_CERT certifies $CFP, not $FP; $RENEW"
+  FROM='' TO=''
+  case $V in
+    'from '*' to '*) FROM=${V#from }; FROM=${FROM%% to *}; TO=${V##* to } ;;
+    'after '*) FROM=${V#after } ;;
+    'before '*) TO=${V#before } ;;
+  esac
+  NOW=$(date +%s)
+  if [ -n "$FROM" ]; then
+    F=$(epoch "$FROM") || die "cannot read the start of $ID_CERT: $FROM"
+    [ "$F" -le "$NOW" ] ||
+      die "the certificate $KID is valid only from $FROM; $RENEW"
+  fi
+  # Short-lived is the point (rules/ssh-ca.md): a certificate without
+  # end, or issued for more than a day, is said even under --quiet.
+  if [ -z "$TO" ]; then
+    say "the certificate $KID is valid without end, not one working" \
+      "day: the user's CA issues it that way"
+    return 0
+  fi
+  T=$(epoch "$TO") || die "cannot read the end of $ID_CERT: $TO"
+  [ "$T" -gt "$NOW" ] || die "the certificate $KID expired at $TO; $RENEW"
+  D=$(( (T - NOW) / 60 ))
+  LEFT="$((D / 60))h$((D % 60))m"
+  if [ "$D" -lt 120 ]; then
+    say "the certificate $KID ends at $TO, $LEFT from now; $RENEW"
+  elif [ -z "$FROM" ]; then
+    say "the certificate $KID is valid without start until $TO, not" \
+      "one working day: the user's CA issues it that way"
+  elif [ $((T - F)) -gt 86400 ]; then
+    say "the certificate $KID is valid from $FROM to $TO, more than" \
+      "a working day: the user's CA issues it that way"
+  elif [ -z "$Q" ]; then
+    say "certificate $KID, valid to $TO, $LEFT left"
+  fi
 }
 
 case $CMD in
@@ -210,10 +287,23 @@ case $CMD in
     else
       FIX="the user runs bin/hostwarden-identity load"
     fi
+    # The certificate in a subshell of its own, first: an agent whose
+    # lifetime ended must not hide a certificate that ended with it.
+    CM='' CRC=0
+    if [ -n "$ID_CERT" ]; then CM=$(cert_check 2>&1); CRC=$?; fi
     L=$(agent_list)
-    [ $? -ne 2 ] || die "no agent answers on $ID_AGENT; $FIX"
-    printf '%s\n' "$L" | grep -qF " $FP " ||
-      die "the agent on $ID_AGENT does not hold $FP; its lifetime ended" \
-        "or it was never loaded: $FIX"
-    [ -n "$Q" ] || say "$FP $(comment), held by $ID_AGENT" ;;
+    case $? in
+      2) AM="no agent answers on $ID_AGENT; $FIX" ;;
+      *) AM=''
+         printf '%s\n' "$L" | grep -qF " $FP " ||
+           AM="the agent on $ID_AGENT does not hold $FP; its lifetime ended or it was never loaded: $FIX" ;;
+    esac
+    if [ -n "$AM" ]; then
+      [ -z "$CM" ] || printf '%s\n' "$CM" >&2
+      die "$AM"
+    fi
+    [ -n "$Q" ] || say "$FP $(comment), held by $ID_AGENT"
+    # The agent holds the key; only the certificate is of no use.
+    if [ "$CRC" -ne 0 ]; then printf '%s\n' "$CM" >&2; exit 4; fi
+    [ -z "$CM" ] || printf '%s\n' "$CM" ;;
 esac

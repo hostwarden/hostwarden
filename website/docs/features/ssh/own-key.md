@@ -70,6 +70,25 @@ line keeps working as before, and the security and fleet audits
 list it as `no Hostwarden key`, next to the logins by each key over
 the last 30 days.
 
+## With a certificate from your CA
+
+Where you run an SSH CA, it can certify Hostwarden's key for a
+working day at a time, and a host that trusts the CA needs no
+`authorized_keys` line for it at all. Hostwarden never signs or
+renews the certificate; your CA does, the way you run it. Have it
+issued with the key ID `hostwarden@<your handle>`, only the
+principals Hostwarden logs in as, no agent forwarding, and a
+source address where your workstation has a fixed one. sshd then
+logs the key ID with every login, root logins included.
+
+You record the certificate's path, and the command you renew it
+with, under `# SSH Identity` in `memory/user.md`. At every session
+start, and again before it reaches a host that relies on it,
+Hostwarden reads how long the certificate is still valid. It tells
+you, with your command, when it ends within two hours, and holds
+back the hosts that rely on it once it has ended or cannot be used. No CA is
+needed for anything else on this page.
+
 ## What protects what
 
 The session runs as your user, so it could still read your key files

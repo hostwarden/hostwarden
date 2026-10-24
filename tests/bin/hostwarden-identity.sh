@@ -120,6 +120,105 @@ case $(run check) in
 esac
 [ -z "$(run check --quiet | grep -v '^rc=0$')" ] && ok ||
   bad "check --quiet printed something while all is well"
+
+# --- the certificate (rules/ssh-ca.md → Hostwarden's Own Certificate)
+ssh-keygen -q -t ed25519 -N '' -C ca -f "$TMP/ca"
+ssh-keygen -q -t ed25519 -N '' -C other -f "$TMP/o"
+# cert <validity> [<public key>] — signed by the test CA, written
+# where memory/user.md records the certificate.
+cert() {
+  cp "${2:-$HOME/hw.pub}" "$TMP/s.pub"
+  ssh-keygen -q -s "$TMP/ca" -I hostwarden@alice -n root -V "$1" \
+    "$TMP/s.pub" && cp "$TMP/s-cert.pub" "$HOME/hw-cert.pub"
+}
+mdc() {
+  md "SSH identity: own-agent
+SSH identity key: ~/hw.pub
+SSH identity agent: $SOCK
+SSH identity source: file ~/hw
+SSH identity certificate: ~/hw-cert.pub${1:+
+SSH identity renew: $1}"
+}
+mdc 'ca-renew hw'
+case $(run check) in
+  *'is missing; the user runs: ca-renew hw'*rc=4) ok ;;
+  *) bad "check with the certificate missing: $(run check)" ;;
+esac
+cert +9h
+case $(run check) in
+  *'certificate hostwarden@alice, valid to '*' left'*rc=0) ok ;;
+  *) bad "check with a valid certificate: $(run check)" ;;
+esac
+[ -z "$(run check --quiet | grep -v '^rc=0$')" ] && ok ||
+  bad "check --quiet printed something for a valid certificate"
+cert +90m
+case $(run check --quiet) in
+  *'ends at '*'the user runs: ca-renew hw'*rc=0) ok ;;
+  *) bad "check --quiet under two hours left: $(run check --quiet)" ;;
+esac
+cert -3h:-1h
+case $(run check --quiet) in
+  *'expired at '*'ca-renew hw'*rc=4) ok ;;
+  *) bad "check with an expired certificate: $(run check --quiet)" ;;
+esac
+cert +2h:+4h
+case $(run check --quiet) in
+  *'valid only from '*rc=4) ok ;;
+  *) bad "check with a certificate not valid yet: $(run check --quiet)" ;;
+esac
+cert always:forever
+case $(run check --quiet) in
+  *'valid without end'*rc=0) ok ;;
+  *) bad "check --quiet with a certificate without end: $(run check --quiet)" ;;
+esac
+cert +30h
+case $(run check --quiet) in
+  *'more than a working day'*rc=0) ok ;;
+  *) bad "check --quiet with a certificate of 30 hours: $(run check --quiet)" ;;
+esac
+cert always:+52w
+case $(run check --quiet) in
+  *'valid without start'*rc=0) ok ;;
+  *) bad "check --quiet with a certificate without start: $(run check --quiet)" ;;
+esac
+cert +9h "$TMP/o.pub"
+case $(run check --quiet) in
+  *"certifies "*", not $FP"*rc=4) ok ;;
+  *) bad "check with another key's certificate: $(run check --quiet)" ;;
+esac
+cp "$HOME/hw.pub" "$HOME/hw-cert.pub"
+case $(run check --quiet) in
+  *'no user certificate'*rc=4) ok ;;
+  *) bad "check with a plain key as the certificate: $(run check --quiet)" ;;
+esac
+mdc ''
+cert -3h:-1h
+case $(run check --quiet) in
+  *'renews it with their CA'*rc=4) ok ;;
+  *) bad "check without a renew line: $(run check --quiet)" ;;
+esac
+# An agent whose lifetime ended does not hide the certificate's end.
+SSH_AUTH_SOCK=$SOCK ssh-add -D >/dev/null 2>&1
+case $(run check --quiet) in
+  *'expired at '*'does not hold'*rc=1) ok ;;
+  *) bad "check with an empty agent and an expired certificate: $(run check --quiet)" ;;
+esac
+SSH_AUTH_SOCK=$SOCK ssh-add -q "$HOME/hw" </dev/null 2>/dev/null
+for l in "SSH identity: own-agent
+SSH identity key: ~/hw.pub
+SSH identity agent: $SOCK
+SSH identity certificate: ~/hw.pub" \
+  "SSH identity: own-agent
+SSH identity key: ~/hw.pub
+SSH identity agent: $SOCK
+SSH identity renew: ca-renew hw" \
+  'SSH identity certificate: ~/hw-cert.pub'; do
+  md "$l"
+  case $(run check) in
+    *rc=1) ok ;;
+    *) bad "accepted: $l" ;;
+  esac
+done
 md "SSH identity: manager
 SSH identity key: ~/hw.pub
 SSH identity agent: $SOCK"
