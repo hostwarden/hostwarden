@@ -372,26 +372,33 @@ function g2r(s,  r, i, c) {
   }
   return "^" r "$"
 }
-function allowed(k,  p, t, n, i, f, v, ok, res) {
-  res = "no"; lp = ""
+function takes(p, k,  i, f, x, ok) {
+  ok = 1
+  for (i = 1; i <= pn[p] && ok; i++) {
+    f = pf[p, i]; x = prx[p, i]
+    if (f == "o" || f == "origin") ok = (o[k] ~ x)
+    else if (f == "a" || f == "suite" || f == "archive") ok = (a[k] ~ x)
+    else if (f == "n" || f == "codename") ok = (nn[k] ~ x)
+    else if (f == "l" || f == "label") ok = (l[k] ~ x)
+    else if (f == "c" || f == "component") ok = (c[k] ~ x)
+    else if (f == "site") ok = (site[k] ~ x)
+    else ok = 0
+  }
+  return ok
+}
+function allowed(k,  p, res) {
+  res = "no"
   for (p = 1; p <= np; p++) {
-    n = split(pat[p], t, ","); ok = 1
-    for (i = 1; i <= n && ok; i++) {
-      gsub(/\001/, ",", t[i])
-      f = t[i]; sub(/=.*/, "", f); v = t[i]; sub(/^[^=]*=/, "", v)
-      if (f == "o" || f == "origin") ok = (o[k] ~ g2r(v))
-      else if (f == "a" || f == "suite" || f == "archive") ok = (a[k] ~ g2r(v))
-      else if (f == "n" || f == "codename") ok = (nn[k] ~ g2r(v))
-      else if (f == "l" || f == "label") ok = (l[k] ~ g2r(v))
-      else if (f == "c" || f == "component") ok = (c[k] ~ g2r(v))
-      else if (f == "site") ok = (site[k] ~ g2r(v))
-      else ok = 0
+    if (!takes(p, k)) continue
+    if (lit[p]) { if (res == "no") res = "yes"; continue }
+    res = "loose"
+    if (!((p, site[k]) in tsn)) {
+      tsn[p, site[k]] = 1; tk[p] = tk[p] (tk[p] == "" ? "" : ",") site[k]
     }
-    if (ok && lit[p]) { if (res == "no") res = "yes" }
-    else if (ok) { res = "loose"; lp = pat[p] }
   }
   return res
 }
+BEGIN { dist = "^(Debian|Ubuntu|UbuntuESM|UbuntuESMApps)$" }
 $1 == "P" {
   s = substr($0, length($2) + 4)
   if ($2 == "Allowed-Origins") {
@@ -401,8 +408,17 @@ $1 == "P" {
     s = "o=" t[1] ",a=" t[2]
   }
   gsub(/\\,/, "\001", s); pat[++np] = s
-  lit[np] = (s ~ /(^|,)(o|origin)=[^*?,]+(,|$)/ && s ~ /(^|,)site=[^*?,]+(,|$)/)
-  if (s !~ /(^|,)(o|origin|site)=[^*?,]+(,|$)/) print "broad-pattern " s
+  ov = ""; sv = ""; hc = 0; pn[np] = split(s, t, ",")
+  for (i = 1; i <= pn[np]; i++) {
+    gsub(/\001/, ",", t[i])
+    f = t[i]; sub(/=.*/, "", f); v = t[i]; sub(/^[^=]*=/, "", v)
+    pf[np, i] = f; prx[np, i] = g2r(v)
+    if (f == "o" || f == "origin") ov = v; else if (f == "site") sv = v
+    else if (f == "c" || f == "component") hc = 1
+  }
+  lit[np] = (ov != "" && sv != "" && hc && s !~ /[*?[]/)
+  broad[np] = ((ov == "" || ov ~ /[*?[]/) && (sv == "" || sv ~ /[*?[]/))
+  own[np] = (ov ~ dist || ov ~ /^\$\{distro_id\}(ESM|ESMApps)?$/)
   next
 }
 $1 == "S" {
@@ -440,21 +456,37 @@ $1 == "C" {
 END {
   for (i = 1; i <= nk; i++) {
     k = ord[i]
-    if (o[k] ~ /^(Debian|Ubuntu|UbuntuESM|UbuntuESMApps)$/) continue
+    if (o[k] ~ dist) continue
     al = allowed(k)
     printf "vendor site=%s o=%s l=%s a=%s n=%s c=%s allowed=%s pending=%d%s\n", \
       site[k], o[k], l[k], a[k], nn[k], c[k], al, npend[k], pend[k]
-    if (al == "loose") print "loose-pattern " site[k] " " lp
+  }
+  for (p = 1; p <= np; p++) {
+    if (lit[p] || own[p]) continue
+    s = pat[p]; gsub(/\001/, "\\,", s)
+    printf "%s takes=%s %s\n", (broad[p] ? "broad-pattern" : "loose-pattern"), \
+      (tk[p] == "" ? "none" : tk[p]), s
   }
 }'
 ```
 
-One line per repository and component:
+One line per repository and component, then one per pattern that is
+not exact, with the vendor sites it takes now:
 
     vendor site=download.docker.com o=Docker l=Docker CE a=trixie n= c=stable allowed=no pending=2 containerd.io docker-ce
     vendor site=pkgs.netbird.io o=Artifactory l=Artifactory a=stable n=stable c=main allowed=loose pending=0
-    loose-pattern pkgs.netbird.io origin=Artifactory,codename=stable
-    broad-pattern label=*
+    loose-pattern takes=pkgs.netbird.io origin=Artifactory,codename=stable
+    loose-pattern takes=none origin=Example,component=*,site=apt.example.com
+    broad-pattern takes=none label=*
+
+A pattern is exact when it names `origin=` (or `o=`), `site=` and
+`component=` (or `c=`, empty for a flat repository) and no value in it holds
+`*`, `?` or `[`. An `Allowed-Origins`
+entry cannot carry a site and is never exact. The distribution's
+own patterns, origin `Debian`, `Ubuntu`, `UbuntuESM` or
+`UbuntuESMApps` written out or as `${distro_id}`, `${distro_id}ESM`
+or `${distro_id}ESMApps`, are rated by Automatic Security Updates
+and get no line here.
 
 Severity rules:
 
@@ -463,16 +495,16 @@ Severity rules:
 - **INFO** for `allowed=no` with `pending=0`: "<site> (<o>) not in
   unattended-upgrades' origins" — the next release it publishes
   waits for a manual run.
-- **WARN** for each `broad-pattern` line: a pattern without one
-  `origin=` or `site=` free of wildcards lets every repository
-  added later install unattended.
-- **WARN** for `allowed=loose`, with its `loose-pattern` line: the
-  repository updates unattended, and at least one pattern that
-  takes it does not name both its origin and its site without
-  wildcards, so another repository with the same origin is taken
-  too — even where an exact pattern for it exists as well. A loose
-  pattern that matches no enabled repository admits nothing yet and
-  shows once one does.
+- **WARN** for each `broad-pattern` and `loose-pattern` line,
+  whether its `takes=` names a site or says `none`: a repository
+  added later installs unattended as soon as the pattern matches
+  it, which nobody decided — any repository at all for a
+  `broad-pattern`, one with the same origin or another suite or
+  component of the same site for a `loose-pattern`, such as a test
+  channel of a site whose pattern names no component. Each site in
+  `takes=` has `allowed=loose`, even where an exact pattern for it
+  exists as well; that is part of this finding, not one of its
+  own.
 - A decision that keeps a repository out, its heading naming the
   site, settles its findings as `rules/decisions.md` → Rating
   findings says; name the pending packages beside the `DECIDED`
@@ -489,8 +521,10 @@ through `hostwarden-baseline`. Housekeeping changes nothing.
 Report it in the `Auto-updates` line, after the mechanism:
 
     Auto-updates  unattended-upgrades active; vendors: download.docker.com
-                  (pending 2, not in origins), pkgs.netbird.io (loose pattern),
-                  apt.grafana.com (in origins)
+                  (pending 2, not in origins), pkgs.netbird.io (loose:
+                  origin=Artifactory,codename=stable), apt.grafana.com (in
+                  origins); patterns taking none: label=* (broad),
+                  origin=Example,component=*,site=apt.example.com (loose)
 
 ## Automatic Restarts
 
