@@ -37,10 +37,9 @@ jobs:
           persist-credentials: false
           # The secret scan reads the whole history.
           fetch-depth: 0
-          # A draft is checked on its own head, against its base;
-          # everything else on its merge with the base, or on the
-          # queue's group.
-          ref: ${{ github.event.pull_request.draft && format('refs/pull/{0}/head', github.event.pull_request.number) || '' }}
+          # A pull request, draft or not, is checked on its own head,
+          # against its base; the queue on its group's merge commit.
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.pull_request.number) || '' }}
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
@@ -65,16 +64,19 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends \
             gawk mawk original-awk busybox gnupg
 
-      # Add checks to scripts/check.sh, not here. A draft gets what a
-      # push of its commits onto the base gets: every check but the
-      # matrices whose files it leaves alone.
+      # Add checks to scripts/check.sh, not here. A pull request, draft
+      # or not, gets what a push of its commits onto the base gets:
+      # every check but the matrices whose files it leaves alone. Only
+      # the queue, and a run by hand, run all of it: the queue checks
+      # the pull request on `main` as it will be, which no earlier run
+      # can.
       - name: Check
         env:
-          DRAFT: ${{ github.event.pull_request.draft }}
+          EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "$DRAFT" = true ]; then
-            echo "HEAD $(git rev-parse HEAD) refs/heads/draft $BASE" \
+          if [ "$EVENT" = pull_request ]; then
+            echo "HEAD $(git rev-parse HEAD) refs/heads/pull-request $BASE" \
               | sh scripts/check.sh --pre-push
           else
             sh scripts/check.sh

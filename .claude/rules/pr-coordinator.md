@@ -97,7 +97,9 @@ loop reads `mergeQueueEntry` through `gh api graphql`, since
 `gh pr view --json` does not know the field (→ Verifying readiness),
 and has the timeout branch that reports failure. A member that drops
 out is re-verified by → Verifying readiness and queued again alone,
-after the others have merged.
+after the others have merged, once the failed `merge_group` run that
+dropped it is read and answered (`pull-requests.md` → Checks): the
+head's scoped checks stay green when the full run fails.
 
 ## Cleanup after a merge
 
