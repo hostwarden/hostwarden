@@ -34,6 +34,16 @@ PowerShell block in this file is the stdin of that call.** Join
 the blocks a task needs into one call, each behind its own
 marker line (`'@firewall'`), and keep the shape:
 
+- **UTF-8 output comes from the first line.** Without it the
+  bytes of `ü`, `ö` and `ß` leave as the OEM code page (cp850:
+  `81 94 e1`), not as UTF-8. Start every bundle that prints file
+  names or other text a user wrote with
+
+  ```
+  try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
+  ```
+
+  which gives `c3 bc c3 b6 c3 9f`.
 - **One statement per line.** PowerShell reads stdin one
   statement at a time, as if typed at a prompt, and skips a
   statement that does not parse. Join statements with `;`,
