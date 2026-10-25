@@ -24,8 +24,7 @@ render_cluster() {
     while IFS="$US" read -r c2 member mdir; do
       [ -n "$member" ] || continue
       mid="m_$(id_sh "$member")"
-      printf '  subgraph %s["%s"]\n' "$mid" "$(esc_sh "$member")"
-      echo "    direction TB"
+      : >"$WORK/cluster-member-nodes"
       while IFS="$US" read -r owner gid gname gkind gstate gip gdir graw; do
         [ -n "$owner" ] || continue
         # A bare `*" on $member"*` would also match "pve10" for
@@ -37,9 +36,18 @@ render_cluster() {
           *) continue ;;
         esac
         echo "$gid|$gname" >>"$WORK/cluster-placed"
-        guest_node "    " "$gid" "$gname" "$gkind" "$gstate" "$gdir"
+        guest_node "    " "$gid" "$gname" "$gkind" "$gstate" "$gdir" >>"$WORK/cluster-member-nodes"
       done <"$WORK/cluster-guests.tsv.us"
-      echo "  end"
+      # Mermaid draws empty subgraphs on top of each other at the
+      # origin, so a member with no guest is one node, same ID.
+      if [ -s "$WORK/cluster-member-nodes" ]; then
+        printf '  subgraph %s["%s"]\n' "$mid" "$(esc_sh "$member")"
+        echo "    direction TB"
+        cat "$WORK/cluster-member-nodes"
+        echo "  end"
+      else
+        printf '  %s["%s<br/>no guest drawn"]\n' "$mid" "$(esc_sh "$member")"
+      fi
     done <"$WORK/cluster-members.tsv.us"
 
     cut -f2,3 "$WORK/cluster-guests.tsv" | tr '\t' '|' >"$WORK/cluster-guests-all"
@@ -107,13 +115,21 @@ render_host() {
   {
     echo "flowchart TB"
     hnid="h_$(id_sh "$hv")"
-    printf '  subgraph %s["%s"]\n' "$hnid" "$(esc_sh "$hv")"
-    echo "    direction TB"
+    : >"$WORK/host-guest-nodes"
     while IFS="$US" read -r owner gid gname gkind gstate gip gdir graw; do
       [ -n "$owner" ] || continue
-      guest_node "    " "$gid" "$gname" "$gkind" "$gstate" "$gdir"
+      guest_node "    " "$gid" "$gname" "$gkind" "$gstate" "$gdir" >>"$WORK/host-guest-nodes"
     done <"$WORK/host-guests.tsv.us"
-    echo "  end"
+    # Mermaid draws empty subgraphs on top of each other at the
+    # origin, so a hypervisor with no guest is one node, same ID.
+    if [ -s "$WORK/host-guest-nodes" ]; then
+      printf '  subgraph %s["%s"]\n' "$hnid" "$(esc_sh "$hv")"
+      echo "    direction TB"
+      cat "$WORK/host-guest-nodes"
+      echo "  end"
+    else
+      printf '  %s["%s<br/>no guest drawn"]\n' "$hnid" "$(esc_sh "$hv")"
+    fi
     # No edge leaves this level today, so nothing has to come first --
     # but the moment one does (a link out to the site, say), it goes
     # above this line, never below it (docs/adr/20260925-mermaid-class-order.md).

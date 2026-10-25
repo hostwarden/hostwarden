@@ -10,8 +10,11 @@
 #        TAB <ip> TAB <date> TAB <runson> TAB <hasfinding 0|1>
 #        TAB <stale 0|1>
 # <kind> is router, hypervisor, storage or host (a plain server or a
-# VM, told apart only by <runson>, which is empty for anything that
-# is not itself a guest). <date> is the later of Onboarded: and
+# VM, told apart only by <runson>: the hypervisor or cluster in
+# memory a guest runs on, whose map draws it, and empty for anything
+# else -- a plain server, and a guest of a provider, of a host
+# Hostwarden does not manage or of an unknown one, which its site
+# map draws). <date> is the later of Onboarded: and
 # Housekeeping:, the freshness rules/machine-memory.md → Onboarded and
 # stale lines gives a host'"'"'s own record. <hasfinding> is set when
 # a memory/topology.md Topology findings entry names this host as a
@@ -28,9 +31,12 @@ for g in "$M"/machines/*/guests.md; do
 done
 
 if [ -s "$HOSTFIELDS" ]; then
-  awk -F '\t' -v hvfile="$HVSET" -v findingsfile="$FINDINGS" -v prov="$SITE_PROV" '
+  awk -F '\t' -v hvfile="$HVSET" -v findingsfile="$FINDINGS" \
+    -v clfile="$CLUSTERMEMBERS" -v prov="$SITE_PROV" '
     BEGIN {
+      hvapp = "Proxmox VE|Proxmox Backup|libvirt|Incus|LXD|XCP-ng|ESXi"
       while ((getline h < hvfile) > 0) hv[h] = 1
+      while ((getline cm < clfile) > 0) { split(cm, cf, "\t"); cl[cf[1]] = 1 }
       while ((getline fl < findingsfile) > 0) {
         split(fl, ff, "\t")
         findingtext = findingtext " " ff[2]
@@ -45,7 +51,7 @@ if [ -s "$HOSTFIELDS" ]; then
     $2 == "IP" { v = $3; sub(/[ \t,;()].*/, "", v); ip[$1] = v }
     $2 == "Onboarded" { v = $3; sub(/[ \t].*/, "", v); onb[$1] = v }
     $2 == "Housekeeping" { v = $3; sub(/[ \t].*/, "", v); hk[$1] = v }
-    $2 == "Runs on" { v = $3; sub(/[ \t].*/, "", v); ro[$1] = v }
+    $2 == "Runs on" { ro[$1] = $3 }
     END {
       for (h in host) {
         a = appl[h]; r = role[h]; m = mode[h]; kind = "host"
@@ -70,10 +76,22 @@ if [ -s "$HOSTFIELDS" ]; then
         else if (a ~ /UniFi OS/ && a ~ /Cloud Key/) kind = "host"
         else if (a ~ /OPNsense|pfSense|OpenWrt|UniFi OS|RouterOS|VyOS|MikroTik/ \
           || r ~ /router|firewall|gateway/) kind = "router"
-        else if ((h in hv) || a ~ /Proxmox VE|Proxmox Backup|libvirt|Incus|LXD|XCP-ng|ESXi/) kind = "hypervisor"
+        else if ((h in hv) || a ~ hvapp) kind = "hypervisor"
         else if (a ~ /TrueNAS|Synology|QTS|QuTS hero|Unraid|OpenMediaVault|UGOS Pro|ZimaOS|storage appliance/) kind = "storage"
         d = (onb[h] > hk[h]) ? onb[h] : hk[h]
         if (d == "") d = "not known"
+        # Runs on: names a hypervisor (a host with a guests.md or a
+        # hypervisor appliance) or a cluster in memory, whose
+        # own map draws this guest (cluster-host.sh); the site map
+        # leaves it out so it is drawn once. A provider ("Hetzner
+        # (cloud)"), a host Hostwarden does not manage ("<name>
+        # (user, not managed)") or "unknown (user)" has no map here,
+        # so the host draws in its site like a plain server.
+        v = ro[h]; sub(/[ \t].*/, "", v)
+        if (v == "cluster") {
+          v = ro[h]; sub(/^cluster[ \t]+/, "", v); sub(/[ \t(,].*/, "", v)
+          ro[h] = (v in cl) ? ro[h] : ""
+        } else ro[h] = ((v in hv) || appl[v] ~ hvapp) ? v : ""
         # A finding'"'"'s own prose names a host the short way (a
         # routing table does not print the FQDN), so both forms are
         # tried, and a name in parentheses -- "via 192.0.2.5

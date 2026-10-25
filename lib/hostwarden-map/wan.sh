@@ -151,15 +151,23 @@ render_wan() {
     sort -t "$US" -k1,1 "$SITES.us" | while IFS="$US" read -r s desc sdate; do
       [ -n "$s" ] || continue
       sid="site_$(id_sh "$s")"
-      printf '  subgraph %s["%s"]\n' "$sid" "$(esc_sh "$s")"
-      echo "    direction TB"
       # shellcheck disable=SC2034 # hs is the row's own site; not needed once filtered to it
       awk -F '\t' -v s="$s" '$2 == s && $8 == "" { print }' "$HOSTS" \
         | LC_ALL=C sort -t '	' -k1,1 | tr '\t' "$US" \
         | while IFS="$US" read -r h hs c k a ip d ro hf st; do
           host_node "    " "$h" "$k" "$a" "$st" "../machines" "$hf"
-        done
-      echo "  end"
+        done >"$WORK/wan-site-hosts.mmd"
+      # Mermaid draws empty subgraphs on top of each other at the
+      # origin, so a site none of whose hosts is drawn is one node
+      # under the same ID: the edges below still find it.
+      if [ -s "$WORK/wan-site-hosts.mmd" ]; then
+        printf '  subgraph %s["%s"]\n' "$sid" "$(esc_sh "$s")"
+        echo "    direction TB"
+        cat "$WORK/wan-site-hosts.mmd"
+        echo "  end"
+      else
+        printf '  %s["%s<br/>no host drawn"]\n' "$sid" "$(esc_sh "$s")"
+      fi
     done
 
     # A host with no Site: line at all, and one whose Site: names

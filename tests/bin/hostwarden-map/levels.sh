@@ -131,21 +131,21 @@ haspart "$COLO" 'h_web1_example_com("web1.example.com<br/>host")' \
   "web1 itself still appears, inside the fallback group"
 
 # --- Site: two Ranges rows sharing one prefix, "not shown to be one
-# network" -- distinct subgraphs, and dup1 (which the prefix alone
+# network" -- distinct boxes, and dup1 (which the prefix alone
 # cannot tell apart) falls to "Other hosts" rather than being
 # guessed into either or drawn in both --------------------------
-n=$(grep -c 'subgraph range_192_168_50_0_24' "$COLO")
+n=$(grep -c 'range_192_168_50_0_24_[0-9]*\["' "$COLO")
 [ "$n" -eq 2 ] && ok \
-  || bad "192.168.50.0/24's two unconfirmed Ranges rows must draw as two distinct subgraphs, not $n (a shared ID merges them into one)"
+  || bad "192.168.50.0/24's two unconfirmed Ranges rows must draw as two distinct boxes, not $n (a shared ID merges them into one)"
 haspart "$COLO" 'same prefix, not shown to be one network' \
-  "each of the two subgraphs says plainly why there are two of them"
+  "each of the two boxes says plainly why there are two of them"
 n=$(grep -c 'h_dup1_example_com(' "$COLO")
 [ "$n" -eq 1 ] && ok \
   || bad "dup1 must appear exactly once, in the Other-hosts fallback -- $n occurrences means it was placed in an ambiguous range subgraph instead"
 haspart "$COLO" 'h_dup1_example_com("dup1.example.com<br/>host")' \
   "dup1 itself is still on the map, just honestly unplaced"
-haspart "$COLO" 'subgraph range_10_50_0_0_24["10.50.0.0/24' \
-  "the LAN hop's other, unambiguous end still gets its own ordinary range subgraph"
+haspart "$COLO" 'range_10_50_0_0_24["10.50.0.0/24' \
+  "the LAN hop's other, unambiguous end still gets its own ordinary range box"
 lacks "$COLO" 'range_192_168_50_0_24 --- range_10_50_0_0_24' \
   "a LAN hop naming an ambiguous prefix must not connect to range_<prefix> -- id_sh never gave that exact id a subgraph once the prefix split into row-suffixed ones, and Mermaid would invent a bare extra node for it"
 
