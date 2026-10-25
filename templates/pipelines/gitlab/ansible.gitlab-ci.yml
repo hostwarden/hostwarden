@@ -18,10 +18,11 @@
 # this file.
 
 # Every job, every hidden job and the variables carry the tree's name
-# or sit in a job of its own: GitLab merges entries of the same name
-# across included files, so the files of two trees, or of a tree and
-# an OpenTofu stack, stay apart only this way. The stages are the ones
-# the OpenTofu template names, so that the lists agree.
+# or sit in a job of its own, and the jobs begin with `ansible-`:
+# GitLab merges entries of the same name across included files, so
+# the files of two trees, or of a tree and an OpenTofu stack of the
+# same name, stay apart only this way. The stages are the ones the
+# OpenTofu template names, so that the lists agree.
 stages:
   - check
   - plan
@@ -42,7 +43,7 @@ stages:
       changes:
         - "<tree-path>/**/*"
 
-check-<tree>:
+ansible-check-<tree>:
   stage: check
   extends: .tree-<tree>
   image: python:3.13-slim
@@ -67,10 +68,10 @@ check-<tree>:
 # Switch on by removing `when: never` once a runner with the tag
 # reaches the hosts; the inventory and the SSH options come from the
 # runner, never from a CI/CD variable.
-diff-<tree>:
+ansible-diff-<tree>:
   stage: plan
   extends: .tree-<tree>
-  needs: [check-<tree>]
+  needs: [ansible-check-<tree>]
   tags: [hostwarden]
   rules:
     - when: never

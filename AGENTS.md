@@ -350,6 +350,9 @@ trigger — not a request from the user.
 - An OpenTofu or Terraform stack, a host whose memory has a
   `Provisioned by:` line, a change to what such code owns, its
   pipeline or a credential it uses → `rules/opentofu.md`
+- Bringing infrastructure that exists, or a host Hostwarden set up
+  by hand, under OpenTofu or Ansible, or handing a part of it from
+  Hostwarden to code or back → `rules/infra-migration.md`
 - Editing any config file → `rules/backups.md`
 - Writing a file of your own onto a host, changing or removing
   one, or running a script from `memory/tools/` against a host →

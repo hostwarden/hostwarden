@@ -17,7 +17,12 @@ description: Set up an Ansible tree Hostwarden runs — take over the
   "/hostwarden-ansible check", "/hostwarden-ansible diff site.yml
   --limit web1.example.com", "/hostwarden-ansible verify site.yml" —
   it runs that one step of `rules/workspace-playbook.md` and
-  reports. Not for OpenTofu (`hostwarden-opentofu`).
+  reports. Also for turning what a host runs today, set up by hand or
+  by Hostwarden, into a role that describes it, for example "put the web
+  server's configuration into Ansible", "hand web1 over to Ansible",
+  "write a role from what runs on db1", "die Konfiguration von web1
+  in Ansible überführen", "aus dem laufenden Server eine Rolle
+  machen". Not for OpenTofu (`hostwarden-opentofu`).
 ---
 
 # hostwarden-ansible
@@ -45,14 +50,14 @@ it; then the step; the rest — the playbook, `--limit`, `--tags` — go
 to the wrapper as they stand.
 
 - **A wrapper verb** — `check`, `diff`, `apply`, `verify`,
-  `inventory`, `lint`, `galaxy`, `ping`, `facts` — runs that step of
+  `matches`, `inventory`, `lint`, `galaxy`, `ping`, `facts` — runs that step of
   `rules/workspace-playbook.md` on that tree and nothing else, under
   that step's conditions: `/hostwarden-ansible diff site.yml --limit
   web1.example.com` shows the diff per host and the tasks check mode
   cannot show, then stops. An argument the wrapper refuses is
   refused here too, with the reason.
-- **A setup way** — `adopt`, `new`, `credentials`, `pipeline` —
-  starts there (below). `adopt` takes the path or the tree's name.
+- **A setup way** — `adopt`, `new`, `codify`, `credentials`,
+  `pipeline` — starts there (below). `adopt` takes the path or the tree's name.
 - **No arguments**: the question below.
 
 ## Which way in
@@ -66,6 +71,8 @@ request or the arguments already say:
 3. **Credentials** — the vault's password and the variables a play
    takes from the environment, on this machine or for a team.
 4. **Pipeline** — a pipeline for a tree that exists.
+5. **Codify** — what a host runs today, set up by hand or by
+   Hostwarden, written as a role of a tree that exists.
 
 A new tree walks through all four in that order; the others start
 where they are named.
@@ -115,6 +122,18 @@ where they are named.
 7. **Record.** Each host's `Config management: ansible (scope: …)`
    line, each credential in `memory/infra/credentials.md`, a journal
    line on each host that the tree is now run through Hostwarden.
+
+## Codify
+
+The user names the host and the concern: the web server, the
+firewall, the users, the scheduled jobs. Follow
+`rules/infra-migration.md` → A host into Ansible, from reading the
+host to the scope line, and → Handing over from Hostwarden where
+the files are ones Hostwarden deployed. The proof is
+`bin/hostwarden-ansible matches site.yml --limit <host>` ending with
+`changed=0`; a difference is a question for the user, not a reason
+to apply. A scope the user gives back follows
+`rules/infra-migration.md` → Handing back.
 
 ## New
 

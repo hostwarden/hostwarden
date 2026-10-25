@@ -120,8 +120,10 @@ one whose dismissed Puppet unit has since been enabled; either way
 the entry is replaced by the answer. Otherwise ask again only on one
 of the triggers under `rules/config-management.md` → Detect, or
 when the user raises it. When the user takes a host or an area out
-of a tool, change the line or remove it; the files stay as they
-are, and from then on Hostwarden changes them by hand.
+of a tool, the tool stops acting on it first, then the line is
+changed or removed (`rules/infra-migration.md` → Handing back); the
+files stay as they are, and from then on Hostwarden changes them by
+hand.
 
 Terraform and OpenTofu leave nothing on a host to detect. Record
 them when the user says so, or when a stack Hostwarden runs created

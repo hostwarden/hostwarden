@@ -18,7 +18,11 @@ description: Set up an OpenTofu stack Hostwarden runs — take over a
   wrapper's verbs as arguments — "/hostwarden-opentofu hosting plan",
   "/hostwarden-opentofu hosting review", "/hostwarden-opentofu hosting
   drift" — it runs that one step of `rules/opentofu.md` and reports.
-  Not for Ansible (`hostwarden-ansible`).
+  Also for bringing resources that exist at a provider, and that no
+  code describes yet, under a stack, for example "import my existing servers
+  into OpenTofu", "put the DNS zone under code", "bestehende
+  Ressourcen in OpenTofu importieren", "den Hetzner-Bestand unter
+  Code bringen". Not for Ansible (`hostwarden-ansible`).
 ---
 
 # hostwarden-opentofu
@@ -46,15 +50,15 @@ The first word is the stack, as `bin/hostwarden-tofu` takes it; the
 second the step; the rest go to the wrapper as they stand.
 
 - **A wrapper verb** — `check`, `plan`, `review`, `apply`, `drift`,
-  `test`, `output`, `state list`, `state show` — runs that step of
+  `generate`, `test`, `output`, `state list`, `state show` — runs that step of
   `rules/opentofu.md` → Check, plan, review, apply on that stack and
   nothing else, under that step's conditions:
   `/hostwarden-opentofu hosting plan` plans, shows the summary line
   and stops. An argument the wrapper refuses is refused here too,
   with the reason.
-- **A setup way** — `adopt`, `new`, `state`, `credentials`,
-  `pipeline` — starts there (below). Without a stack, `new` asks for
-  its name first; `adopt` takes the path or the stack.
+- **A setup way** — `adopt`, `new`, `import`, `state`,
+  `credentials`, `pipeline` — starts there (below). Without a stack, `new` asks
+  for its name first; `adopt` takes the path or the stack.
 - **No arguments**: the question below.
 
 ## Which way in
@@ -69,6 +73,8 @@ request or the arguments already say:
 4. **Credentials** — set up or change where a stack's credentials
    come from, on this machine or for a team.
 5. **Pipeline** — a pipeline for a stack that exists.
+6. **Import** — resources that exist at a provider and no code
+   describes, brought into a stack that exists.
 
 A new stack walks through all five in that order; the others start
 where they are named.
@@ -139,6 +145,18 @@ where they are named.
    `hostwarden-tofu <stack> apply` is the usual way, asked; a
    `ci` tree waits for → Pipeline.
 4. **Record** as Adopt step 6 says.
+
+## Import
+
+The user names the slice: a service, a zone, one project at a
+provider. Follow `rules/infra-migration.md` → Existing resources
+into OpenTofu, from the listing of what exists to the apply of a
+plan that shows imports only. The stack, its remote state and its
+credentials come first; where one is missing, the way for it
+(New, State, Credentials) runs before this one. Every resource
+argument and every import `id` comes from the provider's current
+documentation. Resources the user gives back follow
+`rules/infra-migration.md` → Handing back.
 
 ## State
 

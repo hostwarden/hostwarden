@@ -158,6 +158,34 @@ lints and syntax-checks; an apply from a pipeline needs a
 self-hosted runner that does, which your operations host can be,
 with a deploy user of its own on each host.
 
+## Bringing what exists under code
+
+Most infrastructure starts by hand. Hostwarden helps move it into
+code one slice at a time, and the code describes what is there
+before it changes anything.
+
+- **Resources at a provider** become an OpenTofu stack through
+  `import` blocks. `hostwarden-tofu hosting generate` drafts the
+  resource code from them, a draft you read and clean, and the plan
+  must show nothing but the imports before anything is applied.
+  The state is remote and locked first, since an import writes every
+  attribute of the object into it, secrets included.
+- **A host set up by hand, or by Hostwarden,** becomes an Ansible
+  role per concern: the web server, the firewall, the users. The
+  role states what the host has today, and `hostwarden-ansible
+  matches site.yml --limit web1.example.com` has to end with
+  `changed=0` before the role owns the concern. Files Hostwarden
+  deployed move into the role with their bytes unchanged, and the
+  host's `Config management` line records the scope that moved.
+- **A difference is a question to you.** Where the code and the host
+  disagree, Hostwarden corrects the code by default. Changing the
+  host to match the code is an apply like any other: asked, every
+  time.
+
+Handing a scope back works the same way in reverse: the role or
+stack stops acting on it first, then you remove the line, and
+Hostwarden changes those files by hand again.
+
 ## Getting started
 
 - "Set up OpenTofu", "übernimm meine Terraform-Konfiguration",
@@ -166,6 +194,9 @@ with a deploy user of its own on each host.
   credentials and its pipeline.
 - "Take over my playbooks", "Ansible einrichten" — the
   `hostwarden-ansible` skill does the same for an Ansible tree.
+- "Import my existing servers into OpenTofu", "web1 in Ansible
+  überführen" — the same two skills, with the ways `import` and
+  `codify`.
 - One step at a time, by name: `/hostwarden-opentofu hosting plan`,
   `/hostwarden-opentofu hosting review`, `/hostwarden-ansible diff
   site.yml --limit web1.example.com`. The skill runs that step
@@ -175,4 +206,4 @@ Hostwarden never proposes either on its own: it runs the code you
 keep.
 
 Rules: `rules/infra-code.md`, `rules/opentofu.md`,
-`rules/workspace-playbook.md`.
+`rules/workspace-playbook.md`, `rules/infra-migration.md`.

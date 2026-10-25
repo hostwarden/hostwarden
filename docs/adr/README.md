@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Existing infrastructure moves under code only against a clean plan](20261026-existing-infrastructure-moves-by-proof.md) | infrastructure-code, opentofu, ansible, migration | — |
 | [Hostwarden plans infrastructure code and applies only what cannot destroy](20261025-agent-plans-user-applies-infrastructure-code.md) | infrastructure-code, opentofu, ansible, approvals, guard | — |
 | [Operations host read-only while no write key is unlocked](20261024-ops-host-read-only-while-no-write-key.md) | operations, access-control, ssh, keys | — |
 | [The background session is called presence](20261022-background-session-is-presence.md) | coordination, sessions | — |

@@ -51,9 +51,10 @@ lines gets them added to its `.gitignore` before the first run.
    user, before step 4.
 3. **Every host the play reaches** has gone through
    `rules/first-connection.md` in this session, and
-   `hostwarden-ansible inventory` shows which those are, with the
-   `--limit` the user named: a pattern that reaches more hosts than
-   meant is caught here, not in the recap. A value the play needs
+   `hostwarden-ansible playbook --list-hosts site.yml --limit <hosts>`
+   shows which those are, with the `--limit` the user named: a
+   pattern that reaches more hosts than meant is caught here, not in
+   the recap. A value the play needs
    comes from a vars file in the tree or the vault, never from
    `-e`: the wrapper and the guard refuse a secret there.
 4. **Diff** — `hostwarden-ansible diff site.yml --limit <hosts>`:
@@ -85,6 +86,10 @@ lines gets them added to its `.gitignore` before the first run.
    first, in a call of its own, and the cancel follows its result.
    A second run that still changes is a task that is not
    idempotent, named to the user, not run a third time.
+   `hostwarden-ansible matches site.yml --limit <hosts>` is the same
+   proof before any apply: a check run that has to end with
+   `changed=0`, for a tree written to describe a host that exists
+   (`rules/infra-migration.md`).
 7. **Log it.** A journal line per host (`rules/changelog.md`), a
    changelog entry whose `Source:` names the tree and the workspace
    commit of it, and the host's `Config management: ansible
@@ -120,6 +125,10 @@ The tools come from `mise.toml` in the checkout
   on `command`, `shell` and `raw`, `check_mode: false` with a
   comment where one only reads, and a file written through
   `template`, `copy` or `lineinfile`, so `--diff` shows it.
+- **A task that renders a secret, from the vault or from
+  `secrets.env`, carries `no_log: true` and `diff: false`.** `diff` and
+  `matches` print the before and after
+  of every file, and the session reads that output.
 - **Handlers for restarts, reloads where the service takes one**
   (`rules/service-reload.md`), never a restart in a task.
 - **Lint with the tree's profile.** The tree carries a

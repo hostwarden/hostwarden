@@ -106,7 +106,7 @@ lib/                   — Code bin/ and the hooks share; sourced,
                          and wrap-markdown.sh leave alone
   hostwarden-<name>/   — The stages of bin/hostwarden-<name>,
                          which sources them in order: -impact,
-                         -map, -fleet-run, -heinzel-takeover
+                         -map, -fleet-run, -heinzel-takeover, -tofu
 scripts/               — Tools for developing Hostwarden itself;
                          never needed to run it
   changelog-release.sh — Folds changelog.d/ into CHANGELOG.md
@@ -383,6 +383,9 @@ rules/                 — Upstream rule files (git-tracked)
                          commands shown whole, pipelines
   opentofu.md          — An OpenTofu stack: check, plan, review,
                          apply, drift, state, providers
+  infra-migration.md   — Bringing existing resources and hosts
+                         under OpenTofu or Ansible, and handing a
+                         scope between Hostwarden and code
   workspace-playbook.md — An Ansible tree Hostwarden runs: read,
                          checked, diffed, applied, verified
   first-connection.md  — Mandatory onboarding checklist

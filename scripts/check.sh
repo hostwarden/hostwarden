@@ -344,7 +344,7 @@ fi
 # The infrastructure-code matrices read the two wrappers, lib/infra.sh
 # and the password library they take a manager's token from.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
-    "^bin/hostwarden-(tofu|ansible)\$|^lib/(infra\\.sh|passwords\\.sh|passwords/|mode\\.sh)|^tests/bin/(hostwarden-(tofu|ansible)|infra-fixture)\\.sh\$$HELPERS"
+    "^bin/hostwarden-(tofu|ansible)\$|^lib/(infra\\.sh|passwords\\.sh|passwords/|mode\\.sh|hostwarden-tofu/)|^tests/bin/(hostwarden-(tofu|ansible)|infra-fixture)\\.sh\$|^tests/bin/hostwarden-tofu/$HELPERS"
 then
   echo "== infrastructure-code matrices: nothing they read is pushed, skipped"
 else
