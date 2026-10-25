@@ -97,10 +97,29 @@ has_log "ansible-playbook -i $TREE/inventory $TREE/site.yml" "apply"
 expect_rc 1 "a playbook outside the tree" hw apply ../prod/site.yml
 has_out "outside the tree" "outside"
 expect_rc 1 "a playbook that is not there" hw apply nothere.yml
-# ansible.cfg's inventory wins over the file in the tree.
-printf '[defaults]\ninventory = hosts/\n' > "$TREE/ansible.cfg"
-expect_rc 0 "ansible.cfg inventory" hw diff site.yml
-has_log "ansible-playbook -i hosts/ --check --diff" "cfg inventory"
+# ansible.cfg's inventory, a list of sources included, is Ansible's to
+# read: no -i, which would turn a list into a host list.
+printf '[defaults]\ninventory = hosts.yml, cloud.yml\n' > "$TREE/ansible.cfg"
+: > "$LOG"
+expect_rc 0 "ansible.cfg inventory list" hw diff site.yml
+has_log "ansible-playbook --check --diff $TREE/site.yml" "cfg inventory left to ansible"
+no_log "ansible-playbook -i" "no -i beside a configured inventory"
+: > "$LOG"
+expect_rc 0 "inventory under a configured list" hw inventory
+has_log "ansible-inventory --graph" "inventory graph without -i"
+no_log "ansible-inventory -i" "inventory without -i"
+VP=$HOME/hostwarden-keys/infra/ansible/ansible/vault-password
+mkdir -p "${VP%/*}"
+: > "$VP"
+chmod 600 "$VP"
+expect_rc 3 "inventory --list" hw inventory --list
+expect_rc 3 "inventory --host" hw inventory --host web1.example.com
+expect_rc 3 "inventory --graph --vars" hw inventory --graph --vars
+expect_rc 0 "inventory --graph --limit" hw inventory --graph --limit web1.example.com
+expect_rc 0 "inventory --help" hw inventory --help
+expect_rc 0 "inventory -vvv" hw inventory -vvv
+expect_rc 0 "inventory -lweb1" hw inventory -lweb1.example.com
+rm -f "$VP"
 printf '[defaults]\n' > "$TREE/ansible.cfg"
 
 # --- verify ---------------------------------------------------------
@@ -125,6 +144,20 @@ expect_rc 1 "verify with an empty recap" hw verify site.yml --limit nothere
 has_out "reached no host" "empty recap named"
 case "$OUT" in *"verified: "*) bad "an empty recap read as verified" ;; *) ok ;; esac
 rm -f "$TMP/empty-recap"
+# --- matches: the tree describes the host -------------------------------
+: > "$LOG"
+expect_rc 0 "matches with changed=0" hw matches site.yml --limit web1.example.com
+has_log "ansible-playbook -i $TREE/inventory --check --diff $TREE/site.yml --limit web1.example.com" "matches is a check run"
+has_out "matches: changed=0 on every host" "matches"
+echo 2 > "$TMP/changed"
+expect_rc 1 "matches with a difference" hw matches site.yml
+has_out "the tree does not match" "difference named"
+has_out "web1.example.com" "host named"
+rm -f "$TMP/changed"
+echo 2 > "$TMP/ansible-playbook-rc"
+expect_rc 1 "matches with a failed check run" hw matches site.yml
+has_out "the check run failed" "failed run named"
+rm -f "$TMP/ansible-playbook-rc"
 
 # --- secrets in -e, the vault, the trees ---------------------------
 expect_rc 3 "a secret in -e" hw diff site.yml -e db_password=x
@@ -135,7 +168,9 @@ VP=$HOME/hostwarden-keys/infra/ansible/ansible/vault-password
 : > "$VP"
 chmod 600 "$VP"
 expect_rc 0 "with a vault password file" hw diff site.yml
-has_log "--vault-password-file $VP" "vault named"
+has_env "ANSIBLE_VAULT_PASSWORD_FILE=$VP" "vault named"
+expect_rc 0 "check with a vault password file" hw check
+has_env "ANSIBLE_VAULT_PASSWORD_FILE=$VP" "ansible-lint reads the vault"
 chmod 644 "$VP"
 expect_rc 1 "a readable vault password file" hw diff site.yml
 rm -f "$VP"

@@ -401,6 +401,9 @@ has_log "tofu fmt" "fmt formats the tree"
 expect_rc 0 "fmt -check -diff" hw web fmt -check -diff
 expect_rc 1 "fmt outside the tree" hw web fmt /etc/x.tf
 
+# shellcheck source=hostwarden-tofu/imports.sh
+. "$REPO/tests/bin/hostwarden-tofu/imports.sh"
+
 # --- terragrunt -----------------------------------------------------
 : > "$OPS_TREE/terragrunt.hcl"
 : > "$LOG"

@@ -15,6 +15,11 @@ env | grep -E '^(TF_|TG_|AWS_|HCLOUD_|OP_)' | sort > "$TMP/env"
 case "\$1 \$2" in
   "show -json") [ -f "$TMP/show-rc" ] && exit "\$(cat "$TMP/show-rc")"; cat "$TMP/\$(cat "$TMP/plan-file")"; exit 0 ;;
 esac
+gen=''
+for a; do
+  case \$a in -generate-config-out=*) gen=1; printf '# generated\n' > "\${a#-generate-config-out=}" ;; esac
+done
+[ -z "\$gen" ] || exit "\$(cat "$TMP/gen-rc" 2>/dev/null || echo 0)"
 case \$1 in
   plan) [ -f "$TMP/plan-rc" ] && exit "\$(cat "$TMP/plan-rc")"; exit 2 ;;
   fmt) [ -f "$TMP/fmt-rc" ] && exit "\$(cat "$TMP/fmt-rc")"; exit 0 ;;

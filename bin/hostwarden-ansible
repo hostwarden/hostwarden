@@ -12,6 +12,10 @@
 #   hostwarden-ansible [--tree <name>] apply <playbook> [args]
 #                              the run; the taboo guard asks the user
 #                              first, every time
+#   hostwarden-ansible [--tree <name>] matches <playbook> [args]
+#                              --check --diff; fails unless every host
+#                              ends with changed=0 failed=0: the tree
+#                              describes the host as it is
 #   hostwarden-ansible [--tree <name>] verify <playbook> [args]
 #                              the run again; fails unless every host
 #                              ends with changed=0 failed=0
@@ -21,8 +25,9 @@
 #                              SSH options; asked like apply unless it
 #                              is --check, --syntax-check or a --list
 #   hostwarden-ansible [--tree <name>] lint
-#   hostwarden-ansible [--tree <name>] inventory [args]
-#                              ansible-inventory, --graph by default
+#   hostwarden-ansible [--tree <name>] inventory [--graph] [--limit <p>]
+#                              ansible-inventory, the graph only: the
+#                              options that print variables are refused
 #   hostwarden-ansible [--tree <name>] galaxy
 #                              the tree's requirements.yml into its
 #                              collections/, every entry pinned
@@ -36,19 +41,20 @@
 # (lib/infra.sh). The call sets ANSIBLE_CONFIG to the tree's
 # ansible.cfg, ANSIBLE_SSH_ARGS to this checkout's memory/ssh_config,
 # the askpass helper for a host that takes only a password, and -i
-# to the tree's inventory unless the arguments name one. A playbook
+# to the tree's inventory where ansible.cfg names none and the
+# arguments name none. A playbook
 # is named relative to the tree and has to be inside it. Credentials
 # come from the tree's secrets.env, the user's
 # ~/hostwarden-keys/infra/ansible/<name>/env and, where that directory
-# has a vault-password file, --vault-password-file (lib/infra.sh →
-# Credentials); none is printed.
+# has a vault-password file, ANSIBLE_VAULT_PASSWORD_FILE for every
+# tool (lib/infra.sh → Credentials); none is printed.
 #
 # -e or --extra-vars naming a password, secret, token or key= is
 # refused: argv is read by ps and the shell history. Anything a
 # playbook needs comes from a vars file or the vault.
 #
-# Exit status: 0 done, 1 the tool failed or verify found a change,
-# 2 a usage error, 3 refused.
+# Exit status: 0 done, 1 the tool failed or verify or matches found
+# a change, 2 a usage error, 3 refused.
 
 set -u
 case $0 in */*) ROOT=${0%/*}/.. ;; *) ROOT=.. ;; esac
@@ -100,14 +106,16 @@ export ANSIBLE_SSH_ARGS SSH_ASKPASS SSH_ASKPASS_REQUIRE
 [ -t 1 ] || { ANSIBLE_NOCOLOR=1; export ANSIBLE_NOCOLOR; }
 cd "$INFRA_TREE" || exit 1
 
-# inventory — INV, the tree's inventory: ansible.cfg's, else the
-# usual names in the tree; dies where there is none.
+# inventory — INV, the tree's inventory: empty where ansible.cfg
+# names one, which Ansible reads itself, a list of sources included
+# (`inventory = hosts.yml, cloud.yml` is two sources, and one -i
+# would make it a host list); else the usual names in the tree. Dies
+# where there is none. Callers pass -i only for a non-empty INV.
 inventory() {
   INV=''
-  [ ! -f ansible.cfg ] ||
-    INV=$(awk -F= '/^[[:space:]]*inventory[[:space:]]*=/ { v = $2; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); print v; exit }' \
-      ansible.cfg)
-  [ -z "$INV" ] || return 0
+  if [ -f ansible.cfg ] && grep -qE '^[[:space:]]*inventory[[:space:]]*=[[:space:]]*[^[:space:]]' ansible.cfg; then
+    return 0
+  fi
   for c in inventory hosts.yml hosts.yaml hosts.ini hosts inventory.yml \
       inventory.yaml inventory.ini; do
     [ -e "$c" ] && { INV=$INFRA_TREE/$c; return 0; }
@@ -132,6 +140,13 @@ playbook_path() {
 }
 
 VAULT=$HOME/hostwarden-keys/infra/ansible/$INFRA_TREE_NAME/vault-password
+# Every tool of the tree reads the vault through the environment,
+# ansible-lint among them, which parses the tree on its own.
+if [ -f "$VAULT" ]; then
+  infra_mode600 "$VAULT"
+  ANSIBLE_VAULT_PASSWORD_FILE=$VAULT
+  export ANSIBLE_VAULT_PASSWORD_FILE
+fi
 
 # confined_inv <value> — an inventory is a path inside the tree; a
 # comma list of hosts is not one, and reaches hosts outside it.
@@ -175,16 +190,11 @@ confined() {
 }
 
 # run_playbook <args…> — ansible-playbook with the tree's inventory
-# where the arguments name none, the vault where there is one, every
-# file named inside the tree.
+# where the arguments name none, every file named inside the tree.
 run_playbook() {
   infra_refuse_secret_args -e --extra-vars "$@"
   confined "$@"
-  if [ -f "$VAULT" ]; then
-    infra_mode600 "$VAULT"
-    set -- --vault-password-file "$VAULT" "$@"
-  fi
-  has_inventory "$@" || { inventory; set -- -i "$INV" "$@"; }
+  has_inventory "$@" || { inventory; [ -z "$INV" ] || set -- -i "$INV" "$@"; }
   infra_run ansible-playbook "$@"
 }
 
@@ -210,41 +220,54 @@ case $VERB in
       echo "== ansible-lint: skipped, not installed (bin/hostwarden-doctor)"
     fi
     infra_say "check passed" ;;
-  diff|apply|verify)
+  diff|apply|verify|matches)
     [ $# -ge 1 ] || { usage >&2; exit 2; }
     playbook_path "$1"
     shift
     case $VERB in
       diff) run_playbook --check --diff "$PB" "$@" ;;
       apply) run_playbook "$PB" "$@" ;;
-      verify)
+      verify|matches)
         OUT=$(mktemp "${TMPDIR:-/tmp}/hostwarden-ansible.XXXXXX") || exit 1
         trap 'rm -f "$OUT"' EXIT INT TERM
         # Not through a pipe: its status would be tee's.
-        run_playbook "$PB" "$@" > "$OUT" 2>&1
+        chk='' lbl='the second run' done_='verified'
+        [ "$VERB" != matches ] || chk='--check --diff' lbl='the check run' done_='checked'
+        # shellcheck disable=SC2086 # $chk is two plain words or none
+        run_playbook $chk "$PB" "$@" > "$OUT" 2>&1
         rc=$?
         cat "$OUT"
-        [ $rc -eq 0 ] || infra_die "the second run failed"
+        [ $rc -eq 0 ] || infra_die "$lbl failed"
         grep -q '^PLAY RECAP' "$OUT" ||
-          infra_die "the second run printed no recap, so nothing is verified"
+          infra_die "$lbl printed no recap, so nothing is $done_"
         # An empty inventory or a --limit that matches nothing ends with
         # an empty recap and a good status: nothing was checked.
         seen=$(awk '/^PLAY RECAP/ { on = 1; next } on && /: ok=/ { n++ } END { print n + 0 }' "$OUT")
-        [ "$seen" -gt 0 ] || infra_die "the second run reached no host: the" \
-          "recap names none, so nothing is verified (an empty inventory," \
+        [ "$seen" -gt 0 ] || infra_die "$lbl reached no host: the" \
+          "recap names none, so nothing is $done_ (an empty inventory," \
           "or a --limit that matches nothing)"
         # The recap, one line per host: changed=0 and nothing failed
-        # or unreachable, or the play is not idempotent.
+        # or unreachable.
         changed=$(awk '/^PLAY RECAP/ { on = 1; next } on && /: ok=/ {
             for (i = 1; i <= NF; i++) {
               split($i, kv, "=")
               if ((kv[1] == "changed" || kv[1] == "failed" || kv[1] == "unreachable") && kv[2] + 0 > 0) { print $1; break }
             }
           }' "$OUT")
-        [ -z "$changed" ] || infra_die "the second run still changed," \
-          "failed or could not reach: $(printf '%s' "$changed" | tr '\n' ' ')" \
-          "- the play is not idempotent (rules/workspace-playbook.md)"
-        infra_say "verified: changed=0 on every host" ;;
+        hosts=$(printf '%s' "$changed" | tr '\n' ' ')
+        if [ "$VERB" = matches ]; then
+          [ -z "$changed" ] || infra_die "the tree does not match: these" \
+            "hosts would change, fail or cannot be reached: $hosts -" \
+            "the code or the host is wrong, and the user decides which" \
+            "(rules/infra-migration.md)"
+          infra_say "matches: changed=0 on every host; a task check mode" \
+            "cannot show is not covered"
+        else
+          [ -z "$changed" ] || infra_die "the second run still changed," \
+            "failed or could not reach: $hosts" \
+            "- the play is not idempotent (rules/workspace-playbook.md)"
+          infra_say "verified: changed=0 on every host"
+        fi ;;
     esac ;;
   playbook)
     [ $# -ge 1 ] || { usage >&2; exit 2; }
@@ -255,8 +278,20 @@ case $VERB in
     ansible-lint --offline "$@" ;;
   inventory)
     [ $# -gt 0 ] || set -- --graph
-    has_inventory "$@" || { inventory; set -- -i "$INV" "$@"; }
-    ansible-inventory "$@" ;;
+    has_inventory "$@" || { inventory; [ -z "$INV" ] || set -- -i "$INV" "$@"; }
+    # The graph only: --list, --host, --vars and the dumps print every
+    # variable, a vaulted one in clear text whichever way the vault
+    # password reaches the tool.
+    for a; do
+      case $a in
+        --graph|--limit|--limit=*|-l|-l?*|-i|-i?*|--inventory|--inventory=*|--inventory-file|--inventory-file=*) ;;
+        -h|--help|--version|-v|-v*|--playbook-dir|--playbook-dir=*) ;;
+        -*) infra_refuse "inventory prints the graph only; $a would print" \
+          "variables: hostwarden-ansible playbook --list-hosts shows" \
+          "the hosts a play reaches" ;;
+      esac
+    done
+    infra_run ansible-inventory "$@" ;;
   galaxy)
     [ $# -eq 0 ] || { usage >&2; exit 2; }
     req=$INFRA_TREE/requirements.yml
@@ -348,13 +383,21 @@ EOF
   ping)
     [ $# -eq 1 ] || { usage >&2; exit 2; }
     inventory
-    infra_run ansible -i "$INV" "$1" -m ping ;;
+    if [ -n "$INV" ]; then
+      infra_run ansible -i "$INV" "$1" -m ping
+    else
+      infra_run ansible "$1" -m ping
+    fi ;;
   facts)
     [ $# -eq 2 ] || { usage >&2; exit 2; }
     inventory
     # Filtered, always: unfiltered setup prints ansible_env, the login
     # user's whole environment (rules/secrets.md).
-    infra_run ansible -i "$INV" "$1" -m setup -a "filter=$2" ;;
+    if [ -n "$INV" ]; then
+      infra_run ansible -i "$INV" "$1" -m setup -a "filter=$2"
+    else
+      infra_run ansible "$1" -m setup -a "filter=$2"
+    fi ;;
   *)
     usage >&2
     exit 2 ;;

@@ -28,6 +28,7 @@ infra_fixture() {
   cp "$REPO/lib/infra.sh" "$REPO/lib/passwords.sh" "$REPO/lib/mode.sh" \
     "$OPS/lib/"
   cp -R "$REPO/lib/passwords" "$OPS/lib/"
+  [ ! -d "$REPO/lib/$1" ] || cp -R "$REPO/lib/$1" "$OPS/lib/"
   : > "$OPS/memory/.hostwarden-workspace"
   HOME=$TMP/home
   HOSTWARDEN_PASSWORD_STORE='file'

@@ -229,6 +229,12 @@ Hostwarden: a stack that works is adopted as it is, and the first
 `hostwarden-opentofu` skill walks through this and through a new
 stack.
 
+## Existing resources
+
+Resources that exist at a provider and are not in code yet are
+brought in by `import` blocks and `hostwarden-tofu <stack> generate`,
+one slice at a time: `rules/infra-migration.md`.
+
 ## Records
 
 - Every host the plan changed, replaced or created gets a journal
