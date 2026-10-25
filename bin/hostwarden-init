@@ -220,7 +220,7 @@ if [ -n "$CLONE" ]; then
     echo "  https://hostwarden.github.io/docs/getting-started/install#symbolic-links,"
     echo "  then clone again."
   fi
-  a=$(anon_url "$(resolve_url "$CLONE")")
+  a=$(hostwarden_anon_url "$(hostwarden_resolve_url "$CLONE")")
   if [ -n "$a" ] && readable_anonymously "$a"; then
     echo "hostwarden: WARNING — $(show "$CLONE") is public: anyone can read the"
     echo "  hostnames, addresses and network layout it holds. Make it"

@@ -15,52 +15,11 @@ show() {
   esac
 }
 
-# resolve_url <url> — the address git and ssh really reach for
-# <url>: git's insteadOf rewrites applied, and an ssh host alias
-# replaced by the HostName the user's ssh configuration gives it,
-# so a github-work alias is checked as github.com.
-resolve_url() {
-  ru=$(git ls-remote --get-url -- "$1" 2>/dev/null) || ru=$1
-  case $ru in
-  ssh://*) ru_host=$(printf '%s\n' "$ru" |
-      sed -E 's#^ssh://([^/@]*@)?([^/:]+).*#\2#') ;;
-  *://*|/*|./*|../*) printf '%s\n' "$ru"; return ;;
-  *:*) ru_host=$(printf '%s\n' "$ru" | sed -E 's#^([^@:/]*@)?([^:/]+):.*#\2#') ;;
-  *) printf '%s\n' "$ru"; return ;;
-  esac
-  ru_real=$(ssh -G -- "$ru_host" 2>/dev/null |
-    awk '$1 == "hostname" { print $2; exit }')
-  if [ -z "$ru_real" ] || [ "$ru_real" = "$ru_host" ]; then
-    printf '%s\n' "$ru"; return
-  fi
-  ru_esc=$(printf '%s' "$ru_host" | sed 's/[].[\*^$#]/\\&/g')
-  printf '%s\n' "$ru" | sed -E \
-    -e "s#^(ssh://([^/@]*@)?)$ru_esc([:/])#\\1$ru_real\\3#" \
-    -e "t" -e "s#^([^@:/]*@)?$ru_esc:#\\1$ru_real:#"
-}
-
 # github_slug <url> — owner/repo of a github.com URL, or nothing.
 github_slug() {
   printf '%s\n' "${1%%[?#]*}" | sed -n -E \
     's#^(https://|ssh://)?([^@/]+@)?github\.com[:/]([^/]+/[^/]+)$#\3#p' |
     sed 's#\.git$##; s#/$##'
-}
-
-# anon_url <url> — where anyone could read <url> without a
-# credential: its https address, with the user info, the query and
-# the fragment taken out, where a token would sit. git:// is
-# anonymous by design and keeps its scheme. A path on this machine
-# or a mount gives nothing: nobody else reaches it.
-anon_url() {
-  set -- "${1%%[?#]*}"
-  case $1 in
-  git://*) printf '%s\n' "$1" ;;
-  http://*|https://*) printf '%s\n' "$1" | sed -E 's#^(https?://)[^/@]*@#\1#' ;;
-  ssh://*) printf '%s\n' "$1" |
-    sed -E 's#^ssh://([^/@]*@)?([^/:]+)(:[0-9]+)?/#https://\2/#' ;;
-  /*|./*|../*|file://*) ;;
-  *:*) printf '%s\n' "$1" | sed -E 's#^([^@:/]*@)?([^:/]+):/?#https://\2/#' ;;
-  esac
 }
 
 # readable_anonymously <url> — git can list <url> with nothing of
@@ -124,7 +83,7 @@ publish() {
   # whether it exists. Anywhere else, and wherever gh gave no
   # answer, a read without any credential is the test: what anyone
   # can list is public.
-  real=$(resolve_url "$url")
+  real=$(hostwarden_resolve_url "$url")
   slug=$(github_slug "$real")
   vis=
   if [ -n "$slug" ] && command -v gh >/dev/null 2>&1 \
@@ -138,7 +97,7 @@ publish() {
       fi
     fi
   fi
-  anon=$(anon_url "$real")
+  anon=$(hostwarden_anon_url "$real")
   if [ "$vis" = PUBLIC ] || { [ -z "$vis" ] && [ -n "$anon" ] \
       && readable_anonymously "$anon"; }; then
     echo "hostwarden-init: $(show "$url") is public: anyone can read it, and the" >&2
