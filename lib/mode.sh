@@ -76,6 +76,17 @@
 #                             every user@host:path to user@host,
 #                             for printing a git message or a
 #                             remote (rules/secrets.md)
+#   hostwarden_resolve_url <url>
+#                           — prints the address git and ssh really
+#                             reach for <url>: insteadOf applied, an
+#                             ssh alias or Host block replaced by its
+#                             HostName, Port and User; sets
+#                             HOSTWARDEN_URL_PORT to a port the
+#                             printed form could not carry
+#   hostwarden_anon_url <url>
+#                           — prints the https address anyone could
+#                             read <url> at, without user info,
+#                             query or fragment; nothing for a path
 #   hostwarden_path_without_shim
 #                           — sets HOSTWARDEN_PATH to PATH without
 #                             any Hostwarden shim directory (shim.sh)
@@ -296,6 +307,87 @@ hostwarden_redact() {
   sed -E \
     -e "s|([A-Za-z][A-Za-z0-9+.-]*://)([^/@[:space:]'\"]*@)?([^/?#[:space:]'\"]+)[^[:space:]'\"]*|\\1\\3/...|g" \
     -e "s|([A-Za-z0-9._-]+@[A-Za-z0-9.-]+):[^[:space:]'\"]+|\\1:...|g"
+}
+
+# hostwarden_resolve_url <url> — the address git and ssh really
+# reach for <url>: git's insteadOf rewrites applied, and an ssh host
+# alias replaced by what the user's ssh configuration gives it, so a
+# github-work alias is checked, or printed, as github.com. ssh -G
+# prints the HostName, the Port and the User the alias resolves to;
+# the port and the user go into the address where the URL itself
+# names none, since another machine's ssh configuration does not
+# know the alias. ssh -G prints a user for every host, this login's
+# name where the configuration sets none, so only a user that
+# differs from it counts as the configuration's. A Host block for
+# the real name sets a port or a user the same way, so both are read
+# whether or not the name changed. An scp-style address cannot carry
+# a port. One whose path is absolute, or starts with ~ (git's own
+# ~<user> expansion), and resolves to a port other than 22 is
+# printed as ssh://host:port/path, which names the same repository.
+# A relative path has no form that does on every server:
+# a forge reads ssh://host:port/path as the same repository and
+# rejects /~/path, a plain account's git-shell reads the first as a
+# path from the root and the second as its home. So that address
+# keeps its scp form, and HOSTWARDEN_URL_PORT holds the port the
+# form could not carry, for the caller to say; it is empty
+# otherwise.
+hostwarden_resolve_url() {
+  HOSTWARDEN_URL_PORT=
+  ru=$(git ls-remote --get-url -- "$1" 2>/dev/null) || ru=$1
+  ru_user=
+  case $ru in
+  ssh://*)
+    ru_rest=${ru#ssh://}
+    case $ru_rest in *@*) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac
+    ru_host=${ru_rest%%[:/]*}; ru_tail=${ru_rest#"$ru_host"}; ru_form=ssh ;;
+  *://*|/*|./*|../*) printf '%s\n' "$ru"; return ;;
+  *:*)
+    ru_rest=$ru
+    case $ru_rest in *@*) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac
+    ru_host=${ru_rest%%:*}; ru_path=${ru_rest#*:}; ru_form=scp ;;
+  *) printf '%s\n' "$ru"; return ;;
+  esac
+  ru_cfg=$(ssh -G -- "$ru_host" 2>/dev/null) || ru_cfg=
+  ru_real=$(printf '%s\n' "$ru_cfg" | awk '$1 == "hostname" { print $2; exit }')
+  if [ -z "$ru_real" ]; then
+    printf '%s\n' "$ru"; return
+  fi
+  ru_port=$(printf '%s\n' "$ru_cfg" | awk '$1 == "port" { print $2; exit }')
+  ru_cuser=$(printf '%s\n' "$ru_cfg" | awk '$1 == "user" { print $2; exit }')
+  [ "$ru_cuser" != "$(id -un 2>/dev/null)" ] || ru_cuser=
+  [ -n "$ru_user" ] || ru_user=$ru_cuser
+  [ "$ru_port" != 22 ] || ru_port=
+  case $ru_form in
+  ssh)
+    case $ru_tail in :*) ;; *) ru_tail="${ru_port:+:$ru_port}$ru_tail" ;; esac
+    printf 'ssh://%s%s%s\n' "${ru_user:+$ru_user@}" "$ru_real" "$ru_tail" ;;
+  scp)
+    case $ru_path in
+    /*|~*) [ -z "$ru_port" ] || { printf 'ssh://%s%s:%s/%s\n' \
+          "${ru_user:+$ru_user@}" "$ru_real" "$ru_port" "${ru_path#/}"; return; } ;;
+    *) HOSTWARDEN_URL_PORT=$ru_port ;;
+    esac
+    printf '%s%s:%s\n' "${ru_user:+$ru_user@}" "$ru_real" "$ru_path" ;;
+  esac
+}
+
+# hostwarden_anon_url <url> — where anyone could read <url>
+# without a credential: its https address, with the user info, the
+# query and the fragment taken out, where a token would sit. git://
+# is anonymous by design and keeps its scheme. A path on this
+# machine or a mount gives nothing: nobody else reaches it. It is a
+# probe's address, never a clone's: an ssh-only mirror has no https
+# side.
+hostwarden_anon_url() {
+  set -- "${1%%[?#]*}"
+  case $1 in
+  git://*) printf '%s\n' "$1" ;;
+  http://*|https://*) printf '%s\n' "$1" | sed -E 's#^(https?://)[^/@]*@#\1#' ;;
+  ssh://*) printf '%s\n' "$1" |
+    sed -E 's#^ssh://([^/@]*@)?([^/:]+)(:[0-9]+)?/#https://\2/#' ;;
+  /*|./*|../*|file://*) ;;
+  *:*) printf '%s\n' "$1" | sed -E 's#^([^@:/]*@)?([^:/]+):/?#https://\2/#' ;;
+  esac
 }
 
 hostwarden_git_batch() {

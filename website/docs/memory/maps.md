@@ -227,9 +227,17 @@ flowchart TB
 
 With the maps, `bin/hostwarden-map` writes `memory/README.md`, the page
 GitHub and Forgejo show when the workspace opens and the one to read
-first. It counts and links, and never repeats a host's detail, in this
-order:
+first. It opens with how to put the workspace to use, then counts and
+links, and never repeats a host's detail, in this order:
 
+- **Using this workspace**: the repository is memory alone, and
+  becomes the `memory/` of a Hostwarden checkout. The section gives
+  the clone of Hostwarden, from the copy the checkout that wrote the
+  page was cloned from, so a team's fork or mirror is the one named,
+  then `bin/hostwarden-init --clone` with the workspace's URL. Where
+  that copy's ssh port is one an scp-style address cannot carry, a
+  sentence after the commands names the `Port` line to add to your
+  ssh configuration.
 - **Sites**, each with its map and its number of hosts.
 - **Services** and **critical hosts**.
 - **Open findings**: per host, the counts of its last housekeeping run
@@ -256,9 +264,16 @@ marker on its first line, is left as it is.
 bin/hostwarden-map
 ```
 
-It runs locally, reads only the workspace, and writes only under
-`memory/maps/` and `memory/README.md`. Run twice over the same memory on the
-same day, it writes the same bytes, so a map only changes in git when the
-infrastructure did. Across days, a host crossing the 90-day line turns
-dashed — a map that never showed staleness would not be telling the
-truth either.
+It runs locally, reads only the workspace and, for the overview's
+clone line, the checkout's own `origin` URL as your git and ssh
+configuration resolve it (an `insteadOf` rewrite, an ssh host alias),
+and writes only under `memory/maps/` and `memory/README.md`. Run twice
+over the same memory on the same day, it writes the same bytes, so a
+map only changes in git when the infrastructure did. Across days, a
+host crossing the 90-day line turns dashed — a map that never showed
+staleness would not be telling the truth either. The overview's clone
+line follows the checkout that wrote it: where two machines share a
+workspace from checkouts that differ in where they were cloned from,
+over which transport, or through an alias, each commit rewrites that
+line, and the workspace's merge driver for generated files keeps the
+two from conflicting.
