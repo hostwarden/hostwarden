@@ -30,10 +30,11 @@ before one is added.
    depth of a command line an agent writes on its own (`sudo`,
    `env`, a tool's own connection), not only the ssh family at the
    top; where a change isolates an ssh call with `-o` options or its
-   `-F` file, which other connection of the same call — a
-   ProxyJump hop, a ProxyCommand's ssh, git's transport — reads
-   neither, only the environment and the account's own files? —
-   never a chain built to evade the guard
+   `-F` file, which other connection of the same call reads less of
+   it — a ProxyJump hop gets the `-F` file but none of the `-o`
+   options; a ProxyCommand's ssh and git's transport read neither,
+   only the environment and the account's own files? — never a
+   chain built to evade the guard
    (`.claude/rules/repo-release.md` → Guard findings).
 2. A lookup, preflight, shortcut or substitution that decides a
    later step, or a report of what an action would do (`--check`,
