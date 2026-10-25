@@ -83,6 +83,22 @@ either way.
 
 Rule: `hostwarden-new-guest` skill.
 
+## Applying infrastructure code
+
+An Ansible run that is not `--check` — `bin/hostwarden-ansible apply`
+or `verify`, or a bare `ansible-playbook` — and `bin/hostwarden-tofu
+apply` get the prompt, with the command as it stands, before every
+run; a yes to one run is never a yes to the next. The OpenTofu
+wrapper applies only a saved plan that deletes and replaces
+nothing; a plan that does is handed to you as the same command
+with `--destroys`, which a session may not run, and a
+`tofu destroy`, an `import` or any state write as the bare tool's
+command; the same block applies where no prompt can reach you
+([Infrastructure code](../features/changes/infrastructure-code.md)).
+
+Rules: `rules/infra-code.md`, `rules/opentofu.md`,
+`rules/workspace-playbook.md`.
+
 ## Storage changes
 
 Growing a volume or file system, deactivating a volume, swapping a

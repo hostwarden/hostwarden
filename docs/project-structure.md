@@ -29,6 +29,10 @@ bin/                   — Commands an operator runs, or the
   hostwarden-init         — Set up (or join) the workspace
   hostwarden-sync         — Keep the workspace in step with
                             its remote
+  hostwarden-tofu         — An OpenTofu stack: check, plan,
+                            review, apply what deletes nothing
+  hostwarden-ansible      — An Ansible tree: check, diff, apply,
+                            verify, with this checkout's options
   hostwarden-ssh-config   — Write memory/ssh_config, the file
                             every SSH call passes with -F
   hostwarden-agent        — Resolve a personal local SSH agent
@@ -94,6 +98,9 @@ lib/                   — Code bin/ and the hooks share; sourced,
   markdown-blocks.awk  — Markdown's blocks as CommonMark reads
                          them, for hostwarden-wrap and
                          review-record.sh
+  infra.sh             — Where a tree of infrastructure code is,
+                         its hostwarden.md, its credentials; for
+                         hostwarden-tofu and hostwarden-ansible
   wrap-verbatim.sh     — The workspace's Markdown kept byte for
                          byte, which hostwarden-wrap --changed
                          and wrap-markdown.sh leave alone
@@ -228,6 +235,10 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-email/     — Send ad-hoc text or files by email
                          from a server (SKILL.md)
+    hostwarden-opentofu/  — Adopt or start an OpenTofu stack: state,
+                         credentials, pipeline (SKILL.md + references/)
+    hostwarden-ansible/   — Adopt or start an Ansible tree:
+                         credentials, pipeline (SKILL.md)
     hostwarden-fleet-audit/   — Cross-machine policy drift audit
                          (SKILL.md + references/)
     hostwarden-multi-host/ — One question, check or change
@@ -367,8 +378,13 @@ rules/                 — Upstream rule files (git-tracked)
   config-management-changes.md — A change on a managed
                          host: through the tool or by
                          hand
-  workspace-playbook.md — An Ansible playbook kept in the
-                         workspace: read, checked, applied
+  infra-code.md        — Trees of infrastructure code: layout,
+                         deployment modes, credentials, the
+                         commands shown whole, pipelines
+  opentofu.md          — An OpenTofu stack: check, plan, review,
+                         apply, drift, state, providers
+  workspace-playbook.md — An Ansible tree Hostwarden runs: read,
+                         checked, diffed, applied, verified
   first-connection.md  — Mandatory onboarding checklist
                          (no "quick question" shortcuts)
   multi-host.md        — One task on several hosts: rounds
@@ -436,6 +452,9 @@ rules/                 — Upstream rule files (git-tracked)
                          and hosts taken over from Heinzel
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
+templates/pipelines/   — GitHub Actions and GitLab CI pipelines
+                         for a stack or a tree, filled in by the
+                         hostwarden-opentofu and -ansible skills
 templates/workspace/   — What bin/hostwarden-init puts
                          into a new workspace
                          (.gitattributes, .gitignore,
@@ -503,7 +522,10 @@ memory/                — The workspace: all your user
                          hosts, and its README.md
   tools/               — Scripts you run from the
                          workstation against hosts
-  infra/<name>/        — An Ansible playbook tree a session
-                         checks and applies
+  infra/ansible/       — The Ansible tree a session checks,
+                         diffs and applies; infra/<name>/ another
+  infra/opentofu/<stack>/ — An OpenTofu root module, one state
+  infra/credentials.md — Every credential the trees use, with
+                         its expiry; never a value
   plans/               — Work that spans sessions
 ```

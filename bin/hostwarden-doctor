@@ -93,7 +93,8 @@ fi
 # mise_tools <file> — the tools a mise file pins, as the commands a
 # session runs, one line: an aqua tool by its repository's name, a
 # pypi package by its name, ansible-core by the two commands the
-# rules call, python as python3, a plain key by itself. Matched
+# rules call, OpenTofu by its command tofu, python as python3, a
+# plain key by itself. Matched
 # with or without the spacing the files' own style uses, no
 # external tool (this runs under the ssh shim's bare PATH too). A
 # quoted key of another backend or an inline table matches
@@ -103,6 +104,7 @@ mise_tools() {
   while IFS= read -r l; do
     case $l in
       '"pypi:ansible-core"'*) printf 'ansible-playbook ansible-galaxy ' ;;
+      '"aqua:opentofu/opentofu"'*) printf 'tofu ' ;;
       '"pypi:'*) t=${l#*:}; printf '%s ' "${t%%\"*}" ;;
       '"aqua:'*/*) t=${l#*/}; printf '%s ' "${t%%\"*}" ;;
       python*) printf 'python3 ' ;;
@@ -382,6 +384,26 @@ writing it" shellcheck has shellcheck
 applied" ansible-playbook all ansible-playbook ansible-galaxy
   probe feat "ansible-lint, to check a playbook before it runs" \
     ansible-lint has ansible-lint
+  # rules/opentofu.md: tofu plans and applies a stack, Terragrunt
+  # where a stack has a terragrunt.hcl, and the three checkers
+  # bin/hostwarden-tofu check runs before a plan, each optional on
+  # its own.
+  probe feat "an OpenTofu stack from the workspace, checked, planned \
+and applied" tofu has tofu
+  probe feat "Terragrunt, for a stack that carries a terragrunt.hcl" \
+    terragrunt has terragrunt
+  probe feat "tflint, to lint a stack before a plan" tflint has tflint
+  probe feat "Trivy, to scan a stack and a plan for misconfigurations" \
+    trivy has trivy
+  probe feat "Checkov, to scan a stack and a plan against its policies" \
+    checkov has checkov
+  # rules/infra-code.md → Credentials: the two managers' CLIs hand a
+  # tree's credentials to tofu or ansible without the session
+  # reading them.
+  probe feat "1Password CLI, for credentials a tree takes from \
+1Password" op has op
+  probe feat "Bitwarden Secrets Manager CLI, for credentials a tree \
+takes from Secrets Manager" bws has bws
 fi
 
 # shellcheck source=../lib/hostwarden-doctor/agent-shell.sh

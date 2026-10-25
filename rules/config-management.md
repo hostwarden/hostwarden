@@ -15,7 +15,10 @@ Do not suggest Ansible or any other tool on your own — not after a
 repeated change, not after drift in a fleet audit, not in a
 recommendation line. When the user asks whether one would pay off,
 answer from what memory holds (how many hosts, how many share a
-role) and name the cost as well as the gain.
+role) and name the cost as well as the gain. A tree the user keeps
+is run as `rules/infra-code.md` says; a pipeline, Terragrunt or a
+remote state for it is named only as that file's Growing section
+allows.
 
 ## Detect
 

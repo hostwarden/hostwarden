@@ -341,6 +341,16 @@ else
   step "ssh-config" sh tests/bin/hostwarden-ssh-config.sh
   step "SSH identity" sh tests/bin/hostwarden-identity.sh
 fi
+# The infrastructure-code matrices read the two wrappers, lib/infra.sh
+# and the password library they take a manager's token from.
+if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
+    "^bin/hostwarden-(tofu|ansible)\$|^lib/(infra\\.sh|passwords\\.sh|passwords/|mode\\.sh)|^tests/bin/(hostwarden-(tofu|ansible)|infra-fixture)\\.sh\$$HELPERS"
+then
+  echo "== infrastructure-code matrices: nothing they read is pushed, skipped"
+else
+  step "OpenTofu wrapper" sh tests/bin/hostwarden-tofu.sh
+  step "Ansible wrapper" sh tests/bin/hostwarden-ansible.sh
+fi
 # The doctor's key matrix reads the key check alone.
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files | grep -qE \
     "^lib/(hostwarden-doctor/keys|ssh-agent)\\.sh\$|^tests/bin/hostwarden-doctor\\.sh\$$HELPERS"

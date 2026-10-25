@@ -1,0 +1,222 @@
+# templates/pipelines/github/opentofu.yml — a GitHub Actions workflow
+# for one OpenTofu stack (rules/infra-code.md → Pipelines, the
+# hostwarden-opentofu skill → Pipeline). Hostwarden copies it to
+# .github/workflows/opentofu-<stack>.yml of the repository that holds
+# the tree and fills in the marks:
+#
+#   <stack>            the stack's name, as bin/hostwarden-tofu takes it
+#   <stack-path>       the root module's path in the repository, such as
+#                      infra/opentofu/hosting
+#   <tofu-version>     the version mise.toml pins, so the pipeline plans
+#                      with the binary the workstation plans with
+#   <plan-environment> the GitHub environment of the plan job, without
+#                      required reviewers: it holds the read-only plan
+#                      role, such as production-plan
+#   <environment>      the GitHub environment of the apply job, with
+#                      required reviewers: it holds the apply role,
+#                      such as production
+#   the provider step: keep one of the three federated blocks, or
+#                      the static one, and delete the rest
+#
+# Before the first run the repository needs: a ruleset on the
+# default branch that requires the `check` and `plan` jobs and a
+# review; the two environments; at the provider, two roles that trust
+# the OIDC subjects repo:<owner>/<repo>:environment:<plan-environment>
+# and repo:<owner>/<repo>:environment:<environment> respectively. The
+# plan role reads the resources and the state, and writes the state's
+# lock object and nothing else; the apply role is the only one that
+# writes. The two environments hold their own role (or static token)
+# under the same secret name, so no step below changes between them.
+# Hostwarden sets none of this; it reads the runs.
+#
+# On a pull request the stack is checked and planned, the plan goes
+# into the request as a comment, and nothing is applied. On a push to
+# the default branch the stack is planned again and the plan goes
+# into the run's summary; the `apply` job then waits for the
+# environment's reviewer and applies that plan, the artifact of the
+# same run, so what the reviewer read is what runs. A plan file and a
+# plan's text hold what the plan shows: every value the provider and
+# the code do not mark sensitive, a secret in an unmarked attribute
+# included. The repository is private, the artifact lives one day, and
+# a secret reaches the code as a sensitive variable.
+#
+# Every action is pinned to the major in use when this file was
+# written, and every tool to the version mise.toml pins; confirm each
+# against its repository before use (rules/version-check.md).
+
+name: opentofu <stack>
+
+on:
+  pull_request:
+    paths:
+      - "<stack-path>/**"
+  push:
+    branches: [main]
+    paths:
+      - "<stack-path>/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+# One run at a time per stack, on top of the state's own lock.
+concurrency:
+  group: opentofu-<stack>
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  STACK: <stack-path>
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "<tofu-version>"
+          tofu_wrapper: false
+      - name: tofu fmt -check
+        run: tofu -chdir="$STACK" fmt -check -diff -recursive
+      - name: tofu init -backend=false
+        run: tofu -chdir="$STACK" init -backend=false -input=false
+      - name: tofu validate
+        run: tofu -chdir="$STACK" validate
+      - uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: v0.65.0
+      - name: tflint
+        run: |
+          cd "$STACK"
+          [ ! -f .tflint.hcl ] || tflint --init
+          tflint --recursive
+      - uses: aquasecurity/setup-trivy@v0.3.1
+        with:
+          version: v0.76.1
+      - name: trivy config
+        run: trivy config --exit-code 1 "$STACK"
+      - name: checkov
+        run: pipx run --spec "checkov==3.3.30" checkov -d "$STACK" --framework terraform --quiet --compact
+
+  plan:
+    name: plan
+    needs: check
+    runs-on: ubuntu-latest
+    # The plan environment has no required reviewers: a plan never
+    # waits for one. The approval is on the apply job alone.
+    environment: <plan-environment>
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "<tofu-version>"
+          tofu_wrapper: false
+
+      # --- the provider: keep one block ---------------------------
+      # AWS: the plan role, which trusts GitHub's OIDC provider for
+      # this environment's subject.
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: <region>
+      # Azure: a user-assigned managed identity with a federated
+      # credential; the provider reads ARM_USE_OIDC.
+      # - uses: azure/login@v3
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # Google Cloud: a workload identity pool and provider.
+      # - uses: google-github-actions/auth@v3
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      # A provider without federation: the token as an environment
+      # secret, in the register with its expiry
+      # (rules/infra-code.md → Credentials).
+      # env:
+      #   HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      # -------------------------------------------------------------
+
+      - name: tofu init
+        run: tofu -chdir="$STACK" init -input=false
+      - name: tofu plan
+        id: plan
+        run: |
+          set +e
+          tofu -chdir="$STACK" plan -input=false -lock-timeout=60s \
+            -detailed-exitcode -out=tfplan -no-color > plan.txt
+          rc=$?
+          set -e
+          case $rc in
+            0) echo "changes=false" >> "$GITHUB_OUTPUT" ;;
+            2) echo "changes=true" >> "$GITHUB_OUTPUT" ;;
+            *) cat plan.txt; exit $rc ;;
+          esac
+          {
+            echo '## tofu plan <stack>'
+            echo '```'
+            head -c 60000 plan.txt
+            [ "$(wc -c < plan.txt)" -le 60000 ] || echo '… truncated'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: the plan as a comment on the request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = fs.readFileSync('plan.txt', 'utf8');
+            if (plan.length > 60000) plan = plan.slice(0, 60000) + '\n… truncated';
+            const marker = '<!-- opentofu-plan-<stack> -->';
+            const body = `${marker}\n## tofu plan <stack>\n\`\`\`\n${plan}\n\`\`\``;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo, issue_number: context.issue.number });
+            const mine = comments.find(c => c.body.startsWith(marker));
+            if (mine) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }
+      - name: keep the plan for the apply job
+        if: github.event_name == 'push' && steps.plan.outputs.changes == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tfplan-<stack>-${{ github.run_id }}
+          path: ${{ env.STACK }}/tfplan
+          retention-days: 1
+          if-no-files-found: error
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+
+  apply:
+    name: apply
+    if: github.event_name == 'push' && needs.plan.outputs.changes == 'true'
+    needs: plan
+    runs-on: ubuntu-latest
+    # The approval: this environment requires a reviewer, who reads
+    # the plan job's summary first. It holds the apply role.
+    environment: <environment>
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "<tofu-version>"
+          tofu_wrapper: false
+      # The same provider block as in plan, with this environment's
+      # role.
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: <region>
+      - uses: actions/download-artifact@v8
+        with:
+          name: tfplan-<stack>-${{ github.run_id }}
+          path: ${{ env.STACK }}
+      - name: tofu init
+        run: tofu -chdir="$STACK" init -input=false
+      - name: tofu apply the reviewed plan
+        run: tofu -chdir="$STACK" apply -input=false -lock-timeout=60s tfplan

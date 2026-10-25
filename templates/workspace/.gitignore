@@ -17,6 +17,15 @@
 # ansible-lint's cache there (rules/workspace-playbook.md).
 /infra/*/collections/
 /infra/*/.ansible/
+# What OpenTofu and Terragrunt fetch or write beside a stack, and a
+# state or plan that must never be committed: both hold every
+# attribute in the clear (rules/opentofu.md → State).
+/infra/opentofu/**/.terraform/
+/infra/opentofu/**/.terragrunt-cache/
+/infra/opentofu/**/*.tfstate
+/infra/opentofu/**/*.tfstate.*
+/infra/opentofu/**/*.tfplan
+/infra/opentofu/**/crash.log
 
 .DS_Store
 *.lock

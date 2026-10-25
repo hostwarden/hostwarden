@@ -1,0 +1,88 @@
+# templates/pipelines/github/ansible.yml — a GitHub Actions workflow
+# for an Ansible tree (rules/infra-code.md → Pipelines, the
+# hostwarden-ansible skill → Pipeline). Hostwarden copies it to
+# .github/workflows/ansible-<tree>.yml of the repository that holds
+# the tree and fills in the marks:
+#
+#   <tree>            the tree's name, as bin/hostwarden-ansible takes it
+#   <tree-path>       the tree's path in the repository, such as
+#                     infra/ansible
+#   <ansible-version> ansible-core's version, the one mise.toml pins
+#   <lint-version>    ansible-lint's version, the one mise.toml pins
+#
+# On every pull request the tree is linted and syntax-checked, with
+# its collections installed from the pinned requirements.yml. Nothing
+# reaches a host: a runner GitHub hosts cannot, and should not. The
+# `diff` job below runs `--check --diff` from a self-hosted runner
+# that reaches the hosts with a deploy user of its own
+# (hostwarden-deploy-user); it is off until the user sets such a
+# runner up, and an apply from a pipeline is never in this file.
+#
+# Every action is pinned to the major in use when this file was
+# written; confirm each against its repository before use
+# (rules/version-check.md).
+
+name: ansible <tree>
+
+on:
+  pull_request:
+    paths:
+      - "<tree-path>/**"
+  push:
+    branches: [main]
+    paths:
+      - "<tree-path>/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ansible-<tree>
+  cancel-in-progress: true
+
+env:
+  TREE: <tree-path>
+  # Absolute: every step enters the tree first, so a relative path
+  # would resolve beneath it.
+  ANSIBLE_CONFIG: ${{ github.workspace }}/<tree-path>/ansible.cfg
+  ANSIBLE_NOCOLOR: "1"
+
+jobs:
+  check:
+    name: lint and syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: ansible-core and ansible-lint, pinned
+        run: pip install "ansible-core==<ansible-version>" "ansible-lint==<lint-version>"
+      - uses: actions/cache@v6
+        with:
+          path: <tree-path>/collections
+          key: collections-${{ hashFiles('<tree-path>/requirements.yml') }}
+      - name: collections from the pinned requirements
+        run: |
+          cd "$TREE"
+          [ ! -f requirements.yml ] || ansible-galaxy collection install \
+            -r requirements.yml -p collections
+      - name: ansible-lint --offline
+        run: cd "$TREE" && ansible-lint --offline
+      - name: ansible-playbook --syntax-check
+        run: cd "$TREE" && ansible-playbook --syntax-check site.yml
+
+  # A dry run against the hosts, from a runner that reaches them.
+  # Switch it on by removing the `if: false` once a self-hosted runner
+  # with the labels below exists and the deploy user's key is in its
+  # agent; the inventory and this checkout's SSH options come from
+  # the runner, never from a secret.
+  diff:
+    name: check --diff
+    if: false
+    needs: check
+    runs-on: [self-hosted, hostwarden]
+    steps:
+      - uses: actions/checkout@v7
+      - name: ansible-playbook --check --diff
+        run: cd "$TREE" && ansible-playbook --check --diff site.yml

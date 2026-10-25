@@ -58,7 +58,8 @@ Hostwarden session looks the same.
 - jq, from your package manager or from
   [mise](https://mise.jdx.dev): `mise install` in the checkout
   brings a pinned one, which the hooks run in preference to the
-  system's, and Ansible, its linters and ShellCheck besides
+  system's, and Ansible, its linters, OpenTofu, Terragrunt,
+  tflint, Trivy, Checkov and ShellCheck besides
 - Key-based SSH access to the target, with a key an
   agent holds and confirms per use, or a hardware key
 - Linux, FreeBSD or macOS on the target, or Windows
@@ -187,6 +188,12 @@ everything below: [the Features page](https://hostwarden.github.io/docs/features
   one; where a tool manages a host, a change goes into
   that tool's code instead.
   [Configuration management](https://hostwarden.github.io/docs/features/changes/config-management)
+- **Runs the OpenTofu stacks and Ansible trees you
+  keep.** Checks them before every plan, hands you
+  every command whole, applies only what a plan proves
+  harmless, asked every time, and grows from a
+  workstation to a pipeline with federated credentials.
+  [Infrastructure code](https://hostwarden.github.io/docs/features/changes/infrastructure-code)
 - **Runs the nightly check unattended.** An operations
   host reads your servers through a bundle of
   read-only checks you signed, and mails the report.

@@ -10,14 +10,15 @@ cmd deny "$DEV" '/usr/bin/ssh server1.example.com'
 cmd deny "$DEV" 'cd /tmp && /usr/bin/scp a.txt server1.example.com:/tmp/'
 cmd deny "$DEV" '! /usr/local/bin/mosh server1.example.com'
 # The configuration tools open their own connections: ansible and
-# its kin reach every host of an inventory, terraform and tofu a
-# cloud. A path past the shim is denied like ssh's; reading their
+# its kin reach every host of an inventory, terraform, tofu and
+# terragrunt a cloud. A path past the shim is denied like ssh's; reading their
 # code, or a directory named after one, is not.
 cmd deny "$DEV" '/opt/homebrew/bin/ansible all -m ping'
 cmd deny "$DEV" '/home/alice/.local/bin/ansible-playbook -i inventory site.yml'
 cmd deny "$DEV" '/usr/bin/ansible-pull -U https://git.example.com/site.git'
 cmd deny "$DEV" '/usr/local/bin/terraform plan'
 cmd deny "$DEV" 'FOO=1 /usr/bin/tofu apply'
+cmd deny "$DEV" '/usr/local/bin/terragrunt plan'
 cmd pass "$DEV" 'grep -rn become roles/ansible/tasks/'
 cmd pass "$DEV" 'cat ~/infra/terraform/main.tf'
 cmd pass "$DEV" 'ansible-lint site.yml'

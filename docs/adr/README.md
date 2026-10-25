@@ -8,6 +8,7 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Hostwarden plans infrastructure code and applies only what cannot destroy](20261025-agent-plans-user-applies-infrastructure-code.md) | infrastructure-code, opentofu, ansible, approvals, guard | — |
 | [Operations host read-only while no write key is unlocked](20261024-ops-host-read-only-while-no-write-key.md) | operations, access-control, ssh, keys | — |
 | [The background session is called presence](20261022-background-session-is-presence.md) | coordination, sessions | — |
 | [A host locks itself with allow_changes in its own file](20261021-server-lock-file-allow-changes.md) | safety, access-control, guard | — |

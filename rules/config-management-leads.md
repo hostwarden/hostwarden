@@ -124,8 +124,11 @@ of a tool, change the line or remove it; the files stay as they
 are, and from then on Hostwarden changes them by hand.
 
 Terraform and OpenTofu leave nothing on a host to detect. Record
-them only when the user says so:
+them when the user says so, or when a stack Hostwarden runs created
+or changed the host (`rules/opentofu.md` → Records), naming the
+stack as the wrapper takes it:
 
 ```markdown
-- Provisioned by: opentofu (~/infra/hosting)
+- Provisioned by: opentofu (hosting)
+- Provisioned by: terraform (hosting, applied by the user)
 ```

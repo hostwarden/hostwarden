@@ -18,11 +18,12 @@ whose header says a tool manages it.
   marker, or a package or service the tool manages there — belongs
   in the tool's code, or the tool undoes it. Say so, name the file
   and the change, and let the user decide:
-  - **In the tool's code.** For Ansible, Hostwarden can edit the
-    user's playbooks and roles on this machine when asked, and
-    applies a playbook that lives in the workspace
-    (`rules/workspace-playbook.md`); one kept anywhere else the
-    user applies. For the other tools the user makes the change.
+  - **In the tool's code.** For Ansible, Hostwarden edits the
+    user's playbooks and roles when asked, and checks, diffs and
+    applies a tree it runs — one in the workspace, or one the user
+    registered (`rules/workspace-playbook.md`); a tree it does not
+    run the user applies. For the other tools the user makes the
+    change.
   - **By hand anyway**, only on the user's explicit request, after
     saying when the tool will undo it: at its next run for Ansible
     and for any tool a cron job runs, within the agent's run
@@ -41,8 +42,9 @@ whose header says a tool manages it.
 - **Provisioned by Terraform or OpenTofu:** what that code owns —
   a cloud firewall, a DNS record, the instance size — is changed in
   that code, never in the provider's console or command line tool.
-  Hostwarden never runs `terraform` or `tofu`; `apply` can replace,
-  and so destroy, a server.
+  Hostwarden checks, plans and reviews a stack it runs, and applies
+  only a plan that deletes and replaces nothing, asked every time;
+  everything else is the user's (`rules/opentofu.md`).
 
 ## Why only detection for the others
 
@@ -52,5 +54,6 @@ CFEngine and Rudder run an agent against a policy server the same
 way, so a change made in their code reaches every host without the
 per-host pipeline (`rules/first-connection.md`) ever running.
 Terraform and OpenTofu provision infrastructure through cloud APIs
-rather than administer a host, and their state holds secrets in
-plain text (`rules/secrets.md`).
+rather than administer a host, so detection on the host finds
+nothing of them; what Hostwarden does with a stack is in
+`rules/opentofu.md`.

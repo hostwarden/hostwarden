@@ -4,7 +4,7 @@
 # command names.
   BEGIN {
     RS = "\001"
-    T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec|ansible|ansible-playbook|ansible-pull|ansible-console|terraform|tofu)$"
+    T = "^(ssh|scp|sftp|mosh|sudo|sudoedit|doas|pkexec|ansible|ansible-playbook|ansible-pull|ansible-console|terraform|tofu|terragrunt)$"
     # Windows programs, matched on the lowercased name.
     W = "^(ssh|scp|sftp|sudo|runas|wsl|powershell|pwsh|cmd)[.]exe$"
     # Launchers that run the rest of their line as a command. LA

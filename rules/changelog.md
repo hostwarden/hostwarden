@@ -145,7 +145,10 @@ file-edit tool (`rules/machine-memory.md`). Use the labels
 `Detail:`, `Source:`, `Rollback:`, `Verify:`, `Flags:`
 as applicable — skip empty ones.
 
-`Source:` belongs to a deploy (`rules/deployed-files.md`):
+`Source:` belongs to a deploy (`rules/deployed-files.md`),
+and to a run of infrastructure code, where it names
+the tree and the commit it ran from
+(`rules/opentofu.md` → Records). For a deploy it is
 one line per file, naming its master in the workspace
 and the first 16 characters of the hash it was
 deployed with, which finds that version in the

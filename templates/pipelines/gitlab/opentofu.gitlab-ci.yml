@@ -1,0 +1,194 @@
+# templates/pipelines/gitlab/opentofu.gitlab-ci.yml — a GitLab CI
+# pipeline for one OpenTofu stack (rules/infra-code.md → Pipelines,
+# the hostwarden-opentofu skill → Pipeline). Hostwarden copies it
+# into the repository that holds the tree, as
+# .gitlab/opentofu-<stack>.gitlab-ci.yml, includes it from
+# .gitlab-ci.yml, and fills in the marks:
+#
+#   <stack>        the stack's name, as bin/hostwarden-tofu takes it
+#   <stack-path>   the root module's path in the repository
+#   <tofu-version> the version mise.toml pins
+#   <environment>  the protected environment that holds the approval
+#   the provider variables: keep one of the blocks under `.auth-<stack>`
+#
+# Every job, every hidden job and the STACK variable carry the stack's
+# name or sit in a job of its own: GitLab merges entries of the same
+# name across included files, so the files of two stacks, or of a
+# stack and an Ansible tree, stay apart only this way.
+#
+# Before the first run the project needs: a protected default
+# branch; a protected environment with approvers; two roles at the
+# provider and two CI/CD variables naming them: AWS_ROLE_ARN_PLAN,
+# not protected (a role's name is no secret, and a merge request's
+# pipeline runs on an unprotected branch), whose role reads the
+# resources and the state and writes the state's lock object only,
+# and trusts merge-request and default-branch pipelines of this
+# project; and AWS_ROLE_ARN, protected, whose role applies and trusts
+# the subject project_path:<group>/<project>:ref_type:branch:ref:main
+# alone. A static token is a protected, masked variable. Hostwarden
+# sets none of this; it reads the pipelines.
+#
+# On a merge request the stack is checked and planned and the plan is
+# a summary on the request; nothing is applied. A plan without changes
+# writes no plan file, and `apply` has nothing to apply. On the
+# default branch the stack is planned again, and `apply` waits for a
+# person to start it and for the environment's approvers, then
+# applies that plan, the artifact of the same pipeline. A plan file
+# holds what the plan shows: every value the provider and the code do
+# not mark sensitive. The project is private, the artifact expires in
+# a day, and a secret reaches the code as a sensitive variable.
+#
+# The images are pinned to the versions mise.toml pins; confirm each
+# before use (rules/version-check.md).
+
+stages:
+  - check
+  - plan
+  - apply
+
+variables:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+
+# One pipeline at a time per stack, on top of the state's own lock.
+.stack-<stack>:
+  image:
+    name: ghcr.io/opentofu/opentofu:<tofu-version>
+    entrypoint: [""]
+  variables:
+    STACK: <stack-path>
+  resource_group: opentofu-<stack>
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "<stack-path>/**/*"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "<stack-path>/**/*"
+
+# --- the provider: keep one block --------------------------------
+.auth-<stack>:
+  # AWS: a role that trusts GitLab's OIDC issuer; the backend and the
+  # provider read the two variables. The plan job names its own role.
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.example.com
+  variables:
+    AWS_ROLE_ARN: $AWS_ROLE_ARN
+    AWS_WEB_IDENTITY_TOKEN_FILE: $CI_PROJECT_DIR/.oidc-token
+  before_script:
+    - printf '%s' "$GITLAB_OIDC_TOKEN" > "$AWS_WEB_IDENTITY_TOKEN_FILE"
+  # Azure: a federated credential on a managed identity or an app
+  # registration; the provider reads ARM_* with ARM_USE_OIDC.
+  # id_tokens:
+  #   ARM_OIDC_TOKEN:
+  #     aud: api://AzureADTokenExchange
+  # variables:
+  #   ARM_USE_OIDC: "true"
+  #   ARM_CLIENT_ID: $ARM_CLIENT_ID
+  #   ARM_TENANT_ID: $ARM_TENANT_ID
+  #   ARM_SUBSCRIPTION_ID: $ARM_SUBSCRIPTION_ID
+  # A provider without federation: the token as a protected, masked
+  # CI/CD variable, in the register with its expiry.
+  # variables:
+  #   HCLOUD_TOKEN: $HCLOUD_TOKEN
+# -----------------------------------------------------------------
+
+check-<stack>:
+  stage: check
+  extends: .stack-<stack>
+  script:
+    - cd "$STACK"
+    - tofu fmt -check -diff -recursive
+    - tofu init -backend=false -input=false
+    - tofu validate
+
+# tflint, Trivy and Checkov run in their own images, each with its
+# entrypoint cleared, since a job's image replaces the default one
+# whole; each is the same check bin/hostwarden-tofu check runs on
+# the workstation.
+tflint-<stack>:
+  stage: check
+  extends: .stack-<stack>
+  image:
+    name: ghcr.io/terraform-linters/tflint:v0.65.0
+    entrypoint: [""]
+  script:
+    - cd "$STACK"
+    - '[ ! -f .tflint.hcl ] || tflint --init'
+    - tflint --recursive
+
+trivy-<stack>:
+  stage: check
+  extends: .stack-<stack>
+  image:
+    name: aquasec/trivy:0.76.1
+    entrypoint: [""]
+  script:
+    - trivy config --exit-code 1 "$STACK"
+
+checkov-<stack>:
+  stage: check
+  extends: .stack-<stack>
+  image:
+    name: bridgecrew/checkov:3.3.30
+    entrypoint: [""]
+  script:
+    - checkov -d "$STACK" --framework terraform --quiet --compact
+
+plan-<stack>:
+  stage: plan
+  extends: [.stack-<stack>, .auth-<stack>]
+  needs: [check-<stack>, tflint-<stack>, trivy-<stack>, checkov-<stack>]
+  variables:
+    STACK: <stack-path>
+    # The plan role, not the apply role: a merge request's token names
+    # its source branch, which only the plan role trusts.
+    AWS_ROLE_ARN: $AWS_ROLE_ARN_PLAN
+  script:
+    - cd "$STACK"
+    - tofu init -input=false
+    - |
+      set +e
+      tofu plan -input=false -lock-timeout=60s -detailed-exitcode \
+        -out=tfplan -no-color
+      rc=$?
+      set -e
+      case $rc in 0|2) ;; *) exit $rc ;; esac
+    # GitLab's report wants the counts, not the plan: the plan's JSON
+    # goes through jq and is stored nowhere. A plan without changes
+    # writes no plan file: the counts are zero.
+    - command -v jq >/dev/null || apk add --no-cache jq
+    - |
+      if [ "$rc" = 0 ]; then
+        echo '{"create":0,"update":0,"delete":0}' > plan-summary.json
+      else
+        tofu show -json tfplan | jq '{
+          create: ([.resource_changes[]? | select(.change.actions | index("create"))] | length),
+          update: ([.resource_changes[]? | select(.change.actions | index("update"))] | length),
+          delete: ([.resource_changes[]? | select(.change.actions | index("delete"))] | length)
+        }' > plan-summary.json
+      fi
+  artifacts:
+    paths:
+      - <stack-path>/tfplan
+    reports:
+      terraform: <stack-path>/plan-summary.json
+    expire_in: 1 day
+
+apply-<stack>:
+  stage: apply
+  extends: [.stack-<stack>, .auth-<stack>]
+  needs: [plan-<stack>]
+  environment:
+    name: <environment>
+    action: start
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "<stack-path>/**/*"
+      when: manual
+  script:
+    - cd "$STACK"
+    - tofu init -input=false
+    - tofu apply -input=false -lock-timeout=60s tfplan
