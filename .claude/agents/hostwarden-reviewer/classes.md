@@ -114,11 +114,10 @@ before one is added.
    escapes), not only a plain-text example? Where a value from
    outside is written into a syntax another program reads — a path
    in an ssh_config keyword that expands tokens or globs (`Include`,
-   `ControlPath`), a resolved address in a URL, a path or name in a
-   command line for a person to paste — what does a `%`, a glob
-   character, the `:` of an IPv6 literal (and does the port after
-   it still parse), a space or a shell metacharacter do there, and
-   is it escaped, bracketed, quoted or refused?
+   `ControlPath`), a resolved address in a URL — what does a `%`, a
+   glob character or the `:` of an IPv6 literal do there (and does
+   the port after it still parse), and is it escaped, bracketed or
+   refused?
 7. A step that handles one kind of change or outcome in a set: does
    it cover every kind — a record added, edited, deleted or renamed,
    a verification written for the add case — and does treating two
@@ -608,6 +607,10 @@ before one is added.
    whose content happens to match the version pattern — and what
    proves the file at it is the one the check assumes, before its
    content reaches the output?
+8. A command line printed for a person to paste, with a path or name
+   from outside in it: what does a space or a shell metacharacter in
+   that value do to the line, and is it quoted for the shell that
+   will read it?
 
 ## 10. Stored state never revisited
 
