@@ -138,15 +138,28 @@ clone_url() {
   case $1 in
   http://*|https://*) printf '%s\n' "$1" | sed -E 's#^(https?://)[^/@]*@#\1#' ;;
   ssh://*) cu_rest=${1#ssh://}; cu_user=
-    case $cu_rest in *@*) cu_user=${cu_rest%%@*}; cu_rest=${cu_rest#*@} ;; esac
+    case $cu_rest in *@*) case ${cu_rest%%@*} in
+      */*|*\[*) ;; *) cu_user=${cu_rest%%@*}; cu_rest=${cu_rest#*@} ;; esac ;; esac
     case " $SERVICE_USERS " in *" $cu_user "*) ;; *) cu_user= ;; esac
     printf 'ssh://%s%s\n' "${cu_user:+$cu_user@}" "$cu_rest" ;;
   git://*) printf '%s\n' "$1" ;;
   /*|./*|../*|file://*) ;;
   *:*) cu_rest=$1; cu_user=
-    case $cu_rest in *@*) cu_user=${cu_rest%%@*}; cu_rest=${cu_rest#*@} ;; esac
+    case $cu_rest in *@*) case ${cu_rest%%@*} in
+      */*|*:*|*\[*) ;; *) cu_user=${cu_rest%%@*}; cu_rest=${cu_rest#*@} ;; esac ;; esac
     case " $SERVICE_USERS " in *" $cu_user "*) ;; *) cu_user= ;; esac
     printf '%s%s\n' "${cu_user:+$cu_user@}" "$cu_rest" ;;
+  esac
+}
+# sh_arg <word> — <word> as one shell argument: as it is where it holds
+# nothing but characters a shell leaves alone (not [ and ], which
+# zsh globs), else in single quotes
+# with each embedded quote written '\'' .
+sh_arg() {
+  case $1 in
+  *[!A-Za-z0-9._~:/@-]*)
+    printf "'%s'\n" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")" ;;
+  *) printf '%s\n' "$1" ;;
   esac
 }
 # Through a file, not a command substitution, so HOSTWARDEN_URL_PORT
@@ -182,7 +195,7 @@ HW_KEY=${HW_KEY%.git}
   echo "\`memory/\` of a Hostwarden checkout, which \`bin/hostwarden-init\`"
   echo "sets up from this repository's URL:"
   echo
-  printf '    git clone %s hostwarden\n' "$HW_SOURCE"
+  printf '    git clone %s hostwarden\n' "$(sh_arg "$HW_SOURCE")"
   echo "    cd hostwarden"
   echo "    bin/hostwarden-init --clone <URL of this repository>"
   echo "    claude"
@@ -190,7 +203,12 @@ HW_KEY=${HW_KEY%.git}
   # An scp-style address with a relative path cannot carry the
   # port its host listens on (lib/mode.sh → hostwarden_resolve_url).
   if [ -n "$HW_PORT" ] && [ "$HW_KEY" != "$HW_UPSTREAM" ]; then
-    hw_host=${HW_SOURCE%%:*}; hw_host=${hw_host#*@}
+    hw_host=$HW_SOURCE
+    case ${hw_host%%@*} in */*|*:*|*\[*) ;; *) hw_host=${hw_host#*@} ;; esac
+    case $hw_host in
+    \[*) hw_host=${hw_host%%]*}; hw_host=${hw_host#\[} ;;
+    *) hw_host=${hw_host%%:*} ;;
+    esac
     echo "The server listens on port $HW_PORT, which this address cannot"
     echo "carry: give \`$hw_host\` a \`Port $HW_PORT\` line in your ssh"
     echo "configuration first."
