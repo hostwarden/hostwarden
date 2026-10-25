@@ -330,7 +330,8 @@ hostwarden_redact() {
 # path from the root and the second as its home. So that address
 # keeps its scp form, and HOSTWARDEN_URL_PORT holds the port the
 # form could not carry, for the caller to say; it is empty
-# otherwise.
+# otherwise. A host in brackets, an IPv6 literal, is read as such,
+# and one the configuration resolves to is printed in brackets.
 hostwarden_resolve_url() {
   HOSTWARDEN_URL_PORT=
   ru=$(git ls-remote --get-url -- "$1" 2>/dev/null) || ru=$1
@@ -338,13 +339,24 @@ hostwarden_resolve_url() {
   case $ru in
   ssh://*)
     ru_rest=${ru#ssh://}
-    case $ru_rest in *@*) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac
-    ru_host=${ru_rest%%[:/]*}; ru_tail=${ru_rest#"$ru_host"}; ru_form=ssh ;;
+    case $ru_rest in *@*) case ${ru_rest%%@*} in
+      */*|*\[*) ;; *) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac ;; esac
+    case $ru_rest in
+    \[*) ru_host=${ru_rest%%]*}; ru_host=${ru_host#\[}; ru_tail=${ru_rest#*]} ;;
+    *) ru_host=${ru_rest%%[:/]*}; ru_tail=${ru_rest#"$ru_host"} ;;
+    esac
+    ru_form=ssh ;;
   *://*|/*|./*|../*) printf '%s\n' "$ru"; return ;;
   *:*)
     ru_rest=$ru
-    case $ru_rest in *@*) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac
-    ru_host=${ru_rest%%:*}; ru_path=${ru_rest#*:}; ru_form=scp ;;
+    case $ru_rest in *@*) case ${ru_rest%%@*} in
+      */*|*:*|*\[*) ;; *) ru_user=${ru_rest%%@*}; ru_rest=${ru_rest#*@} ;; esac ;; esac
+    case $ru_rest in
+    \[*) ru_host=${ru_rest%%]*}; ru_host=${ru_host#\[}; ru_path=${ru_rest#*]}
+      ru_path=${ru_path#:} ;;
+    *) ru_host=${ru_rest%%:*}; ru_path=${ru_rest#*:} ;;
+    esac
+    ru_form=scp ;;
   *) printf '%s\n' "$ru"; return ;;
   esac
   ru_cfg=$(ssh -G -- "$ru_host" 2>/dev/null) || ru_cfg=
@@ -357,6 +369,8 @@ hostwarden_resolve_url() {
   [ "$ru_cuser" != "$(id -un 2>/dev/null)" ] || ru_cuser=
   [ -n "$ru_user" ] || ru_user=$ru_cuser
   [ "$ru_port" != 22 ] || ru_port=
+  # git needs an IPv6 literal in brackets in both forms.
+  case $ru_real in *:*) ru_real="[$ru_real]" ;; esac
   case $ru_form in
   ssh)
     case $ru_tail in :*) ;; *) ru_tail="${ru_port:+:$ru_port}$ru_tail" ;; esac
@@ -384,9 +398,9 @@ hostwarden_anon_url() {
   git://*) printf '%s\n' "$1" ;;
   http://*|https://*) printf '%s\n' "$1" | sed -E 's#^(https?://)[^/@]*@#\1#' ;;
   ssh://*) printf '%s\n' "$1" |
-    sed -E 's#^ssh://([^/@]*@)?([^/:]+)(:[0-9]+)?/#https://\2/#' ;;
+    sed -E 's#^ssh://([^/@]*@)?(\[[^]]+\]|[^/:]+)(:[0-9]+)?/#https://\2/#' ;;
   /*|./*|../*|file://*) ;;
-  *:*) printf '%s\n' "$1" | sed -E 's#^([^@:/]*@)?([^:/]+):/?#https://\2/#' ;;
+  *:*) printf '%s\n' "$1" | sed -E 's#^([^@:/]*@)?(\[[^]]+\]|[^:/]+):/?#https://\2/#' ;;
   esac
 }
 

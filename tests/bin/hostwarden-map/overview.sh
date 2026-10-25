@@ -92,6 +92,7 @@ for a; do :; done
 case $a in
   forge) printf 'hostname forge.example.com\nport 2222\nuser git\n' ;;
   forge2.example.com) printf 'hostname forge2.example.com\nport 2222\nuser git\n' ;;
+  v6) printf 'hostname 2001:db8::10\nport 2222\nuser git\n' ;;
   gh) printf 'hostname github.com\nport 22\nuser git\n' ;;
   *) printf 'hostname %s\nport 22\nuser %s\n' "$a" "$(id -un)" ;;
 esac
@@ -154,6 +155,26 @@ origin_case 'ssh://forge/ops/fork.hostwarden.git' \
 origin_case 'ssh://alice@forge:2200/ops/fork.hostwarden.git' \
   'ssh://forge.example.com:2200/ops/fork.hostwarden.git' \
   "the URL's own user and port win over the alias's, and a person's user goes"
+origin_case 'ssh://git@[2001:db8::10]:2200/ops/fork.hostwarden.git' \
+  "'ssh://git@[2001:db8::10]:2200/ops/fork.hostwarden.git'" \
+  "a bracketed IPv6 host in an ssh:// origin is kept whole"
+origin_case 'v6:/srv/git/fork.hostwarden.git' \
+  "'ssh://git@[2001:db8::10]:2222/srv/git/fork.hostwarden.git'" \
+  "an alias resolving to an IPv6 literal is printed in brackets"
+origin_case 'git@[2001:db8::10]:ops/fork.hostwarden.git' \
+  "'git@[2001:db8::10]:ops/fork.hostwarden.git'" \
+  "a bracketed IPv6 host in an scp-style origin is kept whole"
+origin_case 'v6:ops/fork.hostwarden.git' \
+  "'git@[2001:db8::10]:ops/fork.hostwarden.git'" \
+  "an scp-style alias resolving to an IPv6 literal is bracketed"
+haspart "$OV" 'give `2001:db8::10` a `Port 2222` line in your ssh' \
+  "the port sentence names the IPv6 host whole"
+origin_case 'git@git.example.com:ops/my repo.git' \
+  "'git@git.example.com:ops/my repo.git'" \
+  "a path with a space is quoted as one shell argument"
+origin_case "git@git.example.com:ops/it's;rm.git" \
+  "'git@git.example.com:ops/it'\\''s;rm.git'" \
+  "an embedded single quote is written '\\'' and a metacharacter is quoted"
 origin_case 'gh:hostwarden/hostwarden.git' \
   'https://github.com/hostwarden/hostwarden.git' \
   "upstream through an ssh alias is printed as its public https address"
