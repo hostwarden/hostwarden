@@ -50,8 +50,7 @@ render_site() {
         rid="${rid}_${srow}"
         dupnote="<br/>$(esc_sh "same prefix, not shown to be one network")"
       fi
-      printf '  subgraph %s["%s<br/>%s%s"]\n' "$rid" "$(esc_sh "$prefix")" "$(esc_sh "$vlbl")" "$dupnote"
-      echo "    direction TB"
+      : >"$WORK/site-range-nodes"
       if [ "$dup" != 1 ]; then
         # shellcheck disable=SC2034 # hs is the row's own site; not needed once filtered to it
         while IFS="$US" read -r h hs c k a ip d ro hf st; do
@@ -59,10 +58,22 @@ render_site() {
           [ -n "$ip" ] || continue
           in_cidr "$ip" "$prefix" || continue
           echo "$h" >>"$WORK/site-hosts-placed"
-          host_node "    " "$h" "$k" "$a" "$st" "../../machines" "$hf"
+          host_node "    " "$h" "$k" "$a" "$st" "../../machines" "$hf" >>"$WORK/site-range-nodes"
         done <"$WORK/site-hosts.tsv.us"
       fi
-      echo "  end"
+      # Mermaid draws empty subgraphs on top of each other at the
+      # origin, so a range none of this site's hosts is placed in
+      # (an IPv6 /64 beside the IPv4 range its hosts sit in, a range
+      # without a host) is one node under the same ID: the edges
+      # below still find it.
+      if [ -s "$WORK/site-range-nodes" ]; then
+        printf '  subgraph %s["%s<br/>%s%s"]\n' "$rid" "$(esc_sh "$prefix")" "$(esc_sh "$vlbl")" "$dupnote"
+        echo "    direction TB"
+        cat "$WORK/site-range-nodes"
+        echo "  end"
+      else
+        printf '  %s["%s<br/>%s%s<br/>no host drawn"]\n' "$rid" "$(esc_sh "$prefix")" "$(esc_sh "$vlbl")" "$dupnote"
+      fi
     done
 
     cut -f1 "$WORK/site-hosts.tsv" >"$WORK/site-hosts-all"
