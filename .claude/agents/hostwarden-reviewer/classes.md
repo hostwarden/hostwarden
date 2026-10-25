@@ -115,9 +115,9 @@ before one is added.
    outside is written into a syntax another program reads — a path
    in an ssh_config keyword that expands tokens or globs (`Include`,
    `ControlPath`), a resolved address in a URL — what does a `%`, a
-   glob character or the `:` of an IPv6 literal do there (and does
-   the port after it still parse), and is it escaped, bracketed or
-   refused?
+   glob character, a space or the `:` of an IPv6 literal do there
+   (and does the port after it still parse), and is it escaped,
+   quoted, bracketed or refused?
 7. A step that handles one kind of change or outcome in a set: does
    it cover every kind — a record added, edited, deleted or renamed,
    a verification written for the add case — and does treating two
