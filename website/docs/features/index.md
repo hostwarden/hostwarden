@@ -49,7 +49,11 @@ the agent as instructions.
 - [Plan mode](changes/plan-mode.md) — plans a complex or
   unfamiliar change before touching anything.
 - [Configuration management](changes/config-management.md) —
-  works alongside Ansible, Puppet, Chef, and similar tools.
+  works alongside Ansible, Puppet, Chef, and similar tools, and
+  runs the Ansible tree you keep.
+- [Infrastructure code](changes/infrastructure-code.md) — runs
+  your OpenTofu stacks and Ansible trees, checks them before every
+  plan, and grows from a workstation to a pipeline.
 - [Services in containers](changes/containers.md) — changes the
   file that recreates a container, not the running one.
 - [Accounts](changes/accounts.md) — creates and removes accounts,

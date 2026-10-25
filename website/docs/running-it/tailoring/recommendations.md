@@ -79,6 +79,22 @@ A decision, for one host or a group, settles any of these
   — nobody can send as a name that sends nothing.
   [rules/mail-dns.md](https://github.com/hostwarden/hostwarden/blob/main/rules/mail-dns.md)
 
+## Infrastructure code
+
+- **A remote, locked, versioned state for every OpenTofu stack** — two
+  people, or a workstation and a pipeline, never write over each
+  other's state, and a mistake has a version to go back to.
+  [Infrastructure code](../../features/changes/infrastructure-code.md#the-state)
+- **State and plan encryption** — a bucket that leaks does not leak
+  every secret the stack ever read. Proposed once, like a missing
+  firewall. [Infrastructure code](../../features/changes/infrastructure-code.md#the-state)
+- **Federated credentials before certificates before static tokens**
+  — nothing to store, nothing to rotate, nothing to leak.
+  [Infrastructure code](../../features/changes/infrastructure-code.md#credentials)
+- **A pipeline that checks and plans first, applies second, with a
+  reviewer** — each step named once, when the one before it stands.
+  [Infrastructure code](../../features/changes/infrastructure-code.md#from-a-workstation-to-a-pipeline)
+
 ## Hostwarden's own SSH key
 
 Asked once; *Not now* settles it

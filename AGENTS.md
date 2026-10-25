@@ -281,6 +281,10 @@ Hard ceilings:
   one, nothing added before or after it.
 - Recommendations: one line each, at most 3, and only when something
   is actually wrong.
+- A command the user is to run: whole, in a fenced block, every
+  option in it, as `rules/infra-code.md` → Commands the user runs
+  spells it. The block is the fact; one line of prose says what it
+  does.
 
 Never open with "I looked into this", "Here is a summary", "As
 requested", or a restatement of the question. Never close with a
@@ -340,9 +344,12 @@ trigger — not a request from the user.
   `Config management:` or `Provisioned by:` line, or a file whose
   header says a tool manages it →
   `rules/config-management-changes.md`
-- Checking, applying, writing or changing an Ansible playbook the
-  user keeps in the workspace, under `memory/infra/` →
+- Checking, diffing, applying, writing or changing an Ansible tree
+  Hostwarden runs, its pipeline or a credential it uses →
   `rules/workspace-playbook.md`
+- An OpenTofu or Terraform stack, a host whose memory has a
+  `Provisioned by:` line, a change to what such code owns, its
+  pipeline or a credential it uses → `rules/opentofu.md`
 - Editing any config file → `rules/backups.md`
 - Writing a file of your own onto a host, changing or removing
   one, or running a script from `memory/tools/` against a host →

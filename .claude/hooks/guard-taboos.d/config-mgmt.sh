@@ -82,9 +82,34 @@
 # that flag it installs every requirements.yml it finds. No rule
 # here names them.
 #
-# terraform and tofu apply and destroy can replace or delete the
-# server itself (rules/config-management.md), and Hostwarden never
-# runs them, by any path. plan, show and state list only read.
+# bin/hostwarden-ansible runs the same tools from a tree the session
+# has read (rules/workspace-playbook.md): the wrapper confines the
+# playbooks, the inventory and the collections to the tree, for its
+# playbook verb as for the others, so only the verb is judged here:
+# apply, verify and a playbook run without a read-only flag are
+# asked, every time, since a run changes every host the play
+# reaches; a -e secret is denied as above. A bare ansible-playbook
+# run that is not --check, --syntax-check or a --list form is asked
+# the same way.
+#
+# terraform, tofu and terragrunt (rules/opentofu.md): apply and
+# destroy can replace or delete the server itself, import, taint,
+# untaint, force-unlock, refresh, state rm/mv/push/replace-provider,
+# workspace new/delete and select -or-create write the state without
+# a plan to review,
+# state pull and show or output with -json or -raw print the state's
+# secrets into the session, -auto-approve skips the review,
+# -lock=false runs beside another session and -show-sensitive prints
+# secrets; terragrunt run-all, run --all and stack run reach every
+# stack at once. All of those are denied, by any path, terragrunt's
+# global options with a value of their own (--working-dir live)
+# included. init, validate, plan,
+# show, output and state list read. bin/hostwarden-tofu plans and
+# applies from a stack the session has read: its apply, which the
+# wrapper itself holds to a plan without a delete or a replace, is
+# asked, every time, and its two flags that apply or test whatever
+# the plan or the test does are denied; its other verbs are the
+# wrapper's own to refuse.
 #
 # Full scope only: a development session reaches none of these
 # tools (the shim refuses them), and this repository names them in
@@ -152,7 +177,7 @@ them"
       {
         for (i = 1; i <= NF; i++) {
           t = $i; sub(/.*\//, "", t)
-          if (t ~ /^ansible(-playbook|-galaxy)?$/) break
+          if (t ~ /^(ansible(-playbook|-galaxy)?|hostwarden-ansible)$/) break
         }
         if (i > NF) next
         cmd = t
@@ -165,8 +190,27 @@ them"
           if ($j ~ /^(-a|--args|-e|--extra-vars)(=|$)/ || ($j ~ /^-[A-Za-z]/ && $j !~ /^--/ && index($j, "a"))) break
           if ($j ~ /^(-h|--help|--version)$/) next
         }
+        if (cmd == "hostwarden-ansible") {
+          # --tree <name> or --tree=<name>, then the verb; the wrapper
+          # confines the paths, so only the verb and -e are read.
+          for (i++; i <= NF; i++) {
+            if ($i == "--tree") { i++; continue }
+            if ($i ~ /^--tree=/) continue
+            break
+          }
+          verb = (i <= NF) ? $i : ""
+          chk = (verb != "playbook")
+          for (i++; i <= NF; i++) {
+            w = $i
+            if (w == "--check" || w == "--syntax-check" || w ~ /^--list-(hosts|tasks|tags)$/ || (w ~ /^-[A-Za-z]+$/ && index(w, "C"))) chk = 1
+            if (w == "-e" || w == "--extra-vars") { evars(i); i++; continue }
+            if (w ~ /^--extra-vars=/) evars(i)
+          }
+          if (verb == "apply" || verb == "verify" || !chk) print "APPLY"
+          next
+        }
         if (cmd == "ansible-playbook") {
-          pb = 0; inv = 0; ok = 1
+          pb = 0; inv = 0; ok = 1; chk = 0
           for (i++; i <= NF; i++) {
             w = $i; v = ""
             # A redirection belongs to the shell, not a playbook: the
@@ -174,6 +218,7 @@ them"
             # the next word.
             if (w ~ /^[0-9]*[<>]/) { if (w ~ /^[0-9]*[<>]+$/) i++; continue }
             if (w ~ /^--(syntax-check|list-(hosts|tasks|tags))$/) { pb = -1; break }
+            if (w == "--check" || (w ~ /^-[A-Za-z]+$/ && index(w, "C"))) chk = 1
             if (w == "-e" || w == "--extra-vars") { evars(i); i++; continue }
             if (w ~ /^--extra-vars=/) { evars(i); continue }
             if (w == "-i" || w ~ /^--inventory(-file)?$/) v = $(++i)
@@ -184,7 +229,9 @@ them"
             else { pb++; if (!inws(w)) ok = 0; continue }
             inv++; if (!inws(v)) ok = 0
           }
-          if (pb >= 0 && (pb == 0 || inv == 0 || !ok)) print "PB"
+          if (pb < 0) next
+          if (pb == 0 || inv == 0 || !ok) print "PB"
+          else if (!chk) print "APPLY"
           next
         }
         if (cmd == "ansible-galaxy") {
@@ -233,6 +280,11 @@ them"
 goes into argv, which ps, the journal and shell history read - put \
 it in a vars file or a vault the playbook reads \
 (rules/secrets.md - Never Pass Secrets on the Command Line)" ;;
+      APPLY)
+        ask_for "applying an Ansible playbook" "changes every host the \
+play reaches (rules/workspace-playbook.md)" "Check the playbook, its \
+diff and the hosts named before approving; a run is approved once, \
+never for the next." ;;
       PB)
         deny "ansible-playbook runs only a playbook from the workspace: \
 each playbook and the inventory (-i) an absolute path under \
@@ -270,16 +322,98 @@ into a playbook in the workspace (rules/workspace-playbook.md)" ;;
   ;;
 esac
 case "$TEXT" in
-*terraform*|*tofu*)
-  # The verb is the first word after the global options, whose value
-  # may be quoted (-chdir="my infra"): terraform output apply only
-  # reads an output named apply.
-  TFOPT='-[^[:space:]"'\'']*("[^"]*"|'\''[^'\'']*'\'')?[^[:space:]]*'
-  if full && hit "(^|[^[:alnum:]_.-])(terraform|tofu)([[:space:]]+$TFOPT)*[[:space:]]+(apply|destroy)([^[:alnum:]_-]|\$)"
-  then
-    deny "terraform and tofu apply and destroy can replace or \
-delete the server itself - the user runs them \
-(rules/config-management.md)"
+*terraform*|*tofu*|*terragrunt*)
+  if full; then
+    # The verb is the first word after the global options, whose
+    # value may be quoted (-chdir="my infra"): terraform output apply
+    # only reads an output named apply. A leading - is excluded from
+    # the boundary, so hostwarden-tofu is not tofu. Each grep runs
+    # only when the plain word it needs is in the text: a plan or a
+    # validate pays no process here.
+    TFOPT='-[^[:space:]"'\'']*("[^"]*"|'\''[^'\'']*'\'')?[^[:space:]]*'
+    TFB='(^|[^[:alnum:]_.-])'
+    TFE='([^[:alnum:]_-]|$)'
+    TFCMD="$TFB(terraform|tofu|terragrunt)([[:space:]]+$TFOPT)*[[:space:]]+"
+    TFSTD="$TFB(terraform|tofu)([[:space:]]+$TFOPT)*[[:space:]]+"
+    # terragrunt takes global options with a value of their own
+    # (--working-dir live, --config custom.hcl), then run, stack run
+    # or the verb, with or without a --: options, an option's value,
+    # run and stack up to the verb. Any other word before it makes
+    # the line prose or another subcommand's (terragrunt plan
+    # reviewed, apply by the user), which is not a write. An option
+    # takes up to three words, a quoted value with spaces among them
+    # (--working-dir "my infra" apply). A write verb as an option's
+    # value (--out-dir apply) is denied; rare, and the user runs it.
+    TGW='(-[^;&|[:space:]]*([[:space:]]+[^-;&|[:space:]][^;&|[:space:]]*){0,3}|run|stack)'
+    TGCMD="${TFB}terragrunt([[:space:]]+${TGW})*[[:space:]]+"
+    # The verb ends at a space, a redirect, a closing bracket or the
+    # end of the segment, so (cd live && terragrunt state rm x) is
+    # read, and not at a dot: a file called apply.tfvars is no apply.
+    TGE='([[:space:]<>)}`]|$)'
+    # A boolean flag is on bare or with =true, =t, =1 (Go's flag
+    # package), -lock off with =false, =f, =0.
+    TFON='(=(true|TRUE|True|t|T|1))?'
+    TFWRITE="(apply|destroy|refresh|import|taint|untaint|force-unlock|state[[:space:]]+(rm|mv|push|pull|replace-provider)|workspace[[:space:]]+(new|delete|select([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+-?-or-create)|init([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+-?-(migrate-state|force-copy)$TFON)"
+    case "$TEXT" in
+    *apply*|*destroy*|*refresh*|*import*|*taint*|*force-unlock*|*state*|*workspace*|*force-copy*)
+      if hit "$TFSTD$TFWRITE$TFE" ||
+        hit "$TGCMD$TFWRITE$TGE"
+      then
+        deny "terraform, tofu and terragrunt apply and destroy can replace \
+or delete the server itself, and import, taint, untaint, force-unlock, \
+refresh, state rm/mv/push/pull/replace-provider, workspace new/delete, \
+select -or-create and init -migrate-state or -force-copy write the \
+state without a plan to review - the user runs them; the session plans with \
+bin/hostwarden-tofu (rules/opentofu.md)"
+      fi ;;
+    esac
+    case "$TEXT" in
+    *run-all*|*--all*|*stack*)
+      if hit "${TGCMD}(run-all|--all|stack[[:space:]]+run)$TFE"
+      then
+        deny "terragrunt run-all, run --all and stack run reach every stack \
+at once - one stack at a time, through bin/hostwarden-tofu \
+(rules/opentofu.md)"
+      fi ;;
+    esac
+    case "$TEXT" in
+    *auto-approve*|*lock=*|*show-sensitive*)
+      if hit "${TFCMD}[^;&|]*[[:space:]]-?-((auto-approve|show-sensitive)$TFON|lock=(false|FALSE|False|f|F|0))$TFE"
+      then
+        deny "-auto-approve skips the plan review, -lock=false runs beside \
+another session's apply and -show-sensitive prints secrets \
+(rules/opentofu.md)"
+      fi ;;
+    esac
+    case "$TEXT" in
+    *json*|*raw*)
+      if hit "$TFCMD(show|output)([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+-?-(json|raw)$TFON$TFE"
+      then
+        deny "show -json, output -json and output -raw print the state's \
+values unredacted, secrets included - bin/hostwarden-tofu review and \
+output read them without that (rules/secrets.md)"
+      fi ;;
+    esac
+    # The wrapper refuses every verb and option above itself (its
+    # header); here only what tells the session from the user: apply
+    # is asked, and the two flags that make the wrapper apply or test
+    # whatever the plan or the test does are the user's alone.
+    case "$TEXT" in
+    *hostwarden-tofu*)
+      HWT="${TFB}hostwarden-tofu[[:space:]]+[^-[:space:]][^[:space:]]*[[:space:]]+"
+      if hit "${HWT}(apply[^;&|]*[[:space:]]--destroys|test[^;&|]*[[:space:]]--applies)$TFE"
+      then
+        deny "hostwarden-tofu apply --destroys applies a plan that deletes \
+or replaces, and test --applies creates and destroys real resources - \
+the user runs them (rules/opentofu.md)"
+      fi
+      if hit "${HWT}apply$TFE"; then
+        ask_for "applying an OpenTofu plan" "changes the real resources \
+the saved plan names; the wrapper applies only a plan that deletes \
+and replaces nothing (rules/opentofu.md)" "Read the plan's review \
+first; a run is approved once, never for the next."
+      fi ;;
+    esac
   fi
   ;;
 esac

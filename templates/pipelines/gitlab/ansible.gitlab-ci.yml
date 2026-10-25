@@ -1,0 +1,79 @@
+# templates/pipelines/gitlab/ansible.gitlab-ci.yml — a GitLab CI
+# pipeline for an Ansible tree (rules/infra-code.md → Pipelines, the
+# hostwarden-ansible skill → Pipeline). Hostwarden copies it into the
+# repository that holds the tree, as .gitlab/ansible-<tree>.gitlab-ci.yml,
+# includes it from .gitlab-ci.yml, and fills in the marks:
+#
+#   <tree>            the tree's name, as bin/hostwarden-ansible takes it
+#   <tree-path>       the tree's path in the repository
+#   <ansible-version> ansible-core's version, the one mise.toml pins
+#   <lint-version>    ansible-lint's version, the one mise.toml pins
+#
+# On every merge request the tree is linted and syntax-checked, with
+# its collections installed from the pinned requirements.yml. Nothing
+# reaches a host from a shared runner. The `diff` job runs
+# `--check --diff` from a runner of the user's own that reaches the
+# hosts with a deploy user (hostwarden-deploy-user); it is off until
+# such a runner exists, and an apply from a pipeline is never in
+# this file.
+
+# Every job, every hidden job and the variables carry the tree's name
+# or sit in a job of its own: GitLab merges entries of the same name
+# across included files, so the files of two trees, or of a tree and
+# an OpenTofu stack, stay apart only this way. The stages are the ones
+# the OpenTofu template names, so that the lists agree.
+stages:
+  - check
+  - plan
+  - apply
+
+.tree-<tree>:
+  variables:
+    TREE: <tree-path>
+    # Absolute: the jobs enter the tree first, so a relative path would
+    # resolve beneath it.
+    ANSIBLE_CONFIG: $CI_PROJECT_DIR/<tree-path>/ansible.cfg
+    ANSIBLE_NOCOLOR: "1"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "<tree-path>/**/*"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - "<tree-path>/**/*"
+
+check-<tree>:
+  stage: check
+  extends: .tree-<tree>
+  image: python:3.13-slim
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.pip-cache
+  cache:
+    key:
+      files:
+        - <tree-path>/requirements.yml
+    paths:
+      - .pip-cache
+      - <tree-path>/collections
+  before_script:
+    - pip install "ansible-core==<ansible-version>" "ansible-lint==<lint-version>"
+    - cd "$TREE"
+    - '[ ! -f requirements.yml ] || ansible-galaxy collection install -r requirements.yml -p collections'
+  # before_script and script share one shell: the tree is entered once.
+  script:
+    - ansible-lint --offline
+    - ansible-playbook --syntax-check site.yml
+
+# Switch on by removing `when: never` once a runner with the tag
+# reaches the hosts; the inventory and the SSH options come from the
+# runner, never from a CI/CD variable.
+diff-<tree>:
+  stage: plan
+  extends: .tree-<tree>
+  needs: [check-<tree>]
+  tags: [hostwarden]
+  rules:
+    - when: never
+  script:
+    - cd "$TREE"
+    - ansible-playbook --check --diff site.yml

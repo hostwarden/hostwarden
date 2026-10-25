@@ -106,6 +106,7 @@ check_mode deny default "scp a.conf root@h:$FB_LXC; ansible-playbook site.yml"
 check_mode deny default \
   "scp a.conf root@h:$FB_LXC; terraform apply -auto-approve"
 check_mode deny default "scp a.conf root@h:$FB_LXC; tofu destroy"
+check_mode deny default "scp a.conf root@h:$FB_LXC; terragrunt run apply"
 check_mode deny default \
   "rm /var/lib/lxc/web4/rootfs/etc/ssh/ssh_host_ed25519_key; ansible-playbook site.yml"
 # virt-sysprep deletes host keys by default without naming a path.

@@ -77,13 +77,28 @@ them mechanically.
 - **Configuration tools** — the same effects through a configuration
   tool count too. `ansible-playbook` runs only a playbook from the
   workspace, `memory/`, named by absolute path together with its
-  inventory, and the rule keeps it under `memory/infra/<name>/`
-  ([Configuration management](../features/changes/config-management.md));
+  inventory, and a run that is not `--check` is asked
+  ([What it asks first](approvals.md#applying-infrastructure-code));
+  `bin/hostwarden-ansible` holds the playbook to its tree and is
+  asked the same way
+  ([Infrastructure code](../features/changes/infrastructure-code.md));
   an ad-hoc `ansible` call runs only `ping` and `setup`; no
   `ansible-pull` or `ansible-console`; no password, secret, token or
   `key=` in `-e`; `ansible-galaxy` installs only a pinned
   `requirements.yml` from the workspace into the playbook's own
-  directory; no `terraform` or `tofu` `apply` or `destroy`.
+  directory.
+- **OpenTofu, Terraform and Terragrunt** — `apply`, `destroy`,
+  `refresh`, `import`, `taint`, `untaint`, `force-unlock`,
+  `state rm`, `mv`, `push`, `pull` and `replace-provider`,
+  `workspace new` and `delete`, `workspace select -or-create`,
+  `init -migrate-state` and `-force-copy`, Terragrunt's `run-all`,
+  `run --all` and `stack run`, `-auto-approve`,
+  `-lock=false`, `-show-sensitive`, and `show` or `output` with
+  `-json` or `-raw`, which print a state's values in the clear.
+  `plan`, `validate`, `show` and `output` pass. `bin/hostwarden-tofu`
+  applies only a saved plan that deletes and replaces nothing, and
+  is asked before it does; its `apply --destroys` and
+  `test --applies` are yours alone and denied to a session.
 
 ## Where it applies
 

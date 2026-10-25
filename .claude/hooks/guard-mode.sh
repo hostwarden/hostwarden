@@ -155,6 +155,7 @@ if [ "$HOSTWARDEN_MODE" != operations ]; then
     */ansible[!A-Za-z0-9_.-]*|*/ansible-playbook[!A-Za-z0-9_.-]*) ;;
     */ansible-pull[!A-Za-z0-9_.-]*|*/ansible-console[!A-Za-z0-9_.-]*) ;;
     */terraform[!A-Za-z0-9_.-]*|*/tofu[!A-Za-z0-9_.-]*) ;;
+    */terragrunt[!A-Za-z0-9_.-]*) ;;
     # A Windows program, by path or by a spelling the shim misses.
     *.[Ee][Xx][Ee][!A-Za-z0-9_]*) ;;
     # In JSON a newline or tab before it is \n or \t, a letter too.

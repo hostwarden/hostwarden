@@ -54,7 +54,11 @@
 #     module but ping and setup; a password, secret, token or key
 #     in -e; a collection install that is not a pinned
 #     requirements file from the workspace into the playbook's
-#     own directory; terraform or tofu apply and destroy
+#     own directory; terraform, tofu or terragrunt apply, destroy,
+#     refresh, import, taint, force-unlock, a state or workspace
+#     write, init -migrate-state, a run-all or stack run,
+#     -auto-approve, -lock=false, -show-sensitive, and show or
+#     output with -json or -raw (rules/opentofu.md)
 #   - the same effects on any Windows machine, reached over
 #     SSH or through WSL: shutdown /s /p /h, Stop-Computer,
 #     wsl --shutdown/--terminate (halt), wsl --unregister (the
@@ -100,6 +104,10 @@
 #   - a routine storage change: the change tier of
 #     rules/storage.md (lvextend, mdadm --add, zpool replace,
 #     zfs destroy of a snapshot, ...)
+#   - applying infrastructure code: an ansible-playbook run that is
+#     not --check, bin/hostwarden-ansible apply or verify, and
+#     bin/hostwarden-tofu apply, every run anew
+#     (rules/workspace-playbook.md, rules/opentofu.md)
 #
 # What it deliberately does NOT scan: the body of a heredoc that
 # is written to an ordinary file by cat or tee (issue #8). That

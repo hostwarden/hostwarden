@@ -27,10 +27,13 @@ for Windows.
   one on every workstation, and the system's otherwise.
 - **[mise](https://mise.jdx.dev), optional.** `mise install`
   in the checkout brings jq, Ansible, `ansible-lint`,
-  `yamllint` and ShellCheck at the versions `mise.toml`
-  pins; without mise, Hostwarden uses whatever the
-  workstation has, and `bin/hostwarden-doctor` names what
-  is missing either way. On FreeBSD, jq and ShellCheck come from
+  `yamllint`, OpenTofu, Terragrunt, tflint, Trivy, Checkov
+  and ShellCheck at the versions `mise.toml` pins; without
+  mise, Hostwarden uses whatever the workstation has, and
+  `bin/hostwarden-doctor` names what is missing either way.
+  The 1Password CLI (`op`) comes from 1Password's own
+  install, where a tree takes its credentials from a vault
+  ([Infrastructure code](../features/changes/infrastructure-code.md#credentials)). On FreeBSD, jq and ShellCheck come from
   `pkg`: neither publishes a build for it.
   [CONTRIBUTING](https://github.com/hostwarden/hostwarden/blob/main/CONTRIBUTING.md#setup)
   names one mise install per distribution.

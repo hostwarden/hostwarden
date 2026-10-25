@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 description: Finds everywhere the old name is used before renaming
   a host.
 ---

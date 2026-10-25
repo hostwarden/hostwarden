@@ -51,6 +51,16 @@ or `- admin@rtr1.example.com: 1password op://Hostwarden/rtr1/password`,
 saying where the password comes from, never the password itself
 (`rules/ssh-passwords.md`).
 
+# Infrastructure code
+
+Only for an Ansible tree or an OpenTofu stack kept outside the
+workspace, in a repository of your own; the trees under
+`memory/infra/` need no line. One line per tree, the path this
+machine's (`rules/infra-code.md` → Trees):
+
+- `ansible <name>: /absolute/path/to/the/tree`
+- `opentofu <name>: /absolute/path/to/the/root/module`
+
 # SSH Identity
 
 Only where Hostwarden logs in with an SSH key of its own

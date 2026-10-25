@@ -56,7 +56,13 @@ applies before any of this runs.
    `references/deployed-files.md`. A host with a `DNS server:`
    line gets `rules/dns.md` → Reading a DNS server, which keeps
    its lines in `memory/dns.md` current, and the checks that file's
-   Checks → Where they run gives housekeeping. An
+   Checks → Where they run gives housekeeping. Where the workspace
+   has `memory/infra/credentials.md`, every entry whose `Expires:`
+   date is within 30 days or past is a WARN in the report, once per
+   run, with the entry's name and date and nothing of its value
+   (`rules/infra-code.md` → Credentials); a host whose memory has a
+   `Provisioned by:` line gets `bin/hostwarden-tofu <stack> drift`
+   as well, and drift is a WARN (`rules/opentofu.md` → Drift). An
    override of `rules/baseline.md` changes what the checks
    that measure it expect, and where one fills the sections left
    empty there, `rules/baseline.md` → The Sections an Override

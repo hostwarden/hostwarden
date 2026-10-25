@@ -1,8 +1,9 @@
 # The tools a session runs on this workstation, at pinned versions:
-# Ansible and its linters for rules/workspace-playbook.md, ShellCheck
-# for a script a session deploys (rules/deployed-files.md) and for
-# scripts/check.sh, and the Python and uv the pypi backend installs
-# with — pinned, since ansible-core needs Python 3.12 or newer and a
+# Ansible and its linters for rules/workspace-playbook.md, OpenTofu,
+# Terragrunt and the checkers rules/opentofu.md runs before a plan
+# (tflint, Trivy, Checkov), ShellCheck for a script a session
+# deploys (rules/deployed-files.md) and for scripts/check.sh, and
+# the Python and uv the pypi backend installs with — pinned, since ansible-core needs Python 3.12 or newer and a
 # workstation's own may be older. A plain [tools] table needs no
 # `mise trust`, which is why nothing else is in here: an [env] or a
 # [tasks] table would ask every operator to trust the file. Nothing
@@ -20,5 +21,10 @@ python = "3.14.8"
 "pypi:ansible-core" = "2.21.5"
 "pypi:ansible-lint" = "26.10.0"
 "pypi:yamllint" = "1.38.0"
+"aqua:opentofu/opentofu" = "1.13.2"
+"aqua:gruntwork-io/terragrunt" = "1.2.1"
+"aqua:terraform-linters/tflint" = "0.65.0"
+"aqua:aquasecurity/trivy" = "0.76.1"
+"pypi:checkov" = "3.3.30"
 "aqua:koalaman/shellcheck" = "0.11.0"
 "aqua:jqlang/jq" = "1.8.2"

@@ -72,7 +72,7 @@ part of the command is not aimed at it. "
       # other machines, a host option, a UNC host, a Proxmox node
       # path, and any Windows program (WSL runs it on the Windows
       # host, never this machine).
-      OFF_REACH="$REMOTE"'|(^|[^[:alnum:]_.-])(ansible[[:alnum:]-]*|terraform|tofu|salt[[:alnum:]-]*|pdsh|clush|pssh|parallel-ssh|dsh|parallel)([^[:alnum:]_.-]|$)|[[:space:]](-[[:alpha:]]*[HM]|--host|--machine)([[:space:]=]|$)|[[:space:]]\\\\[[:alnum:]]|pvesh[^;&|]*/nodes/|[[:alnum:]_-]\.exe([^[:alnum:]_.-]|$)'
+      OFF_REACH="$REMOTE"'|(^|[^[:alnum:]_.-])(ansible[[:alnum:]-]*|terraform|tofu|terragrunt|salt[[:alnum:]-]*|pdsh|clush|pssh|parallel-ssh|dsh|parallel)([^[:alnum:]_.-]|$)|[[:space:]](-[[:alpha:]]*[HM]|--host|--machine)([[:space:]=]|$)|[[:space:]]\\\\[[:alnum:]]|pvesh[^;&|]*/nodes/|[[:alnum:]_-]\.exe([^[:alnum:]_.-]|$)'
       OFF_LOCAL=0
       if [ "$GUARD_OFF" = localhost ]; then
         OFF_LOCAL=1

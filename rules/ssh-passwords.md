@@ -156,8 +156,10 @@ else, and only on the user's explicit decision:
    on this machine puts only Hostwarden's own in reach.
 2. **Name what the identity has to be**, by manager:
    - **1Password:** a vault kept for Hostwarden alone, holding only
-     the SSH entries, and a service account with read access to
-     that vault and no other. 1Password gives a service account
+     Hostwarden's entries — the SSH passwords, and the credentials
+     of the infrastructure code (`rules/infra-code.md` →
+     Credentials) — and a service account with read access to that
+     vault and no other. 1Password gives a service account
      vaults whole, never single entries, so a vault shared with
      anything else puts that in reach too.
    - **Bitwarden or Vaultwarden:** an account of its own for

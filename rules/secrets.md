@@ -42,6 +42,12 @@ keys, weak permissions) is the job of the
   ZeroTier's `identity.secret`), proxy URLs with
   credentials. Grep only named keys with an
   anchored pattern.
+- OpenTofu and Terraform state and plan files
+  (`terraform.tfstate`, `*.tfplan`, what `state pull`
+  and `show -json` print), which hold every attribute
+  in the clear, and a value in a tree's `secrets.env`,
+  which holds references only (`rules/infra-code.md`
+  → Credentials)
 - SSH passwords and the tokens that open a password
   manager, on this workstation: what
   `bin/hostwarden-password` stores and
@@ -396,7 +402,10 @@ skill → os-replacement → Certificates: store such
 material outside the repo
 (e.g. `~/hostwarden-keys/<hostname>/` with mode
 `0700` on the directory and `0600` on files) and
-record only the *path* in memory or inventories.
+record only the *path* in memory or inventories. An
+OpenTofu state stays remote and its plan in the checkout's
+own directory under `~/.cache/hostwarden/` (`rules/opentofu.md` →
+State).
 
 ## Login Keys
 

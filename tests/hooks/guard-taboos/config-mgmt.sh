@@ -7,18 +7,19 @@
 # --- a playbook from the workspace -------------------------------
 # The guard reads where a playbook comes from: memory/ of the
 # checkout it sits in, which for this matrix is the operations copy.
-# A playbook and an inventory there pass, with or without --check;
+# A playbook and an inventory there pass with --check and are asked
+# without it, since a run changes every host the play reaches;
 # anything elsewhere, relative, through a variable or with a ..
 # segment is denied, and so is a run without an inventory.
 WSD=$GUARD_TREES/ops/memory/infra/web
 check pass "ansible-playbook -i $WSD/inventory --check --diff --limit web1.example.com $WSD/site.yml"
 check pass "ANSIBLE_CONFIG=$WSD/ansible.cfg ANSIBLE_SSH_ARGS='-F /srv/hostwarden/memory/ssh_config' ansible-playbook -i $WSD/inventory $WSD/site.yml --check --diff -l web1.example.com"
-check pass "ansible-playbook --inventory=$WSD/hosts.yml $WSD/site.yml --limit web1.example.com"
-check pass "ansible-playbook -i$WSD/inventory $WSD/site.yml -e @$WSD/group_vars/all.yml"
-check pass "ansible-playbook -i $WSD/inventory -e 'nginx_workers=4' $WSD/site.yml"
-check pass "ansible-playbook -i $WSD/inventory $WSD/site.yml $WSD/nginx.yaml"
-check pass "cd $WSD && ansible-playbook -i $WSD/inventory $WSD/site.yml"
-check pass "ssh web1.example.com uptime; ansible-playbook -i $WSD/inventory $WSD/site.yml"
+check_mode ask default "ansible-playbook --inventory=$WSD/hosts.yml $WSD/site.yml --limit web1.example.com"
+check_mode ask default "ansible-playbook -i$WSD/inventory $WSD/site.yml -e @$WSD/group_vars/all.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory -e 'nginx_workers=4' $WSD/site.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory $WSD/site.yml $WSD/nginx.yaml"
+check_mode ask default "cd $WSD && ansible-playbook -i $WSD/inventory $WSD/site.yml"
+check_mode ask default "ssh web1.example.com uptime; ansible-playbook -i $WSD/inventory $WSD/site.yml"
 check deny 'ansible-playbook -i inventory site.yml'
 check deny 'ansible-playbook --check --diff -l web1.example.com site.yml'
 check deny 'cd ~/ansible && ansible-playbook site.yml --limit web1.example.com'
@@ -31,9 +32,9 @@ check deny "ansible-playbook -i $WSD/inventory \$WS/infra/web/site.yml"
 check deny "ansible-playbook -i web1.example.com, $WSD/site.yml"
 check deny "ansible-playbook $WSD/site.yml"
 check deny "ansible-playbook -i $WSD/inventory"
-check pass "ansible-playbook -i $WSD/inventory $WSD/site"
-check pass "ansible-playbook -i $WSD/inventory $WSD/site.yml -l web1.example.com -t nginx -u alice --vault-password-file /etc/ansible/vault.yml"
-check pass "ansible-playbook -i $WSD/inventory --become-user root -f 5 -c ssh $WSD/site.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory $WSD/site"
+check_mode ask default "ansible-playbook -i $WSD/inventory $WSD/site.yml -l web1.example.com -t nginx -u alice --vault-password-file /etc/ansible/vault.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory --become-user root -f 5 -c ssh $WSD/site.yml"
 # Every positional word is a playbook, whatever its name.
 check deny "ansible-playbook -i $WSD/inventory $WSD/site.yml /etc/evil"
 check deny "ansible-playbook -i $WSD/inventory $WSD/site.yml /tmp/x.txt --check"
@@ -55,14 +56,14 @@ check deny "ansible-playbook -i $WSD/inventory -e '{\"vault_secret\": \"x\"}' $W
 check deny "ansible-playbook -i $WSD/inventory -e 'deploy_key=AAAA' $WSD/site.yml"
 check deny 'ansible web1.example.com -m ping -e ansible_password=hunter2'
 check deny 'ansible web1.example.com -m setup -e "ansible_ssh_pass=hunter2"'
-check pass "ansible-playbook -i $WSD/inventory -e 'rotate_keys=yes' $WSD/site.yml"
-check pass "ansible-playbook -i $WSD/inventory -e keyfile=/etc/x $WSD/site.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory -e 'rotate_keys=yes' $WSD/site.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory -e keyfile=/etc/x $WSD/site.yml"
 check deny "ansible-playbook -i $WSD/inventory -e 'a=1 db_password=x' $WSD/site.yml"
 # A quoted -e value with spaces is cut at them: the second word
 # reads as a playbook outside the workspace. Known and accepted;
 # one -e per variable passes.
 check deny "ansible-playbook -i $WSD/inventory -e 'a=1 b=2' $WSD/site.yml"
-check pass "ansible-playbook -i $WSD/inventory -e a=1 -e b=2 $WSD/site.yml"
+check_mode ask default "ansible-playbook -i $WSD/inventory -e a=1 -e b=2 $WSD/site.yml"
 # A -e outside an ansible invocation is another tool's.
 check pass "grep -e 'token=' /var/log/ansible.log"
 check pass 'rg -e "api_key=" docs/ansible.md'
@@ -109,8 +110,8 @@ check deny 'ansible all -b -m apt -a "name=htop" -e "x=-h"'
 check deny 'ansible all -a "df -h"'
 # A redirection is the shell's, not a playbook.
 check pass "ansible-playbook -i $WSD/inventory --check --diff $WSD/site.yml 2>&1 | tail -n 100"
-check pass "ansible-playbook -i $WSD/inventory $WSD/site.yml > /tmp/run.log"
-check pass "ansible-playbook -i $WSD/inventory $WSD/site.yml 2>/dev/null </dev/null"
+check_mode ask default "ansible-playbook -i $WSD/inventory $WSD/site.yml > /tmp/run.log"
+check_mode ask default "ansible-playbook -i $WSD/inventory $WSD/site.yml 2>/dev/null </dev/null"
 check deny "ansible-playbook -i $WSD/inventory $WSD/site.yml > /tmp/run.log /etc/evil"
 check pass 'grep -rn "ansible[-]pull" /etc/cron.d/ 2>/dev/null || true'
 # The modules that reach a taboo.
@@ -180,7 +181,30 @@ check deny "ansible-galaxy role install -r $WSD/requirements.yml -p $WSD/roles"
 check deny 'ansible-galaxy role install geerlingguy.nginx'
 check deny 'ansible-galaxy install geerlingguy.nginx'
 
-# --- terraform and tofu ------------------------------------------
+# --- the wrapper: the verb is asked or passed, the paths are its -
+check_mode ask default 'bin/hostwarden-ansible apply site.yml'
+check_mode ask default 'bin/hostwarden-ansible --tree prod apply site.yml --limit web1.example.com'
+check_mode ask default 'bin/hostwarden-ansible --tree=prod verify site.yml'
+check_mode ask default '/srv/hostwarden/bin/hostwarden-ansible apply site.yml 2>&1 | tail -n 50'
+check deny 'bin/hostwarden-ansible apply site.yml'
+check pass 'bin/hostwarden-ansible check'
+check pass 'bin/hostwarden-ansible diff site.yml --limit web1.example.com'
+check pass 'bin/hostwarden-ansible --tree prod diff site.yml'
+check pass 'bin/hostwarden-ansible lint'
+check pass 'bin/hostwarden-ansible inventory --graph'
+check pass 'bin/hostwarden-ansible galaxy'
+check pass 'bin/hostwarden-ansible ping all'
+check pass 'bin/hostwarden-ansible facts web1.example.com ansible_distribution*'
+check pass 'bin/hostwarden-ansible playbook --list-tasks site.yml'
+check pass 'bin/hostwarden-ansible playbook --check --diff site.yml'
+check pass 'bin/hostwarden-ansible playbook --syntax-check site.yml'
+check_mode ask default 'bin/hostwarden-ansible playbook site.yml --limit web1.example.com'
+check_mode ask default 'bin/hostwarden-ansible --tree prod playbook -i hosts.yml site.yml'
+check deny 'bin/hostwarden-ansible diff site.yml -e db_password=hunter2'
+check deny 'bin/hostwarden-ansible apply site.yml --extra-vars "api_token=x"'
+check pass 'bin/hostwarden-ansible --help'
+
+# --- terraform, tofu and terragrunt ------------------------------
 check pass 'terraform output apply'
 check pass 'tofu -chdir=infra output destroy'
 check pass 'terraform state show aws_instance.apply'
@@ -193,3 +217,116 @@ check deny 'terraform -chdir=infra apply -auto-approve'
 check deny 'tofu destroy -target=hcloud_server.web1'
 check pass 'terraform plan'
 check pass 'tofu state list'
+check pass 'tofu -chdir=/srv/hostwarden/memory/infra/opentofu/web plan -out=/tmp/x.tfplan -detailed-exitcode'
+check pass 'tofu plan -destroy'
+check pass 'tofu init -backend=false && tofu validate'
+check pass 'tofu show /tmp/x.tfplan'
+check pass 'tofu output'
+check pass 'tofu output bucket_name'
+check pass 'tofu workspace list'
+check pass 'tofu providers lock'
+check pass 'tofu fmt -check -recursive'
+check pass 'tofu version'
+check pass 'terragrunt plan'
+check pass 'terragrunt run -- plan'
+check pass 'cat ~/infra/terraform/main.tf'
+check pass 'grep -rn apply ~/infra/opentofu/README.md'
+# The state writers, the lock, the flags and the forms that print
+# secrets.
+check deny 'tofu import hcloud_server.web1 12345'
+check deny 'tofu -chdir=infra taint hcloud_server.web1'
+check deny 'tofu untaint hcloud_server.web1'
+check deny 'tofu force-unlock 1234-5678'
+check deny 'tofu state rm hcloud_server.web1'
+check deny 'tofu state mv a b'
+check deny 'tofu state push terraform.tfstate'
+check deny 'tofu state pull > state.json'
+check deny 'tofu state replace-provider a b'
+check deny 'tofu workspace delete old'
+check deny 'tofu workspace new prod'
+check deny 'tofu plan -lock=false'
+check deny 'tofu plan -out=x.tfplan -auto-approve'
+check deny 'tofu plan -show-sensitive'
+check deny 'tofu show -json /tmp/x.tfplan'
+check deny 'tofu show -json'
+check deny 'tofu output -json'
+check deny 'tofu output -raw db_password'
+check deny 'terragrunt apply'
+check deny 'terragrunt run -- apply'
+check deny 'terragrunt run apply'
+check deny 'terragrunt run destroy'
+check deny 'terragrunt run --config custom.hcl -- state rm a'
+check deny 'terragrunt run --config custom.hcl apply'
+check pass 'terragrunt run --config custom.hcl plan'
+check pass 'terragrunt plan -var-file apply.tfvars'
+check pass 'logger -t hostwarden "stack web: terragrunt plan reviewed, apply by the user"'
+check pass 'terragrunt plan > apply.log'
+check deny 'terragrunt --working-dir "my infra" apply'
+check deny "terragrunt --working-dir 'my infra' destroy"
+check deny '(cd live/web && terragrunt state rm aws_instance.web)'
+check deny '(cd live/web && terragrunt import hcloud_server.web1 12345)'
+check deny '(cd live/web && terragrunt refresh)'
+check deny 'terragrunt apply>run.log'
+check deny 'echo $(terragrunt state rm aws_instance.web)'
+check pass 'terragrunt plan --all-modules-note refresh'
+check deny 'terragrunt run --all apply'
+check deny 'terragrunt --no-color apply'
+check pass 'terragrunt plan -var-file import.tfvars'
+check deny 'terragrunt stack run apply'
+check deny 'terragrunt stack run destroy'
+check deny 'terragrunt stack run plan'
+check deny 'terragrunt --working-dir live apply'
+check deny 'terragrunt --config custom.hcl destroy'
+check deny 'terragrunt refresh'
+check deny 'tofu refresh'
+check deny 'terraform -chdir=infra refresh'
+check pass 'tofu plan -refresh-only'
+check pass 'tofu plan -refresh=false'
+check pass 'terragrunt plan -refresh-only'
+check deny 'tofu workspace select -or-create prod'
+check deny 'tofu workspace select prod -or-create'
+check pass 'tofu workspace select prod'
+check deny 'tofu init -migrate-state'
+check deny 'tofu -chdir=infra init -migrate-state -force-copy'
+check deny 'tofu init -force-copy=true'
+check pass 'tofu init -backend=false'
+check pass 'tofu init -upgrade'
+# A destroy plan only plans; the wrapper refuses it, the guard reads.
+check pass 'tofu plan -destroy=true'
+check deny 'tofu plan -lock=0'
+check deny 'tofu plan -lock=f'
+check deny 'tofu apply -auto-approve=1'
+check deny 'tofu show -json=true /tmp/x.tfplan'
+check deny 'tofu output -raw=t db_password'
+check deny 'tofu plan -show-sensitive=True'
+check pass 'tofu plan -lock=true'
+check pass 'tofu plan -destroy=false'
+check deny 'terragrunt run --all plan'
+check deny 'terragrunt run-all plan'
+check deny 'terragrunt -chdir=live run --all -- apply'
+check deny "ssh deploy@ci.example.com 'cd infra && tofu apply tfplan'"
+check deny 'bash -c "tofu -chdir=infra apply"'
+# The wrapper: apply is asked, the two flags that make it apply or
+# test whatever the plan or the test does are denied, the rest is the
+# wrapper's own to refuse and passes here.
+check_mode ask default 'bin/hostwarden-tofu web apply'
+check_mode ask default '/srv/hostwarden/bin/hostwarden-tofu web apply 2>&1 | tail -n 50'
+check_mode ask default 'bin/hostwarden-tofu hetzner-prod apply'
+check deny 'bin/hostwarden-tofu web apply'
+check pass 'bin/hostwarden-tofu web check'
+check pass 'bin/hostwarden-tofu web plan'
+check pass 'bin/hostwarden-tofu web plan -var-file=prod.tfvars'
+check pass 'bin/hostwarden-tofu web review'
+check pass 'bin/hostwarden-tofu web drift'
+check pass 'bin/hostwarden-tofu web test'
+check pass 'bin/hostwarden-tofu web output'
+check pass 'bin/hostwarden-tofu web state list'
+check pass 'bin/hostwarden-tofu web state show hcloud_server.web1'
+check pass 'bin/hostwarden-tofu web workspace list'
+check pass 'bin/hostwarden-tofu --help'
+check deny 'bin/hostwarden-tofu web apply --destroys'
+check deny '/srv/hostwarden/bin/hostwarden-tofu hetzner-prod apply --destroys 2>&1 | tail -n 20'
+check deny 'bin/hostwarden-tofu web test --applies'
+check pass 'bin/hostwarden-tofu web destroy'
+check pass 'bin/hostwarden-tofu web state rm hcloud_server.web1'
+check pass 'bin/hostwarden-tofu web plan -lock=false'

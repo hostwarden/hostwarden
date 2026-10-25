@@ -120,8 +120,9 @@ things live.
 Clone with symbolic links working, on Windows inside WSL 2
 (https://hostwarden.github.io/docs/getting-started/install#windows). The checks need ShellCheck,
 actionlint, betterleaks, `jq` and `python3`. `mise.toml` pins
-ShellCheck and `jq`, and `mise.dev.toml` actionlint, betterleaks and
-Node, all at the versions CI uses, and [mise](https://mise.jdx.dev)
+ShellCheck, `jq`, the Ansible and OpenTofu tools a session runs,
+and `mise.dev.toml` actionlint, betterleaks and Node, all at the
+versions CI uses, and [mise](https://mise.jdx.dev)
 installs them; the `jq` of the shipped hooks is the same one
 (README.md → Prerequisites). `python3` comes from the workstation's
 package manager and is not pinned. Install mise with the package

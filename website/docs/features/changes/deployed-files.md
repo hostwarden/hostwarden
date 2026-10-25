@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 6
 description: Keeps a master copy of every script and config file
   it writes to a server.
 ---
