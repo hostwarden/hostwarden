@@ -29,7 +29,11 @@ before one is added.
    (ansible, salt, parallel, pssh, a guest manager), read at every
    depth of a command line an agent writes on its own (`sudo`,
    `env`, a tool's own connection), not only the ssh family at the
-   top — never a chain built to evade the guard
+   top; where a change isolates an ssh call with `-o` options or its
+   `-F` file, which other connection of the same call — a
+   ProxyJump hop, a ProxyCommand's ssh, git's transport — reads
+   neither, only the environment and the account's own files? —
+   never a chain built to evade the guard
    (`.claude/rules/repo-release.md` → Guard findings).
 2. A lookup, preflight, shortcut or substitution that decides a
    later step, or a report of what an action would do (`--check`,
@@ -59,7 +63,12 @@ before one is added.
    (HostKeyAlias beside HostName and Port)? Does an address used in
    place of a name skip the name's own routing (a jump host, a
    port)? When one side of a comparison is widened or normalised —
-   a second address family, a fold to lower case — is every side?
+   a second address family, a fold to lower case — is every side,
+   and is the normalised form also what gets printed or used, where
+   the original (a `.git` suffix, a path) was the right one? Is an
+   address printed for another machine the form that machine can
+   reach, not one made for a different purpose, such as a probe over
+   another transport?
 3. A method with several forms, of which only some need a resource
    a step discovers (SSH signing with an agent key, a key file or
    a program): which forms need it, does the command that uses the
@@ -101,7 +110,14 @@ before one is added.
    transform — a run of spaces inside a code span, an escape, a
    code span that stays open across a line end — checked against
    how the source format encodes those characters (JSON or URL
-   escapes), not only a plain-text example?
+   escapes), not only a plain-text example? Where a value from
+   outside is written into a syntax another program reads — a path
+   in an ssh_config keyword that expands tokens or globs (`Include`,
+   `ControlPath`), a resolved address in a URL, a path or name in a
+   command line for a person to paste — what does a `%`, a glob
+   character, the `:` of an IPv6 literal (and does the port after
+   it still parse), a space or a shell metacharacter do there, and
+   is it escaped, bracketed, quoted or refused?
 7. A step that handles one kind of change or outcome in a set: does
    it cover every kind — a record added, edited, deleted or renamed,
    a verification written for the add case — and does treating two
