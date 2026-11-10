@@ -148,6 +148,18 @@ shows only the caller's: run it as `$SUDO crontab -l`. When
 alone: a warning, worded as a gap Alpine ships no mechanism
 for — never raised from an `unknown(needs-root)` cell.
 
+**Arch** has no unattended-upgrades and expects no mechanism in
+its place (`rules/os/arch.md` → Automatic Security Updates). Every
+key above is `n/a (Arch)`; the Arch rows come from that section's
+checks:
+
+- `last full upgrade` — the date of the last
+  `starting full system upgrade` line in `/var/log/pacman.log`, or
+  `none on record`
+- `pacman-offline` — the timers that are enabled, or `none`
+
+The verdict is the OS file's, judged on this host alone.
+
 **macOS** has no unattended-upgrades. Software Update's
 settings are the policy, read and judged as `rules/os/macos.md`
 → Automatic Security Updates says, the managed file included:
@@ -545,6 +557,20 @@ probe, Alpine. For `active=`, look for `postfix`, `smtpd`
 (OpenSMTPD's service on Alpine) or `exim` as `started` in the
 `###rc###` block.
 
+**Arch** (`pacman`, systemd; the package names are the MTA class
+of `rules/service-class-check.md`, Arch):
+
+```bash
+pacman -Qq postfix exim opensmtpd msmtp-mta nullmailer 2>/dev/null \
+  | sed "s/^/pkg=/"
+ls -l /usr/sbin/sendmail 2>/dev/null | awk "{print \"sendmail=\" \$NF}"
+for unit in postfix opensmtpd exim; do
+  state=$(systemctl is-active "$unit" 2>/dev/null)
+  [ "$state" = "active" ] && echo "active=$unit"
+done
+hostname -f
+```
+
 Put the MTA's name in the row, not the distribution's package
 or service name: `exim` for `exim4`, `msmtp` for `msmtp-mta`,
 `opensmtpd` for the `smtpd` service. Otherwise a Debian and an
@@ -812,6 +838,11 @@ uptime
 The row keys and the criteria above apply, with the uptime read
 from the `up …` part of the line. The needrestart row is
 `n/a (Alpine)`: there is no needrestart and no apt hook.
+
+**Arch** has no `/var/run/reboot-required` either. The same
+probe runs with `/usr/lib/modules` in place of `/lib/modules`,
+and `uptime -s` works as on Debian. The needrestart row is
+`n/a (Arch)`.
 
 **macOS** — the boot time only:
 

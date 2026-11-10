@@ -47,7 +47,7 @@ wrap_verbatim() {
   [ -e "$1/machines/$_wv_name/heinzel-memory.md" ] || return 1
   case $_wv_rest in
     memory.md|rules.md|todo.md|decisions.md|decisions/*|guests.md \
-      |storage.md|network.md|deployed.md|heinzel-inventory.md) return 1 ;;
+      |storage.md|network.md|deployed.md|heinzel-inventory.md|user-*.md) return 1 ;;
   esac
   return 0
 }

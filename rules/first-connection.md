@@ -58,7 +58,9 @@ Than One Server before step 1.
    (`rules/ssh-passwords.md` → Every Connection).
 5. **OS detection.** See `rules/os-detection.md`.
 6. **Machine memory file.** Create on first
-   connection, read on every subsequent connection.
+   connection, read on every subsequent connection,
+   together with `user-<login>.md` for the login in
+   use where there is one.
    See `rules/machine-memory.md`. With it, read the
    user's decisions that apply to the host: its
    `decisions.md`, its cluster's, and each file under

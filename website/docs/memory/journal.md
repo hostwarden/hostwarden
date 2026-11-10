@@ -27,7 +27,7 @@ One line per change, not per command, tagged `hostwarden`:
 ```
 [alice as root] app.example.com now deploys via two alternating app
 slots (blue/green), so new releases go live without dropping
-requests — because deploys used to restart the app and interrupt
+requests; because deploys used to restart the app and interrupt
 visitors
 ```
 
@@ -37,8 +37,11 @@ visitors
 - **Plain language** — the service and the effect, written for someone
   who has never heard of Hostwarden. No command lines or flags; a
   version or path only when it is the news.
-- **`— because …`** — the reason, when it is known. It is never
+- **`; because …`** — the reason, when it is known. It is never
   invented.
+- **ASCII only** — `ae oe ue ss` for umlauts, `->` for an arrow. A
+  BSD syslog stores anything else as an escape sequence, and a search
+  would no longer find the entry.
 - **A session that only read** logs one `read-only:` line, so the next
   visitor still sees that someone was there.
 
@@ -80,8 +83,8 @@ a timestamp and the detail the journal leaves out:
 
 ```
 [2026-06-11 09:50] [alice as root]
-app.example.com now deploys blue/green …
-— because deploys interrupted visitors
+app.example.com now deploys blue/green ...;
+because deploys interrupted visitors
   Detail: templated app@.service (blue :4003,
   green :4005); nginx upstream moved to
   /etc/nginx/snippets/app-upstream.conf; sudoers
@@ -119,7 +122,7 @@ shows a short summary before any work:
 ```
 Recent activity (last 7 days):
 - [2026-04-12 14:32] [hostwarden] [alice as root]
-  Installed nginx, opened port 443 — because static
+  Installed nginx, opened port 443; because static
   site launch
 - [2026-04-11 09:15] [heinzel] [bob as bob] Updated
   Node.js 22.14 → 22.15

@@ -69,6 +69,7 @@ rules/storage.md
 .agents/skills/hostwarden-deploy-user/
 .agents/skills/hostwarden-fleet-read/
 .agents/skills/hostwarden-heinzel-takeover/
+.agents/skills/hostwarden-macos-cleanup/
 .agents/skills/hostwarden-new-guest/
 .agents/skills/hostwarden-os-install/
 templates/fleet-read/

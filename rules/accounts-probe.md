@@ -264,7 +264,7 @@ the directory comes from ports (`security/sssd2` with its
 configuration under `/usr/local/etc/sssd`, `net/nss-pam-ldapd`);
 the base system has no LDAP source, and a `+` or `-` line in
 `/etc/passwd` is NIS.
-Where systemd does not run — FreeBSD, Alpine, a container, WSL
+Where systemd does not run — FreeBSD, NetBSD, Alpine, a container, WSL
 without systemd — the probe's `running:` line names the daemons
 that run instead of `systemctl is-active`.
 
@@ -393,7 +393,7 @@ The files are mode `0440`, so this needs root or `sudo -n`.
   -c` does not list it and its rules are not in effect; the probe
   prints it as `skipped:`.
 - **doas**, on Alpine instead of sudo (`rules/os/alpine.md` →
-  Privileges) and from ports on FreeBSD: one rule a line,
+  Privileges), and from ports or pkgsrc on FreeBSD and NetBSD: one rule a line,
   `permit [<options>] <user>|:<group> [as <target>] [cmd <command>]`
   with options such as `nopass` or `setenv { … }`,
   printed under `@doas`; a `:group` is resolved under `@groups`

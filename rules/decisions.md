@@ -231,7 +231,7 @@ When Asking says, with the entry as it would be written and the
 scopes to choose from:
 
     Record as a decision for pve1.example.com?
-      No local firewall — because the router guest filters
+      No local firewall; because the router guest filters
       [1] Yes, for this host   [2] For all Proxmox VE nodes
       [3] No
 
@@ -244,8 +244,8 @@ A host's or cluster's decision is an entry of its own in the
 journal of each of them this session is connected to
 (`rules/changelog.md`); it is committed with them:
 
-    [alice as root] Decided: pve1 keeps no local firewall
-    — because the router guest filters
+    [alice as root] Decided: pve1 keeps no local firewall;
+    because the router guest filters
 
 A group's has no host to ride on: commit its file on its own
 (`rules/changelog.md` → The Workspace), with
@@ -257,7 +257,7 @@ Only on the user's word, never because a date passed.
 
 - **Retire:** delete the entry, its `Details:` file, and every
   override block whose `Decision:` line names it, in one step. Log it as above:
-  `Retired decision: <heading> — because <why>`. The workspace
+  `Retired decision: <heading>; because <why>`. The workspace
   history keeps the old entry; the file is a picture of now.
 - **Change:** rewrite the entry with the new date and reason, and
   its `Details:` file and override blocks in the same step.

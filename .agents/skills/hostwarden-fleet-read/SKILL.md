@@ -159,5 +159,5 @@ Log each installation per `rules/changelog.md`:
 ```bash
 logger -t hostwarden "[alice as root] ops1 can now run \
 operator-signed read-only checks here through fleet-read, and \
-nothing else — because the nightly housekeeping runs from ops1"
+nothing else; because the nightly housekeeping runs from ops1"
 ```

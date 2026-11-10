@@ -90,7 +90,8 @@ every family file has.
 A family file may have a `## Housekeeping and Audits` section too.
 One whose commands are not `sh` — Windows — carries its checks
 there in full, because the skills' baseline references are
-written for `sh`.
+written for `sh`. One the references have no family variant for —
+NetBSD — carries there what takes their place.
 
 A role (`rules/first-detection.md` → Roles) gets a file in
 `rules/role/`. It changes no command, only expectations and

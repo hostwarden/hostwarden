@@ -109,6 +109,16 @@ Shows user, command, PID, protocol, and local
 address; what it misses without root is in
 `rules/os/freebsd.md` → Networking.
 
+### NetBSD
+
+```bash
+sockstat -n -l -p <port>
+```
+
+Shows user, command, PID, protocol and local address,
+with the `PATH` line of `rules/os/netbsd.md` →
+Privileges at the top of the call.
+
 ### macOS
 
 ```bash

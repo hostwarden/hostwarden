@@ -8,6 +8,9 @@ One line per record. Read this before deciding something new, so a fresh decisio
 
 | Decision | Tags | Rule |
 | :--- | :--- | :--- |
+| [Privilege lines live in the login's memory file](20261110-privilege-lines-live-in-the-logins-memory.md) | memory, privileges, accounts | — |
+| [The macOS cleanup moves to the Trash, never as root](20261110-macos-cleanup-trash-only-never-root.md) | macos, cleanup, privileges, skills | — |
+| [Journal lines are ASCII, with the reason after `; because`](20261110-journal-lines-are-ascii.md) | journal, changelog, bsd | — |
 | [Existing infrastructure moves under code only against a clean plan](20261026-existing-infrastructure-moves-by-proof.md) | infrastructure-code, opentofu, ansible, migration | — |
 | [Hostwarden plans infrastructure code and applies only what cannot destroy](20261025-agent-plans-user-applies-infrastructure-code.md) | infrastructure-code, opentofu, ansible, approvals, guard | — |
 | [Operations host read-only while no write key is unlocked](20261024-ops-host-read-only-while-no-write-key.md) | operations, access-control, ssh, keys | — |

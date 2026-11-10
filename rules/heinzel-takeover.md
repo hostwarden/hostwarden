@@ -277,6 +277,16 @@ takeover committed it. The Heinzel entries in
 `changelog.log` stay as they are, the start of the
 host's history.
 
+A `user-<login>.md` beside `heinzel-memory.md` is
+Heinzel's too, its memory of one account, and part of
+the same worklist: what it says about the login this
+connection uses is probed again and written in the
+form of `rules/machine-memory.md` → Per-login memory,
+what it says about another account is kept as a line
+only where that account's own probe confirms it, and
+the file Heinzel wrote is replaced or deleted in the
+step that deletes `heinzel-memory.md`.
+
 Write `memory.md` from these sources, and only
 these:
 

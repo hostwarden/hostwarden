@@ -29,7 +29,9 @@ coverage.
 - **Alpine, FreeBSD and macOS have probes of their own**; a setting
   a family does not have reads `n/a`, not drift.
 - **An appliance is compared only with its own kind.**
-- **Windows hosts are skipped.**
+- **Arch has probes for updates and the pending reboot**; the rest
+  runs as on any systemd host.
+- **Windows and NetBSD hosts are skipped.**
 
 ## How it runs
 

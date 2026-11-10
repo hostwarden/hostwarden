@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 description: Sends ad-hoc text or files about a managed server by
   email.
 ---

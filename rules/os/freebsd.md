@@ -110,12 +110,19 @@ Record which one in machine memory.
   `AGENTS.md` → Critical Safety Rules).
 - Minimal safe `/etc/pf.conf`:
   ```
-  ext_if = "vtnet0"  # set to the real interface, see ifconfig
   set skip on lo0
   block in all
   pass out all keep state
-  pass in on $ext_if proto tcp to port 22
+  pass in proto tcp to port 22
   ```
+- The SSH rule names no interface on purpose. A login
+  that arrives through a tunnel (`wg*`, `tun*`) needs
+  it there as well, and `pass in on $ext_if` locks
+  that login out the moment the rules load.
+  `$SSH_CONNECTION` shows the address this session
+  came in on. Where the user wants SSH limited to one
+  interface, that interface is the one this session
+  uses, shown first.
 - Do **not** rely on the `egress` interface group in
   rules unless `ifconfig -g egress` shows it is
   populated on this host. If the group is missing or

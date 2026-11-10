@@ -41,13 +41,13 @@ One sentence, written for a sysadmin who has never
 heard of Hostwarden and was not part of the session:
 
     [<operator> as <unix-user>] <what changed, in
-    plain language> — because <why>
+    plain language>; because <why>
 
 ```
 logger -t hostwarden "[alice as root] app.example.com \
 now deploys via two alternating app slots \
 (blue/green), so new releases go live without \
-dropping requests — because deploys used to restart \
+dropping requests; because deploys used to restart \
 the app and interrupt visitors"
 ```
 
@@ -61,7 +61,14 @@ the app and interrupt visitors"
   effect an outsider can understand. No abbreviation
   soup, no command lines, no flag dumps. A version
   or path may appear when it *is* the news
-  ("upgraded nginx 1.26.3-3+deb13u2 → u5").
+  ("upgraded nginx 1.26.3-3+deb13u2 to u5").
+- **ASCII only.** A BSD syslogd stores every
+  non-ASCII byte as an escape, so `für` is read back
+  as `f<U+fc>r`. Write `ae oe ue ss` for `ä ö ü ß`,
+  `-` for a dash, `->` for an arrow, and straight
+  quotes. The same on every host, so that one search
+  finds an entry everywhere, and in the local
+  changelog's copy of the headline.
 - **One sentence, ~250 characters max.** If you are
   tempted to write more, the overflow belongs in the
   local changelog, not in the journal.
@@ -69,7 +76,7 @@ the app and interrupt visitors"
   commands that together set up one backup job log
   one entry. Unrelated changes log separately.
 - **Include the why** in the single fixed shape
-  `— because <reason>` whenever the reason is known
+  `; because <reason>` whenever the reason is known
   (from the user's request or the surrounding
   context). If the reason is not known, omit it —
   never invent one.
@@ -80,8 +87,10 @@ the app and interrupt visitors"
   clause buried in another entry.
 
 Other rule files and skills show example headlines
-with the prefix as a placeholder; `— because` applies
-on top of them wherever the reason is known.
+with the prefix as a placeholder; `; because` applies
+on top of them wherever the reason is known. A
+headline written before this form carries
+`— because`: read it the same way.
 
 Every entry a session writes opens with the prefix,
 exactly `[<operator> as <unix-user>] ` with no `]`
@@ -101,7 +110,7 @@ in a fixed form other sessions read back
 `<kind>` and `<origin>` are the ones announce was given, several
 origins joined by commas; `<HH:MM>` is when the window ends, by the
 host's clock. It is the one journal line that is no headline of a
-change on that host, and it carries no `— because`. Nothing writes
+change on that host, and it carries no `; because`. Nothing writes
 it by hand.
 
 ### What stays out of the journal
@@ -126,8 +135,8 @@ full `[YYYY-MM-DD HH:MM]` timestamp, then indent the
 technical detail the journal omitted:
 
     [2026-06-11 09:50] [alice as root]
-    app.example.com now deploys blue/green …
-    — because deploys interrupted visitors
+    app.example.com now deploys blue/green ...;
+    because deploys interrupted visitors
       Detail: templated app@.service (blue :4003,
       green :4005); nginx upstream moved to
       /etc/nginx/snippets/app-upstream.conf; sudoers

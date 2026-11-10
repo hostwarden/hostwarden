@@ -222,6 +222,22 @@ zypper --quiet list-updates 2>/dev/null \
 zypper list-patches --category security 2>/dev/null
 ```
 
+**Arch:** there is no security archive to count. The two numbers
+are the pending packages and, of those, the ones a fixed advisory
+names; `rules/os/arch.md` → Package Manager reads the exit codes:
+
+```bash
+checkupdates; echo "rc=$?"
+if command -v arch-audit >/dev/null 2>&1; then
+  arch-audit -u
+else
+  echo "arch-audit=absent"
+fi
+```
+
+With `arch-audit=absent` the security count is unknown, not zero:
+report the total alone and say so.
+
 - **WARN** if any security updates are pending
 - Report both counts (total pending and security-only)
 
@@ -327,6 +343,11 @@ systemctl is-active dnf-automatic-install.timer 2>/dev/null \
 
 Check if `zypper-patch` or equivalent auto-update timer is
 configured.
+
+**Arch:** no mechanism is expected, and the WARN below does not
+apply. The checks and ratings of `rules/os/arch.md` → Automatic
+Security Updates take its place: the date of the last full upgrade,
+the `pacman-offline` timers and the running kernel's modules.
 
 - **WARN** if auto-update mechanism is not active
 
@@ -624,6 +645,9 @@ echo "needrestart=n/a (Alpine)"
 last 2>/dev/null | head -8
 ```
 
+**Arch:** its repositories carry no needrestart, so the block
+above prints `needrestart=absent`, which is not a finding there.
+
 There is no needrestart package on Alpine and no apt or dnf hook
 either, so this half of the line reads `n/a (Alpine)`. Busybox's
 `last` ignores a name argument — `reboot` would not filter
@@ -693,6 +717,9 @@ firewall-cmd --state
 ```bash
 firewall-cmd --state
 ```
+
+**Arch:** the three commands of `rules/os/arch.md` → Firewall,
+which name the manager and the unit that loads its rules at boot.
 
 **Native nftables** (Debian installs it, with its unit
 off; check it when neither ufw nor firewalld is active;
@@ -918,6 +945,9 @@ uname -r
 ls /lib/modules
 ```
 
+**Arch:** the same holds, with the modules under `/usr/lib`; the
+check is in `rules/os/arch.md` → Automatic Security Updates.
+
 - **INFO** if running kernel differs from installed (reboot
   recommended)
 
@@ -984,6 +1014,10 @@ Expected: `ucode-intel` on Intel, `ucode-amd` on AMD.
 **Alpine:** `apk info -e intel-ucode amd-ucode`, which prints
 the names that are installed.
 
+**Arch:** `pacman -Qq intel-ucode amd-ucode 2>/dev/null`, which
+does the same. Expected: `intel-ucode` on Intel, `amd-ucode` on
+AMD.
+
 Where the host's own file names no microcode package — another
 family, or an appliance with `Base: none` — the check ends
 here: an image-based system ships microcode inside the image
@@ -1028,7 +1062,9 @@ https://packages.debian.org/trixie/amd64-microcode,
 https://launchpad.net/ubuntu/noble/+source/intel-microcode,
 https://packages.fedoraproject.org/pkgs/microcode_ctl/microcode_ctl/,
 https://packages.fedoraproject.org/pkgs/linux-firmware/amd-ucode-firmware/,
-https://pkgs.alpinelinux.org/packages?name=*ucode*&branch=edge
+https://pkgs.alpinelinux.org/packages?name=*ucode*&branch=edge,
+https://archlinux.org/packages/extra/any/intel-ucode/,
+https://archlinux.org/packages/core/any/amd-ucode/
 
 ## Ubuntu Release and Support
 

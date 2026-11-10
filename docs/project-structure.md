@@ -154,6 +154,8 @@ tests/                 — Every fixture matrix, laid out like the
                          and review-tier.sh; review-record's
                          parts in review-record/
   templates/fleet-read.sh — The fleet-read wrapper
+  skills/              — A skill's own program, tested where it
+                         has one: the macOS cleanup scanner
 .githooks/             — Opt-in: the cheap checks on commit,
                          check.sh on push
 mise.toml              — Pinned versions of the tools a session
@@ -263,6 +265,9 @@ contrib/
                          (SKILL.md + references/)
     hostwarden-deploy-user/   — Dedicated CI/CD deploy accounts
                          (SKILL.md + references/)
+    hostwarden-macos-cleanup/ — Leftovers of removed apps on a
+                         Mac, and one app uninstalled whole
+                         (SKILL.md + references/ + scripts/)
     hostwarden-fleet-read/    — An operations host and its
                          least-privilege access: a forced
                          command that runs operator-signed
@@ -276,8 +281,10 @@ rules/                 — Upstream rule files (git-tracked)
     rhel.md            — RHEL, CentOS, Fedora, Rocky, Alma
     suse.md            — openSUSE & SLES
     alpine.md          — Alpine Linux (apk, OpenRC, busybox)
+    arch.md            — Arch Linux & derivatives (pacman, rolling)
     macos.md           — macOS
     freebsd.md         — FreeBSD
+    netbsd.md          — NetBSD (pkgsrc, NPF, rc.d)
     windows.md         — Windows Server (read-only; PowerShell 7 setup)
   appliance/           — Reference data on top of one family
                          file, or none. Detection reads at

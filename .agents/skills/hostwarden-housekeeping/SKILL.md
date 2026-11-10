@@ -9,8 +9,8 @@ description: Run a Hostwarden housekeeping (health) inspection on a
   health check on <host>", or "do routine inspection". Do NOT
   auto-invoke for ambiguous requests like "check server <host>"
   — that's reserved for quick queries. Covers Linux (Debian,
-  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine), FreeBSD, macOS
-  and Windows Server (read-only). Also use it for "schedule
+  Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine, Arch), FreeBSD, NetBSD,
+  macOS and Windows Server (read-only). Also use it for "schedule
   housekeeping", "run a nightly check", or "email me a weekly
   report automatically".
 ---
@@ -171,9 +171,13 @@ Read on demand, only when the relevant section applies:
 
 - Several hosts in one request run as `rules/multi-host.md` says,
   which follows this skill for each host.
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
-  FreeBSD and macOS are covered by the baseline references
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine,
+  Arch), FreeBSD and macOS are covered by the baseline references
   above.
+- A family without a baseline reference, as NetBSD, has its
+  checks in the loaded OS file's `## Housekeeping and Audits`
+  section; a check with no variant for the host's family is
+  reported as not covered, never as passed.
 - An appliance file with `Base: none` replaces the baseline
   probes but not the baseline thresholds: disk use, memory and
   load are judged by Disk Usage, Memory and Swap, and System

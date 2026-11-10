@@ -211,9 +211,14 @@ end-of-life date. Use official sources:
 - **Ubuntu:** ubuntu.com/about/release-cycle
 - **RHEL/CentOS:** Red Hat lifecycle policy
 - **FreeBSD:** freebsd.org/security
+- **NetBSD:** netbsd.org/releases
 - **SUSE:** suse.com/lifecycle
 - **Alpine:** alpinelinux.org/releases, per `vX.Y`
   branch
+- **Arch:** a rolling release without versions or an
+  end of life; what counts is the date of the last
+  full upgrade (`rules/os/arch.md` → Automatic Security
+  Updates)
 - **macOS:** Apple typically supports current and
   two prior major versions
 

@@ -69,6 +69,28 @@ How to read it:
 It is kept compact: outdated entries are removed and related ones
 merged when a change is recorded, never left to pile up.
 
+## `user-<login>.md`
+
+`root` and `alice` see a different host: another home, other groups
+and sudo rights, their own runtimes and crontab. What holds for one
+account only is kept beside `memory.md`, one file per account, and
+only once there is such a fact:
+
+```markdown
+# alice@web1.example.com
+- Home: /home/alice
+- Groups: alice, docker
+- Sudo: NOPASSWD for selected commands (mixed):
+  /usr/bin/systemctl, /usr/bin/journalctl
+- Crontab: nightly export at 03:10
+- Last connected: 2026-10-30
+```
+
+Hostwarden reads `memory.md` and the file of the login it uses, and
+another account's file only when the work is about that account. A
+`Sudo:` line an earlier version wrote into `memory.md` still counts
+and moves here the next time it is written.
+
 ## `guests.md`
 
 On a hypervisor, every guest — stopped ones and templates included —

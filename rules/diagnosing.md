@@ -105,7 +105,7 @@ cause the evidence does not show is a lead, and is called one.
 ## 5. Write it down
 
 The cause and the evidence that confirmed it go into the
-changelog entry for the fix: a headline with `— because
+changelog entry for the fix: a headline with `; because
 <cause>`, and in the local changelog a `Detail:` with the
 command and what it showed, a `Rollback:` for each change kept
 (`rules/changelog.md`). The next session on this host reads it
