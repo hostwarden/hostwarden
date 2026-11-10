@@ -64,6 +64,8 @@ the agent as instructions.
   name is used before renaming a host.
 - [Language runtimes and deploy users](changes/runtimes.md) —
   installs language runtimes and sets up restricted CI/CD accounts.
+- [Cleaning up a Mac](changes/macos-cleanup.md) — finds what
+  removed apps left behind, and uninstalls an app whole.
 - [Email reports](changes/email.md) — sends ad-hoc text or files
   about a managed server by email.
 

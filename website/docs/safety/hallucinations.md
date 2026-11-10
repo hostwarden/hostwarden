@@ -14,7 +14,7 @@ layers.
 ## Distro-specific rule files
 
 Instead of relying on the LLM's memory, Hostwarden loads a verified
-rule file for each platform (Debian, RHEL, SUSE, Alpine, FreeBSD,
+rule file for each platform (Debian, RHEL, SUSE, Alpine, Arch, FreeBSD,
 macOS). These files contain the correct commands, package managers,
 firewall tools, and common pitfalls for each distro. The LLM reads
 the file and follows it — it doesn't have to guess.

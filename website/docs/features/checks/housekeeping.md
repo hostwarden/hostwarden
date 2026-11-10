@@ -60,8 +60,8 @@ snapshots.
 
 ## Coverage and limits
 
-It covers Linux (Debian, Ubuntu, RHEL, Fedora, SUSE, Alpine),
-FreeBSD, macOS and Windows Server. In a container, clock and
+It covers Linux (Debian, Ubuntu, RHEL, Fedora, SUSE, Alpine, Arch),
+FreeBSD, NetBSD, macOS and Windows Server. In a container, clock and
 kernel findings belong to the host and are not reported twice.
 Nothing is updated, pruned or restarted. Your own checks go into
 `memory/housekeeping.md`. A scheduled run can mail you the report

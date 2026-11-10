@@ -126,7 +126,8 @@ accounts for it.
 1. **Agree on it.** The change is the user's decision
    (`AGENTS.md` → Critical Safety Rules), and so is the
    window: say that the change undoes itself after five
-   minutes, five to ten on FreeBSD (step 4), unless a new
+   minutes, or after the longer window step 4 names for
+   the host's family, unless a new
    login succeeds, or after the longer window a play run
    from the workstation needs (step 5). Name the path this session came in on
    when the change touches it (Which way in above).
@@ -168,8 +169,9 @@ accounts for it.
    Elsewhere, with `at`, the apply runs in the SSH session and
    is not detached. `at` queues a job even when nothing will
    run it, and `atq` lists every user's jobs, so the proof is
-   the daemon that runs them: `pgrep -x atd`, or on FreeBSD
-   `test -f /etc/cron.d/at`. macOS disables `atrun` by default,
+   the daemon that runs them: `pgrep -x atd`, on FreeBSD
+   `test -f /etc/cron.d/at`, on NetBSD the check in
+   `rules/os/netbsd.md` → Firewall. macOS disables `atrun` by default,
    so there is no timer there. An apply of several commands is
    grouped, so `&&` covers all of it:
 
@@ -180,8 +182,9 @@ accounts for it.
 
    FreeBSD starts `at` jobs from `atrun`, which
    `/etc/cron.d/at` runs every five minutes, so the revert
-   lands five to ten minutes later. Where the loaded OS file names its own way
-   to arm the revert and to cancel it (Windows: a scheduled
+   lands five to ten minutes later. NetBSD's root crontab
+   runs `atrun` every ten minutes: five to fifteen. Where the loaded OS file
+   names its own way to arm the revert and to cancel it (Windows: a scheduled
    task), use that. Its arm call reports success in its
    output, not in its exit status: the apply follows in a
    call of its own, once the arm printed that it is armed.

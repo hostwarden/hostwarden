@@ -72,8 +72,10 @@ and fight for the same role.
   starting, reloading or stopping that unit wipes
   ufw's or firewalld's rules. Raw `iptables` is a
   backend, not a member. On Alpine, awall is a
-  member. FreeBSD's pf and ipfw are in base, no frontend
-  packages compete.
+  member. On Arch, `iptables.service` restoring a rule
+  file counts like native nftables. FreeBSD's pf and
+  ipfw are in base, as are NetBSD's NPF, pf and
+  IPFilter: no frontend packages compete.
 - **Container runtime:** docker.io, docker-ce,
   moby-engine, podman, containerd.io
 
@@ -137,6 +139,31 @@ package: its Service status shows whether it runs.
 `nftables` counts as a firewall manager only when the
 Enabled services listing shows it.
 
+**Arch**
+
+`pacman -Qq` prints the name of each package that is
+installed and an error line for each that is not, so
+its exit status says nothing here:
+
+```bash
+pacman -Qq apache nginx caddy lighttpd \
+  postgresql mariadb \
+  postfix exim opensmtpd \
+  msmtp-mta nullmailer \
+  chrony ntp openntpd \
+  unbound bind dnsmasq powerdns-recursor \
+  knot-resolver \
+  ufw firewalld \
+  docker podman containerd \
+  2>/dev/null
+```
+
+`systemd-timesyncd` and `systemd-resolved` are part of
+the `systemd` package: their Service status shows
+whether they run. For the firewall class, the Enabled
+services listing filtered for `nftables` and
+`iptables`.
+
 **RHEL / Fedora / SUSE**
 
 ```bash
@@ -171,6 +198,21 @@ pkg info -E 'apache*' 'nginx*' 'caddy*' \
 Note: on FreeBSD, `ntpd` and `local_unbound` ship in
 base, not as packages — check the Enabled services
 listing with `P='ntpd|local_unbound'` as well.
+
+**NetBSD**
+
+```bash
+pkg_info | grep -E \
+  '^(apache|nginx|caddy|lighttpd|postgresql|mariadb|mysql|postfix|exim|opensmtpd|msmtp|nullmailer|chrony|openntpd|unbound|bind|dnsmasq)'
+```
+
+The pattern is loose on purpose, because pkgsrc puts
+the version into some names (`postgresql16-server`):
+read the lines, a client or library package is no
+member. Postfix, `ntpd`, `named` and `unbound` ship
+in base, not as packages — check `service -e` for
+them as well (`rules/os/netbsd.md` → Service
+Manager).
 
 **macOS (Homebrew, best-effort)**
 
@@ -301,10 +343,27 @@ apk update -q && apk add --simulate <pkg>
 Each `Installing <package> (<version>)` line is one
 package of the plan.
 
+**Arch**
+
+```bash
+pacman -S --print --print-format '%n' <pkg>
+```
+
+It prints one package name per line and reads the
+local sync database, which is as old as the last full
+upgrade; never refresh it for this
+(`rules/os/arch.md` → Rolling Release).
+
 **FreeBSD**
 
 ```bash
 pkg install -n <pkg>
+```
+
+**NetBSD**
+
+```bash
+pkgin -n install <pkg>
 ```
 
 **macOS (Homebrew)**

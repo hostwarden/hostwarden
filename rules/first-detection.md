@@ -75,7 +75,9 @@ What counts as a first connection:
    - **Linux:** the os-release `ID` and `ID_LIKE`
      fields (e.g. `ubuntu` → `debian`; `centos`,
      `rocky`, `alma`, `fedora` → `rhel`; `opensuse*`
-     variants → `suse`; `alpine` → `alpine`); the
+     variants → `suse`; `alpine` → `alpine`; `arch`,
+     `cachyos`, `endeavouros`, `manjaro` and any other
+     `ID_LIKE=arch` → `arch`); the
      version from `VERSION_ID` and `PRETTY_NAME`. A
      host that matches a marker with base `none` under
      Appliances below has no family, whatever its
@@ -83,11 +85,14 @@ What counts as a first connection:
      package manager — `VARIANT_ID=coreos` beside
      `ID=fedora`, or `ID=flatcar` — although its `ID`
      points at one. If no family file matches (e.g.
-     Arch, Gentoo, those two), tell the user, proceed
+     Gentoo, Void, those two), tell the user, proceed
      cautiously with generic commands, and apply extra
      verify-before-running care.
    - **FreeBSD:** `freebsd`, version from the
      `freebsd-version` line.
+   - **NetBSD:** `netbsd`. The probe has no line for
+     its version: `uname -r` in the next call gives it
+     (`rules/os/netbsd.md` → Version Detection).
    - **macOS:** `macos`, version from the `sw_vers`
      line.
    - **Another Unix:** no family, and no family file

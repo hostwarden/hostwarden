@@ -24,7 +24,7 @@ missing.
 
 TRIM on flash, RAID array checks, ZFS and btrfs scrubs and
 `smartd` are part of the [server baseline](baseline.md): what a
-distribution schedules by itself differs — Alpine schedules none,
+distribution schedules by itself differs — Alpine and Arch schedule none,
 openSUSE only scrubs `/` — so housekeeping reports what is missing
 and bringing a server up to the baseline turns it on. A new VM
 gets its TRIM schedule at creation; nothing is set up on an

@@ -10,7 +10,8 @@ description: What Hostwarden is, how a session works, and where to go next.
 Hostwarden is a set of rules that turns an AI coding assistant —
 Claude Code, OpenCode, or another terminal tool that reads project
 files and runs shell commands — into a careful sysadmin. It manages
-Linux, FreeBSD and macOS machines over SSH or locally, and reports on
+Linux, FreeBSD, NetBSD and macOS machines over SSH or locally, and
+reports on
 Windows Server.
 
 You describe what you need in plain language. Hostwarden works out the

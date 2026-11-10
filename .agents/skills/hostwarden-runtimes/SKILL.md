@@ -156,7 +156,10 @@ the memory line below.
 ## Machine Memory Convention
 
 When mise and languages are installed, add a single
-line to the server's `memory.md`:
+line to the memory file of the account they are
+installed for, `user-<login>.md`
+(`rules/machine-memory.md` → Per-login memory), or to
+the server's `memory.md` in local mode:
 
 ```
 - mise: node@<version>, ruby@<version>

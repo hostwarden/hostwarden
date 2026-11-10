@@ -227,7 +227,6 @@ file_size() {
 # upstream_refs -- the changelog and the shipped files name the
 # upstream repository only in the origin credit
 # (.claude/rules/repo-release.md → Porting from Heinzel). The
-# trailer and the pull request body line live outside them. The
 # released decision records in docs/adr/ are never edited. The
 # credit's files may name the repository, plainly: followed by
 # more name, a path, an @ or a # it is a reference, and so is
@@ -286,6 +285,8 @@ else
 fi
 step "local SSH agent" sh tests/bin/hostwarden-agent.sh
 step "instruction layout" sh tests/instructions.sh
+step "macOS cleanup scanner" \
+  python3 -I tests/skills/hostwarden-macos-cleanup/test_scan.py
 step "decision records" python3 scripts/decisions.py --check
 step "changelog fragments" sh scripts/changelog-release.sh --check
 if [ -n "$PUSHED" ] && [ -z "$ALL" ] && ! pushed_files \

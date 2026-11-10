@@ -73,8 +73,15 @@ user with no sudoers entry and for one whose rules
 need no password for some commands only, and it
 succeeds for a rule that lets `true` alone run.
 
-On subsequent connections, check machine memory for
-the sudo flag.
+Every line this file records but `Root SSH:` goes in
+the file of the login that was probed,
+`user-<login>.md` (`rules/machine-memory.md` →
+Per-login memory): sudo rights belong to the account,
+not to the host. Local mode has one login and keeps
+them in `memory.md`. On subsequent connections, read
+the sudo flag there; a line still in `memory.md`
+counts for the login the host is reached as until it
+moves.
 
 A check that only reads takes the least privilege
 its data needs. Run it without `sudo` where every
@@ -192,7 +199,8 @@ work `rules/hypervisors.md` and
 
 The loaded OS file may have a `## Privileges` section
 that names a tool standing in for `sudo -n` where sudo
-is unusable: `doas` on Alpine (`rules/os/alpine.md`),
+is unusable: `doas` on Alpine (`rules/os/alpine.md`) and NetBSD
+(`rules/os/netbsd.md`),
 `wsl.exe -u root` on WSL (`rules/platform/wsl.md`).
 Probe it as that section says and record the line it
 gives. Where it works and sudo is unusable or covers
@@ -200,6 +208,31 @@ only some commands (Mixed Mode), it stands in for
 `sudo -n` wherever an instruction names it, for the
 whole session. It comes before the root SSH fallback,
 and in local mode before unprivileged mode.
+
+**doas.** Its probe line goes into the call of the
+sudo probe:
+
+```
+command -v doas && doas -n true && echo doas=ok
+```
+
+`doas=ok` → record `- Doas: passwordless`, otherwise
+`- Doas: requires password (unusable)`, next to the
+sudo line. doas prints no listing, so the probe sees
+only whether `true` runs: a `nopass` rule for other
+commands only reads as unusable, and one that lets
+`true` alone run, or a `deny` rule after a `nopass`
+one, reads as passwordless. doas has no mixed mode; a
+doas refusal at run time adds
+`except (refused) <command>` to the Doas line, as
+Mixed Mode does for sudo. A doas refusal is exactly
+`doas: Authentication required` (OpenDoas),
+`doas: Authorization required` (the pkgsrc and ports
+build) or `doas: Operation not permitted`. Any other
+`doas:`
+line, such as `doas: nft: command not found`, is an
+error of the call, and the same words without the
+prefix are the command's own error.
 
 A probe that runs as one non-interactive call works
 out its privilege prefix once, at its top, and never
@@ -230,7 +263,7 @@ connection too; `sudo -n true` would also pass for a
 rule that lets `true` alone run. It takes sudo
 exactly where Mixed Mode records `Sudo: passwordless`;
 every mixed line leaves `$SUDO` at a stand-in or `-`.
-The doas branch has the blind spot `rules/os/alpine.md`
+The doas branch has the blind spot Stand-ins for sudo
 names. The listing does not show an `except (refused)`
 from memory: a read whose command is one comes back
 refused under `$SUDO`, and is reported as

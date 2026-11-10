@@ -42,6 +42,10 @@ description.
 - **hostwarden-deploy-user** (`/hostwarden-deploy-user`) — Set up,
   audit or remove a dedicated account for automated deployments with
   restricted shell and sudo.
+- **hostwarden-macos-cleanup** (`/hostwarden-macos-cleanup`) — Find
+  what uninstalled apps left behind on a Mac, or uninstall one app
+  with everything it created, and move to the Trash only what you
+  confirm.
 - **hostwarden-email** (`/hostwarden-email`) — Send an email about a
   managed server with ad-hoc text and file attachments.
 - **hostwarden-heinzel-takeover** (`/hostwarden-heinzel-takeover`) —

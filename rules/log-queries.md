@@ -56,7 +56,8 @@ Hostwarden *wrote*: it finds the logins and sudo lines of the
 
 ## Without journald
 
-Alpine, FreeBSD and the appliances without systemd log to files:
+Alpine, FreeBSD, NetBSD and the appliances without systemd log
+to files:
 `## Logs` in `rules/os/<family>.md` names them and how to read
 them. The two rules above hold there.
 

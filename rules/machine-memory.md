@@ -5,7 +5,9 @@ Each machine: `memory/machines/<hostname>/` with
 optionally `rules.md` (per-machine rule
 overrides — see `rules/overrides.md`), optionally
 `decisions.md` (the user's decisions about it —
-see `rules/decisions.md`), on a
+see `rules/decisions.md`), optionally one
+`user-<login>.md` per account (below → Per-login
+memory), on a
 hypervisor `guests.md`, its guest inventory
 (`rules/hypervisors.md`), and on bare metal or a
 host with ZFS pools or btrfs `storage.md`, its disks
@@ -143,10 +145,69 @@ in-place edit whose command line carries one; the
 edit tool is judged by the file it writes, not by
 the text it puts there.
 
+## Per-login memory
+
+Two accounts on one host see different things: `root`
+and `alice` have a different home, different groups
+and sudo rights, their own runtimes and crontab. What
+holds for one account only goes in
+`memory/machines/<hostname>/user-<login>.md`, never in
+`memory.md`:
+
+```markdown
+# alice@hostname.example.com
+- Home: /home/alice
+- Groups: alice, docker
+- Sudo: NOPASSWD for selected commands (mixed):
+  /usr/bin/systemctl, /usr/bin/journalctl
+- Root-equivalent group: docker
+- mise: node@<version>, ruby@<version>
+- Crontab: nightly export at 03:10
+- Apps: ~/demo (compose project)
+- Last connected: 2026-10-30
+```
+
+- **What goes where.** The operating system, the
+  hardware, services, the firewall and system packages
+  are host facts and stay in `memory.md`. Ask whether
+  `root` would see it the same way: if so, it is a host
+  fact.
+- **The privilege lines are login lines.** `Sudo:`,
+  `Doas:`, `Privilege mode:` and
+  `Root-equivalent group:` say what one account may do,
+  so they are written to the file of the login that was
+  probed. A rule or skill that names one of them in
+  machine memory means that file. A line of the four
+  still in `memory.md` counts for the login the host is
+  reached as (`memory/user.md`) until the next write of
+  that line, which puts it in the login's file and
+  takes it out of `memory.md`. `Root SSH:` and `Shell:`
+  stay in `memory.md`: the first says whether root may
+  log in at all, the second names its user in the line.
+- **Created on need**, with the first fact that belongs
+  to one account, never for each login as such. A host
+  worked on as `root` alone usually has none.
+- **Read** `memory.md` and the file of the login this
+  session uses, in the same step. Another account's
+  file is read only when the work concerns that
+  account: its deploy user, its runtimes, its crontab.
+- **The same limits as `memory.md`:** compact, current
+  facts only, no credential values, each line worded by
+  its owner (below). `Last connected:` in it moves when
+  this session logs in as that account.
+- **Flat, with the `user-` prefix**, never a `users/`
+  directory: every other file beside `memory.md` is
+  told apart by its name, and a login called `rules`
+  or `todo` would otherwise take one.
+- **Local mode has one login.** Its facts stay in
+  `memory.md`.
+
 ## Who writes which line
 
 Each line has one owner, which gives its wording and says when
-it changes; every other rule and skill only reads it, except that
+it changes, in `memory.md` or, for the privilege lines, in the
+login's file (above → Per-login memory); every other rule and skill
+only reads it, except that
 `hostwarden-onboard` runs the owner's probe and writes the line as
 the owner gives it, and a line's own section may name one further
 mover for a narrow case — the activity check moving the timestamp
@@ -189,7 +250,7 @@ so does a host's `network.md` (`rules/network.md`).
 | `Privilege mode:`        | `privilege-escalation.md`   | privileged use   |
 | `Root-equivalent group:` | `privilege-escalation.md`   | group found      |
 | `Accounts:`              | `accounts.md`               | accounts probed  |
-| `Doas:`                  | `os/alpine.md`              | privileged use   |
+| `Doas:`                  | `privilege-escalation.md`   | privileged use   |
 | `WSL root:`              | `platform/wsl.md`           | privileged use   |
 | `Management:`            | `management-controller.md`  | first need       |
 | `DNS alias:`             | `dns-aliases.md`            | alias confirmed  |

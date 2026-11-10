@@ -16,7 +16,7 @@ order (see Layers below). A distribution no family
 covers gets no family file;
 `rules/first-detection.md` → On first connection,
 step 2, says what to do instead. Never reach for the
-nearest file — a Debian reference on an Arch host
+nearest file — a Debian reference on a Gentoo host
 prescribes the wrong package manager and the wrong
 firewall.
 
@@ -64,8 +64,8 @@ stdout and stderr on separately; never read it as
 belonging to the section it lands in.
 
 **The first line decides whether to go on.** `Linux`,
-`FreeBSD` or `Darwin` goes on with the family it
-names. The name of another Unix — `NetBSD`,
+`FreeBSD`, `NetBSD` or `Darwin` goes on with the
+family it names. The name of another Unix —
 `OpenBSD`, `DragonFly`, `SunOS` (illumos and
 Solaris), `AIX` or `HP-UX` — goes on with Another
 Unix below, but only where the reply also holds the
@@ -171,8 +171,7 @@ machine memory. Then:
   explicit request.
 - A command reported missing is looked for in
   `/sbin` and `/usr/sbin` before it counts as
-  missing: over SSH their `PATH` may lack both, as
-  NetBSD's does.
+  missing: over SSH their `PATH` may lack both.
 - Ask before every change, however small, and say in
   the question that no OS file backs it. The journal
   line and the session markers every session writes
@@ -238,7 +237,8 @@ not run on it.
 Subsequent connections run the same pipeline as the
 first (see `rules/first-connection.md`), including
 the blacklist and read-only checks. Specific to
-known servers: read the memory file, the changelog
+known servers: read the memory file, the login's
+`user-<login>.md` where there is one, the changelog
 as `rules/changelog.md` → Reading it says, and
 `todo.md` (if present) before any work, read the
 family file and the files that `Appliance:`,

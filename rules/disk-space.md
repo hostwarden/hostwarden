@@ -81,7 +81,8 @@ Re-downloadable, each after the group question:
 
 - apt: `apt-get clean`; dnf: `dnf clean packages`; yum:
   `yum clean packages`; zypper: `zypper clean`; FreeBSD: `pkg clean`; Alpine:
-  `apk cache clean`
+  `apk cache clean`; Arch: `paccache -rk2`, which keeps the two newest
+  versions of each package for a downgrade
 - tagged images no container uses: list them, keep those with a
   registry digest that the host reaches, read with
   `docker image inspect --format '{{.RepoDigests}}'` and never a
@@ -152,6 +153,11 @@ before vacuuming, say how far back it reaches now and how far back
 it will after, and that incidents older than that cannot be
 investigated. A size limit set in `journald.conf` is a config
 change (`rules/backups.md`), not a deletion.
+
+**What removed apps left behind on a Mac**, in `~/Library` and
+`/Library`, is not found by size and not judged by name here: the
+`hostwarden-macos-cleanup` skill scans for it, and runs only when
+the user asks for it.
 
 ## Asking and Doing
 

@@ -14,7 +14,7 @@ terminal-based AI tool that can read project files
 and run shell commands — and with the Code tab of the
 Claude desktop app, which runs the same Claude Code
 ([what differs there](https://hostwarden.github.io/docs/getting-started/ai-tools#claude-code-desktop)).
-It manages Linux, FreeBSD and macOS targets — remote
+It manages Linux, FreeBSD, NetBSD and macOS targets — remote
 servers over SSH and the local machine alike —
 reports on Windows Server over SSH, and runs on
 Linux, macOS and FreeBSD workstations, and on Windows
@@ -62,7 +62,7 @@ Hostwarden session looks the same.
   tflint, Trivy, Checkov and ShellCheck besides
 - Key-based SSH access to the target, with a key an
   agent holds and confirms per use, or a hardware key
-- Linux, FreeBSD or macOS on the target, or Windows
+- Linux, FreeBSD, NetBSD or macOS on the target, or Windows
   Server, where Hostwarden reports and, when asked,
   installs PowerShell 7 and sets it as the SSH shell
 - A checkout with working symbolic links
@@ -223,8 +223,10 @@ One-shot commands, auto mode and scheduled runs:
 | RHEL    | RHEL, CentOS, Fedora, Rocky, Alma | `rules/os/rhel.md`    |
 | SUSE    | openSUSE, SLES                    | `rules/os/suse.md`    |
 | Alpine  | Alpine Linux                      | `rules/os/alpine.md`  |
+| Arch    | Arch Linux, CachyOS, derivatives  | `rules/os/arch.md`    |
 | macOS   | macOS (Apple Silicon & Intel)     | `rules/os/macos.md`   |
 | FreeBSD | FreeBSD (all versions)            | `rules/os/freebsd.md` |
+| NetBSD  | NetBSD (supported releases)       | `rules/os/netbsd.md`  |
 | Windows | Windows Server, mostly read-only  | `rules/os/windows.md` |
 
 Fifteen appliances get a file of their own on top of
@@ -234,9 +236,8 @@ to a workstation's expectations rather than a
 server's: [Systems it knows](https://hostwarden.github.io/docs/features/systems/overview).
 Other distributions work too — Hostwarden applies
 general best practices and tells you which OS it
-detected. Another Unix, such as NetBSD, OpenBSD or
-illumos, is read with generic commands only, and
-Hostwarden asks before changing anything there.
+detected. Another Unix, such as OpenBSD or illumos, is read with generic
+commands only, and Hostwarden asks before changing anything there.
 
 ## Risks & Responsibilities
 

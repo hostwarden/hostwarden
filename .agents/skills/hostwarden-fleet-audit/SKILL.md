@@ -244,12 +244,16 @@ Read on demand:
 
 - Linux (Debian family) is fully covered, and Alpine, macOS
   and FreeBSD through their **Alpine**, **macOS** and
-  **FreeBSD** variants in `references/probes.md`. RHEL/SUSE
+  **FreeBSD** variants in `references/probes.md`. Arch has
+  variants for updates, the pending reboot and the MTA; its other
+  probes run as on any systemd host. RHEL/SUSE
   probes share the same shape but use
   `dnf`/`firewalld`/`zypper` equivalents. Windows hosts
   (`OS:` in memory names Windows) are skipped with a "Windows
   not yet supported" note, decided from memory before any
-  probe runs.
+  probe runs. NetBSD hosts (`Distro family: netbsd`) are
+  skipped the same way with a "NetBSD not covered" note: the
+  probes have no variant for them.
 - The audit does not check that running services are
   healthy (that is housekeeping's job). It only compares
   declared policy.

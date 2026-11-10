@@ -14,7 +14,8 @@ description: Run a Hostwarden security audit on a server — SSH
   on <host>". Do NOT auto-invoke on generic phrases like "check
   server <host>".
   Covers Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE,
-  Alpine), FreeBSD, macOS (SIP, FileVault, Gatekeeper) and
+  Alpine, Arch), FreeBSD, NetBSD, macOS (SIP, FileVault,
+  Gatekeeper) and
   Windows Server (read-only; SSH, firewall, accounts, SMBv1,
   Remote Desktop, Defender, BitLocker).
 ---
@@ -77,9 +78,14 @@ applies before any of this runs.
 
 - Several hosts in one request run as `rules/multi-host.md` says,
   which follows this skill for each host.
-- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine),
-  FreeBSD and macOS are covered by the references below; each
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE, Alpine,
+  Arch), FreeBSD and macOS are covered by the references below; each
   one has a section per family where the commands differ.
+- For a family not named above, as NetBSD, the references
+  written for `sh` apply and the loaded OS file's
+  `## Housekeeping and Audits` section says what differs; a
+  check with no variant for the host's family is reported as not
+  covered, never as passed.
 - A reference written for `sh` runs only where the loaded OS
   file uses the `sh -s` bundle (`rules/ssh-connections.md` →
   Bundle commands); elsewhere, as on Windows Server, the OS

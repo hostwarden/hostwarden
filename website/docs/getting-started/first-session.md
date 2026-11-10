@@ -133,7 +133,7 @@ Once the change is made, two records are written:
 
 - **On the server**, one sentence for your colleagues:
   `[alice as root] web1.example.com now installs security updates
-  automatically — because the server baseline expects it`.
+  automatically; because the server baseline expects it`.
 - **In your workspace**, the same headline with the detail: which files
   changed, how it was verified, and how to undo it. `memory.md` gets
   the new fact, and the workspace commit carries the headline as its

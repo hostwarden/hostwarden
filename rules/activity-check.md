@@ -508,7 +508,7 @@ user:
 ```
 Recent activity (last 7 days):
 - [2026-04-12 14:32] [hostwarden] [alice as root]
-  Installed nginx, opened port 443 — because static
+  Installed nginx, opened port 443; because static
   site launch
 - [2026-04-11 09:15] [heinzel] [bob as bob] Updated
   Node.js 22.14 → 22.15

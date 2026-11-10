@@ -181,7 +181,30 @@ without changing it; `dpkg --configure -a` and
 it again" is a guess, and for `useradd`, `cp` or a
 migration it is a second change on top of the first.
 
-## When the finding survives all seven
+### 8. A check exits 0 when it ran, whatever it found
+
+Whether a file, a package or a match exists is the
+answer, so it belongs in the output and never in the
+exit status. `ls`, `cat` and `stat` on a path that
+may be missing exit non-zero when it is, and the call
+then reads as a failed command although the check
+worked: a harness or a scheduled run that keeps exit
+codes counts it as an error, and a reader skims past
+the one line that was the answer. Test and print
+instead:
+
+    test -e /var/run/reboot-required \
+      && echo "reboot-required=yes" \
+      || echo "reboot-required=no"
+
+`grep` exits 1 when nothing matches: catch it as in 5.
+A chain joined by `;` reports the status of its last
+command alone, so one that failed earlier goes
+unseen. Give each part that can fail its own verdict
+line, or its own call. A non-zero exit is then left
+to mean one thing: the check itself did not run.
+
+## When the finding survives all eight
 
 Then it is real. Report it plainly, with the
 evidence that makes it real, and act or escalate.
